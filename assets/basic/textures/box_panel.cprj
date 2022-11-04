@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PROJECT>
+    <Image File="assets/basic/textures/box_panel.jpg">
+        <Compression Setting="box_panel_bc7" Enabled="False">
+            <Source>assets/basic/textures/box_panel.jpg</Source>
+            <Destination>assets/basic/textures/box_panel_bc7.DDS</Destination>
+            <fd>BC7</fd>
+            <Quality>0.05</Quality>
+            <WeightR>0.3086</WeightR>
+            <WeightG>0.6094</WeightG>
+            <WeightB>0.082</WeightB>
+            <AlphaThreshold>0</AlphaThreshold>
+            <BlockRate>8.00</BlockRate>
+        </Compression>
+        <Compression Setting="box_panel_bc1" Enabled="False">
+            <Source>assets/basic/textures/box_panel.jpg</Source>
+            <Destination>assets/basic/textures/results/box_panel_bc1.DDS</Destination>
+            <fd>BC1</fd>
+            <Quality>0.05</Quality>
+            <WeightR>0.3086</WeightR>
+            <WeightG>0.6094</WeightG>
+            <WeightB>0.082</WeightB>
+            <AlphaThreshold>0</AlphaThreshold>
+            <BlockRate>8.00</BlockRate>
+        </Compression>
+        <Compression Setting="box_panel_bc3" Enabled="False">
+            <Source>assets/basic/textures/box_panel.jpg</Source>
+            <Destination>assets/basic/textures/results/box_panel_bc3.DDS</Destination>
+            <fd>BC3</fd>
+            <Quality>0.05</Quality>
+            <WeightR>0.3086</WeightR>
+            <WeightG>0.6094</WeightG>
+            <WeightB>0.082</WeightB>
+            <AlphaThreshold>0</AlphaThreshold>
+            <BlockRate>8.00</BlockRate>
+        </Compression>
+        <Compression Setting="box_panel_bc4" Enabled="False">
+            <Source>assets/basic/textures/box_panel.jpg</Source>
+            <Destination>assets/basic/textures/results/box_panel_bc4.DDS</Destination>
+            <fd>BC4</fd>
+            <Quality>0.05</Quality>
+            <WeightR>0.3086</WeightR>
+            <WeightG>0.6094</WeightG>
+            <WeightB>0.082</WeightB>
+            <AlphaThreshold>0</AlphaThreshold>
+            <BlockRate>8.00</BlockRate>
+        </Compression>
+        <Compression Setting="box_panel_bc5" Enabled="False">
+            <Source>assets/basic/textures/box_panel.jpg</Source>
+            <Destination>assets/basic/textures/results/box_panel_bc5.DDS</Destination>
+            <fd>BC5</fd>
+            <Quality>0.05</Quality>
+            <WeightR>0.3086</WeightR>
+            <WeightG>0.6094</WeightG>
+            <WeightB>0.082</WeightB>
+            <AlphaThreshold>0</AlphaThreshold>
+            <BlockRate>8.00</BlockRate>
+        </Compression>
+        <Compression Setting="box_panel_bc6h" Enabled="False">
+            <Source>assets/basic/textures/box_panel.jpg</Source>
+            <Destination>assets/basic/textures/results/box_panel_bc6h.DDS</Destination>
+            <fd>BC6H</fd>
+            <Quality>0.05</Quality>
+            <WeightR>0.3086</WeightR>
+            <WeightG>0.6094</WeightG>
+            <WeightB>0.082</WeightB>
+            <AlphaThreshold>0</AlphaThreshold>
+            <BlockRate>8.00</BlockRate>
+        </Compression>
+        <Compression Setting="box_panel_bc6h_sf" Enabled="False">
+            <Source>assets/basic/textures/box_panel.jpg</Source>
+            <Destination>assets/basic/textures/results/box_panel_bc6h_sf.DDS</Destination>
+            <fd>BC6H_SF</fd>
+            <Quality>0.05</Quality>
+            <WeightR>0.3086</WeightR>
+            <WeightG>0.6094</WeightG>
+            <WeightB>0.082</WeightB>
+            <AlphaThreshold>0</AlphaThreshold>
+            <BlockRate>8.00</BlockRate>
+        </Compression>
+        <Compression Setting="box_panel_bc2" Enabled="False">
+            <Source>assets/basic/textures/box_panel.jpg</Source>
+            <Destination>assets/basic/textures/results/box_panel_bc2.DDS</Destination>
+            <fd>BC2</fd>
+            <Quality>0.05</Quality>
+            <WeightR>0.3086</WeightR>
+            <WeightG>0.6094</WeightG>
+            <WeightB>0.082</WeightB>
+            <AlphaThreshold>0</AlphaThreshold>
+            <BlockRate>8.00</BlockRate>
+        </Compression>
+    </Image>
+</PROJECT>

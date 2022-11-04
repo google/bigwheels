@@ -1,0 +1,48 @@
+name: Windows build
+
+on:
+  pull_request:
+
+# Cancel previous runs if a more recent commit is pushed.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref }}
+  cancel-in-progress: true
+
+permissions: read-all
+
+jobs:
+  windows-build:
+    name: Build and run unit tests on Windows
+    runs-on: "windows-2019"
+    steps:
+      - uses: GuillaumeFalourd/setup-windows10-sdk-action@v1.7
+        with:
+          sdk-version: 22621
+      - name: Setup Vulkan SDK
+        run: |
+          Start-BitsTransfer -Source https://sdk.lunarg.com/sdk/download/1.3.216.0/windows/VulkanSDK-1.3.216.0-Installer.exe
+          .\VulkanSDK-1.3.216.0-Installer.exe install --accept-licenses --default-answer --confirm-command --root "$HOME\vulkan-sdk"
+          "VULKAN_SDK=${HOME}\vulkan-sdk" >> $env:GITHUB_ENV
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: '0'
+      - name: Switch to pull request branch and clone submodules
+        run: |
+          git checkout ${GITHUB_SHA}
+          git submodule update --init --recursive
+      - name: Build
+        run: |
+          mkdir build
+          cd build
+          cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_SYSTEM_VERSION=10.0.22621.0 -DPPX_BUILD_TESTS=ON ..
+
+          # We only build DX12 projects since there is no benefit in building
+          # the targets for other APIs unless we're running them.
+          # We also build all shaders targets, irrespective of the API, to
+          # ensure shader compilation succeeds.
+          cmake --build . --target all-shaders all-dx12 build-tests --config Release -- /nologo /verbosity:minimal /maxcpucount
+      - name: Run unit tests
+        run: |
+          cd build
+          cmake --build . --target RUN_TESTS --config Release -- /nologo /verbosity:minimal /maxcpucount

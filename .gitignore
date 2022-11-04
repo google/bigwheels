@@ -1,0 +1,17 @@
+*.swp
+.DS_Store
+.vscode/
+build-*/
+.vs/
+bin/
+/test/
+lib/
+out/
+*.log
+CMakeSettings.json
+*.dxil
+*.spv
+*.dxbc
+*.dxbc50
+*.dxbc51
+__pycache__

@@ -1,0 +1,52 @@
+name: Linux build
+
+on:
+  pull_request:
+
+# Cancel previous runs if a more recent commit is pushed.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref }}
+  cancel-in-progress: true
+
+permissions: read-all
+
+jobs:
+  linux-build:
+    name: Build and run tests on Linux
+    runs-on: "ubuntu-20.04"
+    steps:
+      - name: Setup necessary packages
+        run: |
+          sudo apt install libxrandr-dev libxinerama-dev libx11-dev libxcursor-dev libxi-dev libx11-xcb-dev clang \
+          mesa-vulkan-drivers
+      - name: Setup Vulkan SDK
+        run: |
+          wget -q https://sdk.lunarg.com/sdk/download/1.3.216.0/linux/vulkansdk-linux-x86_64-1.3.216.0.tar.gz
+          mkdir "${HOME}/vulkan-sdk"
+          tar -xf vulkansdk-linux-x86_64-1.3.216.0.tar.gz -C "${HOME}/vulkan-sdk"
+          echo "VULKAN_SDK=${HOME}/vulkan-sdk/1.3.216.0/x86_64" >> $GITHUB_ENV
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: '0'
+      - name: Switch to pull request branch and clone submodules
+        run: |
+          git checkout ${GITHUB_SHA}
+          git submodule update --init --recursive
+      - name: Build
+        run: |
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DPPX_BUILD_TESTS=ON
+          make -j $(nproc)
+      - name: Run unit tests
+        run: |
+          cd build
+          ctest -j $(nproc)
+      - name: Run runtime tests
+        run: |
+          cd build/bin
+          xvfb-run -a ./vk_03_square_textured --frame-count 2
+          xvfb-run -a ./vk_09_obj_geometry --frame-count 2
+          xvfb-run -a ./vk_13_normal_map --frame-count 2
+          xvfb-run -a ./vk_fishtornado --frame-count 2
