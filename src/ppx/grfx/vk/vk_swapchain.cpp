@@ -203,160 +203,200 @@ uint32_t Surface::GetMaxImageCount() const
 // -------------------------------------------------------------------------------------------------
 Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
 {
-    // Surface capabilities check
-    {
-        bool                            isImageCountValid = false;
-        const VkSurfaceCapabilitiesKHR& caps              = ToApi(pCreateInfo->pSurface)->GetCapabilities();
-        if (caps.maxImageCount > 0) {
-            bool isInBoundsMin = (pCreateInfo->imageCount >= caps.minImageCount);
-            bool isInBoundsMax = (pCreateInfo->imageCount <= caps.maxImageCount);
-            isImageCountValid  = isInBoundsMin && isInBoundsMax;
-        }
-        else {
-            isImageCountValid = (pCreateInfo->imageCount >= caps.minImageCount);
-        }
-        if (!isImageCountValid) {
-            PPX_ASSERT_MSG(false, "Invalid swapchain image count");
-            return ppx::ERROR_INVALID_CREATE_ARGUMENT;
-        }
+    uint32_t             imageCount = 0;
+    std::vector<VkImage> images;
+    VkResult             vkres;
 
-        //if (
-        //if ((pCreateInfo->imageCount < caps.minImageCount) || (pCreateInfo->imageCount > caps.maxImageCount)) {
-        //    PPX_ASSERT_MSG(false, "Invalid swapchain image count");
-        //    return ppx::ERROR_INVALID_CREATE_ARGUMENT;
-        //}
+#if defined(PPX_BUILD_XR)
+    const bool isXREnabled = (mCreateInfo.pXrComponent != nullptr);
+    if (isXREnabled) {
+        const XrComponent& xrComponent = *mCreateInfo.pXrComponent;
+
+        XrSwapchainCreateInfo info = {XR_TYPE_SWAPCHAIN_CREATE_INFO};
+        info.arraySize             = 1;
+        info.mipCount              = 1;
+        info.faceCount             = 1;
+        info.format                = ToVkFormat(xrComponent.GetColorFormat());
+        info.width                 = xrComponent.GetWidth();
+        info.height                = xrComponent.GetHeight();
+        info.sampleCount           = xrComponent.GetSampleCount();
+        info.usageFlags            = XR_SWAPCHAIN_USAGE_SAMPLED_BIT | XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT;
+        CHECK_XR_CALL(xrCreateSwapchain(xrComponent.GetSession(), &info, &mXrSwapchain));
+
+        // Find out how many textures were generated for the swapchain
+        CHECK_XR_CALL(xrEnumerateSwapchainImages(mXrSwapchain, 0, &imageCount, nullptr));
+        images.resize(imageCount);
+        std::vector<XrSwapchainImageVulkanKHR> surfaceImages;
+        surfaceImages.resize(imageCount, {XR_TYPE_SWAPCHAIN_IMAGE_VULKAN_KHR});
+        CHECK_XR_CALL(xrEnumerateSwapchainImages(mXrSwapchain, imageCount, &imageCount, (XrSwapchainImageBaseHeader*)surfaceImages.data()));
+        for (uint32_t i = 0; i < imageCount; i++) {
+            images[i] = surfaceImages[i].image;
+        }
     }
-
-    // Surface format
-    VkSurfaceFormatKHR surfaceFormat = {};
+    else
+#endif
     {
-        VkFormat format = ToVkFormat(pCreateInfo->colorFormat);
-        if (format == VK_FORMAT_UNDEFINED) {
-            PPX_ASSERT_MSG(false, "Invalid swapchain format");
-            return ppx::ERROR_INVALID_CREATE_ARGUMENT;
+        // Surface capabilities check
+        {
+            bool                            isImageCountValid = false;
+            const VkSurfaceCapabilitiesKHR& caps              = ToApi(pCreateInfo->pSurface)->GetCapabilities();
+            if (caps.maxImageCount > 0) {
+                bool isInBoundsMin = (pCreateInfo->imageCount >= caps.minImageCount);
+                bool isInBoundsMax = (pCreateInfo->imageCount <= caps.maxImageCount);
+                isImageCountValid  = isInBoundsMin && isInBoundsMax;
+            }
+            else {
+                isImageCountValid = (pCreateInfo->imageCount >= caps.minImageCount);
+            }
+            if (!isImageCountValid) {
+                PPX_ASSERT_MSG(false, "Invalid swapchain image count");
+                return ppx::ERROR_INVALID_CREATE_ARGUMENT;
+            }
+
+            // if (
+            // if ((pCreateInfo->imageCount < caps.minImageCount) || (pCreateInfo->imageCount > caps.maxImageCount)) {
+            //      PPX_ASSERT_MSG(false, "Invalid swapchain image count");
+            //      return ppx::ERROR_INVALID_CREATE_ARGUMENT;
+            //}
         }
 
-        const std::vector<VkSurfaceFormatKHR>& surfaceFormats = ToApi(pCreateInfo->pSurface)->GetSurfaceFormats();
-        auto                                   it             = std::find_if(
-            std::begin(surfaceFormats),
-            std::end(surfaceFormats),
-            [format](const VkSurfaceFormatKHR& elem) -> bool {
+        // Surface format
+        VkSurfaceFormatKHR surfaceFormat = {};
+        {
+            VkFormat format = ToVkFormat(pCreateInfo->colorFormat);
+            if (format == VK_FORMAT_UNDEFINED) {
+                PPX_ASSERT_MSG(false, "Invalid swapchain format");
+                return ppx::ERROR_INVALID_CREATE_ARGUMENT;
+            }
+
+            const std::vector<VkSurfaceFormatKHR>& surfaceFormats = ToApi(pCreateInfo->pSurface)->GetSurfaceFormats();
+            auto                                   it             = std::find_if(
+                std::begin(surfaceFormats),
+                std::end(surfaceFormats),
+                [format](const VkSurfaceFormatKHR& elem) -> bool {
                 bool isMatch = (elem.format == format);
                 return isMatch; });
 
-        if (it == std::end(surfaceFormats)) {
-            PPX_ASSERT_MSG(false, "Unsupported swapchain format");
+            if (it == std::end(surfaceFormats)) {
+                PPX_ASSERT_MSG(false, "Unsupported swapchain format");
+                return ppx::ERROR_INVALID_CREATE_ARGUMENT;
+            }
+
+            surfaceFormat = *it;
+        }
+
+        // Present mode
+        VkPresentModeKHR presentMode = ToVkPresentMode(pCreateInfo->presentMode);
+        if (presentMode == ppx::InvalidValue<VkPresentModeKHR>()) {
+            PPX_ASSERT_MSG(false, "Invalid swapchain present mode");
             return ppx::ERROR_INVALID_CREATE_ARGUMENT;
         }
+        // Fall back if present mode isn't supported
+        {
+            uint32_t count = 0;
+            VkResult vkres = vkGetPhysicalDeviceSurfacePresentModesKHR(
+                ToApi(GetDevice()->GetGpu())->GetVkGpu(),
+                ToApi(pCreateInfo->pSurface)->GetVkSurface(),
+                &count,
+                nullptr);
+            if (vkres != VK_SUCCESS) {
+                PPX_ASSERT_MSG(false, "vkCreateSwapchainKHR failed: " << ToString(vkres));
+                return ppx::ERROR_API_FAILURE;
+            }
 
-        surfaceFormat = *it;
-    }
+            std::vector<VkPresentModeKHR> presentModes(count);
+            vkres = vkGetPhysicalDeviceSurfacePresentModesKHR(
+                ToApi(GetDevice()->GetGpu())->GetVkGpu(),
+                ToApi(pCreateInfo->pSurface)->GetVkSurface(),
+                &count,
+                presentModes.data());
+            if (vkres != VK_SUCCESS) {
+                PPX_ASSERT_MSG(false, "vkCreateSwapchainKHR failed: " << ToString(vkres));
+                return ppx::ERROR_API_FAILURE;
+            }
 
-    // Present mode
-    VkPresentModeKHR presentMode = ToVkPresentMode(pCreateInfo->presentMode);
-    if (presentMode == ppx::InvalidValue<VkPresentModeKHR>()) {
-        PPX_ASSERT_MSG(false, "Invalid swapchain present mode");
-        return ppx::ERROR_INVALID_CREATE_ARGUMENT;
-    }
-    // Fall back if present mode isn't supported
-    {
-        uint32_t count = 0;
-        VkResult vkres = vkGetPhysicalDeviceSurfacePresentModesKHR(
-            ToApi(GetDevice()->GetGpu())->GetVkGpu(),
-            ToApi(pCreateInfo->pSurface)->GetVkSurface(),
-            &count,
-            nullptr);
-        if (vkres != VK_SUCCESS) {
-            PPX_ASSERT_MSG(false, "vkCreateSwapchainKHR failed: " << ToString(vkres));
-            return ppx::ERROR_API_FAILURE;
-        }
-
-        std::vector<VkPresentModeKHR> presentModes(count);
-        vkres = vkGetPhysicalDeviceSurfacePresentModesKHR(
-            ToApi(GetDevice()->GetGpu())->GetVkGpu(),
-            ToApi(pCreateInfo->pSurface)->GetVkSurface(),
-            &count,
-            presentModes.data());
-        if (vkres != VK_SUCCESS) {
-            PPX_ASSERT_MSG(false, "vkCreateSwapchainKHR failed: " << ToString(vkres));
-            return ppx::ERROR_API_FAILURE;
-        }
-
-        bool supported = false;
-        for (uint32_t i = 0; i < count; ++i) {
-            if (presentMode == presentModes[i]) {
-                supported = true;
-                break;
+            bool supported = false;
+            for (uint32_t i = 0; i < count; ++i) {
+                if (presentMode == presentModes[i]) {
+                    supported = true;
+                    break;
+                }
+            }
+            if (!supported) {
+                PPX_LOG_WARN("Switching Vulkan present mode to VK_PRESENT_MODE_FIFO_KHR because " << ToString(presentMode) << " is not supported");
+                presentMode = VK_PRESENT_MODE_FIFO_KHR;
             }
         }
-        if (!supported) {
-            PPX_LOG_WARN("Switching Vulkan present mode to VK_PRESENT_MODE_FIFO_KHR because " << ToString(presentMode) << " is not supported");
-            presentMode = VK_PRESENT_MODE_FIFO_KHR;
-        }
-    }
 
-    // Image usage
-    //
-    // NOTE: D3D12 support for DXGI_USAGE_UNORDERED_ACCESS is pretty spotty
-    //       so we'll leave out VK_IMAGE_USAGE_STORAGE_BIT for now to
-    //       keep the swwapchains between D3D12 and Vulkan as equivalent as
-    //       possible.
-    //
-    VkImageUsageFlags usageFlags =
-        VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-        VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-        VK_IMAGE_USAGE_SAMPLED_BIT |
-        VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        // Image usage
+        //
+        // NOTE: D3D12 support for DXGI_USAGE_UNORDERED_ACCESS is pretty spotty
+        //       so we'll leave out VK_IMAGE_USAGE_STORAGE_BIT for now to
+        //       keep the swwapchains between D3D12 and Vulkan as equivalent as
+        //       possible.
+        //
+        VkImageUsageFlags usageFlags =
+            VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+            VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+            VK_IMAGE_USAGE_SAMPLED_BIT |
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-    // Create swapchain
-    VkSwapchainCreateInfoKHR vkci = {VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
-    vkci.pNext                    = nullptr;
-    vkci.flags                    = 0;
-    vkci.surface                  = ToApi(pCreateInfo->pSurface)->GetVkSurface();
-    vkci.minImageCount            = pCreateInfo->imageCount;
-    vkci.imageFormat              = surfaceFormat.format;
-    vkci.imageColorSpace          = surfaceFormat.colorSpace;
-    vkci.imageExtent              = {pCreateInfo->width, pCreateInfo->height};
-    vkci.imageArrayLayers         = 1;
-    vkci.imageUsage               = usageFlags;
-    vkci.imageSharingMode         = VK_SHARING_MODE_EXCLUSIVE;
-    vkci.queueFamilyIndexCount    = 0;
-    vkci.pQueueFamilyIndices      = nullptr;
-    vkci.preTransform             = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-    vkci.compositeAlpha           = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    vkci.presentMode              = presentMode;
-    vkci.clipped                  = VK_FALSE;
-    vkci.oldSwapchain             = VK_NULL_HANDLE;
+        // Create swapchain
+        VkSwapchainCreateInfoKHR vkci = {VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR};
+        vkci.pNext                    = nullptr;
+        vkci.flags                    = 0;
+        vkci.surface                  = ToApi(pCreateInfo->pSurface)->GetVkSurface();
+        vkci.minImageCount            = pCreateInfo->imageCount;
+        vkci.imageFormat              = surfaceFormat.format;
+        vkci.imageColorSpace          = surfaceFormat.colorSpace;
+        vkci.imageExtent              = {pCreateInfo->width, pCreateInfo->height};
+        vkci.imageArrayLayers         = 1;
+        vkci.imageUsage               = usageFlags;
+        vkci.imageSharingMode         = VK_SHARING_MODE_EXCLUSIVE;
+        vkci.queueFamilyIndexCount    = 0;
+        vkci.pQueueFamilyIndices      = nullptr;
+        vkci.preTransform             = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+        vkci.compositeAlpha           = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        vkci.presentMode              = presentMode;
+        vkci.clipped                  = VK_FALSE;
+        vkci.oldSwapchain             = VK_NULL_HANDLE;
 
-    VkResult vkres = vkCreateSwapchainKHR(
-        ToApi(GetDevice())->GetVkDevice(),
-        &vkci,
-        nullptr,
-        &mSwapchain);
-    if (vkres != VK_SUCCESS) {
-        PPX_ASSERT_MSG(false, "vkCreateSwapchainKHR failed: " << ToString(vkres));
-        return ppx::ERROR_API_FAILURE;
-    }
-
-    uint32_t imageCount = 0;
-    vkres               = vkGetSwapchainImagesKHR(ToApi(GetDevice())->GetVkDevice(), mSwapchain, &imageCount, nullptr);
-    if (vkres != VK_SUCCESS) {
-        PPX_ASSERT_MSG(false, "vkGetSwapchainImagesKHR(0) failed: " << ToString(vkres));
-        return ppx::ERROR_API_FAILURE;
-    }
-    PPX_LOG_INFO("Vulkan swapchain image count: " << imageCount);
-
-    std::vector<VkImage> images(imageCount);
-    if (imageCount > 0) {
-        vkres = vkGetSwapchainImagesKHR(ToApi(GetDevice())->GetVkDevice(), mSwapchain, &imageCount, images.data());
+        vkres = vkCreateSwapchainKHR(
+            ToApi(GetDevice())->GetVkDevice(),
+            &vkci,
+            nullptr,
+            &mSwapchain);
         if (vkres != VK_SUCCESS) {
-            PPX_ASSERT_MSG(false, "vkGetSwapchainImagesKHR(1) failed: " << ToString(vkres));
+            PPX_ASSERT_MSG(false, "vkCreateSwapchainKHR failed: " << ToString(vkres));
             return ppx::ERROR_API_FAILURE;
+        }
+
+        vkres = vkGetSwapchainImagesKHR(ToApi(GetDevice())->GetVkDevice(), mSwapchain, &imageCount, nullptr);
+        if (vkres != VK_SUCCESS) {
+            PPX_ASSERT_MSG(false, "vkGetSwapchainImagesKHR(0) failed: " << ToString(vkres));
+            return ppx::ERROR_API_FAILURE;
+        }
+        PPX_LOG_INFO("Vulkan swapchain image count: " << imageCount);
+
+        if (imageCount > 0) {
+            images.resize(imageCount);
+            vkres = vkGetSwapchainImagesKHR(ToApi(GetDevice())->GetVkDevice(), mSwapchain, &imageCount, images.data());
+            if (vkres != VK_SUCCESS) {
+                PPX_ASSERT_MSG(false, "vkGetSwapchainImagesKHR(1) failed: " << ToString(vkres));
+                return ppx::ERROR_API_FAILURE;
+            }
         }
     }
 
     // Transition images from VK_IMAGE_LAYOUT_UNDEFINED to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
     {
+        VkImageLayout newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+#if defined(PPX_BUILD_XR)
+        // We do not present for XR render targets
+        if (isXREnabled) {
+            newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        }
+#endif
         vk::Queue* pQueue = ToApi(pCreateInfo->pQueue);
         for (uint32_t i = 0; i < imageCount; ++i) {
             vkres = pQueue->TransitionImageLayout(
@@ -367,7 +407,7 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
                 0,                                  // baseArrayLayer
                 1,                                  // layerCount
                 VK_IMAGE_LAYOUT_UNDEFINED,          // oldLayout
-                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,    // newLayout
+                newLayout,                          // newLayout
                 VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT); // newPipelineStage)
             if (vkres != VK_SUCCESS) {
                 PPX_ASSERT_MSG(false, "vk::Queue::TransitionImageLayout failed: " << ToString(vkres));
@@ -422,7 +462,7 @@ void Swapchain::DestroyApiObjects()
     }
 }
 
-Result Swapchain::AcquireNextImage(
+Result Swapchain::AcquireNextImageInternal(
     uint64_t         timeout,
     grfx::Semaphore* pSemaphore,
     grfx::Fence*     pFence,

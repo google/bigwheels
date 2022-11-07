@@ -40,3 +40,8 @@ add_subdirectory(23_async_compute)
 add_subdirectory(27_mipmap_demo)
 add_subdirectory(alloc)
 add_subdirectory(fishtornado)
+
+if (PPX_BUILD_XR)
+add_subdirectory(04_cube_xr)
+add_subdirectory(fishtornado_xr)
+endif()

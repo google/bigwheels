@@ -164,6 +164,12 @@ Result Instance::ConfigureLayersAndExtensions(const grfx::InstanceCreateInfo* pC
         }
     }
 
+#if defined(PPX_BUILD_XR)
+    if (isXREnabled()) {
+        mExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+    }
+#endif
+
     // Debug layer and extension
     if (pCreateInfo->enableDebug) {
         mLayers.push_back(VK_LAYER_KHRONOS_VALIDATION_NAME);
@@ -221,13 +227,13 @@ Result Instance::CreateDebugUtils(const grfx::InstanceCreateInfo* pCreateInfo)
         }
 
         VkDebugUtilsMessengerCreateInfoEXT vkci = {VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
-        //vkci.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
-        //vkci.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+        // vkci.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
+        // vkci.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
         vkci.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
         vkci.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-        //vkci.messageType |= VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;
+        // vkci.messageType |= VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;
         vkci.messageType |= VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
-        //vkci.messageType |= VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        // vkci.messageType |= VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
         vkci.pfnUserCallback = vk::DebugUtilsMessengerCallback;
 
         VkResult vkres = mFnCreateDebugUtilsMessengerEXT(mInstance, &vkci, nullptr, &mMessenger);
@@ -244,38 +250,75 @@ Result Instance::EnumerateAndCreateeGpus()
 {
     PPX_ASSERT_MSG(!mCreateInfo.useSoftwareRenderer, "A software renderer was requested but it is not available in Vulkan.");
 
-    uint32_t count = 0;
-    VkResult vkres = vkEnumeratePhysicalDevices(mInstance, &count, nullptr);
-    PPX_ASSERT_MSG((vkres == VK_SUCCESS), "vkEnumeratePhysicalDevices(0) failed");
-    if (vkres == VK_SUCCESS) {
-        if (count == 0) {
-            return ppx::ERROR_NO_GPUS_FOUND;
+#if defined(PPX_BUILD_XR)
+    if (isXREnabled()) {
+        const XrComponent&               xrComponent = *mCreateInfo.pXrComponent;
+        VkPhysicalDevice                 physicalDevice;
+        XrVulkanGraphicsDeviceGetInfoKHR deviceGetInfo{XR_TYPE_VULKAN_GRAPHICS_DEVICE_GET_INFO_KHR};
+        deviceGetInfo.systemId                                           = xrComponent.GetSystemId();
+        deviceGetInfo.vulkanInstance                                     = mInstance;
+        PFN_xrGetVulkanGraphicsDevice2KHR pfnGetVulkanGraphicsDevice2KHR = nullptr;
+        CHECK_XR_CALL(xrGetInstanceProcAddr(xrComponent.GetInstance(), "xrGetVulkanGraphicsDevice2KHR", reinterpret_cast<PFN_xrVoidFunction*>(&pfnGetVulkanGraphicsDevice2KHR)));
+        PPX_ASSERT_MSG(pfnGetVulkanGraphicsDevice2KHR != nullptr, "Cannot get xrGetVulkanGraphicsDevice2KHR function pointer!");
+        CHECK_XR_CALL(pfnGetVulkanGraphicsDevice2KHR(xrComponent.GetInstance(), &deviceGetInfo, &physicalDevice));
+
+        grfx::internal::GpuCreateInfo gpuCreateInfo = {};
+        gpuCreateInfo.pApiObject                    = static_cast<void*>(physicalDevice);
+        grfx::GpuPtr tmpGpu;
+        Result       ppxres = CreateGpu(&gpuCreateInfo, &tmpGpu);
+        if (Failed(ppxres)) {
+            PPX_ASSERT_MSG(false, "Failed creating GPU object! ");
+            return ppxres;
         }
+        PPX_LOG_INFO("   "
+                     << "graphics queue count : " << tmpGpu->GetGraphicsQueueCount());
+        PPX_LOG_INFO("   "
+                     << "compute  queue count : " << tmpGpu->GetComputeQueueCount());
+        PPX_LOG_INFO("   "
+                     << "transfer queue count : " << tmpGpu->GetTransferQueueCount());
 
-        std::vector<VkPhysicalDevice> physicalDevices(count);
-        vkres = vkEnumeratePhysicalDevices(mInstance, &count, physicalDevices.data());
-        PPX_ASSERT_MSG((vkres == VK_SUCCESS), "vkEnumeratePhysicalDevices(1) failed");
+        mXrGraphicsBinding.instance         = mInstance;
+        mXrGraphicsBinding.physicalDevice   = physicalDevice;
+        mXrGraphicsBinding.device           = VK_NULL_HANDLE;
+        mXrGraphicsBinding.queueFamilyIndex = ToApi(tmpGpu)->GetGraphicsQueueFamilyIndex();
+        mXrGraphicsBinding.queueIndex       = 0; // TODO(wangra): find a better way to handle this
+    }
+    else
+#endif
+    {
+        uint32_t count = 0;
+        VkResult vkres = vkEnumeratePhysicalDevices(mInstance, &count, nullptr);
+        PPX_ASSERT_MSG((vkres == VK_SUCCESS), "vkEnumeratePhysicalDevices(0) failed");
         if (vkres == VK_SUCCESS) {
-            for (uint32_t i = 0; i < count; ++i) {
-                VkPhysicalDeviceProperties deviceProperties = {};
-                vkGetPhysicalDeviceProperties(physicalDevices[i], &deviceProperties);
-                PPX_LOG_INFO("Found GPU [" << i << "]: " << deviceProperties.deviceName);
+            if (count == 0) {
+                return ppx::ERROR_NO_GPUS_FOUND;
+            }
 
-                grfx::internal::GpuCreateInfo gpuCreateInfo = {};
-                gpuCreateInfo.pApiObject                    = static_cast<void*>(physicalDevices[i]);
+            std::vector<VkPhysicalDevice> physicalDevices(count);
+            vkres = vkEnumeratePhysicalDevices(mInstance, &count, physicalDevices.data());
+            PPX_ASSERT_MSG((vkres == VK_SUCCESS), "vkEnumeratePhysicalDevices(1) failed");
+            if (vkres == VK_SUCCESS) {
+                for (uint32_t i = 0; i < count; ++i) {
+                    VkPhysicalDeviceProperties deviceProperties = {};
+                    vkGetPhysicalDeviceProperties(physicalDevices[i], &deviceProperties);
+                    PPX_LOG_INFO("Found GPU [" << i << "]: " << deviceProperties.deviceName);
 
-                grfx::GpuPtr tmpGpu;
-                Result       ppxres = CreateGpu(&gpuCreateInfo, &tmpGpu);
-                if (Failed(ppxres)) {
-                    PPX_ASSERT_MSG(false, "Failed creating GPU object using " << deviceProperties.deviceName);
-                    return ppxres;
+                    grfx::internal::GpuCreateInfo gpuCreateInfo = {};
+                    gpuCreateInfo.pApiObject                    = static_cast<void*>(physicalDevices[i]);
+
+                    grfx::GpuPtr tmpGpu;
+                    Result       ppxres = CreateGpu(&gpuCreateInfo, &tmpGpu);
+                    if (Failed(ppxres)) {
+                        PPX_ASSERT_MSG(false, "Failed creating GPU object using " << deviceProperties.deviceName);
+                        return ppxres;
+                    }
+                    PPX_LOG_INFO("   "
+                                 << "graphics queue count : " << tmpGpu->GetGraphicsQueueCount());
+                    PPX_LOG_INFO("   "
+                                 << "compute  queue count : " << tmpGpu->GetComputeQueueCount());
+                    PPX_LOG_INFO("   "
+                                 << "transfer queue count : " << tmpGpu->GetTransferQueueCount());
                 }
-                PPX_LOG_INFO("   "
-                             << "graphics queue count : " << tmpGpu->GetGraphicsQueueCount());
-                PPX_LOG_INFO("   "
-                             << "compute  queue count : " << tmpGpu->GetComputeQueueCount());
-                PPX_LOG_INFO("   "
-                             << "transfer queue count : " << tmpGpu->GetTransferQueueCount());
             }
         }
     }
@@ -359,27 +402,55 @@ Result Instance::CreateApiObjects(const grfx::InstanceCreateInfo* pCreateInfo)
         }
     }
 
-    vkres = vkCreateInstance(&vkci, nullptr, &mInstance);
+#if defined(PPX_BUILD_XR)
+    if (isXREnabled()) {
+        mXrGraphicsBinding = {XR_TYPE_GRAPHICS_BINDING_VULKAN2_KHR, nullptr, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, UINT32_MAX, UINT32_MAX};
+        PPX_ASSERT_MSG(pCreateInfo->pXrComponent != nullptr, "XrComponent should not be nullptr!");
+        const XrComponent& xrComponent = *pCreateInfo->pXrComponent;
+        // TODO(wangra): Can verify versions if required
+        XrGraphicsRequirementsVulkan2KHR        graphicsRequirements{XR_TYPE_GRAPHICS_REQUIREMENTS_VULKAN2_KHR};
+        PFN_xrGetVulkanGraphicsRequirements2KHR pfnGetVulkanGraphicsRequirements2KHR = nullptr;
+        CHECK_XR_CALL(xrGetInstanceProcAddr(xrComponent.GetInstance(), "xrGetVulkanGraphicsRequirements2KHR", reinterpret_cast<PFN_xrVoidFunction*>(&pfnGetVulkanGraphicsRequirements2KHR)));
+        PPX_ASSERT_MSG(pfnGetVulkanGraphicsRequirements2KHR != nullptr, "Cannot get xrGetVulkanGraphicsRequirements2KHR function pointer!");
+        CHECK_XR_CALL(pfnGetVulkanGraphicsRequirements2KHR(xrComponent.GetInstance(), xrComponent.GetSystemId(), &graphicsRequirements));
+
+        // Create Vulkan Instance
+        XrVulkanInstanceCreateInfoKHR createInfo{XR_TYPE_VULKAN_INSTANCE_CREATE_INFO_KHR};
+        createInfo.systemId                                      = xrComponent.GetSystemId();
+        createInfo.pfnGetInstanceProcAddr                        = &vkGetInstanceProcAddr;
+        createInfo.vulkanCreateInfo                              = &vkci;
+        createInfo.vulkanAllocator                               = nullptr;
+        PFN_xrCreateVulkanInstanceKHR pfnCreateVulkanInstanceKHR = nullptr;
+        CHECK_XR_CALL(xrGetInstanceProcAddr(xrComponent.GetInstance(), "xrCreateVulkanInstanceKHR", reinterpret_cast<PFN_xrVoidFunction*>(&pfnCreateVulkanInstanceKHR)));
+        PPX_ASSERT_MSG(pfnCreateVulkanInstanceKHR != nullptr, "Cannot get xrCreateVulkanInstanceKHR function pointer!");
+        CHECK_XR_CALL(pfnCreateVulkanInstanceKHR(xrComponent.GetInstance(), &createInfo, &mInstance, &vkres));
+    }
+    else
+#endif
+    {
+        vkres = vkCreateInstance(&vkci, nullptr, &mInstance);
+    }
+
     if (vkres != VK_SUCCESS) {
         // clang-format off
-    std::stringstream ss;
-    ss << "vkCreateInstance failed: " << ToString(vkres);
-    if (vkres == VK_ERROR_LAYER_NOT_PRESENT) {
-        std::vector<std::string> missing = GetNotFound(mLayers, mFoundLayers);
-        ss << PPX_LOG_ENDL;
-        ss << "  " << "Layer(s) not found:" << PPX_LOG_ENDL;
-        for (auto& elem : missing) {
-            ss << "  " << "  " << elem << PPX_LOG_ENDL;
+        std::stringstream ss;
+        ss << "vkCreateInstance failed: " << ToString(vkres);
+        if (vkres == VK_ERROR_LAYER_NOT_PRESENT) {
+            std::vector<std::string> missing = GetNotFound(mLayers, mFoundLayers);
+            ss << PPX_LOG_ENDL;
+            ss << "  " << "Layer(s) not found:" << PPX_LOG_ENDL;
+            for (auto& elem : missing) {
+                ss << "  " << "  " << elem << PPX_LOG_ENDL;
+            }
         }
-    }
-    else if (vkres == VK_ERROR_EXTENSION_NOT_PRESENT) {
-        std::vector<std::string> missing = GetNotFound(mExtensions, mFoundExtensions);
-        ss << PPX_LOG_ENDL;
-        ss << "  " << "Extension(s) not found:" << PPX_LOG_ENDL;
-        for (auto& elem : missing) {
-            ss << "  " << "  " << elem << PPX_LOG_ENDL;
+        else if (vkres == VK_ERROR_EXTENSION_NOT_PRESENT) {
+            std::vector<std::string> missing = GetNotFound(mExtensions, mFoundExtensions);
+            ss << PPX_LOG_ENDL;
+            ss << "  " << "Extension(s) not found:" << PPX_LOG_ENDL;
+            for (auto& elem : missing) {
+                ss << "  " << "  " << elem << PPX_LOG_ENDL;
+            }
         }
-    }
         // clang-format on
 
         PPX_ASSERT_MSG(false, ss.str());
@@ -442,6 +513,24 @@ Result Instance::AllocateObject(grfx::Surface** ppSurface)
     return ppx::SUCCESS;
 }
 
+#if defined(PPX_BUILD_XR)
+const XrBaseInStructure* Instance::XrGetGraphicsBinding() const
+{
+    PPX_ASSERT_MSG(XrIsGraphicsBindingValid(), "Invalid Graphics Binding!");
+    return reinterpret_cast<const XrBaseInStructure*>(&mXrGraphicsBinding);
+}
+
+bool Instance::XrIsGraphicsBindingValid() const
+{
+    return (mXrGraphicsBinding.instance != VK_NULL_HANDLE) && (mXrGraphicsBinding.physicalDevice != VK_NULL_HANDLE) && (mXrGraphicsBinding.device != VK_NULL_HANDLE) && (mXrGraphicsBinding.queueFamilyIndex != UINT32_MAX) && (mXrGraphicsBinding.queueIndex != UINT32_MAX);
+}
+
+void Instance::XrUpdateDeviceInGraphicsBinding()
+{
+    PPX_ASSERT_MSG(mDevices.size() == 1, "there should be 1 valid device for XR!");
+    mXrGraphicsBinding.device = ToApi(mDevices[0])->GetVkDevice();
+}
+#endif
 } // namespace vk
 } // namespace grfx
 } // namespace ppx

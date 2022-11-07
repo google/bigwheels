@@ -20,6 +20,7 @@
 #include "ppx/math_config.h"
 #include "ppx/imgui_impl.h"
 #include "ppx/timer.h"
+#include "ppx/xr_component.h"
 
 #include <deque>
 #include <filesystem>
@@ -205,9 +206,10 @@ struct ApplicationSettings
     std::string appName = "";
     // If display is not enabled, then we don't need a swapchain, and there is
     // no event loop: run a single frame.
-    bool enableDisplay = true;
-    bool enableImGui   = false;
+    bool enableDisplay         = true;
+    bool enableImGui           = false;
     bool allowThirdPartyAssets = false;
+    bool enableXR              = false;
 
     struct
     {
@@ -326,12 +328,19 @@ public:
     {
         return mWindow;
     }
-    grfx::InstancePtr  GetInstance() const { return mInstance; }
-    grfx::DevicePtr    GetDevice() const { return mDevice; }
-    grfx::QueuePtr     GetGraphicsQueue(uint32_t index = 0) const { return GetDevice()->GetGraphicsQueue(index); }
-    grfx::QueuePtr     GetComputeQueue(uint32_t index = 0) const { return GetDevice()->GetComputeQueue(index); }
-    grfx::QueuePtr     GetTransferQueue(uint32_t index = 0) const { return GetDevice()->GetTransferQueue(index); }
-    grfx::SwapchainPtr GetSwapchain() const { return mSwapchain; }
+    grfx::InstancePtr GetInstance() const { return mInstance; }
+    grfx::DevicePtr   GetDevice() const { return mDevice; }
+    grfx::QueuePtr    GetGraphicsQueue(uint32_t index = 0) const { return GetDevice()->GetGraphicsQueue(index); }
+    grfx::QueuePtr    GetComputeQueue(uint32_t index = 0) const { return GetDevice()->GetComputeQueue(index); }
+    grfx::QueuePtr    GetTransferQueue(uint32_t index = 0) const { return GetDevice()->GetTransferQueue(index); }
+
+    // index here is for XR applications to fetch the swapchain of different views
+    // for non-XR applications, index should be always 0
+    grfx::SwapchainPtr GetSwapchain(uint32_t index = 0) const
+    {
+        PPX_ASSERT_MSG(index < mSwapchain.size(), "Invalid Swapchain Index!");
+        return mSwapchain[index];
+    }
 
     float    GetElapsedSeconds() const;
     float    GetPrevFrameTime() const { return mPreviousFrameTime; }
@@ -344,7 +353,12 @@ public:
 
     const KeyState& GetKeyState(KeyCode code) const;
     float2          GetNormalizedDeviceCoordinates(int32_t x, int32_t y) const;
-
+#if defined(PPX_BUILD_XR)
+    const XrComponent& GetXrComponent() const
+    {
+        return mXrComponent;
+    }
+#endif
 private:
     void   InternalCtor();
     void   InitializeAssetDirs();
@@ -376,32 +390,37 @@ private:
     void ScrollCallback(float dx12, float dy);
 
 private:
-    CommandLineParser          mCommandLineParser;
-    StandardOptions            mStandardOptions;
-    uint64_t                   mMaxFrame;
-    ApplicationSettings        mSettings = {};
-    std::string                mDecoratedApiName;
-    Timer                      mTimer;
-    void*                      mWindow                     = nullptr; // Requires enableDisplay
-    bool                       mWindowSurfaceInvalid       = false;
-    KeyState                   mKeyStates[TOTAL_KEY_COUNT] = {false, 0.0f};
-    int32_t                    mPreviousMouseX             = INT32_MAX;
-    int32_t                    mPreviousMouseY             = INT32_MAX;
-    bool                       mRunningWithoutDisplay      = false;
-    grfx::InstancePtr          mInstance                   = nullptr;
-    grfx::DevicePtr            mDevice                     = nullptr;
-    grfx::SurfacePtr           mSurface                    = nullptr; // Requires enableDisplay
-    grfx::SwapchainPtr         mSwapchain                  = nullptr; // Requires enableDisplay
-    std::unique_ptr<ImGuiImpl> mImGui;
+    CommandLineParser               mCommandLineParser;
+    StandardOptions                 mStandardOptions;
+    uint64_t                        mMaxFrame;
+    ApplicationSettings             mSettings = {};
+    std::string                     mDecoratedApiName;
+    Timer                           mTimer;
+    void*                           mWindow                     = nullptr; // Requires enableDisplay
+    bool                            mWindowSurfaceInvalid       = false;
+    KeyState                        mKeyStates[TOTAL_KEY_COUNT] = {false, 0.0f};
+    int32_t                         mPreviousMouseX             = INT32_MAX;
+    int32_t                         mPreviousMouseY             = INT32_MAX;
+    bool                            mRunningWithoutDisplay      = false;
+    grfx::InstancePtr               mInstance                   = nullptr;
+    grfx::DevicePtr                 mDevice                     = nullptr;
+    grfx::SurfacePtr                mSurface                    = nullptr; // Requires enableDisplay
+    std::vector<grfx::SwapchainPtr> mSwapchain;                            // Requires enableDisplay
+    std::unique_ptr<ImGuiImpl>      mImGui;
 
-    uint64_t mFrameCount        = 0;
-    float    mAverageFPS        = 0;
-    float    mFrameStartTime    = 0;
-    float    mFrameEndTime      = 0;
-    float    mPreviousFrameTime = 0;
-    float    mAverageFrameTime  = 0;
-    double   mFirstFrameTime    = 0;
+    uint64_t          mFrameCount        = 0;
+    uint32_t          mSwapchainIndex    = 0;
+    float             mAverageFPS        = 0;
+    float             mFrameStartTime    = 0;
+    float             mFrameEndTime      = 0;
+    float             mPreviousFrameTime = 0;
+    float             mAverageFrameTime  = 0;
+    double            mFirstFrameTime    = 0;
     std::deque<float> mFrameTimesMs;
+
+#if defined(PPX_BUILD_XR)
+    XrComponent mXrComponent;
+#endif
 };
 
 const char* GetKeyCodeString(KeyCode code);

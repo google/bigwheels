@@ -15,6 +15,7 @@
 #include "ppx/grfx/grfx_swapchain.h"
 #include "ppx/grfx/grfx_device.h"
 #include "ppx/grfx/grfx_render_pass.h"
+#include "ppx/grfx/grfx_instance.h"
 
 namespace ppx {
 namespace grfx {
@@ -22,9 +23,20 @@ namespace grfx {
 Result Swapchain::Create(const grfx::SwapchainCreateInfo* pCreateInfo)
 {
     PPX_ASSERT_NULL_ARG(pCreateInfo->pQueue);
-    PPX_ASSERT_NULL_ARG(pCreateInfo->pSurface);
-    if (IsNull(pCreateInfo->pQueue) || IsNull(pCreateInfo->pSurface)) {
-        return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
+
+#if defined(PPX_BUILD_XR)
+    if (pCreateInfo->pXrComponent != nullptr) {
+        if (IsNull(pCreateInfo->pQueue)) {
+            return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
+        }
+    }
+    else
+#endif
+    {
+        PPX_ASSERT_NULL_ARG(pCreateInfo->pSurface);
+        if (IsNull(pCreateInfo->pQueue) || IsNull(pCreateInfo->pSurface)) {
+            return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
+        }
     }
 
     Result ppxres = grfx::DeviceObject<grfx::SwapchainCreateInfo>::Create(pCreateInfo);
@@ -149,6 +161,12 @@ void Swapchain::Destroy()
     }
     mColorImages.clear();
 
+#if defined(PPX_BUILD_XR)
+    if (mXrSwapchain != XR_NULL_HANDLE) {
+        xrDestroySwapchain(mXrSwapchain);
+    }
+#endif
+
     grfx::DeviceObject<grfx::SwapchainCreateInfo>::Destroy();
 }
 
@@ -203,6 +221,32 @@ grfx::RenderPassPtr Swapchain::GetRenderPass(uint32_t imageIndex, grfx::Attachme
     grfx::RenderPassPtr object;
     GetRenderPass(imageIndex, loadOp, &object);
     return object;
+}
+
+Result Swapchain::AcquireNextImage(
+    uint64_t         timeout,    // Nanoseconds
+    grfx::Semaphore* pSemaphore, // Wait sempahore
+    grfx::Fence*     pFence,     // Wait fence
+    uint32_t*        pImageIndex)
+{
+#if defined(PPX_BUILD_XR)
+    if (mCreateInfo.pXrComponent != nullptr) {
+        PPX_ASSERT_MSG(mXrSwapchain != XR_NULL_HANDLE, "Invalid xrSwapchain handle!");
+        PPX_ASSERT_MSG(pSemaphore == nullptr, "Should not use semaphore when XR is enabled!");
+        PPX_ASSERT_MSG(pFence == nullptr, "Should not use fence when XR is enabled!");
+        XrSwapchainImageAcquireInfo acquire_info = {XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO};
+        CHECK_XR_CALL(xrAcquireSwapchainImage(mXrSwapchain, &acquire_info, pImageIndex));
+
+        XrSwapchainImageWaitInfo wait_info = {XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO};
+        wait_info.timeout                  = XR_INFINITE_DURATION;
+        CHECK_XR_CALL(xrWaitSwapchainImage(mXrSwapchain, &wait_info));
+        return ppx::SUCCESS;
+    }
+    else
+#endif
+    {
+        return AcquireNextImageInternal(timeout, pSemaphore, pFence, pImageIndex);
+    }
 }
 
 } // namespace grfx

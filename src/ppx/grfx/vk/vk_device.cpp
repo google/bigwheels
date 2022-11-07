@@ -328,7 +328,31 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
         }
     }
 
-    VkResult vkres = vkCreateDevice(ToApi(pCreateInfo->pGpu)->GetVkGpu(), &vkci, nullptr, &mDevice);
+    VkResult vkres;
+#if defined(PPX_BUILD_XR)
+    if (pCreateInfo->pXrComponent != nullptr) {
+        // This fixes a validation error with Oculus Quest 2 Runtime
+        mDeviceFeatures.samplerAnisotropy             = VK_TRUE;
+        mDeviceFeatures.shaderStorageImageMultisample = VK_TRUE;
+
+        const XrComponent&          xrComponent = *pCreateInfo->pXrComponent;
+        XrVulkanDeviceCreateInfoKHR deviceCreateInfo{XR_TYPE_VULKAN_DEVICE_CREATE_INFO_KHR};
+        deviceCreateInfo.systemId                            = xrComponent.GetSystemId();
+        deviceCreateInfo.pfnGetInstanceProcAddr              = &vkGetInstanceProcAddr;
+        deviceCreateInfo.vulkanCreateInfo                    = &vkci;
+        deviceCreateInfo.vulkanPhysicalDevice                = ToApi(GetGpu())->GetVkGpu();
+        deviceCreateInfo.vulkanAllocator                     = nullptr;
+        PFN_xrCreateVulkanDeviceKHR pfnCreateVulkanDeviceKHR = nullptr;
+        CHECK_XR_CALL(xrGetInstanceProcAddr(xrComponent.GetInstance(), "xrCreateVulkanDeviceKHR", reinterpret_cast<PFN_xrVoidFunction*>(&pfnCreateVulkanDeviceKHR)));
+        PPX_ASSERT_MSG(pfnCreateVulkanDeviceKHR != nullptr, "Cannot get xrCreateVulkanDeviceKHR function pointer!");
+        CHECK_XR_CALL(pfnCreateVulkanDeviceKHR(xrComponent.GetInstance(), &deviceCreateInfo, &mDevice, &vkres));
+    }
+    else
+#endif
+    {
+        vkres = vkCreateDevice(ToApi(pCreateInfo->pGpu)->GetVkGpu(), &vkci, nullptr, &mDevice);
+    }
+
     if (vkres != VK_SUCCESS) {
         // clang-format off
         std::stringstream ss;

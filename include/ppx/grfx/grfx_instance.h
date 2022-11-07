@@ -19,6 +19,10 @@
 #include "ppx/grfx/grfx_device.h"
 #include "ppx/grfx/grfx_gpu.h"
 
+#if defined(PPX_BUILD_XR)
+#include "ppx/xr_component.h"
+#endif
+
 namespace ppx {
 namespace grfx {
 
@@ -34,6 +38,9 @@ struct InstanceCreateInfo
     bool                     forceDxDiscreteAllocations = false;        // [OPTIONAL] Forces D3D12 to make discrete allocations for resources.
     std::vector<std::string> vulkanLayers;                              // [OPTIONAL] Additional instance layers.
     std::vector<std::string> vulkanExtensions;                          // [OPTIONAL] Additional instance extensions.
+#if defined(PPX_BUILD_XR)
+    ppx::XrComponent* pXrComponent = nullptr;
+#endif
 };
 
 class Instance
@@ -43,16 +50,38 @@ public:
     virtual ~Instance() {}
 
     bool IsDebugEnabled() const { return mCreateInfo.enableDebug; }
-    bool IsSwapchainEnabled() const { return mCreateInfo.enableSwapchain; }
-    bool ForceDxDiscreteAllocations() const { return mCreateInfo.forceDxDiscreteAllocations; }
+    bool IsSwapchainEnabled() const
+    {
+        return mCreateInfo.enableSwapchain
+#if defined(PPX_BUILD_XR)
+               // TODO(wangra): disable original swapchain when XR is enabled for now
+               // (the XR swapchain will be coming from OpenXR)
+               // the swapchain will be required for RenderDoc capture in the future implementation
+               && (mCreateInfo.pXrComponent == nullptr)
+#endif
+            ;
+    }
+    bool ForceDxDiscreteAllocations() const
+    {
+        return mCreateInfo.forceDxDiscreteAllocations;
+    }
 
-    grfx::Api GetApi() const { return mCreateInfo.api; }
+    grfx::Api GetApi() const
+    {
+        return mCreateInfo.api;
+    }
 
-    uint32_t GetGpuCount() const { return CountU32(mGpus); }
-    Result   GetGpu(uint32_t index, grfx::Gpu** ppGpu) const;
+    uint32_t GetGpuCount() const
+    {
+        return CountU32(mGpus);
+    }
+    Result GetGpu(uint32_t index, grfx::Gpu** ppGpu) const;
 
-    uint32_t GetDeviceCount() const { return CountU32(mDevices); }
-    Result   GetDevice(uint32_t index, grfx::Device** ppDevice) const;
+    uint32_t GetDeviceCount() const
+    {
+        return CountU32(mDevices);
+    }
+    Result GetDevice(uint32_t index, grfx::Device** ppDevice) const;
 
     Result CreateDevice(const grfx::DeviceCreateInfo* pCreateInfo, grfx::Device** ppDevice);
     void   DestroyDevice(const grfx::Device* pDevice);
@@ -60,6 +89,15 @@ public:
     Result CreateSurface(const grfx::SurfaceCreateInfo* pCreateInfo, grfx::Surface** ppSurface);
     void   DestroySurface(const grfx::Surface* pSurface);
 
+#if defined(PPX_BUILD_XR)
+    bool isXREnabled() const
+    {
+        return mCreateInfo.pXrComponent != nullptr;
+    }
+    virtual const XrBaseInStructure* XrGetGraphicsBinding() const      = 0;
+    virtual bool                     XrIsGraphicsBindingValid() const  = 0;
+    virtual void                     XrUpdateDeviceInGraphicsBinding() = 0;
+#endif
 protected:
     Result CreateGpu(const grfx::internal::GpuCreateInfo* pCreateInfo, grfx::Gpu** ppGpu);
     void   DestroyGpu(const grfx::Gpu* pGpu);

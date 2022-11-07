@@ -29,6 +29,15 @@ function(_add_sample_internal)
 
     target_link_libraries("${TARGET_NAME}" PUBLIC ppx glfw)
 
+    #OpenXR libs
+if (PPX_BUILD_XR)
+    if (PPX_MSW OR PPX_LINUX)
+        target_link_libraries(${TARGET_NAME} PUBLIC openxr_loader)
+    else ()
+        message(FATAL_ERROR "OpenXR not supported on GGP")
+    endif ()
+endif()
+
     add_dependencies("${TARGET_NAME}" ppx_assets)
     if (DEFINED ARG_DEPENDENCIES)
         add_dependencies("${TARGET_NAME}" ${ARG_DEPENDENCIES})

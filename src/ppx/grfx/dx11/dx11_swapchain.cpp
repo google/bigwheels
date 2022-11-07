@@ -250,7 +250,7 @@ void Swapchain::DestroyApiObjects()
     }
 }
 
-Result Swapchain::AcquireNextImage(
+Result Swapchain::AcquireNextImageInternal(
     uint64_t         timeout,
     grfx::Semaphore* pSemaphore,
     grfx::Fence*     pFence,

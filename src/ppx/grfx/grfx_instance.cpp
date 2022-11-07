@@ -182,6 +182,9 @@ Result Instance::CreateDevice(const grfx::DeviceCreateInfo* pCreateInfo, grfx::D
     if (Failed(ppxres)) {
         return ppxres;
     }
+#if defined(PPX_BUILD_XR)
+    XrUpdateDeviceInGraphicsBinding();
+#endif
     return ppx::SUCCESS;
 }
 

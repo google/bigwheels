@@ -70,12 +70,6 @@ public:
 
     VkSwapchainPtr GetVkSwapchain() const { return mSwapchain; }
 
-    virtual Result AcquireNextImage(
-        uint64_t         timeout,
-        grfx::Semaphore* pSemaphore,
-        grfx::Fence*     pFence,
-        uint32_t*        pImageIndex) override;
-
     virtual Result Present(
         uint32_t                      imageIndex,
         uint32_t                      waitSemaphoreCount,
@@ -84,6 +78,12 @@ public:
 protected:
     virtual Result CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo) override;
     virtual void   DestroyApiObjects() override;
+
+    virtual Result AcquireNextImageInternal(
+        uint64_t         timeout,
+        grfx::Semaphore* pSemaphore,
+        grfx::Fence*     pFence,
+        uint32_t*        pImageIndex) override;
 
 private:
     VkSwapchainPtr mSwapchain;

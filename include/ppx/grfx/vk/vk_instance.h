@@ -31,6 +31,13 @@ public:
 
     VkInstancePtr GetVkInstance() const { return mInstance; }
 
+#if defined(PPX_BUILD_XR)
+    // Get the graphics binding header for session creation.
+    virtual const XrBaseInStructure* XrGetGraphicsBinding() const override;
+    virtual bool                     XrIsGraphicsBindingValid() const override;
+    virtual void                     XrUpdateDeviceInGraphicsBinding() override;
+#endif
+
 protected:
     virtual Result AllocateObject(grfx::Device** ppDevice) override;
     virtual Result AllocateObject(grfx::Gpu** ppGpu) override;
@@ -56,6 +63,9 @@ private:
     PFN_vkCreateDebugUtilsMessengerEXT  mFnCreateDebugUtilsMessengerEXT  = nullptr;
     PFN_vkDestroyDebugUtilsMessengerEXT mFnDestroyDebugUtilsMessengerEXT = nullptr;
     PFN_vkSubmitDebugUtilsMessageEXT    mFnSubmitDebugUtilsMessageEXT    = nullptr;
+#if defined(PPX_BUILD_XR)
+    XrGraphicsBindingVulkan2KHR mXrGraphicsBinding;
+#endif
 };
 
 } // namespace vk
