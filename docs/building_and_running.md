@@ -23,7 +23,7 @@ Build instructions vary slightly depending on the host and target platforms.
 
 ## Linux
 ```
-git clone --recursive https://github.com/googlestadia/BigWheels
+git clone --recursive https://github.com/google/BigWheels
 cmake . -GNinja
 ninja
 ```
@@ -32,7 +32,7 @@ Built binaries are written to `bin/`.
 
 ## Windows
 ```
-git clone --recursive https://github.com/googlestadia/BigWheels
+git clone --recursive https://github.com/google/BigWheels
 cd BigWheels
 cmake -B build -G "Visual Studio 16 2019" -A x64
 ```
@@ -43,7 +43,7 @@ Built binaries are written to `build\bin`.
 
 ## GGP (on Windows)
 ```
-git clone --recursive https://github.com/googlestadia/BigWheels
+git clone --recursive https://github.com/google/BigWheels
 cd BigWheels
 cmake -B build-ggp -G "Visual Studio 16 2019" -DCMAKE_TOOLCHAIN_FILE="C:\\Program Files\\GGP SDK\\cmake\\ggp.cmake" -DPPX_GGP=1
 ```
@@ -56,7 +56,7 @@ executable in the Vulkan SDK directory.
 
 ## GGP (on Linux)
 ```
-git clone --recursive https://github.com/googlestadia/BigWheels
+git clone --recursive https://github.com/google/BigWheels
 cd BigWheels
 cmake . -GNinja -DCMAKE_TOOLCHAIN_FILE=$PATH_TO_GGP_SDK/cmake/ggp.cmake -DPPX_GGP=1
 ninja
