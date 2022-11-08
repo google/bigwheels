@@ -4,10 +4,10 @@
 
 To report a new bug or request a new feature, please file a GitHub issue. Please
 ensure the bug has not already been reported by searching
-[issues](https://github.com/googlestadia/BigWheels/issues) and
-[projects](https://github.com/googlestadia/BigWheels/projects). If the bug has
+[issues](https://github.com/google/BigWheels/issues) and
+[projects](https://github.com/google/BigWheels/projects). If the bug has
 not already been reported open a new one
-[here](https://github.com/googlestadia/BigWheels/issues/new).
+[here](https://github.com/google/BigWheels/issues/new).
 
 When opening a new issue for a bug, make sure you provide the following:
 
@@ -27,7 +27,7 @@ When opening a new issue for a bug, make sure you provide the following:
         to possibly realize the bug is related to another issue.
 
 For feature requests, we use
-[issues](https://github.com/googlestadia/BigWheels/issues) as well. Please
+[issues](https://github.com/google/BigWheels/issues) as well. Please
 create a new issue, as with bugs. In the issue provide
 
 *   A description of the problem that needs to be solved.
@@ -45,7 +45,7 @@ you know that your code infringes on other people's patents. You don't have to
 sign the CLA until after you've submitted your code for review and a member has
 approved it, but you must do it before we can put your code into our codebase.
 
-See [README.md](https://github.com/googlestadia/BigWheels/blob/main/README.md)
+See [README.md](https://github.com/google/BigWheels/blob/main/README.md)
 for instruction on how to get, build, and test the source. Once you have made
 your changes:
 
@@ -56,7 +56,7 @@ your changes:
 *   Make sure the PR description clearly identifies the problem, explains the
     solution, and references the issue if applicable.
 *   If your patch completely fixes bug 1234, the commit message should say
-    `Fixes https://github.com/googlestadia/BigWheels/issues/1234`. When you do
+    `Fixes https://github.com/google/BigWheels/issues/1234`. When you do
     this, the issue will be closed automatically when the commit goes into
     master.
 *   Watch the continuous builds to make sure they pass.
