@@ -236,26 +236,21 @@ void ProjApp::Render()
     PerFrame& frame = mPerFrame[0];
 
     uint32_t currentViewIndex = 0;
-#if defined(PPX_BUILD_XR)
     if (GetSettings()->enableXR) {
         currentViewIndex = GetXrComponent().GetCurrentViewIndex();
     }
-#endif
 
     grfx::SwapchainPtr swapchain = GetSwapchain(currentViewIndex);
 
     uint32_t imageIndex = UINT32_MAX;
 
-#if defined(PPX_BUILD_XR)
     if (swapchain->ShouldSkipExternalSynchronization()) {
         // no need to
         // - signal imageAcquiredSemaphore & imageAcquiredFence
         // - wait for imageAcquiredFence since xrWaitSwapchainImage is called in AcquireNextImage
         PPX_CHECKED_CALL(swapchain->AcquireNextImage(UINT64_MAX, nullptr, nullptr, &imageIndex));
     }
-    else
-#endif
-    {
+    else {
         // Wait semaphore is ignored for XR
         PPX_CHECKED_CALL(swapchain->AcquireNextImage(UINT64_MAX, frame.imageAcquiredSemaphore, frame.imageAcquiredFence, &imageIndex));
 
@@ -272,13 +267,11 @@ void ProjApp::Render()
         float4x4 P = glm::perspective(glm::radians(60.0f), GetWindowAspect(), 0.001f, 10000.0f);
         float4x4 V = glm::lookAt(float3(0, 0, 0), float3(0, 0, 1), float3(0, 1, 0));
 
-#if defined(PPX_BUILD_XR)
         // no need to wait for imageAcquiredFence since xrWaitSwapchainImage is called in AcquireNextImage
         if (GetSettings()->enableXR) {
             P = GetXrComponent().GetProjectionMatrixForCurrentView(0.001f, 10000.0f);
             V = GetXrComponent().GetViewMatrixForCurrentView();
         }
-#endif
         float4x4 M   = glm::translate(float3(0, 0, -3)) * glm::rotate(t, float3(0, 0, 1)) * glm::rotate(t, float3(0, 1, 0)) * glm::rotate(t, float3(1, 0, 0));
         float4x4 mat = P * V * M;
 
@@ -301,10 +294,7 @@ void ProjApp::Render()
         beginInfo.RTVClearValues[0]         = {{0, 0, 0, 0}};
         beginInfo.DSVClearValue             = {1.0f, 0xFF};
 
-#if defined(PPX_BUILD_XR)
-        if (!GetSettings()->enableXR)
-#endif
-        {
+        if (!GetSettings()->enableXR) {
             frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
         }
 
@@ -322,10 +312,7 @@ void ProjApp::Render()
             DrawImGui(frame.cmd);
         }
         frame.cmd->EndRenderPass();
-#if defined(PPX_BUILD_XR)
-        if (!GetSettings()->enableXR)
-#endif
-        {
+        if (!GetSettings()->enableXR) {
             frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
         }
     }
@@ -334,7 +321,6 @@ void ProjApp::Render()
     grfx::SubmitInfo submitInfo   = {};
     submitInfo.commandBufferCount = 1;
     submitInfo.ppCommandBuffers   = &frame.cmd;
-#if defined(PPX_BUILD_XR)
     // no need to use semaphore when XR is enabled
     if (GetSettings()->enableXR) {
         submitInfo.waitSemaphoreCount   = 0;
@@ -342,9 +328,7 @@ void ProjApp::Render()
         submitInfo.signalSemaphoreCount = 0;
         submitInfo.ppSignalSemaphores   = nullptr;
     }
-    else
-#endif
-    {
+    else {
         submitInfo.waitSemaphoreCount   = 1;
         submitInfo.ppWaitSemaphores     = &frame.imageAcquiredSemaphore;
         submitInfo.signalSemaphoreCount = 1;
@@ -354,11 +338,8 @@ void ProjApp::Render()
 
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
 
-#if defined(PPX_BUILD_XR)
     // no need to present when XR is enabled
-    if (!GetSettings()->enableXR)
-#endif
-    {
+    if (!GetSettings()->enableXR) {
         PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.renderCompleteSemaphore));
     }
 }

@@ -334,8 +334,8 @@ public:
     grfx::QueuePtr    GetComputeQueue(uint32_t index = 0) const { return GetDevice()->GetComputeQueue(index); }
     grfx::QueuePtr    GetTransferQueue(uint32_t index = 0) const { return GetDevice()->GetTransferQueue(index); }
 
-    // index here is for XR applications to fetch the swapchain of different views
-    // for non-XR applications, index should be always 0
+    // "index" here is for XR applications to fetch the swapchain of different views.
+    // For non-XR applications, "index" should be always 0.
     grfx::SwapchainPtr GetSwapchain(uint32_t index = 0) const
     {
         PPX_ASSERT_MSG(index < mSwapchain.size(), "Invalid Swapchain Index!");

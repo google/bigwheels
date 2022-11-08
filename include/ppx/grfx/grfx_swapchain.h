@@ -142,8 +142,9 @@ public:
 #if defined(PPX_BUILD_XR)
     bool ShouldSkipExternalSynchronization() const
     {
-        return (mCreateInfo.pXrComponent != nullptr);
+        return mCreateInfo.pXrComponent != nullptr;
     }
+
     XrSwapchain GetXrSwapchain() const
     {
         return mXrSwapchain;

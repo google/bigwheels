@@ -76,6 +76,13 @@ You can use the `tools/ggp-run.py` script to automate pushing and running applic
 ```
 python tools/ggp-run.py bin/vk_01_triangle --binary_args "--resolution 1920x1080"
 ``` 
+## OpenXR
+OpenXR support can be enabled by adding `-DPPX_BUILD_XR=1` flag.
+For example, for Windows build:
+```
+cmake -B build -G "Visual Studio 16 2019" -A x64 -DPPX_BUILD_XR=1
+```
+
 
 # Shader Compilation
 Shader binaries are generated during project build. Since BigWheels can target multiple graphics APIs, we compile shaders

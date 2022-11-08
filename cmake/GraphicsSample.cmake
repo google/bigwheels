@@ -29,7 +29,7 @@ function(_add_sample_internal)
 
     target_link_libraries("${TARGET_NAME}" PUBLIC ppx glfw)
 
-    #OpenXR libs
+#OpenXR libs
 if (PPX_BUILD_XR)
     if (PPX_MSW OR PPX_LINUX)
         target_link_libraries(${TARGET_NAME} PUBLIC openxr_loader)

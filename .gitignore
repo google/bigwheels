@@ -1,7 +1,8 @@
 *.swp
 .DS_Store
 .vscode/
-build*/
+build-*/
+build/
 .vs/
 bin/
 /test/

@@ -126,8 +126,8 @@ private:
     XrSessionState           mSessionState       = XR_SESSION_STATE_UNKNOWN;
     XrEnvironmentBlendMode   mBlend              = XR_ENVIRONMENT_BLEND_MODE_MAX_ENUM;
     XrDebugUtilsMessengerEXT mDebugUtilMessenger = XR_NULL_HANDLE;
-    bool                     mIsSessionRunning{false};
-    bool                     mShouldRender{false};
+    bool                     mIsSessionRunning   = false;
+    bool                     mShouldRender       = false;
 
     XrFrameState mFrameState = {
         .type = XR_TYPE_FRAME_STATE,
