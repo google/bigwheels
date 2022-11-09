@@ -652,6 +652,9 @@ Result Application::InitializeGrfxDevice()
         ci.applicationName          = mSettings.appName;
         ci.engineName               = mSettings.appName;
         ci.useSoftwareRenderer      = mStandardOptions.use_software_renderer;
+#if defined(PPX_BUILD_XR)
+        ci.pXrComponent = mSettings.enableXR ? &mXrComponent : nullptr;
+#endif
 
         Result ppxres = grfx::CreateInstance(&ci, &mInstance);
         if (Failed(ppxres)) {
@@ -686,6 +689,9 @@ Result Application::InitializeGrfxDevice()
         ci.vulkanExtensions       = {};
         ci.pVulkanDeviceFeatures  = nullptr;
         ci.enableDXIL             = mSettings.grfx.enableDXIL;
+#if defined(PPX_BUILD_XR)
+        ci.pXrComponent = mSettings.enableXR ? &mXrComponent : nullptr;
+#endif
 
         PPX_LOG_INFO("Creating application graphics device using " << gpu->GetDeviceName());
         PPX_LOG_INFO("   requested graphics queue count : " << mSettings.grfx.device.graphicsQueueCount);
@@ -710,6 +716,11 @@ Result Application::InitializeGrfxSurface()
         return ppx::SUCCESS;
     }
 
+#if defined(PPX_BUILD_XR)
+    // No need to create the surface when XR is enabled
+    // the swapchain can be created from the OpenXR functions directly
+    if (!mSettings.enableXR)
+#endif
     // Surface
     {
         grfx::SurfaceCreateInfo ci = {};
@@ -733,6 +744,38 @@ Result Application::InitializeGrfxSurface()
         }
     }
 
+#if defined(PPX_BUILD_XR)
+    if (mSettings.enableXR) {
+        const size_t viewCount = mXrComponent.GetViewCount();
+        PPX_ASSERT_MSG(viewCount != 0, "The config views should be already created at this point!");
+        mSettings.window.width  = mXrComponent.GetWidth();
+        mSettings.window.height = mXrComponent.GetHeight();
+
+        grfx::SwapchainCreateInfo ci = {};
+        ci.pQueue                    = mDevice->GetGraphicsQueue();
+        ci.pSurface                  = nullptr;
+        ci.width                     = mSettings.window.width;
+        ci.height                    = mSettings.window.height;
+        ci.colorFormat               = mXrComponent.GetColorFormat();
+        ci.depthFormat               = mXrComponent.GetDepthFormat();
+        ci.imageCount                = 0;                            // this will be derived from XrSwapchain
+        ci.presentMode               = grfx::PRESENT_MODE_UNDEFINED; // No present for XR
+        ci.pXrComponent              = &mXrComponent;
+
+        mSwapchain.resize(viewCount);
+        for (size_t k = 0; k < viewCount; ++k) {
+            Result ppxres = mDevice->CreateSwapchain(&ci, &mSwapchain[k]);
+            if (Failed(ppxres)) {
+                PPX_ASSERT_MSG(false, "grfx::Device::CreateSwapchain failed");
+                return ppxres;
+            }
+        }
+
+        // Image count is from xrEnumerateSwapchainImages
+        mSettings.grfx.swapchain.imageCount = mSwapchain[0]->GetImageCount();
+    }
+    else
+#endif
     // Swapchain
     {
         PPX_LOG_INFO("Creating application swapchain");
@@ -782,7 +825,8 @@ Result Application::InitializeGrfxSurface()
         ci.imageCount                = mSettings.grfx.swapchain.imageCount;
         ci.presentMode               = grfx::PRESENT_MODE_IMMEDIATE;
 
-        Result ppxres = mDevice->CreateSwapchain(&ci, &mSwapchain);
+        mSwapchain.resize(1);
+        Result ppxres = mDevice->CreateSwapchain(&ci, &mSwapchain[0]);
         if (Failed(ppxres)) {
             PPX_ASSERT_MSG(false, "grfx::Device::CreateSwapchain failed");
             return ppxres;
@@ -848,10 +892,11 @@ void Application::StopGrfx()
 void Application::ShutdownGrfx()
 {
     if (mInstance) {
-        if (mSwapchain) {
-            mDevice->DestroySwapchain(mSwapchain);
-            mSwapchain.Reset();
+        for (auto& sc : mSwapchain) {
+            mDevice->DestroySwapchain(sc);
+            sc.Reset();
         }
+        mSwapchain.clear();
 
         if (mDevice) {
             mInstance->DestroyDevice(mDevice);
@@ -1013,7 +1058,7 @@ void Application::DispatchRender()
 
 void Application::TakeScreenshot()
 {
-    auto swapchainImg = mSwapchain->GetColorImage(mSwapchain->GetCurrentImageIndex());
+    auto swapchainImg = GetSwapchain()->GetColorImage(GetSwapchain()->GetCurrentImageIndex());
     auto queue        = mDevice->GetGraphicsQueue();
 
     const grfx::FormatDesc* formatDesc = grfx::GetFormatDescription(swapchainImg->GetFormat());
@@ -1225,11 +1270,35 @@ int Application::Run(int argc, char** argv)
         PPX_LOG_INFO("Display not enabled: frame count is " + std::to_string(mMaxFrame));
     }
 
+#if defined(PPX_BUILD_XR)
+    if (mSettings.enableXR) {
+        XrComponentCreateInfo createInfo = {};
+        createInfo.api                   = mSettings.grfx.api;
+        createInfo.appName               = mSettings.appName;
+        createInfo.colorFormat           = grfx::FORMAT_B8G8R8A8_SRGB;
+        createInfo.depthFormat           = grfx::FORMAT_D32_FLOAT;
+        createInfo.refSpaceType          = XrRefSpace::XR_STAGE;
+        createInfo.viewConfigType        = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
+        createInfo.enableDebug           = false;
+
+        mXrComponent.InitializeBeforeGrfxDeviceInit(createInfo);
+        // TODO(wangra): disable ImGui for XR for now, need to be fixed
+        // b/256679355
+        mSettings.enableImGui = false;
+    }
+#endif
+
     // Create graphics instance
     ppxres = InitializeGrfxDevice();
     if (Failed(ppxres)) {
         return EXIT_FAILURE;
     }
+
+#if defined(PPX_BUILD_XR)
+    if (mSettings.enableXR) {
+        mXrComponent.InitializeAfterGrfxDeviceInit(mInstance);
+    }
+#endif
 
     // List gpus
     if (mStandardOptions.list_gpus) {
@@ -1257,16 +1326,18 @@ int Application::Run(int argc, char** argv)
             return EXIT_FAILURE;
         }
 
-        // Update the window size if the settings got changed due to surface requiremetns
-        {
-            int windowWidth  = 0;
-            int windowHeight = 0;
-            glfwGetWindowSize(static_cast<GLFWwindow*>(mWindow), &windowWidth, &windowHeight);
-            if ((static_cast<uint32_t>(windowWidth) != mSettings.window.width) || (static_cast<uint32_t>(windowHeight) != mSettings.window.width)) {
-                glfwSetWindowSize(
-                    static_cast<GLFWwindow*>(mWindow),
-                    static_cast<int>(mSettings.window.width),
-                    static_cast<int>(mSettings.window.height));
+        if (!mSettings.enableXR) {
+            // Update the window size if the settings got changed due to surface requirements
+            {
+                int windowWidth  = 0;
+                int windowHeight = 0;
+                glfwGetWindowSize(static_cast<GLFWwindow*>(mWindow), &windowWidth, &windowHeight);
+                if ((static_cast<uint32_t>(windowWidth) != mSettings.window.width) || (static_cast<uint32_t>(windowHeight) != mSettings.window.width)) {
+                    glfwSetWindowSize(
+                        static_cast<GLFWwindow*>(mWindow),
+                        static_cast<int>(mSettings.window.width),
+                        static_cast<int>(mSettings.window.height));
+                }
             }
         }
     }
@@ -1302,18 +1373,45 @@ int Application::Run(int argc, char** argv)
         // Frame start
         mFrameStartTime = static_cast<float>(mTimer.MillisSinceStart());
 
-        if (mSettings.enableDisplay) {
-            // Poll events
-            glfwPollEvents();
-        }
+#if defined(PPX_BUILD_XR)
+        if (mSettings.enableXR) {
+            bool exitRenderLoop = false;
+            mXrComponent.PollEvents(exitRenderLoop);
+            if (exitRenderLoop) {
+                break;
+            }
 
-        // Start new Imgui frame
-        if (mImGui) {
-            mImGui->NewFrame();
+            if (mXrComponent.IsSessionRunning()) {
+                mXrComponent.BeginFrame(mSwapchain);
+                if (mXrComponent.ShouldRender()) {
+                    uint32_t viewCount = static_cast<uint32_t>(mXrComponent.GetViewCount());
+                    for (uint32_t k = 0; k < viewCount; ++k) {
+                        mSwapchainIndex = k;
+                        mXrComponent.SetCurrentViewIndex(k);
+                        DispatchRender();
+                        XrSwapchainImageReleaseInfo releaseInfo = {XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
+                        CHECK_XR_CALL(xrReleaseSwapchainImage(GetSwapchain(k)->GetXrSwapchain(), &releaseInfo));
+                    }
+                }
+                mXrComponent.EndFrame();
+            }
         }
+        else
+#endif
+        {
+            if (mSettings.enableDisplay) {
+                // Poll events
+                glfwPollEvents();
+            }
 
-        // Call render
-        DispatchRender();
+            // Start new Imgui frame
+            if (mImGui) {
+                mImGui->NewFrame();
+            }
+
+            // Call render
+            DispatchRender();
+        }
 
         // Take screenshot if this is the requested frame.
         if (mFrameCount == mStandardOptions.screenshot_frame_number) {
@@ -1332,7 +1430,7 @@ int Application::Run(int argc, char** argv)
             if (mFrameTimesMs.size() > mStandardOptions.stats_frame_window) {
                 mFrameTimesMs.pop_front();
             }
-            float totalFrameTimeMs = std::accumulate(mFrameTimesMs.begin(), mFrameTimesMs.end(), 0.0);
+            float totalFrameTimeMs = std::accumulate(mFrameTimesMs.begin(), mFrameTimesMs.end(), 0.f);
             mAverageFPS            = mFrameTimesMs.size() / (totalFrameTimeMs / 1000.0f);
             mAverageFrameTime      = totalFrameTimeMs / mFrameTimesMs.size();
         }
@@ -1378,6 +1476,11 @@ int Application::Run(int argc, char** argv)
 
     // Shutdown graphics
     ShutdownGrfx();
+
+#if defined(PPX_BUILD_XR)
+    // Destroy Xr
+    mXrComponent.Destroy();
+#endif
 
     // Destroy window
     DestroyPlatformWindow();
@@ -1624,12 +1727,12 @@ void Application::DrawDebugInfo(std::function<void(void)> drawAdditionalFn)
         {
             ImGui::Text("Swapchain Resolution");
             ImGui::NextColumn();
-            ImGui::Text("%dx%d", mSwapchain->GetWidth(), mSwapchain->GetHeight());
+            ImGui::Text("%dx%d", GetSwapchain()->GetWidth(), GetSwapchain()->GetHeight());
             ImGui::NextColumn();
 
             ImGui::Text("Swapchain Image Count");
             ImGui::NextColumn();
-            ImGui::Text("%d", mSwapchain->GetImageCount());
+            ImGui::Text("%d", GetSwapchain()->GetImageCount());
             ImGui::NextColumn();
         }
 

@@ -166,6 +166,7 @@ list(
     ${INC_DIR}/ppx/tri_mesh.h
     ${INC_DIR}/ppx/util.h
     ${INC_DIR}/ppx/wire_mesh.h
+    ${INC_DIR}/ppx/xr_component.h
 )
 
 list(
@@ -192,6 +193,7 @@ list(
     ${SRC_DIR}/ppx/transform.cpp
     ${SRC_DIR}/ppx/tri_mesh.cpp
     ${SRC_DIR}/ppx/wire_mesh.cpp
+    ${SRC_DIR}/ppx/xr_component.cpp
     ${SRC_DIR}/ppx/imgui/font_inconsolata.h
     ${SRC_DIR}/ppx/imgui/font_inconsolata.cpp
 )
@@ -489,6 +491,14 @@ if (PPX_VULKAN)
     )
 endif()
 
+# Include OpenXR directories if OpenXR is enabled
+if (PPX_BUILD_XR)
+    target_include_directories(
+        ${PROJECT_NAME}
+        PUBLIC ${PPX_DIR}/build/third_party/OpenXR-SDK-Source/include
+    )
+endif()
+
 set_target_properties(
     ${PROJECT_NAME}
     PROPERTIES FOLDER "ppx"
@@ -517,6 +527,13 @@ elseif (PPX_MSW)
         ${PROJECT_NAME}
         PUBLIC  PPX_MSW
                 _CRT_SECURE_NO_WARNINGS
+    )
+endif()
+
+if (PPX_BUILD_XR)
+	target_compile_definitions(
+        ${PROJECT_NAME}
+        PUBLIC  PPX_BUILD_XR
     )
 endif()
 

@@ -39,6 +39,21 @@ public:
         return mFactory.Get();
     }
 
+#if defined(PPX_BUILD_XR)
+    // Get the graphics binding header for session creation.
+    virtual const XrBaseInStructure* XrGetGraphicsBinding() const override
+    {
+        return nullptr;
+    }
+    virtual bool XrIsGraphicsBindingValid() const override
+    {
+        return false;
+    }
+    virtual void XrUpdateDeviceInGraphicsBinding() override
+    {
+    }
+#endif
+
 protected:
     virtual Result AllocateObject(grfx::Device** ppDevice) override;
     virtual Result AllocateObject(grfx::Gpu** ppGpu) override;

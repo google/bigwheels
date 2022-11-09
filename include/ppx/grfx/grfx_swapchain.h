@@ -16,6 +16,9 @@
 #define ppx_grfx_swapchain_h
 
 #include "ppx/grfx/grfx_config.h"
+#if defined(PPX_BUILD_XR)
+#include "ppx/xr_component.h"
+#endif
 
 // clang-format off
 #if defined(PPX_GGP)
@@ -93,6 +96,9 @@ struct SwapchainCreateInfo
     grfx::Format      depthFormat = grfx::FORMAT_UNDEFINED;
     uint32_t          imageCount  = 0;
     grfx::PresentMode presentMode = grfx::PRESENT_MODE_IMMEDIATE;
+#if defined(PPX_BUILD_XR)
+    XrComponent* pXrComponent = nullptr;
+#endif
 };
 
 //! @class Swapchain
@@ -120,11 +126,11 @@ public:
     grfx::ImagePtr      GetDepthImage(uint32_t imageIndex) const;
     grfx::RenderPassPtr GetRenderPass(uint32_t imageIndex, grfx::AttachmentLoadOp loadOp = grfx::ATTACHMENT_LOAD_OP_CLEAR) const;
 
-    virtual Result AcquireNextImage(
+    Result AcquireNextImage(
         uint64_t         timeout,    // Nanoseconds
         grfx::Semaphore* pSemaphore, // Wait sempahore
         grfx::Fence*     pFence,     // Wait fence
-        uint32_t*        pImageIndex) = 0;
+        uint32_t*        pImageIndex);
 
     virtual Result Present(
         uint32_t                      imageIndex,
@@ -133,10 +139,27 @@ public:
 
     uint32_t GetCurrentImageIndex() const { return currentImageIndex; }
 
+#if defined(PPX_BUILD_XR)
+    bool ShouldSkipExternalSynchronization() const
+    {
+        return mCreateInfo.pXrComponent != nullptr;
+    }
+
+    XrSwapchain GetXrSwapchain() const
+    {
+        return mXrSwapchain;
+    }
+#endif
 protected:
     virtual Result Create(const grfx::SwapchainCreateInfo* pCreateInfo) override;
     virtual void   Destroy() override;
     friend class grfx::Device;
+
+    virtual Result AcquireNextImageInternal(
+        uint64_t         timeout,    // Nanoseconds
+        grfx::Semaphore* pSemaphore, // Wait sempahore
+        grfx::Fence*     pFence,     // Wait fence
+        uint32_t*        pImageIndex) = 0;
 
 protected:
     grfx::QueuePtr                   mQueue;
@@ -144,7 +167,9 @@ protected:
     std::vector<grfx::ImagePtr>      mColorImages;
     std::vector<grfx::RenderPassPtr> mClearRenderPasses;
     std::vector<grfx::RenderPassPtr> mLoadRenderPasses;
-
+#if defined(PPX_BUILD_XR)
+    XrSwapchain mXrSwapchain = XR_NULL_HANDLE;
+#endif
     // Keeps track of the image index returned by the
     // last AcquireNextImage call.
     uint32_t currentImageIndex = 0;
