@@ -37,7 +37,8 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake .. -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DPPX_BUILD_TESTS=ON
+          # -DBUILD_TESTS=OFF only disables the OpenXR tests
+          cmake .. -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DPPX_BUILD_TESTS=ON -DPPX_BUILD_XR=1 -DBUILD_TESTS=OFF
           make -j $(nproc)
       - name: Run unit tests
         run: |
