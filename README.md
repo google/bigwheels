@@ -4,7 +4,7 @@ BigWheels is a cross-platform, API agnostic framework to build graphics applicat
 Supported platforms:
 * Windows
 * Linux
-* GGP
+* GGP (Google Gaming Platform, i.e. Stadia)
 
 Supported graphics APIs:
 * DirectX 11
