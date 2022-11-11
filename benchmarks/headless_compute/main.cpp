@@ -188,7 +188,7 @@ void ProjApp::SetupComputeShaderPass()
     // Compute descriptors
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(0, grfx::DESCRIPTOR_TYPE_STORAGE_BUFFER));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(0, grfx::DESCRIPTOR_TYPE_RAW_STORAGE_BUFFER));
 
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mComputeDescriptorSetLayout));
 
@@ -196,7 +196,7 @@ void ProjApp::SetupComputeShaderPass()
 
         grfx::WriteDescriptor write = {};
         write.binding               = 0;
-        write.type                  = grfx::DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        write.type                  = grfx::DESCRIPTOR_TYPE_RAW_STORAGE_BUFFER;
         write.bufferOffset          = 0;
         write.bufferRange           = PPX_WHOLE_SIZE;
         write.pBuffer               = mStorageBuffer;

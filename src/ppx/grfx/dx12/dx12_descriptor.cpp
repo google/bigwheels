@@ -312,7 +312,7 @@ Result DescriptorSet::UpdateDescriptors(uint32_t writeCount, const grfx::WriteDe
                 device->CreateShaderResourceView(ToApi(srcWrite.pBuffer)->GetDxResource(), &desc, handle);
             } break;
 
-            case grfx::DESCRIPTOR_TYPE_STORAGE_BUFFER: {
+            case grfx::DESCRIPTOR_TYPE_RAW_STORAGE_BUFFER: {
                 uint64_t sizeInBytes = (srcWrite.bufferRange == PPX_WHOLE_SIZE) ? srcWrite.pBuffer->GetSize() : srcWrite.bufferRange;
                 PPX_ASSERT_MSG(sizeInBytes % 4 == 0, "Size of storage buffer must be a multiple of 4");
                 PPX_ASSERT_MSG(srcWrite.bufferOffset % 4 == 0, "Buffer offset for storage buffer must be a multiple of 4");

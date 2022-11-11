@@ -255,7 +255,7 @@ D3D12_DESCRIPTOR_RANGE_TYPE ToD3D12RangeType(grfx::DescriptorType value)
 
         case grfx::DESCRIPTOR_TYPE_STORAGE_IMAGE:
         case grfx::DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
-        case grfx::DESCRIPTOR_TYPE_STORAGE_BUFFER: {
+        case grfx::DESCRIPTOR_TYPE_RAW_STORAGE_BUFFER: {
             return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
         } break;
 
