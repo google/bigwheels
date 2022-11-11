@@ -67,6 +67,7 @@ private:
     grfx::PipelineInterfacePtr   mComputePipelineInterface;
     grfx::ComputePipelinePtr     mComputePipeline;
     grfx::BufferPtr              mStorageBuffer;
+    grfx::BufferPtr              mReadbackBuffer;
 
     // Stats
     uint64_t                 mGpuWorkDuration    = 0;
@@ -125,7 +126,7 @@ void ProjApp::Setup()
     // Create descriptor pool
     {
         grfx::DescriptorPoolCreateInfo createInfo = {};
-        createInfo.storageBuffer                  = 1;
+        createInfo.rawStorageBuffer               = 1;
 
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&createInfo, &mDescriptorPool));
     }
@@ -156,17 +157,38 @@ void ProjApp::SetupComputeShaderPass()
 {
     // Storage buffer
     {
-        grfx::BufferCreateInfo bufferCreateInfo        = {};
-        bufferCreateInfo.size                          = PPX_MINIMUM_UNIFORM_BUFFER_SIZE;
-        bufferCreateInfo.usageFlags.bits.storageBuffer = true;
-        bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
+        grfx::BufferCreateInfo bufferCreateInfo           = {};
+        bufferCreateInfo.size                             = PPX_MINIMUM_UNIFORM_BUFFER_SIZE;
+        bufferCreateInfo.usageFlags.bits.rawStorageBuffer = true;
+        bufferCreateInfo.usageFlags.bits.transferDst      = true;
+        bufferCreateInfo.usageFlags.bits.transferSrc      = true;
+        bufferCreateInfo.memoryUsage                      = grfx::MEMORY_USAGE_GPU_ONLY;
         PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mStorageBuffer));
+    }
+
+    // Readback buffer
+    {
+        grfx::BufferCreateInfo bufferCreateInfo      = {};
+        bufferCreateInfo.size                        = PPX_MINIMUM_UNIFORM_BUFFER_SIZE;
+        bufferCreateInfo.usageFlags.bits.transferDst = true;
+        bufferCreateInfo.memoryUsage                 = grfx::MEMORY_USAGE_GPU_TO_CPU;
+        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mReadbackBuffer));
+    }
+
+    grfx::BufferPtr uploadBuffer;
+    // Upload buffer
+    {
+        grfx::BufferCreateInfo bufferCreateInfo      = {};
+        bufferCreateInfo.size                        = PPX_MINIMUM_UNIFORM_BUFFER_SIZE;
+        bufferCreateInfo.usageFlags.bits.transferSrc = true;
+        bufferCreateInfo.memoryUsage                 = grfx::MEMORY_USAGE_CPU_TO_GPU;
+        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &uploadBuffer));
     }
 
     // Compute descriptors
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(0, grfx::DESCRIPTOR_TYPE_STORAGE_BUFFER));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(0, grfx::DESCRIPTOR_TYPE_RAW_STORAGE_BUFFER));
 
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mComputeDescriptorSetLayout));
 
@@ -174,7 +196,7 @@ void ProjApp::SetupComputeShaderPass()
 
         grfx::WriteDescriptor write = {};
         write.binding               = 0;
-        write.type                  = grfx::DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        write.type                  = grfx::DESCRIPTOR_TYPE_RAW_STORAGE_BUFFER;
         write.bufferOffset          = 0;
         write.bufferRange           = PPX_WHOLE_SIZE;
         write.pBuffer               = mStorageBuffer;
@@ -203,9 +225,12 @@ void ProjApp::SetupComputeShaderPass()
     // Populate storage buffer
     {
         Payload data;
-        // Set it to a value different from what is written by the shader
         data.value = 12;
-        PPX_CHECKED_CALL(mStorageBuffer->CopyFromSource(sizeof(data), &data));
+        PPX_CHECKED_CALL(uploadBuffer->CopyFromSource(sizeof(data), &data));
+
+        grfx::BufferToBufferCopyInfo copyInfo = {};
+        copyInfo.size                         = sizeof(data);
+        PPX_CHECKED_CALL(GetGraphicsQueue()->CopyBufferToBuffer(&copyInfo, uploadBuffer, mStorageBuffer, grfx::RESOURCE_STATE_UNORDERED_ACCESS, grfx::RESOURCE_STATE_UNORDERED_ACCESS));
     }
 }
 
@@ -262,10 +287,16 @@ void ProjApp::Render()
 
     // Read the result back.
     PPX_CHECKED_CALL(frame.renderCompleteFence->Wait());
+
     Payload data;
-    data.value = 12;
-    PPX_CHECKED_CALL(mStorageBuffer->CopyToDest(sizeof(data), &data));
-    PPX_LOG_INFO("Data value is " + std::to_string(data.value) + " frame count is " + std::to_string(GetFrameCount()));
+    data.value = 0;
+
+    grfx::BufferToBufferCopyInfo copyInfo = {};
+    copyInfo.size                         = sizeof(data);
+    GetGraphicsQueue()->CopyBufferToBuffer(&copyInfo, mStorageBuffer, mReadbackBuffer, grfx::RESOURCE_STATE_COPY_DST, grfx::RESOURCE_STATE_COPY_DST);
+
+    PPX_CHECKED_CALL(mReadbackBuffer->CopyToDest(sizeof(data), &data));
+    PPX_LOG_INFO("Data value is " + std::to_string(data.value) + ", frame count is " + std::to_string(GetFrameCount()));
 }
 
 int main(int argc, char** argv)

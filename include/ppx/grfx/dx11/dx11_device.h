@@ -42,6 +42,12 @@ public:
         UINT                                                 numElements,
         typename D3D11ShaderResourceViewPtr::InterfaceType** ppSRV);
 
+    Result GetBufferUAV(
+        const grfx::Buffer*                                   pBuffer,
+        UINT                                                  firstElementInDwords,
+        UINT                                                  numElementsInDwords,
+        typename D3D11UnorderedAccessViewPtr::InterfaceType** ppUAV);
+
 protected:
     virtual Result AllocateObject(grfx::Buffer** ppObject) override;
     virtual Result AllocateObject(grfx::CommandBuffer** ppObject) override;
@@ -85,7 +91,16 @@ private:
         D3D11ShaderResourceViewPtr SRV;
     };
 
+    struct BufferUAV
+    {
+        const grfx::Buffer*         pBuffer      = nullptr;
+        UINT                        firstElement = 0;
+        UINT                        numElements  = 0;
+        D3D11UnorderedAccessViewPtr UAV;
+    };
+
     std::vector<StructuredBufferSRV> mStructuredBufferSRVs;
+    std::vector<BufferUAV>           mBufferUAVs;
 };
 
 } // namespace dx11

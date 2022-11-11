@@ -232,7 +232,7 @@ enum DescriptorType
     DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER   = 5,  // RO texel buffer object
     DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER   = 6,  // RW texel buffer object
     DESCRIPTOR_TYPE_UNIFORM_BUFFER         = 7,  // constant/uniform buffer object
-    DESCRIPTOR_TYPE_STORAGE_BUFFER         = 8,  // RW structured buffer object
+    DESCRIPTOR_TYPE_RAW_STORAGE_BUFFER     = 8,  // RW raw buffer object
     DESCRIPTOR_TYPE_STRUCTURED_BUFFER      = 9,  // RO structured buffer object
     DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC = 10, // (Vulkan only)
     DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC = 11, // (Vulkan only)

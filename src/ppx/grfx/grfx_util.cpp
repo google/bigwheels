@@ -44,7 +44,7 @@ const char* ToString(grfx::DescriptorType value)
         case grfx::DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER   : return "grfx::DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER  "; break;
         case grfx::DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER   : return "grfx::DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER  "; break;
         case grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER         : return "grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER"; break;
-        case grfx::DESCRIPTOR_TYPE_STORAGE_BUFFER         : return "grfx::DESCRIPTOR_TYPE_STORAGE_BUFFER"; break;
+        case grfx::DESCRIPTOR_TYPE_RAW_STORAGE_BUFFER     : return "grfx::DESCRIPTOR_TYPE_RAW_STORAGE_BUFFER"; break;
         case grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC : return "grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC"; break;
         case grfx::DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC : return "grfx::DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC"; break;
         case grfx::DESCRIPTOR_TYPE_INPUT_ATTACHMENT       : return "grfx::DESCRIPTOR_TYPE_INPUT_ATTACHMENT"; break;

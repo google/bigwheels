@@ -76,7 +76,7 @@ struct DescriptorPoolCreateInfo
     uint32_t uniformTexelBuffer   = 0;
     uint32_t storageTexelBuffer   = 0;
     uint32_t uniformBuffer        = 0;
-    uint32_t storageBuffer        = 0;
+    uint32_t rawStorageBuffer     = 0;
     uint32_t structuredBuffer     = 0;
     uint32_t uniformBufferDynamic = 0;
     uint32_t storageBufferDynamic = 0;

@@ -422,6 +422,45 @@ Result Device::GetStructuredBufferSRV(
     return ppx::SUCCESS;
 }
 
+Result Device::GetBufferUAV(const grfx::Buffer* pBuffer, UINT firstElementInDwords, UINT numElementsInDwords, typename D3D11UnorderedAccessViewPtr::InterfaceType** ppUAV)
+{
+    typename D3D11UnorderedAccessViewPtr::InterfaceType* pUAV = nullptr;
+    auto                                                 it   = FindIf(
+        mBufferUAVs,
+        [pBuffer, firstElementInDwords, numElementsInDwords](const BufferUAV& elem) -> bool {
+            bool isSameBuffer = (elem.pBuffer == pBuffer);
+            bool isSameOffset = (elem.firstElement == firstElementInDwords);
+            bool isSameSize   = (elem.numElements == numElementsInDwords);
+            bool isSame       = isSameBuffer && isSameOffset && isSameSize;
+            return isSame; });
+    if (it != std::end(mBufferUAVs)) {
+        pUAV = it->UAV.Get();
+    }
+
+    if (IsNull(pUAV)) {
+        D3D11_UNORDERED_ACCESS_VIEW_DESC1 desc = {};
+        desc.Format                            = DXGI_FORMAT_R32_TYPELESS;
+        desc.ViewDimension                     = D3D11_UAV_DIMENSION_BUFFER;
+        desc.Buffer.FirstElement               = firstElementInDwords;
+        desc.Buffer.NumElements                = numElementsInDwords;
+        desc.Buffer.Flags                      = D3D11_BUFFER_UAV_FLAG_RAW;
+
+        D3D11UnorderedAccessViewPtr UAV;
+        HRESULT                     hr = mDevice->CreateUnorderedAccessView1(ToApi(pBuffer)->GetDxBuffer(), &desc, &UAV);
+        if (FAILED(hr)) {
+            return ppx::ERROR_API_FAILURE;
+        }
+
+        pUAV = UAV.Get();
+
+        mBufferUAVs.emplace_back(BufferUAV{pBuffer, firstElementInDwords, numElementsInDwords, UAV});
+    }
+
+    *ppUAV = pUAV;
+
+    return ppx::SUCCESS;
+}
+
 } // namespace dx11
 } // namespace grfx
 } // namespace ppx

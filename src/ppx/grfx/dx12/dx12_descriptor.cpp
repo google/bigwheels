@@ -52,7 +52,7 @@ Result DescriptorPool::CreateApiObjects(const grfx::DescriptorPoolCreateInfo* pC
                                 pCreateInfo->uniformTexelBuffer +
                                 pCreateInfo->storageTexelBuffer +
                                 pCreateInfo->uniformBuffer +
-                                pCreateInfo->storageBuffer +
+                                pCreateInfo->rawStorageBuffer +
                                 pCreateInfo->structuredBuffer;
     mDescriptorCountSampler = pCreateInfo->sampler;
 
@@ -312,7 +312,23 @@ Result DescriptorSet::UpdateDescriptors(uint32_t writeCount, const grfx::WriteDe
                 device->CreateShaderResourceView(ToApi(srcWrite.pBuffer)->GetDxResource(), &desc, handle);
             } break;
 
-            case grfx::DESCRIPTOR_TYPE_STORAGE_BUFFER: {
+            case grfx::DESCRIPTOR_TYPE_RAW_STORAGE_BUFFER: {
+                uint64_t sizeInBytes = (srcWrite.bufferRange == PPX_WHOLE_SIZE) ? srcWrite.pBuffer->GetSize() : srcWrite.bufferRange;
+                PPX_ASSERT_MSG(sizeInBytes % 4 == 0, "Size of storage buffer must be a multiple of 4");
+                PPX_ASSERT_MSG(srcWrite.bufferOffset % 4 == 0, "Buffer offset for storage buffer must be a multiple of 4");
+
+                D3D12_UNORDERED_ACCESS_VIEW_DESC desc = {};
+                desc.Format                           = DXGI_FORMAT_R32_TYPELESS;
+                desc.ViewDimension                    = D3D12_UAV_DIMENSION_BUFFER;
+                desc.Buffer.FirstElement              = srcWrite.bufferOffset / 4;
+                desc.Buffer.NumElements               = sizeInBytes / 4;
+                desc.Buffer.StructureByteStride       = 0;
+                desc.Buffer.Flags                     = D3D12_BUFFER_UAV_FLAG_RAW;
+
+                SIZE_T                      ptr    = heapOffset.descriptorHandle.ptr + static_cast<SIZE_T>(handleIncSizeCBVSRVUAV * srcWrite.arrayIndex);
+                D3D12_CPU_DESCRIPTOR_HANDLE handle = D3D12_CPU_DESCRIPTOR_HANDLE{ptr};
+
+                device->CreateUnorderedAccessView(ToApi(srcWrite.pBuffer)->GetDxResource(), nullptr, &desc, handle);
             } break;
 
             case grfx::DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:

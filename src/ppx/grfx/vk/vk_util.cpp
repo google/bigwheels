@@ -248,7 +248,7 @@ VkBufferUsageFlags ToVkBufferUsageFlags(const grfx::BufferUsageFlags& value)
     if (value.bits.uniformTexelBuffer            ) flags |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
     if (value.bits.storageTexelBuffer            ) flags |= VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
     if (value.bits.uniformBuffer                 ) flags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-    if (value.bits.storageBuffer                 ) flags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    if (value.bits.rawStorageBuffer                 ) flags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     if (value.bits.structuredBuffer              ) flags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     if (value.bits.indexBuffer                   ) flags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
     if (value.bits.vertexBuffer                  ) flags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
@@ -362,7 +362,7 @@ VkDescriptorType ToVkDescriptorType(grfx::DescriptorType value)
         case grfx::DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER   : return VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER  ; break;
         case grfx::DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER   : return VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER  ; break;
         case grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER         : return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER        ; break;
-        case grfx::DESCRIPTOR_TYPE_STORAGE_BUFFER         : return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER        ; break;
+        case grfx::DESCRIPTOR_TYPE_RAW_STORAGE_BUFFER         : return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER        ; break;
         case grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER      : return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER        ; break;
         case grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC : return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC; break;
         case grfx::DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC : return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC; break;

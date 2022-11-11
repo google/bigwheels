@@ -44,6 +44,9 @@ Result Buffer::CreateApiObjects(const grfx::BufferCreateInfo* pCreateInfo)
     if (pCreateInfo->usageFlags.bits.structuredBuffer) {
         miscFlags |= D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
     }
+    if (pCreateInfo->usageFlags.bits.rawStorageBuffer) {
+        miscFlags |= D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
+    }
 
     D3D11_BUFFER_DESC desc   = {};
     desc.ByteWidth           = static_cast<UINT>(pCreateInfo->size);
