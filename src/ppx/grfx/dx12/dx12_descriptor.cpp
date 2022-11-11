@@ -52,7 +52,7 @@ Result DescriptorPool::CreateApiObjects(const grfx::DescriptorPoolCreateInfo* pC
                                 pCreateInfo->uniformTexelBuffer +
                                 pCreateInfo->storageTexelBuffer +
                                 pCreateInfo->uniformBuffer +
-                                pCreateInfo->storageBuffer +
+                                pCreateInfo->rawStorageBuffer +
                                 pCreateInfo->structuredBuffer;
     mDescriptorCountSampler = pCreateInfo->sampler;
 

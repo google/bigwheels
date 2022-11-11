@@ -127,7 +127,7 @@ void ProjApp::Setup()
     TryAllocateRange(range.start, range.end, usageFlags);
     usageFlags.flags = 0;
     fprintf(stderr, "Trying storage buffer allocations in [%d %d] in powers of 2.\n", range.start, range.end);
-    usageFlags.bits.storageBuffer = 1;
+    usageFlags.bits.rawStorageBuffer = 1;
     TryAllocateRange(range.start, range.end, usageFlags);
     usageFlags.flags = 0;
     fprintf(stderr, "Trying uniform texel buffer allocations in [%d %d] in powers of 2.\n", range.start, range.end);

@@ -126,7 +126,7 @@ void ProjApp::Setup()
     // Create descriptor pool
     {
         grfx::DescriptorPoolCreateInfo createInfo = {};
-        createInfo.storageBuffer                  = 1;
+        createInfo.rawStorageBuffer               = 1;
 
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&createInfo, &mDescriptorPool));
     }
@@ -159,7 +159,7 @@ void ProjApp::SetupComputeShaderPass()
     {
         grfx::BufferCreateInfo bufferCreateInfo        = {};
         bufferCreateInfo.size                          = PPX_MINIMUM_UNIFORM_BUFFER_SIZE;
-        bufferCreateInfo.usageFlags.bits.storageBuffer = true;
+        bufferCreateInfo.usageFlags.bits.rawStorageBuffer = true;
         bufferCreateInfo.usageFlags.bits.transferDst   = true;
         bufferCreateInfo.usageFlags.bits.transferSrc   = true;
         bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_GPU_ONLY;

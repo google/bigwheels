@@ -36,7 +36,7 @@ Result DescriptorPool::CreateApiObjects(const grfx::DescriptorPoolCreateInfo* pC
 {
     mTotalCountCBV     = pCreateInfo->uniformBuffer;
     mTotalCountSRV     = pCreateInfo->sampledImage + pCreateInfo->uniformTexelBuffer + pCreateInfo->structuredBuffer;
-    mTotalCountUAV     = pCreateInfo->storageBuffer + pCreateInfo->storageTexelBuffer + pCreateInfo->storageImage;
+    mTotalCountUAV     = pCreateInfo->rawStorageBuffer + pCreateInfo->storageTexelBuffer + pCreateInfo->storageImage;
     mTotalCountSampler = pCreateInfo->sampler;
 
     UpdateRemainingCount();

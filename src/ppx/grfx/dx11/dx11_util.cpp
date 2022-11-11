@@ -68,7 +68,7 @@ UINT ToD3D11BindFlags(const grfx::BufferUsageFlags& value)
     if (value.bits.uniformBuffer) {
         flags |= D3D11_BIND_CONSTANT_BUFFER;
     }
-    if (value.bits.storageBuffer) {
+    if (value.bits.rawStorageBuffer) {
         flags |= D3D11_BIND_UNORDERED_ACCESS;
     }
     if (value.bits.structuredBuffer) {

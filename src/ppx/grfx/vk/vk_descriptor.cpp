@@ -37,7 +37,7 @@ Result DescriptorPool::CreateApiObjects(const grfx::DescriptorPoolCreateInfo* pC
     if (pCreateInfo->uniformTexelBuffer   > 0) poolSizes.push_back({VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER  , pCreateInfo->uniformTexelBuffer  });
     if (pCreateInfo->storageTexelBuffer   > 0) poolSizes.push_back({VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER  , pCreateInfo->storageTexelBuffer  });
     if (pCreateInfo->uniformBuffer        > 0) poolSizes.push_back({VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER        , pCreateInfo->uniformBuffer       });
-    if (pCreateInfo->storageBuffer        > 0) poolSizes.push_back({VK_DESCRIPTOR_TYPE_STORAGE_BUFFER        , pCreateInfo->storageBuffer       });
+    if (pCreateInfo->rawStorageBuffer        > 0) poolSizes.push_back({VK_DESCRIPTOR_TYPE_STORAGE_BUFFER        , pCreateInfo->rawStorageBuffer       });
     if (pCreateInfo->uniformBufferDynamic > 0) poolSizes.push_back({VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, pCreateInfo->uniformBufferDynamic});
     if (pCreateInfo->storageBufferDynamic > 0) poolSizes.push_back({VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, pCreateInfo->storageBufferDynamic});
     if (pCreateInfo->inputAttachment      > 0) poolSizes.push_back({VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT      , pCreateInfo->inputAttachment     });

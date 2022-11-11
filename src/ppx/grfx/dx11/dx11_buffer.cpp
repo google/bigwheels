@@ -44,7 +44,7 @@ Result Buffer::CreateApiObjects(const grfx::BufferCreateInfo* pCreateInfo)
     if (pCreateInfo->usageFlags.bits.structuredBuffer) {
         miscFlags |= D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
     }
-    if (pCreateInfo->usageFlags.bits.storageBuffer) {
+    if (pCreateInfo->usageFlags.bits.rawStorageBuffer) {
         miscFlags |= D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
     }
 

@@ -248,7 +248,7 @@ VkBufferUsageFlags ToVkBufferUsageFlags(const grfx::BufferUsageFlags& value)
     if (value.bits.uniformTexelBuffer            ) flags |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
     if (value.bits.storageTexelBuffer            ) flags |= VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
     if (value.bits.uniformBuffer                 ) flags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-    if (value.bits.storageBuffer                 ) flags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    if (value.bits.rawStorageBuffer                 ) flags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     if (value.bits.structuredBuffer              ) flags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     if (value.bits.indexBuffer                   ) flags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
     if (value.bits.vertexBuffer                  ) flags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
