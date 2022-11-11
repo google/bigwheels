@@ -1479,7 +1479,9 @@ int Application::Run(int argc, char** argv)
 
 #if defined(PPX_BUILD_XR)
     // Destroy Xr
-    mXrComponent.Destroy();
+    if (mSettings.enableXR) {
+        mXrComponent.Destroy();
+    }
 #endif
 
     // Destroy window

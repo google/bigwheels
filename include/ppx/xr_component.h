@@ -118,11 +118,11 @@ private:
     XrSystemId mSystemId = XR_NULL_SYSTEM_ID;
     XrSession  mSession  = XR_NULL_HANDLE;
 
-    XrSpace                                       mRefSpace;
     std::vector<XrViewConfigurationView>          mConfigViews;
     std::vector<XrCompositionLayerProjectionView> mCompositionLayerProjectionViews;
     std::vector<XrView>                           mViews;
 
+    XrSpace                  mRefSpace           = XR_NULL_HANDLE;
     XrSessionState           mSessionState       = XR_SESSION_STATE_UNKNOWN;
     XrEnvironmentBlendMode   mBlend              = XR_ENVIRONMENT_BLEND_MODE_MAX_ENUM;
     XrDebugUtilsMessengerEXT mDebugUtilMessenger = XR_NULL_HANDLE;
