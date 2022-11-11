@@ -157,7 +157,7 @@ Result DescriptorSet::CreateApiObjects(const grfx::internal::DescriptorSetCreate
             } break;
 
             // UAV
-            case grfx::DESCRIPTOR_TYPE_STORAGE_BUFFER:
+            case grfx::DESCRIPTOR_TYPE_RAW_STORAGE_BUFFER:
             case grfx::DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
             case grfx::DESCRIPTOR_TYPE_STORAGE_IMAGE: {
                 dx11::DescriptorArray array = {binding.binding, grfx::D3D_DESCRIPTOR_TYPE_UAV, binding.shaderVisiblity};
@@ -256,8 +256,21 @@ Result DescriptorSet::UpdateDescriptors(uint32_t writeCount, const grfx::WriteDe
             } break;
 
             // UAV
-            case grfx::DESCRIPTOR_TYPE_STORAGE_BUFFER: {
-                PPX_ASSERT_MSG(false, "not implemented");
+            case grfx::DESCRIPTOR_TYPE_RAW_STORAGE_BUFFER: {
+                if (it->descriptorType != grfx::D3D_DESCRIPTOR_TYPE_UAV) {
+                    PPX_ASSERT_MSG(false, "invalid descriptor type");
+                    return ppx::ERROR_GRFX_INVALID_DESCRIPTOR_TYPE;
+                }
+                uint64_t sizeInBytes = (write.bufferRange == PPX_WHOLE_SIZE) ? write.pBuffer->GetSize() : write.bufferRange;
+                PPX_ASSERT_MSG(sizeInBytes % 4 == 0, "Size of storage buffer must be a multiple of 4");
+                PPX_ASSERT_MSG(write.bufferOffset % 4 == 0, "Buffer offset for storage buffer must be a multiple of 4");
+
+                typename D3D11UnorderedAccessViewPtr::InterfaceType* pUAV   = nullptr;
+                Result                                               ppxres = ToApi(GetDevice())->GetBufferUAV(write.pBuffer, write.bufferOffset / 4, sizeInBytes / 4, &pUAV);
+                if (Failed(ppxres)) {
+                    return ppxres;
+                }
+                it->resources[write.arrayIndex] = pUAV;
             } break;
 
             case grfx::DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
@@ -314,7 +327,7 @@ Result DescriptorSetLayout::CreateApiObjects(const grfx::DescriptorSetLayoutCrea
             } break;
 
             // UAV
-            case grfx::DESCRIPTOR_TYPE_STORAGE_BUFFER:
+            case grfx::DESCRIPTOR_TYPE_RAW_STORAGE_BUFFER:
             case grfx::DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
             case grfx::DESCRIPTOR_TYPE_STORAGE_IMAGE: {
                 mBindingCountUAV += binding.arrayCount;
