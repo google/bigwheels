@@ -491,11 +491,14 @@ if (PPX_VULKAN)
     )
 endif()
 
-# Include OpenXR directories if OpenXR is enabled
+# Include OpenXR directories if OpenXR is enabled.
+# The OpenXR headers are generated at build time, so introduce a dependency
+# and look for headers in the build directory.
 if (PPX_BUILD_XR)
+    add_dependencies(${PROJECT_NAME} generate_openxr_header)
     target_include_directories(
         ${PROJECT_NAME}
-        PUBLIC ${PPX_DIR}/build/third_party/OpenXR-SDK-Source/include
+        PUBLIC ${CMAKE_BINARY_DIR}/third_party/OpenXR-SDK-Source/include
     )
 endif()
 
@@ -533,7 +536,7 @@ endif()
 if (PPX_BUILD_XR)
 	target_compile_definitions(
         ${PROJECT_NAME}
-        PUBLIC  PPX_BUILD_XR
+        PUBLIC PPX_BUILD_XR
     )
 endif()
 
