@@ -65,6 +65,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
     settings.grfx.enableDebug           = false;
     settings.enableXR                   = true;
+    settings.enableXRDebugCapture       = true;
 #if defined(USE_DXIL)
     settings.grfx.enableDXIL = true;
 #endif
@@ -341,6 +342,18 @@ void ProjApp::Render()
     // no need to present when XR is enabled
     if (!GetSettings()->enableXR) {
         PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.renderCompleteSemaphore));
+    }
+    else {
+        if (GetSettings()->enableXRDebugCapture && (currentViewIndex == 1)) {
+            // We could use semaphore to sync to have better performance
+            // but this requires modifying the submission code
+            // for debug capture we don't care about the performance
+            // so use existing fence to sync for simplicity
+            grfx::SwapchainPtr debugSwapchain = GetDebugCaptureSwapchain();
+            PPX_CHECKED_CALL(debugSwapchain->AcquireNextImage(UINT64_MAX, nullptr, frame.imageAcquiredFence, &imageIndex));
+            frame.imageAcquiredFence->WaitAndReset();
+            PPX_CHECKED_CALL(debugSwapchain->Present(imageIndex, 0, nullptr));
+        }
     }
 }
 

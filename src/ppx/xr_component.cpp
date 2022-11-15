@@ -301,7 +301,7 @@ void XrComponent::BeginFrame(const std::vector<grfx::SwapchainPtr>& swapchains)
     }
 
     mCompositionLayerProjectionViews.resize(viewCount);
-    PPX_ASSERT_MSG(swapchains.size() == viewCount, "Swapchain needs to match number of views!");
+    PPX_ASSERT_MSG(swapchains.size() >= viewCount, "Number of swapchains needs to be larger than or equal to the number of views!");
     for (uint32_t i = 0; i < viewCount; ++i) {
         mCompositionLayerProjectionViews[i]                           = {XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW};
         mCompositionLayerProjectionViews[i].pose                      = mViews[i].pose;

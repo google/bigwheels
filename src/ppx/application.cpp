@@ -719,7 +719,9 @@ Result Application::InitializeGrfxSurface()
 #if defined(PPX_BUILD_XR)
     // No need to create the surface when XR is enabled
     // the swapchain can be created from the OpenXR functions directly
-    if (!mSettings.enableXR)
+    if (!mSettings.enableXR
+        // surface is required for debug capture
+        || (mSettings.enableXR && mSettings.enableXRDebugCapture))
 #endif
     // Surface
     {
@@ -748,8 +750,6 @@ Result Application::InitializeGrfxSurface()
     if (mSettings.enableXR) {
         const size_t viewCount = mXrComponent.GetViewCount();
         PPX_ASSERT_MSG(viewCount != 0, "The config views should be already created at this point!");
-        mSettings.window.width  = mXrComponent.GetWidth();
-        mSettings.window.height = mXrComponent.GetHeight();
 
         grfx::SwapchainCreateInfo ci = {};
         ci.pQueue                    = mDevice->GetGraphicsQueue();
@@ -774,7 +774,10 @@ Result Application::InitializeGrfxSurface()
         // Image count is from xrEnumerateSwapchainImages
         mSettings.grfx.swapchain.imageCount = mSwapchain[0]->GetImageCount();
     }
-    else
+
+    if (!mSettings.enableXR
+        // extra swapchain for capture XR frames
+        || (mSettings.enableXR && mSettings.enableXRDebugCapture))
 #endif
     // Swapchain
     {
@@ -825,12 +828,24 @@ Result Application::InitializeGrfxSurface()
         ci.imageCount                = mSettings.grfx.swapchain.imageCount;
         ci.presentMode               = grfx::PRESENT_MODE_IMMEDIATE;
 
-        mSwapchain.resize(1);
-        Result ppxres = mDevice->CreateSwapchain(&ci, &mSwapchain[0]);
+        grfx::SwapchainPtr swapchain;
+        Result             ppxres = mDevice->CreateSwapchain(&ci, &swapchain);
         if (Failed(ppxres)) {
             PPX_ASSERT_MSG(false, "grfx::Device::CreateSwapchain failed");
             return ppxres;
         }
+#if defined(PPX_BUILD_XR)
+        if (mSettings.enableXRDebugCapture) {
+            mDebugCaptureSwapchainIndex = static_cast<uint32_t>(mSwapchain.size());
+            // The window size could be smaller than the requested one in glfwCreateWindow
+            // So the final swapchain size for window needs to be adjusted
+            // In the case of debug capture, we don't care about the window size after creating the dummy window
+            // restore width and heigh in the settings since they are used by some other systems in the renderer
+            mSettings.window.width  = mXrComponent.GetWidth();
+            mSettings.window.height = mXrComponent.GetHeight();
+        }
+#endif
+        mSwapchain.push_back(swapchain);
     }
 
     return ppx::SUCCESS;
@@ -1297,6 +1312,8 @@ int Application::Run(int argc, char** argv)
 #if defined(PPX_BUILD_XR)
     if (mSettings.enableXR) {
         mXrComponent.InitializeAfterGrfxDeviceInit(mInstance);
+        mSettings.window.width  = mXrComponent.GetWidth();
+        mSettings.window.height = mXrComponent.GetHeight();
     }
 #endif
 
@@ -1388,6 +1405,10 @@ int Application::Run(int argc, char** argv)
                     for (uint32_t k = 0; k < viewCount; ++k) {
                         mSwapchainIndex = k;
                         mXrComponent.SetCurrentViewIndex(k);
+                        // Start new Imgui frame
+                        if (mImGui) {
+                            mImGui->NewFrame();
+                        }
                         DispatchRender();
                         XrSwapchainImageReleaseInfo releaseInfo = {XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
                         CHECK_XR_CALL(xrReleaseSwapchainImage(GetSwapchain(k)->GetXrSwapchain(), &releaseInfo));

@@ -210,6 +210,7 @@ struct ApplicationSettings
     bool enableImGui           = false;
     bool allowThirdPartyAssets = false;
     bool enableXR              = false;
+    bool enableXRDebugCapture  = false;
 
     struct
     {
@@ -358,6 +359,11 @@ public:
     {
         return mXrComponent;
     }
+
+    grfx::SwapchainPtr GetDebugCaptureSwapchain() const
+    {
+        return GetSwapchain(mDebugCaptureSwapchainIndex);
+    }
 #endif
 private:
     void   InternalCtor();
@@ -420,6 +426,7 @@ private:
 
 #if defined(PPX_BUILD_XR)
     XrComponent mXrComponent;
+    uint32_t    mDebugCaptureSwapchainIndex = 0;
 #endif
 };
 
