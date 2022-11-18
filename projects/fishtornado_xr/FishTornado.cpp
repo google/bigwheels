@@ -956,7 +956,7 @@ void FishTornadoApp::Render()
         currentViewIndex = GetXrComponent().GetCurrentViewIndex();
     }
 
-    // render UI into a different composition layer
+    // Render UI into a different composition layer.
     if (GetSettings()->enableXR && (currentViewIndex == 0) && GetSettings()->enableImGui) {
         grfx::SwapchainPtr uiSwapchain = GetUISwapchain();
         PPX_CHECKED_CALL(uiSwapchain->AcquireNextImage(UINT64_MAX, nullptr, nullptr, &imageIndex));
@@ -1000,29 +1000,29 @@ void FishTornadoApp::Render()
     UpdateTime();
 
     if (swapchain->ShouldSkipExternalSynchronization()) {
-        // no need to
-        // - signal imageAcquiredSemaphore & imageAcquiredFence
-        // - wait for imageAcquiredFence since xrWaitSwapchainImage is called in AcquireNextImage
+        // No need to
+        // - Signal imageAcquiredSemaphore & imageAcquiredFence.
+        // - Wait for imageAcquiredFence since xrWaitSwapchainImage is called in AcquireNextImage.
         PPX_CHECKED_CALL(swapchain->AcquireNextImage(UINT64_MAX, nullptr, nullptr, &imageIndex));
     }
     else {
-        // Wait semaphore is ignored for XR
+        // Wait semaphore is ignored for XR.
         PPX_CHECKED_CALL(swapchain->AcquireNextImage(UINT64_MAX, frame.imageAcquiredSemaphore, frame.imageAcquiredFence, &imageIndex));
 
-        // Wait for and reset image acquired fence
+        // Wait for and reset image acquired fence.
         PPX_CHECKED_CALL(frame.imageAcquiredFence->WaitAndReset());
     }
 
-    // Wait for and reset render complete fence
+    // Wait for and reset render complete fence.
     PPX_CHECKED_CALL(frame.frameCompleteFence->WaitAndReset());
 
-    // Move this after waiting for frameCompleteFence to make sure the previous view is done
+    // Move this after waiting for frameCompleteFence to make sure the previous view is done.
     UpdateScene(frameIndex);
     mShark.Update(frameIndex);
     mFlocking.Update(frameIndex);
     mOcean.Update(frameIndex);
 
-    // Read query results
+    // Read query results.
     if (GetFrameCount() > 0) {
 #if defined(ENABLE_GPU_QUERIES)
         uint64_t data[2] = {0, 0};
@@ -1044,16 +1044,16 @@ void FishTornadoApp::Render()
 
     mLastFrameWasAsyncCompute = mUseAsyncCompute;
 
-    // no need to present when XR is enabled
+    // No need to present when XR is enabled.
     if (!GetSettings()->enableXR) {
         PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.frameCompleteSemaphore));
     }
     else {
         if (GetSettings()->enableXRDebugCapture && (currentViewIndex == 1)) {
-            // We could use semaphore to sync to have better performance
-            // but this requires modifying the submission code
-            // for debug capture we don't care about the performance
-            // so use existing fence to sync for simplicity
+            // We could use semaphore to sync to have better performance,
+            // but this requires modifying the submission code.
+            // For debug capture we don't care about the performance,
+            // so use existing fence to sync for simplicity.
             grfx::SwapchainPtr debugSwapchain = GetDebugCaptureSwapchain();
             PPX_CHECKED_CALL(debugSwapchain->AcquireNextImage(UINT64_MAX, nullptr, frame.imageAcquiredFence, &imageIndex));
             frame.imageAcquiredFence->WaitAndReset();

@@ -764,7 +764,7 @@ Result Application::InitializeGrfxSurface()
 
         // the +1 is for UI
         const size_t swapchainCount = viewCount + 1;
-        mStereoScopicSwapchainIndex = 0;
+        mStereoscopicSwapchainIndex = 0;
         mUISwapchainIndex           = static_cast<uint32_t>(viewCount);
         mSwapchain.resize(swapchainCount);
         for (size_t k = 0; k < swapchainCount; ++k) {
@@ -1415,7 +1415,7 @@ int Application::Run(int argc, char** argv)
                         mSwapchainIndex = k;
                         mXrComponent.SetCurrentViewIndex(k);
                         DispatchRender();
-                        CHECK_XR_CALL(xrReleaseSwapchainImage(GetSwapchain(k + mStereoScopicSwapchainIndex)->GetXrSwapchain(), &releaseInfo));
+                        CHECK_XR_CALL(xrReleaseSwapchainImage(GetSwapchain(k + mStereoscopicSwapchainIndex)->GetXrSwapchain(), &releaseInfo));
                     }
 
                     if (GetSettings()->enableImGui) {
