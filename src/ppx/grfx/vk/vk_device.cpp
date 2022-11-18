@@ -295,9 +295,9 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
 #if defined(VK_KHR_dynamic_rendering)
 
 #ifndef VK_API_VERSION_1_3
-    VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES};
-#else
     VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRenderingFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR};
+#else
+    VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES};
 #endif
 
     if (mHasDynamicRendering) {
