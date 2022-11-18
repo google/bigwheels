@@ -242,6 +242,14 @@ struct ApplicationSettings
             grfx::Format depthFormat = grfx::FORMAT_UNDEFINED;
             uint32_t     imageCount  = 2;
         } swapchain;
+
+#if defined(PPX_BUILD_XR)
+        struct
+        {
+            XrVector3f  pos;
+            XrExtent2Df size;
+        } ui;
+#endif
     } grfx;
 };
 
@@ -364,6 +372,11 @@ public:
     {
         return GetSwapchain(mDebugCaptureSwapchainIndex);
     }
+
+    grfx::SwapchainPtr GetUISwapchain() const
+    {
+        return GetSwapchain(mUISwapchainIndex);
+    }
 #endif
 private:
     void   InternalCtor();
@@ -427,6 +440,8 @@ private:
 #if defined(PPX_BUILD_XR)
     XrComponent mXrComponent;
     uint32_t    mDebugCaptureSwapchainIndex = 0;
+    uint32_t    mUISwapchainIndex           = 0;
+    uint32_t    mStereoScopicSwapchainIndex = 0;
 #endif
 };
 

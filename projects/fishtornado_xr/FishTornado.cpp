@@ -138,6 +138,8 @@ void FishTornadoApp::Config(ppx::ApplicationSettings& settings)
     settings.enableXRDebugCapture       = true;
     settings.grfx.swapchain.imageCount  = 3;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
+    settings.grfx.ui.pos                = {0.2f, -0.3f, -0.5f};
+    settings.grfx.ui.size               = {1.f, 1.f};
 #if defined(USE_DXIL)
     settings.grfx.enableDXIL = true;
 #endif
@@ -313,6 +315,11 @@ void FishTornadoApp::SetupPerFrame()
         PPX_CHECKED_CALL(frame.sceneShadowSet->UpdateUniformBuffer(RENDER_SCENE_DATA_REGISTER, 0, frame.sceneConstants.GetGpuBuffer()));
         PPX_CHECKED_CALL(frame.sceneShadowSet->UpdateSampledImage(RENDER_SHADOW_TEXTURE_REGISTER, 0, m1x1BlackTexture));
         PPX_CHECKED_CALL(frame.sceneShadowSet->UpdateSampler(RENDER_SHADOW_SAMPLER_REGISTER, 0, mClampedSampler));
+
+        if (GetSettings()->enableXR) {
+            PPX_CHECKED_CALL(GetGraphicsQueue()->CreateCommandBuffer(&frame.uiCmd));
+            PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &frame.uiRenderCompleteFence));
+        }
 
 #if defined(ENABLE_GPU_QUERIES)
         // Timestamp query
@@ -590,12 +597,14 @@ void FishTornadoApp::RenderSceneUsingSingleCommandBuffer(
 
             mOcean.DrawForward(frameIndex, frame.cmd);
 
-            // Draw ImGui
-            DrawDebugInfo([this]() { this->DrawGui(); });
+            if (!GetSettings()->enableXR) {
+                // Draw ImGui
+                DrawDebugInfo([this]() { this->DrawGui(); });
 #if defined(PPX_ENABLE_PROFILE_GRFX_API_FUNCTIONS)
-            DrawProfilerGrfxApiFunctions();
+                DrawProfilerGrfxApiFunctions();
 #endif // defined(PPX_ENABLE_PROFILE_GRFX_API_FUNCTIONS)
-            DrawImGui(frame.cmd);
+                DrawImGui(frame.cmd);
+            }
         }
         frame.cmd->EndRenderPass();
         if (!GetSettings()->enableXR) {
@@ -830,12 +839,14 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
 
             mOcean.DrawForward(frameIndex, frame.cmd);
 
-            // Draw ImGui
-            DrawDebugInfo([this]() { this->DrawGui(); });
+            if (!GetSettings()->enableXR) {
+                // Draw ImGui
+                DrawDebugInfo([this]() { this->DrawGui(); });
 #if defined(PPX_ENABLE_PROFILE_GRFX_API_FUNCTIONS)
-            DrawProfilerGrfxApiFunctions();
+                DrawProfilerGrfxApiFunctions();
 #endif // defined(PPX_ENABLE_PROFILE_GRFX_API_FUNCTIONS)
-            DrawImGui(frame.cmd);
+                DrawImGui(frame.cmd);
+            }
         }
         frame.cmd->EndRenderPass();
         if (!GetSettings()->enableXR) {
@@ -939,16 +950,54 @@ void FishTornadoApp::Render()
     uint32_t  prevFrameIndex = GetPreviousInFlightFrameIndex();
     PerFrame& prevFrame      = mPerFrame[prevFrameIndex];
 
+    uint32_t imageIndex       = UINT32_MAX;
     uint32_t currentViewIndex = 0;
     if (GetSettings()->enableXR) {
         currentViewIndex = GetXrComponent().GetCurrentViewIndex();
     }
 
+    // render UI into a different composition layer
+    if (GetSettings()->enableXR && (currentViewIndex == 0) && GetSettings()->enableImGui) {
+        grfx::SwapchainPtr uiSwapchain = GetUISwapchain();
+        PPX_CHECKED_CALL(uiSwapchain->AcquireNextImage(UINT64_MAX, nullptr, nullptr, &imageIndex));
+        PPX_CHECKED_CALL(frame.uiRenderCompleteFence->WaitAndReset());
+
+        PPX_CHECKED_CALL(frame.uiCmd->Begin());
+        {
+            grfx::RenderPassPtr renderPass = uiSwapchain->GetRenderPass(imageIndex);
+            PPX_ASSERT_MSG(!renderPass.IsNull(), "render pass object is null");
+
+            grfx::RenderPassBeginInfo beginInfo = {};
+            beginInfo.pRenderPass               = renderPass;
+            beginInfo.renderArea                = renderPass->GetRenderArea();
+            beginInfo.RTVClearCount             = 1;
+            beginInfo.RTVClearValues[0]         = {{0, 0, 0, 0}};
+            beginInfo.DSVClearValue             = {1.0f, 0xFF};
+
+            frame.uiCmd->BeginRenderPass(&beginInfo);
+            // Draw ImGui
+            DrawDebugInfo();
+            DrawImGui(frame.uiCmd);
+            frame.uiCmd->EndRenderPass();
+        }
+        PPX_CHECKED_CALL(frame.uiCmd->End());
+
+        grfx::SubmitInfo submitInfo     = {};
+        submitInfo.commandBufferCount   = 1;
+        submitInfo.ppCommandBuffers     = &frame.uiCmd;
+        submitInfo.waitSemaphoreCount   = 0;
+        submitInfo.ppWaitSemaphores     = nullptr;
+        submitInfo.signalSemaphoreCount = 0;
+        submitInfo.ppSignalSemaphores   = nullptr;
+
+        submitInfo.pFence = frame.uiRenderCompleteFence;
+
+        PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
+    }
+
     grfx::SwapchainPtr swapchain = GetSwapchain(currentViewIndex);
 
     UpdateTime();
-
-    uint32_t imageIndex = UINT32_MAX;
 
     if (swapchain->ShouldSkipExternalSynchronization()) {
         // no need to

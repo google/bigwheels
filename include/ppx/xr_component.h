@@ -53,13 +53,16 @@ enum struct XrRefSpace
 //!
 struct XrComponentCreateInfo
 {
-    grfx::Api               api            = grfx::API_UNDEFINED; // Direct3D or Vulkan.
-    std::string             appName        = "";
-    grfx::Format            colorFormat    = grfx::FORMAT_B8G8R8A8_SRGB;
-    grfx::Format            depthFormat    = grfx::FORMAT_D32_FLOAT;
-    XrRefSpace              refSpaceType   = XrRefSpace::XR_STAGE;
-    XrViewConfigurationType viewConfigType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
-    bool                    enableDebug    = false;
+    grfx::Api               api             = grfx::API_UNDEFINED; // Direct3D or Vulkan.
+    std::string             appName         = "";
+    grfx::Format            colorFormat     = grfx::FORMAT_B8G8R8A8_SRGB;
+    grfx::Format            depthFormat     = grfx::FORMAT_D32_FLOAT;
+    XrRefSpace              refSpaceType    = XrRefSpace::XR_STAGE;
+    XrViewConfigurationType viewConfigType  = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
+    XrVector3f              quadLayerPos    = {0, 0, 0};
+    XrExtent2Df             quadLayerSize   = {1.f, 1.f};
+    bool                    enableDebug     = false;
+    bool                    enableQuadLayer = false;
 };
 
 //! @class XrComponent
@@ -72,7 +75,7 @@ public:
 
     void PollEvents(bool& exitRenderLoop);
 
-    void BeginFrame(const std::vector<grfx::SwapchainPtr>& swapchains);
+    void BeginFrame(const std::vector<grfx::SwapchainPtr>& swapchains, uint32_t layerProjStartIndex, uint32_t layerQuadStartIndex);
     void EndFrame();
 
     grfx::Format GetColorFormat() const { return mCreateInfo.colorFormat; }
@@ -123,6 +126,7 @@ private:
     std::vector<XrView>                           mViews;
 
     XrSpace                  mRefSpace           = XR_NULL_HANDLE;
+    XrSpace                  mUISpace            = XR_NULL_HANDLE;
     XrSessionState           mSessionState       = XR_SESSION_STATE_UNKNOWN;
     XrEnvironmentBlendMode   mBlend              = XR_ENVIRONMENT_BLEND_MODE_MAX_ENUM;
     XrDebugUtilsMessengerEXT mDebugUtilMessenger = XR_NULL_HANDLE;
@@ -135,6 +139,7 @@ private:
 
     XrEventDataBuffer            mEventDataBuffer;
     XrCompositionLayerProjection mCompositionLayerProjection = {XR_TYPE_COMPOSITION_LAYER_PROJECTION};
+    XrCompositionLayerQuad       mCompositionLayerQuad       = {XR_TYPE_COMPOSITION_LAYER_QUAD};
     uint32_t                     mCurrentViewIndex           = 0;
 
     XrComponentCreateInfo mCreateInfo = {};

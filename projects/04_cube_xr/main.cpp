@@ -40,6 +40,10 @@ private:
         ppx::grfx::FencePtr         imageAcquiredFence;
         ppx::grfx::SemaphorePtr     renderCompleteSemaphore;
         ppx::grfx::FencePtr         renderCompleteFence;
+
+        // XR UI per frame elements
+        ppx::grfx::CommandBufferPtr uiCmd;
+        ppx::grfx::FencePtr         uiRenderCompleteFence;
     };
 
     std::vector<PerFrame>             mPerFrame;
@@ -66,6 +70,8 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.enableDebug           = false;
     settings.enableXR                   = true;
     settings.enableXRDebugCapture       = true;
+    settings.grfx.ui.pos                = {0.1f, -0.2f, -0.5f};
+    settings.grfx.ui.size               = {1.f, 1.f};
 #if defined(USE_DXIL)
     settings.grfx.enableDXIL = true;
 #endif
@@ -161,6 +167,11 @@ void ProjApp::Setup()
         fenceCreateInfo = {true}; // Create signaled
         PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &frame.renderCompleteFence));
 
+        if (GetSettings()->enableXR) {
+            PPX_CHECKED_CALL(GetGraphicsQueue()->CreateCommandBuffer(&frame.uiCmd));
+            PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &frame.uiRenderCompleteFence));
+        }
+
         mPerFrame.push_back(frame);
     }
 
@@ -234,16 +245,53 @@ void ProjApp::Setup()
 
 void ProjApp::Render()
 {
-    PerFrame& frame = mPerFrame[0];
-
-    uint32_t currentViewIndex = 0;
+    PerFrame& frame            = mPerFrame[0];
+    uint32_t  imageIndex       = UINT32_MAX;
+    uint32_t  currentViewIndex = 0;
     if (GetSettings()->enableXR) {
         currentViewIndex = GetXrComponent().GetCurrentViewIndex();
     }
 
-    grfx::SwapchainPtr swapchain = GetSwapchain(currentViewIndex);
+    // render UI into a different composition layer
+    if (GetSettings()->enableXR && (currentViewIndex == 0) && GetSettings()->enableImGui) {
+        grfx::SwapchainPtr uiSwapchain = GetUISwapchain();
+        PPX_CHECKED_CALL(uiSwapchain->AcquireNextImage(UINT64_MAX, nullptr, nullptr, &imageIndex));
+        PPX_CHECKED_CALL(frame.uiRenderCompleteFence->WaitAndReset());
 
-    uint32_t imageIndex = UINT32_MAX;
+        PPX_CHECKED_CALL(frame.uiCmd->Begin());
+        {
+            grfx::RenderPassPtr renderPass = uiSwapchain->GetRenderPass(imageIndex);
+            PPX_ASSERT_MSG(!renderPass.IsNull(), "render pass object is null");
+
+            grfx::RenderPassBeginInfo beginInfo = {};
+            beginInfo.pRenderPass               = renderPass;
+            beginInfo.renderArea                = renderPass->GetRenderArea();
+            beginInfo.RTVClearCount             = 1;
+            beginInfo.RTVClearValues[0]         = {{0, 0, 0, 0}};
+            beginInfo.DSVClearValue             = {1.0f, 0xFF};
+
+            frame.uiCmd->BeginRenderPass(&beginInfo);
+            // Draw ImGui
+            DrawDebugInfo();
+            DrawImGui(frame.uiCmd);
+            frame.uiCmd->EndRenderPass();
+        }
+        PPX_CHECKED_CALL(frame.uiCmd->End());
+
+        grfx::SubmitInfo submitInfo     = {};
+        submitInfo.commandBufferCount   = 1;
+        submitInfo.ppCommandBuffers     = &frame.uiCmd;
+        submitInfo.waitSemaphoreCount   = 0;
+        submitInfo.ppWaitSemaphores     = nullptr;
+        submitInfo.signalSemaphoreCount = 0;
+        submitInfo.ppSignalSemaphores   = nullptr;
+
+        submitInfo.pFence = frame.uiRenderCompleteFence;
+
+        PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
+    }
+
+    grfx::SwapchainPtr swapchain = GetSwapchain(currentViewIndex);
 
     if (swapchain->ShouldSkipExternalSynchronization()) {
         // no need to
@@ -308,9 +356,11 @@ void ProjApp::Render()
             frame.cmd->BindVertexBuffers(1, &mVertexBuffer, &mVertexBinding.GetStride());
             frame.cmd->Draw(36, 1, 0, 0);
 
-            // Draw ImGui
-            DrawDebugInfo();
-            DrawImGui(frame.cmd);
+            if (!GetSettings()->enableXR) {
+                // Draw ImGui
+                DrawDebugInfo();
+                DrawImGui(frame.cmd);
+            }
         }
         frame.cmd->EndRenderPass();
         if (!GetSettings()->enableXR) {
