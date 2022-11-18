@@ -103,6 +103,10 @@ private:
         grfx::QueryPtr         startTimestampQuery;
         grfx::QueryPtr         endTimestampQuery;
         grfx::QueryPtr         pipelineStatsQuery;
+
+        // XR UI per frame elements.
+        ppx::grfx::CommandBufferPtr uiCmd;
+        ppx::grfx::FencePtr         uiRenderCompleteFence;
     };
 
     grfx::DescriptorPoolPtr      mDescriptorPool;

@@ -762,8 +762,12 @@ Result Application::InitializeGrfxSurface()
         ci.presentMode               = grfx::PRESENT_MODE_UNDEFINED; // No present for XR
         ci.pXrComponent              = &mXrComponent;
 
-        mSwapchain.resize(viewCount);
-        for (size_t k = 0; k < viewCount; ++k) {
+        // the +1 is for UI
+        const size_t swapchainCount = viewCount + 1;
+        mStereoscopicSwapchainIndex = 0;
+        mUISwapchainIndex           = static_cast<uint32_t>(viewCount);
+        mSwapchain.resize(swapchainCount);
+        for (size_t k = 0; k < swapchainCount; ++k) {
             Result ppxres = mDevice->CreateSwapchain(&ci, &mSwapchain[k]);
             if (Failed(ppxres)) {
                 PPX_ASSERT_MSG(false, "grfx::Device::CreateSwapchain failed");
@@ -835,7 +839,7 @@ Result Application::InitializeGrfxSurface()
             return ppxres;
         }
 #if defined(PPX_BUILD_XR)
-        if (mSettings.enableXRDebugCapture) {
+        if (mSettings.enableXR && mSettings.enableXRDebugCapture) {
             mDebugCaptureSwapchainIndex = static_cast<uint32_t>(mSwapchain.size());
             // The window size could be smaller than the requested one in glfwCreateWindow
             // So the final swapchain size for window needs to be adjusted
@@ -1295,11 +1299,11 @@ int Application::Run(int argc, char** argv)
         createInfo.refSpaceType          = XrRefSpace::XR_STAGE;
         createInfo.viewConfigType        = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
         createInfo.enableDebug           = false;
+        createInfo.enableQuadLayer       = mSettings.enableImGui;
+        createInfo.quadLayerPos          = mSettings.grfx.ui.pos;
+        createInfo.quadLayerSize         = mSettings.grfx.ui.size;
 
         mXrComponent.InitializeBeforeGrfxDeviceInit(createInfo);
-        // TODO(wangra): disable ImGui for XR for now, need to be fixed
-        // b/256679355
-        mSettings.enableImGui = false;
     }
 #endif
 
@@ -1399,19 +1403,23 @@ int Application::Run(int argc, char** argv)
             }
 
             if (mXrComponent.IsSessionRunning()) {
-                mXrComponent.BeginFrame(mSwapchain);
+                mXrComponent.BeginFrame(mSwapchain, 0, mUISwapchainIndex);
                 if (mXrComponent.ShouldRender()) {
-                    uint32_t viewCount = static_cast<uint32_t>(mXrComponent.GetViewCount());
+                    XrSwapchainImageReleaseInfo releaseInfo = {XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
+                    uint32_t                    viewCount   = static_cast<uint32_t>(mXrComponent.GetViewCount());
+                    // Start new Imgui frame
+                    if (mImGui) {
+                        mImGui->NewFrame();
+                    }
                     for (uint32_t k = 0; k < viewCount; ++k) {
                         mSwapchainIndex = k;
                         mXrComponent.SetCurrentViewIndex(k);
-                        // Start new Imgui frame
-                        if (mImGui) {
-                            mImGui->NewFrame();
-                        }
                         DispatchRender();
-                        XrSwapchainImageReleaseInfo releaseInfo = {XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
-                        CHECK_XR_CALL(xrReleaseSwapchainImage(GetSwapchain(k)->GetXrSwapchain(), &releaseInfo));
+                        CHECK_XR_CALL(xrReleaseSwapchainImage(GetSwapchain(k + mStereoscopicSwapchainIndex)->GetXrSwapchain(), &releaseInfo));
+                    }
+
+                    if (GetSettings()->enableImGui) {
+                        CHECK_XR_CALL(xrReleaseSwapchainImage(GetSwapchain(mUISwapchainIndex)->GetXrSwapchain(), &releaseInfo));
                     }
                 }
                 mXrComponent.EndFrame();
@@ -1645,7 +1653,7 @@ void Application::DrawDebugInfo(std::function<void(void)> drawAdditionalFn)
     if (!mImGui) {
         return;
     }
-
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, {static_cast<float>(GetWindowWidth() / 2), static_cast<float>(GetWindowHeight() / 2)});
     if (ImGui::Begin("Debug Info")) {
         ImGui::Columns(2);
 
@@ -1767,6 +1775,7 @@ void Application::DrawDebugInfo(std::function<void(void)> drawAdditionalFn)
         }
     }
     ImGui::End();
+    ImGui::PopStyleVar();
 }
 
 void Application::DrawProfilerGrfxApiFunctions()

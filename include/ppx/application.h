@@ -242,6 +242,18 @@ struct ApplicationSettings
             grfx::Format depthFormat = grfx::FORMAT_UNDEFINED;
             uint32_t     imageCount  = 2;
         } swapchain;
+
+#if defined(PPX_BUILD_XR)
+        // OpenXR is having a right handed system.
+        // The pos here is the center position in view space.
+        // Detailed description can be found here:
+        // https://registry.khronos.org/OpenXR/specs/1.0/man/html/XrCompositionLayerQuad.html
+        struct
+        {
+            XrVector3f  pos;
+            XrExtent2Df size;
+        } ui;
+#endif
     } grfx;
 };
 
@@ -364,6 +376,11 @@ public:
     {
         return GetSwapchain(mDebugCaptureSwapchainIndex);
     }
+
+    grfx::SwapchainPtr GetUISwapchain() const
+    {
+        return GetSwapchain(mUISwapchainIndex);
+    }
 #endif
 private:
     void   InternalCtor();
@@ -427,6 +444,8 @@ private:
 #if defined(PPX_BUILD_XR)
     XrComponent mXrComponent;
     uint32_t    mDebugCaptureSwapchainIndex = 0;
+    uint32_t    mUISwapchainIndex           = 0;
+    uint32_t    mStereoscopicSwapchainIndex = 0;
 #endif
 };
 

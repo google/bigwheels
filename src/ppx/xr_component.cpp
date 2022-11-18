@@ -163,6 +163,9 @@ void XrComponent::InitializeAfterGrfxDeviceInit(const grfx::InstancePtr pGrfxIns
     refSpaceCreatInfo.referenceSpaceType         = refSpaceType;
     xrCreateReferenceSpace(mSession, &refSpaceCreatInfo, &mRefSpace);
 
+    refSpaceCreatInfo.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_VIEW;
+    xrCreateReferenceSpace(mSession, &refSpaceCreatInfo, &mUISpace);
+
     uint32_t viewCount = 0;
     xrEnumerateViewConfigurationViews(mInstance, mSystemId, mCreateInfo.viewConfigType, 0, &viewCount, nullptr);
     mConfigViews.resize(viewCount, {XR_TYPE_VIEW_CONFIGURATION_VIEW});
@@ -182,6 +185,10 @@ void XrComponent::Destroy()
 
     if (mRefSpace != XR_NULL_HANDLE) {
         xrDestroySpace(mRefSpace);
+    }
+
+    if (mUISpace != XR_NULL_HANDLE) {
+        xrDestroySpace(mUISpace);
     }
 
     if (mSession != XR_NULL_HANDLE) {
@@ -272,7 +279,7 @@ void XrComponent::HandleSessionStateChangedEvent(const XrEventDataSessionStateCh
     }
 }
 
-void XrComponent::BeginFrame(const std::vector<grfx::SwapchainPtr>& swapchains)
+void XrComponent::BeginFrame(const std::vector<grfx::SwapchainPtr>& swapchains, uint32_t layerProjStartIndex, uint32_t layerQuadStartIndex)
 {
     XrFrameWaitInfo frameWaitInfo = {
         .type = XR_TYPE_FRAME_WAIT_INFO,
@@ -306,9 +313,21 @@ void XrComponent::BeginFrame(const std::vector<grfx::SwapchainPtr>& swapchains)
         mCompositionLayerProjectionViews[i]                           = {XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW};
         mCompositionLayerProjectionViews[i].pose                      = mViews[i].pose;
         mCompositionLayerProjectionViews[i].fov                       = mViews[i].fov;
-        mCompositionLayerProjectionViews[i].subImage.swapchain        = swapchains[i]->GetXrSwapchain();
+        mCompositionLayerProjectionViews[i].subImage.swapchain        = swapchains[layerProjStartIndex + i]->GetXrSwapchain();
         mCompositionLayerProjectionViews[i].subImage.imageRect.offset = {0, 0};
         mCompositionLayerProjectionViews[i].subImage.imageRect.extent = {static_cast<int>(GetWidth()), static_cast<int>(GetHeight())};
+    }
+
+    // UI composition layer
+    if (mCreateInfo.enableQuadLayer) {
+        mCompositionLayerQuad.layerFlags                = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT;
+        mCompositionLayerQuad.space                     = mUISpace;
+        mCompositionLayerQuad.eyeVisibility             = XR_EYE_VISIBILITY_BOTH;
+        mCompositionLayerQuad.subImage.swapchain        = swapchains[layerQuadStartIndex]->GetXrSwapchain();
+        mCompositionLayerQuad.subImage.imageRect.offset = {0, 0};
+        mCompositionLayerQuad.subImage.imageRect.extent = {static_cast<int>(GetWidth()), static_cast<int>(GetHeight())};
+        mCompositionLayerQuad.pose                      = {{0, 0, 0, 1}, mCreateInfo.quadLayerPos};
+        mCompositionLayerQuad.size                      = mCreateInfo.quadLayerSize;
     }
 
     // Begin frame
@@ -333,17 +352,24 @@ void XrComponent::BeginFrame(const std::vector<grfx::SwapchainPtr>& swapchains)
 
 void XrComponent::EndFrame()
 {
-    mCompositionLayerProjection.space     = mRefSpace;
-    mCompositionLayerProjection.viewCount = static_cast<uint32_t>(GetViewCount());
-    mCompositionLayerProjection.views     = mCompositionLayerProjectionViews.data();
-    XrCompositionLayerBaseHeader* layer   = mShouldRender ? reinterpret_cast<XrCompositionLayerBaseHeader*>(&mCompositionLayerProjection) : nullptr;
+    mCompositionLayerProjection.layerFlags = 0;
+    mCompositionLayerProjection.space      = mRefSpace;
+    mCompositionLayerProjection.viewCount  = static_cast<uint32_t>(GetViewCount());
+    mCompositionLayerProjection.views      = mCompositionLayerProjectionViews.data();
+    std::vector<XrCompositionLayerBaseHeader*> layers;
+    if (mShouldRender) {
+        layers.push_back(reinterpret_cast<XrCompositionLayerBaseHeader*>(&mCompositionLayerProjection));
+        if (mCreateInfo.enableQuadLayer) {
+            layers.push_back(reinterpret_cast<XrCompositionLayerBaseHeader*>(&mCompositionLayerQuad));
+        }
+    }
 
     XrFrameEndInfo frameEndInfo = {
         .type                 = XR_TYPE_FRAME_END_INFO,
         .displayTime          = mFrameState.predictedDisplayTime,
         .environmentBlendMode = mBlend,
-        .layerCount           = static_cast<uint32_t>(mShouldRender ? 1 : 0),
-        .layers               = &layer,
+        .layerCount           = static_cast<uint32_t>(layers.size()),
+        .layers               = layers.data(),
     };
 
     CHECK_XR_CALL(xrEndFrame(mSession, &frameEndInfo));
