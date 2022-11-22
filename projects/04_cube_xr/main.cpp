@@ -68,6 +68,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.api                   = kApi;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
     settings.grfx.enableDebug           = false;
+    settings.grfx.pacedFrameRate        = 0;
     settings.enableXR                   = true;
     settings.enableXRDebugCapture       = true;
     settings.grfx.ui.pos                = {0.1f, -0.2f, -0.5f};

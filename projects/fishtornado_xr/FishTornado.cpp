@@ -134,6 +134,7 @@ void FishTornadoApp::Config(ppx::ApplicationSettings& settings)
     settings.enableImGui                = true;
     settings.grfx.numFramesInFlight     = 2;
     settings.grfx.enableDebug           = false;
+    settings.grfx.pacedFrameRate        = 0;
     settings.enableXR                   = true;
     settings.enableXRDebugCapture       = true;
     settings.grfx.swapchain.imageCount  = 3;

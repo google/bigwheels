@@ -16,6 +16,7 @@
 #include "ppx/grfx/dx12/dx12_device.h"
 #include "ppx/grfx/dx12/dx12_gpu.h"
 #include "ppx/grfx/dx12/dx12_swapchain.h"
+#include "ppx/grfx/dx12/dx12_queue.h"
 
 namespace ppx {
 namespace grfx {
@@ -35,7 +36,7 @@ Result Instance::EnumerateAndCreateGpus(D3D_FEATURE_LEVEL featureLevel)
         // Filter for only hardware adapters, unless
         // a software renderer is requested.
         DXGI_ADAPTER_DESC1 desc;
-        hr = adapter->GetDesc1(&desc);
+        hr                       = adapter->GetDesc1(&desc);
         bool is_software_adapter = desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE;
         if (FAILED(hr) || (mCreateInfo.useSoftwareRenderer != is_software_adapter)) {
             continue;
@@ -90,6 +91,22 @@ Result Instance::EnumerateAndCreateGpus(D3D_FEATURE_LEVEL featureLevel)
 
 Result Instance::CreateApiObjects(const grfx::InstanceCreateInfo* pCreateInfo)
 {
+    D3D_FEATURE_LEVEL minFeatureLevelRequired = D3D_FEATURE_LEVEL_12_0;
+
+#if defined(PPX_BUILD_XR)
+    if (isXREnabled()) {
+        PPX_ASSERT_MSG(pCreateInfo->pXrComponent != nullptr, "XrComponent should not be nullptr!");
+        const XrComponent& xrComponent = *pCreateInfo->pXrComponent;
+
+        XrGraphicsRequirementsD3D12KHR        graphicsRequirements{XR_TYPE_GRAPHICS_REQUIREMENTS_D3D12_KHR};
+        PFN_xrGetD3D12GraphicsRequirementsKHR pfnGetD3D12GraphicsRequirementsKHR = nullptr;
+        CHECK_XR_CALL(xrGetInstanceProcAddr(xrComponent.GetInstance(), "xrGetD3D12GraphicsRequirementsKHR", reinterpret_cast<PFN_xrVoidFunction*>(&pfnGetD3D12GraphicsRequirementsKHR)));
+        PPX_ASSERT_MSG(pfnGetD3D12GraphicsRequirementsKHR != nullptr, "Cannot get xrGetD3D12GraphicsRequirementsKHR function pointer!");
+        CHECK_XR_CALL(pfnGetD3D12GraphicsRequirementsKHR(xrComponent.GetInstance(), xrComponent.GetSystemId(), &graphicsRequirements));
+        minFeatureLevelRequired = graphicsRequirements.minFeatureLevel;
+    }
+#endif
+
     D3D_FEATURE_LEVEL featureLevel = ppx::InvalidValue<D3D_FEATURE_LEVEL>();
     switch (pCreateInfo->api) {
         default: break;
@@ -98,6 +115,10 @@ Result Instance::CreateApiObjects(const grfx::InstanceCreateInfo* pCreateInfo)
     }
     if (featureLevel == ppx::InvalidValue<D3D_FEATURE_LEVEL>()) {
         return ppx::ERROR_UNSUPPORTED_API;
+    }
+    if (minFeatureLevelRequired > featureLevel) {
+        PPX_LOG_WARN("D3D feature level increased due to minimum requirements");
+        featureLevel = minFeatureLevelRequired;
     }
     UINT dxgiFactoryFlags = 0;
     if (pCreateInfo->enableDebug) {
@@ -203,6 +224,25 @@ Result Instance::AllocateObject(grfx::Surface** ppSurface)
     *ppSurface = pObject;
     return ppx::SUCCESS;
 }
+
+#if defined(PPX_BUILD_XR)
+const XrBaseInStructure* Instance::XrGetGraphicsBinding() const
+{
+    PPX_ASSERT_MSG(XrIsGraphicsBindingValid(), "Invalid Graphics Binding!");
+    return reinterpret_cast<const XrBaseInStructure*>(&mXrGraphicsBinding);
+}
+
+bool Instance::XrIsGraphicsBindingValid() const
+{
+    return (mXrGraphicsBinding.device != nullptr) && (mXrGraphicsBinding.queue != nullptr);
+}
+
+void Instance::XrUpdateDeviceInGraphicsBinding()
+{
+    mXrGraphicsBinding.device = ToApi(mDevices[0])->GetDxDevice();
+    mXrGraphicsBinding.queue  = ToApi(mDevices[0]->GetGraphicsQueue())->GetDxQueue();
+}
+#endif
 
 } // namespace dx12
 } // namespace grfx

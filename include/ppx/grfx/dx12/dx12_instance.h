@@ -41,17 +41,9 @@ public:
 
 #if defined(PPX_BUILD_XR)
     // Get the graphics binding header for session creation.
-    virtual const XrBaseInStructure* XrGetGraphicsBinding() const override
-    {
-        return nullptr;
-    }
-    virtual bool XrIsGraphicsBindingValid() const override
-    {
-        return false;
-    }
-    virtual void XrUpdateDeviceInGraphicsBinding() override
-    {
-    }
+    virtual const XrBaseInStructure* XrGetGraphicsBinding() const override;
+    virtual bool                     XrIsGraphicsBindingValid() const override;
+    virtual void                     XrUpdateDeviceInGraphicsBinding() override;
 #endif
 
 protected:
@@ -71,6 +63,10 @@ private:
     DXGIInfoQueuePtr mDXGIInfoQueue;
     D3D12DebugPtr    mD3D12Debug;
     DXGIFactoryPtr   mFactory;
+
+#if defined(PPX_BUILD_XR)
+    XrGraphicsBindingD3D12KHR mXrGraphicsBinding = {XR_TYPE_GRAPHICS_BINDING_D3D12_KHR, nullptr, nullptr, nullptr};
+#endif
 };
 
 } // namespace dx12

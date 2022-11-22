@@ -17,7 +17,7 @@ project(fishtornado_xr)
 
 add_samples(
     NAME ${PROJECT_NAME}
-    TARGET_APIS "vk"
+    TARGET_APIS "vk" "dx12"
     SOURCES
     "Buffer.h"
     "Buffer.cpp"
