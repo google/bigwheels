@@ -95,6 +95,22 @@ Result Instance::EnumerateAndCreateGpus(D3D_FEATURE_LEVEL featureLevel, bool ena
 
 Result Instance::CreateApiObjects(const grfx::InstanceCreateInfo* pCreateInfo)
 {
+    D3D_FEATURE_LEVEL minFeatureLevelRequired = D3D_FEATURE_LEVEL_11_0;
+
+#if defined(PPX_BUILD_XR)
+    if (isXREnabled()) {
+        PPX_ASSERT_MSG(pCreateInfo->pXrComponent != nullptr, "XrComponent should not be nullptr!");
+        const XrComponent& xrComponent = *pCreateInfo->pXrComponent;
+
+        XrGraphicsRequirementsD3D11KHR        graphicsRequirements{XR_TYPE_GRAPHICS_REQUIREMENTS_D3D11_KHR};
+        PFN_xrGetD3D11GraphicsRequirementsKHR pfnGetD3D11GraphicsRequirementsKHR = nullptr;
+        CHECK_XR_CALL(xrGetInstanceProcAddr(xrComponent.GetInstance(), "xrGetD3D11GraphicsRequirementsKHR", reinterpret_cast<PFN_xrVoidFunction*>(&pfnGetD3D11GraphicsRequirementsKHR)));
+        PPX_ASSERT_MSG(pfnGetD3D11GraphicsRequirementsKHR != nullptr, "Cannot get xrGetD3D11GraphicsRequirementsKHR function pointer!");
+        CHECK_XR_CALL(pfnGetD3D11GraphicsRequirementsKHR(xrComponent.GetInstance(), xrComponent.GetSystemId(), &graphicsRequirements));
+        minFeatureLevelRequired = graphicsRequirements.minFeatureLevel;
+    }
+#endif
+
     D3D_FEATURE_LEVEL featureLevel = ppx::InvalidValue<D3D_FEATURE_LEVEL>();
     switch (pCreateInfo->api) {
         default: break;
@@ -103,6 +119,10 @@ Result Instance::CreateApiObjects(const grfx::InstanceCreateInfo* pCreateInfo)
     }
     if (featureLevel == ppx::InvalidValue<D3D_FEATURE_LEVEL>()) {
         return ppx::ERROR_UNSUPPORTED_API;
+    }
+    if (minFeatureLevelRequired > featureLevel) {
+        PPX_LOG_WARN("D3D feature level increased due to minimum requirements");
+        featureLevel = minFeatureLevelRequired;
     }
 
     UINT dxgiFactoryFlags = 0;
@@ -196,6 +216,24 @@ Result Instance::AllocateObject(grfx::Surface** ppSurface)
     *ppSurface = pObject;
     return ppx::SUCCESS;
 }
+
+#if defined(PPX_BUILD_XR)
+const XrBaseInStructure* Instance::XrGetGraphicsBinding() const
+{
+    PPX_ASSERT_MSG(XrIsGraphicsBindingValid(), "Invalid Graphics Binding!");
+    return reinterpret_cast<const XrBaseInStructure*>(&mXrGraphicsBinding);
+}
+
+bool Instance::XrIsGraphicsBindingValid() const
+{
+    return mXrGraphicsBinding.device != nullptr;
+}
+
+void Instance::XrUpdateDeviceInGraphicsBinding()
+{
+    mXrGraphicsBinding.device = ToApi(mDevices[0])->GetDxDevice();
+}
+#endif
 
 } // namespace dx11
 } // namespace grfx
