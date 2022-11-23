@@ -17,6 +17,6 @@ project(04_cube_xr)
 
 add_samples(
     NAME ${PROJECT_NAME}
-    TARGET_APIS "vk"
+    TARGET_APIS "vk" "dx12"
     SOURCES "main.cpp"
     SHADER_DEPENDENCIES "shader_vertex_colors")

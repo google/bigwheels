@@ -1298,7 +1298,7 @@ int Application::Run(int argc, char** argv)
         createInfo.depthFormat           = grfx::FORMAT_D32_FLOAT;
         createInfo.refSpaceType          = XrRefSpace::XR_STAGE;
         createInfo.viewConfigType        = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
-        createInfo.enableDebug           = false;
+        createInfo.enableDebug           = mSettings.grfx.enableDebug;
         createInfo.enableQuadLayer       = mSettings.enableImGui;
         createInfo.quadLayerPos          = mSettings.grfx.ui.pos;
         createInfo.quadLayerSize         = mSettings.grfx.ui.size;
