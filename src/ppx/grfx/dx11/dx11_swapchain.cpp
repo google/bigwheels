@@ -110,19 +110,16 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
 
         // For performance we'll use a flip-model swapchain. This limits formats
         // to the list below.
-        //
-        // clang-format off
-    bool formatSupported = false;
-    DXGI_FORMAT dxgiFormat = dx::ToDxgiFormat(pCreateInfo->colorFormat);
-    switch (dxgiFormat) {
-        default:  break;
-        case DXGI_FORMAT_B8G8R8A8_UNORM:
-        case DXGI_FORMAT_R8G8B8A8_UNORM:
-        case DXGI_FORMAT_R16G16B16A16_FLOAT:
-            formatSupported = true;
-            break;
-    }
-        // clang-format on
+        bool        formatSupported = false;
+        DXGI_FORMAT dxgiFormat      = dx::ToDxgiFormat(pCreateInfo->colorFormat);
+        switch (dxgiFormat) {
+            default: break;
+            case DXGI_FORMAT_B8G8R8A8_UNORM:
+            case DXGI_FORMAT_R8G8B8A8_UNORM:
+            case DXGI_FORMAT_R16G16B16A16_FLOAT:
+                formatSupported = true;
+                break;
+        }
         if (!formatSupported) {
             PPX_ASSERT_MSG(false, "unsupported swapchain format");
             return ERROR_GRFX_UNSUPPORTED_SWAPCHAIN_FORMAT;
@@ -226,7 +223,7 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
 
             // In Direct3D 11, applications could call GetBuffer(0, ...) only once. Every call to
             // Present() implicitly changes the resource identity of the returned interface.
-            // See: https://docs.microsoft.com/en-us/windows/win32/direct3ddxgi/dxgi-1-4-improvements?redirectedfrom=MSDN
+            // See: https://docs.microsoft.com/en-us/windows/win32/direct3ddxgi/dxgi-1-4-improvements
             D3D11Texture2DPtr surface;
             hr = mSwapchain->GetBuffer(0, __uuidof(typename D3D11Texture2DPtr::InterfaceType), &surface);
             if (FAILED(hr)) {
