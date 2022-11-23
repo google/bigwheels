@@ -75,134 +75,170 @@ uint32_t Surface::GetMaxImageCount() const
 // -------------------------------------------------------------------------------------------------
 Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
 {
-    DXGIFactoryPtr factory = ToApi(GetDevice()->GetInstance())->GetDxFactory();
+    std::vector<ID3D11Resource*> images;
 
-    // For performance we'll use a flip-model swapchain. This limits formats
-    // to the list below.
-    //
-    // clang-format off
-    bool formatSupported = false;
-    DXGI_FORMAT dxgiFormat = dx::ToDxgiFormat(pCreateInfo->colorFormat);
-    switch (dxgiFormat) {
-        default:  break;
-        case DXGI_FORMAT_B8G8R8A8_UNORM:
-        case DXGI_FORMAT_R8G8B8A8_UNORM:
-        case DXGI_FORMAT_R16G16B16A16_FLOAT:
-            formatSupported = true;
-            break;
-    }
-    // clang-format on
-    if (!formatSupported) {
-        PPX_ASSERT_MSG(false, "unsupported swapchain format");
-        return ERROR_GRFX_UNSUPPORTED_SWAPCHAIN_FORMAT;
-    }
+#if defined(PPX_BUILD_XR)
+    const bool isXREnabled = (mCreateInfo.pXrComponent != nullptr);
+    if (isXREnabled) {
+        const XrComponent& xrComponent = *mCreateInfo.pXrComponent;
 
-    // Present mode behavior
-    UINT flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
-    // Set flag
+        XrSwapchainCreateInfo info = {XR_TYPE_SWAPCHAIN_CREATE_INFO};
+        info.arraySize             = 1;
+        info.mipCount              = 1;
+        info.faceCount             = 1;
+        info.format                = dx::ToDxgiFormat(xrComponent.GetColorFormat());
+        info.width                 = xrComponent.GetWidth();
+        info.height                = xrComponent.GetHeight();
+        info.sampleCount           = xrComponent.GetSampleCount();
+        info.usageFlags            = XR_SWAPCHAIN_USAGE_SAMPLED_BIT | XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT;
+        CHECK_XR_CALL(xrCreateSwapchain(xrComponent.GetSession(), &info, &mXrSwapchain));
+
+        // Find out how many textures were generated for the swapchain.
+        uint32_t imageCount = 0;
+        CHECK_XR_CALL(xrEnumerateSwapchainImages(mXrSwapchain, 0, &imageCount, nullptr));
+        std::vector<XrSwapchainImageD3D11KHR> surfaceImages;
+        surfaceImages.resize(imageCount, {XR_TYPE_SWAPCHAIN_IMAGE_D3D11_KHR});
+        CHECK_XR_CALL(xrEnumerateSwapchainImages(mXrSwapchain, imageCount, &imageCount, (XrSwapchainImageBaseHeader*)surfaceImages.data()));
+        for (uint32_t i = 0; i < imageCount; i++) {
+            images.push_back(surfaceImages[i].texture);
+        }
+    }
+    else
+#endif
     {
-        switch (pCreateInfo->presentMode) {
-            default: {
-                return ppx::ERROR_GRFX_UNSUPPORTED_PRESENT_MODE;
-            } break;
+        DXGIFactoryPtr factory = ToApi(GetDevice()->GetInstance())->GetDxFactory();
 
-            case grfx::PRESENT_MODE_FIFO: {
-                mSyncInterval = 1;
-            } break;
-            case grfx::PRESENT_MODE_MAILBOX: {
-                mSyncInterval = 0;
-            } break;
-            case grfx::PRESENT_MODE_IMMEDIATE: {
-                mSyncInterval = 0;
-                flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
-            } break;
+        // For performance we'll use a flip-model swapchain. This limits formats
+        // to the list below.
+        bool        formatSupported = false;
+        DXGI_FORMAT dxgiFormat      = dx::ToDxgiFormat(pCreateInfo->colorFormat);
+        switch (dxgiFormat) {
+            default: break;
+            case DXGI_FORMAT_B8G8R8A8_UNORM:
+            case DXGI_FORMAT_R8G8B8A8_UNORM:
+            case DXGI_FORMAT_R16G16B16A16_FLOAT:
+                formatSupported = true;
+                break;
+        }
+        if (!formatSupported) {
+            PPX_ASSERT_MSG(false, "unsupported swapchain format");
+            return ERROR_GRFX_UNSUPPORTED_SWAPCHAIN_FORMAT;
         }
 
-        if (flags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) {
-            BOOL    allowTearing = FALSE;
-            HRESULT hr           = factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(allowTearing));
-            if (!SUCCEEDED(hr)) {
+        // Present mode behavior
+        UINT flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+        // Set flag
+        {
+            switch (pCreateInfo->presentMode) {
+                default: {
+                    return ppx::ERROR_GRFX_UNSUPPORTED_PRESENT_MODE;
+                } break;
+
+                case grfx::PRESENT_MODE_FIFO: {
+                    mSyncInterval = 1;
+                } break;
+                case grfx::PRESENT_MODE_MAILBOX: {
+                    mSyncInterval = 0;
+                } break;
+                case grfx::PRESENT_MODE_IMMEDIATE: {
+                    mSyncInterval = 0;
+                    flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+                } break;
+            }
+
+            if (flags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) {
+                BOOL    allowTearing = FALSE;
+                HRESULT hr           = factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allowTearing, sizeof(allowTearing));
+                if (!SUCCEEDED(hr)) {
+                    return ppx::ERROR_API_FAILURE;
+                }
+
+                if (allowTearing == FALSE) {
+                    return ppx::ERROR_GRFX_UNSUPPORTED_PRESENT_MODE;
+                }
+            }
+        }
+
+        // DXGI_USAGE_UNORDERED_ACCESS is usually not supported so we'll lave it out for now.
+        //
+        DXGI_USAGE       bufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
+        DXGI_SWAP_EFFECT swapEffect  = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+
+        DXGI_SWAP_CHAIN_DESC1 dxDesc = {};
+        dxDesc.Width                 = static_cast<UINT>(pCreateInfo->width);
+        dxDesc.Height                = static_cast<UINT>(pCreateInfo->height);
+        dxDesc.Format                = dx::ToDxgiFormat(pCreateInfo->colorFormat);
+        dxDesc.Stereo                = FALSE;
+        dxDesc.SampleDesc.Count      = 1;
+        dxDesc.SampleDesc.Quality    = 0;
+        dxDesc.BufferUsage           = bufferUsage;
+        dxDesc.BufferCount           = static_cast<UINT>(pCreateInfo->imageCount);
+        dxDesc.Scaling               = DXGI_SCALING_NONE;
+        dxDesc.SwapEffect            = swapEffect;
+        dxDesc.AlphaMode             = DXGI_ALPHA_MODE_IGNORE;
+        dxDesc.Flags                 = flags;
+
+        ComPtr<IDXGISwapChain1> dxgiSwapChain;
+        HRESULT                 hr = factory->CreateSwapChainForHwnd(
+            ToApi(GetDevice())->GetDxDevice(),               // pDevice
+            ToApi(pCreateInfo->pSurface)->GetWindowHandle(), // hWnd
+            &dxDesc,                                         // pDesc
+            nullptr,                                         // pFullscreenDesc
+            nullptr,                                         // pRestrictToOutput
+            &dxgiSwapChain);                                 // ppSwapChain
+        if (FAILED(hr)) {
+            PPX_ASSERT_MSG(false, "IDXGIFactory2::CreateSwapChainForHwnd failed");
+            return ppx::ERROR_API_FAILURE;
+        }
+        PPX_LOG_OBJECT_CREATION(DXGISwapChain, dxgiSwapChain.Get());
+
+        hr = dxgiSwapChain.As(&mSwapchain);
+        if (FAILED(hr)) {
+            PPX_ASSERT_MSG(false, "failed casting to IDXGISwapChain");
+            return ppx::ERROR_API_FAILURE;
+        }
+
+        mFrameLatencyWaitableObject = mSwapchain->GetFrameLatencyWaitableObject();
+        if (IsNull(mFrameLatencyWaitableObject)) {
+            PPX_ASSERT_MSG(false, "IDXGISwapChain2::GetFrameLatencyWaitableObject failed");
+            return ppx::ERROR_API_FAILURE;
+        }
+
+        hr = mSwapchain->SetMaximumFrameLatency(1);
+        if (FAILED(hr)) {
+            PPX_ASSERT_MSG(false, "IDXGISwapChain2::SetMaximumFrameLatency failed");
+            return ppx::ERROR_API_FAILURE;
+        }
+
+        // Store the texture resources created by the swapchain.
+        // Query the image count again in case the underlying swapchain
+        // modified the number of images created.
+        {
+            DXGI_SWAP_CHAIN_DESC dxDesc = {};
+            HRESULT              hr     = mSwapchain->GetDesc(&dxDesc);
+            if (FAILED(hr)) {
+                PPX_ASSERT_MSG(false, "IDXGISwapChain::GetDesc failed");
                 return ppx::ERROR_API_FAILURE;
             }
 
-            if (allowTearing == FALSE) {
-                return ppx::ERROR_GRFX_UNSUPPORTED_PRESENT_MODE;
+            // In Direct3D 11, applications could call GetBuffer(0, ...) only once. Every call to
+            // Present() implicitly changes the resource identity of the returned interface.
+            // See: https://docs.microsoft.com/en-us/windows/win32/direct3ddxgi/dxgi-1-4-improvements
+            D3D11Texture2DPtr surface;
+            hr = mSwapchain->GetBuffer(0, __uuidof(typename D3D11Texture2DPtr::InterfaceType), &surface);
+            if (FAILED(hr)) {
+                return ppx::ERROR_API_FAILURE;
+            }
+
+            for (UINT i = 0; i < dxDesc.BufferCount; ++i) {
+                images.push_back(surface.Get());
             }
         }
-    }
-
-    // DXGI_USAGE_UNORDERED_ACCESS is usually not supported so we'll lave it out for now.
-    //
-    DXGI_USAGE       bufferUsage = DXGI_USAGE_BACK_BUFFER | DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
-    DXGI_SWAP_EFFECT swapEffect  = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-
-    DXGI_SWAP_CHAIN_DESC1 dxDesc = {};
-    dxDesc.Width                 = static_cast<UINT>(pCreateInfo->width);
-    dxDesc.Height                = static_cast<UINT>(pCreateInfo->height);
-    dxDesc.Format                = dx::ToDxgiFormat(pCreateInfo->colorFormat);
-    dxDesc.Stereo                = FALSE;
-    dxDesc.SampleDesc.Count      = 1;
-    dxDesc.SampleDesc.Quality    = 0;
-    dxDesc.BufferUsage           = bufferUsage;
-    dxDesc.BufferCount           = static_cast<UINT>(pCreateInfo->imageCount);
-    dxDesc.Scaling               = DXGI_SCALING_NONE;
-    dxDesc.SwapEffect            = swapEffect;
-    dxDesc.AlphaMode             = DXGI_ALPHA_MODE_IGNORE;
-    dxDesc.Flags                 = flags;
-
-    ComPtr<IDXGISwapChain1> dxgiSwapChain;
-    HRESULT                 hr = factory->CreateSwapChainForHwnd(
-        ToApi(GetDevice())->GetDxDevice(),               // pDevice
-        ToApi(pCreateInfo->pSurface)->GetWindowHandle(), // hWnd
-        &dxDesc,                                         // pDesc
-        nullptr,                                         // pFullscreenDesc
-        nullptr,                                         // pRestrictToOutput
-        &dxgiSwapChain);                                 // ppSwapChain
-    if (FAILED(hr)) {
-        PPX_ASSERT_MSG(false, "IDXGIFactory2::CreateSwapChainForHwnd failed");
-        return ppx::ERROR_API_FAILURE;
-    }
-    PPX_LOG_OBJECT_CREATION(DXGISwapChain, dxgiSwapChain.Get());
-
-    hr = dxgiSwapChain.As(&mSwapchain);
-    if (FAILED(hr)) {
-        PPX_ASSERT_MSG(false, "failed casting to IDXGISwapChain");
-        return ppx::ERROR_API_FAILURE;
-    }
-
-    mFrameLatencyWaitableObject = mSwapchain->GetFrameLatencyWaitableObject();
-    if (IsNull(mFrameLatencyWaitableObject)) {
-        PPX_ASSERT_MSG(false, "IDXGISwapChain2::GetFrameLatencyWaitableObject failed");
-        return ppx::ERROR_API_FAILURE;
-    }
-
-    hr = mSwapchain->SetMaximumFrameLatency(1);
-    if (FAILED(hr)) {
-        PPX_ASSERT_MSG(false, "IDXGISwapChain2::SetMaximumFrameLatency failed");
-        return ppx::ERROR_API_FAILURE;
     }
 
     // Create images
     {
-        DXGI_SWAP_CHAIN_DESC dxDesc = {};
-        HRESULT              hr     = mSwapchain->GetDesc(&dxDesc);
-        if (FAILED(hr)) {
-            PPX_ASSERT_MSG(false, "IDXGISwapChain::GetDesc failed");
-            return ppx::ERROR_API_FAILURE;
-        }
-
-        //
-        // In Direct3D 11, applications could call GetBuffer(0, ...) only once. Every call to
-        // Present() implicitly changes the resource identity of the returned interface.
-        // See: https://docs.microsoft.com/en-us/windows/win32/direct3ddxgi/dxgi-1-4-improvements?redirectedfrom=MSDN
-        //
-        D3D11Texture2DPtr surface;
-        hr = mSwapchain->GetBuffer(0, __uuidof(typename D3D11Texture2DPtr::InterfaceType), &surface);
-        if (!SUCCEEDED(hr)) {
-            return ppx::ERROR_API_FAILURE;
-        }
-
-        for (UINT i = 0; i < dxDesc.BufferCount; ++i) {
+        for (size_t i = 0; i < images.size(); ++i) {
             grfx::ImageCreateInfo imageCreateInfo           = {};
             imageCreateInfo.type                            = grfx::IMAGE_TYPE_2D;
             imageCreateInfo.width                           = pCreateInfo->width;
@@ -217,7 +253,7 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
             imageCreateInfo.usageFlags.bits.sampled         = true;
             imageCreateInfo.usageFlags.bits.storage         = true;
             imageCreateInfo.usageFlags.bits.colorAttachment = true;
-            imageCreateInfo.pApiObject                      = surface.Get();
+            imageCreateInfo.pApiObject                      = images[i];
 
             grfx::ImagePtr image;
             Result         ppxres = GetDevice()->CreateImage(&imageCreateInfo, &image);
@@ -229,9 +265,6 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
             mColorImages.push_back(image);
         }
     }
-
-    //// Save queue for later use
-    //mQueue = ToApi(pCreateInfo->pQueue)->GetDxQueue();
 
     return ppx::SUCCESS;
 }
