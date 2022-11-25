@@ -345,7 +345,7 @@ void Flocking::Update(uint32_t frameIndex)
         pFlockingData->predPos            = pApp->GetShark()->GetPosition();
         pFlockingData->camPos             = pApp->GetCamera()->GetEyePosition();
         if (pApp->IsXrEnabled()) {
-            const XrVector3f& pos = pApp->GetXrComponent().GetCurrentPose().position;
+            const XrVector3f& pos = pApp->GetXrComponent().GetPoseForCurrentView().position;
             pFlockingData->camPos = {pos.x, pos.y, pos.z};
         }
     }

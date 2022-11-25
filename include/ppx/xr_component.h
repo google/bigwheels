@@ -36,6 +36,8 @@
 #include <openxr/openxr_platform.h>
 #include <ppx/grfx/grfx_config.h>
 
+#include <optional>
+
 #define CHECK_XR_CALL(cmd) \
     PPX_ASSERT_MSG(cmd == XR_SUCCESS, "XR call failed!");
 
@@ -53,18 +55,17 @@ enum struct XrRefSpace
 //!
 struct XrComponentCreateInfo
 {
-    grfx::Api               api             = grfx::API_UNDEFINED; // Direct3D or Vulkan.
-    std::string             appName         = "";
-    grfx::Format            colorFormat     = grfx::FORMAT_B8G8R8A8_SRGB;
-    grfx::Format            depthFormat     = grfx::FORMAT_D32_FLOAT;
-    float                   depthNearPlane  = 0.001f;
-    float                   depthFarPlane   = 10000.0f;
-    XrRefSpace              refSpaceType    = XrRefSpace::XR_STAGE;
-    XrViewConfigurationType viewConfigType  = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
-    XrVector3f              quadLayerPos    = {0, 0, 0};
-    XrExtent2Df             quadLayerSize   = {1.f, 1.f};
-    bool                    enableDebug     = false;
-    bool                    enableQuadLayer = false;
+    grfx::Api               api                  = grfx::API_UNDEFINED; // Direct3D or Vulkan.
+    std::string             appName              = "";
+    grfx::Format            colorFormat          = grfx::FORMAT_B8G8R8A8_SRGB;
+    grfx::Format            depthFormat          = grfx::FORMAT_D32_FLOAT;
+    XrRefSpace              refSpaceType         = XrRefSpace::XR_STAGE;
+    XrViewConfigurationType viewConfigType       = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
+    XrVector3f              quadLayerPos         = {0, 0, 0};
+    XrExtent2Df             quadLayerSize        = {1.f, 1.f};
+    bool                    enableDebug          = false;
+    bool                    enableQuadLayer      = false;
+    bool                    enableDepthSwapchain = false;
 };
 
 //! @class XrComponent
@@ -77,11 +78,12 @@ public:
 
     void PollEvents(bool& exitRenderLoop);
 
-    void BeginFrame(const std::vector<grfx::SwapchainPtr>& swapchains, uint32_t layerProjStartIndex, uint32_t layerQuadStartIndex);
-    void EndFrame();
+    void BeginFrame();
+    void EndFrame(const std::vector<grfx::SwapchainPtr>& swapchains, uint32_t layerProjStartIndex, uint32_t layerQuadStartIndex);
 
     grfx::Format GetColorFormat() const { return mCreateInfo.colorFormat; }
     grfx::Format GetDepthFormat() const { return mCreateInfo.depthFormat; }
+    bool         UsesDepthSwapchains() const { return mCreateInfo.enableDepthSwapchain; }
 
     // This is a hack that assumes both views have the same width/height/sample count
     uint32_t GetWidth() const
@@ -108,9 +110,14 @@ public:
     XrSession  GetSession() const { return mSession; }
     void       SetCurrentViewIndex(uint32_t index) { mCurrentViewIndex = index; }
     uint32_t   GetCurrentViewIndex() const { return mCurrentViewIndex; }
-    glm::mat4  GetViewMatrixForCurrentView() const;
-    glm::mat4  GetProjectionMatrixForCurrentView() const;
-    XrPosef    GetCurrentPose() const;
+
+    // Computes the projection matrix for the current view given the near and
+    // far frustum planes. The values for the frustum planes will be sent to
+    // the OpenXR runtime as part of the frame depth info submission, and the
+    // caller must ensure that the values do not change within a frame.
+    glm::mat4 GetProjectionMatrixForCurrentViewAndSetFrustumPlanes(float nearZ, float farZ);
+    glm::mat4 GetViewMatrixForCurrentView() const;
+    XrPosef   GetPoseForCurrentView() const;
 
     bool IsSessionRunning() const { return mIsSessionRunning; }
     bool ShouldRender() const { return mShouldRender; }
@@ -123,28 +130,27 @@ private:
     XrSystemId mSystemId = XR_NULL_SYSTEM_ID;
     XrSession  mSession  = XR_NULL_HANDLE;
 
-    std::vector<XrViewConfigurationView>          mConfigViews;
-    std::vector<XrCompositionLayerProjectionView> mCompositionLayerProjectionViews;
-    std::vector<XrCompositionLayerDepthInfoKHR>   mCompositionLayerDepthInfos;
-    std::vector<XrView>                           mViews;
+    std::vector<XrViewConfigurationView> mConfigViews;
+    std::vector<XrView>                  mViews;
+    uint32_t                             mCurrentViewIndex = 0;
 
-    XrSpace                  mRefSpace              = XR_NULL_HANDLE;
-    XrSpace                  mUISpace               = XR_NULL_HANDLE;
-    XrSessionState           mSessionState          = XR_SESSION_STATE_UNKNOWN;
-    XrEnvironmentBlendMode   mBlend                 = XR_ENVIRONMENT_BLEND_MODE_MAX_ENUM;
-    XrDebugUtilsMessengerEXT mDebugUtilMessenger    = XR_NULL_HANDLE;
-    bool                     mIsSessionRunning      = false;
-    bool                     mShouldRender          = false;
-    bool                     mShouldSubmitDepthInfo = false;
+    XrSpace                  mRefSpace           = XR_NULL_HANDLE;
+    XrSpace                  mUISpace            = XR_NULL_HANDLE;
+    XrSessionState           mSessionState       = XR_SESSION_STATE_UNKNOWN;
+    XrEnvironmentBlendMode   mBlend              = XR_ENVIRONMENT_BLEND_MODE_MAX_ENUM;
+    XrDebugUtilsMessengerEXT mDebugUtilMessenger = XR_NULL_HANDLE;
+    bool                     mIsSessionRunning   = false;
+    bool                     mShouldRender       = false;
+
+    std::optional<float> mNearPlaneForFrame     = std::nullopt;
+    std::optional<float> mFarPlaneForFrame      = std::nullopt;
+    bool                 mShouldSubmitDepthInfo = false;
 
     XrFrameState mFrameState = {
         .type = XR_TYPE_FRAME_STATE,
     };
 
-    XrEventDataBuffer            mEventDataBuffer;
-    XrCompositionLayerProjection mCompositionLayerProjection = {XR_TYPE_COMPOSITION_LAYER_PROJECTION};
-    XrCompositionLayerQuad       mCompositionLayerQuad       = {XR_TYPE_COMPOSITION_LAYER_QUAD};
-    uint32_t                     mCurrentViewIndex           = 0;
+    XrEventDataBuffer mEventDataBuffer;
 
     XrComponentCreateInfo mCreateInfo = {};
 };

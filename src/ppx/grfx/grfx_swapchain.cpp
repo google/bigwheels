@@ -55,26 +55,22 @@ Result Swapchain::Create(const grfx::SwapchainCreateInfo* pCreateInfo)
     }
 
     // NOTE: mCreateInfo.imageCount will be used from this point on.
-    if (pCreateInfo->depthFormat != grfx::FORMAT_UNDEFINED) {
-#if defined(PPX_BUILD_XR)
-        // Depth images in XR mode are created through the XR swapchain.
-        // TODO: Enable this assert once all APIs have the depth swapchain implementation.
-        // PPX_ASSERT_MSG(mXrDepthSwapchain != VK_NULL_HANDLE && !mDepthImages.empty(), "XR depth swapchain is null");
-        if (mXrDepthSwapchain == nullptr)
-#endif
-        {
-            for (uint32_t i = 0; i < mCreateInfo.imageCount; ++i) {
-                grfx::ImageCreateInfo dpCreateInfo = ImageCreateInfo::DepthStencilTarget(pCreateInfo->width, pCreateInfo->height, pCreateInfo->depthFormat);
-                dpCreateInfo.ownership             = grfx::OWNERSHIP_RESTRICTED;
 
-                grfx::ImagePtr depthStencilTarget;
-                ppxres = GetDevice()->CreateImage(&dpCreateInfo, &depthStencilTarget);
-                if (Failed(ppxres)) {
-                    return ppxres;
-                }
+    // Depth images in XR mode are created through the XR depth swapchain,
+    // if enabled. In that case, we don't need to create images here, as
+    // mDepthImages will already have been populated.
+    if (pCreateInfo->depthFormat != grfx::FORMAT_UNDEFINED && mDepthImages.empty()) {
+        for (uint32_t i = 0; i < mCreateInfo.imageCount; ++i) {
+            grfx::ImageCreateInfo dpCreateInfo = ImageCreateInfo::DepthStencilTarget(pCreateInfo->width, pCreateInfo->height, pCreateInfo->depthFormat);
+            dpCreateInfo.ownership             = grfx::OWNERSHIP_RESTRICTED;
 
-                mDepthImages.push_back(depthStencilTarget);
+            grfx::ImagePtr depthStencilTarget;
+            ppxres = GetDevice()->CreateImage(&dpCreateInfo, &depthStencilTarget);
+            if (Failed(ppxres)) {
+                return ppxres;
             }
+
+            mDepthImages.push_back(depthStencilTarget);
         }
     }
 

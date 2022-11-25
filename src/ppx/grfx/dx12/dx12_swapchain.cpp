@@ -78,7 +78,7 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
             colorImages.push_back(surfaceImages[i].texture);
         }
 
-        if (xrComponent.GetDepthFormat() != grfx::FORMAT_UNDEFINED) {
+        if (xrComponent.GetDepthFormat() != grfx::FORMAT_UNDEFINED && xrComponent.UsesDepthSwapchains()) {
             PPX_ASSERT_MSG(xrComponent.GetDepthFormat() == pCreateInfo->depthFormat, "XR depth format differs from requested swapchain format");
 
             XrSwapchainCreateInfo info = {XR_TYPE_SWAPCHAIN_CREATE_INFO};

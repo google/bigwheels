@@ -318,7 +318,7 @@ void ProjApp::Render()
         float4x4 V = glm::lookAt(float3(0, 0, 0), float3(0, 0, 1), float3(0, 1, 0));
 
         if (IsXrEnabled()) {
-            P = GetXrComponent().GetProjectionMatrixForCurrentView();
+            P = GetXrComponent().GetProjectionMatrixForCurrentViewAndSetFrustumPlanes(0.001f, 10000.0f);
             V = GetXrComponent().GetViewMatrixForCurrentView();
         }
         float4x4 M   = glm::translate(float3(0, 0, -3)) * glm::rotate(t, float3(0, 0, 1)) * glm::rotate(t, float3(0, 1, 0)) * glm::rotate(t, float3(1, 0, 0));

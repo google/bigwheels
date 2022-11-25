@@ -1296,12 +1296,11 @@ int Application::Run(int argc, char** argv)
         createInfo.appName               = mSettings.appName;
         createInfo.colorFormat           = grfx::FORMAT_B8G8R8A8_SRGB;
         createInfo.depthFormat           = grfx::FORMAT_D32_FLOAT;
-        createInfo.depthNearPlane        = mSettings.xr.depthNearPlane;
-        createInfo.depthFarPlane         = mSettings.xr.depthFarPlane;
         createInfo.refSpaceType          = XrRefSpace::XR_STAGE;
         createInfo.viewConfigType        = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
         createInfo.enableDebug           = mSettings.grfx.enableDebug;
         createInfo.enableQuadLayer       = mSettings.enableImGui;
+        createInfo.enableDepthSwapchain  = mSettings.xr.enableDepthSwapchain;
         createInfo.quadLayerPos          = XrVector3f{mSettings.xr.ui.pos.x, mSettings.xr.ui.pos.y, mSettings.xr.ui.pos.z};
         createInfo.quadLayerSize         = XrExtent2Df{mSettings.xr.ui.size.x, mSettings.xr.ui.size.y};
 
@@ -1405,7 +1404,7 @@ int Application::Run(int argc, char** argv)
             }
 
             if (mXrComponent.IsSessionRunning()) {
-                mXrComponent.BeginFrame(mSwapchain, 0, mUISwapchainIndex);
+                mXrComponent.BeginFrame();
                 if (mXrComponent.ShouldRender()) {
                     XrSwapchainImageReleaseInfo releaseInfo = {XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
                     uint32_t                    viewCount   = static_cast<uint32_t>(mXrComponent.GetViewCount());
@@ -1432,7 +1431,7 @@ int Application::Run(int argc, char** argv)
                         }
                     }
                 }
-                mXrComponent.EndFrame();
+                mXrComponent.EndFrame(mSwapchain, 0, mUISwapchainIndex);
             }
         }
         else

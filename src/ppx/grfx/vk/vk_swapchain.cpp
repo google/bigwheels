@@ -232,6 +232,10 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
         for (uint32_t i = 0; i < imageCount; i++) {
             images[i] = surfaceImages[i].image;
         }
+
+        if (xrComponent.GetDepthFormat() != grfx::FORMAT_UNDEFINED && xrComponent.UsesDepthSwapchains()) {
+            PPX_ASSERT_MSG(false, "XR depth swapchain not implemented for Vulkan yet.");
+        }
     }
     else
 #endif

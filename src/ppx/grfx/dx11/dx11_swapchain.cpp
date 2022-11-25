@@ -102,6 +102,10 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
         for (uint32_t i = 0; i < imageCount; i++) {
             images.push_back(surfaceImages[i].texture);
         }
+
+        if (xrComponent.GetDepthFormat() != grfx::FORMAT_UNDEFINED && xrComponent.UsesDepthSwapchains()) {
+            PPX_ASSERT_MSG(false, "XR depth swapchain not implemented for D3D11 yet.");
+        }
     }
     else
 #endif

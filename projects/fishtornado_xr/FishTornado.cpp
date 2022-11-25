@@ -480,12 +480,11 @@ void FishTornadoApp::UpdateScene(uint32_t frameIndex)
     pSceneData->shadowTextureDim           = float2(kShadowRes);
     pSceneData->usePCF                     = static_cast<uint32_t>(mUsePCF);
 
-    // no need to wait for imageAcquiredFence since xrWaitSwapchainImage is called in AcquireNextImage
     if (IsXrEnabled()) {
-        const XrVector3f& pos            = GetXrComponent().GetCurrentPose().position;
+        const XrVector3f& pos            = GetXrComponent().GetPoseForCurrentView().position;
         pSceneData->eyePosition          = {pos.x, pos.y, pos.z};
         const glm::mat4 v                = GetXrComponent().GetViewMatrixForCurrentView();
-        const glm::mat4 p                = GetXrComponent().GetProjectionMatrixForCurrentView();
+        const glm::mat4 p                = GetXrComponent().GetProjectionMatrixForCurrentViewAndSetFrustumPlanes(PPX_CAMERA_DEFAULT_NEAR_CLIP, PPX_CAMERA_DEFAULT_FAR_CLIP);
         pSceneData->viewMatrix           = v;
         pSceneData->projectionMatrix     = p;
         pSceneData->viewProjectionMatrix = p * v;

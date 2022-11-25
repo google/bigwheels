@@ -215,8 +215,9 @@ struct ApplicationSettings
         bool enable             = false;
         bool enableDebugCapture = false;
 
-        float depthNearPlane = 0.001f;
-        float depthFarPlane  = 10000.0f;
+        // Whether to create depth swapchains in addition to color swapchains,
+        // and submit the depth info to the runtime as an additional layer.
+        bool enableDepthSwapchain = false;
 
         // OpenXR uses a right-handed system.
         // The `pos` here is the center position in view space.
@@ -378,7 +379,7 @@ public:
     }
 
 #if defined(PPX_BUILD_XR)
-    const XrComponent& GetXrComponent() const
+    XrComponent& GetXrComponent()
     {
         return mXrComponent;
     }
