@@ -209,8 +209,25 @@ struct ApplicationSettings
     bool enableDisplay         = true;
     bool enableImGui           = false;
     bool allowThirdPartyAssets = false;
-    bool enableXR              = false;
-    bool enableXRDebugCapture  = false;
+
+    struct
+    {
+        bool enable             = false;
+        bool enableDebugCapture = false;
+
+        float depthNearPlane = 0.001f;
+        float depthFarPlane  = 10000.0f;
+
+        // OpenXR uses a right-handed system.
+        // The `pos` here is the center position in view space.
+        // A detailed description can be found here:
+        // https://registry.khronos.org/OpenXR/specs/1.0/man/html/XrCompositionLayerQuad.html
+        struct
+        {
+            float3 pos;
+            float2 size;
+        } ui;
+    } xr;
 
     struct
     {
@@ -242,18 +259,6 @@ struct ApplicationSettings
             grfx::Format depthFormat = grfx::FORMAT_UNDEFINED;
             uint32_t     imageCount  = 2;
         } swapchain;
-
-#if defined(PPX_BUILD_XR)
-        // OpenXR is having a right handed system.
-        // The pos here is the center position in view space.
-        // Detailed description can be found here:
-        // https://registry.khronos.org/OpenXR/specs/1.0/man/html/XrCompositionLayerQuad.html
-        struct
-        {
-            XrVector3f  pos;
-            XrExtent2Df size;
-        } ui;
-#endif
     } grfx;
 };
 
@@ -366,6 +371,12 @@ public:
 
     const KeyState& GetKeyState(KeyCode code) const;
     float2          GetNormalizedDeviceCoordinates(int32_t x, int32_t y) const;
+
+    bool IsXrEnabled() const
+    {
+        return mSettings.xr.enable;
+    }
+
 #if defined(PPX_BUILD_XR)
     const XrComponent& GetXrComponent() const
     {

@@ -57,6 +57,8 @@ struct XrComponentCreateInfo
     std::string             appName         = "";
     grfx::Format            colorFormat     = grfx::FORMAT_B8G8R8A8_SRGB;
     grfx::Format            depthFormat     = grfx::FORMAT_D32_FLOAT;
+    float                   depthNearPlane  = 0.001f;
+    float                   depthFarPlane   = 10000.0f;
     XrRefSpace              refSpaceType    = XrRefSpace::XR_STAGE;
     XrViewConfigurationType viewConfigType  = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
     XrVector3f              quadLayerPos    = {0, 0, 0};
@@ -107,7 +109,7 @@ public:
     void       SetCurrentViewIndex(uint32_t index) { mCurrentViewIndex = index; }
     uint32_t   GetCurrentViewIndex() const { return mCurrentViewIndex; }
     glm::mat4  GetViewMatrixForCurrentView() const;
-    glm::mat4  GetProjectionMatrixForCurrentView(float nearZ, float farZ) const;
+    glm::mat4  GetProjectionMatrixForCurrentView() const;
     XrPosef    GetCurrentPose() const;
 
     bool IsSessionRunning() const { return mIsSessionRunning; }
@@ -123,15 +125,17 @@ private:
 
     std::vector<XrViewConfigurationView>          mConfigViews;
     std::vector<XrCompositionLayerProjectionView> mCompositionLayerProjectionViews;
+    std::vector<XrCompositionLayerDepthInfoKHR>   mCompositionLayerDepthInfos;
     std::vector<XrView>                           mViews;
 
-    XrSpace                  mRefSpace           = XR_NULL_HANDLE;
-    XrSpace                  mUISpace            = XR_NULL_HANDLE;
-    XrSessionState           mSessionState       = XR_SESSION_STATE_UNKNOWN;
-    XrEnvironmentBlendMode   mBlend              = XR_ENVIRONMENT_BLEND_MODE_MAX_ENUM;
-    XrDebugUtilsMessengerEXT mDebugUtilMessenger = XR_NULL_HANDLE;
-    bool                     mIsSessionRunning   = false;
-    bool                     mShouldRender       = false;
+    XrSpace                  mRefSpace              = XR_NULL_HANDLE;
+    XrSpace                  mUISpace               = XR_NULL_HANDLE;
+    XrSessionState           mSessionState          = XR_SESSION_STATE_UNKNOWN;
+    XrEnvironmentBlendMode   mBlend                 = XR_ENVIRONMENT_BLEND_MODE_MAX_ENUM;
+    XrDebugUtilsMessengerEXT mDebugUtilMessenger    = XR_NULL_HANDLE;
+    bool                     mIsSessionRunning      = false;
+    bool                     mShouldRender          = false;
+    bool                     mShouldSubmitDepthInfo = false;
 
     XrFrameState mFrameState = {
         .type = XR_TYPE_FRAME_STATE,

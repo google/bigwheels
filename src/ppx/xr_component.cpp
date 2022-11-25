@@ -17,6 +17,14 @@
 #include "ppx/grfx/grfx_instance.h"
 #include <glm/gtc/type_ptr.hpp>
 
+namespace {
+bool IsXrExtensionSupported(const std::vector<XrExtensionProperties>& supportedExts, const std::string& extName)
+{
+    auto it = std::find_if(supportedExts.begin(), supportedExts.end(), [&](const XrExtensionProperties& e) { return extName == e.extensionName; });
+    return it != supportedExts.end();
+}
+} // namespace
+
 namespace ppx {
 void XrComponent::InitializeBeforeGrfxDeviceInit(const XrComponentCreateInfo& createInfo)
 {
@@ -55,14 +63,19 @@ void XrComponent::InitializeBeforeGrfxDeviceInit(const XrComponentCreateInfo& cr
     if (mCreateInfo.enableDebug) {
         xrInstanceExtensions.push_back(XR_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
-    // Verify extensions
+    // Verify required extensions are supported.
     uint32_t extCount = 0;
     xrEnumerateInstanceExtensionProperties(nullptr, 0, &extCount, nullptr);
     std::vector<XrExtensionProperties> xrExts(extCount, {XR_TYPE_EXTENSION_PROPERTIES});
     xrEnumerateInstanceExtensionProperties(nullptr, extCount, &extCount, xrExts.data());
     for (const auto& ext : xrInstanceExtensions) {
-        auto it = std::find_if(xrExts.begin(), xrExts.end(), [&](const XrExtensionProperties& e) { return strcmp(e.extensionName, ext) == 0; });
-        PPX_ASSERT_MSG((it != xrExts.end()), "The extension is not supported! Also make sure your OpenXR runtime is loaded properly!");
+        PPX_ASSERT_MSG(IsXrExtensionSupported(xrExts, ext), "OpenXR extension not supported. Check that your OpenXR runtime is loaded properly.");
+    }
+
+    // Optional extensions.
+    if (createInfo.depthFormat != grfx::FORMAT_UNDEFINED && IsXrExtensionSupported(xrExts, XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME)) {
+        xrInstanceExtensions.push_back(XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME);
+        mShouldSubmitDepthInfo = true;
     }
 
     // Layers (Optional)
@@ -308,14 +321,28 @@ void XrComponent::BeginFrame(const std::vector<grfx::SwapchainPtr>& swapchains, 
     }
 
     mCompositionLayerProjectionViews.resize(viewCount);
+    mCompositionLayerDepthInfos.resize(viewCount);
     PPX_ASSERT_MSG(swapchains.size() >= viewCount, "Number of swapchains needs to be larger than or equal to the number of views!");
     for (uint32_t i = 0; i < viewCount; ++i) {
         mCompositionLayerProjectionViews[i]                           = {XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW};
         mCompositionLayerProjectionViews[i].pose                      = mViews[i].pose;
         mCompositionLayerProjectionViews[i].fov                       = mViews[i].fov;
-        mCompositionLayerProjectionViews[i].subImage.swapchain        = swapchains[layerProjStartIndex + i]->GetXrSwapchain();
+        mCompositionLayerProjectionViews[i].subImage.swapchain        = swapchains[layerProjStartIndex + i]->GetXrColorSwapchain();
         mCompositionLayerProjectionViews[i].subImage.imageRect.offset = {0, 0};
         mCompositionLayerProjectionViews[i].subImage.imageRect.extent = {static_cast<int>(GetWidth()), static_cast<int>(GetHeight())};
+
+        if (mShouldSubmitDepthInfo && swapchains[layerProjStartIndex + i]->GetXrDepthSwapchain() != XR_NULL_HANDLE) {
+            mCompositionLayerDepthInfos[i]                           = {XR_TYPE_COMPOSITION_LAYER_DEPTH_INFO_KHR};
+            mCompositionLayerDepthInfos[i].minDepth                  = 0.0f;
+            mCompositionLayerDepthInfos[i].maxDepth                  = 1.0f;
+            mCompositionLayerDepthInfos[i].nearZ                     = mCreateInfo.depthNearPlane;
+            mCompositionLayerDepthInfos[i].farZ                      = mCreateInfo.depthFarPlane;
+            mCompositionLayerDepthInfos[i].subImage.swapchain        = swapchains[layerProjStartIndex + i]->GetXrDepthSwapchain();
+            mCompositionLayerDepthInfos[i].subImage.imageRect.offset = {0, 0};
+            mCompositionLayerDepthInfos[i].subImage.imageRect.extent = {static_cast<int>(GetWidth()), static_cast<int>(GetHeight())};
+
+            mCompositionLayerProjectionViews[i].next = &mCompositionLayerDepthInfos[i];
+        }
     }
 
     // UI composition layer
@@ -323,7 +350,7 @@ void XrComponent::BeginFrame(const std::vector<grfx::SwapchainPtr>& swapchains, 
         mCompositionLayerQuad.layerFlags                = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT;
         mCompositionLayerQuad.space                     = mUISpace;
         mCompositionLayerQuad.eyeVisibility             = XR_EYE_VISIBILITY_BOTH;
-        mCompositionLayerQuad.subImage.swapchain        = swapchains[layerQuadStartIndex]->GetXrSwapchain();
+        mCompositionLayerQuad.subImage.swapchain        = swapchains[layerQuadStartIndex]->GetXrColorSwapchain();
         mCompositionLayerQuad.subImage.imageRect.offset = {0, 0};
         mCompositionLayerQuad.subImage.imageRect.extent = {static_cast<int>(GetWidth()), static_cast<int>(GetHeight())};
         mCompositionLayerQuad.pose                      = {{0, 0, 0, 1}, mCreateInfo.quadLayerPos};
@@ -390,11 +417,13 @@ glm::mat4 XrComponent::GetViewMatrixForCurrentView() const
     return view_glm_inv;
 }
 
-glm::mat4 XrComponent::GetProjectionMatrixForCurrentView(float nearZ, float farZ) const
+glm::mat4 XrComponent::GetProjectionMatrixForCurrentView() const
 {
     PPX_ASSERT_MSG((mCurrentViewIndex < mViews.size()), "Invalid view index!");
-    const XrView& view = mViews[mCurrentViewIndex];
-    const XrFovf& fov  = view.fov;
+    const XrView& view  = mViews[mCurrentViewIndex];
+    const XrFovf& fov   = view.fov;
+    const float   nearZ = mCreateInfo.depthNearPlane;
+    const float   farZ  = mCreateInfo.depthFarPlane;
 
     const float tan_left  = tanf(fov.angleLeft);
     const float tan_right = tanf(fov.angleRight);

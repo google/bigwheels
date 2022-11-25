@@ -69,10 +69,10 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
     settings.grfx.enableDebug           = false;
     settings.grfx.pacedFrameRate        = 0;
-    settings.enableXR                   = true;
-    settings.enableXRDebugCapture       = true;
-    settings.grfx.ui.pos                = {0.1f, -0.2f, -0.5f};
-    settings.grfx.ui.size               = {1.f, 1.f};
+    settings.xr.enable                  = true;
+    settings.xr.enableDebugCapture      = true;
+    settings.xr.ui.pos                  = {0.1f, -0.2f, -0.5f};
+    settings.xr.ui.size                 = {1.f, 1.f};
 #if defined(USE_DXIL)
     settings.grfx.enableDXIL = true;
 #endif
@@ -168,7 +168,7 @@ void ProjApp::Setup()
         fenceCreateInfo = {true}; // Create signaled
         PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &frame.renderCompleteFence));
 
-        if (GetSettings()->enableXR) {
+        if (IsXrEnabled()) {
             PPX_CHECKED_CALL(GetGraphicsQueue()->CreateCommandBuffer(&frame.uiCmd));
             PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &frame.uiRenderCompleteFence));
         }
@@ -249,12 +249,12 @@ void ProjApp::Render()
     PerFrame& frame            = mPerFrame[0];
     uint32_t  imageIndex       = UINT32_MAX;
     uint32_t  currentViewIndex = 0;
-    if (GetSettings()->enableXR) {
+    if (IsXrEnabled()) {
         currentViewIndex = GetXrComponent().GetCurrentViewIndex();
     }
 
     // Render UI into a different composition layer.
-    if (GetSettings()->enableXR && (currentViewIndex == 0) && GetSettings()->enableImGui) {
+    if (IsXrEnabled() && (currentViewIndex == 0) && GetSettings()->enableImGui) {
         grfx::SwapchainPtr uiSwapchain = GetUISwapchain();
         PPX_CHECKED_CALL(uiSwapchain->AcquireNextImage(UINT64_MAX, nullptr, nullptr, &imageIndex));
         PPX_CHECKED_CALL(frame.uiRenderCompleteFence->WaitAndReset());
@@ -317,9 +317,8 @@ void ProjApp::Render()
         float4x4 P = glm::perspective(glm::radians(60.0f), GetWindowAspect(), 0.001f, 10000.0f);
         float4x4 V = glm::lookAt(float3(0, 0, 0), float3(0, 0, 1), float3(0, 1, 0));
 
-        // No need to wait for imageAcquiredFence since xrWaitSwapchainImage is called in AcquireNextImage.
-        if (GetSettings()->enableXR) {
-            P = GetXrComponent().GetProjectionMatrixForCurrentView(0.001f, 10000.0f);
+        if (IsXrEnabled()) {
+            P = GetXrComponent().GetProjectionMatrixForCurrentView();
             V = GetXrComponent().GetViewMatrixForCurrentView();
         }
         float4x4 M   = glm::translate(float3(0, 0, -3)) * glm::rotate(t, float3(0, 0, 1)) * glm::rotate(t, float3(0, 1, 0)) * glm::rotate(t, float3(1, 0, 0));
@@ -344,7 +343,7 @@ void ProjApp::Render()
         beginInfo.RTVClearValues[0]         = {{0, 0, 0, 0}};
         beginInfo.DSVClearValue             = {1.0f, 0xFF};
 
-        if (!GetSettings()->enableXR) {
+        if (!IsXrEnabled()) {
             frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
         }
 
@@ -357,14 +356,14 @@ void ProjApp::Render()
             frame.cmd->BindVertexBuffers(1, &mVertexBuffer, &mVertexBinding.GetStride());
             frame.cmd->Draw(36, 1, 0, 0);
 
-            if (!GetSettings()->enableXR) {
+            if (!IsXrEnabled()) {
                 // Draw ImGui
                 DrawDebugInfo();
                 DrawImGui(frame.cmd);
             }
         }
         frame.cmd->EndRenderPass();
-        if (!GetSettings()->enableXR) {
+        if (!IsXrEnabled()) {
             frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
         }
     }
@@ -374,7 +373,7 @@ void ProjApp::Render()
     submitInfo.commandBufferCount = 1;
     submitInfo.ppCommandBuffers   = &frame.cmd;
     // No need to use semaphore when XR is enabled.
-    if (GetSettings()->enableXR) {
+    if (IsXrEnabled()) {
         submitInfo.waitSemaphoreCount   = 0;
         submitInfo.ppWaitSemaphores     = nullptr;
         submitInfo.signalSemaphoreCount = 0;
@@ -391,11 +390,11 @@ void ProjApp::Render()
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
 
     // No need to present when XR is enabled.
-    if (!GetSettings()->enableXR) {
+    if (!IsXrEnabled()) {
         PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.renderCompleteSemaphore));
     }
     else {
-        if (GetSettings()->enableXRDebugCapture && (currentViewIndex == 1)) {
+        if (GetSettings()->xr.enableDebugCapture && (currentViewIndex == 1)) {
             // We could use semaphore to sync to have better performance,
             // but this requires modifying the submission code.
             // For debug capture we don't care about the performance,

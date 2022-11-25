@@ -653,7 +653,7 @@ Result Application::InitializeGrfxDevice()
         ci.engineName               = mSettings.appName;
         ci.useSoftwareRenderer      = mStandardOptions.use_software_renderer;
 #if defined(PPX_BUILD_XR)
-        ci.pXrComponent = mSettings.enableXR ? &mXrComponent : nullptr;
+        ci.pXrComponent = mSettings.xr.enable ? &mXrComponent : nullptr;
 #endif
 
         Result ppxres = grfx::CreateInstance(&ci, &mInstance);
@@ -690,7 +690,7 @@ Result Application::InitializeGrfxDevice()
         ci.pVulkanDeviceFeatures  = nullptr;
         ci.enableDXIL             = mSettings.grfx.enableDXIL;
 #if defined(PPX_BUILD_XR)
-        ci.pXrComponent = mSettings.enableXR ? &mXrComponent : nullptr;
+        ci.pXrComponent = mSettings.xr.enable ? &mXrComponent : nullptr;
 #endif
 
         PPX_LOG_INFO("Creating application graphics device using " << gpu->GetDeviceName());
@@ -717,11 +717,11 @@ Result Application::InitializeGrfxSurface()
     }
 
 #if defined(PPX_BUILD_XR)
-    // No need to create the surface when XR is enabled
-    // the swapchain can be created from the OpenXR functions directly
-    if (!mSettings.enableXR
-        // surface is required for debug capture
-        || (mSettings.enableXR && mSettings.enableXRDebugCapture))
+    // No need to create the surface when XR is enabled.
+    // The swapchain will be created from the OpenXR functions directly.
+    if (!mSettings.xr.enable
+        // Surface is required for debug capture.
+        || (mSettings.xr.enable && mSettings.xr.enableDebugCapture))
 #endif
     // Surface
     {
@@ -747,7 +747,7 @@ Result Application::InitializeGrfxSurface()
     }
 
 #if defined(PPX_BUILD_XR)
-    if (mSettings.enableXR) {
+    if (mSettings.xr.enable) {
         const size_t viewCount = mXrComponent.GetViewCount();
         PPX_ASSERT_MSG(viewCount != 0, "The config views should be already created at this point!");
 
@@ -758,11 +758,11 @@ Result Application::InitializeGrfxSurface()
         ci.height                    = mSettings.window.height;
         ci.colorFormat               = mXrComponent.GetColorFormat();
         ci.depthFormat               = mXrComponent.GetDepthFormat();
-        ci.imageCount                = 0;                            // this will be derived from XrSwapchain
-        ci.presentMode               = grfx::PRESENT_MODE_UNDEFINED; // No present for XR
+        ci.imageCount                = 0;                            // This will be derived from XrSwapchain.
+        ci.presentMode               = grfx::PRESENT_MODE_UNDEFINED; // No present for XR.
         ci.pXrComponent              = &mXrComponent;
 
-        // the +1 is for UI
+        // We have one swapchain for each view, and one swapchain for the UI.
         const size_t swapchainCount = viewCount + 1;
         mStereoscopicSwapchainIndex = 0;
         mUISwapchainIndex           = static_cast<uint32_t>(viewCount);
@@ -779,9 +779,9 @@ Result Application::InitializeGrfxSurface()
         mSettings.grfx.swapchain.imageCount = mSwapchain[0]->GetImageCount();
     }
 
-    if (!mSettings.enableXR
-        // extra swapchain for capture XR frames
-        || (mSettings.enableXR && mSettings.enableXRDebugCapture))
+    if (!mSettings.xr.enable
+        // Extra swapchain for XR debug capture.
+        || (mSettings.xr.enable && mSettings.xr.enableDebugCapture))
 #endif
     // Swapchain
     {
@@ -839,7 +839,7 @@ Result Application::InitializeGrfxSurface()
             return ppxres;
         }
 #if defined(PPX_BUILD_XR)
-        if (mSettings.enableXR && mSettings.enableXRDebugCapture) {
+        if (mSettings.xr.enable && mSettings.xr.enableDebugCapture) {
             mDebugCaptureSwapchainIndex = static_cast<uint32_t>(mSwapchain.size());
             // The window size could be smaller than the requested one in glfwCreateWindow
             // So the final swapchain size for window needs to be adjusted
@@ -1290,18 +1290,20 @@ int Application::Run(int argc, char** argv)
     }
 
 #if defined(PPX_BUILD_XR)
-    if (mSettings.enableXR) {
+    if (mSettings.xr.enable) {
         XrComponentCreateInfo createInfo = {};
         createInfo.api                   = mSettings.grfx.api;
         createInfo.appName               = mSettings.appName;
         createInfo.colorFormat           = grfx::FORMAT_B8G8R8A8_SRGB;
         createInfo.depthFormat           = grfx::FORMAT_D32_FLOAT;
+        createInfo.depthNearPlane        = mSettings.xr.depthNearPlane;
+        createInfo.depthFarPlane         = mSettings.xr.depthFarPlane;
         createInfo.refSpaceType          = XrRefSpace::XR_STAGE;
         createInfo.viewConfigType        = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
         createInfo.enableDebug           = mSettings.grfx.enableDebug;
         createInfo.enableQuadLayer       = mSettings.enableImGui;
-        createInfo.quadLayerPos          = mSettings.grfx.ui.pos;
-        createInfo.quadLayerSize         = mSettings.grfx.ui.size;
+        createInfo.quadLayerPos          = XrVector3f{mSettings.xr.ui.pos.x, mSettings.xr.ui.pos.y, mSettings.xr.ui.pos.z};
+        createInfo.quadLayerSize         = XrExtent2Df{mSettings.xr.ui.size.x, mSettings.xr.ui.size.y};
 
         mXrComponent.InitializeBeforeGrfxDeviceInit(createInfo);
     }
@@ -1314,7 +1316,7 @@ int Application::Run(int argc, char** argv)
     }
 
 #if defined(PPX_BUILD_XR)
-    if (mSettings.enableXR) {
+    if (mSettings.xr.enable) {
         mXrComponent.InitializeAfterGrfxDeviceInit(mInstance);
         mSettings.window.width  = mXrComponent.GetWidth();
         mSettings.window.height = mXrComponent.GetHeight();
@@ -1347,7 +1349,7 @@ int Application::Run(int argc, char** argv)
             return EXIT_FAILURE;
         }
 
-        if (!mSettings.enableXR) {
+        if (!mSettings.xr.enable) {
             // Update the window size if the settings got changed due to surface requirements
             {
                 int windowWidth  = 0;
@@ -1395,7 +1397,7 @@ int Application::Run(int argc, char** argv)
         mFrameStartTime = static_cast<float>(mTimer.MillisSinceStart());
 
 #if defined(PPX_BUILD_XR)
-        if (mSettings.enableXR) {
+        if (mSettings.xr.enable) {
             bool exitRenderLoop = false;
             mXrComponent.PollEvents(exitRenderLoop);
             if (exitRenderLoop) {
@@ -1415,11 +1417,19 @@ int Application::Run(int argc, char** argv)
                         mSwapchainIndex = k;
                         mXrComponent.SetCurrentViewIndex(k);
                         DispatchRender();
-                        CHECK_XR_CALL(xrReleaseSwapchainImage(GetSwapchain(k + mStereoscopicSwapchainIndex)->GetXrSwapchain(), &releaseInfo));
+                        grfx::SwapchainPtr swapchain = GetSwapchain(k + mStereoscopicSwapchainIndex);
+                        CHECK_XR_CALL(xrReleaseSwapchainImage(swapchain->GetXrColorSwapchain(), &releaseInfo));
+                        if (swapchain->GetXrDepthSwapchain() != XR_NULL_HANDLE) {
+                            CHECK_XR_CALL(xrReleaseSwapchainImage(swapchain->GetXrDepthSwapchain(), &releaseInfo));
+                        }
                     }
 
                     if (GetSettings()->enableImGui) {
-                        CHECK_XR_CALL(xrReleaseSwapchainImage(GetSwapchain(mUISwapchainIndex)->GetXrSwapchain(), &releaseInfo));
+                        grfx::SwapchainPtr swapchain = GetSwapchain(mUISwapchainIndex);
+                        CHECK_XR_CALL(xrReleaseSwapchainImage(swapchain->GetXrColorSwapchain(), &releaseInfo));
+                        if (swapchain->GetXrDepthSwapchain() != XR_NULL_HANDLE) {
+                            CHECK_XR_CALL(xrReleaseSwapchainImage(swapchain->GetXrDepthSwapchain(), &releaseInfo));
+                        }
                     }
                 }
                 mXrComponent.EndFrame();
@@ -1508,7 +1518,7 @@ int Application::Run(int argc, char** argv)
 
 #if defined(PPX_BUILD_XR)
     // Destroy Xr
-    if (mSettings.enableXR) {
+    if (mSettings.xr.enable) {
         mXrComponent.Destroy();
     }
 #endif

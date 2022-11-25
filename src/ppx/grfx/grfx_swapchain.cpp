@@ -47,7 +47,6 @@ Result Swapchain::Create(const grfx::SwapchainCreateInfo* pCreateInfo)
     // Update the stored create info's image count since the actual
     // number of images might be different (hopefully more) than
     // what was originally requested.
-    //
     mCreateInfo.imageCount = CountU32(mColorImages);
     if (mCreateInfo.imageCount != pCreateInfo->imageCount) {
         PPX_LOG_INFO("Swapchain actual image count is different from what was requested\n"
@@ -55,26 +54,31 @@ Result Swapchain::Create(const grfx::SwapchainCreateInfo* pCreateInfo)
                      << "   requested : " << pCreateInfo->imageCount);
     }
 
-    //
     // NOTE: mCreateInfo.imageCount will be used from this point on.
-    //
-
     if (pCreateInfo->depthFormat != grfx::FORMAT_UNDEFINED) {
-        for (uint32_t i = 0; i < mCreateInfo.imageCount; ++i) {
-            grfx::ImageCreateInfo dpCreateInfo = ImageCreateInfo::DepthStencilTarget(pCreateInfo->width, pCreateInfo->height, pCreateInfo->depthFormat);
-            dpCreateInfo.ownership             = grfx::OWNERSHIP_RESTRICTED;
+#if defined(PPX_BUILD_XR)
+        // Depth images in XR mode are created through the XR swapchain.
+        // TODO: Enable this assert once all APIs have the depth swapchain implementation.
+        // PPX_ASSERT_MSG(mXrDepthSwapchain != VK_NULL_HANDLE && !mDepthImages.empty(), "XR depth swapchain is null");
+        if (mXrDepthSwapchain == nullptr)
+#endif
+        {
+            for (uint32_t i = 0; i < mCreateInfo.imageCount; ++i) {
+                grfx::ImageCreateInfo dpCreateInfo = ImageCreateInfo::DepthStencilTarget(pCreateInfo->width, pCreateInfo->height, pCreateInfo->depthFormat);
+                dpCreateInfo.ownership             = grfx::OWNERSHIP_RESTRICTED;
 
-            grfx::ImagePtr depthStencilTarget;
-            ppxres = GetDevice()->CreateImage(&dpCreateInfo, &depthStencilTarget);
-            if (Failed(ppxres)) {
-                return ppxres;
+                grfx::ImagePtr depthStencilTarget;
+                ppxres = GetDevice()->CreateImage(&dpCreateInfo, &depthStencilTarget);
+                if (Failed(ppxres)) {
+                    return ppxres;
+                }
+
+                mDepthImages.push_back(depthStencilTarget);
             }
-
-            mDepthImages.push_back(depthStencilTarget);
         }
     }
 
-    // Create render passes with grfx::ATTACHMENT_LOAD_OP_CLEAR for render target
+    // Create render passes with grfx::ATTACHMENT_LOAD_OP_CLEAR for render target.
     for (size_t i = 0; i < mCreateInfo.imageCount; ++i) {
         grfx::RenderPassCreateInfo3 rpCreateInfo = {};
         rpCreateInfo.width                       = pCreateInfo->width;
@@ -98,7 +102,7 @@ Result Swapchain::Create(const grfx::SwapchainCreateInfo* pCreateInfo)
         mClearRenderPasses.push_back(renderPass);
     }
 
-    // Create render passes with grfx::ATTACHMENT_LOAD_OP_LOAD for render target
+    // Create render passes with grfx::ATTACHMENT_LOAD_OP_LOAD for render target.
     for (size_t i = 0; i < mCreateInfo.imageCount; ++i) {
         grfx::RenderPassCreateInfo3 rpCreateInfo = {};
         rpCreateInfo.width                       = pCreateInfo->width;
@@ -162,8 +166,11 @@ void Swapchain::Destroy()
     mColorImages.clear();
 
 #if defined(PPX_BUILD_XR)
-    if (mXrSwapchain != XR_NULL_HANDLE) {
-        xrDestroySwapchain(mXrSwapchain);
+    if (mXrColorSwapchain != XR_NULL_HANDLE) {
+        xrDestroySwapchain(mXrColorSwapchain);
+    }
+    if (mXrDepthSwapchain != XR_NULL_HANDLE) {
+        xrDestroySwapchain(mXrDepthSwapchain);
     }
 #endif
 
@@ -231,15 +238,27 @@ Result Swapchain::AcquireNextImage(
 {
 #if defined(PPX_BUILD_XR)
     if (mCreateInfo.pXrComponent != nullptr) {
-        PPX_ASSERT_MSG(mXrSwapchain != XR_NULL_HANDLE, "Invalid xrSwapchain handle!");
+        PPX_ASSERT_MSG(mXrColorSwapchain != XR_NULL_HANDLE, "Invalid color xrSwapchain handle!");
         PPX_ASSERT_MSG(pSemaphore == nullptr, "Should not use semaphore when XR is enabled!");
         PPX_ASSERT_MSG(pFence == nullptr, "Should not use fence when XR is enabled!");
         XrSwapchainImageAcquireInfo acquire_info = {XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO};
-        CHECK_XR_CALL(xrAcquireSwapchainImage(mXrSwapchain, &acquire_info, pImageIndex));
+        CHECK_XR_CALL(xrAcquireSwapchainImage(mXrColorSwapchain, &acquire_info, pImageIndex));
 
         XrSwapchainImageWaitInfo wait_info = {XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO};
         wait_info.timeout                  = XR_INFINITE_DURATION;
-        CHECK_XR_CALL(xrWaitSwapchainImage(mXrSwapchain, &wait_info));
+        CHECK_XR_CALL(xrWaitSwapchainImage(mXrColorSwapchain, &wait_info));
+
+        if (mXrDepthSwapchain != XR_NULL_HANDLE) {
+            uint32_t                    colorImageIndex = *pImageIndex;
+            XrSwapchainImageAcquireInfo acquire_info    = {XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO};
+            CHECK_XR_CALL(xrAcquireSwapchainImage(mXrDepthSwapchain, &acquire_info, pImageIndex));
+
+            XrSwapchainImageWaitInfo wait_info = {XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO};
+            wait_info.timeout                  = XR_INFINITE_DURATION;
+            CHECK_XR_CALL(xrWaitSwapchainImage(mXrDepthSwapchain, &wait_info));
+
+            PPX_ASSERT_MSG(colorImageIndex == *pImageIndex, "Color and depth swapchain image indices are different");
+        }
         return ppx::SUCCESS;
     }
     else
