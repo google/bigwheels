@@ -15,6 +15,8 @@
 #ifndef ppx_math_config_h
 #define ppx_math_config_h
 
+#include <ostream>
+
 // clang-format off
 #if defined(__cplusplus)
 #   define GLM_FORCE_RADIANS 
