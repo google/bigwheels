@@ -152,8 +152,11 @@ include(GraphicsSample)
 # ------------------------------------------------------------------------------
 
 if(MSVC)
-    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} /MP")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /Zc:__cplusplus /std:c++20")
+    # Disable the following warnings:
+    # 26812: unscoped enums are widely used by the project and dependencies.
+    set(MSVC_DISABLED_WARNINGS "/wd26812")
+    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} ${MSVC_DISABLED_WARNINGS} /MP")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MSVC_DISABLED_WARNINGS} /MP /Zc:__cplusplus /std:c++20")
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -fdiagnostics-color=always")
 endif()

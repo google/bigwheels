@@ -91,16 +91,20 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
         info.height                = xrComponent.GetHeight();
         info.sampleCount           = xrComponent.GetSampleCount();
         info.usageFlags            = XR_SWAPCHAIN_USAGE_SAMPLED_BIT | XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT;
-        CHECK_XR_CALL(xrCreateSwapchain(xrComponent.GetSession(), &info, &mXrSwapchain));
+        CHECK_XR_CALL(xrCreateSwapchain(xrComponent.GetSession(), &info, &mXrColorSwapchain));
 
         // Find out how many textures were generated for the swapchain.
         uint32_t imageCount = 0;
-        CHECK_XR_CALL(xrEnumerateSwapchainImages(mXrSwapchain, 0, &imageCount, nullptr));
+        CHECK_XR_CALL(xrEnumerateSwapchainImages(mXrColorSwapchain, 0, &imageCount, nullptr));
         std::vector<XrSwapchainImageD3D11KHR> surfaceImages;
         surfaceImages.resize(imageCount, {XR_TYPE_SWAPCHAIN_IMAGE_D3D11_KHR});
-        CHECK_XR_CALL(xrEnumerateSwapchainImages(mXrSwapchain, imageCount, &imageCount, (XrSwapchainImageBaseHeader*)surfaceImages.data()));
+        CHECK_XR_CALL(xrEnumerateSwapchainImages(mXrColorSwapchain, imageCount, &imageCount, (XrSwapchainImageBaseHeader*)surfaceImages.data()));
         for (uint32_t i = 0; i < imageCount; i++) {
             images.push_back(surfaceImages[i].texture);
+        }
+
+        if (xrComponent.GetDepthFormat() != grfx::FORMAT_UNDEFINED && xrComponent.UsesDepthSwapchains()) {
+            PPX_ASSERT_MSG(false, "XR depth swapchain not implemented for D3D11 yet.");
         }
     }
     else

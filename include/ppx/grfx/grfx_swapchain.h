@@ -145,9 +145,13 @@ public:
         return mCreateInfo.pXrComponent != nullptr;
     }
 
-    XrSwapchain GetXrSwapchain() const
+    XrSwapchain GetXrColorSwapchain() const
     {
-        return mXrSwapchain;
+        return mXrColorSwapchain;
+    }
+    XrSwapchain GetXrDepthSwapchain() const
+    {
+        return mXrDepthSwapchain;
     }
 #endif
 protected:
@@ -167,9 +171,12 @@ protected:
     std::vector<grfx::ImagePtr>      mColorImages;
     std::vector<grfx::RenderPassPtr> mClearRenderPasses;
     std::vector<grfx::RenderPassPtr> mLoadRenderPasses;
+
 #if defined(PPX_BUILD_XR)
-    XrSwapchain mXrSwapchain = XR_NULL_HANDLE;
+    XrSwapchain mXrColorSwapchain = XR_NULL_HANDLE;
+    XrSwapchain mXrDepthSwapchain = XR_NULL_HANDLE;
 #endif
+
     // Keeps track of the image index returned by the
     // last AcquireNextImage call.
     uint32_t currentImageIndex = 0;
