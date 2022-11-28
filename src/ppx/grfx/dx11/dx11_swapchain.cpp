@@ -75,7 +75,8 @@ uint32_t Surface::GetMaxImageCount() const
 // -------------------------------------------------------------------------------------------------
 Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
 {
-    std::vector<ID3D11Resource*> images;
+    std::vector<ID3D11Resource*> colorImages;
+    std::vector<ID3D11Resource*> depthImages;
 
 #if defined(PPX_BUILD_XR)
     const bool isXREnabled = (mCreateInfo.pXrComponent != nullptr);
@@ -100,11 +101,33 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
         surfaceImages.resize(imageCount, {XR_TYPE_SWAPCHAIN_IMAGE_D3D11_KHR});
         CHECK_XR_CALL(xrEnumerateSwapchainImages(mXrColorSwapchain, imageCount, &imageCount, (XrSwapchainImageBaseHeader*)surfaceImages.data()));
         for (uint32_t i = 0; i < imageCount; i++) {
-            images.push_back(surfaceImages[i].texture);
+            colorImages.push_back(surfaceImages[i].texture);
         }
 
         if (xrComponent.GetDepthFormat() != grfx::FORMAT_UNDEFINED && xrComponent.UsesDepthSwapchains()) {
-            PPX_ASSERT_MSG(false, "XR depth swapchain not implemented for D3D11 yet.");
+            PPX_ASSERT_MSG(xrComponent.GetDepthFormat() == pCreateInfo->depthFormat, "XR depth format differs from requested swapchain format");
+
+            XrSwapchainCreateInfo info = {XR_TYPE_SWAPCHAIN_CREATE_INFO};
+            info.arraySize             = 1;
+            info.mipCount              = 1;
+            info.faceCount             = 1;
+            info.format                = dx::ToDxgiFormat(xrComponent.GetDepthFormat());
+            info.width                 = xrComponent.GetWidth();
+            info.height                = xrComponent.GetHeight();
+            info.sampleCount           = xrComponent.GetSampleCount();
+            info.usageFlags            = XR_SWAPCHAIN_USAGE_SAMPLED_BIT | XR_SWAPCHAIN_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            CHECK_XR_CALL(xrCreateSwapchain(xrComponent.GetSession(), &info, &mXrDepthSwapchain));
+
+            imageCount = 0;
+            CHECK_XR_CALL(xrEnumerateSwapchainImages(mXrDepthSwapchain, 0, &imageCount, nullptr));
+            std::vector<XrSwapchainImageD3D11KHR> swapchainDepthImages;
+            swapchainDepthImages.resize(imageCount, {XR_TYPE_SWAPCHAIN_IMAGE_D3D11_KHR});
+            CHECK_XR_CALL(xrEnumerateSwapchainImages(mXrDepthSwapchain, imageCount, &imageCount, (XrSwapchainImageBaseHeader*)swapchainDepthImages.data()));
+            for (uint32_t i = 0; i < imageCount; i++) {
+                depthImages.push_back(swapchainDepthImages[i].texture);
+            }
+
+            PPX_ASSERT_MSG(depthImages.size() == colorImages.size(), "XR depth and color swapchains have different number of images");
         }
     }
     else
@@ -235,14 +258,14 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
             }
 
             for (UINT i = 0; i < dxDesc.BufferCount; ++i) {
-                images.push_back(surface.Get());
+                colorImages.push_back(surface.Get());
             }
         }
     }
 
-    // Create images
+    // Create images.
     {
-        for (size_t i = 0; i < images.size(); ++i) {
+        for (size_t i = 0; i < colorImages.size(); ++i) {
             grfx::ImageCreateInfo imageCreateInfo           = {};
             imageCreateInfo.type                            = grfx::IMAGE_TYPE_2D;
             imageCreateInfo.width                           = pCreateInfo->width;
@@ -257,7 +280,7 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
             imageCreateInfo.usageFlags.bits.sampled         = true;
             imageCreateInfo.usageFlags.bits.storage         = true;
             imageCreateInfo.usageFlags.bits.colorAttachment = true;
-            imageCreateInfo.pApiObject                      = images[i];
+            imageCreateInfo.pApiObject                      = colorImages[i];
 
             grfx::ImagePtr image;
             Result         ppxres = GetDevice()->CreateImage(&imageCreateInfo, &image);
@@ -267,6 +290,20 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
             }
 
             mColorImages.push_back(image);
+        }
+
+        for (size_t i = 0; i < depthImages.size(); ++i) {
+            grfx::ImageCreateInfo imageCreateInfo = grfx::ImageCreateInfo::DepthStencilTarget(pCreateInfo->width, pCreateInfo->height, pCreateInfo->depthFormat, grfx::SAMPLE_COUNT_1);
+            imageCreateInfo.pApiObject            = depthImages[i];
+
+            grfx::ImagePtr image;
+            Result         ppxres = GetDevice()->CreateImage(&imageCreateInfo, &image);
+            if (Failed(ppxres)) {
+                PPX_ASSERT_MSG(false, "image create failed");
+                return ppxres;
+            }
+
+            mDepthImages.push_back(image);
         }
     }
 
