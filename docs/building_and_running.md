@@ -1,5 +1,5 @@
 # Building BigWheels
-The recommended build system is CMake. This repo supports both in-tree, and out-of-tree builds.
+The recommended build system is CMake (version 3.20 and above). This repo supports both in-tree, and out-of-tree builds.
 The recommended generator is `Visual Studio 2019` for Windows and `Ninja` for Linux, but others are also supported.
 
 Binaries are written to `<build-dir>/bin` and libraries to `<build-dir>/lib`.
