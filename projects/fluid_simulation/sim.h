@@ -15,8 +15,6 @@
 #include "ppx/random.h"
 #include "ppx/timer.h"
 
-#include <queue>
-
 namespace FluidSim {
 
 struct PointerPrototype
