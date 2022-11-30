@@ -12,7 +12,7 @@
 /// https://github.com/PavelDoGreat/WebGL-Fluid-Simulation.
 ///
 /// The code is organized in 3 files:
-/// 
+///
 /// sim.cpp
 ///     Contains the main simulation logic. Everything is driven by `class FluidSimulation`. Simulation actions
 ///     generate dispatch records (@see ComputeDispatchRecord, GraphicsDispatchRecord), which describe the
@@ -24,12 +24,12 @@
 ///     Compute and graphic shaders all inherit from a common `class Shader`.  The main method in those classes is `GetDR()`,
 ///     which generates a dispatch record with all the necessary inputs to execute the shader (textures to use and scalar inputs
 ///     in `struct ScalarInput`.
-/// 
+///
 /// main.cpp
 ///     Contains the BigWheels API calls needed to launch the application and execute the main rendering loop.  On startup,
 ///     a single instance of `class FluidSimulation` is created and an initial splash of color computed by calling
 ///     `FluidSimulation::GenerateInitialSplat`.  The main rendering loop (@see ProjApp::Render) proceeds as follows:
-///     
+///
 ///     1.  All the scheduled compute shaders are executed by calling `FluidSimulation::DispatchComputeShaders`.
 ///     2.  All the generated textures are drawn by calling `FluidSimulation::DispatchGraphicShaders`.
 ///     3.  The resources used by compute shaders are released by calling `FluidSimulation::FreeComputeShaders`.
