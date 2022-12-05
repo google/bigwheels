@@ -15,6 +15,7 @@
 #include "ppx/tri_mesh.h"
 #include "ppx/math_util.h"
 #include "ppx/timer.h"
+#include "ppx/fs.h"
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
@@ -892,10 +893,15 @@ Result TriMesh::CreateFromOBJ(const std::filesystem::path& path, const TriMeshOp
     std::vector<tinyobj::shape_t>    shapes;
     std::vector<tinyobj::material_t> materials;
 
-    std::string warn;
-    std::string err;
-    bool        loaded = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.string().c_str(), nullptr, true);
+    ppx::fs::FileStream objStream;
+    if (!objStream.Open(path.string().c_str())) {
+        return ppx::ERROR_GEOMETRY_FILE_LOAD_FAILED;
+    }
 
+    std::string  warn;
+    std::string  err;
+    std::istream istr(&objStream);
+    bool         loaded = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, &istr, nullptr, true);
     if (!loaded || !err.empty()) {
         return ppx::ERROR_GEOMETRY_FILE_LOAD_FAILED;
     }

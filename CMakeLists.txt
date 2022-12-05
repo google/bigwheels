@@ -93,15 +93,18 @@ endif ()
 # ------------------------------------------------------------------------------
 
 # Detect Linux.
-if (UNIX AND NOT APPLE)
+if (UNIX AND NOT (APPLE OR ANDROID))
     set(LINUX TRUE)
 endif()
 
-if (NOT (PPX_LINUX OR PPX_MSW))
+if (NOT (PPX_LINUX OR PPX_MSW OR PPX_ANDROID))
     message("No PPX target plaform specified - configuring based on current host")
     if (LINUX)
         set(PPX_LINUX TRUE)
         message("Target platform       : Linux")
+    elseif (ANDROID)
+        set(PPX_ANDROID TRUE)
+        message("Target platform       : Android")
     elseif (WIN32)
         set(PPX_MSW TRUE)
         message("Target platform       : Windows")
@@ -198,22 +201,32 @@ endif()
 # ------------------------------------------------------------------------------
 # Configure GLFW.
 # ------------------------------------------------------------------------------
+if (NOT PPX_ANDROID)
+    set(GLFW_BUILD_EXAMPLES FALSE CACHE BOOL "" FORCE)
+    set(GLFW_BUILD_TESTS    FALSE CACHE BOOL "" FORCE)
+    set(GLFW_BUILD_DOCS     FALSE CACHE BOOL "" FORCE)
+    set(GLFW_VULKAN_STATIC  FALSE CACHE BOOL "" FORCE)
+    add_subdirectory(${PPX_THIRD_PARTY_DIR}/glfw)
+endif()
 
-set(GLFW_BUILD_EXAMPLES FALSE CACHE BOOL "" FORCE)
-set(GLFW_BUILD_TESTS    FALSE CACHE BOOL "" FORCE)
-set(GLFW_BUILD_DOCS     FALSE CACHE BOOL "" FORCE)
-set(GLFW_VULKAN_STATIC  FALSE CACHE BOOL "" FORCE)
-add_subdirectory(${PPX_THIRD_PARTY_DIR}/glfw)
+# ------------------------------------------------------------------------------
+# Add game-activity for ANDROID
+# ------------------------------------------------------------------------------
+if (PPX_ANDROID)
+    find_package(game-activity REQUIRED CONFIG)
+endif()
 
 # ------------------------------------------------------------------------------
 # Add cpu_features.
 # ------------------------------------------------------------------------------
-function(add_cpu_features)
-    set(BUILD_TESTING OFF)
-    add_subdirectory(${PPX_THIRD_PARTY_DIR}/cpu_features)
-endfunction()
+if (NOT PPX_ANDROID)
+    function(add_cpu_features)
+        set(BUILD_TESTING OFF)
+        add_subdirectory(${PPX_THIRD_PARTY_DIR}/cpu_features)
+    endfunction()
 
-add_cpu_features()
+    add_cpu_features()
+endif()
 
 # ------------------------------------------------------------------------------
 # Add OpenXR.

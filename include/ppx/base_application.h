@@ -19,8 +19,13 @@
 #include "ppx/platform.h"
 #include "ppx/grfx/grfx_device.h"
 #include "ppx/grfx/grfx_instance.h"
+#include "ppx/fs.h"
 
 #include <filesystem>
+
+#if defined(PPX_ANDROID)
+#include <game-activity/native_app_glue/android_native_app_glue.h>
+#endif
 
 namespace ppx {
 
@@ -55,7 +60,22 @@ public:
     //
     std::filesystem::path GetAssetPath(const std::filesystem::path& subPath) const;
 
+#if defined(PPX_ANDROID)
+    void SetAndroidContext(android_app* androidContext)
+    {
+        mAndroidContext = androidContext;
+        fs::set_android_context(androidContext);
+    }
+    android_app* GetAndroidContext() const
+    {
+        return mAndroidContext;
+    }
+#endif
+
 private:
+#if defined(PPX_ANDROID)
+    android_app* mAndroidContext;
+#endif
     std::vector<std::filesystem::path> mAssetDirs;
 };
 

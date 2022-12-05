@@ -29,6 +29,8 @@
 #   include <wayland-client.h>
 #elif defined(PPX_MSW)
 #   include <Windows.h>
+#elif defined(PPX_ANDROID)
+#   include <game-activity/native_app_glue/android_native_app_glue.h>
 #endif
 // clang-format on
 
@@ -54,6 +56,8 @@ struct SurfaceCreateInfo
 #elif defined(PPX_MSW)
     HINSTANCE             hinstance;
     HWND                  hwnd;
+#elif defined(PPX_ANDROID)
+    android_app*          androidAppContext;           
 #endif
     // clang-format on
 };

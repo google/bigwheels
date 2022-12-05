@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "ppx/font.h"
+#include "ppx/fs.h"
 
 namespace ppx {
 
@@ -39,7 +40,7 @@ ppx::Result Font::CreateFromFile(const std::filesystem::path& path, ppx::Font* p
         return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
     }
 
-    if (!std::filesystem::exists(path)) {
+    if (!ppx::fs::path_exists(path)) {
         return ppx::ERROR_PATH_DOES_NOT_EXIST;
     }
 

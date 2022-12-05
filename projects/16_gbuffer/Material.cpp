@@ -56,7 +56,7 @@ static std::map<std::string, grfx::TexturePtr> mTextureCache;
 
 static Result LoadTexture(grfx::Queue* pQueue, const std::filesystem::path& path, grfx::Texture** ppTexture)
 {
-    if (!std::filesystem::exists(path)) {
+    if (!ppx::fs::path_exists(path)) {
         return ppx::ERROR_PATH_DOES_NOT_EXIST;
     }
 

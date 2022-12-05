@@ -19,6 +19,11 @@ project(ppx)
 # Vulkan header and libraries
 # ------------------------------------------------------------------------------
 
+# On Android, the location of libs and headers to be determined using find_package
+if (ANDROID)
+    find_package(Vulkan REQUIRED)
+endif()
+
 # Detect Vulkan directories
 if (PPX_VULKAN)
     # Determine Vulkan's include directory
@@ -27,6 +32,8 @@ if (PPX_VULKAN)
             if (DEFINED ENV{VULKAN_SDK})
                 set(VULKAN_INCLUDE_DIR "$ENV{VULKAN_SDK}/include")
             endif()
+        elseif (ANDROID)
+            set(VULKAN_INCLUDE_DIR ${Vulkan_INCLUDE_DIR})
         elseif (APPLE OR WIN32)
             if (DEFINED ENV{VULKAN_SDK})
                 set(VULKAN_INCLUDE_DIR "$ENV{VULKAN_SDK}/Include")
@@ -40,6 +47,8 @@ if (PPX_VULKAN)
             if (DEFINED ENV{VULKAN_SDK})
                 set(VULKAN_LIBRARY_DIR "$ENV{VULKAN_SDK}/lib")
             endif()
+        elseif (ANDROID)
+            get_filename_component(VULKAN_LIBRARY_DIR ${Vulkan_LIBRARIES} DIRECTORY)
         elseif (APPLE OR WIN32)
             if (DEFINED ENV{VULKAN_SDK})
                 set(VULKAN_LIBRARY_DIR "$ENV{VULKAN_SDK}/Lib")
@@ -98,8 +107,13 @@ list(APPEND IMGUI_SOURCE_FILES
     ${IMGUI_DIR}/imgui_draw.cpp
     ${IMGUI_DIR}/imgui_tables.cpp
     ${IMGUI_DIR}/imgui_widgets.cpp
-    ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
 )
+
+if (NOT PPX_ANDROID)
+    list(APPEND IMGUI_SOURCE_FILES
+        ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+    )
+endif()
 
 list(APPEND XXHASH_FILES
     ${PPX_DIR}/third_party/xxHash/xxhash.h
@@ -458,6 +472,11 @@ if (PPX_LINUX)
         ${PROJECT_NAME}
         PUBLIC  PPX_LINUX
     )
+elseif (PPX_ANDROID)
+    target_compile_definitions(
+        ${PROJECT_NAME}
+        PUBLIC  PPX_ANDROID
+    )
 elseif (PPX_MSW)
     target_compile_definitions(
         ${PROJECT_NAME}
@@ -477,14 +496,25 @@ endif()
 # Link libraries
 # ------------------------------------------------------------------------------
 
-target_link_libraries(${PROJECT_NAME}
-    PUBLIC cpu_features
-)
+if (NOT PPX_ANDROID)
+    target_link_libraries(${PROJECT_NAME}
+        PUBLIC cpu_features
+    )
+endif()
 
 if (PPX_MSW)
     target_link_libraries(
         ${PROJECT_NAME}
         PUBLIC shcore.lib
+    )
+endif()
+
+if (PPX_ANDROID)
+    target_link_libraries(
+        ${PROJECT_NAME}
+        PUBLIC
+        android
+        game-activity::game-activity
     )
 endif()
 
@@ -557,6 +587,12 @@ if (PPX_VULKAN)
                 PUBLIC xcb X11-xcb
             )
         endif()
+    # Android
+    elseif (PPX_ANDROID)
+        target_link_libraries(${PROJECT_NAME}
+            PUBLIC
+            Vulkan::Vulkan
+        )
     # Windows
     elseif (PPX_MSW)
         target_link_libraries(${PROJECT_NAME}
@@ -578,8 +614,12 @@ endif()
 # ------------------------------------------------------------------------------
 # Unit Tests
 # ------------------------------------------------------------------------------
-if (PPX_BUILD_TESTS)
-    enable_testing()
-    include(GoogleTest)
-    add_subdirectory(test)
+# Test infrastructure uses gtest_discover_tests(), which is not cross-platform and
+# fails for Android platforms
+if (NOT ANDROID)
+    if (PPX_BUILD_TESTS)
+        enable_testing()
+        include(GoogleTest)
+        add_subdirectory(test)
+    endif()
 endif()

@@ -121,7 +121,7 @@ Result Image::CreateApiObjects(const grfx::ImageCreateInfo* pCreateInfo)
         }
     }
     else {
-        mImage = static_cast<VkImage>(pCreateInfo->pApiObject);
+        mImage = reinterpret_cast<VkImage>(pCreateInfo->pApiObject);
     }
 
     mVkFormat    = ToVkFormat(pCreateInfo->format);

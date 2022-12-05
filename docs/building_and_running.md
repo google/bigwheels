@@ -39,6 +39,13 @@ Open `build\BigWheels.sln` and build
 
 Built binaries are written to `build\bin`.
 
+## Android (on Windows or Linux)
+```
+git clone --recursive https://github.com/google/BigWheels
+```
+
+Use Android Studio to open `android` subfolder and build
+
 ## OpenXR
 OpenXR support can be enabled by adding `-DPPX_BUILD_XR=1` flag.
 For example, for Windows build:

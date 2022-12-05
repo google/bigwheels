@@ -439,11 +439,4 @@ void ProjApp::DrawGui()
     ImGui::SliderFloat("Rot Y", &mRotY, 0.0f, 360.0f, "%.03f degrees");
 }
 
-int main(int argc, char** argv)
-{
-    ProjApp app;
-
-    int res = app.Run(argc, argv);
-
-    return res;
-}
+SETUP_APPLICATION(ProjApp)

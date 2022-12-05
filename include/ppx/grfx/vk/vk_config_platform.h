@@ -30,6 +30,10 @@
 #           define VK_USE_PLATFORM_WAYLAND_KHR
 #       endif
 #   endif
+#elif defined(PPX_ANDROID)
+#   if ! defined(VK_USE_PLATFORM_ANDROID_KHR)
+#       define VK_USE_PLATFORM_ANDROID_KHR
+#   endif
 #elif defined(PPX_MSW)
 #   if ! defined(VK_USE_PLATFORM_WIN32_KHR)
 #       define VK_USE_PLATFORM_WIN32_KHR

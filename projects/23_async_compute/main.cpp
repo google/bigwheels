@@ -952,11 +952,4 @@ void ProjApp::DrawGui()
     ImGui::SliderInt("Compute Load", &mComputeLoad, 1, 20);
 }
 
-int main(int argc, char** argv)
-{
-    ProjApp app;
-
-    int res = app.Run(argc, argv);
-
-    return res;
-}
+SETUP_APPLICATION(ProjApp)
