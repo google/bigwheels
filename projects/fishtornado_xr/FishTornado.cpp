@@ -134,12 +134,13 @@ void FishTornadoApp::Config(ppx::ApplicationSettings& settings)
     settings.enableImGui                = true;
     settings.grfx.numFramesInFlight     = 2;
     settings.grfx.enableDebug           = false;
-    settings.enableXR                   = true;
-    settings.enableXRDebugCapture       = false;
+    settings.grfx.pacedFrameRate        = 0;
+    settings.xr.enable                  = true;
+    settings.xr.enableDebugCapture      = false;
     settings.grfx.swapchain.imageCount  = 3;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
-    settings.grfx.ui.pos                = {0.2f, -0.3f, -0.5f};
-    settings.grfx.ui.size               = {1.f, 1.f};
+    settings.xr.ui.pos                  = {0.2f, -0.3f, -0.5f};
+    settings.xr.ui.size                 = {1.f, 1.f};
 #if defined(USE_DXIL)
     settings.grfx.enableDXIL = true;
 #endif
@@ -316,7 +317,7 @@ void FishTornadoApp::SetupPerFrame()
         PPX_CHECKED_CALL(frame.sceneShadowSet->UpdateSampledImage(RENDER_SHADOW_TEXTURE_REGISTER, 0, m1x1BlackTexture));
         PPX_CHECKED_CALL(frame.sceneShadowSet->UpdateSampler(RENDER_SHADOW_SAMPLER_REGISTER, 0, mClampedSampler));
 
-        if (GetSettings()->enableXR) {
+        if (IsXrEnabled()) {
             PPX_CHECKED_CALL(GetGraphicsQueue()->CreateCommandBuffer(&frame.uiCmd));
             PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &frame.uiRenderCompleteFence));
         }
@@ -479,12 +480,11 @@ void FishTornadoApp::UpdateScene(uint32_t frameIndex)
     pSceneData->shadowTextureDim           = float2(kShadowRes);
     pSceneData->usePCF                     = static_cast<uint32_t>(mUsePCF);
 
-    // no need to wait for imageAcquiredFence since xrWaitSwapchainImage is called in AcquireNextImage
-    if (GetSettings()->enableXR) {
-        const XrVector3f& pos            = GetXrComponent().GetCurrentPose().position;
+    if (IsXrEnabled()) {
+        const XrVector3f& pos            = GetXrComponent().GetPoseForCurrentView().position;
         pSceneData->eyePosition          = {pos.x, pos.y, pos.z};
         const glm::mat4 v                = GetXrComponent().GetViewMatrixForCurrentView();
-        const glm::mat4 p                = GetXrComponent().GetProjectionMatrixForCurrentView(PPX_CAMERA_DEFAULT_NEAR_CLIP, PPX_CAMERA_DEFAULT_FAR_CLIP);
+        const glm::mat4 p                = GetXrComponent().GetProjectionMatrixForCurrentViewAndSetFrustumPlanes(PPX_CAMERA_DEFAULT_NEAR_CLIP, PPX_CAMERA_DEFAULT_FAR_CLIP);
         pSceneData->viewMatrix           = v;
         pSceneData->projectionMatrix     = p;
         pSceneData->viewProjectionMatrix = p * v;
@@ -535,7 +535,7 @@ void FishTornadoApp::RenderSceneUsingSingleCommandBuffer(
         // -----------------------------------------------------------------------------------------
         bool updateFlocking = true;
         // only need to update flocking once per frame
-        if (GetSettings()->enableXR) {
+        if (IsXrEnabled()) {
             if (GetXrComponent().GetCurrentViewIndex() == 1) {
                 updateFlocking = false;
             }
@@ -574,7 +574,7 @@ void FishTornadoApp::RenderSceneUsingSingleCommandBuffer(
         beginInfo.RTVClearCount             = 1;
         beginInfo.RTVClearValues[0]         = {{kFogColor.r, kFogColor.g, kFogColor.b, 1.0f}};
 
-        if (!GetSettings()->enableXR) {
+        if (!IsXrEnabled()) {
             frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
         }
         frame.cmd->BeginRenderPass(&beginInfo);
@@ -597,7 +597,7 @@ void FishTornadoApp::RenderSceneUsingSingleCommandBuffer(
 
             mOcean.DrawForward(frameIndex, frame.cmd);
 
-            if (!GetSettings()->enableXR) {
+            if (!IsXrEnabled()) {
                 // Draw ImGui
                 DrawDebugInfo([this]() { this->DrawGui(); });
 #if defined(PPX_ENABLE_PROFILE_GRFX_API_FUNCTIONS)
@@ -607,7 +607,7 @@ void FishTornadoApp::RenderSceneUsingSingleCommandBuffer(
             }
         }
         frame.cmd->EndRenderPass();
-        if (!GetSettings()->enableXR) {
+        if (!IsXrEnabled()) {
             frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
         }
 
@@ -634,7 +634,7 @@ void FishTornadoApp::RenderSceneUsingSingleCommandBuffer(
     submitInfo.commandBufferCount = 1;
     submitInfo.ppCommandBuffers   = &frame.cmd;
     // no need to use semaphore when XR is enabled
-    if (GetSettings()->enableXR) {
+    if (IsXrEnabled()) {
         submitInfo.waitSemaphoreCount   = 0;
         submitInfo.ppWaitSemaphores     = nullptr;
         submitInfo.signalSemaphoreCount = 0;
@@ -727,7 +727,7 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
     // ---------------------------------------------------------------------------------------------
     bool updateFlocking = true;
     // only need to update flocking once per frame
-    if (GetSettings()->enableXR) {
+    if (IsXrEnabled()) {
         if (GetXrComponent().GetCurrentViewIndex() == 1) {
             updateFlocking = false;
         }
@@ -816,7 +816,7 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
         beginInfo.RTVClearCount             = 1;
         beginInfo.RTVClearValues[0]         = {{kFogColor.r, kFogColor.g, kFogColor.b, 1.0f}};
 
-        if (!GetSettings()->enableXR) {
+        if (!IsXrEnabled()) {
             frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
         }
         frame.cmd->BeginRenderPass(&beginInfo);
@@ -839,7 +839,7 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
 
             mOcean.DrawForward(frameIndex, frame.cmd);
 
-            if (!GetSettings()->enableXR) {
+            if (!IsXrEnabled()) {
                 // Draw ImGui
                 DrawDebugInfo([this]() { this->DrawGui(); });
 #if defined(PPX_ENABLE_PROFILE_GRFX_API_FUNCTIONS)
@@ -849,7 +849,7 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
             }
         }
         frame.cmd->EndRenderPass();
-        if (!GetSettings()->enableXR) {
+        if (!IsXrEnabled()) {
             frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
         }
 
@@ -859,7 +859,7 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
 
     // Submit render work
     // no need to use semaphore when XR is enabled
-    if (GetSettings()->enableXR) {
+    if (IsXrEnabled()) {
         const grfx::Semaphore* pWaitSemaphores    = frame.shadowCompleteSemaphore;
         uint32_t               waitSemaphoreCount = 1;
 
@@ -916,7 +916,7 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
         submitInfo.pFence               = frame.frameCompleteFence;
 
         // no need to use semaphore when XR is enabled
-        if (GetSettings()->enableXR) {
+        if (IsXrEnabled()) {
             submitInfo.signalSemaphoreCount = 0;
             submitInfo.ppSignalSemaphores   = nullptr;
         }
@@ -933,7 +933,7 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
         submitInfo.ppSignalSemaphores   = &frame.frameCompleteSemaphore;
         submitInfo.pFence               = frame.frameCompleteFence;
         // no need to use semaphore when XR is enabled
-        if (GetSettings()->enableXR) {
+        if (IsXrEnabled()) {
             submitInfo.signalSemaphoreCount = 0;
             submitInfo.ppSignalSemaphores   = nullptr;
         }
@@ -952,12 +952,12 @@ void FishTornadoApp::Render()
 
     uint32_t imageIndex       = UINT32_MAX;
     uint32_t currentViewIndex = 0;
-    if (GetSettings()->enableXR) {
+    if (IsXrEnabled()) {
         currentViewIndex = GetXrComponent().GetCurrentViewIndex();
     }
 
     // Render UI into a different composition layer.
-    if (GetSettings()->enableXR && (currentViewIndex == 0) && GetSettings()->enableImGui) {
+    if (IsXrEnabled() && (currentViewIndex == 0) && GetSettings()->enableImGui) {
         grfx::SwapchainPtr uiSwapchain = GetUISwapchain();
         PPX_CHECKED_CALL(uiSwapchain->AcquireNextImage(UINT64_MAX, nullptr, nullptr, &imageIndex));
         PPX_CHECKED_CALL(frame.uiRenderCompleteFence->WaitAndReset());
@@ -1045,11 +1045,11 @@ void FishTornadoApp::Render()
     mLastFrameWasAsyncCompute = mUseAsyncCompute;
 
     // No need to present when XR is enabled.
-    if (!GetSettings()->enableXR) {
+    if (!IsXrEnabled()) {
         PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.frameCompleteSemaphore));
     }
     else {
-        if (GetSettings()->enableXRDebugCapture && (currentViewIndex == 1)) {
+        if (GetSettings()->xr.enableDebugCapture && (currentViewIndex == 1)) {
             // We could use semaphore to sync to have better performance,
             // but this requires modifying the submission code.
             // For debug capture we don't care about the performance,

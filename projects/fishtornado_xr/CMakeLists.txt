@@ -15,9 +15,8 @@ cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 
 project(fishtornado_xr)
 
-add_samples(
+add_samples_for_all_apis(
     NAME ${PROJECT_NAME}
-    TARGET_APIS "vk"
     SOURCES
     "Buffer.h"
     "Buffer.cpp"

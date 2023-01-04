@@ -15,8 +15,7 @@ cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 
 project(04_cube_xr)
 
-add_samples(
+add_samples_for_all_apis(
     NAME ${PROJECT_NAME}
-    TARGET_APIS "vk"
     SOURCES "main.cpp"
     SHADER_DEPENDENCIES "shader_vertex_colors")

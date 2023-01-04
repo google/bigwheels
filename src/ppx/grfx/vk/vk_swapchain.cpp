@@ -203,14 +203,15 @@ uint32_t Surface::GetMaxImageCount() const
 // -------------------------------------------------------------------------------------------------
 Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
 {
-    uint32_t             imageCount = 0;
-    std::vector<VkImage> images;
-    VkResult             vkres;
+    std::vector<VkImage> colorImages;
+    std::vector<VkImage> depthImages;
 
 #if defined(PPX_BUILD_XR)
     const bool isXREnabled = (mCreateInfo.pXrComponent != nullptr);
     if (isXREnabled) {
         const XrComponent& xrComponent = *mCreateInfo.pXrComponent;
+
+        PPX_ASSERT_MSG(xrComponent.GetColorFormat() == pCreateInfo->colorFormat, "XR color format differs from requested swapchain format");
 
         XrSwapchainCreateInfo info = {XR_TYPE_SWAPCHAIN_CREATE_INFO};
         info.arraySize             = 1;
@@ -221,16 +222,42 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
         info.height                = xrComponent.GetHeight();
         info.sampleCount           = xrComponent.GetSampleCount();
         info.usageFlags            = XR_SWAPCHAIN_USAGE_SAMPLED_BIT | XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT;
-        CHECK_XR_CALL(xrCreateSwapchain(xrComponent.GetSession(), &info, &mXrSwapchain));
+        CHECK_XR_CALL(xrCreateSwapchain(xrComponent.GetSession(), &info, &mXrColorSwapchain));
 
         // Find out how many textures were generated for the swapchain
-        CHECK_XR_CALL(xrEnumerateSwapchainImages(mXrSwapchain, 0, &imageCount, nullptr));
-        images.resize(imageCount);
+        uint32_t imageCount = 0;
+        CHECK_XR_CALL(xrEnumerateSwapchainImages(mXrColorSwapchain, 0, &imageCount, nullptr));
         std::vector<XrSwapchainImageVulkanKHR> surfaceImages;
         surfaceImages.resize(imageCount, {XR_TYPE_SWAPCHAIN_IMAGE_VULKAN_KHR});
-        CHECK_XR_CALL(xrEnumerateSwapchainImages(mXrSwapchain, imageCount, &imageCount, (XrSwapchainImageBaseHeader*)surfaceImages.data()));
+        CHECK_XR_CALL(xrEnumerateSwapchainImages(mXrColorSwapchain, imageCount, &imageCount, (XrSwapchainImageBaseHeader*)surfaceImages.data()));
         for (uint32_t i = 0; i < imageCount; i++) {
-            images[i] = surfaceImages[i].image;
+            colorImages.push_back(surfaceImages[i].image);
+        }
+
+        if (xrComponent.GetDepthFormat() != grfx::FORMAT_UNDEFINED && xrComponent.UsesDepthSwapchains()) {
+            PPX_ASSERT_MSG(xrComponent.GetDepthFormat() == pCreateInfo->depthFormat, "XR depth format differs from requested swapchain format");
+
+            XrSwapchainCreateInfo info = {XR_TYPE_SWAPCHAIN_CREATE_INFO};
+            info.arraySize             = 1;
+            info.mipCount              = 1;
+            info.faceCount             = 1;
+            info.format                = ToVkFormat(xrComponent.GetDepthFormat());
+            info.width                 = xrComponent.GetWidth();
+            info.height                = xrComponent.GetHeight();
+            info.sampleCount           = xrComponent.GetSampleCount();
+            info.usageFlags            = XR_SWAPCHAIN_USAGE_SAMPLED_BIT | XR_SWAPCHAIN_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            CHECK_XR_CALL(xrCreateSwapchain(xrComponent.GetSession(), &info, &mXrDepthSwapchain));
+
+            imageCount = 0;
+            CHECK_XR_CALL(xrEnumerateSwapchainImages(mXrDepthSwapchain, 0, &imageCount, nullptr));
+            std::vector<XrSwapchainImageVulkanKHR> swapchainDepthImages;
+            swapchainDepthImages.resize(imageCount, {XR_TYPE_SWAPCHAIN_IMAGE_VULKAN_KHR});
+            CHECK_XR_CALL(xrEnumerateSwapchainImages(mXrDepthSwapchain, imageCount, &imageCount, (XrSwapchainImageBaseHeader*)swapchainDepthImages.data()));
+            for (uint32_t i = 0; i < imageCount; i++) {
+                depthImages.push_back(swapchainDepthImages[i].image);
+            }
+
+            PPX_ASSERT_MSG(depthImages.size() == colorImages.size(), "XR depth and color swapchains have different number of images");
         }
     }
     else
@@ -361,7 +388,7 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
         vkci.clipped                  = VK_FALSE;
         vkci.oldSwapchain             = VK_NULL_HANDLE;
 
-        vkres = vkCreateSwapchainKHR(
+        VkResult vkres = vkCreateSwapchainKHR(
             ToApi(GetDevice())->GetVkDevice(),
             &vkci,
             nullptr,
@@ -371,7 +398,8 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
             return ppx::ERROR_API_FAILURE;
         }
 
-        vkres = vkGetSwapchainImagesKHR(ToApi(GetDevice())->GetVkDevice(), mSwapchain, &imageCount, nullptr);
+        uint32_t imageCount = 0;
+        vkres               = vkGetSwapchainImagesKHR(ToApi(GetDevice())->GetVkDevice(), mSwapchain, &imageCount, nullptr);
         if (vkres != VK_SUCCESS) {
             PPX_ASSERT_MSG(false, "vkGetSwapchainImagesKHR(0) failed: " << ToString(vkres));
             return ppx::ERROR_API_FAILURE;
@@ -379,8 +407,8 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
         PPX_LOG_INFO("Vulkan swapchain image count: " << imageCount);
 
         if (imageCount > 0) {
-            images.resize(imageCount);
-            vkres = vkGetSwapchainImagesKHR(ToApi(GetDevice())->GetVkDevice(), mSwapchain, &imageCount, images.data());
+            colorImages.resize(imageCount);
+            vkres = vkGetSwapchainImagesKHR(ToApi(GetDevice())->GetVkDevice(), mSwapchain, &imageCount, colorImages.data());
             if (vkres != VK_SUCCESS) {
                 PPX_ASSERT_MSG(false, "vkGetSwapchainImagesKHR(1) failed: " << ToString(vkres));
                 return ppx::ERROR_API_FAILURE;
@@ -388,19 +416,19 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
         }
     }
 
-    // Transition images from VK_IMAGE_LAYOUT_UNDEFINED to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+    // Transition images from VK_IMAGE_LAYOUT_UNDEFINED to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR.
     {
         VkImageLayout newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 #if defined(PPX_BUILD_XR)
-        // We do not present for XR render targets
+        // We do not present for XR render targets.
         if (isXREnabled) {
             newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         }
 #endif
         vk::Queue* pQueue = ToApi(pCreateInfo->pQueue);
-        for (uint32_t i = 0; i < imageCount; ++i) {
-            vkres = pQueue->TransitionImageLayout(
-                images[i],                          // image
+        for (uint32_t i = 0; i < colorImages.size(); ++i) {
+            VkResult vkres = pQueue->TransitionImageLayout(
+                colorImages[i],                     // image
                 VK_IMAGE_ASPECT_COLOR_BIT,          // aspectMask
                 0,                                  // baseMipLevel
                 1,                                  // levelCount
@@ -408,7 +436,7 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
                 1,                                  // layerCount
                 VK_IMAGE_LAYOUT_UNDEFINED,          // oldLayout
                 newLayout,                          // newLayout
-                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT); // newPipelineStage)
+                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT); // newPipelineStage
             if (vkres != VK_SUCCESS) {
                 PPX_ASSERT_MSG(false, "vk::Queue::TransitionImageLayout failed: " << ToString(vkres));
                 return ppx::ERROR_API_FAILURE;
@@ -416,38 +444,53 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
         }
     }
 
-    // Create images
-    for (uint32_t i = 0; i < imageCount; ++i) {
-        grfx::ImageCreateInfo imageCreateInfo           = {};
-        imageCreateInfo.type                            = grfx::IMAGE_TYPE_2D;
-        imageCreateInfo.width                           = pCreateInfo->width;
-        imageCreateInfo.height                          = pCreateInfo->height;
-        imageCreateInfo.depth                           = 1;
-        imageCreateInfo.format                          = pCreateInfo->colorFormat;
-        imageCreateInfo.sampleCount                     = grfx::SAMPLE_COUNT_1;
-        imageCreateInfo.mipLevelCount                   = 1;
-        imageCreateInfo.arrayLayerCount                 = 1;
-        imageCreateInfo.usageFlags.bits.transferSrc     = true;
-        imageCreateInfo.usageFlags.bits.transferDst     = true;
-        imageCreateInfo.usageFlags.bits.sampled         = true;
-        imageCreateInfo.usageFlags.bits.storage         = true;
-        imageCreateInfo.usageFlags.bits.colorAttachment = true;
-        imageCreateInfo.pApiObject                      = images[i];
+    // Create images.
+    {
+        for (uint32_t i = 0; i < colorImages.size(); ++i) {
+            grfx::ImageCreateInfo imageCreateInfo           = {};
+            imageCreateInfo.type                            = grfx::IMAGE_TYPE_2D;
+            imageCreateInfo.width                           = pCreateInfo->width;
+            imageCreateInfo.height                          = pCreateInfo->height;
+            imageCreateInfo.depth                           = 1;
+            imageCreateInfo.format                          = pCreateInfo->colorFormat;
+            imageCreateInfo.sampleCount                     = grfx::SAMPLE_COUNT_1;
+            imageCreateInfo.mipLevelCount                   = 1;
+            imageCreateInfo.arrayLayerCount                 = 1;
+            imageCreateInfo.usageFlags.bits.transferSrc     = true;
+            imageCreateInfo.usageFlags.bits.transferDst     = true;
+            imageCreateInfo.usageFlags.bits.sampled         = true;
+            imageCreateInfo.usageFlags.bits.storage         = true;
+            imageCreateInfo.usageFlags.bits.colorAttachment = true;
+            imageCreateInfo.pApiObject                      = colorImages[i];
 
-        grfx::ImagePtr image;
-        Result         ppxres = GetDevice()->CreateImage(&imageCreateInfo, &image);
-        if (Failed(ppxres)) {
-            PPX_ASSERT_MSG(false, "image create failed");
-            return ppxres;
+            grfx::ImagePtr image;
+            Result         ppxres = GetDevice()->CreateImage(&imageCreateInfo, &image);
+            if (Failed(ppxres)) {
+                PPX_ASSERT_MSG(false, "image create failed");
+                return ppxres;
+            }
+
+            mColorImages.push_back(image);
         }
 
-        mColorImages.push_back(image);
+        for (size_t i = 0; i < depthImages.size(); ++i) {
+            grfx::ImageCreateInfo imageCreateInfo = grfx::ImageCreateInfo::DepthStencilTarget(pCreateInfo->width, pCreateInfo->height, pCreateInfo->depthFormat, grfx::SAMPLE_COUNT_1);
+            imageCreateInfo.pApiObject            = depthImages[i];
+
+            grfx::ImagePtr image;
+            Result         ppxres = GetDevice()->CreateImage(&imageCreateInfo, &image);
+            if (Failed(ppxres)) {
+                PPX_ASSERT_MSG(false, "image create failed");
+                return ppxres;
+            }
+
+            mDepthImages.push_back(image);
+        }
     }
 
-    // Save queue for presentation
+    // Save queue for presentation.
     mQueue = ToApi(pCreateInfo->pQueue)->GetVkQueue();
 
-    // Success
     return ppx::SUCCESS;
 }
 
