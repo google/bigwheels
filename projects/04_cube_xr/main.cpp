@@ -69,7 +69,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
     settings.grfx.enableDebug           = false;
     settings.enableXR                   = true;
-    settings.enableXRDebugCapture       = true;
+    settings.enableXRDebugCapture       = false;
     settings.grfx.ui.pos                = {0.1f, -0.2f, -0.5f};
     settings.grfx.ui.size               = {1.f, 1.f};
 #if defined(USE_DXIL)

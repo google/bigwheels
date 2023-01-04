@@ -135,7 +135,7 @@ void FishTornadoApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.numFramesInFlight     = 2;
     settings.grfx.enableDebug           = false;
     settings.enableXR                   = true;
-    settings.enableXRDebugCapture       = true;
+    settings.enableXRDebugCapture       = false;
     settings.grfx.swapchain.imageCount  = 3;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
     settings.grfx.ui.pos                = {0.2f, -0.3f, -0.5f};
