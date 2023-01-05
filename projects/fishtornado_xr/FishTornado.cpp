@@ -136,7 +136,7 @@ void FishTornadoApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.enableDebug           = false;
     settings.grfx.pacedFrameRate        = 0;
     settings.xr.enable                  = true;
-    settings.xr.enableDebugCapture      = true;
+    settings.xr.enableDebugCapture      = false;
     settings.grfx.swapchain.imageCount  = 3;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
     settings.xr.ui.pos                  = {0.2f, -0.3f, -0.5f};
