@@ -15,6 +15,8 @@
 #ifndef ppx_math_config_h
 #define ppx_math_config_h
 
+#include <ostream>
+
 // clang-format off
 #if defined(__cplusplus)
 #   define GLM_FORCE_RADIANS 
@@ -201,5 +203,9 @@ T pi()
 // -------------------------------------------------------------------------------------------------
 
 } // namespace ppx
+
+std::ostream& operator<<(std::ostream& os, const ppx::float2& i);
+std::ostream& operator<<(std::ostream& os, const ppx::float3& i);
+std::ostream& operator<<(std::ostream& os, const ppx::float4& i);
 
 #endif // ppx_math_config_h
