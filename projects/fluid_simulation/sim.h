@@ -67,11 +67,11 @@ struct SimulationConfig
           dyeResolution(1024),
           captureResolution(512),
           densityDissipation(1),
-          velocityDissipation(0.2),
-          pressure(0.8),
+          velocityDissipation(0.2f),
+          pressure(0.8f),
           pressureIterations(20),
           curl(30),
-          splatRadius(0.25),
+          splatRadius(0.25f),
           splatForce(6000),
           shading(true),
           colorful(true),
@@ -82,12 +82,12 @@ struct SimulationConfig
           bloom(true),
           bloomIterations(8),
           bloomResolution(256),
-          bloomIntensity(0.8),
-          bloomThreshold(0.6),
-          bloomSoftKnee(0.7),
+          bloomIntensity(0.8f),
+          bloomThreshold(0.6f),
+          bloomSoftKnee(0.7f),
           sunrays(true),
           sunraysResolution(196),
-          sunraysWeight(1.0) {}
+          sunraysWeight(1.0f) {}
 };
 
 class ProjApp;
@@ -113,7 +113,7 @@ public:
     void FreeComputeShaders();
 
     /// @brief Execute all the scheduled graphic shaders in sequence.
-    void DispatchGraphicShaders(const PerFrame& frame, uint32_t imageIndex);
+    void Render(const PerFrame& frame, uint32_t imageIndex);
 
     /// @brief Free descriptor sets used by graphic shaders. This also clears
     /// the execution schedule.

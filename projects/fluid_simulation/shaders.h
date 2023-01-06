@@ -22,7 +22,7 @@ namespace FluidSim {
 class ProjApp;
 class FluidSimulation;
 
-// Pipeline interface, descriptor layout, sampler and uniform buffer used by compute shaders.
+// Pipeline interface, descriptor layout and sampler used by compute shaders.
 struct ComputeResources
 {
     ppx::grfx::PipelineInterfacePtr   mPipelineInterface;
@@ -66,7 +66,7 @@ public:
 
     ppx::float2 GetTexelSize() const
     {
-        return ppx::float2(1.0 / static_cast<float>(GetWidth()), 1.0 / static_cast<float>(GetHeight()));
+        return ppx::float2(1.0f / static_cast<float>(GetWidth()), 1.0f / static_cast<float>(GetHeight()));
     }
 
     ppx::float2 GetDitherScale(uint32_t width, uint32_t height)
@@ -110,7 +110,7 @@ struct alignas(16) ScalarInput
           radius(),
           weight(),
           curl(),
-          normalizationScale(1.0 / output->GetWidth(), 1.0 / output->GetHeight()) {}
+          normalizationScale(1.0f / output->GetWidth(), 1.0f / output->GetHeight()) {}
 
     ppx::float2 texelSize;
     ppx::float2 coordinate;
@@ -135,12 +135,6 @@ struct alignas(16) ScalarInput
 
     ppx::float2 normalizationScale;
 };
-
-std::ostream& operator<<(std::ostream& os, const ppx::float2& i);
-std::ostream& operator<<(std::ostream& os, const ppx::float3& i);
-std::ostream& operator<<(std::ostream& os, const ppx::float4& i);
-std::ostream& operator<<(std::ostream& os, const ScalarInput& i);
-std::ostream& operator<<(std::ostream& os, const Texture& i);
 
 class Shader
 {
@@ -485,5 +479,8 @@ private:
 };
 
 } // namespace FluidSim
+
+std::ostream& operator<<(std::ostream& os, const FluidSim::ScalarInput& i);
+std::ostream& operator<<(std::ostream& os, const FluidSim::Texture& i);
 
 #endif // __FLUID_SIMULATION_SHADERS_H

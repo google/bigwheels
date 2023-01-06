@@ -12,6 +12,7 @@
 #include "ppx/config.h"
 #include "ppx/grfx/grfx_format.h"
 #include "ppx/timer.h"
+#include "ppx/math_config.h"
 
 #include <algorithm>
 #include <cmath>
@@ -126,7 +127,7 @@ void FluidSimulation::FreeComputeShaders()
     mComputeDispatchQueue.clear();
 }
 
-void FluidSimulation::DispatchGraphicShaders(const PerFrame& frame, uint32_t imageIndex)
+void FluidSimulation::Render(const PerFrame& frame, uint32_t imageIndex)
 {
     for (auto& dr : mGraphicsDispatchQueue) {
         dr.mShader->Dispatch(frame, imageIndex, dr);
@@ -209,8 +210,8 @@ void FluidSimulation::InitGraphicShaders()
 ppx::int2 FluidSimulation::GetResolution(float resolution)
 {
     float aspectRatio = static_cast<float>(GetApp()->GetWindowWidth()) / static_cast<float>(GetApp()->GetWindowHeight());
-    if (aspectRatio < 1.0) {
-        aspectRatio = 1.0 / aspectRatio;
+    if (aspectRatio < 1.0f) {
+        aspectRatio = 1.0f / aspectRatio;
     }
 
     int min = round(resolution);
@@ -267,7 +268,7 @@ void FluidSimulation::AddTextureToInitialize(Texture* texture)
 void FluidSimulation::GenerateInitialSplat()
 {
     for (const auto& texture : mTexturesToInitialize) {
-        ScheduleDR(mColor->GetDR(texture, ppx::float4(0.0, 0.0f, 0.0f, 1.0f)));
+        ScheduleDR(mColor->GetDR(texture, ppx::float4(0.0f, 0.0f, 0.0f, 1.0f)));
     }
     mTexturesToInitialize.clear();
 
@@ -303,9 +304,9 @@ ppx::float3 FluidSimulation::HSVtoRGB(ppx::float3 hsv)
 ppx::float3 FluidSimulation::GenerateColor()
 {
     ppx::float3 c = HSVtoRGB(ppx::float3(Random().Float(0, 1), 1, 1));
-    c.r *= 0.15;
-    c.g *= 0.15;
-    c.b *= 0.15;
+    c.r *= 0.15f;
+    c.g *= 0.15f;
+    c.b *= 0.15f;
     return c;
 }
 
@@ -318,12 +319,12 @@ float FluidSimulation::CorrectRadius(float radius)
 void FluidSimulation::Splat(ppx::float2 point, ppx::float2 delta, ppx::float3 color)
 {
     float       aspect     = GetApp()->GetWindowAspect();
-    float       radius     = CorrectRadius(mConfig.splatRadius / 100.0);
-    ppx::float4 deltaColor = ppx::float4(delta.x, delta.y, 0.0, 1.0);
+    float       radius     = CorrectRadius(mConfig.splatRadius / 100.0f);
+    ppx::float4 deltaColor = ppx::float4(delta.x, delta.y, 0.0f, 1.0f);
     ScheduleDR(mSplat->GetDR(mVelocityTexture[0].get(), mVelocityTexture[1].get(), point, aspect, radius, deltaColor));
     std::swap(mVelocityTexture[0], mVelocityTexture[1]);
 
-    ScheduleDR(mSplat->GetDR(mDyeTexture[0].get(), mDyeTexture[1].get(), point, aspect, radius, ppx::float4(color, 1.0)));
+    ScheduleDR(mSplat->GetDR(mDyeTexture[0].get(), mDyeTexture[1].get(), point, aspect, radius, ppx::float4(color, 1.0f)));
     std::swap(mDyeTexture[0], mDyeTexture[1]);
 }
 
@@ -332,11 +333,11 @@ void FluidSimulation::MultipleSplats(uint32_t amount)
     PPX_LOG_DEBUG("Emitting " << amount << " splashes of color\n");
     for (uint32_t i = 0; i < amount; i++) {
         ppx::float3 color = GenerateColor();
-        color.r *= 10.0;
-        color.g *= 10.0;
-        color.b *= 10.0;
+        color.r *= 10.0f;
+        color.g *= 10.0f;
+        color.b *= 10.0f;
         ppx::float2       point(Random().Float(0, 1), Random().Float(0, 1));
-        ppx::float2       delta(1000.0 * (Random().Float(0, 1) - 0.5), 1000.0 * (Random().Float(0, 1) - 0.5));
+        ppx::float2       delta(1000.0f * (Random().Float(0, 1) - 0.5f), 1000.0f * (Random().Float(0, 1) - 0.5f));
         std::stringstream s;
         s << point << " with color " << color << "\n";
         PPX_LOG_DEBUG("Splash #" << i << " at " << s.str());
@@ -371,10 +372,10 @@ void FluidSimulation::ApplyBloom(Texture* source, Texture* destination)
 
     Texture* last = destination;
 
-    float knee   = mConfig.bloomThreshold * mConfig.bloomSoftKnee + 0.0001;
+    float knee   = mConfig.bloomThreshold * mConfig.bloomSoftKnee + 0.0001f;
     float curve0 = mConfig.bloomThreshold - knee;
-    float curve1 = knee * 2.0;
-    float curve2 = 0.25 / knee;
+    float curve1 = knee * 2.0f;
+    float curve2 = 0.25f / knee;
     ScheduleDR(mBloomPrefilter->GetDR(source, last, ppx::float3(curve0, curve1, curve2), mConfig.bloomThreshold));
 
     for (auto& dest : mBloomTextures) {
@@ -400,8 +401,8 @@ void FluidSimulation::ApplySunrays(Texture* source, Texture* mask, Texture* dest
 void FluidSimulation::Blur(Texture* target, Texture* temp, uint32_t iterations)
 {
     for (uint32_t i = 0; i < iterations; i++) {
-        ScheduleDR(mBlur->GetDR(target, temp, ppx::float2(target->GetTexelSize().x, 0.0)));
-        ScheduleDR(mBlur->GetDR(temp, target, ppx::float2(0.0, target->GetTexelSize().y)));
+        ScheduleDR(mBlur->GetDR(target, temp, ppx::float2(target->GetTexelSize().x, 0.0f)));
+        ScheduleDR(mBlur->GetDR(temp, target, ppx::float2(0.0f, target->GetTexelSize().y)));
     }
 }
 

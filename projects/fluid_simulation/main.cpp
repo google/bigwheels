@@ -31,7 +31,7 @@
 ///     `FluidSimulation::GenerateInitialSplat`.  The main rendering loop (@see ProjApp::Render) proceeds as follows:
 ///
 ///     1.  All the scheduled compute shaders are executed by calling `FluidSimulation::DispatchComputeShaders`.
-///     2.  All the generated textures are drawn by calling `FluidSimulation::DispatchGraphicShaders`.
+///     2.  All the generated textures are drawn by calling `FluidSimulation::Render`.
 ///     3.  The resources used by compute shaders are released by calling `FluidSimulation::FreeComputeShaders`.
 ///         This prevents running out of pool resources and needlessly executing compute operations over and over.
 ///     4.  The next iteration of the simulation is executed (@note This is still not implemented).
@@ -109,7 +109,7 @@ void ProjApp::Render()
         frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, ppx::grfx::RESOURCE_STATE_PRESENT, ppx::grfx::RESOURCE_STATE_RENDER_TARGET);
         frame.cmd->BeginRenderPass(renderPass);
         {
-            mSim->DispatchGraphicShaders(frame, imageIndex);
+            mSim->Render(frame, imageIndex);
 
             // Draw ImGui.
             DrawDebugInfo();
@@ -131,7 +131,7 @@ void ProjApp::Render()
     submitInfo.pFence                = frame.renderCompleteFence;
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
 
-    // Present and mark.
+    // Present and signal.
     PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.renderCompleteSemaphore));
 
     mSim->FreeComputeShaders();

@@ -12,53 +12,35 @@
 #include "ppx/graphics_util.h"
 #include "ppx/math_config.h"
 
-namespace FluidSim {
-
-std::ostream& operator<<(std::ostream& os, const ppx::float2& i)
+std::ostream& operator<<(std::ostream& os, const FluidSim::ScalarInput& i)
 {
-    os << "(" << i.x << ", " << i.y << ")";
+    os << "texelSize           [" << offsetof(FluidSim::ScalarInput, texelSize) << "]: " << i.texelSize << "\n";
+    os << "coordinate:         [" << offsetof(FluidSim::ScalarInput, coordinate) << "]: " << i.coordinate << "\n";
+    os << "color:              [" << offsetof(FluidSim::ScalarInput, color) << "]: " << i.color << "\n";
+    os << "curve:              [" << offsetof(FluidSim::ScalarInput, curve) << "]: " << i.curve << "\n";
+    os << "intensity:          [" << offsetof(FluidSim::ScalarInput, intensity) << "]: " << i.intensity << "\n";
+    os << "ditherScale:        [" << offsetof(FluidSim::ScalarInput, ditherScale) << "]: " << i.ditherScale << "\n";
+    os << "dyeTexelSize:       [" << offsetof(FluidSim::ScalarInput, dyeTexelSize) << "]: " << i.dyeTexelSize << "\n";
+    os << "threshold:          [" << offsetof(FluidSim::ScalarInput, threshold) << "]: " << i.threshold << "\n";
+    os << "aspectRatio:        [" << offsetof(FluidSim::ScalarInput, aspectRatio) << "]: " << i.aspectRatio << "\n";
+    os << "clearValue:         [" << offsetof(FluidSim::ScalarInput, clearValue) << "]: " << i.clearValue << "\n";
+    os << "dissipation:        [" << offsetof(FluidSim::ScalarInput, dissipation) << "]: " << i.dissipation << "\n";
+    os << "dt:                 [" << offsetof(FluidSim::ScalarInput, dt) << "]: " << i.dt << "\n";
+    os << "radius:             [" << offsetof(FluidSim::ScalarInput, radius) << "]: " << i.radius << "\n";
+    os << "weight:             [" << offsetof(FluidSim::ScalarInput, weight) << "]: " << i.weight << "\n";
+    os << "curl:               [" << offsetof(FluidSim::ScalarInput, curl) << "]: " << i.curl << "\n";
+    os << "normalizationScale: [" << offsetof(FluidSim::ScalarInput, normalizationScale) << "]: " << i.normalizationScale << "\n";
     return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const ppx::float3& i)
-{
-    os << "(" << i.x << ", " << i.y << ", " << i.z << ")";
-    return os;
-}
-
-std::ostream& operator<<(std::ostream& os, const ppx::float4& i)
-{
-    os << "(" << i.r << ", " << i.g << ", " << i.b << ", " << i.a << ")";
-    return os;
-}
-
-std::ostream& operator<<(std::ostream& os, const ScalarInput& i)
-{
-    os << "texelSize           [" << offsetof(ScalarInput, texelSize) << "]: " << i.texelSize << "\n";
-    os << "coordinate:         [" << offsetof(ScalarInput, coordinate) << "]: " << i.coordinate << "\n";
-    os << "color:              [" << offsetof(ScalarInput, color) << "]: " << i.color << "\n";
-    os << "curve:              [" << offsetof(ScalarInput, curve) << "]: " << i.curve << "\n";
-    os << "intensity:          [" << offsetof(ScalarInput, intensity) << "]: " << i.intensity << "\n";
-    os << "ditherScale:        [" << offsetof(ScalarInput, ditherScale) << "]: " << i.ditherScale << "\n";
-    os << "dyeTexelSize:       [" << offsetof(ScalarInput, dyeTexelSize) << "]: " << i.dyeTexelSize << "\n";
-    os << "threshold:          [" << offsetof(ScalarInput, threshold) << "]: " << i.threshold << "\n";
-    os << "aspectRatio:        [" << offsetof(ScalarInput, aspectRatio) << "]: " << i.aspectRatio << "\n";
-    os << "clearValue:         [" << offsetof(ScalarInput, clearValue) << "]: " << i.clearValue << "\n";
-    os << "dissipation:        [" << offsetof(ScalarInput, dissipation) << "]: " << i.dissipation << "\n";
-    os << "dt:                 [" << offsetof(ScalarInput, dt) << "]: " << i.dt << "\n";
-    os << "radius:             [" << offsetof(ScalarInput, radius) << "]: " << i.radius << "\n";
-    os << "weight:             [" << offsetof(ScalarInput, weight) << "]: " << i.weight << "\n";
-    os << "curl:               [" << offsetof(ScalarInput, curl) << "]: " << i.curl << "\n";
-    os << "normalizationScale: [" << offsetof(ScalarInput, normalizationScale) << "]: " << i.normalizationScale << "\n";
-    return os;
-}
-
-std::ostream& operator<<(std::ostream& os, const Texture& i)
+std::ostream& operator<<(std::ostream& os, const FluidSim::Texture& i)
 {
     os << ((!i.GetName().empty()) ? i.GetName() : "UNKNOWN");
     os << " [size: " << i.GetWidth() << "x" << i.GetHeight() << ", texel size: " << i.GetTexelSize() << "]";
     return os;
 }
+
+namespace FluidSim {
 
 Texture::Texture(FluidSimulation* sim, const std::string& name, uint32_t width, uint32_t height, ppx::grfx::Format format)
     : mSim(sim), mName(name)
