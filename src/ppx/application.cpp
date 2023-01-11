@@ -33,7 +33,7 @@
 
 // clang-format off
 #if defined(PPX_LINUX)
-#   define GLFW_EXPOSE_NATIVE_X11 
+#   define GLFW_EXPOSE_NATIVE_X11
 #elif defined(PPX_MSW)
 #   define GLFW_EXPOSE_NATIVE_WIN32
 #endif
@@ -654,6 +654,14 @@ Result Application::InitializeGrfxDevice()
         ci.useSoftwareRenderer      = mStandardOptions.use_software_renderer;
 #if defined(PPX_BUILD_XR)
         ci.pXrComponent = mSettings.xr.enable ? &mXrComponent : nullptr;
+        // Disable original swapchain when XR is enabled as the XR swapchain will be coming from OpenXR.
+        // Enable creating swapchain when enabling debug capture, as the swapchain can help tools to do capture (dummy present calls).
+        if (mSettings.xr.enable) {
+            ci.enableSwapchain = false;
+            if (mSettings.xr.enableDebugCapture) {
+                ci.enableSwapchain = true;
+            }
+        }
 #endif
 
         Result ppxres = grfx::CreateInstance(&ci, &mInstance);

@@ -52,14 +52,7 @@ public:
     bool IsDebugEnabled() const { return mCreateInfo.enableDebug; }
     bool IsSwapchainEnabled() const
     {
-        return mCreateInfo.enableSwapchain
-#if defined(PPX_BUILD_XR)
-               // TODO(wangra): disable original swapchain when XR is enabled for now
-               // (the XR swapchain will be coming from OpenXR)
-               // the swapchain will be required for RenderDoc capture in the future implementation
-               && (mCreateInfo.pXrComponent == nullptr)
-#endif
-            ;
+        return mCreateInfo.enableSwapchain;
     }
     bool ForceDxDiscreteAllocations() const
     {
