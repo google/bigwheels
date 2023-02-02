@@ -119,6 +119,7 @@ grfx::ImageViewType Image::GuessImageViewType(bool isCube) const
             default: break;
             case grfx::IMAGE_TYPE_1D   : return (arrayLayerCount > 1) ? grfx::IMAGE_VIEW_TYPE_1D_ARRAY   : grfx::IMAGE_VIEW_TYPE_1D; break;
             case grfx::IMAGE_TYPE_2D   : return (arrayLayerCount > 1) ? grfx::IMAGE_VIEW_TYPE_2D_ARRAY   : grfx::IMAGE_VIEW_TYPE_2D; break;
+            case grfx::IMAGE_TYPE_3D   : return grfx::IMAGE_VIEW_TYPE_3D; break;
             case grfx::IMAGE_TYPE_CUBE : return (arrayLayerCount > 6) ? grfx::IMAGE_VIEW_TYPE_CUBE_ARRAY : grfx::IMAGE_VIEW_TYPE_CUBE; break;
         }
         // clang-format on

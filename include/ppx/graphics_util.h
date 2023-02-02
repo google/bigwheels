@@ -47,6 +47,13 @@ private:
         const Bitmap*       pBitmap,
         grfx::Image**       ppImage,
         const ImageOptions& options);
+    
+    friend Result Create3dImageFromBitmap(
+        grfx::Queue*        pQueue,
+        const Bitmap*       pBitmap,
+        grfx::Image**       ppImage,
+        const uint32_t      imageDepth,
+        const ImageOptions& options);
 
     friend Result CreateImageFromCompressedImage(
         grfx::Queue*        pQueue,
@@ -60,6 +67,14 @@ private:
         grfx::Image**                ppImage,
         const ImageOptions&          options,
         bool                         useGpu);
+
+    friend Result Create3dImageFromFile(
+    grfx::Queue*                 pQueue,
+    const std::filesystem::path& path,
+    grfx::Image**                ppImage,
+    const uint32_t                  imageDepth,
+    const ImageOptions&          options,
+    bool                         useGpu);
 
     friend Result CreateImageFromBitmapGpu(
         grfx::Queue*        pQueue,
@@ -80,6 +95,19 @@ Result CopyBitmapToImage(
     grfx::ResourceState stateBefore,
     grfx::ResourceState stateAfter);
 
+//! @fn CopyBitmapTo3dImage
+//!
+//!
+Result CopyBitmapTo3dImage(
+    grfx::Queue*        pQueue,
+    const Bitmap*       pBitmap,
+    grfx::Image*        pImage,
+    const uint32_t      imageDepth,
+    uint32_t            mipLevel,
+    uint32_t            arrayLayer,
+    grfx::ResourceState stateBefore,
+    grfx::ResourceState stateAfter);
+
 //! @fn CreateImageFromBitmap
 //!
 //!
@@ -89,6 +117,16 @@ Result CreateImageFromBitmap(
     grfx::Image**       ppImage,
     const ImageOptions& options = ImageOptions());
 
+//! @fn Create3dImageFromBitmap
+//!
+//!
+Result Create3dImageFromBitmap(
+    grfx::Queue*        pQueue,
+    const Bitmap*       pBitmap,
+    grfx::Image**       ppImage,
+    const uint32_t      imageDepth,
+    const ImageOptions& options = ImageOptions());
+
 //! @fn CreateImageFromFile
 //!
 //!
@@ -96,6 +134,17 @@ Result CreateImageFromFile(
     grfx::Queue*                 pQueue,
     const std::filesystem::path& path,
     grfx::Image**                ppImage,
+    const ImageOptions&          options = ImageOptions(),
+    bool                         useGpu  = false);
+
+//! @fn Create3dImageFromFile
+//!
+//!
+Result Create3dImageFromFile(
+    grfx::Queue*                 pQueue,
+    const std::filesystem::path& path,
+    grfx::Image**                ppImage,
+    const uint32_t               imageDepth,
     const ImageOptions&          options = ImageOptions(),
     bool                         useGpu  = false);
 

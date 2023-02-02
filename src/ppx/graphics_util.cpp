@@ -178,6 +178,105 @@ Result CopyBitmapToImage(
 
     return ppx::SUCCESS;
 }
+
+// -------------------------------------------------------------------------------------------------
+
+Result CopyBitmapTo3dImage(
+    grfx::Queue*        pQueue,
+    const Bitmap*       pBitmap,
+    grfx::Image*        pImage,
+    const uint32_t      imageDepth,
+    uint32_t            mipLevel,
+    uint32_t            arrayLayer,
+    grfx::ResourceState stateBefore,
+    grfx::ResourceState stateAfter)
+{
+    PPX_ASSERT_NULL_ARG(pQueue);
+    PPX_ASSERT_NULL_ARG(pBitmap);
+    PPX_ASSERT_NULL_ARG(pImage);
+
+    Result ppxres = ppx::ERROR_FAILED;
+
+    // Scoped destroy
+    grfx::ScopeDestroyer SCOPED_DESTROYER(pQueue->GetDevice());
+
+    // Row stride alignment to handle DX's requirement
+    uint32_t rowStrideAlignement = grfx::IsDx12(pQueue->GetDevice()->GetApi()) ? PPX_D3D12_TEXTURE_DATA_PITCH_ALIGNMENT : 1;
+    uint32_t alignedRowStride    = RoundUp<uint32_t>(pBitmap->GetRowStride(), rowStrideAlignement);
+
+    // Create staging buffer
+    grfx::BufferPtr stagingBuffer;
+    {
+        uint64_t bitmapFootprintSize = pBitmap->GetFootprintSize(rowStrideAlignement);
+
+        grfx::BufferCreateInfo ci      = {};
+        ci.size                        = bitmapFootprintSize;
+        ci.usageFlags.bits.transferSrc = true;
+        ci.memoryUsage                 = grfx::MEMORY_USAGE_CPU_TO_GPU;
+
+        ppxres = pQueue->GetDevice()->CreateBuffer(&ci, &stagingBuffer);
+        if (Failed(ppxres)) {
+            return ppxres;
+        }
+        SCOPED_DESTROYER.AddObject(stagingBuffer);
+
+        // Map and copy to staging buffer
+        void* pBufferAddress = nullptr;
+        ppxres               = stagingBuffer->MapMemory(0, &pBufferAddress);
+        if (Failed(ppxres)) {
+            return ppxres;
+        }
+
+        const char*    pSrc         = pBitmap->GetData();
+        char*          pDst         = static_cast<char*>(pBufferAddress);
+        const uint32_t srcRowStride = pBitmap->GetRowStride();
+        const uint32_t dstRowStride = alignedRowStride;
+        for (uint32_t y = 0; y < pBitmap->GetHeight(); ++y) {
+            memcpy(pDst, pSrc, srcRowStride);
+            pSrc += srcRowStride;
+            pDst += dstRowStride;
+        }
+
+        stagingBuffer->UnmapMemory();
+    }
+
+    // Copy info
+    grfx::BufferToImageCopyInfo copyInfo = {};
+    copyInfo.srcBuffer.imageWidth        = pBitmap->GetWidth();
+    copyInfo.srcBuffer.imageHeight       = pBitmap->GetHeight() / imageDepth;
+    copyInfo.srcBuffer.imageRowStride    = alignedRowStride;
+    copyInfo.srcBuffer.footprintOffset   = 0;
+    copyInfo.srcBuffer.footprintWidth    = pBitmap->GetWidth();
+    copyInfo.srcBuffer.footprintHeight   = pBitmap->GetHeight() / imageDepth;
+    copyInfo.srcBuffer.footprintDepth    = imageDepth;
+    copyInfo.dstImage.mipLevel           = mipLevel;
+    copyInfo.dstImage.arrayLayer         = 0;
+    copyInfo.dstImage.arrayLayerCount    = 1;
+    copyInfo.dstImage.x                  = 0;
+    copyInfo.dstImage.y                  = 0;
+    copyInfo.dstImage.z                  = 0;
+    copyInfo.dstImage.width              = pBitmap->GetWidth();
+    copyInfo.dstImage.height             = pBitmap->GetHeight() / imageDepth;
+    copyInfo.dstImage.depth              = imageDepth;
+
+    // Copy to GPU image
+    ppxres = pQueue->CopyBufferToImage(
+        &copyInfo,
+        stagingBuffer,
+        pImage,
+        mipLevel,
+        1,
+        arrayLayer,
+        1,
+        stateBefore,
+        stateAfter);
+    if (Failed(ppxres)) {
+        return ppxres;
+    }
+
+    return ppx::SUCCESS;
+}
+
 // -------------------------------------------------------------------------------------------------
 
 Result CreateImageFromBitmap(
@@ -563,6 +662,88 @@ Result CreateImageFromBitmapGpu(
     return ppx::SUCCESS;
 }
 
+// -------------------------------------------------------------------------------------------------
+
+Result Create3dImageFromBitmap(
+    grfx::Queue*                    pQueue,
+    const Bitmap*                   pBitmap,
+    grfx::Image**                   ppImage,
+    const uint32_t                  imageDepth,
+    const grfx_util::ImageOptions&  options)
+{
+    PPX_ASSERT_NULL_ARG(pQueue);
+    PPX_ASSERT_NULL_ARG(pBitmap);
+    PPX_ASSERT_NULL_ARG(ppImage);
+
+    Result ppxres = ppx::ERROR_FAILED;
+
+    // Scoped destroy
+    grfx::ScopeDestroyer SCOPED_DESTROYER(pQueue->GetDevice());
+
+    // Cap mip level count
+    uint32_t maxMipLevelCount = Mipmap::CalculateLevelCount(pBitmap->GetWidth(), pBitmap->GetHeight());
+    uint32_t mipLevelCount = 1; //std::min<uint32_t>(PPX_REMAINING_MIP_LEVELS, maxMipLevelCount);
+    
+    // Create target image
+    grfx::ImagePtr targetImage;
+    {
+        grfx::ImageCreateInfo ci       = {};
+        ci.type                        = grfx::IMAGE_TYPE_3D;
+        ci.width                       = pBitmap->GetWidth();
+        ci.height                      = pBitmap->GetHeight() / imageDepth;
+        ci.depth                       = imageDepth;
+        ci.format                      = grfx_util::ToGrfxFormat(pBitmap->GetFormat());
+        ci.sampleCount                 = grfx::SAMPLE_COUNT_1;
+        ci.mipLevelCount               = mipLevelCount;
+        ci.arrayLayerCount             = 1;
+        ci.usageFlags.bits.transferDst = true;
+        ci.usageFlags.bits.sampled     = true;
+        ci.memoryUsage                 = grfx::MEMORY_USAGE_GPU_ONLY;
+        ci.initialState                = grfx::RESOURCE_STATE_SHADER_RESOURCE;
+
+        ci.usageFlags.flags |= grfx::ImageUsageFlags();
+
+        ppxres = pQueue->GetDevice()->CreateImage(&ci, &targetImage);
+        if (Failed(ppxres)) {
+            return ppxres;
+        }
+        SCOPED_DESTROYER.AddObject(targetImage);
+    }
+
+    Mipmap mipmap = Mipmap(*pBitmap, mipLevelCount);
+    if (!mipmap.IsOk()) {
+        return ppx::ERROR_FAILED;
+    }
+
+    // Copy mips to image
+    for (uint32_t mipLevel = 0; mipLevel < mipLevelCount; ++mipLevel) {
+        const Bitmap* pMip = mipmap.GetMip(mipLevel);
+
+        ppxres = CopyBitmapTo3dImage(
+            pQueue,
+            pMip,
+            targetImage,
+            imageDepth,
+            mipLevel,
+            0,
+            grfx::RESOURCE_STATE_SHADER_RESOURCE,
+            grfx::RESOURCE_STATE_SHADER_RESOURCE);
+        if (Failed(ppxres)) {
+            return ppxres;
+        }
+    }
+
+    // Change ownership to reference so object doesn't get destroyed
+    targetImage->SetOwnership(grfx::OWNERSHIP_REFERENCE);
+
+    // Assign output
+    *ppImage = targetImage;
+
+    return ppx::SUCCESS;
+}
+
+// -------------------------------------------------------------------------------------------------
+
 bool IsDDSFile(const std::filesystem::path& path)
 {
     return (std::strstr(path.string().c_str(), ".dds") != nullptr || std::strstr(path.string().c_str(), ".ktx") != nullptr);
@@ -765,6 +946,50 @@ Result CreateImageFromFile(
     float  fnElapsed = static_cast<float>(fnEndTime - fnStartTime);
     if (ppxres == Result::SUCCESS) {
         PPX_LOG_INFO("Created image from image file: " << path << " (" << FloatString(fnElapsed) << " seconds)");
+    }
+    else {
+        PPX_LOG_INFO("Failed to create image from image file: " << path);
+    }
+
+    return ppx::SUCCESS;
+}
+
+// -------------------------------------------------------------------------------------------------
+
+Result Create3dImageFromFile(
+    grfx::Queue*                    pQueue,
+    const std::filesystem::path&    path,
+    grfx::Image**                   ppImage,
+    const uint32_t                  imageDepth,
+    const grfx_util::ImageOptions&  options,
+    bool                            useGpu)
+{
+    PPX_ASSERT_NULL_ARG(pQueue);
+    PPX_ASSERT_NULL_ARG(ppImage);
+
+    Timer timer;
+    PPX_ASSERT_MSG(timer.Start() == ppx::TIMER_RESULT_SUCCESS, "timer start failed");
+    double fnStartTime = timer.SecondsSinceStart();
+
+    Result ppxres;
+    if (Bitmap::IsBitmapFile(path)) {
+        // Load bitmap
+        Bitmap bitmap;
+        ppxres = Bitmap::LoadFile(path, &bitmap);
+        if (Failed(ppxres)) {
+            return ppxres;
+        }
+
+        ppxres = Create3dImageFromBitmap(pQueue, &bitmap, ppImage, imageDepth, options);
+        if (Failed(ppxres)) {
+            return ppxres;
+        }
+    }
+
+    double fnEndTime = timer.SecondsSinceStart();
+    float  fnElapsed = static_cast<float>(fnEndTime - fnStartTime);
+    if (ppxres == Result::SUCCESS) {
+        PPX_LOG_INFO("Created 3d image from image file: " << path << " (" << FloatString(fnElapsed) << " seconds)");
     }
     else {
         PPX_LOG_INFO("Failed to create image from image file: " << path);
