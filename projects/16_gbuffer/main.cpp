@@ -673,6 +673,13 @@ void ProjApp::UpdateConstants()
         pLight[4].position = float3(-1, 2, -5) * float3(sin(t / 4), 1, cos(t / 4));
         pLight[5].position = float3(-6, 3, -4) * float3(sin(t / 5), 1, cos(t / 5));
 
+        pLight[0].intensity = 0.5f;
+        pLight[1].intensity = 0.25f;
+        pLight[2].intensity = 0.5f;
+        pLight[3].intensity = 0.25f;
+        pLight[4].intensity = 0.5f;
+        pLight[5].intensity = 0.25f;
+
         mCpuLightConstants->UnmapMemory();
 
         grfx::BufferToBufferCopyInfo copyInfo = {mCpuLightConstants->GetSize()};

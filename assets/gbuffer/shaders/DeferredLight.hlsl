@@ -12,6 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//
+// Simple PBR implementation based on https://github.com/Nadrin/PBR (MIT license)
+// 
+//
 
 #define CUSTOM_VS_OUTPUT
 #include "Config.hlsli"
@@ -86,44 +90,42 @@ VSOutput vsmain(uint id : SV_VertexID)
 
 // -------------------------------------------------------------------------------------------------
 
-float DistributionGGX(float3 N, float3 H, float roughness)
+//
+// GGX/Towbridge-Reitz normal distribution function with
+// Disney's reparametrization of alpha = roughness^2
+//
+float DistributionGGX(float cosLh, float roughness)
 {
-    float a      = roughness * roughness;
-    float a2     = a * a;
-    float NdotH  = max(dot(N, H), 0.0);
-    float NdotH2 = NdotH * NdotH;
-
-    float nom   = a2;
-    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
-    denom       = PI * denom * denom;
-
-    return nom / denom;
+    float alpha   = roughness * roughness;
+    float alphaSq = alpha * alpha;
+    float denom   = (cosLh * cosLh) * (alphaSq - 1.0) + 1.0;
+    return alphaSq / (PI * denom * denom);
 }
 
-float GeometrySchlickGGX(float NdotV, float roughness)
+//
+// Single term for separable Schlick-GGX below
+//
+float GASchlickG1(float cosTheta, float k)
 {
-    float r = (roughness + 1.0);
-    float k = (r * r) / 8.0;
-
-    float nom   = NdotV;
-    float denom = NdotV * (1.0 - k) + k;
-
-    return nom / denom;
+    return cosTheta / (cosTheta * (1.0 - k) + k);
 }
 
-float GeometrySmith(float3 N, float3 V, float3 L, float roughness)
+//
+// Schlick-GGX approximation of geometric attenuation function using Smith's method
+//
+float GASmithSchlickGGX(float cosLi, float cosLo, float roughness)
 {
-    float NdotV = max(dot(N, V), 0.0);
-    float NdotL = max(dot(N, L), 0.0);
-    float ggx2  = GeometrySchlickGGX(NdotV, roughness);
-    float ggx1  = GeometrySchlickGGX(NdotL, roughness);
-
-    return ggx1 * ggx2;
+    float r = roughness + 1.0;
+    float k = (r * r) / 8.0; // Epic suggests using this roughness remapping for analytic lights
+    return GASchlickG1(cosLi, k) * GASchlickG1(cosLo, k);
 }
 
-float3 FresnelSchlick(float cosTheta, float3 F0)
+//
+// Shlick's approximation of the Fresnel factor
+//
+float3 FresnelSchlick(float3 F0, float cosTheta)
 {
-    return F0 + (1.0 - F0) * (float3)pow(1.0f - cosTheta, 5.0f);
+    return F0 + (1.0 - F0) * (float3)pow(1.0 - cosTheta, 5.0);
 }
 
 float3 Environment(Texture2D tex, float3 coord, float lod)
@@ -140,91 +142,112 @@ float3 PBR(GBuffer gbuffer)
     float3 P  = gbuffer.position;
     float3 N  = gbuffer.normal;
     float3 V  = normalize(Scene.eyePosition.xyz - P);
-    float3 R  = reflect(-V, N);
-    float  ao = 0.4f;    
+    float3 R  = reflect(-V, N);    
+    float3 Lo = V;    
+    float  cosLo = saturate(dot(N, Lo));
+    //float  ao = 0.4f;    
     
 	float3 albedo   = gbuffer.albedo;    
     float roughness = gbuffer.roughness;    
     float metalness = gbuffer.metalness;
     
-    // calculate reflectance at normal incidence; if dia-electric (like plastic) use F0
-    // of 0.04 and if it's a metal, use the albedo color as F0 (metallic workflow)
-    //
-    // float3 F0 = (float3)0.04;
+    // The value for F0 is passed in from the application. If in doubt use 0.04 for 
+    // dieletric materials and scale beween 0.04 and the albedo based on the metalness
+    // value.
     //
     float3 F0 = gbuffer.F0;
     F0        = lerp(F0, albedo, metalness);
+
+
+    // Calculate direct lighting
+    float3 directLighting = (float3)0;
+    for (uint i = 0; i < Scene.lightCount; ++i) {
+        float3 Li   = normalize(Lights[i].position - P); // Incoming light direction
+        float  Lrad = Lights[i].intensity;               // Light radiance
+        float3 Lh   = normalize(Li + Lo);                // Half-vector between Li and Lo
+        float  cosLi = saturate(dot(N, Li));
+        float  cosLh = saturate(dot(N, Lh));
+
+        // Calculate Fresnel term for direct lighting 
+        float3 F = FresnelSchlick(F0, saturate(dot(Lh, Lo)));
+        // Calculate normal distribution for specular BRDF
+        float  D = DistributionGGX(cosLh, roughness);
+        // Calculate geometric attenuation for specular BRDF
+        float  G = GASmithSchlickGGX(cosLi, cosLo, roughness);
+
+        // Diffuse scattering happens due to light being refracted multiple times by a dielectric medium.
+        // Metals on the other hand either reflect or absorb energy, so diffuse contribution is always zero.
+        // To be energy conserving we must scale diffuse BRDF contribution based on Fresnel factor & metalness.
+        //
+        float3 kD = lerp(float3(1, 1, 1) - F, float3(0, 0, 0), metalness);
+
+        // clang-format off
+        // 
+        // Lambert diffuse BRDF
+        // 
+        // We don't scale by 1/PI for lighting & material units to be more convenient.
+        //   See: https://seblagarde.wordpress.com/2012/01/08/pi-or-not-to-pi-in-game-lighting-equation/
+        //
+        // clang-format on
+        float3 diffuseBRDF = kD * albedo;
+
+        // Calculate specular BRDF
+        float3 specularBRDF = (F * D * G) / max(0.00001, 4.0 * cosLi * cosLo);
     
-    float3 Lo = (float3)0.0;    
-	for (uint i = 0; i < Scene.lightCount; ++i) {    
-        float3 Lp    = Lights[i].position;
-        float3 L     = normalize(Lp - P);
-        float3 H     = normalize(V + L);
-
-        // calculate per-light radiance
-        //float  distance    = length(lightPositions[i] - WorldPos);
-        //float  attenuation = 1.0 / (distance * distance);
-        float3 radiance = (float3)1.0; //lightColors[i] * attenuation;
-
-        // Cook-Torrance BRDF
-        float  NDF = DistributionGGX(N, H, roughness);
-        float  G   = GeometrySmith(N, V, L, roughness);
-        float3 F   = FresnelSchlick(max(dot(H, V), 0.0), F0);
-
-        float3 nominator   = NDF * G * F;
-        float  denominator = 4 * max(dot(N, V), 0.0f) * max(dot(N, L), 0.0f) + 0.00001; // 0.001 to prevent divide by zero.
-        float3 specular    = nominator / denominator;
-
-        // kS is equal to Fresnel
-        float3 kS = F;
-
-        // for energy conservation, the diffuse and specular light can't
-        // be above 1.0 (unless the surface emits light); to preserve this
-        // relationship the diffuse component (kD) should equal 1.0 - kS.
-        float3 kD = 1.0 - kS;
-
-        // multiply kD by the inverse metalness such that only non-metals
-        // have diffuse lighting, or a linear blend if partly metal (pure metals
-        // have no diffuse light).
-        kD *= 1.0 - metalness;
-
-        // scale light by NdotL
-        float NdotL = max(dot(N, L), 0.0);
-
-        // add to outgoing radiance Lo
-        Lo += (kD * albedo / PI + specular) * radiance * NdotL; // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
-	}
-    
-    // ambient lighting (we now use IBL as the ambient term)
-    float3 kS = FresnelSchlick(max(dot(N, V), 0.0), F0);
-    float3 kD = 1.0 - kS;
-    kD *= 1.0 - metalness;
-    
-    float3 irradiance = (float3)1.0; 
-    if (enableIBL == 1) {    
-        float iblStrength = gbuffer.iblStrength;
-        float lod = roughness * (Scene.iblLevelCount - 1.0);
-        irradiance = Environment(IBLTex, R, lod) * iblStrength;
+        // Accumulate light's total contribution
+        directLighting += (diffuseBRDF + specularBRDF) * Lrad * cosLi;
     }
-    
-    float3 diffuse    = irradiance * albedo +  Scene.ambient;
-    float3 ambient    = (kD * diffuse) * ao;    
-        
-    // Environment reflection
-    float3 reflection = (float3)0.0;
+
+    // Calculate indirect lighting
+    //
+    // There's no attempt here to conserve energy for "correctness". The diffuse 
+    // and specular components are calculated independently to strive for a more 
+    // appealing look.
+    //
+    float3 indirectLighting = (float3)1;
+    {
+        float3 irradiance = (float3)0;
+        float3 kS         = (float3)0;
+        if (enableIBL == 1) {
+            float maxLevel = (Scene.iblLevelCount - 1);
+            float lod      = roughness * maxLevel;
+            irradiance     = Environment(IBLTex, R, lod) * gbuffer.iblStrength;
+
+            kS = Environment(IBLTex, R,maxLevel) * gbuffer.iblStrength;
+        }
+
+        // clang-format off
+        // 
+        // Calculate Fresnel term for indirect lighting
+        // 
+        // Since we use prefiltered images and irradiance is coming from many directions
+        // use cosLo instead of angle with light's half-vector (cosLh)
+        //    See: https://seblagarde.wordpress.com/2011/08/17/hello-world/
+        //
+        // clang-format on
+        float3 F = FresnelSchlick(F0, cosLo);
+
+        // Get diffuse contribution factor (as with direct lighting)
+        float3 kD = lerp(float3(1, 1, 1) - F, float3(0, 0, 0), metalness);
+
+        // Irradiance map contains exitant radiance assuming Lambertian BRDF, no need to scale by 1/PI here either
+        float3 diffuseIBL = kD * albedo * irradiance;
+
+        // Hacky specular approximation
+        float3 specularIBL = kS * F0 * roughness;
+
+        indirectLighting = diffuseIBL + specularIBL;
+    }
+
+    // Simple environment reflection
+    float3 envReflection = (float3)0.0;
     if (enableEnv) {
-        float envStrength = gbuffer.envStrength;
-        float lod = roughness * (Scene.envLevelCount - 1.0);
-        reflection = Environment(EnvMapTex, R, lod) * envStrength;
-    }    
-    
-    // Final color
-    float3 color = ambient + Lo + (kS * reflection * (1.0 - roughness));
-    
-    // Faux HDR tonemapping
-    color = color / (color + float3(1, 1, 1));
-    
-    return color;
+        float  lod    = roughness * (Scene.envLevelCount - 1);
+        envReflection = Environment(EnvMapTex, R, lod) * (1 - roughness) * gbuffer.envStrength;
+    }
+
+    float3 Co = directLighting + indirectLighting + envReflection + (float3)Scene.ambient;
+    return Co;    
 }
 
 float4 psmain(float4 Position : SV_POSITION, float2 TexCoord : TEXCOORD) : SV_TARGET
