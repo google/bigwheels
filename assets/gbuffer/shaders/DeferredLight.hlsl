@@ -181,14 +181,11 @@ float3 PBR(GBuffer gbuffer)
         //
         float3 kD = lerp(float3(1, 1, 1) - F, float3(0, 0, 0), metalness);
 
-        // clang-format off
-        // 
         // Lambert diffuse BRDF
         // 
         // We don't scale by 1/PI for lighting & material units to be more convenient.
         //   See: https://seblagarde.wordpress.com/2012/01/08/pi-or-not-to-pi-in-game-lighting-equation/
         //
-        // clang-format on
         float3 diffuseBRDF = kD * albedo;
 
         // Calculate specular BRDF
@@ -216,15 +213,12 @@ float3 PBR(GBuffer gbuffer)
             kS = Environment(IBLTex, R,maxLevel) * gbuffer.iblStrength;
         }
 
-        // clang-format off
-        // 
         // Calculate Fresnel term for indirect lighting
         // 
         // Since we use prefiltered images and irradiance is coming from many directions
         // use cosLo instead of angle with light's half-vector (cosLh)
         //    See: https://seblagarde.wordpress.com/2011/08/17/hello-world/
         //
-        // clang-format on
         float3 F = FresnelSchlick(F0, cosLo);
 
         // Get diffuse contribution factor (as with direct lighting)
