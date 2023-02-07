@@ -259,7 +259,7 @@ ppx::Result Material::CreateMaterials(ppx::grfx::Queue* pQueue, ppx::grfx::Descr
         MaterialCreateInfo createInfo   = {};
         createInfo.F0                   = F0_Generic;
         createInfo.albedo               = F0_DiletricCrystal;
-        createInfo.roughness            = 0.4;
+        createInfo.roughness            = 0.4f;
         createInfo.metalness            = 0;
         createInfo.iblStrength          = 0;
         createInfo.envStrength          = 0.0f;

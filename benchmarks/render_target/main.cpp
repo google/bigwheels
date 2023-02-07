@@ -139,7 +139,7 @@ void ProjApp::Setup()
     mRenderTargetCount = cl_options.GetExtraOptionValueOrDefault<uint32_t>("render-target-count", 1);
     if (mRenderTargetCount != 1 && mRenderTargetCount != 4) {
         mRenderTargetCount = 1;
-        PPX_LOG_WARN("Render Target count must be either 1 or 4, defaulting to: " + mRenderTargetCount);
+        PPX_LOG_WARN("Render Target count must be either 1 or 4, defaulting to: " + std::to_string(mRenderTargetCount));
     }
 
     // Create descriptor pool (for both pipelines)
