@@ -445,8 +445,6 @@ add_library(
     ${XXHASH_FILES}
 )
 
-set_source_files_properties(${PPX_DIR}/third_party/xxHash/xxhash.c PROPERTIES LANGUAGE CXX)
-
 if (PPX_LINUX OR PPX_GGP)
     set_target_properties(
         ${PROJECT_NAME} PROPERTIES PREFIX "lib"
