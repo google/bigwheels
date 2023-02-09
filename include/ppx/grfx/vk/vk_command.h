@@ -109,6 +109,11 @@ public:
         grfx::Buffer*                       pDstBuffer) override;
 
     virtual void CopyBufferToImage(
+        const std::vector<grfx::BufferToImageCopyInfo>& pCopyInfos,
+        grfx::Buffer*                                   pSrcBuffer,
+        grfx::Image*                                    pDstImage) override;
+
+    virtual void CopyBufferToImage(
         const grfx::BufferToImageCopyInfo* pCopyInfo,
         grfx::Buffer*                      pSrcBuffer,
         grfx::Image*                       pDstImage) override;

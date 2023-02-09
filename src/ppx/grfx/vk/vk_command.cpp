@@ -530,36 +530,48 @@ void CommandBuffer::CopyBufferToBuffer(
 }
 
 void CommandBuffer::CopyBufferToImage(
-    const grfx::BufferToImageCopyInfo* pCopyInfo,
-    grfx::Buffer*                      pSrcBuffer,
-    grfx::Image*                       pDstImage)
+    const std::vector<grfx::BufferToImageCopyInfo>& pCopyInfos,
+    grfx::Buffer*                                   pSrcBuffer,
+    grfx::Image*                                    pDstImage)
 {
-    PPX_ASSERT_NULL_ARG(pCopyInfo);
     PPX_ASSERT_NULL_ARG(pSrcBuffer);
     PPX_ASSERT_NULL_ARG(pDstImage);
 
-    VkBufferImageCopy region               = {};
-    region.bufferOffset                    = static_cast<VkDeviceSize>(pCopyInfo->srcBuffer.footprintOffset);
-    region.bufferRowLength                 = pCopyInfo->srcBuffer.imageWidth;
-    region.bufferImageHeight               = pCopyInfo->srcBuffer.imageHeight;
-    region.imageSubresource.aspectMask     = ToApi(pDstImage)->GetVkImageAspectFlags();
-    region.imageSubresource.mipLevel       = pCopyInfo->dstImage.mipLevel;
-    region.imageSubresource.baseArrayLayer = pCopyInfo->dstImage.arrayLayer;
-    region.imageSubresource.layerCount     = pCopyInfo->dstImage.arrayLayerCount;
-    region.imageOffset.x                   = pCopyInfo->dstImage.x;
-    region.imageOffset.y                   = pCopyInfo->dstImage.y;
-    region.imageOffset.z                   = pCopyInfo->dstImage.z;
-    region.imageExtent.width               = pCopyInfo->dstImage.width;
-    region.imageExtent.height              = pCopyInfo->dstImage.height;
-    region.imageExtent.depth               = pCopyInfo->dstImage.depth;
+    std::vector<VkBufferImageCopy> regions(pCopyInfos.size());
+
+    for (size_t i = 0; i < pCopyInfos.size(); i++) {
+        regions[i].bufferOffset                    = static_cast<VkDeviceSize>(pCopyInfos[i].srcBuffer.footprintOffset);
+        regions[i].bufferRowLength                 = pCopyInfos[i].srcBuffer.imageWidth;
+        regions[i].bufferImageHeight               = pCopyInfos[i].srcBuffer.imageHeight;
+        regions[i].imageSubresource.aspectMask     = ToApi(pDstImage)->GetVkImageAspectFlags();
+        regions[i].imageSubresource.mipLevel       = pCopyInfos[i].dstImage.mipLevel;
+        regions[i].imageSubresource.baseArrayLayer = pCopyInfos[i].dstImage.arrayLayer;
+        regions[i].imageSubresource.layerCount     = pCopyInfos[i].dstImage.arrayLayerCount;
+        regions[i].imageOffset.x                   = pCopyInfos[i].dstImage.x;
+        regions[i].imageOffset.y                   = pCopyInfos[i].dstImage.y;
+        regions[i].imageOffset.z                   = pCopyInfos[i].dstImage.z;
+        regions[i].imageExtent.width               = pCopyInfos[i].dstImage.width;
+        regions[i].imageExtent.height              = pCopyInfos[i].dstImage.height;
+        regions[i].imageExtent.depth               = pCopyInfos[i].dstImage.depth;
+    }
 
     vkCmdCopyBufferToImage(
         mCommandBuffer,
         ToApi(pSrcBuffer)->GetVkBuffer(),
         ToApi(pDstImage)->GetVkImage(),
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        1,
-        &region);
+        pCopyInfos.size(),
+        regions.data());
+}
+
+void CommandBuffer::CopyBufferToImage(
+    const grfx::BufferToImageCopyInfo* pCopyInfo,
+    grfx::Buffer*                      pSrcBuffer,
+    grfx::Image*                       pDstImage)
+{
+    PPX_ASSERT_NULL_ARG(pCopyInfo);
+
+    return CopyBufferToImage({pCopyInfo}, pSrcBuffer, pDstImage);
 }
 
 grfx::ImageToBufferOutputPitch CommandBuffer::CopyImageToBuffer(

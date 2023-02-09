@@ -612,6 +612,16 @@ void CommandBuffer::CopyBufferToBuffer(
 }
 
 void CommandBuffer::CopyBufferToImage(
+    const std::vector<grfx::BufferToImageCopyInfo>& pCopyInfos,
+    grfx::Buffer*                                   pSrcBuffer,
+    grfx::Image*                                    pDstImage)
+{
+    for (auto& pCopyInfo : pCopyInfos) {
+        CopyBufferToImage(&pCopyInfo, pSrcBuffer, pDstImage);
+    }
+}
+
+void CommandBuffer::CopyBufferToImage(
     const grfx::BufferToImageCopyInfo* pCopyInfo,
     grfx::Buffer*                      pSrcBuffer,
     grfx::Image*                       pDstImage)
@@ -647,6 +657,7 @@ void CommandBuffer::CopyBufferToImage(
             &numRows,
             &rowSizeInBytes,
             &totalBytes);
+
         //
         // Replace the values in case the footprint is a submimage
         //

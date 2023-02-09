@@ -131,15 +131,15 @@ Result Queue::CopyBufferToBuffer(
 }
 
 Result Queue::CopyBufferToImage(
-    const grfx::BufferToImageCopyInfo* pCopyInfo,
-    grfx::Buffer*                      pSrcBuffer,
-    grfx::Image*                       pDstImage,
-    uint32_t                           mipLevel,
-    uint32_t                           mipLevelCount,
-    uint32_t                           arrayLayer,
-    uint32_t                           arrayLayerCount,
-    grfx::ResourceState                stateBefore,
-    grfx::ResourceState                stateAfter)
+    const std::vector<grfx::BufferToImageCopyInfo>& pCopyInfos,
+    grfx::Buffer*                                   pSrcBuffer,
+    grfx::Image*                                    pDstImage,
+    uint32_t                                        mipLevel,
+    uint32_t                                        mipLevelCount,
+    uint32_t                                        arrayLayer,
+    uint32_t                                        arrayLayerCount,
+    grfx::ResourceState                             stateBefore,
+    grfx::ResourceState                             stateAfter)
 {
     grfx::ScopeDestroyer SCOPED_DESTROYER(GetDevice());
 
@@ -159,7 +159,7 @@ Result Queue::CopyBufferToImage(
         }
 
         cmd->TransitionImageLayout(pDstImage, PPX_ALL_SUBRESOURCES, stateBefore, grfx::RESOURCE_STATE_COPY_DST);
-        cmd->CopyBufferToImage(pCopyInfo, pSrcBuffer, pDstImage);
+        cmd->CopyBufferToImage(pCopyInfos, pSrcBuffer, pDstImage);
         cmd->TransitionImageLayout(pDstImage, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_COPY_DST, stateAfter);
 
         ppxres = cmd->End();

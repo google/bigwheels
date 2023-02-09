@@ -80,17 +80,17 @@ public:
         grfx::ResourceState                 stateBefore,
         grfx::ResourceState                 stateAfter);
 
-    // In pace copy of buffer to image
+    // In place copy of buffer to image
     Result CopyBufferToImage(
-        const grfx::BufferToImageCopyInfo* pCopyInfo,
-        grfx::Buffer*                      pSrcBuffer,
-        grfx::Image*                       pDstImage,
-        uint32_t                           mipLevel,
-        uint32_t                           mipLevelCount,
-        uint32_t                           arrayLayer,
-        uint32_t                           arrayLayerCount,
-        grfx::ResourceState                stateBefore,
-        grfx::ResourceState                stateAfter);
+        const std::vector<grfx::BufferToImageCopyInfo>& pCopyInfos,
+        grfx::Buffer*                                   pSrcBuffer,
+        grfx::Image*                                    pDstImage,
+        uint32_t                                        mipLevel,
+        uint32_t                                        mipLevelCount,
+        uint32_t                                        arrayLayer,
+        uint32_t                                        arrayLayerCount,
+        grfx::ResourceState                             stateBefore,
+        grfx::ResourceState                             stateAfter);
 
 private:
     struct CommandSet

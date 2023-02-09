@@ -339,6 +339,11 @@ public:
         grfx::Buffer*                       pDstBuffer) = 0;
 
     virtual void CopyBufferToImage(
+        const std::vector<grfx::BufferToImageCopyInfo>& pCopyInfos,
+        grfx::Buffer*                                   pSrcBuffer,
+        grfx::Image*                                    pDstImage) = 0;
+
+    virtual void CopyBufferToImage(
         const grfx::BufferToImageCopyInfo* pCopyInfo,
         grfx::Buffer*                      pSrcBuffer,
         grfx::Image*                       pDstImage) = 0;
