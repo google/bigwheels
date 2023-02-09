@@ -568,6 +568,18 @@ bool IsDDSFile(const std::filesystem::path& path)
     return (std::strstr(path.string().c_str(), ".dds") != nullptr || std::strstr(path.string().c_str(), ".ktx") != nullptr);
 }
 
+struct MipLevel
+{
+    uint32_t width;
+    uint32_t height;
+    uint32_t alignedWidth;
+    uint32_t alignedHeight;
+    uint64_t size;
+    uint32_t rowStride;
+    uint32_t alignedRowStride;
+    size_t   offset;
+};
+
 Result CreateImageFromCompressedImage(
     grfx::Queue*        pQueue,
     const gli::texture& image,
@@ -613,39 +625,70 @@ Result CreateImageFromCompressedImage(
     uint32_t     rowStride   = imageWidth * grfx::GetFormatDescription(format)->bytesPerTexel;
 
     // Row stride alignment to handle DX's requirement
-    uint32_t rowStrideAlignement = grfx::IsDx12(pQueue->GetDevice()->GetApi()) ? PPX_D3D12_TEXTURE_DATA_PITCH_ALIGNMENT : 1;
-    rowStride                    = RoundUp<uint32_t>(rowStride, rowStrideAlignement);
+    uint32_t rowStrideAlignment = grfx::IsDx12(pQueue->GetDevice()->GetApi()) ? PPX_D3D12_TEXTURE_DATA_PITCH_ALIGNMENT : 1;
+    rowStride                   = RoundUp<uint32_t>(rowStride, rowStrideAlignment);
 
     // Create staging buffer
     grfx::BufferPtr stagingBuffer;
-    {
-        PPX_LOG_INFO("Storage size for image: " << image.size() << " bytes\n");
-        PPX_LOG_INFO("Is image compressed: " << (gli::is_compressed(image.format()) ? "YES" : "NO"));
+    PPX_LOG_INFO("Storage size for image: " << image.size() << " bytes\n");
+    PPX_LOG_INFO("Is image compressed: " << (gli::is_compressed(image.format()) ? "YES" : "NO"));
 
-        grfx::BufferCreateInfo ci      = {};
-        ci.size                        = static_cast<uint64_t>(imageHeight) * static_cast<uint64_t>(rowStride);
-        ci.usageFlags.bits.transferSrc = true;
-        ci.memoryUsage                 = grfx::MEMORY_USAGE_CPU_TO_GPU;
+    grfx::BufferCreateInfo ci      = {};
+    ci.size                        = 0;
+    ci.usageFlags.bits.transferSrc = true;
+    ci.memoryUsage                 = grfx::MEMORY_USAGE_CPU_TO_GPU;
 
-        ppxres = pQueue->GetDevice()->CreateBuffer(&ci, &stagingBuffer);
-        if (Failed(ppxres)) {
-            return ppxres;
-        }
-        SCOPED_DESTROYER.AddObject(stagingBuffer);
+    std::vector<MipLevel> levelSizes(image.levels());
+    for (gli::texture::size_type level = 0; level < image.levels(); level++) {
+        auto& ls = levelSizes[level];
 
-        // Map and copy to staging buffer
-        void* pBufferAddress = nullptr;
-        ppxres               = stagingBuffer->MapMemory(0, &pBufferAddress);
-        if (Failed(ppxres)) {
-            return ppxres;
-        }
+        ls.width  = static_cast<uint32_t>(image.extent(level)[0]);
+        ls.height = static_cast<uint32_t>(image.extent(level)[1]);
 
-        const char* pSrc = static_cast<const char*>(image.data());
-        char*       pDst = static_cast<char*>(pBufferAddress);
-        memcpy(pDst, pSrc, image.size());
+        ls.alignedWidth  = RoundUp<uint32_t>(ls.width, grfx::GetFormatDescription(format)->bytesPerTexel);
+        ls.alignedHeight = RoundUp<uint32_t>(ls.height, grfx::GetFormatDescription(format)->bytesPerTexel);
 
-        stagingBuffer->UnmapMemory();
+        ls.rowStride        = ls.alignedWidth * grfx::GetFormatDescription(format)->bytesPerTexel;
+        ls.alignedRowStride = RoundUp<uint32_t>(ls.rowStride, rowStrideAlignment);
+
+        ls.size = static_cast<uint64_t>(ls.alignedHeight) * static_cast<uint64_t>(ls.alignedRowStride);
+
+        ls.offset = ci.size;
+        ci.size += ls.size;
     }
+
+    ppxres = pQueue->GetDevice()->CreateBuffer(&ci, &stagingBuffer);
+    if (Failed(ppxres)) {
+        return ppxres;
+    }
+    SCOPED_DESTROYER.AddObject(stagingBuffer);
+
+    // Map and copy to staging buffer
+    void* pBufferAddress = nullptr;
+    ppxres               = stagingBuffer->MapMemory(0, &pBufferAddress);
+    if (Failed(ppxres)) {
+        return ppxres;
+    }
+
+    for (gli::texture::size_type level = 0; level < image.levels(); level++) {
+        auto& ls = levelSizes[level];
+
+        const char* pSrc = static_cast<const char*>(image.data(0, 0, level));
+        char*       pDst = static_cast<char*>(pBufferAddress) + ls.offset;
+
+        if (ls.alignedRowStride == ls.rowStride) {
+            memcpy(pDst, pSrc, image.size(level));
+        }
+        else {
+            for (uint32_t row = 0; row < ls.alignedHeight; row++) {
+                const char* pSrcRow = pSrc + row * ls.rowStride;
+                char*       pDstRow = pDst + row * ls.alignedRowStride;
+                memcpy(pDstRow, pSrcRow, ls.rowStride);
+            }
+        }
+    }
+
+    stagingBuffer->UnmapMemory();
 
     // Create target image
     grfx::ImagePtr targetImage;
@@ -657,7 +700,7 @@ Result CreateImageFromCompressedImage(
         ci.depth                       = 1;
         ci.format                      = format;
         ci.sampleCount                 = grfx::SAMPLE_COUNT_1;
-        ci.mipLevelCount               = 1;
+        ci.mipLevelCount               = image.levels();
         ci.arrayLayerCount             = 1;
         ci.usageFlags.bits.transferDst = true;
         ci.usageFlags.bits.sampled     = true;
@@ -672,35 +715,40 @@ Result CreateImageFromCompressedImage(
         SCOPED_DESTROYER.AddObject(targetImage);
     }
 
-    // Copy info
-    grfx::BufferToImageCopyInfo copyInfo = {};
-    copyInfo.srcBuffer.imageWidth        = imageWidth;
-    copyInfo.srcBuffer.imageHeight       = imageHeight;
-    copyInfo.srcBuffer.imageRowStride    = rowStride;
-    copyInfo.srcBuffer.footprintOffset   = 0;
-    copyInfo.srcBuffer.footprintWidth    = imageWidth;
-    copyInfo.srcBuffer.footprintHeight   = imageHeight;
-    copyInfo.srcBuffer.footprintDepth    = 1;
-    copyInfo.dstImage.mipLevel           = 0;
-    copyInfo.dstImage.arrayLayer         = 0;
-    copyInfo.dstImage.arrayLayerCount    = 1;
-    copyInfo.dstImage.x                  = 0;
-    copyInfo.dstImage.y                  = 0;
-    copyInfo.dstImage.z                  = 0;
-    copyInfo.dstImage.width              = imageWidth;
-    copyInfo.dstImage.height             = imageHeight;
-    copyInfo.dstImage.depth              = 1;
+    for (gli::texture::size_type level = 0; level < image.levels(); level++) {
+        auto& ls = levelSizes[level];
 
-    // Copy to GPU image
-    ppxres = pQueue->CopyBufferToImage(
-        &copyInfo,
-        stagingBuffer,
-        targetImage,
-        PPX_ALL_SUBRESOURCES,
-        grfx::RESOURCE_STATE_UNDEFINED,
-        grfx::RESOURCE_STATE_SHADER_RESOURCE);
-    if (Failed(ppxres)) {
-        return ppxres;
+        grfx::BufferToImageCopyInfo copyInfo;
+
+        // Copy info
+        copyInfo.srcBuffer.imageWidth      = ls.alignedWidth;
+        copyInfo.srcBuffer.imageHeight     = ls.alignedHeight;
+        copyInfo.srcBuffer.imageRowStride  = ls.alignedRowStride;
+        copyInfo.srcBuffer.footprintOffset = ls.offset;
+        copyInfo.srcBuffer.footprintWidth  = ls.alignedWidth;
+        copyInfo.srcBuffer.footprintHeight = ls.alignedHeight;
+        copyInfo.srcBuffer.footprintDepth  = 1;
+        copyInfo.dstImage.mipLevel         = level;
+        copyInfo.dstImage.arrayLayer       = 0;
+        copyInfo.dstImage.arrayLayerCount  = 1;
+        copyInfo.dstImage.x                = 0;
+        copyInfo.dstImage.y                = 0;
+        copyInfo.dstImage.z                = 0;
+        copyInfo.dstImage.width            = ls.width;
+        copyInfo.dstImage.height           = ls.height;
+        copyInfo.dstImage.depth            = 1;
+
+        // Copy to GPU image
+        ppxres = pQueue->CopyBufferToImage(
+            &copyInfo,
+            stagingBuffer,
+            targetImage,
+            PPX_ALL_SUBRESOURCES,
+            grfx::RESOURCE_STATE_UNDEFINED,
+            grfx::RESOURCE_STATE_SHADER_RESOURCE);
+        if (Failed(ppxres)) {
+            return ppxres;
+        }
     }
 
     // Change ownership to reference so object doesn't get destroyed
