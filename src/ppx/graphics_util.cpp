@@ -639,8 +639,8 @@ Result CreateImageFromCompressedImage(
     ci.usageFlags.bits.transferSrc = true;
     ci.memoryUsage                 = grfx::MEMORY_USAGE_CPU_TO_GPU;
 
-    std::vector<MipLevel> levelSizes(image.levels());
-    for (gli::texture::size_type level = 0; level < image.levels(); level++) {
+    std::vector<MipLevel> levelSizes(mipLevelCount);
+    for (gli::texture::size_type level = 0; level < mipLevelCount; level++) {
         auto& ls = levelSizes[level];
 
         ls.width  = static_cast<uint32_t>(image.extent(level)[0]);
