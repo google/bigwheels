@@ -637,7 +637,6 @@ void CommandBuffer::CopyBufferToImage(
         UINT   numRows         = 0;
         UINT64 rowSizeInBytes  = 0;
         UINT64 totalBytes      = 0;
-
         // Grab the format
         device->GetCopyableFootprints(
             &resouceDesc,

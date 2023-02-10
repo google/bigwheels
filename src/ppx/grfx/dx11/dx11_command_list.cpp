@@ -1178,8 +1178,8 @@ static void ExecuteCopyBufferToImage(
         dstBox.left      = args.dstImage.x;
         dstBox.top       = args.dstImage.y;
         dstBox.front     = args.dstImage.z;
-        dstBox.right     = args.dstImage.x + args.dstImage.width;
-        dstBox.bottom    = args.dstImage.y + args.dstImage.height;
+        dstBox.right     = args.dstImage.x + args.srcBuffer.footprintWidth;
+        dstBox.bottom    = args.dstImage.y + args.srcBuffer.footprintHeight;
         dstBox.back      = args.dstImage.z + args.dstImage.depth;
 
         const char* pSrcData = pMappedAddress + args.srcBuffer.footprintOffset;
