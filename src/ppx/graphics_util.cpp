@@ -572,11 +572,10 @@ struct MipLevel
 {
     uint32_t width;
     uint32_t height;
-    uint32_t alignedWidth;
-    uint32_t alignedHeight;
-    uint64_t size;
-    uint32_t rowStride;
-    uint32_t alignedRowStride;
+    uint32_t bufferWidth;
+    uint32_t bufferHeight;
+    uint32_t srcRowStride;
+    uint32_t dstRowStride;
     size_t   offset;
 };
 
@@ -620,14 +619,15 @@ Result CreateImageFromCompressedImage(
     grfx::ScopeDestroyer SCOPED_DESTROYER(pQueue->GetDevice());
 
     // Cap mip level count
-    uint32_t mipLevelCount = std::min<uint32_t>(options.mMipLevelCount, image.levels());
+    uint32_t mipLevelCount = std::min<uint32_t>(options.mMipLevelCount, static_cast<uint32_t>(image.levels()));
 
     grfx::Format format      = ToGrfxFormat(image.format());
     uint32_t     imageWidth  = static_cast<uint32_t>(image.extent(0)[0]);
     uint32_t     imageHeight = static_cast<uint32_t>(image.extent(0)[1]);
 
-    // Row stride alignment to handle DX's requirement
+    // Row stride and texture offset alignment to handle DX's requirements
     uint32_t rowStrideAlignment = grfx::IsDx12(pQueue->GetDevice()->GetApi()) ? PPX_D3D12_TEXTURE_DATA_PITCH_ALIGNMENT : 1;
+    uint32_t offsetAlignment    = grfx::IsDx12(pQueue->GetDevice()->GetApi()) ? PPX_D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT : 1;
 
     // Create staging buffer
     grfx::BufferPtr stagingBuffer;
@@ -646,16 +646,18 @@ Result CreateImageFromCompressedImage(
         ls.width  = static_cast<uint32_t>(image.extent(level)[0]);
         ls.height = static_cast<uint32_t>(image.extent(level)[1]);
 
-        ls.alignedWidth  = RoundUp<uint32_t>(ls.width, grfx::GetFormatDescription(format)->bytesPerTexel);
-        ls.alignedHeight = RoundUp<uint32_t>(ls.height, grfx::GetFormatDescription(format)->bytesPerTexel);
+        // bytesPerTexel is a bit misleading - for block compressed formats it's actually the
+        // number of bytes per tile. An image has to be made up of an integral number of tiles, so
+        // the actual width and height in memory are multiples of this value
+        ls.bufferWidth  = RoundUp<uint32_t>(ls.width, grfx::GetFormatDescription(format)->bytesPerTexel);
+        ls.bufferHeight = RoundUp<uint32_t>(ls.height, grfx::GetFormatDescription(format)->bytesPerTexel);
 
-        ls.rowStride        = ls.alignedWidth * grfx::GetFormatDescription(format)->bytesPerTexel;
-        ls.alignedRowStride = RoundUp<uint32_t>(ls.rowStride, rowStrideAlignment);
-
-        ls.size = static_cast<uint64_t>(ls.alignedHeight) * static_cast<uint64_t>(ls.alignedRowStride);
+        ls.srcRowStride = ls.bufferWidth * grfx::GetFormatDescription(format)->bytesPerTexel;
+        ls.dstRowStride = RoundUp<uint32_t>(ls.srcRowStride, rowStrideAlignment);
 
         ls.offset = ci.size;
-        ci.size += ls.size;
+        ci.size += (image.size(level) / ls.srcRowStride) * ls.dstRowStride;
+        ci.size = RoundUp<uint64_t>(ci.size, offsetAlignment);
     }
 
     ppxres = pQueue->GetDevice()->CreateBuffer(&ci, &stagingBuffer);
@@ -677,15 +679,10 @@ Result CreateImageFromCompressedImage(
         const char* pSrc = static_cast<const char*>(image.data(0, 0, level));
         char*       pDst = static_cast<char*>(pBufferAddress) + ls.offset;
 
-        if (ls.alignedRowStride == ls.rowStride) {
-            memcpy(pDst, pSrc, image.size(level));
-        }
-        else {
-            for (uint32_t row = 0; row < ls.alignedHeight; row++) {
-                const char* pSrcRow = pSrc + row * ls.rowStride;
-                char*       pDstRow = pDst + row * ls.alignedRowStride;
-                memcpy(pDstRow, pSrcRow, ls.rowStride);
-            }
+        for (uint32_t row = 0; row * ls.srcRowStride < image.size(level); row++) {
+            const char* pSrcRow = pSrc + row * ls.srcRowStride;
+            char*       pDstRow = pDst + row * ls.dstRowStride;
+            memcpy(pDstRow, pSrcRow, ls.srcRowStride);
         }
     }
 
@@ -701,7 +698,7 @@ Result CreateImageFromCompressedImage(
         ci.depth                       = 1;
         ci.format                      = format;
         ci.sampleCount                 = grfx::SAMPLE_COUNT_1;
-        ci.mipLevelCount               = image.levels();
+        ci.mipLevelCount               = mipLevelCount;
         ci.arrayLayerCount             = 1;
         ci.usageFlags.bits.transferDst = true;
         ci.usageFlags.bits.sampled     = true;
@@ -722,14 +719,14 @@ Result CreateImageFromCompressedImage(
         grfx::BufferToImageCopyInfo copyInfo;
 
         // Copy info
-        copyInfo.srcBuffer.imageWidth      = ls.alignedWidth;
-        copyInfo.srcBuffer.imageHeight     = ls.alignedHeight;
-        copyInfo.srcBuffer.imageRowStride  = ls.alignedRowStride;
+        copyInfo.srcBuffer.imageWidth      = ls.bufferWidth;
+        copyInfo.srcBuffer.imageHeight     = ls.bufferHeight;
+        copyInfo.srcBuffer.imageRowStride  = ls.dstRowStride;
         copyInfo.srcBuffer.footprintOffset = ls.offset;
-        copyInfo.srcBuffer.footprintWidth  = ls.alignedWidth;
-        copyInfo.srcBuffer.footprintHeight = ls.alignedHeight;
+        copyInfo.srcBuffer.footprintWidth  = ls.bufferWidth;
+        copyInfo.srcBuffer.footprintHeight = ls.bufferHeight;
         copyInfo.srcBuffer.footprintDepth  = 1;
-        copyInfo.dstImage.mipLevel         = level;
+        copyInfo.dstImage.mipLevel         = static_cast<uint32_t>(level);
         copyInfo.dstImage.arrayLayer       = 0;
         copyInfo.dstImage.arrayLayerCount  = 1;
         copyInfo.dstImage.x                = 0;

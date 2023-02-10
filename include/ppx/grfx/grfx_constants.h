@@ -64,7 +64,8 @@
 // D3D12 requires buffer to image copies to have a row pitch that's
 // aligned to D3D12_TEXTURE_DATA_PITCH_ALIGNMENT(256).
 //
-#define PPX_D3D12_TEXTURE_DATA_PITCH_ALIGNMENT 256
+#define PPX_D3D12_TEXTURE_DATA_PITCH_ALIGNMENT     256
+#define PPX_D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT 512
 
 // PPX standard attribute semantic names
 #define PPX_SEMANTIC_NAME_POSITION  "POSITION"
