@@ -619,14 +619,15 @@ Result CreateImageFromCompressedImage(
     // Scoped destroy
     grfx::ScopeDestroyer SCOPED_DESTROYER(pQueue->GetDevice());
 
+    // Cap mip level count
+    uint32_t mipLevelCount = std::min<uint32_t>(options.mMipLevelCount, image.levels());
+
     grfx::Format format      = ToGrfxFormat(image.format());
     uint32_t     imageWidth  = static_cast<uint32_t>(image.extent(0)[0]);
     uint32_t     imageHeight = static_cast<uint32_t>(image.extent(0)[1]);
-    uint32_t     rowStride   = imageWidth * grfx::GetFormatDescription(format)->bytesPerTexel;
 
     // Row stride alignment to handle DX's requirement
     uint32_t rowStrideAlignment = grfx::IsDx12(pQueue->GetDevice()->GetApi()) ? PPX_D3D12_TEXTURE_DATA_PITCH_ALIGNMENT : 1;
-    rowStride                   = RoundUp<uint32_t>(rowStride, rowStrideAlignment);
 
     // Create staging buffer
     grfx::BufferPtr stagingBuffer;
@@ -670,7 +671,7 @@ Result CreateImageFromCompressedImage(
         return ppxres;
     }
 
-    for (gli::texture::size_type level = 0; level < image.levels(); level++) {
+    for (gli::texture::size_type level = 0; level < mipLevelCount; level++) {
         auto& ls = levelSizes[level];
 
         const char* pSrc = static_cast<const char*>(image.data(0, 0, level));
@@ -715,7 +716,7 @@ Result CreateImageFromCompressedImage(
         SCOPED_DESTROYER.AddObject(targetImage);
     }
 
-    for (gli::texture::size_type level = 0; level < image.levels(); level++) {
+    for (gli::texture::size_type level = 0; level < mipLevelCount; level++) {
         auto& ls = levelSizes[level];
 
         grfx::BufferToImageCopyInfo copyInfo;
@@ -744,7 +745,7 @@ Result CreateImageFromCompressedImage(
             stagingBuffer,
             targetImage,
             PPX_ALL_SUBRESOURCES,
-            grfx::RESOURCE_STATE_UNDEFINED,
+            level == 0 ? grfx::RESOURCE_STATE_UNDEFINED : grfx::RESOURCE_STATE_SHADER_RESOURCE,
             grfx::RESOURCE_STATE_SHADER_RESOURCE);
         if (Failed(ppxres)) {
             return ppxres;
