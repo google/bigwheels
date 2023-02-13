@@ -470,33 +470,33 @@ void CommandBuffer::CopyBufferToImage(
     grfx::Image*                                    pDstImage)
 {
     for (auto& pCopyInfo : pCopyInfos) {
-        CopyBufferToImage(&pCopyInfo, pSrcBuffer, pDstImage);
+        CopyBufferToImage(pCopyInfo, pSrcBuffer, pDstImage);
     }
 }
 
 void CommandBuffer::CopyBufferToImage(
-    const grfx::BufferToImageCopyInfo* pCopyInfo,
+    const grfx::BufferToImageCopyInfo& pCopyInfo,
     grfx::Buffer*                      pSrcBuffer,
     grfx::Image*                       pDstImage)
 {
     dx11::args::CopyBufferToImage copyArgs = {};
 
-    copyArgs.srcBuffer.imageWidth      = pCopyInfo->srcBuffer.imageWidth;
-    copyArgs.srcBuffer.imageHeight     = pCopyInfo->srcBuffer.imageHeight;
-    copyArgs.srcBuffer.imageRowStride  = pCopyInfo->srcBuffer.imageRowStride;
-    copyArgs.srcBuffer.footprintOffset = pCopyInfo->srcBuffer.footprintOffset;
-    copyArgs.srcBuffer.footprintWidth  = pCopyInfo->srcBuffer.footprintWidth;
-    copyArgs.srcBuffer.footprintHeight = pCopyInfo->srcBuffer.footprintHeight;
-    copyArgs.srcBuffer.footprintDepth  = pCopyInfo->srcBuffer.footprintDepth;
-    copyArgs.dstImage.mipLevel         = pCopyInfo->dstImage.mipLevel;
-    copyArgs.dstImage.arrayLayer       = pCopyInfo->dstImage.arrayLayer;
-    copyArgs.dstImage.arrayLayerCount  = pCopyInfo->dstImage.arrayLayerCount;
-    copyArgs.dstImage.x                = pCopyInfo->dstImage.x;
-    copyArgs.dstImage.y                = pCopyInfo->dstImage.y;
-    copyArgs.dstImage.z                = pCopyInfo->dstImage.z;
-    copyArgs.dstImage.width            = pCopyInfo->dstImage.width;
-    copyArgs.dstImage.height           = pCopyInfo->dstImage.height;
-    copyArgs.dstImage.depth            = pCopyInfo->dstImage.depth;
+    copyArgs.srcBuffer.imageWidth      = pCopyInfo.srcBuffer.imageWidth;
+    copyArgs.srcBuffer.imageHeight     = pCopyInfo.srcBuffer.imageHeight;
+    copyArgs.srcBuffer.imageRowStride  = pCopyInfo.srcBuffer.imageRowStride;
+    copyArgs.srcBuffer.footprintOffset = pCopyInfo.srcBuffer.footprintOffset;
+    copyArgs.srcBuffer.footprintWidth  = pCopyInfo.srcBuffer.footprintWidth;
+    copyArgs.srcBuffer.footprintHeight = pCopyInfo.srcBuffer.footprintHeight;
+    copyArgs.srcBuffer.footprintDepth  = pCopyInfo.srcBuffer.footprintDepth;
+    copyArgs.dstImage.mipLevel         = pCopyInfo.dstImage.mipLevel;
+    copyArgs.dstImage.arrayLayer       = pCopyInfo.dstImage.arrayLayer;
+    copyArgs.dstImage.arrayLayerCount  = pCopyInfo.dstImage.arrayLayerCount;
+    copyArgs.dstImage.x                = pCopyInfo.dstImage.x;
+    copyArgs.dstImage.y                = pCopyInfo.dstImage.y;
+    copyArgs.dstImage.z                = pCopyInfo.dstImage.z;
+    copyArgs.dstImage.width            = pCopyInfo.dstImage.width;
+    copyArgs.dstImage.height           = pCopyInfo.dstImage.height;
+    copyArgs.dstImage.depth            = pCopyInfo.dstImage.depth;
     copyArgs.mapType                   = ToApi(pSrcBuffer)->GetMapType();
     copyArgs.isCube                    = (pDstImage->GetType() == grfx::IMAGE_TYPE_CUBE);
     copyArgs.mipSpan                   = pDstImage->GetMipLevelCount();

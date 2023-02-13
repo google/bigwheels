@@ -560,17 +560,15 @@ void CommandBuffer::CopyBufferToImage(
         ToApi(pSrcBuffer)->GetVkBuffer(),
         ToApi(pDstImage)->GetVkImage(),
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        pCopyInfos.size(),
+        static_cast<uint32_t>(pCopyInfos.size()),
         regions.data());
 }
 
 void CommandBuffer::CopyBufferToImage(
-    const grfx::BufferToImageCopyInfo* pCopyInfo,
+    const grfx::BufferToImageCopyInfo& pCopyInfo,
     grfx::Buffer*                      pSrcBuffer,
     grfx::Image*                       pDstImage)
 {
-    PPX_ASSERT_NULL_ARG(pCopyInfo);
-
     return CopyBufferToImage({pCopyInfo}, pSrcBuffer, pDstImage);
 }
 
