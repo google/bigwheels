@@ -163,7 +163,7 @@ Result CopyBitmapToImage(
 
     // Copy to GPU image
     ppxres = pQueue->CopyBufferToImage(
-        &copyInfo,
+        std::vector<grfx::BufferToImageCopyInfo>{copyInfo},
         stagingBuffer,
         pImage,
         mipLevel,
@@ -713,10 +713,10 @@ Result CreateImageFromCompressedImage(
         SCOPED_DESTROYER.AddObject(targetImage);
     }
 
-    for (gli::texture::size_type level = 0; level < mipLevelCount; level++) {
-        auto& ls = levelSizes[level];
-
-        grfx::BufferToImageCopyInfo copyInfo;
+    std::vector<grfx::BufferToImageCopyInfo> copyInfos(image.levels());
+    for (gli::texture::size_type level = 0; level < image.levels(); level++) {
+        auto& ls       = levelSizes[level];
+        auto& copyInfo = copyInfos[level];
 
         // Copy info
         copyInfo.srcBuffer.imageWidth      = ls.bufferWidth;
@@ -735,18 +735,18 @@ Result CreateImageFromCompressedImage(
         copyInfo.dstImage.width            = ls.width;
         copyInfo.dstImage.height           = ls.height;
         copyInfo.dstImage.depth            = 1;
+    }
 
-        // Copy to GPU image
-        ppxres = pQueue->CopyBufferToImage(
-            &copyInfo,
-            stagingBuffer,
-            targetImage,
-            PPX_ALL_SUBRESOURCES,
-            level == 0 ? grfx::RESOURCE_STATE_UNDEFINED : grfx::RESOURCE_STATE_SHADER_RESOURCE,
-            grfx::RESOURCE_STATE_SHADER_RESOURCE);
-        if (Failed(ppxres)) {
-            return ppxres;
-        }
+    // Copy to GPU image
+    ppxres = pQueue->CopyBufferToImage(
+        copyInfos,
+        stagingBuffer,
+        targetImage,
+        PPX_ALL_SUBRESOURCES,
+        grfx::RESOURCE_STATE_UNDEFINED,
+        grfx::RESOURCE_STATE_SHADER_RESOURCE);
+    if (Failed(ppxres)) {
+        return ppxres;
     }
 
     // Change ownership to reference so object doesn't get destroyed
@@ -1147,8 +1147,6 @@ Result CreateCubeMapFromFile(
 
     // Copy to GPU image
     //
-    // @TODO: pack copies
-    //
     {
         uint32_t faces[6] = {
             pCreateInfo->posX,
@@ -1159,46 +1157,40 @@ Result CreateCubeMapFromFile(
             pCreateInfo->negZ,
         };
 
-        // Vulkan doesn't seem to mind transtioning a resource from
-        // UNDEFINED to SHADER_READ but D3D12 does...so we'll save
-        // the before state after the first transition so it matches.
-        //
-        grfx::ResourceState beforeState = grfx::RESOURCE_STATE_UNDEFINED;
+        std::vector<grfx::BufferToImageCopyInfo> copyInfos(6);
         for (uint32_t arrayLayer = 0; arrayLayer < 6; ++arrayLayer) {
             uint32_t subImageIndex = faces[arrayLayer];
             SubImage subImage      = CalcSubimageCrossHorizontalLeft(subImageIndex, bitmap.GetWidth(), bitmap.GetHeight(), targetFormat);
 
             // Copy info
-            grfx::BufferToImageCopyInfo copyInfo = {};
-            copyInfo.srcBuffer.imageWidth        = bitmap.GetWidth();
-            copyInfo.srcBuffer.imageHeight       = bitmap.GetHeight();
-            copyInfo.srcBuffer.imageRowStride    = bitmap.GetRowStride();
-            copyInfo.srcBuffer.footprintOffset   = subImage.bufferOffset;
-            copyInfo.srcBuffer.footprintWidth    = subImage.width;
-            copyInfo.srcBuffer.footprintHeight   = subImage.height;
-            copyInfo.srcBuffer.footprintDepth    = 1;
-            copyInfo.dstImage.mipLevel           = 0;
-            copyInfo.dstImage.arrayLayer         = arrayLayer;
-            copyInfo.dstImage.arrayLayerCount    = 1;
-            copyInfo.dstImage.x                  = 0;
-            copyInfo.dstImage.y                  = 0;
-            copyInfo.dstImage.z                  = 0;
-            copyInfo.dstImage.width              = subImage.width;
-            copyInfo.dstImage.height             = subImage.width;
-            copyInfo.dstImage.depth              = 1;
+            grfx::BufferToImageCopyInfo& copyInfo = copyInfos[arrayLayer];
+            copyInfo.srcBuffer.imageWidth         = bitmap.GetWidth();
+            copyInfo.srcBuffer.imageHeight        = bitmap.GetHeight();
+            copyInfo.srcBuffer.imageRowStride     = bitmap.GetRowStride();
+            copyInfo.srcBuffer.footprintOffset    = subImage.bufferOffset;
+            copyInfo.srcBuffer.footprintWidth     = subImage.width;
+            copyInfo.srcBuffer.footprintHeight    = subImage.height;
+            copyInfo.srcBuffer.footprintDepth     = 1;
+            copyInfo.dstImage.mipLevel            = 0;
+            copyInfo.dstImage.arrayLayer          = arrayLayer;
+            copyInfo.dstImage.arrayLayerCount     = 1;
+            copyInfo.dstImage.x                   = 0;
+            copyInfo.dstImage.y                   = 0;
+            copyInfo.dstImage.z                   = 0;
+            copyInfo.dstImage.width               = subImage.width;
+            copyInfo.dstImage.height              = subImage.width;
+            copyInfo.dstImage.depth               = 1;
+        }
 
-            ppxres = pQueue->CopyBufferToImage(
-                &copyInfo,
-                stagingBuffer,
-                targetImage,
-                PPX_ALL_SUBRESOURCES,
-                beforeState,
-                grfx::RESOURCE_STATE_SHADER_RESOURCE);
-            if (Failed(ppxres)) {
-                return ppxres;
-            }
-
-            beforeState = grfx::RESOURCE_STATE_SHADER_RESOURCE;
+        ppxres = pQueue->CopyBufferToImage(
+            copyInfos,
+            stagingBuffer,
+            targetImage,
+            PPX_ALL_SUBRESOURCES,
+            grfx::RESOURCE_STATE_UNDEFINED,
+            grfx::RESOURCE_STATE_SHADER_RESOURCE);
+        if (Failed(ppxres)) {
+            return ppxres;
         }
     }
 

@@ -109,7 +109,12 @@ public:
         grfx::Buffer*                       pDstBuffer) override;
 
     virtual void CopyBufferToImage(
-        const grfx::BufferToImageCopyInfo* pCopyInfo,
+        const std::vector<grfx::BufferToImageCopyInfo>& pCopyInfos,
+        grfx::Buffer*                                   pSrcBuffer,
+        grfx::Image*                                    pDstImage) override;
+
+    virtual void CopyBufferToImage(
+        const grfx::BufferToImageCopyInfo& pCopyInfo,
         grfx::Buffer*                      pSrcBuffer,
         grfx::Image*                       pDstImage) override;
 
@@ -182,7 +187,7 @@ public:
     CommandPool() {}
     virtual ~CommandPool() {}
 
-    //typename D3D12CommandAllocatorPtr::InterfaceType* GetDxCommandAllocator() const { return mCommandAllocator.Get(); }
+    // typename D3D12CommandAllocatorPtr::InterfaceType* GetDxCommandAllocator() const { return mCommandAllocator.Get(); }
     D3D12_COMMAND_LIST_TYPE GetDxCommandType() const { return mCommandType; }
 
 protected:
@@ -190,7 +195,7 @@ protected:
     virtual void   DestroyApiObjects() override;
 
 private:
-    //D3D12CommandAllocatorPtr mCommandAllocator;
+    // D3D12CommandAllocatorPtr mCommandAllocator;
     D3D12_COMMAND_LIST_TYPE mCommandType = ppx::InvalidValue<D3D12_COMMAND_LIST_TYPE>();
 };
 
