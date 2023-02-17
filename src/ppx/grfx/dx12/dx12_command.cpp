@@ -617,12 +617,12 @@ void CommandBuffer::CopyBufferToImage(
     grfx::Image*                                    pDstImage)
 {
     for (auto& pCopyInfo : pCopyInfos) {
-        CopyBufferToImage(pCopyInfo, pSrcBuffer, pDstImage);
+        CopyBufferToImage(&pCopyInfo, pSrcBuffer, pDstImage);
     }
 }
 
 void CommandBuffer::CopyBufferToImage(
-    const grfx::BufferToImageCopyInfo& pCopyInfo,
+    const grfx::BufferToImageCopyInfo* pCopyInfo,
     grfx::Buffer*                      pSrcBuffer,
     grfx::Image*                       pDstImage)
 {
@@ -638,10 +638,10 @@ void CommandBuffer::CopyBufferToImage(
     src.pResource                   = ToApi(pSrcBuffer)->GetDxResource();
     src.Type                        = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
 
-    for (uint32_t i = 0; i < pCopyInfo.dstImage.arrayLayerCount; ++i) {
-        uint32_t arrayLayer = pCopyInfo.dstImage.arrayLayer + i;
+    for (uint32_t i = 0; i < pCopyInfo->dstImage.arrayLayerCount; ++i) {
+        uint32_t arrayLayer = pCopyInfo->dstImage.arrayLayer + i;
 
-        dst.SubresourceIndex = static_cast<UINT>((arrayLayer * mipLevelCount) + pCopyInfo.dstImage.mipLevel);
+        dst.SubresourceIndex = static_cast<UINT>((arrayLayer * mipLevelCount) + pCopyInfo->dstImage.mipLevel);
 
         UINT   numSubresources = 1;
         UINT   numRows         = 0;
@@ -652,7 +652,7 @@ void CommandBuffer::CopyBufferToImage(
             &resouceDesc,
             dst.SubresourceIndex,
             numSubresources,
-            static_cast<UINT64>(pCopyInfo.srcBuffer.footprintOffset),
+            static_cast<UINT64>(pCopyInfo->srcBuffer.footprintOffset),
             &src.PlacedFootprint,
             &numRows,
             &rowSizeInBytes,
@@ -666,17 +666,17 @@ void CommandBuffer::CopyBufferToImage(
         //       But generally, we want to do this in the calling code
         //       and not here.
         //
-        src.PlacedFootprint.Offset             = static_cast<UINT64>(pCopyInfo.srcBuffer.footprintOffset);
-        src.PlacedFootprint.Footprint.Width    = static_cast<UINT>(pCopyInfo.srcBuffer.footprintWidth);
-        src.PlacedFootprint.Footprint.Height   = static_cast<UINT>(pCopyInfo.srcBuffer.footprintHeight);
-        src.PlacedFootprint.Footprint.Depth    = static_cast<UINT>(pCopyInfo.srcBuffer.footprintDepth);
-        src.PlacedFootprint.Footprint.RowPitch = static_cast<UINT>(pCopyInfo.srcBuffer.imageRowStride);
+        src.PlacedFootprint.Offset             = static_cast<UINT64>(pCopyInfo->srcBuffer.footprintOffset);
+        src.PlacedFootprint.Footprint.Width    = static_cast<UINT>(pCopyInfo->srcBuffer.footprintWidth);
+        src.PlacedFootprint.Footprint.Height   = static_cast<UINT>(pCopyInfo->srcBuffer.footprintHeight);
+        src.PlacedFootprint.Footprint.Depth    = static_cast<UINT>(pCopyInfo->srcBuffer.footprintDepth);
+        src.PlacedFootprint.Footprint.RowPitch = static_cast<UINT>(pCopyInfo->srcBuffer.imageRowStride);
 
         mCommandList->CopyTextureRegion(
             &dst,
-            static_cast<UINT>(pCopyInfo.dstImage.x),
-            static_cast<UINT>(pCopyInfo.dstImage.y),
-            static_cast<UINT>(pCopyInfo.dstImage.z),
+            static_cast<UINT>(pCopyInfo->dstImage.x),
+            static_cast<UINT>(pCopyInfo->dstImage.y),
+            static_cast<UINT>(pCopyInfo->dstImage.z),
             &src,
             nullptr);
     }

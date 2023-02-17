@@ -565,11 +565,11 @@ void CommandBuffer::CopyBufferToImage(
 }
 
 void CommandBuffer::CopyBufferToImage(
-    const grfx::BufferToImageCopyInfo& pCopyInfo,
+    const grfx::BufferToImageCopyInfo* pCopyInfo,
     grfx::Buffer*                      pSrcBuffer,
     grfx::Image*                       pDstImage)
 {
-    return CopyBufferToImage({pCopyInfo}, pSrcBuffer, pDstImage);
+    return CopyBufferToImage(std::vector<grfx::BufferToImageCopyInfo>{*pCopyInfo}, pSrcBuffer, pDstImage);
 }
 
 grfx::ImageToBufferOutputPitch CommandBuffer::CopyImageToBuffer(
