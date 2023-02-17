@@ -344,7 +344,7 @@ public:
         grfx::Image*                                    pDstImage) = 0;
 
     virtual void CopyBufferToImage(
-        const grfx::BufferToImageCopyInfo& pCopyInfo,
+        const grfx::BufferToImageCopyInfo* pCopyInfo,
         grfx::Buffer*                      pSrcBuffer,
         grfx::Image*                       pDstImage) = 0;
 
