@@ -469,6 +469,7 @@ target_include_directories(
             ${PPX_THIRD_PARTY_DIR}/imgui
             ${PPX_THIRD_PARTY_DIR}/tinyobjloader
             ${PPX_THIRD_PARTY_DIR}/pcg32
+            ${PPX_THIRD_PARTY_DIR}/cgltf
             ${PPX_THIRD_PARTY_DIR}/xxHash
             ${PPX_THIRD_PARTY_DIR}/utfcpp/source
 )
