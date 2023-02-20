@@ -78,10 +78,9 @@ private:
     grfx::DescriptorSetLayoutPtr mDrawObjectSetLayout;
     grfx::PipelineInterfacePtr   mDrawObjectPipelineInterface;
     grfx::GraphicsPipelinePtr    mDrawObjectPipeline;
-    grfx::GraphicsPipelinePtr    mDrawObjectPipelineKnob;
     Entity                       mGroundPlane;
-    Entity                       mKnob;
-    std::vector<Entity*>         mEntities2;
+    //Entity                       mKnob;
+    //std::vector<Entity*>         mEntities2;
     PerspCamera                  mCamera;
     float3                       mLightPosition = float3(0, 5, 5);
 
@@ -213,7 +212,16 @@ void ProjApp::LoadNodes(
     const auto& node = data->nodes[i];
     auto& item = (*objects)[i];
 
-    item.model = glm::make_mat4(node.matrix);
+    // Compute model mat for child.
+    glm::mat4 matrix(1.f);
+    cgltf_node* it = &data->nodes[i];
+    while (it != nullptr) {
+      matrix = glm::make_mat4(it->matrix) * matrix;
+      it = it->parent;
+    }
+
+    item.model = matrix;
+    //glm::make_mat4(node.matrix);
     item.children.resize(node.children_count);
     for (size_t j = 0; j < node.children_count; j++) {
       const size_t child_index = std::distance(data->nodes, node.children[j]);
@@ -479,15 +487,14 @@ void ProjApp::Setup()
         TriMeshOptions options = TriMeshOptions().Indices().VertexColors().Normals();
         TriMesh        mesh    = TriMesh::CreatePlane(TRI_MESH_PLANE_POSITIVE_Y, float2(50, 50), 1, 1, TriMeshOptions(options).ObjectColor(float3(0.7f)));
         SetupEntity(mesh, mDescriptorPool, mDrawObjectSetLayout, &mGroundPlane);
-        mEntities2.push_back(&mGroundPlane);
 
         LoadScene(GetAssetPath("basic/models/monkey.glb"), GetDevice(), GetGraphicsQueue(), mDescriptorPool, mDrawObjectSetLayout, &mObjects, &mEntities);
-        assert(mEntities.size() == 1);
-        mKnob = mEntities[0];
-        mKnob.translate = float3(2, 1, 0);
-        mKnob.rotate    = float3(0, glm::radians(180.0f), 0);
-        mKnob.scale     = float3(2, 2, 2);
-        mEntities2.push_back(&mKnob);
+        //assert(mEntities.size() == 1);
+        //mKnob = mEntities[0];
+        //mKnob.translate = float3(2, 1, 0);
+        //mKnob.rotate    = float3(0, glm::radians(180.0f), 0);
+        //mKnob.scale     = float3(2, 2, 2);
+        //mEntities2.push_back(&mKnob);
     }
 
     // Draw object pipeline interface and pipeline
@@ -538,54 +545,6 @@ void ProjApp::Setup()
         GetDevice()->DestroyShaderModule(PS);
     }
 
-    // Draw object pipeline interface and pipeline
-    {
-        // Pipeline interface
-        grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
-        piCreateInfo.setCount                          = 1;
-        piCreateInfo.sets[0].set                       = 0;
-        piCreateInfo.sets[0].pLayout                   = mDrawObjectSetLayout;
-        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mDrawObjectPipelineInterface));
-
-        // Pipeline
-        grfx::ShaderModulePtr VS;
-
-        std::vector<char> bytecode = LoadShader("basic/shaders", "Lambert.vs");
-        PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
-        grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &VS));
-
-        grfx::ShaderModulePtr PS;
-
-        bytecode = LoadShader("basic/shaders", "Lambert.ps");
-        PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
-        shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &PS));
-
-        grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
-        gpCreateInfo.VS                                 = {VS.Get(), "vsmain"};
-        gpCreateInfo.PS                                 = {PS.Get(), "psmain"};
-        gpCreateInfo.vertexInputState.bindingCount      = 3;
-        gpCreateInfo.vertexInputState.bindings[0]       = mKnob.mesh->GetDerivedVertexBindings()[0];
-        gpCreateInfo.vertexInputState.bindings[1]       = mKnob.mesh->GetDerivedVertexBindings()[1];
-        gpCreateInfo.vertexInputState.bindings[2]       = mKnob.mesh->GetDerivedVertexBindings()[2];
-        gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
-        gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
-        gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
-        gpCreateInfo.depthReadEnable                    = true;
-        gpCreateInfo.depthWriteEnable                   = true;
-        gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
-        gpCreateInfo.outputState.renderTargetCount      = 1;
-        gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
-        gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
-        gpCreateInfo.pPipelineInterface                 = mDrawObjectPipelineInterface;
-
-        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mDrawObjectPipelineKnob));
-        GetDevice()->DestroyShaderModule(VS);
-        GetDevice()->DestroyShaderModule(PS);
-    }
-
     // Per frame data
     {
         PerFrame frame = {};
@@ -627,8 +586,8 @@ void ProjApp::Render()
 
 
     // Update uniform buffers
-    for (size_t i = 0; i < mEntities2.size(); ++i) {
-        Entity* pEntity = mEntities2[i];
+    {
+        Entity* pEntity = &mGroundPlane;
 
         const float4x4 T = glm::translate(pEntity->translate);
         const float4x4 R = glm::rotate(pEntity->rotate.z, float3(0, 0, 1)) *
@@ -656,6 +615,29 @@ void ProjApp::Render()
 
         pEntity->drawUniformBuffer->CopyFromSource(sizeof(scene), &scene);
     }
+    for (auto& object : mObjects) {
+        if (object.entity == nullptr) {
+          continue;
+        }
+        // Draw uniform buffers
+        struct Scene
+        {
+            float4x4 ModelMatrix;                // Transforms object space to world space
+            float4   Ambient;                    // Object's ambient intensity
+            float4x4 CameraViewProjectionMatrix; // Camera's view projection matrix
+            float4   LightPosition;              // Light's position
+            float4   EyePosition;
+        };
+
+        Scene scene                      = {};
+        scene.ModelMatrix                = object.model;
+        scene.Ambient                    = float4(0.3f);
+        scene.CameraViewProjectionMatrix = mCamera.GetViewProjectionMatrix();
+        scene.LightPosition              = float4(mLightPosition, 0);
+        scene.EyePosition                = glm::float4(mCamera.GetEyePosition(), 0.f);
+
+        object.entity->drawUniformBuffer->CopyFromSource(sizeof(scene), &scene);
+    }
 
     // Build command buffer
     PPX_CHECKED_CALL(frame.cmd->Begin());
@@ -675,19 +657,16 @@ void ProjApp::Render()
             // Draw entities
             frame.cmd->BindGraphicsPipeline(mDrawObjectPipeline);
             {
-              Entity* pEntity = mEntities2[0];
-              frame.cmd->BindGraphicsDescriptorSets(mDrawObjectPipelineInterface, 1, &pEntity->drawDescriptorSet);
-              frame.cmd->BindIndexBuffer(pEntity->mesh);
-              frame.cmd->BindVertexBuffers(pEntity->mesh);
-              frame.cmd->DrawIndexed(pEntity->mesh->GetIndexCount());
+              frame.cmd->BindGraphicsDescriptorSets(mDrawObjectPipelineInterface, 1, &mGroundPlane.drawDescriptorSet);
+              frame.cmd->BindIndexBuffer(mGroundPlane.mesh);
+              frame.cmd->BindVertexBuffers(mGroundPlane.mesh);
+              frame.cmd->DrawIndexed(mGroundPlane.mesh->GetIndexCount());
             }
-            frame.cmd->BindGraphicsPipeline(mDrawObjectPipelineKnob);
-            {
-              Entity* pEntity = mEntities2[1];
-              frame.cmd->BindGraphicsDescriptorSets(mDrawObjectPipelineInterface, 1, &pEntity->drawDescriptorSet);
-              frame.cmd->BindIndexBuffer(pEntity->mesh);
-              frame.cmd->BindVertexBuffers(pEntity->mesh);
-              frame.cmd->DrawIndexed(pEntity->mesh->GetIndexCount());
+            for (auto& entity : mEntities) {
+              frame.cmd->BindGraphicsDescriptorSets(mDrawObjectPipelineInterface, 1, &entity.drawDescriptorSet);
+              frame.cmd->BindIndexBuffer(entity.mesh);
+              frame.cmd->BindVertexBuffers(entity.mesh);
+              frame.cmd->DrawIndexed(entity.mesh->GetIndexCount());
             }
 
             // Draw ImGui
