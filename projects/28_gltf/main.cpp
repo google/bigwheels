@@ -55,22 +55,12 @@ private:
         grfx::FencePtr         renderCompleteFence;
     };
 
-    struct Entity
-    {
-        float3                 translate = float3(0, 0, 0);
-        float3                 rotate    = float3(0, 0, 0);
-        float3                 scale     = float3(1, 1, 1);
-        grfx::MeshPtr          mesh;
-        grfx::DescriptorSetPtr drawDescriptorSet;
-        grfx::BufferPtr        drawUniformBuffer;
-        grfx::DescriptorSetPtr shadowDescriptorSet;
-    };
-
     struct Object
     {
-      glm::mat4        model;
-      const Entity*      entity;
-      std::vector<const Object*> children;
+      float4x4                   model;
+      size_t                     mesh_index;
+      grfx::DescriptorSetPtr     drawDescriptorSet;
+      grfx::BufferPtr            drawUniformBuffer;
     };
 
     std::vector<PerFrame>        mPerFrame;
@@ -78,22 +68,19 @@ private:
     grfx::DescriptorSetLayoutPtr mDrawObjectSetLayout;
     grfx::PipelineInterfacePtr   mDrawObjectPipelineInterface;
     grfx::GraphicsPipelinePtr    mDrawObjectPipeline;
-    Entity                       mGroundPlane;
-    //Entity                       mKnob;
-    //std::vector<Entity*>         mEntities2;
     PerspCamera                  mCamera;
     float3                       mLightPosition = float3(0, 5, 5);
 
-    std::vector<Entity>          mEntities;
+    std::vector<grfx::Mesh*>     mMeshes;
     std::vector<Object>          mObjects;
     const Object*                root;
 
 private:
-    void SetupEntity(
+    void CreateEntity(
         const TriMesh&                   mesh,
         grfx::DescriptorPool*            pDescriptorPool,
         const grfx::DescriptorSetLayout* pDrawSetLayout,
-        Entity*                          pEntity);
+        float4x4                         model);
 
     static void LoadScene(
           const std::filesystem::path& filename,
@@ -102,7 +89,7 @@ private:
           grfx::DescriptorPool* pDescriptorPool,
           const grfx::DescriptorSetLayout* pDrawSetLayout,
           std::vector<Object> *objects,
-          std::vector<Entity> *entities);
+          std::vector<grfx::Mesh*> *meshes);
 
     static void LoadNodes(
           const cgltf_data *data,
@@ -111,7 +98,7 @@ private:
           grfx::DescriptorPool* pDescriptorPool,
           const grfx::DescriptorSetLayout* pDrawSetLayout,
           std::vector<Object> *objects,
-          std::vector<Entity> *entities);
+          std::vector<grfx::Mesh*> *meshes);
 
     static void LoadGlb(
           cgltf_mesh *src_mesh,
@@ -120,7 +107,7 @@ private:
           grfx::Queue *pQueue,
           grfx::DescriptorPool* pDescriptorPool,
           const grfx::DescriptorSetLayout* pDrawSetLayout,
-          Entity* pEntity);
+          grfx::Mesh **ppMesh);
 };
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
@@ -135,25 +122,31 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
 #endif
 }
 
-void ProjApp::SetupEntity(
-    const TriMesh&                   mesh,
+void ProjApp::CreateEntity(
+    const TriMesh&                   triMesh,
     grfx::DescriptorPool*            pDescriptorPool,
     const grfx::DescriptorSetLayout* pDrawSetLayout,
-    Entity*                          pEntity)
+    float4x4                         model)
 {
+    Object object;
+    object.model = model;
+
     Geometry geo;
-    PPX_CHECKED_CALL(Geometry::Create(mesh, &geo));
-    PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &pEntity->mesh));
+    PPX_CHECKED_CALL(Geometry::Create(triMesh, &geo));
+    grfx::Mesh *mesh;
+    PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mesh));
+    object.mesh_index = mMeshes.size();
+    mMeshes.emplace_back(std::move(mesh));
 
     // Draw uniform buffer
     grfx::BufferCreateInfo bufferCreateInfo        = {};
     bufferCreateInfo.size                          = RoundUp(512, PPX_CONSTANT_BUFFER_ALIGNMENT);
     bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
     bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
-    PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &pEntity->drawUniformBuffer));
+    PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &object.drawUniformBuffer));
 
     // Draw descriptor set
-    PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(pDescriptorPool, pDrawSetLayout, &pEntity->drawDescriptorSet));
+    PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(pDescriptorPool, pDrawSetLayout, &object.drawDescriptorSet));
 
     // Update draw descriptor set
     grfx::WriteDescriptor write = {};
@@ -161,8 +154,10 @@ void ProjApp::SetupEntity(
     write.type                  = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     write.bufferOffset          = 0;
     write.bufferRange           = PPX_WHOLE_SIZE;
-    write.pBuffer               = pEntity->drawUniformBuffer;
-    PPX_CHECKED_CALL(pEntity->drawDescriptorSet->UpdateDescriptors(1, &write));
+    write.pBuffer               = object.drawUniformBuffer;
+    PPX_CHECKED_CALL(object.drawDescriptorSet->UpdateDescriptors(1, &write));
+
+    mObjects.emplace_back(std::move(object));
 }
 
 void ProjApp::LoadScene(
@@ -172,11 +167,7 @@ void ProjApp::LoadScene(
     grfx::DescriptorPool* pDescriptorPool,
     const grfx::DescriptorSetLayout* pDrawSetLayout,
     std::vector<Object> *objects,
-    std::vector<Entity> *entities) {
-
-  objects->clear();
-  entities->clear();
-
+    std::vector<grfx::Mesh*> *meshes) {
   cgltf_options options = { };
   cgltf_data *data = nullptr;
   cgltf_result result = cgltf_parse_file(&options, filename.c_str(), &data);
@@ -188,10 +179,29 @@ void ProjApp::LoadScene(
 
   // FIXME: add constraints here for now.
   PPX_ASSERT_MSG(data->buffers_count == 1, "Only supports one buffer for now.");
-  PPX_ASSERT_MSG(data->meshes_count == 1, "Only supports one mesh for now.");
+  //PPX_ASSERT_MSG(data->meshes_count == 1, "Only supports one mesh for now.");
   PPX_ASSERT_MSG(data->buffers[0].data != nullptr, "Data not loaded. Was cgltf_load_buffer called?");
 
-  LoadNodes(data, pDevice, pQueue, pDescriptorPool, pDrawSetLayout, objects, entities);
+  LoadNodes(data, pDevice, pQueue, pDescriptorPool, pDrawSetLayout, objects, meshes);
+}
+
+float4x4 compute_object_matrix(const cgltf_node *node) {
+  float4x4 output(1.f);
+  while (node != nullptr) {
+    if (node->has_matrix) {
+      output = glm::make_mat4(node->matrix) * output;
+    } else {
+      const float4x4 T = node->has_translation ? glm::translate(glm::make_vec3(node->translation)) : glm::mat4(1.f);
+      const float4x4 R = node->has_rotation
+                       ? glm::mat4_cast(glm::quat(node->rotation[3], node->rotation[0], node->rotation[1], node->rotation[2]))
+                       : glm::mat4(1.f);
+      const float4x4 S = node->has_scale ? glm::scale(glm::make_vec3(node->scale)) : glm::mat4(1.f);
+      const float4x4 M = T * R * S;
+      output = M * output;
+    }
+    node = node->parent;
+  }
+  return output;
 }
 
 void ProjApp::LoadNodes(
@@ -201,40 +211,48 @@ void ProjApp::LoadNodes(
     grfx::DescriptorPool* pDescriptorPool,
     const grfx::DescriptorSetLayout* pDrawSetLayout,
     std::vector<Object> *objects,
-    std::vector<Entity> *entities) {
+    std::vector<grfx::Mesh*> *meshes) {
   const size_t node_count = data->nodes_count;
   const size_t mesh_count = data->meshes_count;
-
-  objects->resize(node_count);
-  entities->resize(mesh_count);
+  std::unordered_map<cgltf_mesh*, size_t> mesh_to_index;
 
   for (size_t i = 0; i < node_count; i++) {
     const auto& node = data->nodes[i];
-    auto& item = (*objects)[i];
-
-    // Compute model mat for child.
-    glm::mat4 matrix(1.f);
-    cgltf_node* it = &data->nodes[i];
-    while (it != nullptr) {
-      matrix = glm::make_mat4(it->matrix) * matrix;
-      it = it->parent;
-    }
-
-    item.model = matrix;
-    //glm::make_mat4(node.matrix);
-    item.children.resize(node.children_count);
-    for (size_t j = 0; j < node.children_count; j++) {
-      const size_t child_index = std::distance(data->nodes, node.children[j]);
-      item.children[j] = &(objects->data())[child_index];
-    }
-
     if (node.mesh == nullptr) {
-      item.entity = nullptr;
-    } else {
-      const size_t mesh_index = std::distance(data->meshes, node.mesh);
-      item.entity = &(entities->data())[mesh_index];
-      LoadGlb(node.mesh, &data->buffers[0], pDevice, pQueue, pDescriptorPool, pDrawSetLayout, entities->data() + mesh_index);
+      continue;
     }
+
+    Object item;
+    item.model = compute_object_matrix(&data->nodes[i]);
+
+    if (mesh_to_index.count(node.mesh) == 0) {
+      grfx::Mesh *mesh = nullptr;
+      LoadGlb(node.mesh, &data->buffers[0], pDevice, pQueue, pDescriptorPool, pDrawSetLayout, &mesh);
+      mesh_to_index.insert({ node.mesh, meshes->size() });
+      meshes->push_back(mesh);
+    }
+    item.mesh_index = mesh_to_index[node.mesh];
+
+    // Draw uniform buffer
+    grfx::BufferCreateInfo bufferCreateInfo        = {};
+    bufferCreateInfo.size                          = RoundUp(512, PPX_CONSTANT_BUFFER_ALIGNMENT);
+    bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
+    bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
+    PPX_CHECKED_CALL(pDevice->CreateBuffer(&bufferCreateInfo, &item.drawUniformBuffer));
+
+    // Draw descriptor set
+    PPX_CHECKED_CALL(pDevice->AllocateDescriptorSet(pDescriptorPool, pDrawSetLayout, &item.drawDescriptorSet));
+
+    // Update draw descriptor set
+    grfx::WriteDescriptor write = {};
+    write.binding               = 0;
+    write.type                  = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    write.bufferOffset          = 0;
+    write.bufferRange           = PPX_WHOLE_SIZE;
+    write.pBuffer               = item.drawUniformBuffer;
+    PPX_CHECKED_CALL(item.drawDescriptorSet->UpdateDescriptors(1, &write));
+
+    objects->emplace_back(std::move(item));
   }
 }
 
@@ -245,9 +263,8 @@ void ProjApp::LoadGlb(
     grfx::Queue *pQueue,
     grfx::DescriptorPool* pDescriptorPool,
     const grfx::DescriptorSetLayout* pDrawSetLayout,
-    Entity* pEntity) {
+    grfx::Mesh **ppMesh) {
 
-  grfx::Mesh **ppMesh = &pEntity->mesh;
   PPX_ASSERT_NULL_ARG(pQueue);
   PPX_ASSERT_NULL_ARG(ppMesh);
 
@@ -435,25 +452,6 @@ void ProjApp::LoadGlb(
 
   targetMesh->SetOwnership(grfx::OWNERSHIP_REFERENCE);
   *ppMesh = targetMesh;
-
-  // Draw uniform buffer
-  grfx::BufferCreateInfo bufferCreateInfo        = {};
-  bufferCreateInfo.size                          = RoundUp(512, PPX_CONSTANT_BUFFER_ALIGNMENT);
-  bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
-  bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
-  PPX_CHECKED_CALL(pDevice->CreateBuffer(&bufferCreateInfo, &pEntity->drawUniformBuffer));
-
-  // Draw descriptor set
-  PPX_CHECKED_CALL(pDevice->AllocateDescriptorSet(pDescriptorPool, pDrawSetLayout, &pEntity->drawDescriptorSet));
-
-  // Update draw descriptor set
-  grfx::WriteDescriptor write = {};
-  write.binding               = 0;
-  write.type                  = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  write.bufferOffset          = 0;
-  write.bufferRange           = PPX_WHOLE_SIZE;
-  write.pBuffer               = pEntity->drawUniformBuffer;
-  PPX_CHECKED_CALL(pEntity->drawDescriptorSet->UpdateDescriptors(1, &write));
 }
 
 void ProjApp::Setup()
@@ -486,15 +484,9 @@ void ProjApp::Setup()
     {
         TriMeshOptions options = TriMeshOptions().Indices().VertexColors().Normals();
         TriMesh        mesh    = TriMesh::CreatePlane(TRI_MESH_PLANE_POSITIVE_Y, float2(50, 50), 1, 1, TriMeshOptions(options).ObjectColor(float3(0.7f)));
-        SetupEntity(mesh, mDescriptorPool, mDrawObjectSetLayout, &mGroundPlane);
+        CreateEntity(mesh, mDescriptorPool, mDrawObjectSetLayout, glm::mat4(1.f));
 
-        LoadScene(GetAssetPath("basic/models/monkey.glb"), GetDevice(), GetGraphicsQueue(), mDescriptorPool, mDrawObjectSetLayout, &mObjects, &mEntities);
-        //assert(mEntities.size() == 1);
-        //mKnob = mEntities[0];
-        //mKnob.translate = float3(2, 1, 0);
-        //mKnob.rotate    = float3(0, glm::radians(180.0f), 0);
-        //mKnob.scale     = float3(2, 2, 2);
-        //mEntities2.push_back(&mKnob);
+        LoadScene(GetAssetPath("basic/models/sponza.gltf"), GetDevice(), GetGraphicsQueue(), mDescriptorPool, mDrawObjectSetLayout, &mObjects, &mMeshes);
     }
 
     // Draw object pipeline interface and pipeline
@@ -525,9 +517,9 @@ void ProjApp::Setup()
         gpCreateInfo.VS                                 = {VS.Get(), "vsmain"};
         gpCreateInfo.PS                                 = {PS.Get(), "psmain"};
         gpCreateInfo.vertexInputState.bindingCount      = 3;
-        gpCreateInfo.vertexInputState.bindings[0]       = mGroundPlane.mesh->GetDerivedVertexBindings()[0];
-        gpCreateInfo.vertexInputState.bindings[1]       = mGroundPlane.mesh->GetDerivedVertexBindings()[1];
-        gpCreateInfo.vertexInputState.bindings[2]       = mGroundPlane.mesh->GetDerivedVertexBindings()[2];
+        gpCreateInfo.vertexInputState.bindings[0]       = mMeshes[0]->GetDerivedVertexBindings()[0];
+        gpCreateInfo.vertexInputState.bindings[1]       = mMeshes[0]->GetDerivedVertexBindings()[1];
+        gpCreateInfo.vertexInputState.bindings[2]       = mMeshes[0]->GetDerivedVertexBindings()[2];
         gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
         gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
@@ -586,39 +578,7 @@ void ProjApp::Render()
 
 
     // Update uniform buffers
-    {
-        Entity* pEntity = &mGroundPlane;
-
-        const float4x4 T = glm::translate(pEntity->translate);
-        const float4x4 R = glm::rotate(pEntity->rotate.z, float3(0, 0, 1)) *
-                     glm::rotate(pEntity->rotate.y, float3(0, 1, 0)) *
-                     glm::rotate(pEntity->rotate.x, float3(1, 0, 0));
-        const float4x4 S = glm::scale(pEntity->scale);
-        const float4x4 M = T * R * S;
-
-        // Draw uniform buffers
-        struct Scene
-        {
-            float4x4 ModelMatrix;                // Transforms object space to world space
-            float4   Ambient;                    // Object's ambient intensity
-            float4x4 CameraViewProjectionMatrix; // Camera's view projection matrix
-            float4   LightPosition;              // Light's position
-            float4   EyePosition;
-        };
-
-        Scene scene                      = {};
-        scene.ModelMatrix                = M;
-        scene.Ambient                    = float4(0.3f);
-        scene.CameraViewProjectionMatrix = mCamera.GetViewProjectionMatrix();
-        scene.LightPosition              = float4(mLightPosition, 0);
-        scene.EyePosition                = glm::float4(mCamera.GetEyePosition(), 0.f);
-
-        pEntity->drawUniformBuffer->CopyFromSource(sizeof(scene), &scene);
-    }
     for (auto& object : mObjects) {
-        if (object.entity == nullptr) {
-          continue;
-        }
         // Draw uniform buffers
         struct Scene
         {
@@ -636,7 +596,7 @@ void ProjApp::Render()
         scene.LightPosition              = float4(mLightPosition, 0);
         scene.EyePosition                = glm::float4(mCamera.GetEyePosition(), 0.f);
 
-        object.entity->drawUniformBuffer->CopyFromSource(sizeof(scene), &scene);
+        object.drawUniformBuffer->CopyFromSource(sizeof(scene), &scene);
     }
 
     // Build command buffer
@@ -656,17 +616,11 @@ void ProjApp::Render()
 
             // Draw entities
             frame.cmd->BindGraphicsPipeline(mDrawObjectPipeline);
-            {
-              frame.cmd->BindGraphicsDescriptorSets(mDrawObjectPipelineInterface, 1, &mGroundPlane.drawDescriptorSet);
-              frame.cmd->BindIndexBuffer(mGroundPlane.mesh);
-              frame.cmd->BindVertexBuffers(mGroundPlane.mesh);
-              frame.cmd->DrawIndexed(mGroundPlane.mesh->GetIndexCount());
-            }
-            for (auto& entity : mEntities) {
-              frame.cmd->BindGraphicsDescriptorSets(mDrawObjectPipelineInterface, 1, &entity.drawDescriptorSet);
-              frame.cmd->BindIndexBuffer(entity.mesh);
-              frame.cmd->BindVertexBuffers(entity.mesh);
-              frame.cmd->DrawIndexed(entity.mesh->GetIndexCount());
+            for (auto& object : mObjects) {
+              frame.cmd->BindGraphicsDescriptorSets(mDrawObjectPipelineInterface, 1, &object.drawDescriptorSet);
+              frame.cmd->BindIndexBuffer(mMeshes[object.mesh_index]);
+              frame.cmd->BindVertexBuffers(mMeshes[object.mesh_index]);
+              frame.cmd->DrawIndexed(mMeshes[object.mesh_index]->GetIndexCount());
             }
 
             // Draw ImGui
