@@ -215,6 +215,7 @@ void ProjApp::LoadMaterial(
     grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
     gpCreateInfo.VS                                 = {VS.Get(), "vsmain"};
     gpCreateInfo.PS                                 = {PS.Get(), "psmain"};
+    // FIXME: assuming all primitives provides POSITION, UV, and NORMAL. Might not be the case.
     gpCreateInfo.vertexInputState.bindingCount      = 3;
     gpCreateInfo.vertexInputState.bindings[0]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[0];
     gpCreateInfo.vertexInputState.bindings[1]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[1];
