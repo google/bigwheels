@@ -57,10 +57,10 @@ private:
 
     struct Object
     {
-      float4x4                   model;
-      size_t                     mesh_index;
-      grfx::DescriptorSetPtr     drawDescriptorSet;
-      grfx::BufferPtr            drawUniformBuffer;
+        float4x4               model;
+        size_t                 mesh_index;
+        grfx::DescriptorSetPtr drawDescriptorSet;
+        grfx::BufferPtr        drawUniformBuffer;
     };
 
     std::vector<PerFrame>        mPerFrame;
@@ -71,9 +71,9 @@ private:
     PerspCamera                  mCamera;
     float3                       mLightPosition = float3(0, 5, 5);
 
-    std::vector<grfx::Mesh*>     mMeshes;
-    std::vector<Object>          mObjects;
-    const Object*                root;
+    std::vector<grfx::Mesh*> mMeshes;
+    std::vector<Object>      mObjects;
+    const Object*            root;
 
 private:
     void CreateEntity(
@@ -83,31 +83,32 @@ private:
         float4x4                         model);
 
     static void LoadScene(
-          const std::filesystem::path& filename,
-          grfx::Device *pDevice,
-          grfx::Queue *pQueue,
-          grfx::DescriptorPool* pDescriptorPool,
-          const grfx::DescriptorSetLayout* pDrawSetLayout,
-          std::vector<Object> *objects,
-          std::vector<grfx::Mesh*> *meshes);
+        const std::filesystem::path&     filename,
+        grfx::Device*                    pDevice,
+        grfx::Queue*                     pQueue,
+        grfx::DescriptorPool*            pDescriptorPool,
+        const grfx::DescriptorSetLayout* pDrawSetLayout,
+        std::vector<Object>*             objects,
+        std::vector<grfx::Mesh*>*        meshes);
 
     static void LoadNodes(
-          const cgltf_data *data,
-          grfx::Device *pDevice,
-          grfx::Queue *pQueue,
-          grfx::DescriptorPool* pDescriptorPool,
-          const grfx::DescriptorSetLayout* pDrawSetLayout,
-          std::vector<Object> *objects,
-          std::vector<grfx::Mesh*> *meshes);
+        const cgltf_data*                data,
+        grfx::BufferPtr                  pStagingBuffer,
+        grfx::Device*                    pDevice,
+        grfx::Queue*                     pQueue,
+        grfx::DescriptorPool*            pDescriptorPool,
+        const grfx::DescriptorSetLayout* pDrawSetLayout,
+        std::vector<Object>*             objects,
+        std::vector<grfx::Mesh*>*        meshes);
 
     static void LoadGlb(
-          cgltf_mesh *src_mesh,
-          cgltf_buffer *src_buffer,
-          grfx::Device *pDevice,
-          grfx::Queue *pQueue,
-          grfx::DescriptorPool* pDescriptorPool,
-          const grfx::DescriptorSetLayout* pDrawSetLayout,
-          grfx::Mesh **ppMesh);
+        cgltf_mesh*                      src_mesh,
+        grfx::BufferPtr                  pStagingBuffer,
+        grfx::Device*                    pDevice,
+        grfx::Queue*                     pQueue,
+        grfx::DescriptorPool*            pDescriptorPool,
+        const grfx::DescriptorSetLayout* pDrawSetLayout,
+        std::vector<grfx::Mesh*>*        pMeshVector);
 };
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
@@ -133,7 +134,7 @@ void ProjApp::CreateEntity(
 
     Geometry geo;
     PPX_CHECKED_CALL(Geometry::Create(triMesh, &geo));
-    grfx::Mesh *mesh;
+    grfx::Mesh* mesh;
     PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mesh));
     object.mesh_index = mMeshes.size();
     mMeshes.emplace_back(std::move(mesh));
@@ -161,304 +162,250 @@ void ProjApp::CreateEntity(
 }
 
 void ProjApp::LoadScene(
-    const std::filesystem::path& filename,
-    grfx::Device *pDevice,
-    grfx::Queue *pQueue,
-    grfx::DescriptorPool* pDescriptorPool,
+    const std::filesystem::path&     filename,
+    grfx::Device*                    pDevice,
+    grfx::Queue*                     pQueue,
+    grfx::DescriptorPool*            pDescriptorPool,
     const grfx::DescriptorSetLayout* pDrawSetLayout,
-    std::vector<Object> *objects,
-    std::vector<grfx::Mesh*> *meshes) {
-  cgltf_options options = { };
-  cgltf_data *data = nullptr;
-  cgltf_result result = cgltf_parse_file(&options, filename.c_str(), &data);
-  PPX_ASSERT_MSG(result == cgltf_result_success, "Failure while loading GLB file.");
-  result = cgltf_validate(data);
-  PPX_ASSERT_MSG(result == cgltf_result_success, "Failure while validating GLB file.");
-  result = cgltf_load_buffers(&options, data, filename.c_str());
-  PPX_ASSERT_MSG(result == cgltf_result_success, "Failure while loading buffers.");
+    std::vector<Object>*             objects,
+    std::vector<grfx::Mesh*>*        meshes)
+{
+    cgltf_options options = {};
+    cgltf_data*   data    = nullptr;
+    cgltf_result  result  = cgltf_parse_file(&options, filename.c_str(), &data);
+    PPX_ASSERT_MSG(result == cgltf_result_success, "Failure while loading GLB file.");
+    result = cgltf_validate(data);
+    PPX_ASSERT_MSG(result == cgltf_result_success, "Failure while validating GLB file.");
+    result = cgltf_load_buffers(&options, data, filename.c_str());
+    PPX_ASSERT_MSG(result == cgltf_result_success, "Failure while loading buffers.");
 
-  // FIXME: add constraints here for now.
-  PPX_ASSERT_MSG(data->buffers_count == 1, "Only supports one buffer for now.");
-  //PPX_ASSERT_MSG(data->meshes_count == 1, "Only supports one mesh for now.");
-  PPX_ASSERT_MSG(data->buffers[0].data != nullptr, "Data not loaded. Was cgltf_load_buffer called?");
+    // FIXME: add constraints here for now.
+    PPX_ASSERT_MSG(data->buffers_count == 1, "Only supports one buffer for now.");
+    // PPX_ASSERT_MSG(data->meshes_count == 1, "Only supports one mesh for now.");
+    PPX_ASSERT_MSG(data->buffers[0].data != nullptr, "Data not loaded. Was cgltf_load_buffer called?");
 
-  LoadNodes(data, pDevice, pQueue, pDescriptorPool, pDrawSetLayout, objects, meshes);
+    grfx::ScopeDestroyer SCOPED_DESTROYER(pQueue->GetDevice());
+    // Copy main buffer data to stating buffer.
+    grfx::BufferPtr stagingBuffer;
+    {
+        grfx::BufferCreateInfo ci      = {};
+        ci.size                        = data->buffers[0].size;
+        ci.usageFlags.bits.transferSrc = true;
+        ci.memoryUsage                 = grfx::MEMORY_USAGE_CPU_TO_GPU;
+
+        PPX_CHECKED_CALL(pQueue->GetDevice()->CreateBuffer(&ci, &stagingBuffer));
+        SCOPED_DESTROYER.AddObject(stagingBuffer);
+        PPX_CHECKED_CALL(stagingBuffer->CopyFromSource(data->buffers[0].size, data->buffers[0].data));
+    }
+
+    LoadNodes(data, stagingBuffer, pDevice, pQueue, pDescriptorPool, pDrawSetLayout, objects, meshes);
 }
 
-float4x4 compute_object_matrix(const cgltf_node *node) {
-  float4x4 output(1.f);
-  while (node != nullptr) {
-    if (node->has_matrix) {
-      output = glm::make_mat4(node->matrix) * output;
-    } else {
-      const float4x4 T = node->has_translation ? glm::translate(glm::make_vec3(node->translation)) : glm::mat4(1.f);
-      const float4x4 R = node->has_rotation
-                       ? glm::mat4_cast(glm::quat(node->rotation[3], node->rotation[0], node->rotation[1], node->rotation[2]))
-                       : glm::mat4(1.f);
-      const float4x4 S = node->has_scale ? glm::scale(glm::make_vec3(node->scale)) : glm::mat4(1.f);
-      const float4x4 M = T * R * S;
-      output = M * output;
+float4x4 compute_object_matrix(const cgltf_node* node)
+{
+    float4x4 output(1.f);
+    while (node != nullptr) {
+        if (node->has_matrix) {
+            output = glm::make_mat4(node->matrix) * output;
+        }
+        else {
+            const float4x4 T = node->has_translation ? glm::translate(glm::make_vec3(node->translation)) : glm::mat4(1.f);
+            const float4x4 R = node->has_rotation
+                                   ? glm::mat4_cast(glm::quat(node->rotation[3], node->rotation[0], node->rotation[1], node->rotation[2]))
+                                   : glm::mat4(1.f);
+            const float4x4 S = node->has_scale ? glm::scale(glm::make_vec3(node->scale)) : glm::mat4(1.f);
+            const float4x4 M = T * R * S;
+            output           = M * output;
+        }
+        node = node->parent;
     }
-    node = node->parent;
-  }
-  return output;
+    return output;
 }
 
 void ProjApp::LoadNodes(
-    const cgltf_data *data,
-    grfx::Device *pDevice,
-    grfx::Queue *pQueue,
-    grfx::DescriptorPool* pDescriptorPool,
+    const cgltf_data*                data,
+    grfx::BufferPtr                  pStagingBuffer,
+    grfx::Device*                    pDevice,
+    grfx::Queue*                     pQueue,
+    grfx::DescriptorPool*            pDescriptorPool,
     const grfx::DescriptorSetLayout* pDrawSetLayout,
-    std::vector<Object> *objects,
-    std::vector<grfx::Mesh*> *meshes) {
-  const size_t node_count = data->nodes_count;
-  const size_t mesh_count = data->meshes_count;
-  std::unordered_map<cgltf_mesh*, size_t> mesh_to_index;
+    std::vector<Object>*             objects,
+    std::vector<grfx::Mesh*>*        meshes)
+{
+    const size_t                            node_count = data->nodes_count;
+    const size_t                            mesh_count = data->meshes_count;
+    std::unordered_map<cgltf_mesh*, size_t> mesh_to_index;
 
-  for (size_t i = 0; i < node_count; i++) {
-    const auto& node = data->nodes[i];
-    if (node.mesh == nullptr) {
-      continue;
+    for (size_t i = 0; i < node_count; i++) {
+        const auto& node = data->nodes[i];
+        if (node.mesh == nullptr) {
+            continue;
+        }
+
+        Object item;
+        item.model = compute_object_matrix(&data->nodes[i]);
+
+        if (mesh_to_index.count(node.mesh) == 0) {
+            std::vector<grfx::Mesh*> mesh_vec;
+            LoadGlb(node.mesh, pStagingBuffer, pDevice, pQueue, pDescriptorPool, pDrawSetLayout, &mesh_vec);
+            mesh_to_index.insert({node.mesh, meshes->size()});
+            meshes->push_back(mesh_vec[0]);
+        }
+        item.mesh_index = mesh_to_index[node.mesh];
+
+        // Draw uniform buffer
+        grfx::BufferCreateInfo bufferCreateInfo        = {};
+        bufferCreateInfo.size                          = RoundUp(512, PPX_CONSTANT_BUFFER_ALIGNMENT);
+        bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
+        bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
+        PPX_CHECKED_CALL(pDevice->CreateBuffer(&bufferCreateInfo, &item.drawUniformBuffer));
+
+        // Draw descriptor set
+        PPX_CHECKED_CALL(pDevice->AllocateDescriptorSet(pDescriptorPool, pDrawSetLayout, &item.drawDescriptorSet));
+
+        // Update draw descriptor set
+        grfx::WriteDescriptor write = {};
+        write.binding               = 0;
+        write.type                  = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        write.bufferOffset          = 0;
+        write.bufferRange           = PPX_WHOLE_SIZE;
+        write.pBuffer               = item.drawUniformBuffer;
+        PPX_CHECKED_CALL(item.drawDescriptorSet->UpdateDescriptors(1, &write));
+
+        objects->emplace_back(std::move(item));
+    }
+}
+
+void GetAccessorsForPrimitive(const cgltf_primitive& primitive, const cgltf_accessor** position, const cgltf_accessor** uv, const cgltf_accessor** normal)
+{
+    PPX_ASSERT_NULL_ARG(position);
+    PPX_ASSERT_NULL_ARG(uv);
+    PPX_ASSERT_NULL_ARG(normal);
+
+    for (size_t i = 0; i < primitive.attributes_count; i++) {
+        const auto& type = primitive.attributes[i].type;
+        const auto* data = primitive.attributes[i].data;
+        if (type == cgltf_attribute_type_position) {
+            *position = data;
+        }
+        else if (type == cgltf_attribute_type_normal) {
+            *normal = data;
+        }
+        else if (type == cgltf_attribute_type_texcoord) {
+            *uv = data;
+        }
     }
 
-    Object item;
-    item.model = compute_object_matrix(&data->nodes[i]);
+    PPX_ASSERT_MSG(*position != nullptr && *uv != nullptr && *normal != nullptr, "For now, only supports model with position, normal and UV attributes");
+}
 
-    if (mesh_to_index.count(node.mesh) == 0) {
-      grfx::Mesh *mesh = nullptr;
-      LoadGlb(node.mesh, &data->buffers[0], pDevice, pQueue, pDescriptorPool, pDrawSetLayout, &mesh);
-      mesh_to_index.insert({ node.mesh, meshes->size() });
-      meshes->push_back(mesh);
+void LoadPrimitive(const cgltf_primitive* src_primitive, grfx::BufferPtr pStagingBuffer, grfx::Device* pDevice, grfx::Queue* pQueue, grfx::Mesh** ppMesh)
+{
+    grfx::ScopeDestroyer   SCOPED_DESTROYER(pQueue->GetDevice());
+    const cgltf_primitive& primitive = *src_primitive;
+    PPX_ASSERT_MSG(primitive.type == cgltf_primitive_type_triangles, "only supporting tri primitives for now.");
+    PPX_ASSERT_MSG(!primitive.has_draco_mesh_compression, "draco compression not supported yet.");
+    PPX_ASSERT_MSG(primitive.indices != nullptr, "only primitives with indices are supported for now.");
+
+    // Attribute accessors.
+    constexpr size_t                     POSITION_INDEX = 0;
+    constexpr size_t                     UV_INDEX       = 1;
+    constexpr size_t                     NORMAL_INDEX   = 2;
+    std::array<const cgltf_accessor*, 3> accessors;
+    GetAccessorsForPrimitive(primitive, &accessors[POSITION_INDEX], &accessors[UV_INDEX], &accessors[NORMAL_INDEX]);
+
+    grfx::MeshPtr targetMesh;
+    {
+        // Indices.
+        const cgltf_accessor&      indices_accessor = *primitive.indices;
+        const cgltf_component_type indices_type     = indices_accessor.component_type;
+        PPX_ASSERT_MSG(indices_type == cgltf_component_type_r_16u || indices_type == cgltf_component_type_r_32u, "only 32u or 16u are supported for indices.");
+
+        // Create mesh.
+        grfx::MeshCreateInfo ci;
+        std::memset(&ci.vertexBuffers, 0, PPX_MAX_VERTEX_BINDINGS * sizeof(*ci.vertexBuffers));
+
+        ci.indexType         = indices_type == cgltf_component_type_r_16u
+                                   ? grfx::IndexType::INDEX_TYPE_UINT16
+                                   : grfx::IndexType::INDEX_TYPE_UINT32;
+        ci.indexCount        = indices_accessor.count;
+        ci.vertexCount       = accessors[POSITION_INDEX]->count;
+        ci.memoryUsage       = grfx::MEMORY_USAGE_GPU_ONLY;
+        ci.vertexBufferCount = 3;
+
+        for (size_t i = 0; i < accessors.size(); i++) {
+            const auto& a  = *accessors[i];
+            const auto& bv = *a.buffer_view;
+            // If the buffer_view doesn't declare a stride, the accessor must define it.
+            PPX_ASSERT_MSG(bv.stride == 0, "Stride declared in buffer-view not supported.");
+            PPX_ASSERT_MSG(a.offset == 0, "Non-0 offset in accessor are not supported.");
+            PPX_ASSERT_MSG(a.type == cgltf_type_vec2 || a.type == cgltf_type_vec3, "Non supported accessor type.");
+            PPX_ASSERT_MSG(a.component_type == cgltf_component_type_r_32f, "only float for POS, NORM, TEX are supported.");
+
+            ci.vertexBuffers[i].attributeCount               = 1;
+            ci.vertexBuffers[i].vertexInputRate              = grfx::VERTEX_INPUT_RATE_VERTEX;
+            ci.vertexBuffers[i].attributes[0].format         = a.type == cgltf_type_vec2 ? grfx::FORMAT_R32G32_FLOAT : grfx::FORMAT_R32G32B32_FLOAT;
+            ci.vertexBuffers[i].attributes[0].stride         = a.stride;
+            ci.vertexBuffers[i].attributes[0].vertexSemantic = i == POSITION_INDEX ? grfx::VERTEX_SEMANTIC_POSITION
+                                                                                   : (i == UV_INDEX ? grfx::VERTEX_SEMANTIC_TEXCOORD
+                                                                                                    : grfx::VERTEX_SEMANTIC_NORMAL);
+        }
+        PPX_CHECKED_CALL(pQueue->GetDevice()->CreateMesh(&ci, &targetMesh));
+        SCOPED_DESTROYER.AddObject(targetMesh);
     }
-    item.mesh_index = mesh_to_index[node.mesh];
 
-    // Draw uniform buffer
-    grfx::BufferCreateInfo bufferCreateInfo        = {};
-    bufferCreateInfo.size                          = RoundUp(512, PPX_CONSTANT_BUFFER_ALIGNMENT);
-    bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
-    bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
-    PPX_CHECKED_CALL(pDevice->CreateBuffer(&bufferCreateInfo, &item.drawUniformBuffer));
+    // Copy geometry data to mesh.
+    {
+        const cgltf_accessor&      indices      = *primitive.indices;
+        const cgltf_component_type indices_type = indices.component_type;
+        const auto&                buffer_view  = *indices.buffer_view;
+        PPX_ASSERT_MSG(indices_type == cgltf_component_type_r_16u || indices_type == cgltf_component_type_r_32u, "only 32u or 16u are supported for indices.");
+        PPX_ASSERT_MSG(buffer_view.data == nullptr, "Doesn't support extra data");
 
-    // Draw descriptor set
-    PPX_CHECKED_CALL(pDevice->AllocateDescriptorSet(pDescriptorPool, pDrawSetLayout, &item.drawDescriptorSet));
+        grfx::BufferToBufferCopyInfo copyInfo = {};
+        copyInfo.size                         = buffer_view.size;
+        copyInfo.srcBuffer.offset             = buffer_view.offset;
+        copyInfo.dstBuffer.offset             = 0;
+        PPX_CHECKED_CALL(pQueue->CopyBufferToBuffer(&copyInfo, pStagingBuffer, targetMesh->GetIndexBuffer(), grfx::RESOURCE_STATE_INDEX_BUFFER, grfx::RESOURCE_STATE_INDEX_BUFFER));
+        for (size_t i = 0; i < accessors.size(); i++) {
+            const auto& buffer_view = *accessors[i]->buffer_view;
 
-    // Update draw descriptor set
-    grfx::WriteDescriptor write = {};
-    write.binding               = 0;
-    write.type                  = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    write.bufferOffset          = 0;
-    write.bufferRange           = PPX_WHOLE_SIZE;
-    write.pBuffer               = item.drawUniformBuffer;
-    PPX_CHECKED_CALL(item.drawDescriptorSet->UpdateDescriptors(1, &write));
+            grfx::BufferToBufferCopyInfo copyInfo = {};
+            copyInfo.size                         = buffer_view.size;
+            copyInfo.srcBuffer.offset             = buffer_view.offset;
+            copyInfo.dstBuffer.offset             = 0;
+            PPX_CHECKED_CALL(pQueue->CopyBufferToBuffer(&copyInfo, pStagingBuffer, targetMesh->GetVertexBuffer(i), grfx::RESOURCE_STATE_VERTEX_BUFFER, grfx::RESOURCE_STATE_VERTEX_BUFFER));
+        }
+    }
 
-    objects->emplace_back(std::move(item));
-  }
+    targetMesh->SetOwnership(grfx::OWNERSHIP_REFERENCE);
+    *ppMesh = targetMesh;
 }
 
 void ProjApp::LoadGlb(
-    cgltf_mesh *src_mesh,
-    cgltf_buffer *src_buffer,
-    grfx::Device *pDevice,
-    grfx::Queue *pQueue,
-    grfx::DescriptorPool* pDescriptorPool,
+    cgltf_mesh*                      src_mesh,
+    grfx::BufferPtr                  pStagingBuffer,
+    grfx::Device*                    pDevice,
+    grfx::Queue*                     pQueue,
+    grfx::DescriptorPool*            pDescriptorPool,
     const grfx::DescriptorSetLayout* pDrawSetLayout,
-    grfx::Mesh **ppMesh) {
+    std::vector<grfx::Mesh*>*        pMeshVector)
+{
+    PPX_ASSERT_NULL_ARG(pQueue);
+    PPX_ASSERT_NULL_ARG(pMeshVector);
 
-  PPX_ASSERT_NULL_ARG(pQueue);
-  PPX_ASSERT_NULL_ARG(ppMesh);
+    const size_t primitive_count = src_mesh->primitives_count;
+    PPX_ASSERT_MSG(primitive_count == 1, "Only supports one primitive for now.");
 
-  grfx::ScopeDestroyer SCOPED_DESTROYER(pQueue->GetDevice());
-  const size_t primitive_count = src_mesh->primitives_count;
-  PPX_ASSERT_MSG(primitive_count == 1, "Only supports one primitive for now.");
-  const cgltf_primitive& primitive = src_mesh->primitives[0];
-  PPX_ASSERT_MSG(primitive.type == cgltf_primitive_type_triangles,
-                 "only supporting tri primitives for now.");
-  PPX_ASSERT_MSG(!primitive.has_draco_mesh_compression,
-                 "draco compression not supported yet.");
-  PPX_ASSERT_MSG(primitive.indices != nullptr,
-                 "only primitives with indices are supported for now.");
-
-
-  grfx::MeshPtr targetMesh;
-  {
-    // Indices.
-    const cgltf_accessor& indices_accessor = *primitive.indices;
-    const cgltf_component_type indices_type = indices_accessor.component_type;
-    PPX_ASSERT_MSG(indices_type == cgltf_component_type_r_16u
-                || indices_type == cgltf_component_type_r_32u,
-                   "only 32u or 16u are supported for indices.");
-
-    // Attribute accessors.
-    const cgltf_accessor *position_accessor = nullptr;
-    const cgltf_accessor *normal_accessor = nullptr;
-    const cgltf_accessor *uv_accessor = nullptr;
-    for (size_t i = 0; i < primitive.attributes_count; i++) {
-      const auto& type = primitive.attributes[i].type;
-      const auto *data = primitive.attributes[i].data;
-      if (type == cgltf_attribute_type_position) {
-        position_accessor = data;
-      } else if (type == cgltf_attribute_type_normal) {
-        normal_accessor = data;
-      } else if (type == cgltf_attribute_type_texcoord) {
-        uv_accessor = data;
-      }
-    }
-    PPX_ASSERT_MSG(position_accessor != nullptr && normal_accessor != nullptr && uv_accessor != nullptr,
-                   "For now, only supports model with position, normal and UV attributes");
-
-    // Create mesh.
-    grfx::MeshCreateInfo ci;
-    std::memset(&ci.vertexBuffers, 0, PPX_MAX_VERTEX_BINDINGS * sizeof(*ci.vertexBuffers));
-
-    ci.indexType = indices_type == cgltf_component_type_r_16u
-                 ? grfx::IndexType::INDEX_TYPE_UINT16
-                 : grfx::IndexType::INDEX_TYPE_UINT32;
-    ci.indexCount = indices_accessor.count;
-    ci.vertexCount = position_accessor->count;
-    ci.memoryUsage = grfx::MEMORY_USAGE_GPU_ONLY;
-    ci.vertexBufferCount = 3;
-
-    std::array<const cgltf_accessor*, 3> accessors = { position_accessor, uv_accessor, normal_accessor};
-    for (size_t i = 0; i < accessors.size(); i++) {
-      const auto& a = *accessors[i];
-      const auto& bv = *a.buffer_view;
-      // If the buffer_view doesn't declare a stride, the accessor must define it.
-      PPX_ASSERT_MSG(bv.stride == 0, "Stride declared in buffer-view not supported.");
-      PPX_ASSERT_MSG(a.offset == 0, "Non-0 offset in accessor are not supported.");
-      PPX_ASSERT_MSG(a.type == cgltf_type_vec2 || a.type == cgltf_type_vec3, "Non supported accessor type.");
-      PPX_ASSERT_MSG(a.component_type == cgltf_component_type_r_32f, "only float for POS, NORM, TEX are supported.");
-
-      const cgltf_type type = a.type;
-      const size_t stride = a.stride;
-      const size_t count = a.count;
-      const size_t offset = bv.offset;
-      const size_t byte_size = bv.size;
-
-      ci.vertexBuffers[i].attributeCount = 1;
-      ci.vertexBuffers[i].vertexInputRate = grfx::VERTEX_INPUT_RATE_VERTEX;
-      ci.vertexBuffers[i].attributes[0].format = a.type == cgltf_type_vec2 ? grfx::FORMAT_R32G32_FLOAT
-                                                                           : grfx::FORMAT_R32G32B32_FLOAT;
-      ci.vertexBuffers[i].attributes[0].stride = a.stride;
-      ci.vertexBuffers[i].attributes[0].vertexSemantic = i == 0 ? grfx::VERTEX_SEMANTIC_POSITION
-                                                                : (i == 1 ? grfx::VERTEX_SEMANTIC_TEXCOORD
-                                                                          : grfx::VERTEX_SEMANTIC_NORMAL);
-    }
-    PPX_CHECKED_CALL(pQueue->GetDevice()->CreateMesh(&ci, &targetMesh));
-    SCOPED_DESTROYER.AddObject(targetMesh);
-  }
-
-  // Copy data to GPU.
-  grfx::BufferPtr stagingBuffer;
-  {
-    const auto& buffer = *src_buffer;
-    printf("buffer: size=%zu\n", buffer.size);
-
-    grfx::BufferCreateInfo ci = { };
-    ci.size = buffer.size;
-    ci.usageFlags.bits.transferSrc = true;
-    ci.memoryUsage = grfx::MEMORY_USAGE_CPU_TO_GPU;
-
-    PPX_CHECKED_CALL(pQueue->GetDevice()->CreateBuffer(&ci, &stagingBuffer));
-    SCOPED_DESTROYER.AddObject(stagingBuffer);
-
-    PPX_CHECKED_CALL(stagingBuffer->CopyFromSource(buffer.size, buffer.data));
-  }
-
-  // Copy geometry data to mesh.
-  {
-    const cgltf_accessor& indices = *primitive.indices;
-    const cgltf_component_type indices_type = indices.component_type;
-    PPX_ASSERT_MSG(indices_type == cgltf_component_type_r_16u
-                || indices_type == cgltf_component_type_r_32u,
-                   "only 32u or 16u are supported for indices.");
-    const auto& buffer_view = *indices.buffer_view;
-    PPX_ASSERT_MSG(buffer_view.data == nullptr, "Doesn't support extra data");
-
-    const size_t stride = indices.stride;
-    const size_t offset = buffer_view.offset;
-    const size_t size = buffer_view.offset;
-    const size_t max_index = std::min(10ul, indices.count);
-
-    grfx::BufferToBufferCopyInfo copyInfo = {};
-    copyInfo.size = buffer_view.size;
-    copyInfo.srcBuffer.offset = buffer_view.offset;
-    copyInfo.dstBuffer.offset = 0;
-    PPX_CHECKED_CALL(pQueue->CopyBufferToBuffer(&copyInfo, stagingBuffer, targetMesh->GetIndexBuffer(),
-                                                grfx::RESOURCE_STATE_INDEX_BUFFER,
-                                                grfx::RESOURCE_STATE_INDEX_BUFFER));
-
-    // PRINT
-    printf("indices type: %s\n", indices_type == cgltf_component_type_r_16u ? "16u" : "32u");
-    printf("accessor: offset=%zu, stride=%zu, count=%zu\n",
-           indices.offset, indices.stride, indices.count);
-    printf("buffer view: offset=%zu, stride=%zu, count=%zu\n",
-           buffer_view.offset, buffer_view.stride, buffer_view.size);
-    for (size_t i = 0; i < max_index; ++i) {
-      uint8_t *data = reinterpret_cast<uint8_t*>(buffer_view.buffer->data);
-      data += buffer_view.offset;
-      uint16_t *ptr = reinterpret_cast<uint16_t*>(data);
-      printf("index: %u\n", ptr[i]);
-    }
-    // PRINT
-
-  }
-
-  {
-    const cgltf_accessor *position_accessor = nullptr;
-    const cgltf_accessor *normal_accessor = nullptr;
-    const cgltf_accessor *uv_accessor = nullptr;
-    for (size_t i = 0; i < primitive.attributes_count; i++) {
-      const auto& type = primitive.attributes[i].type;
-      const auto *data = primitive.attributes[i].data;
-      if (type == cgltf_attribute_type_position) {
-        printf("%zu - POSITION\n", i);
-        position_accessor = data;
-      } else if (type == cgltf_attribute_type_normal) {
-        printf("%zu - NORMAL\n", i);
-        normal_accessor = data;
-      } else if (type == cgltf_attribute_type_texcoord) {
-        printf("%zu - TEXCOORD\n", i);
-        uv_accessor = data;
-      }
-    }
-    PPX_ASSERT_MSG(position_accessor != nullptr && normal_accessor != nullptr && uv_accessor != nullptr,
-                   "For now, only supports model with position, normal and UV attributes");
-
-    std::array<const cgltf_accessor*, 3> accessors = { position_accessor, uv_accessor, normal_accessor };
-    for (size_t i = 0; i < accessors.size(); i++) {
-      const auto& buffer_view = *accessors[i]->buffer_view;
-
-      grfx::BufferToBufferCopyInfo copyInfo = {};
-      copyInfo.size = buffer_view.size;
-      copyInfo.srcBuffer.offset = buffer_view.offset;
-      copyInfo.dstBuffer.offset = 0;
-      PPX_CHECKED_CALL(pQueue->CopyBufferToBuffer(&copyInfo, stagingBuffer, targetMesh->GetVertexBuffer(i),
-                                                  grfx::RESOURCE_STATE_VERTEX_BUFFER,
-                                                  grfx::RESOURCE_STATE_VERTEX_BUFFER));
-    }
-
-    // PRINT
-    const char* names[3] = { "POSITION", "TEXCOORD", "NORMAL" };
-    for (size_t i = 0; i < accessors.size(); i++) {
-      const auto& a = *accessors[i];
-      const char * name = names[i];
-      size_t offset = a.buffer_view->offset + a.offset;
-      size_t stride = a.stride;
-      size_t count = a.count;
-      printf("%s - offset=%zu, stride=%zu, count=%zu\n", name, offset, stride, count);
-    }
-  }
-
-  targetMesh->SetOwnership(grfx::OWNERSHIP_REFERENCE);
-  *ppMesh = targetMesh;
+    pMeshVector->resize(1);
+    LoadPrimitive(src_mesh->primitives, pStagingBuffer, pDevice, pQueue, &(*pMeshVector)[0]);
 }
 
 void ProjApp::Setup()
 {
     // Cameras
     {
-        mCamera      = PerspCamera(60.0f, GetWindowAspect());
+        mCamera = PerspCamera(60.0f, GetWindowAspect());
     }
 
     // Create descriptor pool large enough for this project
@@ -486,7 +433,7 @@ void ProjApp::Setup()
         TriMesh        mesh    = TriMesh::CreatePlane(TRI_MESH_PLANE_POSITIVE_Y, float2(50, 50), 1, 1, TriMeshOptions(options).ObjectColor(float3(0.7f)));
         CreateEntity(mesh, mDescriptorPool, mDrawObjectSetLayout, glm::mat4(1.f));
 
-        LoadScene(GetAssetPath("basic/models/sponza.gltf"), GetDevice(), GetGraphicsQueue(), mDescriptorPool, mDrawObjectSetLayout, &mObjects, &mMeshes);
+        LoadScene(GetAssetPath("basic/models/altimeter.glb"), GetDevice(), GetGraphicsQueue(), mDescriptorPool, mDrawObjectSetLayout, &mObjects, &mMeshes);
     }
 
     // Draw object pipeline interface and pipeline
@@ -560,9 +507,9 @@ void ProjApp::Setup()
 
 void ProjApp::Render()
 {
-    PerFrame& frame = mPerFrame[0];
-    grfx::SwapchainPtr swapchain = GetSwapchain();
-    uint32_t imageIndex = UINT32_MAX;
+    PerFrame&          frame      = mPerFrame[0];
+    grfx::SwapchainPtr swapchain  = GetSwapchain();
+    uint32_t           imageIndex = UINT32_MAX;
     PPX_CHECKED_CALL(swapchain->AcquireNextImage(UINT64_MAX, frame.imageAcquiredSemaphore, frame.imageAcquiredFence, &imageIndex));
     // Wait for and reset image acquired fence
     PPX_CHECKED_CALL(frame.imageAcquiredFence->WaitAndReset());
@@ -570,12 +517,11 @@ void ProjApp::Render()
     PPX_CHECKED_CALL(frame.renderCompleteFence->WaitAndReset());
 
     // Update light position
-    const float t        = GetElapsedSeconds() / 2.0f;
-    const float r        = 7.0f;
+    const float t  = GetElapsedSeconds() / 2.0f;
+    const float r  = 7.0f;
     mLightPosition = float3(r * cos(t), 5.0f, r * sin(t));
     // Update camera(s)
     mCamera.LookAt(float3(5, 7, 7), float3(0, 1, 0));
-
 
     // Update uniform buffers
     for (auto& object : mObjects) {
@@ -617,10 +563,10 @@ void ProjApp::Render()
             // Draw entities
             frame.cmd->BindGraphicsPipeline(mDrawObjectPipeline);
             for (auto& object : mObjects) {
-              frame.cmd->BindGraphicsDescriptorSets(mDrawObjectPipelineInterface, 1, &object.drawDescriptorSet);
-              frame.cmd->BindIndexBuffer(mMeshes[object.mesh_index]);
-              frame.cmd->BindVertexBuffers(mMeshes[object.mesh_index]);
-              frame.cmd->DrawIndexed(mMeshes[object.mesh_index]->GetIndexCount());
+                frame.cmd->BindGraphicsDescriptorSets(mDrawObjectPipelineInterface, 1, &object.drawDescriptorSet);
+                frame.cmd->BindIndexBuffer(mMeshes[object.mesh_index]);
+                frame.cmd->BindVertexBuffers(mMeshes[object.mesh_index]);
+                frame.cmd->DrawIndexed(mMeshes[object.mesh_index]->GetIndexCount());
             }
 
             // Draw ImGui
@@ -647,7 +593,8 @@ void ProjApp::Render()
 }
 
 void ProjApp::DrawGui()
-{ }
+{
+}
 
 int main(int argc, char** argv)
 {
