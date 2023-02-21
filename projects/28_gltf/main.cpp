@@ -55,13 +55,28 @@ private:
         grfx::FencePtr         renderCompleteFence;
     };
 
+    struct Material
+    {
+      grfx::GraphicsPipelinePtr pPipeline;
+    };
+
+    struct Primitive
+    {
+      grfx::Mesh* mesh;
+    };
+
+    using RenderableMap = std::unordered_map<const Material *, const Primitive *>;
+
     struct Object
     {
         float4x4               model;
         size_t                 mesh_index;
         grfx::DescriptorSetPtr drawDescriptorSet;
         grfx::BufferPtr        drawUniformBuffer;
+        RenderableMap          renderables;
     };
+
+    using RenderList = std::unordered_map<const Material *, std::vector<const Object*>>;
 
     std::vector<PerFrame>        mPerFrame;
     grfx::DescriptorPoolPtr      mDescriptorPool;
@@ -71,8 +86,12 @@ private:
     PerspCamera                  mCamera;
     float3                       mLightPosition = float3(0, 5, 5);
 
-    std::vector<grfx::Mesh*> mMeshes;
-    std::vector<Object>      mObjects;
+    RenderList mRenderList;
+    std::vector<Material>     mMaterials;
+    std::vector<Primitive>    mPrimitives;
+    std::vector<Object>       mObjects;
+
+    //std::vector<grfx::Mesh*> mMeshes;
     const Object*            root;
 
 private:
@@ -89,7 +108,7 @@ private:
         grfx::DescriptorPool*            pDescriptorPool,
         const grfx::DescriptorSetLayout* pDrawSetLayout,
         std::vector<Object>*             objects,
-        std::vector<grfx::Mesh*>*        meshes);
+        std::vector<Primitive>*          pPrimitives);
 
     static void LoadNodes(
         const cgltf_data*                data,
@@ -99,7 +118,7 @@ private:
         grfx::DescriptorPool*            pDescriptorPool,
         const grfx::DescriptorSetLayout* pDrawSetLayout,
         std::vector<Object>*             objects,
-        std::vector<grfx::Mesh*>*        meshes);
+        std::vector<Primitive>*          pPrimitives);
 
     static void LoadGlb(
         cgltf_mesh*                      src_mesh,
@@ -135,9 +154,10 @@ void ProjApp::CreateEntity(
     Geometry geo;
     PPX_CHECKED_CALL(Geometry::Create(triMesh, &geo));
     grfx::Mesh* mesh;
-    PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mesh));
-    object.mesh_index = mMeshes.size();
-    mMeshes.emplace_back(std::move(mesh));
+    Primitive primitive;
+    PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &primitive.mesh));
+    object.mesh_index = mPrimitives.size();
+    mPrimitives.emplace_back(std::move(primitive));
 
     // Draw uniform buffer
     grfx::BufferCreateInfo bufferCreateInfo        = {};
@@ -168,7 +188,7 @@ void ProjApp::LoadScene(
     grfx::DescriptorPool*            pDescriptorPool,
     const grfx::DescriptorSetLayout* pDrawSetLayout,
     std::vector<Object>*             objects,
-    std::vector<grfx::Mesh*>*        meshes)
+    std::vector<Primitive>*          pPrimitives)
 {
     cgltf_options options = {};
     cgltf_data*   data    = nullptr;
@@ -179,9 +199,7 @@ void ProjApp::LoadScene(
     result = cgltf_load_buffers(&options, data, filename.c_str());
     PPX_ASSERT_MSG(result == cgltf_result_success, "Failure while loading buffers.");
 
-    // FIXME: add constraints here for now.
     PPX_ASSERT_MSG(data->buffers_count == 1, "Only supports one buffer for now.");
-    // PPX_ASSERT_MSG(data->meshes_count == 1, "Only supports one mesh for now.");
     PPX_ASSERT_MSG(data->buffers[0].data != nullptr, "Data not loaded. Was cgltf_load_buffer called?");
 
     grfx::ScopeDestroyer SCOPED_DESTROYER(pQueue->GetDevice());
@@ -198,7 +216,7 @@ void ProjApp::LoadScene(
         PPX_CHECKED_CALL(stagingBuffer->CopyFromSource(data->buffers[0].size, data->buffers[0].data));
     }
 
-    LoadNodes(data, stagingBuffer, pDevice, pQueue, pDescriptorPool, pDrawSetLayout, objects, meshes);
+    LoadNodes(data, stagingBuffer, pDevice, pQueue, pDescriptorPool, pDrawSetLayout, objects, pPrimitives);
 }
 
 float4x4 compute_object_matrix(const cgltf_node* node)
@@ -230,7 +248,7 @@ void ProjApp::LoadNodes(
     grfx::DescriptorPool*            pDescriptorPool,
     const grfx::DescriptorSetLayout* pDrawSetLayout,
     std::vector<Object>*             objects,
-    std::vector<grfx::Mesh*>*        meshes)
+    std::vector<Primitive>*          pPrimitives)
 {
     const size_t                            node_count = data->nodes_count;
     const size_t                            mesh_count = data->meshes_count;
@@ -248,8 +266,10 @@ void ProjApp::LoadNodes(
         if (mesh_to_index.count(node.mesh) == 0) {
             std::vector<grfx::Mesh*> mesh_vec;
             LoadGlb(node.mesh, pStagingBuffer, pDevice, pQueue, pDescriptorPool, pDrawSetLayout, &mesh_vec);
-            mesh_to_index.insert({node.mesh, meshes->size()});
-            meshes->push_back(mesh_vec[0]);
+            mesh_to_index.insert({node.mesh, pPrimitives->size()});
+            Primitive primitive;
+            primitive.mesh = mesh_vec[0];
+            pPrimitives->emplace_back(std::move(primitive));
         }
         item.mesh_index = mesh_to_index[node.mesh];
 
@@ -433,7 +453,7 @@ void ProjApp::Setup()
         TriMesh        mesh    = TriMesh::CreatePlane(TRI_MESH_PLANE_POSITIVE_Y, float2(50, 50), 1, 1, TriMeshOptions(options).ObjectColor(float3(0.7f)));
         CreateEntity(mesh, mDescriptorPool, mDrawObjectSetLayout, glm::mat4(1.f));
 
-        LoadScene(GetAssetPath("basic/models/altimeter.glb"), GetDevice(), GetGraphicsQueue(), mDescriptorPool, mDrawObjectSetLayout, &mObjects, &mMeshes);
+        LoadScene(GetAssetPath("basic/models/monkey.glb"), GetDevice(), GetGraphicsQueue(), mDescriptorPool, mDrawObjectSetLayout, &mObjects, &mPrimitives);
     }
 
     // Draw object pipeline interface and pipeline
@@ -464,9 +484,9 @@ void ProjApp::Setup()
         gpCreateInfo.VS                                 = {VS.Get(), "vsmain"};
         gpCreateInfo.PS                                 = {PS.Get(), "psmain"};
         gpCreateInfo.vertexInputState.bindingCount      = 3;
-        gpCreateInfo.vertexInputState.bindings[0]       = mMeshes[0]->GetDerivedVertexBindings()[0];
-        gpCreateInfo.vertexInputState.bindings[1]       = mMeshes[0]->GetDerivedVertexBindings()[1];
-        gpCreateInfo.vertexInputState.bindings[2]       = mMeshes[0]->GetDerivedVertexBindings()[2];
+        gpCreateInfo.vertexInputState.bindings[0]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[0];
+        gpCreateInfo.vertexInputState.bindings[1]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[1];
+        gpCreateInfo.vertexInputState.bindings[2]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[2];
         gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
         gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
@@ -564,9 +584,9 @@ void ProjApp::Render()
             frame.cmd->BindGraphicsPipeline(mDrawObjectPipeline);
             for (auto& object : mObjects) {
                 frame.cmd->BindGraphicsDescriptorSets(mDrawObjectPipelineInterface, 1, &object.drawDescriptorSet);
-                frame.cmd->BindIndexBuffer(mMeshes[object.mesh_index]);
-                frame.cmd->BindVertexBuffers(mMeshes[object.mesh_index]);
-                frame.cmd->DrawIndexed(mMeshes[object.mesh_index]->GetIndexCount());
+                frame.cmd->BindIndexBuffer(mPrimitives[object.mesh_index].mesh);
+                frame.cmd->BindVertexBuffers(mPrimitives[object.mesh_index].mesh);
+                frame.cmd->DrawIndexed(mPrimitives[object.mesh_index].mesh->GetIndexCount());
             }
 
             // Draw ImGui
