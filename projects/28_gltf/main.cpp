@@ -135,6 +135,14 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
 #endif
 }
 
+#if 0
+void ProjApp::LoadTexture(const cgltf_texture& texture, Texture* pOutput) const {
+  PPX_ASSERT_MSG(texture.image != nullptr, "Texture with no image are not supported.");
+  PPX_ASSERT_MSG(texture.image.buffer_view != nullptr, "Texture with non-embedded data is not supported.");
+  PPX_ASSERT_MSG(strcmp(texture.image.mime_type, "image/dds") != 0, "Texture format others than DDS are not supported.");
+}
+#endif
+
 void ProjApp::LoadMaterial(
     const cgltf_material& material,
     grfx::Swapchain*      pSwapchain,
@@ -168,21 +176,19 @@ void ProjApp::LoadMaterial(
             /* array_count= */ 1,
             /* shader_visibility= */ grfx::SHADER_STAGE_PS});
 
-#if 0 // FIXME
-    // Normal
-    layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
-        /* binding= */ 2,
-        /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-        /* array_count= */ 1,
-        /* shader_visibility= */ grfx::SHADER_STAGE_PS});
+        // Normal
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
+            /* binding= */ 2,
+            /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+            /* array_count= */ 1,
+            /* shader_visibility= */ grfx::SHADER_STAGE_PS});
 
-    // Metallic/Roughness
-    layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
-        /* binding= */ 3,
-        /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-        /* array_count= */ 1,
-        /* shader_visibility= */ grfx::SHADER_STAGE_PS});
-#endif
+        // Metallic/Roughness
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
+            /* binding= */ 3,
+            /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+            /* array_count= */ 1,
+            /* shader_visibility= */ grfx::SHADER_STAGE_PS});
 
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
             /* binding= */ 2,
