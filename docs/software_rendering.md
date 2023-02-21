@@ -48,7 +48,7 @@ $env:VK_ICD_FILENAMES = 'C:\absolute\path\to\vk_swiftshader_icd.json'
 bin/bigwheels_application.exe
 ```
 
-If you are using Visual Studio and running an application through it, add `VK_ICD_FILENAMES=C:\absolute\path\to\vk_swiftshader_icd.json` as an entry to `Configuration Properties -> Debugging -> Environment` in the project's property pages, as shown in the following screenshot.
+If you are using Visual Studio and running an application through it, add `VK_ICD_FILENAMES=C:\absolute\path\to\vk_swiftshader_icd.json` as an entry to `Configuration Properties -> Debugging -> Environment` in the project's property pages, as shown in the following screenshot. Do not use quotes around the path or a path with spaces in it.
 
 ![Environment property variable in Visual Studio](media/SwiftShader_VisualStudio_EnvVariable.png)
 
