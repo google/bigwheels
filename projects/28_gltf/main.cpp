@@ -57,77 +57,70 @@ private:
 
     struct Material
     {
-      grfx::GraphicsPipelinePtr pPipeline;
+        grfx::PipelineInterfacePtr   pInterface;
+        grfx::DescriptorSetLayoutPtr pSetLayout;
+        grfx::GraphicsPipelinePtr    pPipeline;
+        grfx::DescriptorSetPtr       pDescriptorSet;
     };
 
     struct Primitive
     {
-      grfx::Mesh* mesh;
+        grfx::Mesh* mesh;
     };
 
-    using RenderableMap = std::unordered_map<const Material *, const Primitive *>;
+    using RenderableMap = std::unordered_map<Material*, Primitive*>;
 
     struct Object
     {
-        float4x4               model;
-        size_t                 mesh_index;
-        grfx::DescriptorSetPtr drawDescriptorSet;
-        grfx::BufferPtr        drawUniformBuffer;
-        RenderableMap          renderables;
+        float4x4        model;
+        grfx::BufferPtr pUniformBuffer;
+        RenderableMap   renderables;
     };
 
-    using RenderList = std::unordered_map<const Material *, std::vector<const Object*>>;
+    using RenderList = std::unordered_map<Material*, std::vector<Object*>>;
 
-    std::vector<PerFrame>        mPerFrame;
-    grfx::DescriptorPoolPtr      mDescriptorPool;
-    grfx::DescriptorSetLayoutPtr mDrawObjectSetLayout;
-    grfx::PipelineInterfacePtr   mDrawObjectPipelineInterface;
-    grfx::GraphicsPipelinePtr    mDrawObjectPipeline;
-    PerspCamera                  mCamera;
-    float3                       mLightPosition = float3(0, 5, 5);
+    std::vector<PerFrame>   mPerFrame;
+    grfx::DescriptorPoolPtr mDescriptorPool;
+    PerspCamera             mCamera;
+    float3                  mLightPosition = float3(0, 5, 5);
 
-    RenderList mRenderList;
-    std::vector<Material>     mMaterials;
-    std::vector<Primitive>    mPrimitives;
-    std::vector<Object>       mObjects;
-
-    //std::vector<grfx::Mesh*> mMeshes;
-    const Object*            root;
+    RenderList             mRenderList;
+    std::vector<Material>  mMaterials;
+    std::vector<Primitive> mPrimitives;
+    std::vector<Object>    mObjects;
 
 private:
-    void CreateEntity(
-        const TriMesh&                   mesh,
-        grfx::DescriptorPool*            pDescriptorPool,
-        const grfx::DescriptorSetLayout* pDrawSetLayout,
-        float4x4                         model);
+    void LoadScene(
+        const std::filesystem::path& filename,
+        grfx::Device*                pDevice,
+        grfx::Swapchain*             pSwapchain,
+        grfx::Queue*                 pQueue,
+        grfx::DescriptorPool*        pDescriptorPool,
+        std::vector<Object>*         objects,
+        std::vector<Primitive>*      pPrimitives,
+        std::vector<Material>*       pMaterials) const;
 
-    static void LoadScene(
-        const std::filesystem::path&     filename,
-        grfx::Device*                    pDevice,
-        grfx::Queue*                     pQueue,
-        grfx::DescriptorPool*            pDescriptorPool,
-        const grfx::DescriptorSetLayout* pDrawSetLayout,
-        std::vector<Object>*             objects,
-        std::vector<Primitive>*          pPrimitives);
+    void LoadMaterial(
+        const cgltf_material& material,
+        grfx::Swapchain*      pSwapchain,
+        grfx::Queue*          pQueue,
+        grfx::DescriptorPool* pDescriptorPool,
+        Material*             pOutput) const;
+
+    void LoadPrimitive(
+        const cgltf_primitive& primitive,
+        grfx::BufferPtr        pStagingBuffer,
+        grfx::Queue*           pQueue,
+        Primitive*             pOutput) const;
 
     static void LoadNodes(
-        const cgltf_data*                data,
-        grfx::BufferPtr                  pStagingBuffer,
-        grfx::Device*                    pDevice,
-        grfx::Queue*                     pQueue,
-        grfx::DescriptorPool*            pDescriptorPool,
-        const grfx::DescriptorSetLayout* pDrawSetLayout,
-        std::vector<Object>*             objects,
-        std::vector<Primitive>*          pPrimitives);
-
-    static void LoadGlb(
-        cgltf_mesh*                      src_mesh,
-        grfx::BufferPtr                  pStagingBuffer,
-        grfx::Device*                    pDevice,
-        grfx::Queue*                     pQueue,
-        grfx::DescriptorPool*            pDescriptorPool,
-        const grfx::DescriptorSetLayout* pDrawSetLayout,
-        std::vector<grfx::Mesh*>*        pMeshVector);
+        const cgltf_data*                                         data,
+        grfx::BufferPtr                                           pStagingBuffer,
+        grfx::Queue*                                              pQueue,
+        std::vector<Object>*                                      objects,
+        const std::unordered_map<const cgltf_primitive*, size_t>& primitiveToIndex,
+        std::vector<Primitive>*                                   pPrimitives,
+        std::vector<Material>*                                    pMaterials);
 };
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
@@ -142,161 +135,117 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
 #endif
 }
 
-void ProjApp::CreateEntity(
-    const TriMesh&                   triMesh,
-    grfx::DescriptorPool*            pDescriptorPool,
-    const grfx::DescriptorSetLayout* pDrawSetLayout,
-    float4x4                         model)
+void ProjApp::LoadMaterial(
+    const cgltf_material& material,
+    grfx::Swapchain*      pSwapchain,
+    grfx::Queue*          pQueue,
+    grfx::DescriptorPool* pDescriptorPool,
+    Material*             pOutput) const
 {
-    Object object;
-    object.model = model;
+    grfx::Device* pDevice = pQueue->GetDevice();
+    if (material.extensions_count != 0) {
+        printf("Material %s has extensions, but they are ignored. Rendered aspect may vary.\n", material.name);
+    }
 
-    Geometry geo;
-    PPX_CHECKED_CALL(Geometry::Create(triMesh, &geo));
-    grfx::Mesh* mesh;
-    Primitive primitive;
-    PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &primitive.mesh));
-    object.mesh_index = mPrimitives.size();
-    mPrimitives.emplace_back(std::move(primitive));
+    // This is to simplify the pipeline creation for now. Need to revisit later.
+    PPX_ASSERT_MSG(material.has_pbr_metallic_roughness, "Only PBR metallic roughness supported for now.");
+    PPX_ASSERT_MSG(material.normal_texture.texture != nullptr, "Missing normal texture not supported yet.");
+    PPX_ASSERT_MSG(material.pbr_metallic_roughness.base_color_texture.texture != nullptr, "Missing albedo.");
+    PPX_ASSERT_MSG(material.pbr_metallic_roughness.metallic_roughness_texture.texture != nullptr, "Missing metallic+roughness.");
 
-    // Draw uniform buffer
-    grfx::BufferCreateInfo bufferCreateInfo        = {};
-    bufferCreateInfo.size                          = RoundUp(512, PPX_CONSTANT_BUFFER_ALIGNMENT);
-    bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
-    bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
-    PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &object.drawUniformBuffer));
-
-    // Draw descriptor set
-    PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(pDescriptorPool, pDrawSetLayout, &object.drawDescriptorSet));
-
-    // Update draw descriptor set
-    grfx::WriteDescriptor write = {};
-    write.binding               = 0;
-    write.type                  = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    write.bufferOffset          = 0;
-    write.bufferRange           = PPX_WHOLE_SIZE;
-    write.pBuffer               = object.drawUniformBuffer;
-    PPX_CHECKED_CALL(object.drawDescriptorSet->UpdateDescriptors(1, &write));
-
-    mObjects.emplace_back(std::move(object));
-}
-
-void ProjApp::LoadScene(
-    const std::filesystem::path&     filename,
-    grfx::Device*                    pDevice,
-    grfx::Queue*                     pQueue,
-    grfx::DescriptorPool*            pDescriptorPool,
-    const grfx::DescriptorSetLayout* pDrawSetLayout,
-    std::vector<Object>*             objects,
-    std::vector<Primitive>*          pPrimitives)
-{
-    cgltf_options options = {};
-    cgltf_data*   data    = nullptr;
-    cgltf_result  result  = cgltf_parse_file(&options, filename.c_str(), &data);
-    PPX_ASSERT_MSG(result == cgltf_result_success, "Failure while loading GLB file.");
-    result = cgltf_validate(data);
-    PPX_ASSERT_MSG(result == cgltf_result_success, "Failure while validating GLB file.");
-    result = cgltf_load_buffers(&options, data, filename.c_str());
-    PPX_ASSERT_MSG(result == cgltf_result_success, "Failure while loading buffers.");
-
-    PPX_ASSERT_MSG(data->buffers_count == 1, "Only supports one buffer for now.");
-    PPX_ASSERT_MSG(data->buffers[0].data != nullptr, "Data not loaded. Was cgltf_load_buffer called?");
-
-    grfx::ScopeDestroyer SCOPED_DESTROYER(pQueue->GetDevice());
-    // Copy main buffer data to stating buffer.
-    grfx::BufferPtr stagingBuffer;
     {
-        grfx::BufferCreateInfo ci      = {};
-        ci.size                        = data->buffers[0].size;
-        ci.usageFlags.bits.transferSrc = true;
-        ci.memoryUsage                 = grfx::MEMORY_USAGE_CPU_TO_GPU;
+        grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
+            /* binding= */ 0,
+            /* type= */ grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            /* array_count= */ 1,
+            /* shader_visibility= */ grfx::SHADER_STAGE_ALL_GRAPHICS});
 
-        PPX_CHECKED_CALL(pQueue->GetDevice()->CreateBuffer(&ci, &stagingBuffer));
-        SCOPED_DESTROYER.AddObject(stagingBuffer);
-        PPX_CHECKED_CALL(stagingBuffer->CopyFromSource(data->buffers[0].size, data->buffers[0].data));
+        // Albedo
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
+            /* binding= */ 1,
+            /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+            /* array_count= */ 1,
+            /* shader_visibility= */ grfx::SHADER_STAGE_PS});
+
+#if 0 // FIXME
+    // Normal
+    layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
+        /* binding= */ 2,
+        /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+        /* array_count= */ 1,
+        /* shader_visibility= */ grfx::SHADER_STAGE_PS});
+
+    // Metallic/Roughness
+    layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
+        /* binding= */ 3,
+        /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+        /* array_count= */ 1,
+        /* shader_visibility= */ grfx::SHADER_STAGE_PS});
+#endif
+
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
+            /* binding= */ 2,
+            /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLER,
+            /* array_count= */ 1,
+            /* shader_visibility= */ grfx::SHADER_STAGE_PS});
+
+        PPX_CHECKED_CALL(pDevice->CreateDescriptorSetLayout(&layoutCreateInfo, &pOutput->pSetLayout));
     }
+    PPX_CHECKED_CALL(pQueue->GetDevice()->AllocateDescriptorSet(pDescriptorPool, pOutput->pSetLayout, &pOutput->pDescriptorSet));
 
-    LoadNodes(data, stagingBuffer, pDevice, pQueue, pDescriptorPool, pDrawSetLayout, objects, pPrimitives);
+    grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
+    piCreateInfo.setCount                          = 1;
+    piCreateInfo.sets[0].set                       = 0;
+    piCreateInfo.sets[0].pLayout                   = pOutput->pSetLayout;
+    PPX_CHECKED_CALL(pDevice->CreatePipelineInterface(&piCreateInfo, &pOutput->pInterface));
+
+    grfx::ShaderModulePtr VS;
+    std::vector<char>     bytecode = LoadShader("basic/shaders", "Lambert.vs");
+    PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
+    grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+    PPX_CHECKED_CALL(pDevice->CreateShaderModule(&shaderCreateInfo, &VS));
+
+    grfx::ShaderModulePtr PS;
+    bytecode = LoadShader("basic/shaders", "Lambert.ps");
+    PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
+    shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+    PPX_CHECKED_CALL(pDevice->CreateShaderModule(&shaderCreateInfo, &PS));
+
+    grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
+    gpCreateInfo.VS                                 = {VS.Get(), "vsmain"};
+    gpCreateInfo.PS                                 = {PS.Get(), "psmain"};
+    gpCreateInfo.vertexInputState.bindingCount      = 3;
+    gpCreateInfo.vertexInputState.bindings[0]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[0];
+    gpCreateInfo.vertexInputState.bindings[1]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[1];
+    gpCreateInfo.vertexInputState.bindings[2]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[2];
+    gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
+    gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
+    gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
+    gpCreateInfo.depthReadEnable                    = true;
+    gpCreateInfo.depthWriteEnable                   = true;
+    gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
+    gpCreateInfo.outputState.renderTargetCount      = 1;
+    gpCreateInfo.outputState.renderTargetFormats[0] = pSwapchain->GetColorFormat();
+    gpCreateInfo.outputState.depthStencilFormat     = pSwapchain->GetDepthFormat();
+    gpCreateInfo.pPipelineInterface                 = pOutput->pInterface;
+
+    PPX_CHECKED_CALL(pDevice->CreateGraphicsPipeline(&gpCreateInfo, &pOutput->pPipeline));
+    pDevice->DestroyShaderModule(VS);
+    pDevice->DestroyShaderModule(PS);
 }
 
-float4x4 compute_object_matrix(const cgltf_node* node)
+static inline size_t count_primitives(const cgltf_mesh* array, size_t count)
 {
-    float4x4 output(1.f);
-    while (node != nullptr) {
-        if (node->has_matrix) {
-            output = glm::make_mat4(node->matrix) * output;
-        }
-        else {
-            const float4x4 T = node->has_translation ? glm::translate(glm::make_vec3(node->translation)) : glm::mat4(1.f);
-            const float4x4 R = node->has_rotation
-                                   ? glm::mat4_cast(glm::quat(node->rotation[3], node->rotation[0], node->rotation[1], node->rotation[2]))
-                                   : glm::mat4(1.f);
-            const float4x4 S = node->has_scale ? glm::scale(glm::make_vec3(node->scale)) : glm::mat4(1.f);
-            const float4x4 M = T * R * S;
-            output           = M * output;
-        }
-        node = node->parent;
+    size_t total = 0;
+    for (size_t i = 0; i < count; i++) {
+        total += array[i].primitives_count;
     }
-    return output;
+    return total;
 }
 
-void ProjApp::LoadNodes(
-    const cgltf_data*                data,
-    grfx::BufferPtr                  pStagingBuffer,
-    grfx::Device*                    pDevice,
-    grfx::Queue*                     pQueue,
-    grfx::DescriptorPool*            pDescriptorPool,
-    const grfx::DescriptorSetLayout* pDrawSetLayout,
-    std::vector<Object>*             objects,
-    std::vector<Primitive>*          pPrimitives)
-{
-    const size_t                            node_count = data->nodes_count;
-    const size_t                            mesh_count = data->meshes_count;
-    std::unordered_map<cgltf_mesh*, size_t> mesh_to_index;
-
-    for (size_t i = 0; i < node_count; i++) {
-        const auto& node = data->nodes[i];
-        if (node.mesh == nullptr) {
-            continue;
-        }
-
-        Object item;
-        item.model = compute_object_matrix(&data->nodes[i]);
-
-        if (mesh_to_index.count(node.mesh) == 0) {
-            std::vector<grfx::Mesh*> mesh_vec;
-            LoadGlb(node.mesh, pStagingBuffer, pDevice, pQueue, pDescriptorPool, pDrawSetLayout, &mesh_vec);
-            mesh_to_index.insert({node.mesh, pPrimitives->size()});
-            Primitive primitive;
-            primitive.mesh = mesh_vec[0];
-            pPrimitives->emplace_back(std::move(primitive));
-        }
-        item.mesh_index = mesh_to_index[node.mesh];
-
-        // Draw uniform buffer
-        grfx::BufferCreateInfo bufferCreateInfo        = {};
-        bufferCreateInfo.size                          = RoundUp(512, PPX_CONSTANT_BUFFER_ALIGNMENT);
-        bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
-        bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
-        PPX_CHECKED_CALL(pDevice->CreateBuffer(&bufferCreateInfo, &item.drawUniformBuffer));
-
-        // Draw descriptor set
-        PPX_CHECKED_CALL(pDevice->AllocateDescriptorSet(pDescriptorPool, pDrawSetLayout, &item.drawDescriptorSet));
-
-        // Update draw descriptor set
-        grfx::WriteDescriptor write = {};
-        write.binding               = 0;
-        write.type                  = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        write.bufferOffset          = 0;
-        write.bufferRange           = PPX_WHOLE_SIZE;
-        write.pBuffer               = item.drawUniformBuffer;
-        PPX_CHECKED_CALL(item.drawDescriptorSet->UpdateDescriptors(1, &write));
-
-        objects->emplace_back(std::move(item));
-    }
-}
-
-void GetAccessorsForPrimitive(const cgltf_primitive& primitive, const cgltf_accessor** position, const cgltf_accessor** uv, const cgltf_accessor** normal)
+static void GetAccessorsForPrimitive(const cgltf_primitive& primitive, const cgltf_accessor** position, const cgltf_accessor** uv, const cgltf_accessor** normal)
 {
     PPX_ASSERT_NULL_ARG(position);
     PPX_ASSERT_NULL_ARG(uv);
@@ -319,10 +268,9 @@ void GetAccessorsForPrimitive(const cgltf_primitive& primitive, const cgltf_acce
     PPX_ASSERT_MSG(*position != nullptr && *uv != nullptr && *normal != nullptr, "For now, only supports model with position, normal and UV attributes");
 }
 
-void LoadPrimitive(const cgltf_primitive* src_primitive, grfx::BufferPtr pStagingBuffer, grfx::Device* pDevice, grfx::Queue* pQueue, grfx::Mesh** ppMesh)
+void ProjApp::LoadPrimitive(const cgltf_primitive& primitive, grfx::BufferPtr pStagingBuffer, grfx::Queue* pQueue, Primitive* pOutput) const
 {
-    grfx::ScopeDestroyer   SCOPED_DESTROYER(pQueue->GetDevice());
-    const cgltf_primitive& primitive = *src_primitive;
+    grfx::ScopeDestroyer SCOPED_DESTROYER(pQueue->GetDevice());
     PPX_ASSERT_MSG(primitive.type == cgltf_primitive_type_triangles, "only supporting tri primitives for now.");
     PPX_ASSERT_MSG(!primitive.has_draco_mesh_compression, "draco compression not supported yet.");
     PPX_ASSERT_MSG(primitive.indices != nullptr, "only primitives with indices are supported for now.");
@@ -399,26 +347,133 @@ void LoadPrimitive(const cgltf_primitive* src_primitive, grfx::BufferPtr pStagin
     }
 
     targetMesh->SetOwnership(grfx::OWNERSHIP_REFERENCE);
-    *ppMesh = targetMesh;
+    pOutput->mesh = targetMesh;
 }
 
-void ProjApp::LoadGlb(
-    cgltf_mesh*                      src_mesh,
-    grfx::BufferPtr                  pStagingBuffer,
-    grfx::Device*                    pDevice,
-    grfx::Queue*                     pQueue,
-    grfx::DescriptorPool*            pDescriptorPool,
-    const grfx::DescriptorSetLayout* pDrawSetLayout,
-    std::vector<grfx::Mesh*>*        pMeshVector)
+void ProjApp::LoadScene(
+    const std::filesystem::path& filename,
+    grfx::Device*                pDevice,
+    grfx::Swapchain*             pSwapchain,
+    grfx::Queue*                 pQueue,
+    grfx::DescriptorPool*        pDescriptorPool,
+    std::vector<Object>*         objects,
+    std::vector<Primitive>*      pPrimitives,
+    std::vector<Material>*       pMaterials) const
 {
-    PPX_ASSERT_NULL_ARG(pQueue);
-    PPX_ASSERT_NULL_ARG(pMeshVector);
+    cgltf_options options = {};
+    cgltf_data*   data    = nullptr;
+    cgltf_result  result  = cgltf_parse_file(&options, filename.c_str(), &data);
+    PPX_ASSERT_MSG(result == cgltf_result_success, "Failure while loading GLB file.");
+    result = cgltf_validate(data);
+    PPX_ASSERT_MSG(result == cgltf_result_success, "Failure while validating GLB file.");
+    result = cgltf_load_buffers(&options, data, filename.c_str());
+    PPX_ASSERT_MSG(result == cgltf_result_success, "Failure while loading buffers.");
 
-    const size_t primitive_count = src_mesh->primitives_count;
-    PPX_ASSERT_MSG(primitive_count == 1, "Only supports one primitive for now.");
+    PPX_ASSERT_MSG(data->buffers_count == 1, "Only supports one buffer for now.");
+    PPX_ASSERT_MSG(data->buffers[0].data != nullptr, "Data not loaded. Was cgltf_load_buffer called?");
 
-    pMeshVector->resize(1);
-    LoadPrimitive(src_mesh->primitives, pStagingBuffer, pDevice, pQueue, &(*pMeshVector)[0]);
+    grfx::ScopeDestroyer SCOPED_DESTROYER(pQueue->GetDevice());
+    // Copy main buffer data to stating buffer.
+    grfx::BufferPtr stagingBuffer;
+    {
+        grfx::BufferCreateInfo ci      = {};
+        ci.size                        = data->buffers[0].size;
+        ci.usageFlags.bits.transferSrc = true;
+        ci.memoryUsage                 = grfx::MEMORY_USAGE_CPU_TO_GPU;
+
+        PPX_CHECKED_CALL(pQueue->GetDevice()->CreateBuffer(&ci, &stagingBuffer));
+        SCOPED_DESTROYER.AddObject(stagingBuffer);
+        PPX_CHECKED_CALL(stagingBuffer->CopyFromSource(data->buffers[0].size, data->buffers[0].data));
+    }
+
+    std::unordered_map<const cgltf_primitive*, size_t> primitiveToIndex;
+    pPrimitives->resize(count_primitives(data->meshes, data->meshes_count));
+    {
+        size_t next_slot = 0;
+        for (size_t i = 0; i < data->meshes_count; i++) {
+            const auto& mesh = data->meshes[i];
+            for (size_t j = 0; j < mesh.primitives_count; j++) {
+                LoadPrimitive(mesh.primitives[i], stagingBuffer, pQueue, &(*pPrimitives)[next_slot]);
+                primitiveToIndex.insert({&mesh.primitives[i], next_slot});
+                next_slot++;
+            }
+        }
+    }
+
+    pMaterials->resize(data->materials_count);
+    for (size_t i = 0; i < data->materials_count; i++) {
+        LoadMaterial(data->materials[i], pSwapchain, pQueue, pDescriptorPool, &(*pMaterials)[i]);
+    }
+
+    LoadNodes(data, stagingBuffer, pQueue, objects, primitiveToIndex, pPrimitives, pMaterials);
+}
+
+float4x4 compute_object_matrix(const cgltf_node* node)
+{
+    float4x4 output(1.f);
+    while (node != nullptr) {
+        if (node->has_matrix) {
+            output = glm::make_mat4(node->matrix) * output;
+        }
+        else {
+            const float4x4 T = node->has_translation ? glm::translate(glm::make_vec3(node->translation)) : glm::mat4(1.f);
+            const float4x4 R = node->has_rotation
+                                   ? glm::mat4_cast(glm::quat(node->rotation[3], node->rotation[0], node->rotation[1], node->rotation[2]))
+                                   : glm::mat4(1.f);
+            const float4x4 S = node->has_scale ? glm::scale(glm::make_vec3(node->scale)) : glm::mat4(1.f);
+            const float4x4 M = T * R * S;
+            output           = M * output;
+        }
+        node = node->parent;
+    }
+    return output;
+}
+
+void ProjApp::LoadNodes(
+    const cgltf_data*                                         data,
+    grfx::BufferPtr                                           pStagingBuffer,
+    grfx::Queue*                                              pQueue,
+    std::vector<Object>*                                      objects,
+    const std::unordered_map<const cgltf_primitive*, size_t>& primitiveToIndex,
+    std::vector<Primitive>*                                   pPrimitives,
+    std::vector<Material>*                                    pMaterials)
+{
+    const size_t                                node_count = data->nodes_count;
+    const size_t                                mesh_count = data->meshes_count;
+    std::unordered_map<cgltf_mesh*, size_t>     mesh_to_index;
+    std::unordered_map<cgltf_material*, size_t> material_to_index;
+
+    for (size_t i = 0; i < node_count; i++) {
+        const auto& node = data->nodes[i];
+        if (node.mesh == nullptr) {
+            continue;
+        }
+
+        Object item;
+        item.model = compute_object_matrix(&node);
+
+        for (size_t j = 0; j < node.mesh->primitives_count; j++) {
+            const size_t primitive_index = primitiveToIndex.at(&node.mesh->primitives[j]);
+            const size_t material_index  = std::distance(data->materials, node.mesh->primitives[j].material);
+            PPX_ASSERT_MSG(primitive_index < pPrimitives->size(), "Invalid GLB file. Primitive index out of range.");
+            PPX_ASSERT_MSG(material_index < pMaterials->size(), "Invalid GLB file. Material index out of range.");
+            Primitive* pPrimitive = &(*pPrimitives)[primitive_index];
+            Material*  pMaterial  = &(*pMaterials)[material_index];
+            item.renderables.emplace(pMaterial, pPrimitive);
+
+            // FIXME: multiple primitives per mesh.
+            // break;
+        }
+
+        // Create uniform buffer.
+        grfx::BufferCreateInfo bufferCreateInfo        = {};
+        bufferCreateInfo.size                          = RoundUp(512, PPX_CONSTANT_BUFFER_ALIGNMENT);
+        bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
+        bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
+        PPX_CHECKED_CALL(pQueue->GetDevice()->CreateBuffer(&bufferCreateInfo, &item.pUniformBuffer));
+
+        objects->emplace_back(std::move(item));
+    }
 }
 
 void ProjApp::Setup()
@@ -437,72 +492,7 @@ void ProjApp::Setup()
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&poolCreateInfo, &mDescriptorPool));
     }
 
-    // Descriptor set layouts
-    {
-        // Draw objects
-        grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{0, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{1, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_PS});
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{2, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_PS});
-        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mDrawObjectSetLayout));
-    }
-
-    // Setup entities
-    {
-        TriMeshOptions options = TriMeshOptions().Indices().VertexColors().Normals();
-        TriMesh        mesh    = TriMesh::CreatePlane(TRI_MESH_PLANE_POSITIVE_Y, float2(50, 50), 1, 1, TriMeshOptions(options).ObjectColor(float3(0.7f)));
-        CreateEntity(mesh, mDescriptorPool, mDrawObjectSetLayout, glm::mat4(1.f));
-
-        LoadScene(GetAssetPath("basic/models/monkey.glb"), GetDevice(), GetGraphicsQueue(), mDescriptorPool, mDrawObjectSetLayout, &mObjects, &mPrimitives);
-    }
-
-    // Draw object pipeline interface and pipeline
-    {
-        // Pipeline interface
-        grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
-        piCreateInfo.setCount                          = 1;
-        piCreateInfo.sets[0].set                       = 0;
-        piCreateInfo.sets[0].pLayout                   = mDrawObjectSetLayout;
-        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mDrawObjectPipelineInterface));
-
-        // Pipeline
-        grfx::ShaderModulePtr VS;
-
-        std::vector<char> bytecode = LoadShader("basic/shaders", "Lambert.vs");
-        PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
-        grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &VS));
-
-        grfx::ShaderModulePtr PS;
-
-        bytecode = LoadShader("basic/shaders", "Lambert.ps");
-        PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
-        shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &PS));
-
-        grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
-        gpCreateInfo.VS                                 = {VS.Get(), "vsmain"};
-        gpCreateInfo.PS                                 = {PS.Get(), "psmain"};
-        gpCreateInfo.vertexInputState.bindingCount      = 3;
-        gpCreateInfo.vertexInputState.bindings[0]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[0];
-        gpCreateInfo.vertexInputState.bindings[1]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[1];
-        gpCreateInfo.vertexInputState.bindings[2]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[2];
-        gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
-        gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
-        gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
-        gpCreateInfo.depthReadEnable                    = true;
-        gpCreateInfo.depthWriteEnable                   = true;
-        gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
-        gpCreateInfo.outputState.renderTargetCount      = 1;
-        gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
-        gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
-        gpCreateInfo.pPipelineInterface                 = mDrawObjectPipelineInterface;
-
-        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mDrawObjectPipeline));
-        GetDevice()->DestroyShaderModule(VS);
-        GetDevice()->DestroyShaderModule(PS);
-    }
+    LoadScene(GetAssetPath("basic/models/altimeter.glb"), GetDevice(), GetSwapchain(), GetGraphicsQueue(), mDescriptorPool, &mObjects, &mPrimitives, &mMaterials);
 
     // Per frame data
     {
@@ -562,7 +552,7 @@ void ProjApp::Render()
         scene.LightPosition              = float4(mLightPosition, 0);
         scene.EyePosition                = glm::float4(mCamera.GetEyePosition(), 0.f);
 
-        object.drawUniformBuffer->CopyFromSource(sizeof(scene), &scene);
+        object.pUniformBuffer->CopyFromSource(sizeof(scene), &scene);
     }
 
     // Build command buffer
@@ -581,12 +571,23 @@ void ProjApp::Render()
             frame.cmd->SetViewports(GetViewport());
 
             // Draw entities
-            frame.cmd->BindGraphicsPipeline(mDrawObjectPipeline);
             for (auto& object : mObjects) {
-                frame.cmd->BindGraphicsDescriptorSets(mDrawObjectPipelineInterface, 1, &object.drawDescriptorSet);
-                frame.cmd->BindIndexBuffer(mPrimitives[object.mesh_index].mesh);
-                frame.cmd->BindVertexBuffers(mPrimitives[object.mesh_index].mesh);
-                frame.cmd->DrawIndexed(mPrimitives[object.mesh_index].mesh->GetIndexCount());
+                for (auto& [pMaterial, pPrimitive] : object.renderables) {
+                    grfx::WriteDescriptor write = {};
+                    write.binding               = 0;
+                    write.type                  = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                    write.bufferOffset          = 0;
+                    write.bufferRange           = PPX_WHOLE_SIZE;
+                    write.pBuffer               = object.pUniformBuffer;
+                    PPX_CHECKED_CALL(pMaterial->pDescriptorSet->UpdateDescriptors(1, &write));
+
+                    frame.cmd->BindGraphicsPipeline(pMaterial->pPipeline);
+                    frame.cmd->BindGraphicsDescriptorSets(pMaterial->pInterface, 1, &pMaterial->pDescriptorSet);
+
+                    frame.cmd->BindIndexBuffer(pPrimitive->mesh);
+                    frame.cmd->BindVertexBuffers(pPrimitive->mesh);
+                    frame.cmd->DrawIndexed(pPrimitive->mesh->GetIndexCount());
+                }
             }
 
             // Draw ImGui
