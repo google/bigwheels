@@ -34,10 +34,12 @@ cbuffer Scene : register(b0)
 ConstantBuffer<SceneData> Scene : register(b0);
 #endif // defined(PPX_D3D11)
 
-Texture2D                 AlbedoTexture  : register(t1);
-Texture2D                 MetalRoughness : register(t2);
-Texture2D                 NormalMap      : register(t3);
-SamplerState              Sampler        : register(s4);
+Texture2D                 AlbedoTexture         : register(t1);
+SamplerState              AlbedoSampler         : register(s2);
+Texture2D                 NormalMap             : register(t3);
+SamplerState              NormalMapSampler      : register(s4);
+Texture2D                 MetalRoughness        : register(t5);
+SamplerState              MetalRoughnessSampler : register(s6);
 
 struct VSOutput {
   float4 world_position : POSITION;
@@ -69,7 +71,7 @@ float4 psmain(VSOutput input) : SV_TARGET
 
 
     // Read albedo texture value
-    const float3 albedo = AlbedoTexture.Sample(Sampler, input.uv).rgb;
+    const float3 albedo = AlbedoTexture.Sample(AlbedoSampler, input.uv).rgb;
 
     // Light
     const float3 L = normalize(Scene.LightPosition.xyz - input.world_position.xyz);

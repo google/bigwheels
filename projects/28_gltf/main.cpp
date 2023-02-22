@@ -55,15 +55,20 @@ private:
         grfx::FencePtr         renderCompleteFence;
     };
 
+    struct Texture
+    {
+      grfx::ImagePtr            pImage;
+      grfx::SampledImageViewPtr pTexture;
+      grfx::SamplerPtr          pSampler;
+    };
+
     struct Material
     {
         grfx::PipelineInterfacePtr   pInterface;
         grfx::DescriptorSetLayoutPtr pSetLayout;
         grfx::GraphicsPipelinePtr    pPipeline;
         grfx::DescriptorSetPtr       pDescriptorSet;
-
-        grfx::SampledImageViewPtr    pDiffureTexture;
-        grfx::SamplerPtr             pSampler;
+        std::vector<Texture>         textures;
     };
 
     struct Primitive
@@ -110,7 +115,7 @@ private:
         grfx::DescriptorPool* pDescriptorPool,
         Material*             pOutput) const;
 
-    void LoadTexture(const cgltf_texture_view& texture_view, grfx::Queue* pQueue, grfx::SampledImageView** pOutput) const;
+    void LoadTexture(const cgltf_texture_view& texture_view, grfx::Queue* pQueue, Texture* pOutput) const;
 
     void LoadPrimitive(
         const cgltf_primitive& primitive,
@@ -140,20 +145,24 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
 #endif
 }
 
-void ProjApp::LoadTexture(const cgltf_texture_view& texture_view, grfx::Queue* pQueue, grfx::SampledImageView** pOutput) const {
-  PPX_ASSERT_MSG(texture_view.texture != nullptr, "Texture with no image are not supported.");
-  const auto& texture = *texture_view.texture;
-  PPX_ASSERT_MSG(texture.image != nullptr, "Texture with no image are not supported.");
-  PPX_ASSERT_MSG(strcmp(texture.image->mime_type, "image/vnd-ms.dds") == 0, "Texture format others than DDS are not supported.");
-  PPX_ASSERT_MSG(texture.image->uri != nullptr, "Texture with embedded data is not supported yet.");
+void ProjApp::LoadTexture(const cgltf_texture_view& texture_view, grfx::Queue* pQueue, Texture* pOutput) const
+{
+    PPX_ASSERT_MSG(texture_view.texture != nullptr, "Texture with no image are not supported.");
+    PPX_ASSERT_MSG(texture_view.has_transform == false, "Texture transforms are not supported yet.");
+    const auto& texture = *texture_view.texture;
+    PPX_ASSERT_MSG(texture.image != nullptr, "Texture with no image are not supported.");
+    PPX_ASSERT_MSG(texture.image->uri != nullptr, "Texture with embedded data is not supported yet.");
+    PPX_ASSERT_MSG(strcmp(texture.image->mime_type, "image/vnd-ms.dds") == 0, "Texture format others than DDS are not supported.");
 
-  std::filesystem::path gltf_path = "basic/models/altimeter/";
-  grfx::Image *image = nullptr;
-  grfx_util::ImageOptions options = grfx_util::ImageOptions().MipLevelCount(PPX_REMAINING_MIP_LEVELS);
-  PPX_CHECKED_CALL(grfx_util::CreateImageFromFile(pQueue, GetAssetPath(gltf_path / texture.image->uri), &image, options, false));
+    std::filesystem::path   gltf_path = "basic/models/altimeter/";
+    grfx_util::ImageOptions options   = grfx_util::ImageOptions().MipLevelCount(PPX_REMAINING_MIP_LEVELS);
+    PPX_CHECKED_CALL(grfx_util::CreateImageFromFile(pQueue, GetAssetPath(gltf_path / texture.image->uri), &pOutput->pImage, options, false));
 
-  grfx::SampledImageViewCreateInfo sivCreateInfo = grfx::SampledImageViewCreateInfo::GuessFromImage(image);
-  PPX_CHECKED_CALL(GetDevice()->CreateSampledImageView(&sivCreateInfo, pOutput));
+    grfx::SampledImageViewCreateInfo sivCreateInfo = grfx::SampledImageViewCreateInfo::GuessFromImage(pOutput->pImage);
+    PPX_CHECKED_CALL(GetDevice()->CreateSampledImageView(&sivCreateInfo, &pOutput->pTexture));
+
+    grfx::SamplerCreateInfo samplerCreateInfo = {};
+    PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &pOutput->pSampler));
 }
 
 void ProjApp::LoadMaterial(
@@ -188,26 +197,36 @@ void ProjApp::LoadMaterial(
             /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE,
             /* array_count= */ 1,
             /* shader_visibility= */ grfx::SHADER_STAGE_PS});
-
-        // Normal
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
             /* binding= */ 2,
-            /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+            /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLER,
             /* array_count= */ 1,
             /* shader_visibility= */ grfx::SHADER_STAGE_PS});
 
-        // Metallic/Roughness
+        // Normal
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
             /* binding= */ 3,
             /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE,
             /* array_count= */ 1,
             /* shader_visibility= */ grfx::SHADER_STAGE_PS});
-
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
             /* binding= */ 4,
             /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLER,
             /* array_count= */ 1,
             /* shader_visibility= */ grfx::SHADER_STAGE_PS});
+
+        // Metallic/Roughness
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
+            /* binding= */ 5,
+            /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+            /* array_count= */ 1,
+            /* shader_visibility= */ grfx::SHADER_STAGE_PS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
+            /* binding= */ 6,
+            /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLER,
+            /* array_count= */ 1,
+            /* shader_visibility= */ grfx::SHADER_STAGE_PS});
+
 
         PPX_CHECKED_CALL(pDevice->CreateDescriptorSetLayout(&layoutCreateInfo, &pOutput->pSetLayout));
     }
@@ -231,9 +250,9 @@ void ProjApp::LoadMaterial(
     shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
     PPX_CHECKED_CALL(pDevice->CreateShaderModule(&shaderCreateInfo, &PS));
 
-    grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
-    gpCreateInfo.VS                                 = {VS.Get(), "vsmain"};
-    gpCreateInfo.PS                                 = {PS.Get(), "psmain"};
+    grfx::GraphicsPipelineCreateInfo2 gpCreateInfo = {};
+    gpCreateInfo.VS                                = {VS.Get(), "vsmain"};
+    gpCreateInfo.PS                                = {PS.Get(), "psmain"};
     // FIXME: assuming all primitives provides POSITION, UV, and NORMAL. Might not be the case.
     gpCreateInfo.vertexInputState.bindingCount      = 3;
     gpCreateInfo.vertexInputState.bindings[0]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[0];
@@ -255,9 +274,10 @@ void ProjApp::LoadMaterial(
     pDevice->DestroyShaderModule(VS);
     pDevice->DestroyShaderModule(PS);
 
-    LoadTexture(material.pbr_metallic_roughness.base_color_texture, pQueue, &pOutput->pDiffureTexture);
-    grfx::SamplerCreateInfo samplerCreateInfo = {};
-    PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &pOutput->pSampler));
+    pOutput->textures.resize(3);
+    LoadTexture(material.pbr_metallic_roughness.base_color_texture, pQueue, &pOutput->textures[0]);
+    LoadTexture(material.normal_texture, pQueue, &pOutput->textures[1]);
+    LoadTexture(material.pbr_metallic_roughness.metallic_roughness_texture, pQueue, &pOutput->textures[2]);
 }
 
 static inline size_t count_primitives(const cgltf_mesh* array, size_t count)
@@ -597,29 +617,25 @@ void ProjApp::Render()
             // Draw entities
             for (auto& object : mObjects) {
                 for (auto& [pMaterial, pPrimitive] : object.renderables) {
-                    grfx::WriteDescriptor write[5];
-                    std::memset(write, 0, sizeof(write));
-                    write[0].binding               = 0;
-                    write[0].type                  = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                    write[0].bufferOffset          = 0;
-                    write[0].bufferRange           = PPX_WHOLE_SIZE;
-                    write[0].pBuffer               = object.pUniformBuffer;
+                    std::array<grfx::WriteDescriptor, 1 + 3 * 2> write;
+                    std::memset(write.data(), 0, sizeof(write[0]) * write.size());
 
-                    write[1].binding               = 1;
-                    write[1].type                  = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-                    write[1].pImageView            = pMaterial->pDiffureTexture;
-                    write[2].binding               = 2;
-                    write[2].type                  = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-                    write[2].pImageView            = pMaterial->pDiffureTexture;
-                    write[3].binding               = 3;
-                    write[3].type                  = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-                    write[3].pImageView            = pMaterial->pDiffureTexture;
+                    write[0].binding      = 0;
+                    write[0].type         = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                    write[0].bufferOffset = 0;
+                    write[0].bufferRange  = PPX_WHOLE_SIZE;
+                    write[0].pBuffer      = object.pUniformBuffer;
 
-                    write[4].binding               = 4;
-                    write[4].type                  = grfx::DESCRIPTOR_TYPE_SAMPLER;;
-                    write[4].pSampler              = pMaterial->pSampler;
+                    for (size_t i = 0; i < 3; i++) {
+                      write[1 + i * 2 + 0].binding    = 1 + i * 2 + 0;
+                      write[1 + i * 2 + 0].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+                      write[1 + i * 2 + 0].pImageView = pMaterial->textures[i].pTexture;
+                      write[1 + i * 2 + 1].binding = 1 + i * 2 + 1;
+                      write[1 + i * 2 + 1].type    = grfx::DESCRIPTOR_TYPE_SAMPLER;
+                      write[1 + i * 2 + 1].pSampler = pMaterial->textures[i].pSampler;
+                    }
 
-                    PPX_CHECKED_CALL(pMaterial->pDescriptorSet->UpdateDescriptors(5, write));
+                    PPX_CHECKED_CALL(pMaterial->pDescriptorSet->UpdateDescriptors(write.size(), write.data()));
 
                     frame.cmd->BindGraphicsPipeline(pMaterial->pPipeline);
                     frame.cmd->BindGraphicsDescriptorSets(pMaterial->pInterface, 1, &pMaterial->pDescriptorSet);

@@ -839,7 +839,8 @@ Result CreateImageFromFile(
     return ppx::SUCCESS;
 }
 
-Result CreateImageFromMemory(grfx::Queue* pQueue, const void* const data, const size_t size, grfx::Image** ppImage, const ImageOptions& options, bool useGpu) {
+Result CreateImageFromMemory(grfx::Queue* pQueue, const void* const data, const size_t size, grfx::Image** ppImage, const ImageOptions& options, bool useGpu)
+{
     PPX_ASSERT_NULL_ARG(pQueue);
     PPX_ASSERT_NULL_ARG(ppImage);
     PPX_ASSERT_NULL_ARG(data);
@@ -849,7 +850,7 @@ Result CreateImageFromMemory(grfx::Queue* pQueue, const void* const data, const 
     double fnStartTime = timer.SecondsSinceStart();
 
     const char* const chr_data = reinterpret_cast<const char* const>(data);
-    gli::texture image = gli::load_dds(chr_data, size);
+    gli::texture      image    = gli::load_dds(chr_data, size);
     if (image.empty()) {
         return Result::ERROR_IMAGE_FILE_LOAD_FAILED;
     }
@@ -857,7 +858,7 @@ Result CreateImageFromMemory(grfx::Queue* pQueue, const void* const data, const 
     Result ppxres;
     ppxres = CreateImageFromCompressedImage(pQueue, image, ppImage, options);
     if (Failed(ppxres)) {
-      return ppxres;
+        return ppxres;
     }
 
     double fnEndTime = timer.SecondsSinceStart();
@@ -871,7 +872,6 @@ Result CreateImageFromMemory(grfx::Queue* pQueue, const void* const data, const 
 
     return ppx::SUCCESS;
 }
-
 
 // -------------------------------------------------------------------------------------------------
 
