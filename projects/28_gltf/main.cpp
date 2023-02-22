@@ -57,9 +57,9 @@ private:
 
     struct Texture
     {
-      grfx::ImagePtr            pImage;
-      grfx::SampledImageViewPtr pTexture;
-      grfx::SamplerPtr          pSampler;
+        grfx::ImagePtr            pImage;
+        grfx::SampledImageViewPtr pTexture;
+        grfx::SamplerPtr          pSampler;
     };
 
     struct Material
@@ -226,7 +226,6 @@ void ProjApp::LoadMaterial(
             /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLER,
             /* array_count= */ 1,
             /* shader_visibility= */ grfx::SHADER_STAGE_PS});
-
 
         PPX_CHECKED_CALL(pDevice->CreateDescriptorSetLayout(&layoutCreateInfo, &pOutput->pSetLayout));
     }
@@ -627,12 +626,12 @@ void ProjApp::Render()
                     write[0].pBuffer      = object.pUniformBuffer;
 
                     for (size_t i = 0; i < 3; i++) {
-                      write[1 + i * 2 + 0].binding    = 1 + i * 2 + 0;
-                      write[1 + i * 2 + 0].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-                      write[1 + i * 2 + 0].pImageView = pMaterial->textures[i].pTexture;
-                      write[1 + i * 2 + 1].binding = 1 + i * 2 + 1;
-                      write[1 + i * 2 + 1].type    = grfx::DESCRIPTOR_TYPE_SAMPLER;
-                      write[1 + i * 2 + 1].pSampler = pMaterial->textures[i].pSampler;
+                        write[1 + i * 2 + 0].binding    = 1 + i * 2 + 0;
+                        write[1 + i * 2 + 0].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+                        write[1 + i * 2 + 0].pImageView = pMaterial->textures[i].pTexture;
+                        write[1 + i * 2 + 1].binding    = 1 + i * 2 + 1;
+                        write[1 + i * 2 + 1].type       = grfx::DESCRIPTOR_TYPE_SAMPLER;
+                        write[1 + i * 2 + 1].pSampler   = pMaterial->textures[i].pSampler;
                     }
 
                     PPX_CHECKED_CALL(pMaterial->pDescriptorSet->UpdateDescriptors(write.size(), write.data()));
