@@ -34,36 +34,45 @@ cbuffer Scene : register(b0)
 ConstantBuffer<SceneData> Scene : register(b0);
 #endif // defined(PPX_D3D11)
 
+Texture2D                 AlbedoTexture  : register(t1);
+Texture2D                 MetalRoughness : register(t2);
+Texture2D                 NormalMap      : register(t3);
+SamplerState              Sampler        : register(s4);
+
 struct VSOutput {
-  float4 PositionWS : POSITION;
-  float4 Position   : SV_POSITION;
-  float3 Normal     : NORMAL;
+  float4 world_position : POSITION;
+  float4 position       : SV_POSITION;
+  float2 uv             : TEXCOORD;
+  float3 normal         : NORMAL;
 };
 
 VSOutput vsmain(
-    float4 Position  : POSITION,
-    float3 Color     : COLOR,
-    float3 Normal    : NORMAL)
+    float4 position : POSITION,
+    float2 uv       : TEXCOORD,
+    float3 normal   : NORMAL)
 {
   VSOutput result;
-  result.PositionWS = mul(Scene.ModelMatrix, Position);
-  result.Position = mul(Scene.CameraViewProjectionMatrix, result.PositionWS);
-  result.Normal = mul(Scene.ModelMatrix, float4(Normal, 0)).xyz;
+
+  result.world_position = mul(Scene.ModelMatrix, position);
+  result.position = mul(Scene.CameraViewProjectionMatrix, result.world_position);
+  result.uv = uv;
+  result.normal = mul(Scene.ModelMatrix, float4(normal, 0)).xyz;
+
   return result;
 }
 
 
 float4 psmain(VSOutput input) : SV_TARGET
 {
-    const float3 V = normalize(Scene.EyePosition.xyz - input.PositionWS.xyz);
-    const float3 N = normalize(input.Normal);
+    const float3 V = normalize(Scene.EyePosition.xyz - input.world_position.xyz);
+    const float3 N = normalize(input.normal);
 
 
     // Read albedo texture value
-    const float3 albedo = float3(0.5f, 0.5f, 0.5f);
+    const float3 albedo = AlbedoTexture.Sample(Sampler, input.uv).rgb;
 
     // Light
-    const float3 L = normalize(Scene.LightPosition.xyz - input.PositionWS.xyz);
+    const float3 L = normalize(Scene.LightPosition.xyz - input.world_position.xyz);
     const float3 R = reflect(-L, N);
 
     const float diffuse  = saturate(dot(N, L));           // Lambert

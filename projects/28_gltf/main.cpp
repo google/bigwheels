@@ -61,6 +61,9 @@ private:
         grfx::DescriptorSetLayoutPtr pSetLayout;
         grfx::GraphicsPipelinePtr    pPipeline;
         grfx::DescriptorSetPtr       pDescriptorSet;
+
+        grfx::SampledImageViewPtr    pDiffureTexture;
+        grfx::SamplerPtr             pSampler;
     };
 
     struct Primitive
@@ -107,6 +110,8 @@ private:
         grfx::DescriptorPool* pDescriptorPool,
         Material*             pOutput) const;
 
+    void LoadTexture(const cgltf_texture_view& texture_view, grfx::Queue* pQueue, grfx::SampledImageView** pOutput) const;
+
     void LoadPrimitive(
         const cgltf_primitive& primitive,
         grfx::BufferPtr        pStagingBuffer,
@@ -135,13 +140,21 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
 #endif
 }
 
-#if 0
-void ProjApp::LoadTexture(const cgltf_texture& texture, Texture* pOutput) const {
+void ProjApp::LoadTexture(const cgltf_texture_view& texture_view, grfx::Queue* pQueue, grfx::SampledImageView** pOutput) const {
+  PPX_ASSERT_MSG(texture_view.texture != nullptr, "Texture with no image are not supported.");
+  const auto& texture = *texture_view.texture;
   PPX_ASSERT_MSG(texture.image != nullptr, "Texture with no image are not supported.");
-  PPX_ASSERT_MSG(texture.image.buffer_view != nullptr, "Texture with non-embedded data is not supported.");
-  PPX_ASSERT_MSG(strcmp(texture.image.mime_type, "image/dds") != 0, "Texture format others than DDS are not supported.");
+  PPX_ASSERT_MSG(strcmp(texture.image->mime_type, "image/vnd-ms.dds") == 0, "Texture format others than DDS are not supported.");
+  PPX_ASSERT_MSG(texture.image->uri != nullptr, "Texture with embedded data is not supported yet.");
+
+  std::filesystem::path gltf_path = "basic/models/altimeter/";
+  grfx::Image *image = nullptr;
+  grfx_util::ImageOptions options = grfx_util::ImageOptions().MipLevelCount(PPX_REMAINING_MIP_LEVELS);
+  PPX_CHECKED_CALL(grfx_util::CreateImageFromFile(pQueue, GetAssetPath(gltf_path / texture.image->uri), &image, options, false));
+
+  grfx::SampledImageViewCreateInfo sivCreateInfo = grfx::SampledImageViewCreateInfo::GuessFromImage(image);
+  PPX_CHECKED_CALL(GetDevice()->CreateSampledImageView(&sivCreateInfo, pOutput));
 }
-#endif
 
 void ProjApp::LoadMaterial(
     const cgltf_material& material,
@@ -191,7 +204,7 @@ void ProjApp::LoadMaterial(
             /* shader_visibility= */ grfx::SHADER_STAGE_PS});
 
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
-            /* binding= */ 2,
+            /* binding= */ 4,
             /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLER,
             /* array_count= */ 1,
             /* shader_visibility= */ grfx::SHADER_STAGE_PS});
@@ -241,6 +254,10 @@ void ProjApp::LoadMaterial(
     PPX_CHECKED_CALL(pDevice->CreateGraphicsPipeline(&gpCreateInfo, &pOutput->pPipeline));
     pDevice->DestroyShaderModule(VS);
     pDevice->DestroyShaderModule(PS);
+
+    LoadTexture(material.pbr_metallic_roughness.base_color_texture, pQueue, &pOutput->pDiffureTexture);
+    grfx::SamplerCreateInfo samplerCreateInfo = {};
+    PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &pOutput->pSampler));
 }
 
 static inline size_t count_primitives(const cgltf_mesh* array, size_t count)
@@ -499,7 +516,7 @@ void ProjApp::Setup()
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&poolCreateInfo, &mDescriptorPool));
     }
 
-    LoadScene(GetAssetPath("basic/models/altimeter.glb"), GetDevice(), GetSwapchain(), GetGraphicsQueue(), mDescriptorPool, &mObjects, &mPrimitives, &mMaterials);
+    LoadScene(GetAssetPath("basic/models/altimeter/altimeter.gltf"), GetDevice(), GetSwapchain(), GetGraphicsQueue(), mDescriptorPool, &mObjects, &mPrimitives, &mMaterials);
 
     // Per frame data
     {
@@ -580,13 +597,29 @@ void ProjApp::Render()
             // Draw entities
             for (auto& object : mObjects) {
                 for (auto& [pMaterial, pPrimitive] : object.renderables) {
-                    grfx::WriteDescriptor write = {};
-                    write.binding               = 0;
-                    write.type                  = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                    write.bufferOffset          = 0;
-                    write.bufferRange           = PPX_WHOLE_SIZE;
-                    write.pBuffer               = object.pUniformBuffer;
-                    PPX_CHECKED_CALL(pMaterial->pDescriptorSet->UpdateDescriptors(1, &write));
+                    grfx::WriteDescriptor write[5];
+                    std::memset(write, 0, sizeof(write));
+                    write[0].binding               = 0;
+                    write[0].type                  = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                    write[0].bufferOffset          = 0;
+                    write[0].bufferRange           = PPX_WHOLE_SIZE;
+                    write[0].pBuffer               = object.pUniformBuffer;
+
+                    write[1].binding               = 1;
+                    write[1].type                  = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+                    write[1].pImageView            = pMaterial->pDiffureTexture;
+                    write[2].binding               = 2;
+                    write[2].type                  = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+                    write[2].pImageView            = pMaterial->pDiffureTexture;
+                    write[3].binding               = 3;
+                    write[3].type                  = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+                    write[3].pImageView            = pMaterial->pDiffureTexture;
+
+                    write[4].binding               = 4;
+                    write[4].type                  = grfx::DESCRIPTOR_TYPE_SAMPLER;;
+                    write[4].pSampler              = pMaterial->pSampler;
+
+                    PPX_CHECKED_CALL(pMaterial->pDescriptorSet->UpdateDescriptors(5, write));
 
                     frame.cmd->BindGraphicsPipeline(pMaterial->pPipeline);
                     frame.cmd->BindGraphicsDescriptorSets(pMaterial->pInterface, 1, &pMaterial->pDescriptorSet);
