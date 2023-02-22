@@ -998,6 +998,17 @@ void Application::DispatchConfig()
         mSettings.window.title = mSettings.appName;
     }
 
+    // ImGui doesn't support prebuilt command buffer.
+    if (mSettings.grfx.enablePreRecordCmd) {
+        PPX_LOG_WARN("Disable ImGui when enable prebuilt command buffer.");
+        mSettings.enableImGui = false;
+    }
+
+    if (mSettings.grfx.numFramesInFlight > mSettings.grfx.swapchain.imageCount) {
+        PPX_LOG_WARN("numFramesInFlight should not exceed image count in swapchain.");
+        mSettings.grfx.numFramesInFlight = mSettings.grfx.swapchain.imageCount;
+    }
+
     // Decorate DX's API name with shader bytecode mode
     std::stringstream ss;
     ss << ToString(mSettings.grfx.api);

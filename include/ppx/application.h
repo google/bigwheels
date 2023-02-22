@@ -240,11 +240,12 @@ struct ApplicationSettings
 
     struct
     {
-        grfx::Api api               = grfx::API_UNDEFINED;
-        bool      enableDebug       = false;
-        bool      enableDXIL        = false;
-        uint32_t  numFramesInFlight = 1;
-        uint32_t  pacedFrameRate    = 60;
+        grfx::Api api                = grfx::API_UNDEFINED;
+        bool      enableDebug        = false;
+        bool      enableDXIL         = false;
+        bool      enablePreRecordCmd = false;
+        uint32_t  numFramesInFlight  = 1;
+        uint32_t  pacedFrameRate     = 60;
 
         struct
         {

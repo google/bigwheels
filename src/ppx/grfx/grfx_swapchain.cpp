@@ -228,8 +228,8 @@ grfx::RenderPassPtr Swapchain::GetRenderPass(uint32_t imageIndex, grfx::Attachme
 
 Result Swapchain::AcquireNextImage(
     uint64_t         timeout,    // Nanoseconds
-    grfx::Semaphore* pSemaphore, // Wait sempahore
-    grfx::Fence*     pFence,     // Wait fence
+    grfx::Semaphore* pSemaphore, // signal semaphore
+    grfx::Fence*     pFence,     // signal fence
     uint32_t*        pImageIndex)
 {
 #if defined(PPX_BUILD_XR)
