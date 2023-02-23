@@ -48,7 +48,7 @@ struct VSOutput {
   float3 normal         : NORMAL;
   float3 normalTS    : NORMALTS;
   float3 tangentTS   : TANGENTTS;
-  float3 bitangnetTS : BITANGENTTS;
+  float3 bitangentTS : BITANGENTTS;
 };
 
 VSOutput vsmain(
@@ -65,7 +65,7 @@ VSOutput vsmain(
   result.normal = mul(Scene.ModelMatrix, float4(normal, 0)).xyz;
   result.normalTS    = mul(Scene.ModelMatrix, float4(normal, 0)).xyz;
   result.tangentTS   = mul(Scene.ModelMatrix, float4(tangent, 0)).xyz;
-  result.bitangnetTS = cross(normal, tangent);
+  result.bitangentTS = cross(normal, tangent);
 
   return result;
 }
@@ -111,23 +111,22 @@ float4 psmain(VSOutput input) : SV_TARGET
 {
     float3   nTS = normalize(input.normalTS);
     float3   tTS = normalize(input.tangentTS);
-    float3   bTS = normalize(input.bitangnetTS);
+    float3   bTS = normalize(input.bitangentTS);
     float3x3 TBN = float3x3(tTS.x, bTS.x, nTS.x,
                             tTS.y, bTS.y, nTS.y,
                             tTS.z, bTS.z, nTS.z);
 
     const float3 V = normalize(Scene.EyePosition.xyz - input.world_position.xyz);
-    float3 N = normalize(input.normal);
-
     const float3 normal = NormalMap.Sample(NormalMapSampler, input.uv).rgb;
-    N = mul(TBN, normal * 2.f - 1.f);
+    const float3 N = normalize(mul(TBN, normal * 2.0 - 1.0));
+    //const float3 N = input.normalTS;
 
     // Read albedo texture value
     const float3 albedo = AlbedoTexture.Sample(AlbedoSampler, input.uv).rgb;
     const float roughness = MetalRoughness.Sample(MetalRoughnessSampler, input.uv).g;
     const float metalness = MetalRoughness.Sample(MetalRoughnessSampler, input.uv).b;
-    const float3 F0 = lerp(0.9f, albedo, metalness);
-    const float Lrad = 4.f;               // Light radiance
+    const float3 F0 = lerp(0.04f, albedo, metalness);
+    const float Lrad = 1.2f;               // Light radiance
 
     // Light
     const float3 Li = normalize(Scene.LightPosition.xyz - input.world_position.xyz);
@@ -142,11 +141,12 @@ float4 psmain(VSOutput input) : SV_TARGET
     const float3 F = FresnelSchlick(F0, saturate(dot(Lh, Lo)));
     const float  D = DistributionGGX(cosLh, roughness);
     const float  G = GASmithSchlickGGX(cosLi, cosLo, roughness);
+
     const float3 kD = lerp(float3(1, 1, 1) - F, float3(0, 0, 0), metalness);
     const float3 diffuseBRDF = kD * albedo;
     const float3 specularBRDF = (F * D * G) / max(0.00001, 4.0 * cosLi * cosLo);
-    const float3 Co = (diffuseBRDF + specularBRDF) * Lrad * cosLi + 0.2 * albedo;
+    const float3 Co = (diffuseBRDF + specularBRDF) * Lrad * cosLi + 0.3f * albedo;
 
-    return float4(Co, 1);
+    return float4(saturate(Co), 1);
 }
 
