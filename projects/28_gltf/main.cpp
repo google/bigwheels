@@ -116,6 +116,7 @@ private:
         Material*             pOutput) const;
 
     void LoadTexture(const cgltf_texture_view& texture_view, grfx::Queue* pQueue, Texture* pOutput) const;
+    void LoadTexture(const Bitmap& bitmap, grfx::Queue* pQueue, Texture* pOutput) const;
 
     void LoadPrimitive(
         const cgltf_primitive& primitive,
@@ -137,6 +138,8 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
 {
     settings.appName                    = "gltf";
     settings.enableImGui                = true;
+    settings.window.width = 1920;
+    settings.window.height = 1080;
     settings.grfx.api                   = kApi;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
     settings.grfx.enableDebug           = false;
@@ -154,6 +157,7 @@ void ProjApp::LoadTexture(const cgltf_texture_view& texture_view, grfx::Queue* p
     PPX_ASSERT_MSG(texture.image->uri != nullptr, "Texture with embedded data is not supported yet.");
     PPX_ASSERT_MSG(strcmp(texture.image->mime_type, "image/vnd-ms.dds") == 0, "Texture format others than DDS are not supported.");
 
+    printf("Trying to load %s\n", texture.image->uri);
     std::filesystem::path   gltf_path = "basic/models/altimeter/";
     grfx_util::ImageOptions options   = grfx_util::ImageOptions().MipLevelCount(PPX_REMAINING_MIP_LEVELS);
     PPX_CHECKED_CALL(grfx_util::CreateImageFromFile(pQueue, GetAssetPath(gltf_path / texture.image->uri), &pOutput->pImage, options, false));
@@ -162,7 +166,50 @@ void ProjApp::LoadTexture(const cgltf_texture_view& texture_view, grfx::Queue* p
     PPX_CHECKED_CALL(GetDevice()->CreateSampledImageView(&sivCreateInfo, &pOutput->pTexture));
 
     grfx::SamplerCreateInfo samplerCreateInfo = {};
+    samplerCreateInfo.magFilter = grfx::FILTER_LINEAR;
+    samplerCreateInfo.minFilter = grfx::FILTER_LINEAR;
+    samplerCreateInfo.anisotropyEnable = true;
+    samplerCreateInfo.maxAnisotropy = 1.f;
+    samplerCreateInfo.mipmapMode = grfx::SAMPLER_MIPMAP_MODE_LINEAR;
     PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &pOutput->pSampler));
+}
+
+void ProjApp::LoadTexture(const Bitmap& bitmap, grfx::Queue* pQueue, Texture* pOutput) const
+{
+    grfx_util::ImageOptions options   = grfx_util::ImageOptions().MipLevelCount(1);
+    PPX_CHECKED_CALL(grfx_util::CreateImageFromBitmap(pQueue, &bitmap, &pOutput->pImage, options));
+
+    grfx::SampledImageViewCreateInfo sivCreateInfo = grfx::SampledImageViewCreateInfo::GuessFromImage(pOutput->pImage);
+    PPX_CHECKED_CALL(GetDevice()->CreateSampledImageView(&sivCreateInfo, &pOutput->pTexture));
+    grfx::SamplerCreateInfo samplerCreateInfo = {};
+    samplerCreateInfo.magFilter = grfx::FILTER_LINEAR;
+    samplerCreateInfo.minFilter = grfx::FILTER_LINEAR;
+    samplerCreateInfo.anisotropyEnable = true;
+    samplerCreateInfo.maxAnisotropy = 1.f;
+    samplerCreateInfo.mipmapMode = grfx::SAMPLER_MIPMAP_MODE_LINEAR;
+    PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &pOutput->pSampler));
+}
+
+Bitmap ColorToBitmap(const float3& color)
+{
+  uint8_t r = static_cast<uint8_t>(color.x * 255.f);
+  uint8_t g = static_cast<uint8_t>(color.y * 255.f);
+  uint8_t b = static_cast<uint8_t>(color.z * 255.f);
+
+  Bitmap bitmap;
+  PPX_CHECKED_CALL(Bitmap::Create(64, 64, Bitmap::Format::FORMAT_RGBA_FLOAT, &bitmap));
+
+  for (size_t y = 0; y < 64; y++) {
+    for (size_t x = 0; x < 64; x++) {
+      float* ptr = bitmap.GetPixel32f(x, y);
+      ptr[0] = color.r;
+      ptr[1] = color.g;
+      ptr[2] = color.b;
+      ptr[3] = 1.f;
+    }
+  }
+
+  return bitmap;
 }
 
 void ProjApp::LoadMaterial(
@@ -179,9 +226,6 @@ void ProjApp::LoadMaterial(
 
     // This is to simplify the pipeline creation for now. Need to revisit later.
     PPX_ASSERT_MSG(material.has_pbr_metallic_roughness, "Only PBR metallic roughness supported for now.");
-    PPX_ASSERT_MSG(material.normal_texture.texture != nullptr, "Missing normal texture not supported yet.");
-    PPX_ASSERT_MSG(material.pbr_metallic_roughness.base_color_texture.texture != nullptr, "Missing albedo.");
-    PPX_ASSERT_MSG(material.pbr_metallic_roughness.metallic_roughness_texture.texture != nullptr, "Missing metallic+roughness.");
 
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
@@ -252,11 +296,12 @@ void ProjApp::LoadMaterial(
     grfx::GraphicsPipelineCreateInfo2 gpCreateInfo = {};
     gpCreateInfo.VS                                = {VS.Get(), "vsmain"};
     gpCreateInfo.PS                                = {PS.Get(), "psmain"};
-    // FIXME: assuming all primitives provides POSITION, UV, and NORMAL. Might not be the case.
-    gpCreateInfo.vertexInputState.bindingCount      = 3;
+    // FIXME: assuming all primitives provides POSITION, UV, NORMAL and TANGENT. Might not be the case.
+    gpCreateInfo.vertexInputState.bindingCount      = 4;
     gpCreateInfo.vertexInputState.bindings[0]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[0];
     gpCreateInfo.vertexInputState.bindings[1]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[1];
     gpCreateInfo.vertexInputState.bindings[2]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[2];
+    gpCreateInfo.vertexInputState.bindings[3]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[3];
     gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
     gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
@@ -274,9 +319,38 @@ void ProjApp::LoadMaterial(
     pDevice->DestroyShaderModule(PS);
 
     pOutput->textures.resize(3);
+#if 0
+    LoadTexture(ColorToBitmap(float3(1.f, 0.f, 0.f)), pQueue, &pOutput->textures[0]);
+    LoadTexture(ColorToBitmap(float3(1.f, 0.f, 0.f)), pQueue, &pOutput->textures[1]);
+    LoadTexture(ColorToBitmap(float3(1.f, 0.f, 0.f)), pQueue, &pOutput->textures[2]);
+#else
+#if 1
+    if (material.pbr_metallic_roughness.base_color_texture.texture == nullptr) {
+      float3 color = glm::make_vec3(material.pbr_metallic_roughness.base_color_factor);
+      LoadTexture(ColorToBitmap(color), pQueue, &pOutput->textures[0]);
+    } else {
+      LoadTexture(material.pbr_metallic_roughness.base_color_texture, pQueue, &pOutput->textures[0]);
+    }
+
+    if (material.normal_texture.texture == nullptr) {
+      LoadTexture(ColorToBitmap(float3(0.f, 1.f, 0.f)), pQueue, &pOutput->textures[1]);
+    } else {
+      LoadTexture(material.normal_texture, pQueue, &pOutput->textures[1]);
+    }
+
+    if (material.pbr_metallic_roughness.metallic_roughness_texture.texture == nullptr) {
+      const auto& mtl = material.pbr_metallic_roughness;
+      float3 color = float3(mtl.metallic_factor, mtl.roughness_factor, 0.f);
+      LoadTexture(ColorToBitmap(color), pQueue, &pOutput->textures[2]);
+    } else {
+      LoadTexture(material.pbr_metallic_roughness.metallic_roughness_texture, pQueue, &pOutput->textures[2]);
+    }
+#else
     LoadTexture(material.pbr_metallic_roughness.base_color_texture, pQueue, &pOutput->textures[0]);
     LoadTexture(material.normal_texture, pQueue, &pOutput->textures[1]);
     LoadTexture(material.pbr_metallic_roughness.metallic_roughness_texture, pQueue, &pOutput->textures[2]);
+#endif
+#endif
 }
 
 static inline size_t count_primitives(const cgltf_mesh* array, size_t count)
@@ -288,11 +362,17 @@ static inline size_t count_primitives(const cgltf_mesh* array, size_t count)
     return total;
 }
 
-static void GetAccessorsForPrimitive(const cgltf_primitive& primitive, const cgltf_accessor** position, const cgltf_accessor** uv, const cgltf_accessor** normal)
+static void GetAccessorsForPrimitive(const cgltf_primitive& primitive, const cgltf_accessor** position, const cgltf_accessor** uv, const cgltf_accessor** normal, const cgltf_accessor** tangent)
 {
     PPX_ASSERT_NULL_ARG(position);
     PPX_ASSERT_NULL_ARG(uv);
     PPX_ASSERT_NULL_ARG(normal);
+    PPX_ASSERT_NULL_ARG(tangent);
+
+    *position = nullptr;
+    *uv = nullptr;
+    *normal = nullptr;
+    *tangent = nullptr;
 
     for (size_t i = 0; i < primitive.attributes_count; i++) {
         const auto& type = primitive.attributes[i].type;
@@ -303,12 +383,17 @@ static void GetAccessorsForPrimitive(const cgltf_primitive& primitive, const cgl
         else if (type == cgltf_attribute_type_normal) {
             *normal = data;
         }
-        else if (type == cgltf_attribute_type_texcoord) {
+        else if (type == cgltf_attribute_type_tangent) {
+            *tangent = data;
+        }
+        else if (type == cgltf_attribute_type_texcoord && *uv == nullptr) {
+            // For UV we only load the first TEXCOORDs (FIXME: support multiple tex coordinates).
             *uv = data;
         }
     }
 
-    PPX_ASSERT_MSG(*position != nullptr && *uv != nullptr && *normal != nullptr, "For now, only supports model with position, normal and UV attributes");
+    PPX_ASSERT_MSG(*position != nullptr && *uv != nullptr && *normal != nullptr && *tangent != nullptr,
+                   "For now, only supports model with position, normal, tangent and UV attributes");
 }
 
 void ProjApp::LoadPrimitive(const cgltf_primitive& primitive, grfx::BufferPtr pStagingBuffer, grfx::Queue* pQueue, Primitive* pOutput) const
@@ -322,8 +407,9 @@ void ProjApp::LoadPrimitive(const cgltf_primitive& primitive, grfx::BufferPtr pS
     constexpr size_t                     POSITION_INDEX = 0;
     constexpr size_t                     UV_INDEX       = 1;
     constexpr size_t                     NORMAL_INDEX   = 2;
-    std::array<const cgltf_accessor*, 3> accessors;
-    GetAccessorsForPrimitive(primitive, &accessors[POSITION_INDEX], &accessors[UV_INDEX], &accessors[NORMAL_INDEX]);
+    constexpr size_t                     TANGENT_INDEX   = 3;
+    std::array<const cgltf_accessor*, 4> accessors;
+    GetAccessorsForPrimitive(primitive, &accessors[POSITION_INDEX], &accessors[UV_INDEX], &accessors[NORMAL_INDEX], &accessors[TANGENT_INDEX]);
 
     grfx::MeshPtr targetMesh;
     {
@@ -342,24 +428,31 @@ void ProjApp::LoadPrimitive(const cgltf_primitive& primitive, grfx::BufferPtr pS
         ci.indexCount        = indices_accessor.count;
         ci.vertexCount       = accessors[POSITION_INDEX]->count;
         ci.memoryUsage       = grfx::MEMORY_USAGE_GPU_ONLY;
-        ci.vertexBufferCount = 3;
+        ci.vertexBufferCount = 4;
 
         for (size_t i = 0; i < accessors.size(); i++) {
             const auto& a  = *accessors[i];
             const auto& bv = *a.buffer_view;
             // If the buffer_view doesn't declare a stride, the accessor must define it.
-            PPX_ASSERT_MSG(bv.stride == 0, "Stride declared in buffer-view not supported.");
+            //PPX_ASSERT_MSG(bv.stride == 0, "Stride declared in buffer-view not supported.");
             PPX_ASSERT_MSG(a.offset == 0, "Non-0 offset in accessor are not supported.");
-            PPX_ASSERT_MSG(a.type == cgltf_type_vec2 || a.type == cgltf_type_vec3, "Non supported accessor type.");
+            PPX_ASSERT_MSG(a.type == cgltf_type_vec2 || a.type == cgltf_type_vec3 || a.type == cgltf_type_vec4, "Non supported accessor type.");
             PPX_ASSERT_MSG(a.component_type == cgltf_component_type_r_32f, "only float for POS, NORM, TEX are supported.");
 
             ci.vertexBuffers[i].attributeCount               = 1;
             ci.vertexBuffers[i].vertexInputRate              = grfx::VERTEX_INPUT_RATE_VERTEX;
-            ci.vertexBuffers[i].attributes[0].format         = a.type == cgltf_type_vec2 ? grfx::FORMAT_R32G32_FLOAT : grfx::FORMAT_R32G32B32_FLOAT;
-            ci.vertexBuffers[i].attributes[0].stride         = a.stride;
-            ci.vertexBuffers[i].attributes[0].vertexSemantic = i == POSITION_INDEX ? grfx::VERTEX_SEMANTIC_POSITION
-                                                                                   : (i == UV_INDEX ? grfx::VERTEX_SEMANTIC_TEXCOORD
-                                                                                                    : grfx::VERTEX_SEMANTIC_NORMAL);
+            ci.vertexBuffers[i].attributes[0].format         = a.type == cgltf_type_vec2 ? grfx::FORMAT_R32G32_FLOAT
+                                                             : a.type == cgltf_type_vec3 ? grfx::FORMAT_R32G32B32_FLOAT
+                                                             : grfx::FORMAT_R32G32B32A32_FLOAT;
+            ci.vertexBuffers[i].attributes[0].stride         = bv.stride == 0 ? a.stride : bv.stride;
+
+            std::array<grfx::VertexSemantic, accessors.size()> semantics = {
+              grfx::VERTEX_SEMANTIC_POSITION,
+              grfx::VERTEX_SEMANTIC_TEXCOORD,
+              grfx::VERTEX_SEMANTIC_NORMAL,
+              grfx::VERTEX_SEMANTIC_TANGENT
+            };
+            ci.vertexBuffers[i].attributes[0].vertexSemantic = semantics[i];
         }
         PPX_CHECKED_CALL(pQueue->GetDevice()->CreateMesh(&ci, &targetMesh));
         SCOPED_DESTROYER.AddObject(targetMesh);
@@ -436,8 +529,8 @@ void ProjApp::LoadScene(
         for (size_t i = 0; i < data->meshes_count; i++) {
             const auto& mesh = data->meshes[i];
             for (size_t j = 0; j < mesh.primitives_count; j++) {
-                LoadPrimitive(mesh.primitives[i], stagingBuffer, pQueue, &(*pPrimitives)[next_slot]);
-                primitiveToIndex.insert({&mesh.primitives[i], next_slot});
+                LoadPrimitive(mesh.primitives[j], stagingBuffer, pQueue, &(*pPrimitives)[next_slot]);
+                primitiveToIndex.insert({&mesh.primitives[j], next_slot});
                 next_slot++;
             }
         }
@@ -502,6 +595,7 @@ void ProjApp::LoadNodes(
             PPX_ASSERT_MSG(material_index < pMaterials->size(), "Invalid GLB file. Material index out of range.");
             Primitive* pPrimitive = &(*pPrimitives)[primitive_index];
             Material*  pMaterial  = &(*pMaterials)[material_index];
+            printf("adding PRIM:%zu, MTL:%zu\n", primitive_index, material_index);
             item.renderables.emplace(pMaterial, pPrimitive);
 
             // FIXME: multiple primitives per mesh.
@@ -574,26 +668,26 @@ void ProjApp::Render()
     const float r  = 7.0f;
     mLightPosition = float3(r * cos(t), 5.0f, r * sin(t));
     // Update camera(s)
-    mCamera.LookAt(float3(5, 7, 7), float3(0, 1, 0));
+    mCamera.LookAt(float3(5, 5, 5), float3(0, 1, 0));
 
     // Update uniform buffers
     for (auto& object : mObjects) {
         // Draw uniform buffers
         struct Scene
         {
-            float4x4 ModelMatrix;                // Transforms object space to world space
-            float4   Ambient;                    // Object's ambient intensity
-            float4x4 CameraViewProjectionMatrix; // Camera's view projection matrix
-            float4   LightPosition;              // Light's position
-            float4   EyePosition;
+            float4x4 modelMatrix;                // Transforms object space to world space
+            float4   ambient;                    // Object's ambient intensity
+            float4x4 cameraViewProjectionMatrix; // Camera's view projection matrix
+            float4   lightPosition;              // Light's position
+            float4   eyePosition;
         };
 
         Scene scene                      = {};
-        scene.ModelMatrix                = object.model;
-        scene.Ambient                    = float4(0.3f);
-        scene.CameraViewProjectionMatrix = mCamera.GetViewProjectionMatrix();
-        scene.LightPosition              = float4(mLightPosition, 0);
-        scene.EyePosition                = glm::float4(mCamera.GetEyePosition(), 0.f);
+        scene.modelMatrix                = object.model;
+        scene.ambient                    = float4(0.3f);
+        scene.cameraViewProjectionMatrix = mCamera.GetViewProjectionMatrix();
+        scene.lightPosition              = float4(mLightPosition, 0);
+        scene.eyePosition                = glm::float4(mCamera.GetEyePosition(), 0.f);
 
         object.pUniformBuffer->CopyFromSource(sizeof(scene), &scene);
     }
