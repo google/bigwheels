@@ -22,7 +22,7 @@
 #include "ppx/graphics_util.h"
 #include "ppx/grfx/grfx_scope.h"
 #define CGLTF_IMPLEMENTATION
-#include "third_party/cgltf/cgltf.h"
+#include "cgltf.h"
 #include "glm/gtc/type_ptr.hpp"
 
 using namespace ppx;
