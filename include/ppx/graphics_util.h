@@ -63,8 +63,6 @@ private:
         const ImageOptions&          options,
         bool                         useGpu);
 
-    friend Result CreateImageFromMemory(grfx::Queue* pQueue, const void* const data, const size_t size, grfx::Image** ppImage, const ImageOptions& options, bool useGpu);
-
     friend Result CreateImageFromBitmapGpu(
         grfx::Queue*        pQueue,
         const Bitmap*       pBitmap,
@@ -102,8 +100,6 @@ Result CreateImageFromFile(
     grfx::Image**                ppImage,
     const ImageOptions&          options = ImageOptions(),
     bool                         useGpu  = false);
-
-Result CreateImageFromMemory(grfx::Queue* pQueue, const void* const data, const size_t size, grfx::Image** ppImage, const ImageOptions& options, bool useGpu);
 
 //! @fn CreateMipMapsForImage
 //!

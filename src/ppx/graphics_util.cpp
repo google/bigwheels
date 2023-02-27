@@ -839,40 +839,6 @@ Result CreateImageFromFile(
     return ppx::SUCCESS;
 }
 
-Result CreateImageFromMemory(grfx::Queue* pQueue, const void* const data, const size_t size, grfx::Image** ppImage, const ImageOptions& options, bool useGpu)
-{
-    PPX_ASSERT_NULL_ARG(pQueue);
-    PPX_ASSERT_NULL_ARG(ppImage);
-    PPX_ASSERT_NULL_ARG(data);
-
-    Timer timer;
-    PPX_ASSERT_MSG(timer.Start() == ppx::TIMER_RESULT_SUCCESS, "timer start failed");
-    double fnStartTime = timer.SecondsSinceStart();
-
-    const char* const chr_data = reinterpret_cast<const char* const>(data);
-    gli::texture      image    = gli::load_dds(chr_data, size);
-    if (image.empty()) {
-        return Result::ERROR_IMAGE_FILE_LOAD_FAILED;
-    }
-
-    Result ppxres;
-    ppxres = CreateImageFromCompressedImage(pQueue, image, ppImage, options);
-    if (Failed(ppxres)) {
-        return ppxres;
-    }
-
-    double fnEndTime = timer.SecondsSinceStart();
-    float  fnElapsed = static_cast<float>(fnEndTime - fnStartTime);
-    if (ppxres == Result::SUCCESS) {
-        PPX_LOG_INFO("Created image from memory: (" << FloatString(fnElapsed) << " seconds)");
-    }
-    else {
-        PPX_LOG_INFO("Failed to create image from memory.");
-    }
-
-    return ppx::SUCCESS;
-}
-
 // -------------------------------------------------------------------------------------------------
 
 Result CopyBitmapToTexture(
