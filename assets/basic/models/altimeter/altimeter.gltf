@@ -1,0 +1,212 @@
+{
+    "asset" : {
+        "generator" : "Khronos glTF Blender I/O v3.4.50",
+        "version" : "2.0"
+    },
+    "extensionsUsed" : [
+        "KHR_materials_specular",
+        "KHR_materials_ior"
+    ],
+    "scene" : 0,
+    "scenes" : [
+        {
+            "name" : "Scene",
+            "nodes" : [
+                0
+            ]
+        }
+    ],
+    "nodes" : [
+        {
+            "mesh" : 0,
+            "name" : "altimeter-body",
+            "rotation" : [
+                0.9658985137939453,
+                0,
+                0,
+                0.2589210271835327
+            ]
+        }
+    ],
+    "materials" : [
+        {
+            "doubleSided" : true,
+            "extensions" : {
+                "KHR_materials_specular" : {
+                    "specularColorFactor" : [
+                        0.42037701944399947,
+                        0.42037701944399947,
+                        0.42037701944399947
+                    ]
+                },
+                "KHR_materials_ior" : {
+                    "ior" : 1.4500000476837158
+                }
+            },
+            "name" : "altimeter",
+            "normalTexture" : {
+                "index" : 0,
+                "scale" : 10
+            },
+            "pbrMetallicRoughness" : {
+                "baseColorTexture" : {
+                    "index" : 1
+                },
+                "metallicRoughnessTexture" : {
+                    "index" : 2
+                }
+            }
+        }
+    ],
+    "meshes" : [
+        {
+            "name" : "altimeter-body.003",
+            "primitives" : [
+                {
+                    "attributes" : {
+                        "POSITION" : 0,
+                        "TEXCOORD_0" : 1,
+                        "NORMAL" : 2,
+                        "TANGENT" : 3
+                    },
+                    "indices" : 4,
+                    "material" : 0
+                }
+            ]
+        }
+    ],
+    "textures" : [
+        {
+            "sampler" : 0,
+            "source" : 0,
+            "extensions": {
+              "MSFT_texture_dds": {
+                "source": 1
+              }
+            }
+        },
+        {
+            "sampler" : 0,
+            "source" : 1,
+            "extensions": {
+              "MSFT_texture_dds": {
+                "source": 1
+              }
+            }
+
+        },
+        {
+            "sampler" : 0,
+            "source" : 2,
+            "extensions": {
+              "MSFT_texture_dds": {
+                "source": 1
+              }
+            }
+
+        }
+    ],
+    "images" : [
+        {
+            "mimeType" : "image/vnd-ms.dds",
+            "name" : "normal",
+            "uri" : "normal.dds"
+        },
+        {
+            "mimeType" : "image/vnd-ms.dds",
+            "name" : "albedo",
+            "uri" : "albedo.dds"
+        },
+        {
+            "mimeType" : "image/vnd-ms.dds",
+            "name" : "metalness-roughness",
+            "uri" : "metalness-roughness.dds"
+        }
+    ],
+    "accessors" : [
+        {
+            "bufferView" : 0,
+            "componentType" : 5126,
+            "count" : 3267,
+            "max" : [
+                1.2090920209884644,
+                0.6057969927787781,
+                1.048933982849121
+            ],
+            "min" : [
+                -1.2137069702148438,
+                -0.8141409754753113,
+                -1.0621559619903564
+            ],
+            "type" : "VEC3"
+        },
+        {
+            "bufferView" : 1,
+            "componentType" : 5126,
+            "count" : 3267,
+            "type" : "VEC2"
+        },
+        {
+            "bufferView" : 2,
+            "componentType" : 5126,
+            "count" : 3267,
+            "type" : "VEC3"
+        },
+        {
+            "bufferView" : 3,
+            "componentType" : 5126,
+            "count" : 3267,
+            "type" : "VEC4"
+        },
+        {
+            "bufferView" : 4,
+            "componentType" : 5123,
+            "count" : 5319,
+            "type" : "SCALAR"
+        }
+    ],
+    "bufferViews" : [
+        {
+            "buffer" : 0,
+            "byteLength" : 39204,
+            "byteOffset" : 0,
+            "target" : 34962
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 26136,
+            "byteOffset" : 39204,
+            "target" : 34962
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 39204,
+            "byteOffset" : 65340,
+            "target" : 34962
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 52272,
+            "byteOffset" : 104544,
+            "target" : 34962
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 10638,
+            "byteOffset" : 156816,
+            "target" : 34963
+        }
+    ],
+    "samplers" : [
+        {
+            "magFilter" : 9729,
+            "minFilter" : 9987
+        }
+    ],
+    "buffers" : [
+        {
+            "byteLength" : 167456,
+            "uri" : "altimeter.bin"
+        }
+    ]
+}
