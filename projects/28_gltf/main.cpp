@@ -283,13 +283,13 @@ void ProjApp::LoadMaterial(
 
     // FIXME: the exact same shader is used across all materials. Should compile it once.
     grfx::ShaderModulePtr VS;
-    std::vector<char>     bytecode = LoadShader("basic/shaders", "Lambert.vs");
+    std::vector<char>     bytecode = LoadShader("basic/shaders", "PbrMetallicRoughness.vs");
     PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
     grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
     PPX_CHECKED_CALL(pDevice->CreateShaderModule(&shaderCreateInfo, &VS));
 
     grfx::ShaderModulePtr PS;
-    bytecode = LoadShader("basic/shaders", "Lambert.ps");
+    bytecode = LoadShader("basic/shaders", "PbrMetallicRoughness.ps");
     PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
     shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
     PPX_CHECKED_CALL(pDevice->CreateShaderModule(&shaderCreateInfo, &PS));

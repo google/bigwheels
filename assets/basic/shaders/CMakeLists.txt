@@ -20,7 +20,7 @@ generate_rules_for_shader("shader_skybox" SOURCE "${PPX_DIR}/assets/basic/shader
 generate_rules_for_shader("shader_depth" SOURCE "${PPX_DIR}/assets/basic/shaders/Depth.hlsl" STAGES "vs")
 generate_rules_for_shader("shader_diffuse_shadow" SOURCE "${PPX_DIR}/assets/basic/shaders/DiffuseShadow.hlsl" STAGES "vs" "ps")
 generate_rules_for_shader("shader_normal_map" SOURCE "${PPX_DIR}/assets/basic/shaders/NormalMap.hlsl" STAGES "vs" "ps")
-generate_rules_for_shader("shader_lambert" SOURCE "${PPX_DIR}/assets/basic/shaders/Lambert.hlsl" STAGES "vs" "ps")
+generate_rules_for_shader("shader_pbr_metallic_roughness" SOURCE "${PPX_DIR}/assets/basic/shaders/PbrMetallicRoughness.hlsl" STAGES "vs" "ps")
 generate_rules_for_shader("shader_fullscreen_triangle" SOURCE "${PPX_DIR}/assets/basic/shaders/FullScreenTriangle.hlsl" STAGES "vs" "ps")
 generate_rules_for_shader("shader_text_draw" SOURCE "${PPX_DIR}/assets/basic/shaders/TextDraw.hlsl" STAGES "vs" "ps")
 generate_rules_for_shader("shader_image_filter" SOURCE "${PPX_DIR}/assets/basic/shaders/ImageFilter.hlsl" STAGES "cs")

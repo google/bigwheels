@@ -12,16 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//
-// Keep things easy for now and use 16-byte aligned types
-//
 struct SceneData
 {
-    float4x4 ModelMatrix;  // Transforms object space to world space
-    float4   Ambient;      // Object's ambient intensity
+    float4x4 ModelMatrix;                // Transforms object space to world space
+    float4   Ambient;                    // Object's ambient intensity
     float4x4 CameraViewProjectionMatrix; // Camera's view projection matrix
-    float4   LightPosition; // Light's position
-    float4   EyePosition; // Eye (camera) position
+    float4   LightPosition;              // Light's position
+    float4   EyePosition;                // Eye (camera) position
 };
 
 // ConstantBuffer was addd in SM5.1 for D3D12
@@ -109,32 +106,29 @@ float3 FresnelSchlick(float3 F0, float cosTheta)
 
 float4 psmain(VSOutput input) : SV_TARGET
 {
-    float3   nTS = normalize(input.normalTS);
-    float3   tTS = normalize(input.tangentTS);
-    float3   bTS = normalize(input.bitangentTS);
-    float3x3 TBN = float3x3(tTS.x, bTS.x, nTS.x,
+    const float3   nTS = normalize(input.normalTS);
+    const float3   tTS = normalize(input.tangentTS);
+    const float3   bTS = normalize(input.bitangentTS);
+    const float3x3 TBN = float3x3(tTS.x, bTS.x, nTS.x,
                             tTS.y, bTS.y, nTS.y,
                             tTS.z, bTS.z, nTS.z);
 
     const float3 V = normalize(Scene.EyePosition.xyz - input.world_position.xyz);
     const float3 normal = NormalMap.Sample(NormalMapSampler, input.uv).rgb;
     const float3 N = normalize(mul(TBN, normal * 2.0 - 1.0));
-    //const float3 N = input.normalTS;
 
-    // Read albedo texture value
     const float3 albedo = AlbedoTexture.Sample(AlbedoSampler, input.uv).rgb;
     const float roughness = MetalRoughness.Sample(MetalRoughnessSampler, input.uv).g;
     const float metalness = MetalRoughness.Sample(MetalRoughnessSampler, input.uv).b;
     const float3 F0 = lerp(0.04f, albedo, metalness);
-    const float Lrad = 1.2f;               // Light radiance
+    const float Lrad = 1.2f;
 
-    // Light
-    const float3 Li = normalize(Scene.LightPosition.xyz - input.world_position.xyz);
-    const float3 E = normalize(Scene.EyePosition.xyz - input.world_position.xyz);
-    const float3 Lo    = E; // Outgoing light direction
+    const float3 Li    = normalize(Scene.LightPosition.xyz - input.world_position.xyz);
+    const float3 E     = normalize(Scene.EyePosition.xyz - input.world_position.xyz);
+    const float3 Lo    = E;
     const float  cosLo = saturate(dot(N, Lo));
-    const float3 R = reflect(-Li, N);
-    const float3 Lh = normalize(Li + Lo);                // Half-vector between Li and Lo
+    const float3 R     = reflect(-Li, N);
+    const float3 Lh    = normalize(Li + Lo);
     const float  cosLi = saturate(dot(N, Li));
     const float  cosLh = saturate(dot(N, Lh));
 
@@ -149,4 +143,3 @@ float4 psmain(VSOutput input) : SV_TARGET
 
     return float4(saturate(Co), 1);
 }
-
