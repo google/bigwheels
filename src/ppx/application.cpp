@@ -1009,6 +1009,10 @@ void Application::DispatchConfig()
         mSettings.grfx.numFramesInFlight = mSettings.grfx.swapchain.imageCount;
     }
 
+    if (mSettings.grfx.numFramesInFlight > 1) {
+        PPX_LOG_WARN("Image count in swapchain should match numFramesInFlight.");
+        mSettings.grfx.swapchain.imageCount = mSettings.grfx.numFramesInFlight;
+    }
     // Decorate DX's API name with shader bytecode mode
     std::stringstream ss;
     ss << ToString(mSettings.grfx.api);

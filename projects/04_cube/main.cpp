@@ -54,9 +54,9 @@ private:
     grfx::Viewport                    mViewport;
     grfx::Rect                        mScissorRect;
     grfx::VertexBinding               mVertexBinding;
-    void                              BuildCommandBufferForFrame(uint32_t imageIndex);
+    void                              BuildCommandBuffer(uint32_t imageIndex);
     uint32_t                          AcquireFrame(PerFrame& frame);
-    ppx::grfx::CommandBufferPtr&      GetCommandBuffer(uint32_t imageIndex);
+    ppx::grfx::CommandBufferPtr&      GetCommandBuffer(uint32_t imageIndex, bool buildCommandBuffer);
 };
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
@@ -232,12 +232,12 @@ void ProjApp::Setup()
 
         mPerFrame.push_back(frame);
         if (GetSettings()->grfx.enablePreRecordCmd) {
-            BuildCommandBufferForFrame(i);
+            BuildCommandBuffer(i);
         }
     }
 }
 
-void ProjApp::BuildCommandBufferForFrame(uint32_t imageIndex)
+void ProjApp::BuildCommandBuffer(uint32_t imageIndex)
 {
     grfx::SwapchainPtr swapchain  = GetSwapchain();
     uint32_t           imageCount = GetSwapchain()->GetImageCount();
@@ -277,10 +277,10 @@ void ProjApp::BuildCommandBufferForFrame(uint32_t imageIndex)
     }
 }
 
-ppx::grfx::CommandBufferPtr& ProjApp::GetCommandBuffer(uint32_t imageIndex)
+ppx::grfx::CommandBufferPtr& ProjApp::GetCommandBuffer(uint32_t imageIndex, bool buildCommandBuffer)
 {
-    if (!GetSettings()->grfx.enablePreRecordCmd) {
-        BuildCommandBufferForFrame(imageIndex);
+    if (buildCommandBuffer) {
+        BuildCommandBuffer(imageIndex);
     }
     return mPerFrame[imageIndex].cmd;
 }
@@ -321,7 +321,9 @@ void ProjApp::Render()
         mUniformBuffer->UnmapMemory();
     }
 
-    auto             cmd            = GetCommandBuffer(imageIndex);
+    bool buildCommandBuffer = !GetSettings()->grfx.enablePreRecordCmd;
+    auto cmd                = GetCommandBuffer(imageIndex, buildCommandBuffer);
+
     grfx::SubmitInfo submitInfo     = {};
     submitInfo.commandBufferCount   = 1;
     submitInfo.ppCommandBuffers     = &cmd;

@@ -98,9 +98,18 @@ private:
     void     UpdateTransforms(PerFrame& frame);
     uint32_t AcquireFrame(PerFrame& frame);
     void     BlitAndPresent(PerFrame& frame, uint32_t swapchainImageIndex);
-    void     RunCompute(PerFrame& frame, size_t quadIndex);
-    void     Compose(PerFrame& frame, size_t quadIndex);
-    void     DrawScene(PerFrame& frame, size_t quadIndex);
+    void     RunCompute(PerFrame& frame, uint32_t swapchainImageIndex, size_t quadIndex);
+    void     Compose(PerFrame& frame, uint32_t swapchainImageIndex, size_t quadIndex);
+    void     DrawScene(PerFrame& frame, uint32_t swapchainImageIndex, size_t quadIndex);
+    void     BuildSceneCommandBuffer(uint32_t swapchainImageIndex, size_t quadIndex);
+    void     BuildComputeCommandBuffer(uint32_t swapchainImageIndex, size_t quadIndex);
+    void     BuildComposeCommandBuffer(uint32_t swapchainImageIndex, size_t quadIndex);
+    void     BuildDrawCommandBuffer(uint32_t swapchainImageIndex);
+
+    ppx::grfx::CommandBufferPtr& GetSceneCommandBuffer(uint32_t swapchainImageIndex, size_t quadIndex, bool buildCommandBuffer);
+    ppx::grfx::CommandBufferPtr& GetComputeCommandBuffer(uint32_t swapchainImageIndex, size_t quadIndex, bool buildCommandBuffer);
+    ppx::grfx::CommandBufferPtr& GetComposeCommandBuffer(uint32_t swapchainImageIndex, size_t quadIndex, bool buildCommandBuffer);
+    ppx::grfx::CommandBufferPtr& GetDrawCommandBuffer(uint32_t swapchainImageIndex, bool buildCommandBuffer);
 
     PerspCamera mCamera;
 
@@ -147,15 +156,181 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.appName                       = "23_async_compute";
     settings.enableImGui                   = true;
     settings.grfx.api                      = kApi;
-    settings.grfx.enableDebug              = false;
+    settings.grfx.enableDebug              = true;
     settings.window.width                  = 1920;
     settings.window.height                 = 1080;
     settings.grfx.swapchain.imageCount     = mNumFramesInFlight;
     settings.grfx.device.computeQueueCount = 1;
     settings.grfx.numFramesInFlight        = mNumFramesInFlight;
+    settings.grfx.enablePreRecordCmd       = false;
 #if defined(USE_DXIL)
     settings.grfx.enableDXIL = true;
 #endif
+}
+
+void ProjApp::BuildSceneCommandBuffer(uint32_t swapchainImageIndex, size_t quadIndex)
+{
+    auto&                 frame      = mPerFrame[swapchainImageIndex];
+    PerFrame::RenderData& renderData = frame.renderData[quadIndex];
+    PPX_CHECKED_CALL(renderData.cmd->Begin());
+    {
+        renderData.cmd->SetScissors(renderData.drawPass->GetScissor());
+        renderData.cmd->SetViewports(renderData.drawPass->GetViewport());
+
+        // Draw model.
+        renderData.cmd->TransitionImageLayout(renderData.drawPass->GetRenderTargetTexture(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_RENDER_TARGET);
+        renderData.cmd->BeginRenderPass(renderData.drawPass, grfx::DRAW_PASS_CLEAR_FLAG_CLEAR_RENDER_TARGETS | grfx::DRAW_PASS_CLEAR_FLAG_CLEAR_DEPTH);
+        {
+            grfx::DescriptorSet* sets[1] = {nullptr};
+            sets[0]                      = renderData.descriptorSet;
+            renderData.cmd->BindGraphicsDescriptorSets(mRenderPipelineInterface, 1, sets);
+
+            renderData.cmd->BindGraphicsPipeline(mRenderPipeline);
+
+            renderData.cmd->BindIndexBuffer(mModelMesh);
+            renderData.cmd->BindVertexBuffers(mModelMesh);
+            renderData.cmd->DrawIndexed(mModelMesh->GetIndexCount(), mGraphicsLoad);
+        }
+        renderData.cmd->EndRenderPass();
+        renderData.cmd->TransitionImageLayout(renderData.drawPass->GetRenderTargetTexture(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_SHADER_RESOURCE);
+
+        // Release from graphics queue to compute queue.
+        if (mUseQueueFamilyTransfers) {
+            renderData.cmd->TransitionImageLayout(renderData.drawPass->GetRenderTargetTexture(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_SHADER_RESOURCE, mGraphicsQueue, mComputeQueue);
+        }
+    }
+    PPX_CHECKED_CALL(renderData.cmd->End());
+}
+
+void ProjApp::BuildComputeCommandBuffer(uint32_t swapchainImageIndex, size_t quadIndex)
+{
+    auto&                  frame       = mPerFrame[swapchainImageIndex];
+    PerFrame::ComputeData& computeData = frame.computeData[quadIndex];
+    PerFrame::RenderData&  renderData  = frame.renderData[quadIndex];
+
+    PPX_CHECKED_CALL(computeData.cmd->Begin());
+    {
+        // Acquire from graphics queue to compute queue.
+        if (mUseQueueFamilyTransfers) {
+            computeData.cmd->TransitionImageLayout(renderData.drawPass->GetRenderTargetTexture(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_SHADER_RESOURCE, mGraphicsQueue, mComputeQueue);
+        }
+
+        computeData.cmd->TransitionImageLayout(computeData.outputImage, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, grfx::RESOURCE_STATE_UNORDERED_ACCESS);
+        {
+            grfx::DescriptorSet* sets[1] = {nullptr};
+            sets[0]                      = computeData.descriptorSet;
+            computeData.cmd->BindComputeDescriptorSets(mComputePipelineInterface, 1, sets);
+            computeData.cmd->BindComputePipeline(mComputePipeline);
+            uint32_t dispatchX = static_cast<uint32_t>(std::ceil(computeData.outputImage->GetWidth() / 32.0));
+            uint32_t dispatchY = static_cast<uint32_t>(std::ceil(computeData.outputImage->GetHeight() / 32.0));
+            for (int i = 0; i < mComputeLoad; ++i)
+                computeData.cmd->Dispatch(dispatchX, dispatchY, 1);
+        }
+        computeData.cmd->TransitionImageLayout(computeData.outputImage, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_UNORDERED_ACCESS, grfx::RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+
+        // Release from compute queue to graphics queue.
+        if (mUseQueueFamilyTransfers) {
+            computeData.cmd->TransitionImageLayout(computeData.outputImage, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, grfx::RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, mComputeQueue, mGraphicsQueue);
+        }
+    }
+    PPX_CHECKED_CALL(computeData.cmd->End());
+}
+
+void ProjApp::BuildComposeCommandBuffer(uint32_t swapchainImageIndex, size_t quadIndex)
+{
+    auto&                  frame       = mPerFrame[swapchainImageIndex];
+    PerFrame::ComposeData& composeData = frame.composeData[quadIndex];
+    PerFrame::ComputeData& computeData = frame.computeData[quadIndex];
+
+    PPX_CHECKED_CALL(composeData.cmd->Begin());
+    {
+        grfx::DrawPassPtr renderPass = frame.composeDrawPass;
+
+        composeData.cmd->SetScissors(renderPass->GetScissor());
+        composeData.cmd->SetViewports(renderPass->GetViewport());
+
+        // Acquire from compute queue to graphics queue.
+        if (mUseQueueFamilyTransfers) {
+            composeData.cmd->TransitionImageLayout(computeData.outputImage, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, grfx::RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, mComputeQueue, mGraphicsQueue);
+        }
+
+        composeData.cmd->BeginRenderPass(renderPass, 0 /* do not clear render target */);
+        {
+            grfx::DescriptorSet* sets[1] = {nullptr};
+            sets[0]                      = composeData.descriptorSet;
+            composeData.cmd->BindGraphicsDescriptorSets(mComposePipelineInterface, 1, sets);
+
+            composeData.cmd->BindGraphicsPipeline(mComposePipeline);
+
+            composeData.cmd->BindVertexBuffers(1, &composeData.quadVertexBuffer, &mComposeVertexBinding.GetStride());
+            composeData.cmd->Draw(6);
+        }
+        composeData.cmd->EndRenderPass();
+    }
+    PPX_CHECKED_CALL(composeData.cmd->End());
+}
+
+void ProjApp::BuildDrawCommandBuffer(uint32_t swapchainImageIndex)
+{
+    auto&               frame      = mPerFrame[swapchainImageIndex];
+    grfx::RenderPassPtr renderPass = GetSwapchain()->GetRenderPass(swapchainImageIndex);
+    PPX_ASSERT_MSG(!renderPass.IsNull(), "swapchain render pass object is null");
+
+    grfx::CommandBufferPtr cmd = frame.drawToSwapchainData.cmd;
+
+    PPX_CHECKED_CALL(cmd->Begin());
+    {
+        cmd->SetScissors(renderPass->GetScissor());
+        cmd->SetViewports(renderPass->GetViewport());
+        cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
+        cmd->TransitionImageLayout(frame.composeDrawPass->GetRenderTargetTexture(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+        cmd->BeginRenderPass(renderPass);
+        {
+            // Draw composed image to swapchain.
+            cmd->Draw(mDrawToSwapchainPipeline, 1, &frame.drawToSwapchainData.descriptorSet);
+            if (!GetSettings()->grfx.enablePreRecordCmd) {
+                // Draw ImGui.
+                DrawDebugInfo([this]() { this->DrawGui(); });
+                DrawImGui(cmd);
+            }
+        }
+        cmd->EndRenderPass();
+        cmd->TransitionImageLayout(frame.composeDrawPass->GetRenderTargetTexture(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PIXEL_SHADER_RESOURCE, grfx::RESOURCE_STATE_RENDER_TARGET);
+        cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
+    }
+    PPX_CHECKED_CALL(cmd->End());
+}
+
+ppx::grfx::CommandBufferPtr& ProjApp::GetSceneCommandBuffer(uint32_t swapchainImageIndex, size_t quadIndex, bool buildCommandBuffer)
+{
+    if (buildCommandBuffer) {
+        BuildSceneCommandBuffer(swapchainImageIndex, quadIndex);
+    }
+    return mPerFrame[swapchainImageIndex].renderData[quadIndex].cmd;
+}
+
+ppx::grfx::CommandBufferPtr& ProjApp::GetComputeCommandBuffer(uint32_t swapchainImageIndex, size_t quadIndex, bool buildCommandBuffer)
+{
+    if (buildCommandBuffer) {
+        BuildComputeCommandBuffer(swapchainImageIndex, quadIndex);
+    }
+    return mPerFrame[swapchainImageIndex].computeData[quadIndex].cmd;
+}
+
+ppx::grfx::CommandBufferPtr& ProjApp::GetComposeCommandBuffer(uint32_t swapchainImageIndex, size_t quadIndex, bool buildCommandBuffer)
+{
+    if (buildCommandBuffer) {
+        BuildComposeCommandBuffer(swapchainImageIndex, quadIndex);
+    }
+    return mPerFrame[swapchainImageIndex].composeData[quadIndex].cmd;
+}
+
+ppx::grfx::CommandBufferPtr& ProjApp::GetDrawCommandBuffer(uint32_t swapchainImageIndex, bool buildCommandBuffer)
+{
+    if (buildCommandBuffer) {
+        BuildDrawCommandBuffer(swapchainImageIndex);
+    }
+    return mPerFrame[swapchainImageIndex].drawToSwapchainData.cmd;
 }
 
 void ProjApp::Setup()
@@ -296,8 +471,10 @@ void ProjApp::Setup()
         GetDevice()->DestroyShaderModule(PS);
     }
 
-    for (auto& frameData : mPerFrame) {
-        for (auto& renderData : frameData.renderData) {
+    for (uint32_t frame_index = 0; frame_index < mPerFrame.size(); frame_index++) {
+        auto& frameData = mPerFrame[frame_index];
+        for (size_t i = 0; i < frameData.renderData.size(); ++i) {
+            PerFrame::RenderData& renderData = frameData.renderData[i];
             // Descriptor set.
             {
                 PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mRenderLayout, &renderData.descriptorSet));
@@ -359,6 +536,9 @@ void ProjApp::Setup()
 
                 PPX_CHECKED_CALL(GetDevice()->CreateDrawPass(&dpCreateInfo, &renderData.drawPass));
             }
+            if (GetSettings()->grfx.enablePreRecordCmd) {
+                BuildSceneCommandBuffer(frame_index, i);
+            }
         }
     }
 
@@ -404,8 +584,8 @@ void ProjApp::SetupCompute()
 
         GetDevice()->DestroyShaderModule(CS);
     }
-
-    for (auto& frameData : mPerFrame) {
+    for (uint32_t frame_index = 0; frame_index < mPerFrame.size(); frame_index++) {
+        auto& frameData = mPerFrame[frame_index];
         for (size_t i = 0; i < frameData.computeData.size(); ++i) {
             PerFrame::ComputeData& computeData   = frameData.computeData[i];
             grfx::Texture*         sourceTexture = frameData.renderData[i].drawPass->GetRenderTargetTexture(0);
@@ -496,6 +676,9 @@ void ProjApp::SetupCompute()
                 write.pImageView = sourceTexture->GetSampledImageView();
                 PPX_CHECKED_CALL(computeData.descriptorSet->UpdateDescriptors(1, &write));
             }
+            if (GetSettings()->grfx.enablePreRecordCmd) {
+                BuildComputeCommandBuffer(frame_index, i);
+            }
         }
     }
 }
@@ -559,7 +742,8 @@ void ProjApp::SetupComposition()
         GetDevice()->DestroyShaderModule(PS);
     }
 
-    for (auto& frameData : mPerFrame) {
+    for (uint32_t frame_index = 0; frame_index < mPerFrame.size(); frame_index++) {
+        auto& frameData = mPerFrame[frame_index];
         // Graphics render pass
         {
             grfx::DrawPassCreateInfo dpCreateInfo     = {};
@@ -591,7 +775,7 @@ void ProjApp::SetupComposition()
                 float offsetY = i % 2 ? 0.0f : -1.0f;
 
                 // clang-format off
-                std::vector<float> vertexData = {  
+                std::vector<float> vertexData = {
                      // Position.                                    // Texture coordinates.
                      offsetX +  0.0f,  offsetY + 1.0f, 0.0f, 1.0f,   1.0f, 0.0f,
                      offsetX + -1.0f,  offsetY + 1.0f, 0.0f, 1.0f,   0.0f, 0.0f,
@@ -631,6 +815,9 @@ void ProjApp::SetupComposition()
 
                 writes[0].pImageView = computeData.outputImageSampledView;
                 PPX_CHECKED_CALL(composeData.descriptorSet->UpdateDescriptors(2, writes));
+            }
+            if (GetSettings()->grfx.enablePreRecordCmd) {
+                BuildComposeCommandBuffer(frame_index, i);
             }
         }
     }
@@ -676,8 +863,9 @@ void ProjApp::SetupDrawToSwapchain()
     }
 
     // Allocate descriptor set
-    for (auto& frameData : mPerFrame) {
-        PerFrame::DrawToSwapchainData& drawData = frameData.drawToSwapchainData;
+    for (uint32_t frame_index = 0; frame_index < mPerFrame.size(); frame_index++) {
+        auto&                          frameData = mPerFrame[frame_index];
+        PerFrame::DrawToSwapchainData& drawData  = frameData.drawToSwapchainData;
         PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mDrawToSwapchainLayout, &drawData.descriptorSet));
 
         // Write descriptors
@@ -693,6 +881,9 @@ void ProjApp::SetupDrawToSwapchain()
             writes[1].pSampler = mLinearSampler;
 
             PPX_CHECKED_CALL(drawData.descriptorSet->UpdateDescriptors(2, writes));
+        }
+        if (GetSettings()->grfx.enablePreRecordCmd) {
+            BuildDrawCommandBuffer(frame_index);
         }
     }
 }
@@ -734,8 +925,8 @@ void ProjApp::Render()
     UpdateTransforms(frame);
 
     for (size_t quadIndex = 0; quadIndex < 4; ++quadIndex) {
-        DrawScene(frame, quadIndex);
-        RunCompute(frame, quadIndex);
+        DrawScene(frame, imageIndex, quadIndex);
+        RunCompute(frame, imageIndex, quadIndex);
     }
 
     // We have to record all composition command buffers after we
@@ -745,7 +936,7 @@ void ProjApp::Render()
     // recording composition commands along rendering and compute
     // would preclude async compute from being possible.
     for (size_t quadIndex = 0; quadIndex < 4; ++quadIndex) {
-        Compose(frame, quadIndex);
+        Compose(frame, imageIndex, quadIndex);
     }
 
     BlitAndPresent(frame, imageIndex);
@@ -754,7 +945,7 @@ void ProjApp::Render()
 uint32_t ProjApp::AcquireFrame(PerFrame& frame)
 {
     uint32_t imageIndex = UINT32_MAX;
-    PPX_CHECKED_CALL(GetSwapchain()->AcquireNextImage(UINT64_MAX, frame.imageAcquiredSemaphore, frame.imageAcquiredFence, &imageIndex));
+    PPX_CHECKED_CALL(GetSwapchain()->AcquireNextImage(UINT64_MAX, /*frame.imageAcquiredSemaphore*/ nullptr, frame.imageAcquiredFence, &imageIndex));
 
     // Wait for and reset image acquired fence
     PPX_CHECKED_CALL(frame.imageAcquiredFence->WaitAndReset());
@@ -765,82 +956,33 @@ uint32_t ProjApp::AcquireFrame(PerFrame& frame)
     return imageIndex;
 }
 
-void ProjApp::DrawScene(PerFrame& frame, size_t quadIndex)
+void ProjApp::DrawScene(PerFrame& frame, uint32_t swapchainImageIndex, size_t quadIndex)
 {
     PerFrame::RenderData& renderData = frame.renderData[quadIndex];
-    PPX_CHECKED_CALL(renderData.cmd->Begin());
-    {
-        renderData.cmd->SetScissors(renderData.drawPass->GetScissor());
-        renderData.cmd->SetViewports(renderData.drawPass->GetViewport());
 
-        // Draw model.
-        renderData.cmd->TransitionImageLayout(renderData.drawPass->GetRenderTargetTexture(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_RENDER_TARGET);
-        renderData.cmd->BeginRenderPass(renderData.drawPass, grfx::DRAW_PASS_CLEAR_FLAG_CLEAR_RENDER_TARGETS | grfx::DRAW_PASS_CLEAR_FLAG_CLEAR_DEPTH);
-        {
-            grfx::DescriptorSet* sets[1] = {nullptr};
-            sets[0]                      = renderData.descriptorSet;
-            renderData.cmd->BindGraphicsDescriptorSets(mRenderPipelineInterface, 1, sets);
-
-            renderData.cmd->BindGraphicsPipeline(mRenderPipeline);
-
-            renderData.cmd->BindIndexBuffer(mModelMesh);
-            renderData.cmd->BindVertexBuffers(mModelMesh);
-            renderData.cmd->DrawIndexed(mModelMesh->GetIndexCount(), mGraphicsLoad);
-        }
-        renderData.cmd->EndRenderPass();
-        renderData.cmd->TransitionImageLayout(renderData.drawPass->GetRenderTargetTexture(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_SHADER_RESOURCE);
-
-        // Release from graphics queue to compute queue.
-        if (mUseQueueFamilyTransfers) {
-            renderData.cmd->TransitionImageLayout(renderData.drawPass->GetRenderTargetTexture(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_SHADER_RESOURCE, mGraphicsQueue, mComputeQueue);
-        }
-    }
-    PPX_CHECKED_CALL(renderData.cmd->End());
+    bool buildCommandBuffer = !GetSettings()->grfx.enablePreRecordCmd;
+    auto cmd                = GetSceneCommandBuffer(swapchainImageIndex, quadIndex, buildCommandBuffer);
 
     grfx::SubmitInfo submitInfo     = {};
     submitInfo.commandBufferCount   = 1;
-    submitInfo.ppCommandBuffers     = &renderData.cmd;
+    submitInfo.ppCommandBuffers     = &cmd;
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.ppSignalSemaphores   = &renderData.completeSemaphore;
 
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
 }
 
-void ProjApp::RunCompute(PerFrame& frame, size_t quadIndex)
+void ProjApp::RunCompute(PerFrame& frame, uint32_t swapchainImageIndex, size_t quadIndex)
 {
     PerFrame::ComputeData& computeData = frame.computeData[quadIndex];
     PerFrame::RenderData&  renderData  = frame.renderData[quadIndex];
 
-    PPX_CHECKED_CALL(computeData.cmd->Begin());
-    {
-        // Acquire from graphics queue to compute queue.
-        if (mUseQueueFamilyTransfers) {
-            computeData.cmd->TransitionImageLayout(renderData.drawPass->GetRenderTargetTexture(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_SHADER_RESOURCE, mGraphicsQueue, mComputeQueue);
-        }
-
-        computeData.cmd->TransitionImageLayout(computeData.outputImage, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, grfx::RESOURCE_STATE_UNORDERED_ACCESS);
-        {
-            grfx::DescriptorSet* sets[1] = {nullptr};
-            sets[0]                      = computeData.descriptorSet;
-            computeData.cmd->BindComputeDescriptorSets(mComputePipelineInterface, 1, sets);
-            computeData.cmd->BindComputePipeline(mComputePipeline);
-            uint32_t dispatchX = static_cast<uint32_t>(std::ceil(computeData.outputImage->GetWidth() / 32.0));
-            uint32_t dispatchY = static_cast<uint32_t>(std::ceil(computeData.outputImage->GetHeight() / 32.0));
-            for (int i = 0; i < mComputeLoad; ++i)
-                computeData.cmd->Dispatch(dispatchX, dispatchY, 1);
-        }
-        computeData.cmd->TransitionImageLayout(computeData.outputImage, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_UNORDERED_ACCESS, grfx::RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-
-        // Release from compute queue to graphics queue.
-        if (mUseQueueFamilyTransfers) {
-            computeData.cmd->TransitionImageLayout(computeData.outputImage, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, grfx::RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, mComputeQueue, mGraphicsQueue);
-        }
-    }
-    PPX_CHECKED_CALL(computeData.cmd->End());
+    bool buildCommandBuffer = !GetSettings()->grfx.enablePreRecordCmd;
+    auto cmd                = GetComputeCommandBuffer(swapchainImageIndex, quadIndex, buildCommandBuffer);
 
     grfx::SubmitInfo submitInfo     = {};
     submitInfo.commandBufferCount   = 1;
-    submitInfo.ppCommandBuffers     = &computeData.cmd;
+    submitInfo.ppCommandBuffers     = &cmd;
     submitInfo.waitSemaphoreCount   = 1;
     submitInfo.ppWaitSemaphores     = &renderData.completeSemaphore;
     submitInfo.signalSemaphoreCount = 1;
@@ -854,41 +996,17 @@ void ProjApp::RunCompute(PerFrame& frame, size_t quadIndex)
     }
 }
 
-void ProjApp::Compose(PerFrame& frame, size_t quadIndex)
+void ProjApp::Compose(PerFrame& frame, uint32_t swapchainImageIndex, size_t quadIndex)
 {
     PerFrame::ComposeData& composeData = frame.composeData[quadIndex];
     PerFrame::ComputeData& computeData = frame.computeData[quadIndex];
 
-    PPX_CHECKED_CALL(composeData.cmd->Begin());
-    {
-        grfx::DrawPassPtr renderPass = frame.composeDrawPass;
-
-        composeData.cmd->SetScissors(renderPass->GetScissor());
-        composeData.cmd->SetViewports(renderPass->GetViewport());
-
-        // Acquire from compute queue to graphics queue.
-        if (mUseQueueFamilyTransfers) {
-            composeData.cmd->TransitionImageLayout(computeData.outputImage, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, grfx::RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, mComputeQueue, mGraphicsQueue);
-        }
-
-        composeData.cmd->BeginRenderPass(renderPass, 0 /* do not clear render target */);
-        {
-            grfx::DescriptorSet* sets[1] = {nullptr};
-            sets[0]                      = composeData.descriptorSet;
-            composeData.cmd->BindGraphicsDescriptorSets(mComposePipelineInterface, 1, sets);
-
-            composeData.cmd->BindGraphicsPipeline(mComposePipeline);
-
-            composeData.cmd->BindVertexBuffers(1, &composeData.quadVertexBuffer, &mComposeVertexBinding.GetStride());
-            composeData.cmd->Draw(6);
-        }
-        composeData.cmd->EndRenderPass();
-    }
-    PPX_CHECKED_CALL(composeData.cmd->End());
+    bool buildCommandBuffer = !GetSettings()->grfx.enablePreRecordCmd;
+    auto cmd                = GetComposeCommandBuffer(swapchainImageIndex, quadIndex, buildCommandBuffer);
 
     grfx::SubmitInfo submitInfo     = {};
     submitInfo.commandBufferCount   = 1;
-    submitInfo.ppCommandBuffers     = &composeData.cmd;
+    submitInfo.ppCommandBuffers     = &cmd;
     submitInfo.waitSemaphoreCount   = 1;
     submitInfo.ppWaitSemaphores     = &computeData.completeSemaphore;
     submitInfo.signalSemaphoreCount = 1;
@@ -899,31 +1017,8 @@ void ProjApp::Compose(PerFrame& frame, size_t quadIndex)
 
 void ProjApp::BlitAndPresent(PerFrame& frame, uint32_t swapchainImageIndex)
 {
-    grfx::RenderPassPtr renderPass = GetSwapchain()->GetRenderPass(swapchainImageIndex);
-    PPX_ASSERT_MSG(!renderPass.IsNull(), "swapchain render pass object is null");
-
-    grfx::CommandBufferPtr cmd = frame.drawToSwapchainData.cmd;
-
-    PPX_CHECKED_CALL(cmd->Begin());
-    {
-        cmd->SetScissors(renderPass->GetScissor());
-        cmd->SetViewports(renderPass->GetViewport());
-        cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
-        cmd->TransitionImageLayout(frame.composeDrawPass->GetRenderTargetTexture(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-        cmd->BeginRenderPass(renderPass);
-        {
-            // Draw composed image to swapchain.
-            cmd->Draw(mDrawToSwapchainPipeline, 1, &frame.drawToSwapchainData.descriptorSet);
-
-            // Draw ImGui.
-            DrawDebugInfo([this]() { this->DrawGui(); });
-            DrawImGui(cmd);
-        }
-        cmd->EndRenderPass();
-        cmd->TransitionImageLayout(frame.composeDrawPass->GetRenderTargetTexture(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PIXEL_SHADER_RESOURCE, grfx::RESOURCE_STATE_RENDER_TARGET);
-        cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
-    }
-    PPX_CHECKED_CALL(cmd->End());
+    bool  buildCommandBuffer = !GetSettings()->grfx.enablePreRecordCmd;
+    auto& cmd                = GetDrawCommandBuffer(swapchainImageIndex, buildCommandBuffer);
 
     const grfx::Semaphore* ppWaitSemaphores[4] = {
         frame.composeData[0].completeSemaphore,
