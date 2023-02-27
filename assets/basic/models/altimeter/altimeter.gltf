@@ -5,7 +5,8 @@
     },
     "extensionsUsed" : [
         "KHR_materials_specular",
-        "KHR_materials_ior"
+        "KHR_materials_ior",
+        "MSFT_texture_dds"
     ],
     "scene" : 0,
     "scenes" : [
@@ -81,7 +82,7 @@
             "source" : 0,
             "extensions": {
               "MSFT_texture_dds": {
-                "source": 1
+                "source": 3
               }
             }
         },
@@ -90,7 +91,7 @@
             "source" : 1,
             "extensions": {
               "MSFT_texture_dds": {
-                "source": 1
+                "source": 4
               }
             }
 
@@ -100,13 +101,28 @@
             "source" : 2,
             "extensions": {
               "MSFT_texture_dds": {
-                "source": 1
+                "source": 5
               }
             }
 
         }
     ],
     "images" : [
+        {
+            "mimeType" : "image/png",
+            "name" : "normal",
+            "uri" : "normal.png"
+        },
+        {
+            "mimeType" : "image/png",
+            "name" : "albedo",
+            "uri" : "albedo.png"
+        },
+        {
+            "mimeType" : "image/png",
+            "name" : "metalness-roughness",
+            "uri" : "metalness-roughness.png"
+        },
         {
             "mimeType" : "image/vnd-ms.dds",
             "name" : "normal",
