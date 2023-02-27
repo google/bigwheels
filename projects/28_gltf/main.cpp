@@ -17,6 +17,7 @@
 #include <queue>
 
 #include "ppx/ppx.h"
+#include "ppx/timer.h"
 #include "ppx/camera.h"
 #include "ppx/graphics_util.h"
 #include "ppx/grfx/grfx_scope.h"
@@ -78,19 +79,19 @@ private:
 
     struct Renderable
     {
-      Material*            pMaterial;
-      Primitive*           pPrimitive;
-      grfx::DescriptorSet* pDescriptorSet;
+        Material*            pMaterial;
+        Primitive*           pPrimitive;
+        grfx::DescriptorSet* pDescriptorSet;
 
-      Renderable(Material *m, Primitive *p, grfx::DescriptorSet *set)
-        : pMaterial(m), pPrimitive(p), pDescriptorSet(set) { }
+        Renderable(Material* m, Primitive* p, grfx::DescriptorSet* set)
+            : pMaterial(m), pPrimitive(p), pDescriptorSet(set) {}
     };
 
     struct Object
     {
-        float4x4                  model;
-        grfx::BufferPtr           pUniformBuffer;
-        std::vector<Renderable>   renderables;
+        float4x4                model;
+        grfx::BufferPtr         pUniformBuffer;
+        std::vector<Renderable> renderables;
     };
 
     using RenderList = std::unordered_map<Material*, std::vector<Object*>>;
@@ -147,10 +148,10 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
 {
     settings.appName                    = "gltf";
     settings.enableImGui                = true;
-    settings.window.width = 1920;
-    settings.window.height = 1080;
+    settings.window.width               = 1920;
+    settings.window.height              = 1080;
     settings.grfx.api                   = kApi;
-    settings.grfx.enableDebug = false;
+    settings.grfx.enableDebug           = false;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
 #if defined(USE_DXIL)
     settings.grfx.enableDXIL = true;
@@ -160,14 +161,17 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
 void ProjApp::LoadTexture(const cgltf_texture_view& texture_view, grfx::Queue* pQueue, Texture* pOutput) const
 {
     const auto& texture = *texture_view.texture;
-
     PPX_ASSERT_MSG(texture_view.texture != nullptr, "Texture with no image are not supported.");
     PPX_ASSERT_MSG(texture_view.has_transform == false, "Texture transforms are not supported yet.");
+
+    // FIXME: For now, CGLTF doesn't supports this extension. Meaning the image field will be empty, and the
+    // extension data will be a simple string.
+    // Until https://github.com/jkuhlmann/cgltf/issues/203 is solved, GLTF files are patched so it works.
     PPX_ASSERT_MSG(texture.image != nullptr, "Texture with no image are not supported.");
     PPX_ASSERT_MSG(texture.image->uri != nullptr, "Texture with embedded data is not supported yet.");
     PPX_ASSERT_MSG(strcmp(texture.image->mime_type, "image/vnd-ms.dds") == 0, "Texture format others than DDS are not supported.");
 
-    std::filesystem::path   gltf_path = "basic/models/sponza/";
+    std::filesystem::path   gltf_path = "basic/models/altimeter/";
     grfx_util::ImageOptions options   = grfx_util::ImageOptions().MipLevelCount(PPX_REMAINING_MIP_LEVELS);
     PPX_CHECKED_CALL(grfx_util::CreateImageFromFile(pQueue, GetAssetPath(gltf_path / texture.image->uri), &pOutput->pImage, options, false));
 
@@ -175,52 +179,52 @@ void ProjApp::LoadTexture(const cgltf_texture_view& texture_view, grfx::Queue* p
     PPX_CHECKED_CALL(GetDevice()->CreateSampledImageView(&sivCreateInfo, &pOutput->pTexture));
 
     grfx::SamplerCreateInfo samplerCreateInfo = {};
-    samplerCreateInfo.magFilter = grfx::FILTER_LINEAR;
-    samplerCreateInfo.minFilter = grfx::FILTER_LINEAR;
-    samplerCreateInfo.anisotropyEnable = true;
-    samplerCreateInfo.maxAnisotropy = 16;
-    samplerCreateInfo.mipmapMode = grfx::SAMPLER_MIPMAP_MODE_LINEAR;
-    samplerCreateInfo.minLod = 0.f;
-    samplerCreateInfo.maxLod = FLT_MAX;
+    samplerCreateInfo.magFilter               = grfx::FILTER_LINEAR;
+    samplerCreateInfo.minFilter               = grfx::FILTER_LINEAR;
+    samplerCreateInfo.anisotropyEnable        = true;
+    samplerCreateInfo.maxAnisotropy           = 16;
+    samplerCreateInfo.mipmapMode              = grfx::SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerCreateInfo.minLod                  = 0.f;
+    samplerCreateInfo.maxLod                  = FLT_MAX;
     PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &pOutput->pSampler));
 }
 
 void ProjApp::LoadTexture(const Bitmap& bitmap, grfx::Queue* pQueue, Texture* pOutput) const
 {
-    grfx_util::ImageOptions options   = grfx_util::ImageOptions().MipLevelCount(1);
+    grfx_util::ImageOptions options = grfx_util::ImageOptions().MipLevelCount(1);
     PPX_CHECKED_CALL(grfx_util::CreateImageFromBitmap(pQueue, &bitmap, &pOutput->pImage, options));
 
     grfx::SampledImageViewCreateInfo sivCreateInfo = grfx::SampledImageViewCreateInfo::GuessFromImage(pOutput->pImage);
     PPX_CHECKED_CALL(GetDevice()->CreateSampledImageView(&sivCreateInfo, &pOutput->pTexture));
     grfx::SamplerCreateInfo samplerCreateInfo = {};
-    samplerCreateInfo.magFilter = grfx::FILTER_LINEAR;
-    samplerCreateInfo.minFilter = grfx::FILTER_LINEAR;
-    samplerCreateInfo.anisotropyEnable = true;
-    samplerCreateInfo.maxAnisotropy = 1.f;
-    samplerCreateInfo.mipmapMode = grfx::SAMPLER_MIPMAP_MODE_LINEAR;
+    samplerCreateInfo.magFilter               = grfx::FILTER_LINEAR;
+    samplerCreateInfo.minFilter               = grfx::FILTER_LINEAR;
+    samplerCreateInfo.anisotropyEnable        = true;
+    samplerCreateInfo.maxAnisotropy           = 1.f;
+    samplerCreateInfo.mipmapMode              = grfx::SAMPLER_MIPMAP_MODE_LINEAR;
     PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &pOutput->pSampler));
 }
 
 Bitmap ColorToBitmap(const float3& color)
 {
-  uint8_t r = static_cast<uint8_t>(color.x * 255.f);
-  uint8_t g = static_cast<uint8_t>(color.y * 255.f);
-  uint8_t b = static_cast<uint8_t>(color.z * 255.f);
+    uint8_t r = static_cast<uint8_t>(color.x * 255.f);
+    uint8_t g = static_cast<uint8_t>(color.y * 255.f);
+    uint8_t b = static_cast<uint8_t>(color.z * 255.f);
 
-  Bitmap bitmap;
-  PPX_CHECKED_CALL(Bitmap::Create(64, 64, Bitmap::Format::FORMAT_RGBA_FLOAT, &bitmap));
+    Bitmap bitmap;
+    PPX_CHECKED_CALL(Bitmap::Create(64, 64, Bitmap::Format::FORMAT_RGBA_FLOAT, &bitmap));
 
-  for (size_t y = 0; y < 64; y++) {
-    for (size_t x = 0; x < 64; x++) {
-      float* ptr = bitmap.GetPixel32f(x, y);
-      ptr[0] = color.r;
-      ptr[1] = color.g;
-      ptr[2] = color.b;
-      ptr[3] = 1.f;
+    for (size_t y = 0; y < 64; y++) {
+        for (size_t x = 0; x < 64; x++) {
+            float* ptr = bitmap.GetPixel32f(x, y);
+            ptr[0]     = color.r;
+            ptr[1]     = color.g;
+            ptr[2]     = color.b;
+            ptr[3]     = 1.f;
+        }
     }
-  }
 
-  return bitmap;
+    return bitmap;
 }
 
 void ProjApp::LoadMaterial(
@@ -336,24 +340,27 @@ void ProjApp::LoadMaterial(
 #else
 #if 1
     if (material.pbr_metallic_roughness.base_color_texture.texture == nullptr) {
-      float3 color = glm::make_vec3(material.pbr_metallic_roughness.base_color_factor);
-      LoadTexture(ColorToBitmap(color), pQueue, &pOutput->textures[0]);
-    } else {
-      LoadTexture(material.pbr_metallic_roughness.base_color_texture, pQueue, &pOutput->textures[0]);
+        float3 color = glm::make_vec3(material.pbr_metallic_roughness.base_color_factor);
+        LoadTexture(ColorToBitmap(color), pQueue, &pOutput->textures[0]);
+    }
+    else {
+        LoadTexture(material.pbr_metallic_roughness.base_color_texture, pQueue, &pOutput->textures[0]);
     }
 
     if (material.normal_texture.texture == nullptr) {
-      LoadTexture(ColorToBitmap(float3(0.f, 1.f, 0.f)), pQueue, &pOutput->textures[1]);
-    } else {
-      LoadTexture(material.normal_texture, pQueue, &pOutput->textures[1]);
+        LoadTexture(ColorToBitmap(float3(0.f, 1.f, 0.f)), pQueue, &pOutput->textures[1]);
+    }
+    else {
+        LoadTexture(material.normal_texture, pQueue, &pOutput->textures[1]);
     }
 
     if (material.pbr_metallic_roughness.metallic_roughness_texture.texture == nullptr) {
-      const auto& mtl = material.pbr_metallic_roughness;
-      float3 color = float3(mtl.metallic_factor, mtl.roughness_factor, 0.f);
-      LoadTexture(ColorToBitmap(color), pQueue, &pOutput->textures[2]);
-    } else {
-      LoadTexture(material.pbr_metallic_roughness.metallic_roughness_texture, pQueue, &pOutput->textures[2]);
+        const auto& mtl   = material.pbr_metallic_roughness;
+        float3      color = float3(mtl.metallic_factor, mtl.roughness_factor, 0.f);
+        LoadTexture(ColorToBitmap(color), pQueue, &pOutput->textures[2]);
+    }
+    else {
+        LoadTexture(material.pbr_metallic_roughness.metallic_roughness_texture, pQueue, &pOutput->textures[2]);
     }
 #else
     LoadTexture(material.pbr_metallic_roughness.base_color_texture, pQueue, &pOutput->textures[0]);
@@ -380,9 +387,9 @@ static void GetAccessorsForPrimitive(const cgltf_primitive& primitive, const cgl
     PPX_ASSERT_NULL_ARG(tangent);
 
     *position = nullptr;
-    *uv = nullptr;
-    *normal = nullptr;
-    *tangent = nullptr;
+    *uv       = nullptr;
+    *normal   = nullptr;
+    *tangent  = nullptr;
 
     for (size_t i = 0; i < primitive.attributes_count; i++) {
         const auto& type = primitive.attributes[i].type;
@@ -402,8 +409,7 @@ static void GetAccessorsForPrimitive(const cgltf_primitive& primitive, const cgl
         }
     }
 
-    PPX_ASSERT_MSG(*position != nullptr && *uv != nullptr && *normal != nullptr && *tangent != nullptr,
-                   "For now, only supports model with position, normal, tangent and UV attributes");
+    PPX_ASSERT_MSG(*position != nullptr && *uv != nullptr && *normal != nullptr && *tangent != nullptr, "For now, only supports model with position, normal, tangent and UV attributes");
 }
 
 void ProjApp::LoadPrimitive(const cgltf_primitive& primitive, grfx::BufferPtr pStagingBuffer, grfx::Queue* pQueue, Primitive* pOutput) const
@@ -417,7 +423,7 @@ void ProjApp::LoadPrimitive(const cgltf_primitive& primitive, grfx::BufferPtr pS
     constexpr size_t                     POSITION_INDEX = 0;
     constexpr size_t                     UV_INDEX       = 1;
     constexpr size_t                     NORMAL_INDEX   = 2;
-    constexpr size_t                     TANGENT_INDEX   = 3;
+    constexpr size_t                     TANGENT_INDEX  = 3;
     std::array<const cgltf_accessor*, 4> accessors;
     GetAccessorsForPrimitive(primitive, &accessors[POSITION_INDEX], &accessors[UV_INDEX], &accessors[NORMAL_INDEX], &accessors[TANGENT_INDEX]);
 
@@ -444,24 +450,23 @@ void ProjApp::LoadPrimitive(const cgltf_primitive& primitive, grfx::BufferPtr pS
             const auto& a  = *accessors[i];
             const auto& bv = *a.buffer_view;
             // If the buffer_view doesn't declare a stride, the accessor must define it.
-            //PPX_ASSERT_MSG(bv.stride == 0, "Stride declared in buffer-view not supported.");
+            // PPX_ASSERT_MSG(bv.stride == 0, "Stride declared in buffer-view not supported.");
             PPX_ASSERT_MSG(a.offset == 0, "Non-0 offset in accessor are not supported.");
             PPX_ASSERT_MSG(a.type == cgltf_type_vec2 || a.type == cgltf_type_vec3 || a.type == cgltf_type_vec4, "Non supported accessor type.");
             PPX_ASSERT_MSG(a.component_type == cgltf_component_type_r_32f, "only float for POS, NORM, TEX are supported.");
 
-            ci.vertexBuffers[i].attributeCount               = 1;
-            ci.vertexBuffers[i].vertexInputRate              = grfx::VERTEX_INPUT_RATE_VERTEX;
-            ci.vertexBuffers[i].attributes[0].format         = a.type == cgltf_type_vec2 ? grfx::FORMAT_R32G32_FLOAT
-                                                             : a.type == cgltf_type_vec3 ? grfx::FORMAT_R32G32B32_FLOAT
-                                                             : grfx::FORMAT_R32G32B32A32_FLOAT;
-            ci.vertexBuffers[i].attributes[0].stride         = bv.stride == 0 ? a.stride : bv.stride;
+            ci.vertexBuffers[i].attributeCount       = 1;
+            ci.vertexBuffers[i].vertexInputRate      = grfx::VERTEX_INPUT_RATE_VERTEX;
+            ci.vertexBuffers[i].attributes[0].format = a.type == cgltf_type_vec2   ? grfx::FORMAT_R32G32_FLOAT
+                                                       : a.type == cgltf_type_vec3 ? grfx::FORMAT_R32G32B32_FLOAT
+                                                                                   : grfx::FORMAT_R32G32B32A32_FLOAT;
+            ci.vertexBuffers[i].attributes[0].stride = bv.stride == 0 ? a.stride : bv.stride;
 
             std::array<grfx::VertexSemantic, accessors.size()> semantics = {
-              grfx::VERTEX_SEMANTIC_POSITION,
-              grfx::VERTEX_SEMANTIC_TEXCOORD,
-              grfx::VERTEX_SEMANTIC_NORMAL,
-              grfx::VERTEX_SEMANTIC_TANGENT
-            };
+                grfx::VERTEX_SEMANTIC_POSITION,
+                grfx::VERTEX_SEMANTIC_TEXCOORD,
+                grfx::VERTEX_SEMANTIC_NORMAL,
+                grfx::VERTEX_SEMANTIC_TANGENT};
             ci.vertexBuffers[i].attributes[0].vertexSemantic = semantics[i];
         }
         PPX_CHECKED_CALL(pQueue->GetDevice()->CreateMesh(&ci, &targetMesh));
@@ -585,9 +590,9 @@ void ProjApp::LoadNodes(
     std::vector<Primitive>*                                   pPrimitives,
     std::vector<Material>*                                    pMaterials)
 {
-    const size_t                                node_count = data->nodes_count;
-    const size_t                                mesh_count = data->meshes_count;
-    std::unordered_map<cgltf_mesh*, size_t>     mesh_to_index;
+    const size_t                            node_count = data->nodes_count;
+    const size_t                            mesh_count = data->meshes_count;
+    std::unordered_map<cgltf_mesh*, size_t> mesh_to_index;
 
     for (size_t i = 0; i < node_count; i++) {
         const auto& node = data->nodes[i];
@@ -599,8 +604,8 @@ void ProjApp::LoadNodes(
         item.model = compute_object_matrix(&node);
 
         for (size_t j = 0; j < node.mesh->primitives_count; j++) {
-            const size_t primitive_index = primitiveToIndex.at(&node.mesh->primitives[j]);
-            cgltf_material* mtl = node.mesh->primitives[j].material;
+            const size_t    primitive_index = primitiveToIndex.at(&node.mesh->primitives[j]);
+            cgltf_material* mtl             = node.mesh->primitives[j].material;
             // FIXME: support meshes with no material.
             const size_t material_index = mtl == nullptr ? 0 : std::distance(data->materials, mtl);
             PPX_ASSERT_MSG(primitive_index < pPrimitives->size(), "Invalid GLB file. Primitive index out of range.");
@@ -608,10 +613,9 @@ void ProjApp::LoadNodes(
             Primitive* pPrimitive = &(*pPrimitives)[primitive_index];
             Material*  pMaterial  = &(*pMaterials)[material_index];
 
-            grfx::DescriptorSet *pDescriptorSet = nullptr;
+            grfx::DescriptorSet* pDescriptorSet = nullptr;
             PPX_CHECKED_CALL(pQueue->GetDevice()->AllocateDescriptorSet(pDescriptorPool, pMaterial->pSetLayout, &pDescriptorSet));
             item.renderables.emplace_back(pMaterial, pPrimitive, pDescriptorSet);
-
         }
 
         // Create uniform buffer.
@@ -643,7 +647,10 @@ void ProjApp::Setup()
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&poolCreateInfo, &mDescriptorPool));
     }
 
-    LoadScene(GetAssetPath("basic/models/sponza/sponza.gltf"), GetDevice(), GetSwapchain(), GetGraphicsQueue(), mDescriptorPool, &mObjects, &mPrimitives, &mMaterials);
+    Timer timer;
+    timer.Start();
+    LoadScene(GetAssetPath("basic/models/altimeter/altimeter.gltf"), GetDevice(), GetSwapchain(), GetGraphicsQueue(), mDescriptorPool, &mObjects, &mPrimitives, &mMaterials);
+    printf("Sponza loaded in %lfs\n", timer.SecondsSinceStart());
 
     // Per frame data
     {
@@ -677,15 +684,8 @@ void ProjApp::Render()
     // Wait for and reset render complete fence
     PPX_CHECKED_CALL(frame.renderCompleteFence->WaitAndReset());
 
-    //// Update light position
-    //const float t  = GetElapsedSeconds() / 2.0f;
-    //const float r  = 7.0f;
-    //mLightPosition = float3(r * cos(t), 5.0f, r * sin(t));
-
     // Update camera(s)
-
-    const float DIST = 10.f;
-    mCamera.LookAt(float3(19, 1, -2), float3(0, 3, 0));
+    mCamera.LookAt(float3(1, 3, 1), float3(0, 0, 0));
 
     // Update uniform buffers
     for (auto& object : mObjects) {
@@ -710,31 +710,31 @@ void ProjApp::Render()
     }
 
     {
-      std::array<grfx::WriteDescriptor, 1 + 3 * 2> write;
-      std::memset(write.data(), 0, sizeof(write[0]) * write.size());
-      for (auto& object : mObjects) {
-          for (auto& renderable : object.renderables) {
-            auto* pPrimitive = renderable.pPrimitive;
-            auto* pMaterial = renderable.pMaterial;
-            auto* pDescriptorSet = renderable.pDescriptorSet;
+        std::array<grfx::WriteDescriptor, 1 + 3 * 2> write;
+        std::memset(write.data(), 0, sizeof(write[0]) * write.size());
+        for (auto& object : mObjects) {
+            for (auto& renderable : object.renderables) {
+                auto* pPrimitive     = renderable.pPrimitive;
+                auto* pMaterial      = renderable.pMaterial;
+                auto* pDescriptorSet = renderable.pDescriptorSet;
 
-            write[0].binding      = 0;
-            write[0].type         = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            write[0].bufferOffset = 0;
-            write[0].bufferRange  = PPX_WHOLE_SIZE;
-            write[0].pBuffer      = object.pUniformBuffer;
+                write[0].binding      = 0;
+                write[0].type         = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                write[0].bufferOffset = 0;
+                write[0].bufferRange  = PPX_WHOLE_SIZE;
+                write[0].pBuffer      = object.pUniformBuffer;
 
-            for (size_t i = 0; i < 3; i++) {
-              write[1 + i * 2 + 0].binding    = 1 + i * 2 + 0;
-              write[1 + i * 2 + 0].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-              write[1 + i * 2 + 0].pImageView = pMaterial->textures[i].pTexture;
-              write[1 + i * 2 + 1].binding    = 1 + i * 2 + 1;
-              write[1 + i * 2 + 1].type       = grfx::DESCRIPTOR_TYPE_SAMPLER;
-              write[1 + i * 2 + 1].pSampler   = pMaterial->textures[i].pSampler;
+                for (size_t i = 0; i < 3; i++) {
+                    write[1 + i * 2 + 0].binding    = 1 + i * 2 + 0;
+                    write[1 + i * 2 + 0].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+                    write[1 + i * 2 + 0].pImageView = pMaterial->textures[i].pTexture;
+                    write[1 + i * 2 + 1].binding    = 1 + i * 2 + 1;
+                    write[1 + i * 2 + 1].type       = grfx::DESCRIPTOR_TYPE_SAMPLER;
+                    write[1 + i * 2 + 1].pSampler   = pMaterial->textures[i].pSampler;
+                }
+                PPX_CHECKED_CALL(pDescriptorSet->UpdateDescriptors(write.size(), write.data()));
             }
-            PPX_CHECKED_CALL(pDescriptorSet->UpdateDescriptors(write.size(), write.data()));
-          }
-      }
+        }
     }
 
     // Build command buffer
