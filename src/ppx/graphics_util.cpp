@@ -619,10 +619,10 @@ Result CreateImageFromCompressedImage(
     grfx::ScopeDestroyer SCOPED_DESTROYER(pQueue->GetDevice());
 
     // Cap mip level count
-    const grfx::Format format       = ToGrfxFormat(image.format());
-    const uint32_t maxMipLevelCount = std::min<uint32_t>(options.mMipLevelCount, static_cast<uint32_t>(image.levels()));
-    const uint32_t imageWidth       = static_cast<uint32_t>(image.extent(0)[0]);
-    const uint32_t imageHeight      = static_cast<uint32_t>(image.extent(0)[1]);
+    const grfx::Format format           = ToGrfxFormat(image.format());
+    const uint32_t     maxMipLevelCount = std::min<uint32_t>(options.mMipLevelCount, static_cast<uint32_t>(image.levels()));
+    const uint32_t     imageWidth       = static_cast<uint32_t>(image.extent(0)[0]);
+    const uint32_t     imageHeight      = static_cast<uint32_t>(image.extent(0)[1]);
 
     // Row stride and texture offset alignment to handle DX's requirements
     const uint32_t rowStrideAlignment = grfx::IsDx12(pQueue->GetDevice()->GetApi()) ? PPX_D3D12_TEXTURE_DATA_PITCH_ALIGNMENT : 1;
@@ -652,18 +652,18 @@ Result CreateImageFromCompressedImage(
         // For some reason, tools like imagemagick can generate mipmaps with a size < 4.
         // We need to ignore those.
         if (ls.width < blockWidth || ls.height < blockWidth) {
-          break;
+            break;
         }
 
         // If the DDS file contains textures which size is not a multiple of 4, something is wrong.
         // Since imagemagick can create invalid mipmap levels, I'd assume it can also create invalid
         // textures with non-multiple-of-4 sizes. Asserting to catch those.
-        PPX_ASSERT_MSG(ls.width  % blockWidth == 0, "Width must me multiple of 4! Invalid DDS?");
+        PPX_ASSERT_MSG(ls.width % blockWidth == 0, "Width must me multiple of 4! Invalid DDS?");
         PPX_ASSERT_MSG(ls.height % blockWidth == 0, "Height must me multiple of 4! Invalid DDS?");
 
         // Compute pitch for this format.
         // See https://learn.microsoft.com/en-us/windows/win32/direct3ddds/dx-graphics-dds-pguide
-        const uint32_t pitch = std::max<uint32_t>(1,(ls.width + blockWidth - 1) / blockWidth) * blockWidth;
+        const uint32_t pitch = std::max<uint32_t>(1, (ls.width + blockWidth - 1) / blockWidth) * blockWidth;
 
         ls.bufferWidth  = ls.width;
         ls.bufferHeight = ls.height;

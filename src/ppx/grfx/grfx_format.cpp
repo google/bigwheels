@@ -19,29 +19,43 @@ namespace ppx {
 namespace grfx {
 
 #define UNCOMPRESSED_FORMAT(GrfxName, Type, Aspect, BytesPerTexel, BytesPerComponent, Layout, Component, ComponentOffsets) \
-  { \
-    FORMAT_DATA_TYPE_ ## Type, \
-    FORMAT_ASPECT_ ## Aspect, \
-    BytesPerTexel, \
-    /* blockWidth= */ 1, \
-    BytesPerComponent, \
-    FORMAT_LAYOUT_ ## Layout, \
-    FORMAT_COMPONENT_ ## Component, \
-    OFFSETS_ ## ComponentOffsets \
-  }
+    {                                                                                                                      \
+        FORMAT_DATA_TYPE_##Type,                                                                                           \
+            FORMAT_ASPECT_##Aspect,                                                                                        \
+            BytesPerTexel,                                                                                                 \
+            /* blockWidth= */ 1,                                                                                           \
+            BytesPerComponent,                                                                                             \
+            FORMAT_LAYOUT_##Layout,                                                                                        \
+            FORMAT_COMPONENT_##Component,                                                                                  \
+            OFFSETS_##ComponentOffsets                                                                                     \
+    }
 
-#define OFFSETS_UNDEFINED { -1, -1, -1, -1 }
-#define OFFSETS_R(R) {{ R, -1, -1, -1 }}
-#define OFFSETS_RG(R, G) {{ R, G, -1, -1 }}
-#define OFFSETS_RGB(R, G, B) {{ R, G, B, -1 }}
-#define OFFSETS_RGBA(R, G, B, A) {{ R, G, B, A }}
+#define COMPRESSED_FORMAT(GrfxName, Type, BytesPerBlock, BlockWidth, Component) \
+    {                                                                           \
+        FORMAT_DATA_TYPE_##Type,                                                \
+            FORMAT_ASPECT_COLOR,                                                \
+            BytesPerBlock,                                                      \
+            BlockWidth,                                                         \
+            -1,                                                                 \
+            FORMAT_LAYOUT_COMPRESSED,                                           \
+            FORMAT_COMPONENT_##Component,                                       \
+            OFFSETS_UNDEFINED                                                   \
+    }
+
+// clang-format off
+#define OFFSETS_UNDEFINED        { -1, -1, -1, -1 }
+#define OFFSETS_R(R)             { R, -1, -1, -1 }
+#define OFFSETS_RG(R, G)         { R,  G, -1, -1 }
+#define OFFSETS_RGB(R, G, B)     { R,  G,  B, -1 }
+#define OFFSETS_RGBA(R, G, B, A) { R,  G,  B,  A }
+// clang-format on
 
 // A static registry of format descriptions.
 // The order must match the order of the grfx::Format enum, so that
 // retrieving the description for a given format can be done in
 // constant time.
 constexpr FormatDesc formatDescs[] = {
-// clang-format off
+    // clang-format off
     //                 +-------------------------------------------------------------------------------------------------+
     //                 |                                              ,-> bytes per texel                                |
     //                 |                                              |   ,-> bytes per component                        |
@@ -133,18 +147,6 @@ constexpr FormatDesc formatDescs[] = {
     // We don't support retrieving component size or byte offsets for packed formats.
     UNCOMPRESSED_FORMAT(R10G10B10A2_UNORM,  UNORM,    COLOR,          4,  -1, PACKED,    RED_GREEN_BLUE_ALPHA,   UNDEFINED),
     UNCOMPRESSED_FORMAT(R11G11B10_FLOAT,    FLOAT,    COLOR,          4,  -1, PACKED,    RED_GREEN_BLUE,         UNDEFINED),
-
-#define COMPRESSED_FORMAT(GrfxName, Type, BytesPerBlock, BlockWidth, Component) \
-  { \
-    FORMAT_DATA_TYPE_ ## Type, \
-    FORMAT_ASPECT_COLOR, \
-    BytesPerBlock, \
-    BlockWidth, \
-    -1, \
-    FORMAT_LAYOUT_COMPRESSED, \
-    FORMAT_COMPONENT_ ## Component, \
-    OFFSETS_UNDEFINED \
-  }
 
     // We don't support retrieving component size or byte offsets for compressed formats.
     // We don't support non-square blocks for compressed textures.
