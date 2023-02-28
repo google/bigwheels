@@ -64,7 +64,8 @@ TEST(FormatTest, GetFormatDescriptionCompressedFormat)
     const FormatDesc* desc = GetFormatDescription(FORMAT_BC1_RGB_SRGB);
     EXPECT_EQ(desc->dataType, FORMAT_DATA_TYPE_SRGB);
     EXPECT_EQ(desc->aspect, FORMAT_ASPECT_COLOR);
-    EXPECT_EQ(desc->bytesPerTexel, 2);
+    EXPECT_EQ(desc->bytesPerTexel, 8);
+    EXPECT_EQ(desc->blockWidth, 4);
     EXPECT_EQ(desc->layout, FORMAT_LAYOUT_COMPRESSED);
     EXPECT_EQ(desc->componentBits, FORMAT_COMPONENT_RED_GREEN_BLUE);
 }
@@ -77,6 +78,17 @@ TEST(FormatTest, GetFormatDescriptionPackedFormat)
     EXPECT_EQ(desc->bytesPerTexel, 4);
     EXPECT_EQ(desc->layout, FORMAT_LAYOUT_PACKED);
     EXPECT_EQ(desc->componentBits, FORMAT_COMPONENT_RED_GREEN_BLUE);
+}
+
+TEST(FormatTest, GetFormatDescriptionCompressedBC3Format)
+{
+    const FormatDesc* desc = GetFormatDescription(FORMAT_BC3_UNORM);
+    EXPECT_EQ(desc->dataType, FORMAT_DATA_TYPE_UNORM);
+    EXPECT_EQ(desc->aspect, FORMAT_ASPECT_COLOR);
+    EXPECT_EQ(desc->bytesPerTexel, 16);
+    EXPECT_EQ(desc->blockWidth, 4);
+    EXPECT_EQ(desc->layout, FORMAT_LAYOUT_COMPRESSED);
+    EXPECT_EQ(desc->componentBits, FORMAT_COMPONENT_RED_GREEN_BLUE_ALPHA);
 }
 
 } // namespace grfx
