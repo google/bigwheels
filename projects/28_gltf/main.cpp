@@ -149,7 +149,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.window.width               = 1920;
     settings.window.height              = 1080;
     settings.grfx.api                   = kApi;
-    settings.grfx.enableDebug           = false;
+    settings.grfx.enableDebug           = true;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
 #if defined(USE_DXIL)
     settings.grfx.enableDXIL = true;
@@ -416,8 +416,8 @@ void ProjApp::LoadPrimitive(const cgltf_primitive& primitive, grfx::BufferPtr pS
         ci.indexType         = indicesTypes == cgltf_component_type_r_16u
                                    ? grfx::IndexType::INDEX_TYPE_UINT16
                                    : grfx::IndexType::INDEX_TYPE_UINT32;
-        ci.indexCount        = indicesAccessor.count;
-        ci.vertexCount       = accessors[POSITION_INDEX]->count;
+        ci.indexCount        = static_cast<uint32_t>(indicesAccessor.count);
+        ci.vertexCount       = static_cast<uint32_t>(accessors[POSITION_INDEX]->count);
         ci.memoryUsage       = grfx::MEMORY_USAGE_GPU_ONLY;
         ci.vertexBufferCount = 4;
 
@@ -432,7 +432,7 @@ void ProjApp::LoadPrimitive(const cgltf_primitive& primitive, grfx::BufferPtr pS
             ci.vertexBuffers[i].attributes[0].format = a.type == cgltf_type_vec2   ? grfx::FORMAT_R32G32_FLOAT
                                                        : a.type == cgltf_type_vec3 ? grfx::FORMAT_R32G32B32_FLOAT
                                                                                    : grfx::FORMAT_R32G32B32A32_FLOAT;
-            ci.vertexBuffers[i].attributes[0].stride = bv.stride == 0 ? a.stride : bv.stride;
+            ci.vertexBuffers[i].attributes[0].stride = static_cast<uint32_t>(bv.stride == 0 ? a.stride : bv.stride);
 
             std::array<grfx::VertexSemantic, accessors.size()> semantics = {
                 grfx::VERTEX_SEMANTIC_POSITION,
@@ -489,11 +489,11 @@ void ProjApp::LoadScene(
 
     cgltf_options options = {};
     cgltf_data*   data    = nullptr;
-    cgltf_result  result  = cgltf_parse_file(&options, gltfFilePath.c_str(), &data);
+    cgltf_result  result  = cgltf_parse_file(&options, gltfFilePath.string().c_str(), &data);
     PPX_ASSERT_MSG(result == cgltf_result_success, "Failure while loading GLB file.");
     result = cgltf_validate(data);
     PPX_ASSERT_MSG(result == cgltf_result_success, "Failure while validating GLB file.");
-    result = cgltf_load_buffers(&options, data, gltfFilePath.c_str());
+    result = cgltf_load_buffers(&options, data, gltfFilePath.string().c_str());
     PPX_ASSERT_MSG(result == cgltf_result_success, "Failure while loading buffers.");
 
     PPX_ASSERT_MSG(data->buffers_count == 1, "Only supports one buffer for now.");
