@@ -663,11 +663,12 @@ Result CreateImageFromCompressedImage(
 
         // Compute pitch for this format.
         // See https://learn.microsoft.com/en-us/windows/win32/direct3ddds/dx-graphics-dds-pguide
-        const uint32_t pitch = std::max<uint32_t>(1, (ls.width + blockWidth - 1) / blockWidth) * blockWidth;
+        const uint32_t blockRowByteSize = (bytesPerTexel * blockWidth) / (blockWidth * blockWidth);
+        const uint32_t rowStride        = (ls.width * blockRowByteSize);
 
         ls.bufferWidth  = ls.width;
         ls.bufferHeight = ls.height;
-        ls.srcRowStride = pitch;
+        ls.srcRowStride = rowStride;
         ls.dstRowStride = RoundUp<uint32_t>(ls.srcRowStride, rowStrideAlignment);
 
         ls.offset = ci.size;
