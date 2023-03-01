@@ -615,11 +615,9 @@ void ProjApp::Setup()
     // Create descriptor pool large enough for this project
     {
         grfx::DescriptorPoolCreateInfo poolCreateInfo = {};
-        poolCreateInfo.uniformBuffer                  = 512;
-        poolCreateInfo.sampledImage                   = 512;
-        poolCreateInfo.sampler                        = 512;
-        poolCreateInfo.combinedImageSampler           = 512;
-        poolCreateInfo.storageImage                   = 512;
+        poolCreateInfo.uniformBuffer                  = 1024;
+        poolCreateInfo.sampledImage                   = 1024;
+        poolCreateInfo.sampler                        = 1024;
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&poolCreateInfo, &mDescriptorPool));
     }
 
