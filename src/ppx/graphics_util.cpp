@@ -658,8 +658,10 @@ Result CreateImageFromCompressedImage(
         // If the DDS file contains textures which size is not a multiple of 4, something is wrong.
         // Since imagemagick can create invalid mipmap levels, I'd assume it can also create invalid
         // textures with non-multiple-of-4 sizes. Asserting to catch those.
-        PPX_ASSERT_MSG(ls.width % blockWidth == 0, "Width must me multiple of 4! Invalid DDS?");
-        PPX_ASSERT_MSG(ls.height % blockWidth == 0, "Height must me multiple of 4! Invalid DDS?");
+        if (ls.width % blockWidth != 0 || ls.height % blockWidth != 0) {
+            PPX_LOG_ERROR("Compressed textures width & height must be a multiple of the block size.");
+            return ERROR_IMAGE_INVALID_FORMAT;
+        }
 
         // Compute pitch for this format.
         // See https://learn.microsoft.com/en-us/windows/win32/direct3ddds/dx-graphics-dds-pguide
