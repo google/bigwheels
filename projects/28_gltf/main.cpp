@@ -15,6 +15,7 @@
 #include <functional>
 #include <utility>
 #include <queue>
+#include <unordered_set>
 
 #include "ppx/ppx.h"
 #include "ppx/timer.h"
@@ -90,7 +91,8 @@ private:
         std::vector<Renderable> renderables;
     };
 
-    using RenderList = std::unordered_map<Material*, std::vector<Object*>>;
+    using RenderList   = std::unordered_map<Material*, std::vector<Object*>>;
+    using TextureCache = std::unordered_map<std::string, grfx::ImagePtr>;
 
     std::vector<PerFrame>        mPerFrame;
     grfx::DescriptorPoolPtr      mDescriptorPool;
@@ -104,6 +106,7 @@ private:
     std::vector<Material>  mMaterials;
     std::vector<Primitive> mPrimitives;
     std::vector<Object>    mObjects;
+    TextureCache           mTextureCache;
 
 private:
     void LoadScene(
@@ -112,6 +115,7 @@ private:
         grfx::Swapchain*             pSwapchain,
         grfx::Queue*                 pQueue,
         grfx::DescriptorPool*        pDescriptorPool,
+        TextureCache*                pTextureCache,
         std::vector<Object>*         pObjects,
         std::vector<Primitive>*      pPrimitives,
         std::vector<Material>*       pMaterials) const;
@@ -122,10 +126,20 @@ private:
         grfx::Swapchain*             pSwapchain,
         grfx::Queue*                 pQueue,
         grfx::DescriptorPool*        pDescriptorPool,
+        TextureCache*                pTextureCache,
         Material*                    pOutput) const;
 
-    void LoadTexture(const std::filesystem::path& gltfFolder, const cgltf_texture_view& textureView, grfx::Queue* pQueue, Texture* pOutput) const;
-    void LoadTexture(const Bitmap& bitmap, grfx::Queue* pQueue, Texture* pOutput) const;
+    void LoadTexture(
+        const std::filesystem::path& gltfFolder,
+        const cgltf_texture_view&    textureView,
+        grfx::Queue*                 pQueue,
+        TextureCache*                pTextureCache,
+        Texture*                     pOutput) const;
+
+    void LoadTexture(
+        const Bitmap& bitmap,
+        grfx::Queue*  pQueue,
+        Texture*      pOutput) const;
 
     void LoadPrimitive(
         const cgltf_primitive& primitive,
@@ -158,7 +172,12 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
 #endif
 }
 
-void ProjApp::LoadTexture(const std::filesystem::path& gltfFolder, const cgltf_texture_view& textureView, grfx::Queue* pQueue, Texture* pOutput) const
+void ProjApp::LoadTexture(
+    const std::filesystem::path& gltfFolder,
+    const cgltf_texture_view&    textureView,
+    grfx::Queue*                 pQueue,
+    TextureCache*                pTextureCache,
+    Texture*                     pOutput) const
 {
     const auto& texture = *textureView.texture;
     PPX_ASSERT_MSG(textureView.texture != nullptr, "Texture with no image are not supported.");
@@ -168,8 +187,15 @@ void ProjApp::LoadTexture(const std::filesystem::path& gltfFolder, const cgltf_t
     PPX_ASSERT_MSG(texture.dds_image->uri != nullptr, "Texture with embedded data is not supported yet.");
     PPX_ASSERT_MSG(strcmp(texture.dds_image->mime_type, "image/vnd-ms.dds") == 0, "Texture format others than DDS are not supported.");
 
-    grfx_util::ImageOptions options = grfx_util::ImageOptions().MipLevelCount(PPX_REMAINING_MIP_LEVELS);
-    PPX_CHECKED_CALL(grfx_util::CreateImageFromFile(pQueue, GetAssetPath(gltfFolder / texture.dds_image->uri), &pOutput->pImage, options, false));
+    auto it = pTextureCache->find(texture.dds_image->uri);
+    if (it == pTextureCache->end()) {
+        grfx_util::ImageOptions options = grfx_util::ImageOptions().MipLevelCount(PPX_REMAINING_MIP_LEVELS);
+        PPX_CHECKED_CALL(grfx_util::CreateImageFromFile(pQueue, GetAssetPath(gltfFolder / texture.dds_image->uri), &pOutput->pImage, options, false));
+        pTextureCache->emplace(texture.dds_image->uri, pOutput->pImage);
+    }
+    else {
+        pOutput->pImage = it->second;
+    }
 
     grfx::SampledImageViewCreateInfo sivCreateInfo = grfx::SampledImageViewCreateInfo::GuessFromImage(pOutput->pImage);
     PPX_CHECKED_CALL(GetDevice()->CreateSampledImageView(&sivCreateInfo, &pOutput->pTexture));
@@ -220,6 +246,7 @@ void ProjApp::LoadMaterial(
     grfx::Swapchain*             pSwapchain,
     grfx::Queue*                 pQueue,
     grfx::DescriptorPool*        pDescriptorPool,
+    TextureCache*                pTextureCache,
     Material*                    pOutput) const
 {
     grfx::Device* pDevice = pQueue->GetDevice();
@@ -265,14 +292,15 @@ void ProjApp::LoadMaterial(
         LoadTexture(ColorToBitmap(color), pQueue, &pOutput->textures[0]);
     }
     else {
-        LoadTexture(gltfFolder, material.pbr_metallic_roughness.base_color_texture, pQueue, &pOutput->textures[0]);
+        const auto& texture_path = material.pbr_metallic_roughness.base_color_texture;
+        LoadTexture(gltfFolder, texture_path, pQueue, pTextureCache, &pOutput->textures[0]);
     }
 
     if (material.normal_texture.texture == nullptr) {
         LoadTexture(ColorToBitmap(float3(0.f, 1.f, 0.f)), pQueue, &pOutput->textures[1]);
     }
     else {
-        LoadTexture(gltfFolder, material.normal_texture, pQueue, &pOutput->textures[1]);
+        LoadTexture(gltfFolder, material.normal_texture, pQueue, pTextureCache, &pOutput->textures[1]);
     }
 
     if (material.pbr_metallic_roughness.metallic_roughness_texture.texture == nullptr) {
@@ -281,7 +309,8 @@ void ProjApp::LoadMaterial(
         LoadTexture(ColorToBitmap(color), pQueue, &pOutput->textures[2]);
     }
     else {
-        LoadTexture(gltfFolder, material.pbr_metallic_roughness.metallic_roughness_texture, pQueue, &pOutput->textures[2]);
+        const auto& texture_path = material.pbr_metallic_roughness.metallic_roughness_texture;
+        LoadTexture(gltfFolder, texture_path, pQueue, pTextureCache, &pOutput->textures[2]);
     }
 }
 
@@ -419,6 +448,7 @@ void ProjApp::LoadScene(
     grfx::Swapchain*             pSwapchain,
     grfx::Queue*                 pQueue,
     grfx::DescriptorPool*        pDescriptorPool,
+    TextureCache*                pTextureCache,
     std::vector<Object>*         pObjects,
     std::vector<Primitive>*      pPrimitives,
     std::vector<Material>*       pMaterials) const
@@ -469,7 +499,7 @@ void ProjApp::LoadScene(
 
     pMaterials->resize(data->materials_count);
     for (size_t i = 0; i < data->materials_count; i++) {
-        LoadMaterial(gltfFolder, data->materials[i], pSwapchain, pQueue, pDescriptorPool, &(*pMaterials)[i]);
+        LoadMaterial(gltfFolder, data->materials[i], pSwapchain, pQueue, pDescriptorPool, pTextureCache, &(*pMaterials)[i]);
     }
 
     LoadNodes(data, stagingBuffer, pQueue, pDescriptorPool, pObjects, primitiveToIndex, pPrimitives, pMaterials);
@@ -620,7 +650,16 @@ void ProjApp::Setup()
 
     Timer timer;
     timer.Start();
-    LoadScene("basic/models/altimeter/altimeter.gltf", GetDevice(), GetSwapchain(), GetGraphicsQueue(), mDescriptorPool, &mObjects, &mPrimitives, &mMaterials);
+    LoadScene(
+        "basic/models/altimeter/altimeter.gltf",
+        GetDevice(),
+        GetSwapchain(),
+        GetGraphicsQueue(),
+        mDescriptorPool,
+        &mTextureCache,
+        &mObjects,
+        &mPrimitives,
+        &mMaterials);
     printf("geometry loaded in %lfs\n", timer.SecondsSinceStart());
 
     // Per frame data
