@@ -453,22 +453,31 @@ void ProjApp::LoadScene(
     std::vector<Primitive>*      pPrimitives,
     std::vector<Material>*       pMaterials) const
 {
-    const std::filesystem::path gltfFolder   = std::filesystem::path(filename).remove_filename();
-    const std::filesystem::path gltfFilePath = GetAssetPath(filename);
-    PPX_ASSERT_MSG(gltfFilePath != "", "Cannot resolve asset path.");
+    Timer timerGlobal;
+    timerGlobal.Start();
 
-    cgltf_options options = {};
-    cgltf_data*   data    = nullptr;
-    cgltf_result  result  = cgltf_parse_file(&options, gltfFilePath.string().c_str(), &data);
-    PPX_ASSERT_MSG(result == cgltf_result_success, "Failure while loading GLB file.");
-    result = cgltf_validate(data);
-    PPX_ASSERT_MSG(result == cgltf_result_success, "Failure while validating GLB file.");
-    result = cgltf_load_buffers(&options, data, gltfFilePath.string().c_str());
-    PPX_ASSERT_MSG(result == cgltf_result_success, "Failure while loading buffers.");
+    Timer timerModelLoading;
+    timerModelLoading.Start();
+    const std::filesystem::path gltfFolder = std::filesystem::path(filename).remove_filename();
+    cgltf_data*                 data       = nullptr;
+    {
+        const std::filesystem::path gltfFilePath = GetAssetPath(filename);
+        PPX_ASSERT_MSG(gltfFilePath != "", "Cannot resolve asset path.");
+        cgltf_options options = {};
+        cgltf_result  result  = cgltf_parse_file(&options, gltfFilePath.string().c_str(), &data);
+        PPX_ASSERT_MSG(result == cgltf_result_success, "Failure while loading GLB file.");
+        result = cgltf_validate(data);
+        PPX_ASSERT_MSG(result == cgltf_result_success, "Failure while validating GLB file.");
+        result = cgltf_load_buffers(&options, data, gltfFilePath.string().c_str());
+        PPX_ASSERT_MSG(result == cgltf_result_success, "Failure while loading buffers.");
 
-    PPX_ASSERT_MSG(data->buffers_count == 1, "Only supports one buffer for now.");
-    PPX_ASSERT_MSG(data->buffers[0].data != nullptr, "Data not loaded. Was cgltf_load_buffer called?");
+        PPX_ASSERT_MSG(data->buffers_count == 1, "Only supports one buffer for now.");
+        PPX_ASSERT_MSG(data->buffers[0].data != nullptr, "Data not loaded. Was cgltf_load_buffer called?");
+    }
+    const double timerModelLoadingElapsed = timerModelLoading.SecondsSinceStart();
 
+    Timer timerStagingBufferLoading;
+    timerStagingBufferLoading.Start();
     grfx::ScopeDestroyer SCOPED_DESTROYER(pQueue->GetDevice());
     // Copy main buffer data to stating buffer.
     grfx::BufferPtr stagingBuffer;
@@ -482,7 +491,10 @@ void ProjApp::LoadScene(
         SCOPED_DESTROYER.AddObject(stagingBuffer);
         PPX_CHECKED_CALL(stagingBuffer->CopyFromSource(data->buffers[0].size, data->buffers[0].data));
     }
+    const double timerStagingBufferLoadingElapsed = timerStagingBufferLoading.SecondsSinceStart();
 
+    Timer timerPrimitiveLoading;
+    timerPrimitiveLoading.Start();
     std::unordered_map<const cgltf_primitive*, size_t> primitiveToIndex;
     pPrimitives->resize(count_primitives(data->meshes, data->meshes_count));
     {
@@ -496,13 +508,28 @@ void ProjApp::LoadScene(
             }
         }
     }
+    const double timerPrimitiveLoadingElapsed = timerPrimitiveLoading.SecondsSinceStart();
 
+    Timer timerMaterialLoading;
+    timerMaterialLoading.Start();
     pMaterials->resize(data->materials_count);
     for (size_t i = 0; i < data->materials_count; i++) {
         LoadMaterial(gltfFolder, data->materials[i], pSwapchain, pQueue, pDescriptorPool, pTextureCache, &(*pMaterials)[i]);
     }
+    const double timerMaterialLoadingElapsed = timerMaterialLoading.SecondsSinceStart();
 
+    Timer timerNodeLoading;
+    timerNodeLoading.Start();
     LoadNodes(data, stagingBuffer, pQueue, pDescriptorPool, pObjects, primitiveToIndex, pPrimitives, pMaterials);
+    const double timerNodeLoadingElapsed = timerNodeLoading.SecondsSinceStart();
+
+    printf("Scene loading time breakdown for '%s':\n", filename.c_str());
+    printf("\t             total: %lfs\n", timerGlobal.SecondsSinceStart());
+    printf("\t      GLtf parsing: %lfs\n", timerModelLoadingElapsed);
+    printf("\t    staging buffer: %lfs\n", timerStagingBufferLoadingElapsed);
+    printf("\tprimitives loading: %lfs\n", timerPrimitiveLoadingElapsed);
+    printf("\t materials loading: %lfs\n", timerMaterialLoadingElapsed);
+    printf("\t     nodes loading: %lfs\n", timerNodeLoadingElapsed);
 }
 
 float4x4 compute_object_matrix(const cgltf_node* node)
@@ -723,7 +750,7 @@ void ProjApp::Render()
     }
 
     {
-        // FIXME: this assumed we have only PBR, and with 3 materials per texture. Needs to be revisited.
+        // FIXME: this assumes we have only PBR, and with 3 materials per texture. Needs to be revisited.
         constexpr size_t                                    TEXTURE_COUNT    = 3;
         constexpr size_t                                    DESCRIPTOR_COUNT = 1 + TEXTURE_COUNT * 2 /* uniform + 3 * (sampler + texture) */;
         std::array<grfx::WriteDescriptor, DESCRIPTOR_COUNT> write;
