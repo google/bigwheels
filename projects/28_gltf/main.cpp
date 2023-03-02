@@ -62,11 +62,10 @@ private:
 
     struct Material
     {
-        grfx::PipelineInterfacePtr   pInterface;
-        grfx::DescriptorSetLayoutPtr pSetLayout;
-        grfx::GraphicsPipelinePtr    pPipeline;
-        grfx::DescriptorSetPtr       pDescriptorSet;
-        std::vector<Texture>         textures;
+        grfx::PipelineInterfacePtr pInterface;
+        grfx::GraphicsPipelinePtr  pPipeline;
+        grfx::DescriptorSetPtr     pDescriptorSet;
+        std::vector<Texture>       textures;
     };
 
     struct Primitive
@@ -93,10 +92,13 @@ private:
 
     using RenderList = std::unordered_map<Material*, std::vector<Object*>>;
 
-    std::vector<PerFrame>   mPerFrame;
-    grfx::DescriptorPoolPtr mDescriptorPool;
-    PerspCamera             mCamera;
-    float3                  mLightPosition = float3(10, 100, 10);
+    std::vector<PerFrame>        mPerFrame;
+    grfx::DescriptorPoolPtr      mDescriptorPool;
+    grfx::DescriptorSetLayoutPtr mSetLayout;
+    grfx::ShaderModulePtr        mVertexShader;
+    grfx::ShaderModulePtr        mPixelShader;
+    PerspCamera                  mCamera;
+    float3                       mLightPosition = float3(10, 100, 10);
 
     RenderList             mRenderList;
     std::vector<Material>  mMaterials;
@@ -131,7 +133,7 @@ private:
         grfx::Queue*           pQueue,
         Primitive*             pOutput) const;
 
-    static void LoadNodes(
+    void LoadNodes(
         const cgltf_data*                                         data,
         grfx::BufferPtr                                           pStagingBuffer,
         grfx::Queue*                                              pQueue,
@@ -139,7 +141,7 @@ private:
         std::vector<Object>*                                      objects,
         const std::unordered_map<const cgltf_primitive*, size_t>& primitiveToIndex,
         std::vector<Primitive>*                                   pPrimitives,
-        std::vector<Material>*                                    pMaterials);
+        std::vector<Material>*                                    pMaterials) const;
 };
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
@@ -228,75 +230,15 @@ void ProjApp::LoadMaterial(
     // This is to simplify the pipeline creation for now. Need to revisit later.
     PPX_ASSERT_MSG(material.has_pbr_metallic_roughness, "Only PBR metallic roughness supported for now.");
 
-    {
-        grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
-            /* binding= */ 0,
-            /* type= */ grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            /* array_count= */ 1,
-            /* shader_visibility= */ grfx::SHADER_STAGE_ALL_GRAPHICS});
-
-        // Albedo
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
-            /* binding= */ 1,
-            /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-            /* array_count= */ 1,
-            /* shader_visibility= */ grfx::SHADER_STAGE_PS});
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
-            /* binding= */ 2,
-            /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLER,
-            /* array_count= */ 1,
-            /* shader_visibility= */ grfx::SHADER_STAGE_PS});
-
-        // Normal
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
-            /* binding= */ 3,
-            /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-            /* array_count= */ 1,
-            /* shader_visibility= */ grfx::SHADER_STAGE_PS});
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
-            /* binding= */ 4,
-            /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLER,
-            /* array_count= */ 1,
-            /* shader_visibility= */ grfx::SHADER_STAGE_PS});
-
-        // Metallic/Roughness
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
-            /* binding= */ 5,
-            /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-            /* array_count= */ 1,
-            /* shader_visibility= */ grfx::SHADER_STAGE_PS});
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
-            /* binding= */ 6,
-            /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLER,
-            /* array_count= */ 1,
-            /* shader_visibility= */ grfx::SHADER_STAGE_PS});
-
-        PPX_CHECKED_CALL(pDevice->CreateDescriptorSetLayout(&layoutCreateInfo, &pOutput->pSetLayout));
-    }
-
     grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
     piCreateInfo.setCount                          = 1;
     piCreateInfo.sets[0].set                       = 0;
-    piCreateInfo.sets[0].pLayout                   = pOutput->pSetLayout;
+    piCreateInfo.sets[0].pLayout                   = mSetLayout;
     PPX_CHECKED_CALL(pDevice->CreatePipelineInterface(&piCreateInfo, &pOutput->pInterface));
 
-    // FIXME: the exact same shader is used across all materials. Should compile it once.
-    grfx::ShaderModulePtr VS;
-    std::vector<char>     bytecode = LoadShader("basic/shaders", "PbrMetallicRoughness.vs");
-    PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
-    grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-    PPX_CHECKED_CALL(pDevice->CreateShaderModule(&shaderCreateInfo, &VS));
-
-    grfx::ShaderModulePtr PS;
-    bytecode = LoadShader("basic/shaders", "PbrMetallicRoughness.ps");
-    PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
-    shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-    PPX_CHECKED_CALL(pDevice->CreateShaderModule(&shaderCreateInfo, &PS));
-
     grfx::GraphicsPipelineCreateInfo2 gpCreateInfo = {};
-    gpCreateInfo.VS                                = {VS.Get(), "vsmain"};
-    gpCreateInfo.PS                                = {PS.Get(), "psmain"};
+    gpCreateInfo.VS                                = {mVertexShader.Get(), "vsmain"};
+    gpCreateInfo.PS                                = {mPixelShader.Get(), "psmain"};
     // FIXME: assuming all primitives provides POSITION, UV, NORMAL and TANGENT. Might not be the case.
     gpCreateInfo.vertexInputState.bindingCount      = 4;
     gpCreateInfo.vertexInputState.bindings[0]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[0];
@@ -316,8 +258,6 @@ void ProjApp::LoadMaterial(
     gpCreateInfo.pPipelineInterface                 = pOutput->pInterface;
 
     PPX_CHECKED_CALL(pDevice->CreateGraphicsPipeline(&gpCreateInfo, &pOutput->pPipeline));
-    pDevice->DestroyShaderModule(VS);
-    pDevice->DestroyShaderModule(PS);
 
     pOutput->textures.resize(3);
     if (material.pbr_metallic_roughness.base_color_texture.texture == nullptr) {
@@ -564,7 +504,7 @@ void ProjApp::LoadNodes(
     std::vector<Object>*                                      objects,
     const std::unordered_map<const cgltf_primitive*, size_t>& primitiveToIndex,
     std::vector<Primitive>*                                   pPrimitives,
-    std::vector<Material>*                                    pMaterials)
+    std::vector<Material>*                                    pMaterials) const
 {
     const size_t nodeCount = data->nodes_count;
     for (size_t i = 0; i < nodeCount; i++) {
@@ -590,7 +530,7 @@ void ProjApp::LoadNodes(
             Material*  pMaterial  = &(*pMaterials)[material_index];
 
             grfx::DescriptorSet* pDescriptorSet = nullptr;
-            PPX_CHECKED_CALL(pQueue->GetDevice()->AllocateDescriptorSet(pDescriptorPool, pMaterial->pSetLayout, &pDescriptorSet));
+            PPX_CHECKED_CALL(pQueue->GetDevice()->AllocateDescriptorSet(pDescriptorPool, mSetLayout, &pDescriptorSet));
             item.renderables.emplace_back(pMaterial, pPrimitive, pDescriptorSet);
         }
 
@@ -621,6 +561,63 @@ void ProjApp::Setup()
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&poolCreateInfo, &mDescriptorPool));
     }
 
+    std::vector<char> bytecode = LoadShader("basic/shaders", "PbrMetallicRoughness.vs");
+    PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
+    grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+    PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mVertexShader));
+
+    bytecode = LoadShader("basic/shaders", "PbrMetallicRoughness.ps");
+    PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
+    shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+    PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPixelShader));
+
+    {
+        grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
+            /* binding= */ 0,
+            /* type= */ grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+            /* array_count= */ 1,
+            /* shader_visibility= */ grfx::SHADER_STAGE_ALL_GRAPHICS});
+
+        // Albedo
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
+            /* binding= */ 1,
+            /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+            /* array_count= */ 1,
+            /* shader_visibility= */ grfx::SHADER_STAGE_PS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
+            /* binding= */ 2,
+            /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLER,
+            /* array_count= */ 1,
+            /* shader_visibility= */ grfx::SHADER_STAGE_PS});
+
+        // Normal
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
+            /* binding= */ 3,
+            /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+            /* array_count= */ 1,
+            /* shader_visibility= */ grfx::SHADER_STAGE_PS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
+            /* binding= */ 4,
+            /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLER,
+            /* array_count= */ 1,
+            /* shader_visibility= */ grfx::SHADER_STAGE_PS});
+
+        // Metallic/Roughness
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
+            /* binding= */ 5,
+            /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+            /* array_count= */ 1,
+            /* shader_visibility= */ grfx::SHADER_STAGE_PS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
+            /* binding= */ 6,
+            /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLER,
+            /* array_count= */ 1,
+            /* shader_visibility= */ grfx::SHADER_STAGE_PS});
+
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mSetLayout));
+    }
+
     Timer timer;
     timer.Start();
     LoadScene("basic/models/altimeter/altimeter.gltf", GetDevice(), GetSwapchain(), GetGraphicsQueue(), mDescriptorPool, &mObjects, &mPrimitives, &mMaterials);
@@ -645,6 +642,9 @@ void ProjApp::Setup()
 
         mPerFrame.push_back(frame);
     }
+
+    GetDevice()->DestroyShaderModule(mVertexShader);
+    GetDevice()->DestroyShaderModule(mPixelShader);
 }
 
 void ProjApp::Render()
@@ -659,7 +659,7 @@ void ProjApp::Render()
     PPX_CHECKED_CALL(frame.renderCompleteFence->WaitAndReset());
 
     // Update camera(s)
-    mCamera.LookAt(float3(1, 3, 1), float3(0, 0, 0));
+    mCamera.LookAt(float3(19, 1, -3), float3(0, 0, 0));
 
     // Update uniform buffers
     for (auto& object : mObjects) {
