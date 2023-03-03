@@ -150,26 +150,26 @@ constexpr FormatDesc formatDescs[] = {
 
     // We don't support retrieving component size or byte offsets for compressed formats.
     // We don't support non-square blocks for compressed textures.
-    //                +-----------------------------------------------------------+
-    //                |                             ,-> bytes per block           |
-    //                |                             |  ,-> block width            |
-    //                | grfx format       | type    |  |   Components             |
-    COMPRESSED_FORMAT(BC1_RGBA_SRGB,        SRGB,   8, 4,  RED_GREEN_BLUE_ALPHA),
-    COMPRESSED_FORMAT(BC1_RGBA_UNORM,       UNORM,  8, 4,  RED_GREEN_BLUE_ALPHA),
-    COMPRESSED_FORMAT(FORMAT_BC1_RGB_SRGB,  SRGB,   8, 4,  RED_GREEN_BLUE),
-    COMPRESSED_FORMAT(FORMAT_BC1_RGB_UNORM, UNORM,  8, 4,  RED_GREEN_BLUE),
-    COMPRESSED_FORMAT(FORMAT_BC2_SRGB,      SRGB,  16, 4,  RED_GREEN_BLUE_ALPHA),
-    COMPRESSED_FORMAT(FORMAT_BC2_UNORM,     UNORM, 16, 4,  RED_GREEN_BLUE_ALPHA),
-    COMPRESSED_FORMAT(FORMAT_BC3_SRGB,      SRGB,  16, 4,  RED_GREEN_BLUE_ALPHA),
-    COMPRESSED_FORMAT(FORMAT_BC3_UNORM,     UNORM, 16, 4,  RED_GREEN_BLUE_ALPHA),
-    COMPRESSED_FORMAT(FORMAT_BC4_UNORM,     UNORM,  8, 4,  RED),
-    COMPRESSED_FORMAT(FORMAT_BC4_SNORM,     SNORM,  8, 4,  RED),
-    COMPRESSED_FORMAT(FORMAT_BC5_UNORM,     UNORM, 16, 4,  RED_GREEN),
-    COMPRESSED_FORMAT(FORMAT_BC5_SNORM,     SNORM, 16, 4,  RED_GREEN),
-    COMPRESSED_FORMAT(FORMAT_BC6H_UFLOAT,   FLOAT, 16, 4,  RED_GREEN_BLUE),
-    COMPRESSED_FORMAT(FORMAT_BC6H_SFLOAT,   FLOAT, 16, 4,  RED_GREEN_BLUE),
-    COMPRESSED_FORMAT(FORMAT_BC7_UNORM,     UNORM, 16, 4,  RED_GREEN_BLUE_ALPHA),
-    COMPRESSED_FORMAT(FORMAT_BC7_SRGB,      SRGB,  16, 4,  RED_GREEN_BLUE_ALPHA),
+    //                +------------------------------------------------------+
+    //                |                        ,-> bytes per block           |
+    //                |                        |  ,-> block width            |
+    //                | grfx format  | type    |  |   Components             |
+    COMPRESSED_FORMAT(BC1_RGBA_SRGB,   SRGB,   8, 4,  RED_GREEN_BLUE_ALPHA),
+    COMPRESSED_FORMAT(BC1_RGBA_UNORM,  UNORM,  8, 4,  RED_GREEN_BLUE_ALPHA),
+    COMPRESSED_FORMAT(BC1_RGB_SRGB,    SRGB,   8, 4,  RED_GREEN_BLUE),
+    COMPRESSED_FORMAT(BC1_RGB_UNORM,   UNORM,  8, 4,  RED_GREEN_BLUE),
+    COMPRESSED_FORMAT(BC2_SRGB,        SRGB,  16, 4,  RED_GREEN_BLUE_ALPHA),
+    COMPRESSED_FORMAT(BC2_UNORM,       UNORM, 16, 4,  RED_GREEN_BLUE_ALPHA),
+    COMPRESSED_FORMAT(BC3_SRGB,        SRGB,  16, 4,  RED_GREEN_BLUE_ALPHA),
+    COMPRESSED_FORMAT(BC3_UNORM,       UNORM, 16, 4,  RED_GREEN_BLUE_ALPHA),
+    COMPRESSED_FORMAT(BC4_UNORM,       UNORM,  8, 4,  RED),
+    COMPRESSED_FORMAT(BC4_SNORM,       SNORM,  8, 4,  RED),
+    COMPRESSED_FORMAT(BC5_UNORM,       UNORM, 16, 4,  RED_GREEN),
+    COMPRESSED_FORMAT(BC5_SNORM,       SNORM, 16, 4,  RED_GREEN),
+    COMPRESSED_FORMAT(BC6H_UFLOAT,     FLOAT, 16, 4,  RED_GREEN_BLUE),
+    COMPRESSED_FORMAT(BC6H_SFLOAT,     FLOAT, 16, 4,  RED_GREEN_BLUE),
+    COMPRESSED_FORMAT(BC7_UNORM,       UNORM, 16, 4,  RED_GREEN_BLUE_ALPHA),
+    COMPRESSED_FORMAT(BC7_SRGB,        SRGB,  16, 4,  RED_GREEN_BLUE_ALPHA),
 
 #undef COMPRESSED_FORMAT
 #undef UNCOMPRESSED_FORMAT
