@@ -619,15 +619,16 @@ Result CreateImageFromCompressedImage(
     grfx::ScopeDestroyer SCOPED_DESTROYER(pQueue->GetDevice());
 
     // Cap mip level count
-    uint32_t mipLevelCount = std::min<uint32_t>(options.mMipLevelCount, static_cast<uint32_t>(image.levels()));
-
-    grfx::Format format      = ToGrfxFormat(image.format());
-    uint32_t     imageWidth  = static_cast<uint32_t>(image.extent(0)[0]);
-    uint32_t     imageHeight = static_cast<uint32_t>(image.extent(0)[1]);
+    const grfx::Format format           = ToGrfxFormat(image.format());
+    const uint32_t     maxMipLevelCount = std::min<uint32_t>(options.mMipLevelCount, static_cast<uint32_t>(image.levels()));
+    const uint32_t     imageWidth       = static_cast<uint32_t>(image.extent(0)[0]);
+    const uint32_t     imageHeight      = static_cast<uint32_t>(image.extent(0)[1]);
 
     // Row stride and texture offset alignment to handle DX's requirements
-    uint32_t rowStrideAlignment = grfx::IsDx12(pQueue->GetDevice()->GetApi()) ? PPX_D3D12_TEXTURE_DATA_PITCH_ALIGNMENT : 1;
-    uint32_t offsetAlignment    = grfx::IsDx12(pQueue->GetDevice()->GetApi()) ? PPX_D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT : 1;
+    const uint32_t rowStrideAlignment = grfx::IsDx12(pQueue->GetDevice()->GetApi()) ? PPX_D3D12_TEXTURE_DATA_PITCH_ALIGNMENT : 1;
+    const uint32_t offsetAlignment    = grfx::IsDx12(pQueue->GetDevice()->GetApi()) ? PPX_D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT : 1;
+    const uint32_t bytesPerTexel      = grfx::GetFormatDescription(format)->bytesPerTexel;
+    const uint32_t blockWidth         = grfx::GetFormatDescription(format)->blockWidth;
 
     // Create staging buffer
     grfx::BufferPtr stagingBuffer;
@@ -639,26 +640,46 @@ Result CreateImageFromCompressedImage(
     ci.usageFlags.bits.transferSrc = true;
     ci.memoryUsage                 = grfx::MEMORY_USAGE_CPU_TO_GPU;
 
-    std::vector<MipLevel> levelSizes(mipLevelCount);
-    for (gli::texture::size_type level = 0; level < mipLevelCount; level++) {
-        auto& ls = levelSizes[level];
-
+    // Compute each mipmap level size and alignments.
+    // This step filters out levels too small to match minimal alignment.
+    std::vector<MipLevel> levelSizes;
+    for (gli::texture::size_type level = 0; level < maxMipLevelCount; level++) {
+        MipLevel ls;
         ls.width  = static_cast<uint32_t>(image.extent(level)[0]);
         ls.height = static_cast<uint32_t>(image.extent(level)[1]);
+        // Stop when mipmaps are becoming too small to respect the format alignment.
+        // The DXT* format documentation says texture sizes must be a multiple of 4.
+        // For some reason, tools like imagemagick can generate mipmaps with a size < 4.
+        // We need to ignore those.
+        if (ls.width < blockWidth || ls.height < blockWidth) {
+            break;
+        }
 
-        // bytesPerTexel is a bit misleading - for block compressed formats it's actually the
-        // number of bytes per tile. An image has to be made up of an integral number of tiles, so
-        // the actual width and height in memory are multiples of this value
-        ls.bufferWidth  = RoundUp<uint32_t>(ls.width, grfx::GetFormatDescription(format)->bytesPerTexel);
-        ls.bufferHeight = RoundUp<uint32_t>(ls.height, grfx::GetFormatDescription(format)->bytesPerTexel);
+        // If the DDS file contains textures which size is not a multiple of 4, something is wrong.
+        // Since imagemagick can create invalid mipmap levels, I'd assume it can also create invalid
+        // textures with non-multiple-of-4 sizes. Asserting to catch those.
+        if (ls.width % blockWidth != 0 || ls.height % blockWidth != 0) {
+            PPX_LOG_ERROR("Compressed textures width & height must be a multiple of the block size.");
+            return ERROR_IMAGE_INVALID_FORMAT;
+        }
 
-        ls.srcRowStride = ls.bufferWidth * grfx::GetFormatDescription(format)->bytesPerTexel;
+        // Compute pitch for this format.
+        // See https://learn.microsoft.com/en-us/windows/win32/direct3ddds/dx-graphics-dds-pguide
+        const uint32_t blockRowByteSize = (bytesPerTexel * blockWidth) / (blockWidth * blockWidth);
+        const uint32_t rowStride        = (ls.width * blockRowByteSize);
+
+        ls.bufferWidth  = ls.width;
+        ls.bufferHeight = ls.height;
+        ls.srcRowStride = rowStride;
         ls.dstRowStride = RoundUp<uint32_t>(ls.srcRowStride, rowStrideAlignment);
 
         ls.offset = ci.size;
         ci.size += (image.size(level) / ls.srcRowStride) * ls.dstRowStride;
         ci.size = RoundUp<uint64_t>(ci.size, offsetAlignment);
+        levelSizes.emplace_back(std::move(ls));
     }
+    const uint32_t mipmapLevelCount = levelSizes.size();
+    PPX_ASSERT_MSG(mipmapLevelCount > 0, "Requested texture size too small for the chosen format.");
 
     ppxres = pQueue->GetDevice()->CreateBuffer(&ci, &stagingBuffer);
     if (Failed(ppxres)) {
@@ -673,12 +694,11 @@ Result CreateImageFromCompressedImage(
         return ppxres;
     }
 
-    for (gli::texture::size_type level = 0; level < mipLevelCount; level++) {
+    for (size_t level = 0; level < mipmapLevelCount; level++) {
         auto& ls = levelSizes[level];
 
         const char* pSrc = static_cast<const char*>(image.data(0, 0, level));
         char*       pDst = static_cast<char*>(pBufferAddress) + ls.offset;
-
         for (uint32_t row = 0; row * ls.srcRowStride < image.size(level); row++) {
             const char* pSrcRow = pSrc + row * ls.srcRowStride;
             char*       pDstRow = pDst + row * ls.dstRowStride;
@@ -698,7 +718,7 @@ Result CreateImageFromCompressedImage(
         ci.depth                       = 1;
         ci.format                      = format;
         ci.sampleCount                 = grfx::SAMPLE_COUNT_1;
-        ci.mipLevelCount               = mipLevelCount;
+        ci.mipLevelCount               = mipmapLevelCount;
         ci.arrayLayerCount             = 1;
         ci.usageFlags.bits.transferDst = true;
         ci.usageFlags.bits.sampled     = true;
@@ -713,8 +733,8 @@ Result CreateImageFromCompressedImage(
         SCOPED_DESTROYER.AddObject(targetImage);
     }
 
-    std::vector<grfx::BufferToImageCopyInfo> copyInfos(image.levels());
-    for (gli::texture::size_type level = 0; level < image.levels(); level++) {
+    std::vector<grfx::BufferToImageCopyInfo> copyInfos(mipmapLevelCount);
+    for (gli::texture::size_type level = 0; level < mipmapLevelCount; level++) {
         auto& ls       = levelSizes[level];
         auto& copyInfo = copyInfos[level];
 

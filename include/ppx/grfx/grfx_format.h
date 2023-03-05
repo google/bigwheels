@@ -226,9 +226,13 @@ struct FormatDesc
     FormatAspectBit aspect;
 
     // The number of bytes per texel.
-    // For compressed formats, this field is the size required to
-    // calculate the row pitch correctly.
+    // For compressed formats, this field is the size of a block.
     uint8_t bytesPerTexel;
+
+    // The size in texels of the smallest supported size.
+    // For compressed textures, that's the block size.
+    // For uncompressed textures, the value is 1 (a pixel).
+    uint8_t blockWidth;
 
     // The number of bytes per component (channel).
     // In case of combined depth-stencil formats, this is the size of the depth
