@@ -151,6 +151,7 @@ void FishTornadoApp::SetupDescriptorPool()
     createInfo.uniformBuffer                  = 1000;
     createInfo.structuredBuffer               = 1000;
     createInfo.storageTexelBuffer             = 1000;
+    createInfo.storageImage                   = 1000;
 
     PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&createInfo, &mDescriptorPool));
 }
