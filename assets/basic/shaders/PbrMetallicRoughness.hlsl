@@ -117,10 +117,13 @@ float4 psmain(VSOutput input) : SV_TARGET
     const float3 normal = NormalMap.Sample(NormalMapSampler, input.uv).rgb;
     const float3 N = normalize(mul(TBN, normal * 2.0 - 1.0));
 
-    const float3 albedo = AlbedoTexture.Sample(AlbedoSampler, input.uv).rgb;
+    const float4 albedo = AlbedoTexture.Sample(AlbedoSampler, input.uv).rgba;
+    if (albedo.a < 0.8f) {
+      discard;
+    }
     const float roughness = MetalRoughness.Sample(MetalRoughnessSampler, input.uv).g;
     const float metalness = MetalRoughness.Sample(MetalRoughnessSampler, input.uv).b;
-    const float3 F0 = lerp(0.04f, albedo, metalness);
+    const float3 F0 = lerp(0.04f, albedo.rgb, metalness);
     const float Lrad = 1.2f;
 
     const float3 Li    = normalize(Scene.LightPosition.xyz - input.world_position.xyz);
@@ -137,9 +140,9 @@ float4 psmain(VSOutput input) : SV_TARGET
     const float  G = GASmithSchlickGGX(cosLi, cosLo, roughness);
 
     const float3 kD = lerp(float3(1, 1, 1) - F, float3(0, 0, 0), metalness);
-    const float3 diffuseBRDF = kD * albedo;
+    const float3 diffuseBRDF = kD * albedo.rgb;
     const float3 specularBRDF = (F * D * G) / max(0.00001, 4.0 * cosLi * cosLo);
-    const float3 Co = (diffuseBRDF + specularBRDF) * Lrad * cosLi + 0.3f * albedo;
+    const float3 Co = (diffuseBRDF + specularBRDF) * Lrad * cosLi + 0.3f * albedo.rgb;
 
     return float4(saturate(Co), 1);
 }

@@ -182,16 +182,14 @@ void ProjApp::LoadTexture(
     const auto& texture = *textureView.texture;
     PPX_ASSERT_MSG(textureView.texture != nullptr, "Texture with no image are not supported.");
     PPX_ASSERT_MSG(textureView.has_transform == false, "Texture transforms are not supported yet.");
-    PPX_ASSERT_MSG(texture.has_dds, "Only DDS textures are supported for now.");
-    PPX_ASSERT_MSG(texture.dds_image != nullptr, "DDS image pointer is null.");
-    PPX_ASSERT_MSG(texture.dds_image->uri != nullptr, "Texture with embedded data is not supported yet.");
-    PPX_ASSERT_MSG(strcmp(texture.dds_image->mime_type, "image/vnd-ms.dds") == 0, "Texture format others than DDS are not supported.");
+    PPX_ASSERT_MSG(texture.image != nullptr, "image pointer is null.");
+    PPX_ASSERT_MSG(texture.image->uri != nullptr, "image uri is null.");
 
-    auto it = pTextureCache->find(texture.dds_image->uri);
+    auto it = pTextureCache->find(texture.image->uri);
     if (it == pTextureCache->end()) {
         grfx_util::ImageOptions options = grfx_util::ImageOptions().MipLevelCount(PPX_REMAINING_MIP_LEVELS);
-        PPX_CHECKED_CALL(grfx_util::CreateImageFromFile(pQueue, GetAssetPath(gltfFolder / texture.dds_image->uri), &pOutput->pImage, options, false));
-        pTextureCache->emplace(texture.dds_image->uri, pOutput->pImage);
+        PPX_CHECKED_CALL(grfx_util::CreateImageFromFile(pQueue, GetAssetPath(gltfFolder / texture.image->uri), &pOutput->pImage, options, false));
+        pTextureCache->emplace(texture.image->uri, pOutput->pImage);
     }
     else {
         pOutput->pImage = it->second;
@@ -423,17 +421,18 @@ void ProjApp::LoadPrimitive(const cgltf_primitive& primitive, grfx::BufferPtr pS
         PPX_ASSERT_MSG(bufferView.data == nullptr, "Doesn't support extra data");
 
         grfx::BufferToBufferCopyInfo copyInfo = {};
-        copyInfo.size                         = bufferView.size;
+        copyInfo.size                         = targetMesh->GetIndexBuffer()->GetSize();
         copyInfo.srcBuffer.offset             = indices.offset + bufferView.offset;
         copyInfo.dstBuffer.offset             = 0;
         PPX_CHECKED_CALL(pQueue->CopyBufferToBuffer(&copyInfo, pStagingBuffer, targetMesh->GetIndexBuffer(), grfx::RESOURCE_STATE_INDEX_BUFFER, grfx::RESOURCE_STATE_INDEX_BUFFER));
         for (size_t i = 0; i < accessors.size(); i++) {
             const auto& bufferView = *accessors[i]->buffer_view;
 
-            grfx::BufferToBufferCopyInfo copyInfo = {};
-            copyInfo.size                         = bufferView.size;
-            copyInfo.srcBuffer.offset             = accessors[i]->offset + bufferView.offset;
-            copyInfo.dstBuffer.offset             = 0;
+            const auto&                  vertexBuffer = targetMesh->GetVertexBuffer(i);
+            grfx::BufferToBufferCopyInfo copyInfo     = {};
+            copyInfo.size                             = vertexBuffer->GetSize();
+            copyInfo.srcBuffer.offset                 = accessors[i]->offset + bufferView.offset;
+            copyInfo.dstBuffer.offset                 = 0;
             PPX_CHECKED_CALL(pQueue->CopyBufferToBuffer(&copyInfo, pStagingBuffer, targetMesh->GetVertexBuffer(i), grfx::RESOURCE_STATE_VERTEX_BUFFER, grfx::RESOURCE_STATE_VERTEX_BUFFER));
         }
     }
