@@ -18,8 +18,7 @@ import logging
 import os
 from pathlib import Path
 import sys
-from typing import Any, BinaryIO
-from typing_extensions import NotRequired, TypedDict
+from typing import BinaryIO, TypedDict
 from urllib.parse import urlparse
 
 
@@ -33,7 +32,7 @@ class GLTFError(Exception):
 
 class GLTFBufferDescription(TypedDict):
     byteLength: int
-    uri: NotRequired[str]
+    uri: str
 
 
 class GLTFBufferViewDescription(TypedDict):
@@ -43,7 +42,7 @@ class GLTFBufferViewDescription(TypedDict):
 
 
 class GLTFImageDescription(TypedDict):
-    uri: NotRequired[str]
+    uri: str
     bufferView: int
     mimeType: str
 
@@ -67,7 +66,7 @@ class GLB:
         """Rewrite all references to external files as references to a packed buffer."""
         self._pack_buffers()
         self._pack_images()
-        self.description["buffers"] = [{"byteLength": self.bin_length}]
+        self.description["buffers"] = [{"byteLength": self.bin_length}]  # type: ignore
 
         if self.bin_length > 2**32 - 1:
             logging.warning(
@@ -91,7 +90,9 @@ class GLB:
                 buffer_offsets[index] = self.bin_length
             else:
                 if index != 0:
-                    raise GLTFError('Only the first buffer may omit the "uri" property')
+                    raise GLTFError(
+                        'Only the first buffer may omit the "uri" property: https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#glb-stored-buffer'
+                    )
 
             self.bin_length += buffer["byteLength"]
 
@@ -122,7 +123,7 @@ class GLB:
                         "byteOffset": self.bin_length,
                     }
                 )
-                del image["uri"]
+                del image["uri"]  # type: ignore
 
                 self.bin_length += image_size
 
@@ -165,10 +166,7 @@ class GLB:
         # chunkData
         for source_file_name in self.source_files:
             with open(self.source_dir / source_file_name, "rb") as source_file:
-                while True:
-                    read = source_file.read(4096)
-                    if len(read) == 0:
-                        break
+                for read in iter(lambda: source_file.read(), b""):
                     file.write(read)
         file.write(bin_padding)
 
