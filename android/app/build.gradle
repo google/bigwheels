@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace 'com.example.bigwheels'
+    namespace 'com.google.bigwheels'
     compileSdk 32
 
     defaultConfig {
-        applicationId "com.example.bigwheels"
+        applicationId "com.google.bigwheels"
         minSdk 29
         targetSdk 32
         versionCode 1

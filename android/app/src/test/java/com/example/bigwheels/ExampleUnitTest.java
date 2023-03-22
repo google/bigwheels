@@ -1,4 +1,4 @@
-package com.example.bigwheels;
+package com.google.bigwheels;
 
 import org.junit.Test;
 

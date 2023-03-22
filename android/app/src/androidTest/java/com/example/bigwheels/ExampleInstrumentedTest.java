@@ -1,4 +1,4 @@
-package com.example.bigwheels;
+package com.google.bigwheels;
 
 import android.content.Context;
 
@@ -21,6 +21,6 @@ public class ExampleInstrumentedTest {
     public void useAppContext() {
         // Context of the app under test.
         Context appContext = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        assertEquals("com.example.bigwheels", appContext.getPackageName());
+        assertEquals("com.google.bigwheels", appContext.getPackageName());
     }
 }
