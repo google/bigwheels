@@ -194,8 +194,8 @@ void ProjApp::Setup()
         gpCreateInfo.depthWriteEnable                   = false;
         gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
         gpCreateInfo.outputState.renderTargetCount      = 1;
-        gpCreateInfo.outputState.renderTargetFormats[0] = mDrawPass->GetRenderTargetTexture(0)->GeImageFormat();
-        gpCreateInfo.outputState.depthStencilFormat     = mDrawPass->GetDepthStencilTexture()->GeImageFormat();
+        gpCreateInfo.outputState.renderTargetFormats[0] = mDrawPass->GetRenderTargetTexture(0)->GetImageFormat();
+        gpCreateInfo.outputState.depthStencilFormat     = mDrawPass->GetDepthStencilTexture()->GetImageFormat();
         gpCreateInfo.pPipelineInterface                 = mPipelineInterface;
         PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mPipeline));
     }

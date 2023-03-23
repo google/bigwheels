@@ -317,8 +317,8 @@ void ProjApp::SetupGBufferLightQuad()
     createInfo.sets[1].set                    = 1;
     createInfo.sets[1].pLayout                = mGBufferReadLayout;
     createInfo.renderTargetCount              = 1;
-    createInfo.renderTargetFormats[0]         = mGBufferLightPass->GetRenderTargetTexture(0)->GeImageFormat();
-    createInfo.depthStencilFormat             = mGBufferLightPass->GetDepthStencilTexture()->GeImageFormat();
+    createInfo.renderTargetFormats[0]         = mGBufferLightPass->GetRenderTargetTexture(0)->GetImageFormat();
+    createInfo.depthStencilFormat             = mGBufferLightPass->GetDepthStencilTexture()->GetImageFormat();
 
     PPX_CHECKED_CALL(GetDevice()->CreateFullscreenQuad(&createInfo, &mGBufferLightQuad));
 }
@@ -348,8 +348,8 @@ void ProjApp::SetupDebugDraw()
     createInfo.sets[1].set                    = 1;
     createInfo.sets[1].pLayout                = mGBufferReadLayout;
     createInfo.renderTargetCount              = 1;
-    createInfo.renderTargetFormats[0]         = mGBufferLightPass->GetRenderTargetTexture(0)->GeImageFormat();
-    createInfo.depthStencilFormat             = mGBufferLightPass->GetDepthStencilTexture()->GeImageFormat();
+    createInfo.renderTargetFormats[0]         = mGBufferLightPass->GetRenderTargetTexture(0)->GetImageFormat();
+    createInfo.depthStencilFormat             = mGBufferLightPass->GetDepthStencilTexture()->GetImageFormat();
 
     PPX_CHECKED_CALL(GetDevice()->CreateFullscreenQuad(&createInfo, &mDebugDrawQuad));
 }
