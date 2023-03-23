@@ -55,7 +55,7 @@ public:
     Swapchain() {}
     virtual ~Swapchain() {}
 
-    virtual Result Present(
+    virtual Result PresentInternal(
         uint32_t                      imageIndex,
         uint32_t                      waitSemaphoreCount,
         const grfx::Semaphore* const* ppWaitSemaphores) override;

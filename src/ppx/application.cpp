@@ -621,7 +621,7 @@ Result Application::InitializePlatform()
     PPX_LOG_INFO("   " << "AVX2               : " << Platform::GetCpuInfo().GetFeatures().avx2);
     // clang-format on
 
-    if (mSettings.enableDisplay) {
+    if (!mSettings.headless) {
         // Initializ glfw
         int res = glfwInit();
         if (res != GLFW_TRUE) {
@@ -630,7 +630,7 @@ Result Application::InitializePlatform()
         }
     }
     else {
-        PPX_LOG_INFO("Display not enabled: skipping initialization of glfw");
+        PPX_LOG_INFO("Headless mode: skipping initialization of glfw");
     }
 
     return ppx::SUCCESS;
@@ -648,7 +648,7 @@ Result Application::InitializeGrfxDevice()
         ci.api                      = mSettings.grfx.api;
         ci.createDevices            = false;
         ci.enableDebug              = mSettings.grfx.enableDebug;
-        ci.enableSwapchain          = mSettings.enableDisplay;
+        ci.enableSwapchain          = true;
         ci.applicationName          = mSettings.appName;
         ci.engineName               = mSettings.appName;
         ci.useSoftwareRenderer      = mStandardOptions.use_software_renderer;
@@ -718,9 +718,8 @@ Result Application::InitializeGrfxDevice()
 
 Result Application::InitializeGrfxSurface()
 {
-    if (!mSettings.enableDisplay) {
-        PPX_LOG_INFO("Display not enabled: skipping creation of surface");
-        PPX_LOG_INFO("Display not enabled: skipping creation of swapchain");
+    if (mSettings.headless) {
+        PPX_LOG_INFO("Headless mode: skipping creation of surface");
         return ppx::SUCCESS;
     }
 
@@ -754,6 +753,11 @@ Result Application::InitializeGrfxSurface()
         }
     }
 
+    return ppx::SUCCESS;
+}
+
+Result Application::InitializeGrfxSwapchain()
+{
 #if defined(PPX_BUILD_XR)
     if (mSettings.xr.enable) {
         const size_t viewCount = mXrComponent.GetViewCount();
@@ -791,44 +795,45 @@ Result Application::InitializeGrfxSurface()
         // Extra swapchain for XR debug capture.
         || (mSettings.xr.enable && mSettings.xr.enableDebugCapture))
 #endif
-    // Swapchain
     {
         PPX_LOG_INFO("Creating application swapchain");
         PPX_LOG_INFO("   resolution  : " << mSettings.window.width << "x" << mSettings.window.height);
         PPX_LOG_INFO("   image count : " << mSettings.grfx.swapchain.imageCount);
 
-        const uint32_t surfaceMinImageCount = mSurface->GetMinImageCount();
-        if (mSettings.grfx.swapchain.imageCount < surfaceMinImageCount) {
-            PPX_LOG_WARN("readjusting swapchain's image count from " << mSettings.grfx.swapchain.imageCount << " to " << surfaceMinImageCount << " to match surface requirements");
-            mSettings.grfx.swapchain.imageCount = surfaceMinImageCount;
-        }
+        if (mSurface) {
+            const uint32_t surfaceMinImageCount = mSurface->GetMinImageCount();
+            if (mSettings.grfx.swapchain.imageCount < surfaceMinImageCount) {
+                PPX_LOG_WARN("readjusting swapchain's image count from " << mSettings.grfx.swapchain.imageCount << " to " << surfaceMinImageCount << " to match surface requirements");
+                mSettings.grfx.swapchain.imageCount = surfaceMinImageCount;
+            }
 
-        //
-        // Cap the image width/height to what the surface caps are.
-        // The reason for this is that on Windows the TaskBar
-        // affect the maximum size of the window if it has borders.
-        // For example an application can request a 1920x1080 window
-        // but because of the task bar, the window may get created
-        // at 1920x1061. This limits the swapchain's max image extents
-        // to 1920x1061.
-        //
-        const uint32_t surfaceMaxImageWidth  = mSurface->GetMaxImageWidth();
-        const uint32_t surfaceMaxImageHeight = mSurface->GetMaxImageHeight();
-        if ((mSettings.window.width > surfaceMaxImageWidth) || (mSettings.window.height > surfaceMaxImageHeight)) {
-            PPX_LOG_WARN("readjusting swapchain/window size from " << mSettings.window.width << "x" << mSettings.window.height << " to " << surfaceMaxImageWidth << "x" << surfaceMaxImageHeight << " to match surface requirements");
-            mSettings.window.width  = std::min(mSettings.window.width, surfaceMaxImageWidth);
-            mSettings.window.height = std::min(mSettings.window.height, surfaceMaxImageHeight);
-        }
+            //
+            // Cap the image width/height to what the surface caps are.
+            // The reason for this is that on Windows the TaskBar
+            // affect the maximum size of the window if it has borders.
+            // For example an application can request a 1920x1080 window
+            // but because of the task bar, the window may get created
+            // at 1920x1061. This limits the swapchain's max image extents
+            // to 1920x1061.
+            //
+            const uint32_t surfaceMaxImageWidth  = mSurface->GetMaxImageWidth();
+            const uint32_t surfaceMaxImageHeight = mSurface->GetMaxImageHeight();
+            if ((mSettings.window.width > surfaceMaxImageWidth) || (mSettings.window.height > surfaceMaxImageHeight)) {
+                PPX_LOG_WARN("readjusting swapchain/window size from " << mSettings.window.width << "x" << mSettings.window.height << " to " << surfaceMaxImageWidth << "x" << surfaceMaxImageHeight << " to match surface requirements");
+                mSettings.window.width  = std::min(mSettings.window.width, surfaceMaxImageWidth);
+                mSettings.window.height = std::min(mSettings.window.height, surfaceMaxImageHeight);
+            }
 
 #if defined(PPX_GGP)
-        const uint32_t surfaceMinImageWidth  = mSurface->GetMinImageWidth();
-        const uint32_t surfaceMinImageHeight = mSurface->GetMinImageHeight();
-        if ((surfaceMinImageWidth > mSettings.window.width) || (surfaceMinImageHeight > mSettings.window.height)) {
-            PPX_LOG_WARN("readjusting swapchain/window size from " << mSettings.window.width << "x" << mSettings.window.height << " to " << surfaceMinImageWidth << "x" << surfaceMinImageHeight << " to match surface requirements");
-            mSettings.window.width  = surfaceMinImageWidth;
-            mSettings.window.height = surfaceMinImageHeight;
-        }
+            const uint32_t surfaceMinImageWidth  = mSurface->GetMinImageWidth();
+            const uint32_t surfaceMinImageHeight = mSurface->GetMinImageHeight();
+            if ((surfaceMinImageWidth > mSettings.window.width) || (surfaceMinImageHeight > mSettings.window.height)) {
+                PPX_LOG_WARN("readjusting swapchain/window size from " << mSettings.window.width << "x" << mSettings.window.height << " to " << surfaceMinImageWidth << "x" << surfaceMinImageHeight << " to match surface requirements");
+                mSettings.window.width  = surfaceMinImageWidth;
+                mSettings.window.height = surfaceMinImageHeight;
+            }
 #endif
+        }
 
         grfx::SwapchainCreateInfo ci = {};
         ci.pQueue                    = mDevice->GetGraphicsQueue();
@@ -942,8 +947,8 @@ void Application::ShutdownGrfx()
 
 Result Application::CreatePlatformWindow()
 {
-    if (!mSettings.enableDisplay) {
-        PPX_LOG_INFO("Display not enabled: skipping creation of platform window");
+    if (mSettings.headless) {
+        PPX_LOG_INFO("Headless mode: skipping creation of platform window");
         return ppx::SUCCESS;
     }
 
@@ -1239,14 +1244,13 @@ void Application::DrawImGui(grfx::CommandBuffer* pCommandBuffer)
 
 bool Application::IsRunning() const
 {
-    if (mSettings.enableDisplay) {
-        int  value     = glfwWindowShouldClose(static_cast<GLFWwindow*>(mWindow));
-        bool isRunning = (value == 0);
-        return isRunning;
+    if (mSettings.headless) {
+        return mRunningHeadless;
     }
-    else {
-        return mRunningWithoutDisplay;
-    }
+
+    int  value     = glfwWindowShouldClose(static_cast<GLFWwindow*>(mWindow));
+    bool isRunning = (value == 0);
+    return isRunning;
 }
 
 int Application::Run(int argc, char** argv)
@@ -1275,11 +1279,15 @@ int Application::Run(int argc, char** argv)
     // Put this early because it might disable the display.
     DispatchConfig();
 
-    // Initialize the platform
-    Result ppxres = InitializePlatform();
-    if (Failed(ppxres)) {
-        return EXIT_FAILURE;
+    // If command line argument specified headless.
+    if (mStandardOptions.headless) {
+        mSettings.headless = true;
     }
+
+#if defined(PPX_LINUX_HEADLESS)
+    // Force headless if BigWheels was built without surface support.
+    mSettings.headless = true;
+#endif
 
     // If command line argument provided width and height
     if ((mStandardOptions.resolution.first != -1) && (mStandardOptions.resolution.second != -1)) {
@@ -1292,9 +1300,17 @@ int Application::Run(int argc, char** argv)
     if (mStandardOptions.frame_count != -1) {
         mMaxFrame = mStandardOptions.frame_count;
     }
-    else if (!mSettings.enableDisplay) {
-        mMaxFrame = 1;
-        PPX_LOG_INFO("Display not enabled: frame count is " + std::to_string(mMaxFrame));
+
+    // Disable ImGui in headless mode.
+    if (mSettings.headless && mSettings.enableImGui) {
+        mSettings.enableImGui = false;
+        PPX_LOG_WARN("Headless mode: disabling ImGui");
+    }
+
+    // Initialize the platform
+    Result ppxres = InitializePlatform();
+    if (Failed(ppxres)) {
+        return EXIT_FAILURE;
     }
 
 #if defined(PPX_BUILD_XR)
@@ -1343,37 +1359,37 @@ int Application::Run(int argc, char** argv)
         return EXIT_SUCCESS;
     }
 
-    if (mSettings.enableDisplay) {
-        // Create window
-        ppxres = CreatePlatformWindow();
-        if (Failed(ppxres)) {
-            return EXIT_FAILURE;
-        }
+    ppxres = CreatePlatformWindow();
+    if (Failed(ppxres)) {
+        return EXIT_FAILURE;
+    }
 
-        // Create surface
-        ppxres = InitializeGrfxSurface();
-        if (Failed(ppxres)) {
-            return EXIT_FAILURE;
-        }
+    // Create surface
+    ppxres = InitializeGrfxSurface();
+    if (Failed(ppxres)) {
+        return EXIT_FAILURE;
+    }
 
-        if (!mSettings.xr.enable) {
-            // Update the window size if the settings got changed due to surface requirements
-            {
-                int windowWidth  = 0;
-                int windowHeight = 0;
-                glfwGetWindowSize(static_cast<GLFWwindow*>(mWindow), &windowWidth, &windowHeight);
-                if ((static_cast<uint32_t>(windowWidth) != mSettings.window.width) || (static_cast<uint32_t>(windowHeight) != mSettings.window.width)) {
-                    glfwSetWindowSize(
-                        static_cast<GLFWwindow*>(mWindow),
-                        static_cast<int>(mSettings.window.width),
-                        static_cast<int>(mSettings.window.height));
-                }
+    // Create swapchain. This will be a "fake", manually-managed swapchain
+    // if headless mode is enabled.
+    ppxres = InitializeGrfxSwapchain();
+    if (Failed(ppxres)) {
+        return EXIT_FAILURE;
+    }
+
+    if (!mSettings.xr.enable && !mSettings.headless) {
+        // Update the window size if the settings got changed due to surface requirements
+        {
+            int windowWidth  = 0;
+            int windowHeight = 0;
+            glfwGetWindowSize(static_cast<GLFWwindow*>(mWindow), &windowWidth, &windowHeight);
+            if ((static_cast<uint32_t>(windowWidth) != mSettings.window.width) || (static_cast<uint32_t>(windowHeight) != mSettings.window.width)) {
+                glfwSetWindowSize(
+                    static_cast<GLFWwindow*>(mWindow),
+                    static_cast<int>(mSettings.window.width),
+                    static_cast<int>(mSettings.window.height));
             }
         }
-    }
-    else {
-        PPX_LOG_INFO("Display not enabled: skipping creation of platform window");
-        PPX_LOG_INFO("Display not enabled: skipping creation of surface");
     }
 
     // Setup ImGui
@@ -1398,7 +1414,7 @@ int Application::Run(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    mRunningWithoutDisplay = !mSettings.enableDisplay;
+    mRunningHeadless = mSettings.headless;
     while (IsRunning()) {
         // Frame start
         mFrameStartTime = static_cast<float>(mTimer.MillisSinceStart());
@@ -1445,7 +1461,7 @@ int Application::Run(int argc, char** argv)
         else
 #endif
         {
-            if (mSettings.enableDisplay) {
+            if (!mSettings.headless) {
                 // Poll events
                 glfwPollEvents();
             }
@@ -1539,11 +1555,11 @@ int Application::Run(int argc, char** argv)
 
 void Application::Quit()
 {
-    if (mSettings.enableDisplay) {
+    if (!mSettings.headless) {
         glfwSetWindowShouldClose(static_cast<GLFWwindow*>(mWindow), 1);
     }
     else {
-        mRunningWithoutDisplay = false;
+        mRunningHeadless = false;
     }
 }
 

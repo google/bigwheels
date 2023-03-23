@@ -30,6 +30,7 @@ namespace vk {
 // -------------------------------------------------------------------------------------------------
 Result Surface::CreateApiObjects(const grfx::SurfaceCreateInfo* pCreateInfo)
 {
+    VkResult vkres = VK_SUCCESS;
 #if defined(PPX_GGP)
     VkStreamDescriptorSurfaceCreateInfoGGP vkci = {VK_STRUCTURE_TYPE_STREAM_DESCRIPTOR_SURFACE_CREATE_INFO_GGP};
     vkci.streamDescriptor                       = GgpStreamDescriptorConstants::kGgpPrimaryStreamDescriptor;
@@ -38,7 +39,7 @@ Result Surface::CreateApiObjects(const grfx::SurfaceCreateInfo* pCreateInfo)
         vkGetInstanceProcAddr(ToApi(GetInstance())->GetVkInstance(), "vkCreateStreamDescriptorSurfaceGGP"));
     PPX_ASSERT_MSG(vkCreateStreamDescriptorSurfaceGGP != nullptr, "Error getting function vkCreateStreamDescriptorSurfaceGGP");
 
-    VkResult vkres = vkCreateStreamDescriptorSurfaceGGP(
+    vkres = vkCreateStreamDescriptorSurfaceGGP(
         ToApi(GetInstance())->GetVkInstance(),
         &vkci,
         nullptr,
@@ -48,7 +49,7 @@ Result Surface::CreateApiObjects(const grfx::SurfaceCreateInfo* pCreateInfo)
     vkci.connection                = pCreateInfo->connection;
     vkci.window                    = pCreateInfo->window;
 
-    VkResult vkres = vkCreateXcbSurfaceKHR(
+    vkres = vkCreateXcbSurfaceKHR(
         ToApi(GetInstance())->GetVkInstance(),
         &vkci,
         nullptr,
@@ -62,7 +63,7 @@ Result Surface::CreateApiObjects(const grfx::SurfaceCreateInfo* pCreateInfo)
     vkci.hinstance                   = pCreateInfo->hinstance;
     vkci.hwnd                        = pCreateInfo->hwnd;
 
-    VkResult vkres = vkCreateWin32SurfaceKHR(
+    vkres = vkCreateWin32SurfaceKHR(
         ToApi(GetInstance())->GetVkInstance(),
         &vkci,
         nullptr,
@@ -203,6 +204,10 @@ uint32_t Surface::GetMaxImageCount() const
 // -------------------------------------------------------------------------------------------------
 Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
 {
+    if (IsHeadless()) {
+        return ppx::SUCCESS;
+    }
+
     std::vector<VkImage> colorImages;
     std::vector<VkImage> depthImages;
 
@@ -543,7 +548,7 @@ Result Swapchain::AcquireNextImageInternal(
     return ppx::SUCCESS;
 }
 
-Result Swapchain::Present(
+Result Swapchain::PresentInternal(
     uint32_t                      imageIndex,
     uint32_t                      waitSemaphoreCount,
     const grfx::Semaphore* const* ppWaitSemaphores)

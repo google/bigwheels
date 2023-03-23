@@ -292,6 +292,32 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
         return ppxres;
     }
 
+    // Disable common noisy warnings from the debug layer.
+    CComPtr<ID3D12InfoQueue> pInfoQueue;
+    if (SUCCEEDED(mDevice->QueryInterface(IID_PPV_ARGS(&pInfoQueue)))) {
+        std::vector<D3D12_MESSAGE_ID> ignoredDebugMessages = {
+            // Causes a lot of noise with headless swapchain implementation,
+            // whenever the application does not clear the swapchain's render
+            // target to the default color value. This is an optimization
+            // warning and not a correctness one anyway.
+            D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,
+        };
+
+        D3D12_MESSAGE_SEVERITY ignoredSeverities[] = {D3D12_MESSAGE_SEVERITY_INFO};
+
+        D3D12_INFO_QUEUE_FILTER debugFilter = {};
+        debugFilter.DenyList.NumSeverities  = 1;
+        debugFilter.DenyList.pSeverityList  = ignoredSeverities;
+        debugFilter.DenyList.NumIDs         = static_cast<UINT>(ignoredDebugMessages.size());
+        debugFilter.DenyList.pIDList        = ignoredDebugMessages.data();
+
+        hr = pInfoQueue->PushStorageFilter(&debugFilter);
+        if (FAILED(hr)) {
+            PPX_ASSERT_MSG(false, "PushStorageFilter failed");
+            return ppx::ERROR_API_FAILURE;
+        }
+    }
+
     // Success
     return ppx::SUCCESS;
 }
