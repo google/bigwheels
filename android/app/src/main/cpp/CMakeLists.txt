@@ -9,7 +9,8 @@ cmake_minimum_required(VERSION 3.18.1)
 
 project("bigwheels")
 
-add_subdirectory("../../../../.." "../../../../../app/build")
+set(BIGWHEELS_ROOT_DIR "${CMAKE_SOURCE_DIR}/../../../../..") 
+add_subdirectory(${BIGWHEELS_ROOT_DIR} "${BIGWHEELS_ROOT_DIR}/android/app/build")
 
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
