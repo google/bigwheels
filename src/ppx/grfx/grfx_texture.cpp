@@ -195,7 +195,7 @@ uint32_t Texture::GetDepth() const
     return mImage->GetDepth();
 }
 
-grfx::Format Texture::GeImageFormat() const
+grfx::Format Texture::GetImageFormat() const
 {
     return mImage->GetFormat();
 }

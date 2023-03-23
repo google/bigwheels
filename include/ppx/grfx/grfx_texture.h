@@ -62,7 +62,7 @@ public:
     uint32_t                     GetWidth() const;
     uint32_t                     GetHeight() const;
     uint32_t                     GetDepth() const;
-    grfx::Format                 GeImageFormat() const;
+    grfx::Format                 GetImageFormat() const;
     grfx::SampleCount            GetSampleCount() const;
     uint32_t                     GetMipLevelCount() const;
     uint32_t                     GetArrayLayerCount() const;

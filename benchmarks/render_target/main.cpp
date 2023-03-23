@@ -251,11 +251,11 @@ void ProjApp::SetupDrawToTexturePass()
         gpCreateInfo.blendModes[0]                     = grfx::BLEND_MODE_NONE;
         gpCreateInfo.outputState.renderTargetCount     = mRenderTargetCount;
         for (uint32_t i = 0; i < mRenderTargetCount; ++i) {
-            gpCreateInfo.outputState.renderTargetFormats[i] = mDrawPass->GetRenderTargetTexture(i)->GeImageFormat();
+            gpCreateInfo.outputState.renderTargetFormats[i] = mDrawPass->GetRenderTargetTexture(i)->GetImageFormat();
         }
         gpCreateInfo.depthReadEnable                = false;
         gpCreateInfo.depthWriteEnable               = false;
-        gpCreateInfo.outputState.depthStencilFormat = mDrawPass->GetDepthStencilTexture()->GeImageFormat();
+        gpCreateInfo.outputState.depthStencilFormat = mDrawPass->GetDepthStencilTexture()->GetImageFormat();
         gpCreateInfo.pPipelineInterface             = mPipelineInterface;
         PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mPipeline));
     }
