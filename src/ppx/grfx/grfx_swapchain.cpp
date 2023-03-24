@@ -23,20 +23,8 @@ namespace grfx {
 Result Swapchain::Create(const grfx::SwapchainCreateInfo* pCreateInfo)
 {
     PPX_ASSERT_NULL_ARG(pCreateInfo->pQueue);
-
-#if defined(PPX_BUILD_XR)
-    if (pCreateInfo->pXrComponent != nullptr) {
-        if (IsNull(pCreateInfo->pQueue)) {
-            return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
-        }
-    }
-    else
-#endif
-    {
-        PPX_ASSERT_NULL_ARG(pCreateInfo->pSurface);
-        if (IsNull(pCreateInfo->pQueue) || IsNull(pCreateInfo->pSurface)) {
-            return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
-        }
+    if (IsNull(pCreateInfo->pQueue)) {
+        return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
     }
 
     Result ppxres = grfx::DeviceObject<grfx::SwapchainCreateInfo>::Create(pCreateInfo);
@@ -47,7 +35,9 @@ Result Swapchain::Create(const grfx::SwapchainCreateInfo* pCreateInfo)
     // Update the stored create info's image count since the actual
     // number of images might be different (hopefully more) than
     // what was originally requested.
-    mCreateInfo.imageCount = CountU32(mColorImages);
+    if (!IsHeadless()) {
+        mCreateInfo.imageCount = CountU32(mColorImages);
+    }
     if (mCreateInfo.imageCount != pCreateInfo->imageCount) {
         PPX_LOG_INFO("Swapchain actual image count is different from what was requested\n"
                      << "   actual    : " << mCreateInfo.imageCount << "\n"
@@ -56,13 +46,38 @@ Result Swapchain::Create(const grfx::SwapchainCreateInfo* pCreateInfo)
 
     // NOTE: mCreateInfo.imageCount will be used from this point on.
 
-    // Depth images in XR mode are created through the XR depth swapchain,
-    // if enabled. In that case, we don't need to create images here, as
-    // mDepthImages will already have been populated.
+    // Create color images if needed. This is only needed if we're creating
+    // a headless swapchain.
+    if (mColorImages.empty()) {
+        for (uint32_t i = 0; i < mCreateInfo.imageCount; ++i) {
+            grfx::ImageCreateInfo rtCreateInfo = ImageCreateInfo::RenderTarget2D(pCreateInfo->width, pCreateInfo->height, pCreateInfo->colorFormat);
+            rtCreateInfo.ownership             = grfx::OWNERSHIP_RESTRICTED;
+            rtCreateInfo.RTVClearValue         = {0.0f, 0.0f, 0.0f, 0.0f};
+            rtCreateInfo.initialState          = grfx::RESOURCE_STATE_PRESENT;
+            rtCreateInfo.usageFlags =
+                grfx::IMAGE_USAGE_COLOR_ATTACHMENT |
+                grfx::IMAGE_USAGE_TRANSFER_SRC |
+                grfx::IMAGE_USAGE_TRANSFER_DST |
+                grfx::IMAGE_USAGE_SAMPLED;
+
+            grfx::ImagePtr renderTarget;
+            ppxres = GetDevice()->CreateImage(&rtCreateInfo, &renderTarget);
+            if (Failed(ppxres)) {
+                return ppxres;
+            }
+
+            mColorImages.push_back(renderTarget);
+        }
+    }
+
+    // Create depth images if needed. This is usually needed for both normal swapchains
+    // and headless swapchains, but not needed for XR swapchains which create their own
+    // depth images.
     if (pCreateInfo->depthFormat != grfx::FORMAT_UNDEFINED && mDepthImages.empty()) {
         for (uint32_t i = 0; i < mCreateInfo.imageCount; ++i) {
             grfx::ImageCreateInfo dpCreateInfo = ImageCreateInfo::DepthStencilTarget(pCreateInfo->width, pCreateInfo->height, pCreateInfo->depthFormat);
             dpCreateInfo.ownership             = grfx::OWNERSHIP_RESTRICTED;
+            dpCreateInfo.DSVClearValue         = {1.0f, 0xFF};
 
             grfx::ImagePtr depthStencilTarget;
             ppxres = GetDevice()->CreateImage(&dpCreateInfo, &depthStencilTarget);
@@ -122,6 +137,20 @@ Result Swapchain::Create(const grfx::SwapchainCreateInfo* pCreateInfo)
         mLoadRenderPasses.push_back(renderPass);
     }
 
+    if (IsHeadless()) {
+        // Set currentImageIndex to (imageCount - 1) so that the first
+        // AcquireNextImage call acquires the first image at index 0.
+        currentImageIndex = mCreateInfo.imageCount - 1;
+
+        // Create command buffers to signal and wait semaphores at
+        // AcquireNextImage and Present calls.
+        for (uint32_t i = 0; i < mCreateInfo.imageCount; ++i) {
+            grfx::CommandBufferPtr commandBuffer = nullptr;
+            mCreateInfo.pQueue->CreateCommandBuffer(&commandBuffer, 0, 0);
+            mHeadlessCommandBuffers.push_back(commandBuffer);
+        }
+    }
+
     PPX_LOG_INFO("Swapchain created");
     PPX_LOG_INFO("   "
                  << "resolution  : " << pCreateInfo->width << "x" << pCreateInfo->height);
@@ -169,6 +198,13 @@ void Swapchain::Destroy()
         xrDestroySwapchain(mXrDepthSwapchain);
     }
 #endif
+
+    for (auto& elem : mHeadlessCommandBuffers) {
+        if (elem) {
+            mCreateInfo.pQueue->DestroyCommandBuffer(elem);
+        }
+    }
+    mHeadlessCommandBuffers.clear();
 
     grfx::DeviceObject<grfx::SwapchainCreateInfo>::Destroy();
 }
@@ -257,11 +293,63 @@ Result Swapchain::AcquireNextImage(
         }
         return ppx::SUCCESS;
     }
-    else
 #endif
-    {
-        return AcquireNextImageInternal(timeout, pSemaphore, pFence, pImageIndex);
+
+    if (IsHeadless()) {
+        return AcquireNextImageHeadless(timeout, pSemaphore, pFence, pImageIndex);
     }
+
+    return AcquireNextImageInternal(timeout, pSemaphore, pFence, pImageIndex);
+}
+
+Result Swapchain::Present(
+    uint32_t                      imageIndex,
+    uint32_t                      waitSemaphoreCount,
+    const grfx::Semaphore* const* ppWaitSemaphores)
+{
+    if (IsHeadless()) {
+        return PresentHeadless(imageIndex, waitSemaphoreCount, ppWaitSemaphores);
+    }
+
+    return PresentInternal(imageIndex, waitSemaphoreCount, ppWaitSemaphores);
+}
+
+Result Swapchain::AcquireNextImageHeadless(uint64_t timeout, grfx::Semaphore* pSemaphore, grfx::Fence* pFence, uint32_t* pImageIndex)
+{
+    *pImageIndex      = (currentImageIndex + 1u) % CountU32(mColorImages);
+    currentImageIndex = *pImageIndex;
+
+    grfx::CommandBufferPtr commandBuffer = mHeadlessCommandBuffers[currentImageIndex];
+
+    commandBuffer->Begin();
+    commandBuffer->End();
+
+    grfx::SubmitInfo sInfo     = {};
+    sInfo.ppCommandBuffers     = &commandBuffer;
+    sInfo.commandBufferCount   = 1;
+    sInfo.pFence               = pFence;
+    sInfo.ppSignalSemaphores   = &pSemaphore;
+    sInfo.signalSemaphoreCount = 1;
+    mCreateInfo.pQueue->Submit(&sInfo);
+
+    return ppx::SUCCESS;
+}
+
+Result Swapchain::PresentHeadless(uint32_t imageIndex, uint32_t waitSemaphoreCount, const grfx::Semaphore* const* ppWaitSemaphores)
+{
+    grfx::CommandBufferPtr commandBuffer = mHeadlessCommandBuffers[currentImageIndex];
+
+    commandBuffer->Begin();
+    commandBuffer->End();
+
+    grfx::SubmitInfo sInfo   = {};
+    sInfo.ppCommandBuffers   = &commandBuffer;
+    sInfo.commandBufferCount = 1;
+    sInfo.ppWaitSemaphores   = ppWaitSemaphores;
+    sInfo.waitSemaphoreCount = waitSemaphoreCount;
+    mCreateInfo.pQueue->Submit(&sInfo);
+
+    return ppx::SUCCESS;
 }
 
 } // namespace grfx

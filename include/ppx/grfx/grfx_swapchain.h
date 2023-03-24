@@ -111,6 +111,7 @@ public:
     Swapchain() {}
     virtual ~Swapchain() {}
 
+    bool         IsHeadless() const { return mCreateInfo.pSurface == nullptr; }
     uint32_t     GetWidth() const { return mCreateInfo.width; }
     uint32_t     GetHeight() const { return mCreateInfo.height; }
     uint32_t     GetImageCount() const { return mCreateInfo.imageCount; }
@@ -132,10 +133,10 @@ public:
         grfx::Fence*     pFence,     // Wait fence
         uint32_t*        pImageIndex);
 
-    virtual Result Present(
+    Result Present(
         uint32_t                      imageIndex,
         uint32_t                      waitSemaphoreCount,
-        const grfx::Semaphore* const* ppWaitSemaphores) = 0;
+        const grfx::Semaphore* const* ppWaitSemaphores);
 
     uint32_t GetCurrentImageIndex() const { return currentImageIndex; }
 
@@ -164,6 +165,25 @@ protected:
         grfx::Semaphore* pSemaphore, // Wait sempahore
         grfx::Fence*     pFence,     // Wait fence
         uint32_t*        pImageIndex) = 0;
+
+    virtual Result PresentInternal(
+        uint32_t                      imageIndex,
+        uint32_t                      waitSemaphoreCount,
+        const grfx::Semaphore* const* ppWaitSemaphores) = 0;
+
+private:
+    Result AcquireNextImageHeadless(
+        uint64_t         timeout,
+        grfx::Semaphore* pSemaphore,
+        grfx::Fence*     pFence,
+        uint32_t*        pImageIndex);
+
+    Result PresentHeadless(
+        uint32_t                      imageIndex,
+        uint32_t                      waitSemaphoreCount,
+        const grfx::Semaphore* const* ppWaitSemaphores);
+
+    std::vector<grfx::CommandBufferPtr> mHeadlessCommandBuffers;
 
 protected:
     grfx::QueuePtr                   mQueue;

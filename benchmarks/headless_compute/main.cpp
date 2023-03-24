@@ -88,7 +88,7 @@ private:
 void ProjApp::Config(ppx::ApplicationSettings& settings)
 {
     settings.appName                        = "compute_operations";
-    settings.enableDisplay                  = false;
+    settings.headless                       = true;
     settings.enableImGui                    = false;
     settings.grfx.api                       = kApi;
     settings.grfx.enableDebug               = false;

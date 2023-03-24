@@ -82,6 +82,8 @@ elseif(PPX_LINUX_XLIB)
     set(PPX_LINUX_VULKAN_SURFACE "PPX_LINUX_XLIB")
 elseif(PPX_LINUX_WAYLAND)
     set(PPX_LINUX_VULKAN_SURFACE "PPX_LINUX_WAYLAND")
+elseif(PPX_LINUX_HEADLESS)
+    set(PPX_LINUX_VULKAN_SURFACE "PPX_LINUX_HEADLESS")
 else()
     set(PPX_LINUX_VULKAN_SURFACE "PPX_LINUX_XCB")
 endif()
@@ -592,7 +594,6 @@ if (PPX_VULKAN)
                    -Werror=return-type
 		)
     elseif (PPX_LINUX)
-
         target_compile_definitions(
             ${PROJECT_NAME}
             PUBLIC ${PPX_LINUX_VULKAN_SURFACE}
@@ -654,10 +655,13 @@ if (PPX_VULKAN)
             PROPERTIES OUTPUT_NAME PPX
                        LINKER_LANGUAGE CXX
         )
-        # Link libraries
-        target_link_libraries(${PROJECT_NAME}
-            PUBLIC xcb X11-xcb
-        )
+
+        # Link XCB libraries if needed
+        if (${PPX_LINUX_VULKAN_SURFACE} STREQUAL "PPX_LINUX_XCB")
+            target_link_libraries(${PROJECT_NAME}
+                PUBLIC xcb X11-xcb
+            )
+        endif()
     # Windows
     elseif (PPX_MSW)
         target_link_libraries(${PROJECT_NAME}
@@ -669,7 +673,6 @@ endif()
 # ------------------------------------------------------------------------------
 # Profiling
 # ------------------------------------------------------------------------------
-
 if (PPX_ENABLE_PROFILE_GRFX_API_FUNCTIONS)
     target_compile_definitions(
         ${PROJECT_NAME}

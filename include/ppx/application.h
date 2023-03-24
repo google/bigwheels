@@ -203,12 +203,10 @@ struct KeyState
 //!
 struct ApplicationSettings
 {
-    std::string appName = "";
-    // If display is not enabled, then we don't need a swapchain, and there is
-    // no event loop: run a single frame.
-    bool enableDisplay         = true;
-    bool enableImGui           = false;
-    bool allowThirdPartyAssets = false;
+    std::string appName               = "";
+    bool        headless              = false;
+    bool        enableImGui           = false;
+    bool        allowThirdPartyAssets = false;
 
     struct
     {
@@ -400,6 +398,7 @@ private:
     Result InitializePlatform();
     Result InitializeGrfxDevice();
     Result InitializeGrfxSurface();
+    Result InitializeGrfxSwapchain();
     Result InitializeImGui();
     void   ShutdownImGui();
     void   StopGrfx();
@@ -436,7 +435,7 @@ private:
     KeyState                        mKeyStates[TOTAL_KEY_COUNT] = {false, 0.0f};
     int32_t                         mPreviousMouseX             = INT32_MAX;
     int32_t                         mPreviousMouseY             = INT32_MAX;
-    bool                            mRunningWithoutDisplay      = false;
+    bool                            mRunningHeadless            = false;
     grfx::InstancePtr               mInstance                   = nullptr;
     grfx::DevicePtr                 mDevice                     = nullptr;
     grfx::SurfacePtr                mSurface                    = nullptr; // Requires enableDisplay

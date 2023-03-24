@@ -75,6 +75,10 @@ uint32_t Surface::GetMaxImageCount() const
 // -------------------------------------------------------------------------------------------------
 Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
 {
+    if (IsHeadless()) {
+        return ppx::SUCCESS;
+    }
+
     std::vector<ID3D11Resource*> colorImages;
     std::vector<ID3D11Resource*> depthImages;
 
@@ -377,7 +381,7 @@ Result Swapchain::AcquireNextImageInternal(
     return ppx::SUCCESS;
 }
 
-Result Swapchain::Present(
+Result Swapchain::PresentInternal(
     uint32_t                      imageIndex,
     uint32_t                      waitSemaphoreCount,
     const grfx::Semaphore* const* ppWaitSemaphores)
