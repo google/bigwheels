@@ -186,6 +186,7 @@ list(
     ${SRC_DIR}/ppx/graphics_util.cpp
     ${SRC_DIR}/ppx/imgui_impl.cpp
     ${SRC_DIR}/ppx/log.cpp
+    ${SRC_DIR}/ppx/math_config.cpp
     ${SRC_DIR}/ppx/mipmap.cpp
     ${SRC_DIR}/ppx/platform.cpp
     ${SRC_DIR}/ppx/ppm_export.cpp

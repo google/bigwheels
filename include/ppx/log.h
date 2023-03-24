@@ -15,6 +15,8 @@
 #ifndef PPX_LOG_H
 #define PPX_LOG_H
 
+#include "math_config.h"
+
 #include <cstdint>
 #include <fstream>
 #include <iostream>
@@ -23,6 +25,11 @@
 #include <sstream>
 
 #define PPX_LOG_DEFAULT_PATH "ppx.log"
+
+// Output overloads for common data types.
+std::ostream& operator<<(std::ostream& os, const ppx::float2& i);
+std::ostream& operator<<(std::ostream& os, const ppx::float3& i);
+std::ostream& operator<<(std::ostream& os, const ppx::float4& i);
 
 namespace ppx {
 
