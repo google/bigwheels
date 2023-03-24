@@ -16,3 +16,4 @@ CMakeSettings.json
 *.dxbc50
 *.dxbc51
 __pycache__
+tags

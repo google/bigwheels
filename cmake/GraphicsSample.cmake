@@ -17,14 +17,14 @@ include(CMakeParseArguments)
 
 function(_add_sample_internal)
     set(oneValueArgs NAME API_TAG SHADER_FORMAT)
-    set(multiValueArgs API_DEFINES SOURCES DEPENDENCIES)
+    set(multiValueArgs API_DEFINES SOURCES DEPENDENCIES ADDITIONAL_INCLUDE_DIRECTORIES)
     cmake_parse_arguments(PARSE_ARGV 0 "ARG" "" "${oneValueArgs}" "${multiValueArgs}")
 
     set (TARGET_NAME "${ARG_API_TAG}_${ARG_NAME}")
     add_executable("${TARGET_NAME}" ${ARG_SOURCES})
     set_target_properties("${TARGET_NAME}" PROPERTIES FOLDER "ppx/samples/${ARG_API_TAG}")
 
-    target_include_directories("${TARGET_NAME}" PUBLIC ${PPX_DIR}/include)
+    target_include_directories("${TARGET_NAME}" PUBLIC ${PPX_DIR}/include ${ARG_ADDITIONAL_INCLUDE_DIRECTORIES})
     target_compile_definitions("${TARGET_NAME}" PRIVATE ${ARG_API_DEFINES})
 
     target_link_libraries("${TARGET_NAME}" PUBLIC ppx glfw)
@@ -50,7 +50,7 @@ function(_add_sample_internal)
 endfunction()
 
 function(add_vk_sample)
-    set(multiValueArgs SOURCES DEPENDENCIES)
+    set(multiValueArgs SOURCES DEPENDENCIES ADDITIONAL_INCLUDE_DIRECTORIES)
     cmake_parse_arguments(PARSE_ARGV 0 "ARG" "" "NAME" "${multiValueArgs}")
     if (PPX_VULKAN)
         _add_sample_internal(NAME ${ARG_NAME}
@@ -58,12 +58,13 @@ function(add_vk_sample)
                    SHADER_FORMAT "spv"
                    API_DEFINES "USE_VK"
                    SOURCES ${ARG_SOURCES}
-                   DEPENDENCIES ${ARG_DEPENDENCIES})
+                   DEPENDENCIES ${ARG_DEPENDENCIES}
+                   ADDITIONAL_INCLUDE_DIRECTORIES ${ARG_ADDITIONAL_INCLUDE_DIRECTORIES})
     endif()
 endfunction()
 
 function(add_dx11_sample)
-    set(multiValueArgs SOURCES DEPENDENCIES)
+    set(multiValueArgs SOURCES DEPENDENCIES ADDITIONAL_INCLUDE_DIRECTORIES)
     cmake_parse_arguments(PARSE_ARGV 0 "ARG" "" "NAME" "${multiValueArgs}")
     if (PPX_D3D11)
         _add_sample_internal(NAME ${ARG_NAME}
@@ -71,12 +72,13 @@ function(add_dx11_sample)
                    SHADER_FORMAT "dxbc50"
                    API_DEFINES "USE_DX11"
                    SOURCES ${ARG_SOURCES}
-                   DEPENDENCIES ${ARG_DEPENDENCIES})
+                   DEPENDENCIES ${ARG_DEPENDENCIES}
+                   ADDITIONAL_INCLUDE_DIRECTORIES ${ARG_ADDITIONAL_INCLUDE_DIRECTORIES})
     endif()
 endfunction()
 
 function(add_dx12_sample)
-    set(multiValueArgs SOURCES DEPENDENCIES)
+    set(multiValueArgs SOURCES DEPENDENCIES ADDITIONAL_INCLUDE_DIRECTORIES)
     cmake_parse_arguments(PARSE_ARGV 0 "ARG" "" "NAME" "${multiValueArgs}")
     if (PPX_D3D12)
         _add_sample_internal(NAME ${ARG_NAME}
@@ -84,12 +86,13 @@ function(add_dx12_sample)
                    SHADER_FORMAT "dxbc51"
                    API_DEFINES "USE_DX12"
                    SOURCES ${ARG_SOURCES}
-                   DEPENDENCIES ${ARG_DEPENDENCIES})
+                   DEPENDENCIES ${ARG_DEPENDENCIES}
+                   ADDITIONAL_INCLUDE_DIRECTORIES ${ARG_ADDITIONAL_INCLUDE_DIRECTORIES})
     endif()
 endfunction()
 
 function(add_dxil_sample)
-    set(multiValueArgs SOURCES DEPENDENCIES)
+    set(multiValueArgs SOURCES DEPENDENCIES ADDITIONAL_INCLUDE_DIRECTORIES)
     cmake_parse_arguments(PARSE_ARGV 0 "ARG" "" "NAME" "${multiValueArgs}")
     if (PPX_D3D12)
         _add_sample_internal(NAME ${ARG_NAME}
@@ -97,27 +100,28 @@ function(add_dxil_sample)
                    SHADER_FORMAT "dxil"
                    API_DEFINES "USE_DX12" "USE_DXIL"
                    SOURCES ${ARG_SOURCES}
-                   DEPENDENCIES ${ARG_DEPENDENCIES})
+                   DEPENDENCIES ${ARG_DEPENDENCIES}
+                   ADDITIONAL_INCLUDE_DIRECTORIES ${ARG_ADDITIONAL_INCLUDE_DIRECTORIES})
     endif()
 endfunction()
 
 function(add_samples)
-    set(multiValueArgs TARGET_APIS SOURCES DEPENDENCIES SHADER_DEPENDENCIES)
+    set(multiValueArgs TARGET_APIS SOURCES DEPENDENCIES SHADER_DEPENDENCIES ADDITIONAL_INCLUDE_DIRECTORIES)
     cmake_parse_arguments(PARSE_ARGV 0 "ARG" "" "NAME" "${multiValueArgs}")
 
     foreach(target_api ${ARG_TARGET_APIS})
         if(target_api STREQUAL "dx11")
             prefix_all(PREFIXED_SHADERS_DEPENDENCIES LIST ${ARG_SHADER_DEPENDENCIES} PREFIX "d3d11_")
-            add_dx11_sample(NAME ${ARG_NAME} SOURCES ${ARG_SOURCES} DEPENDENCIES ${ARG_DEPENDENCIES} ${PREFIXED_SHADERS_DEPENDENCIES})
+            add_dx11_sample(NAME ${ARG_NAME} SOURCES ${ARG_SOURCES} DEPENDENCIES ${ARG_DEPENDENCIES} ${PREFIXED_SHADERS_DEPENDENCIES} ADDITIONAL_INCLUDE_DIRECTORIES ${ARG_ADDITIONAL_INCLUDE_DIRECTORIES})
         elseif(target_api STREQUAL "dx12")
             prefix_all(PREFIXED_SHADERS_DEPENDENCIES LIST ${ARG_SHADER_DEPENDENCIES} PREFIX "d3d12_")
-            add_dx12_sample(NAME ${ARG_NAME} SOURCES ${ARG_SOURCES} DEPENDENCIES ${ARG_DEPENDENCIES} ${PREFIXED_SHADERS_DEPENDENCIES})
+            add_dx12_sample(NAME ${ARG_NAME} SOURCES ${ARG_SOURCES} DEPENDENCIES ${ARG_DEPENDENCIES} ${PREFIXED_SHADERS_DEPENDENCIES} ADDITIONAL_INCLUDE_DIRECTORIES ${ARG_ADDITIONAL_INCLUDE_DIRECTORIES})
         elseif(target_api STREQUAL "dxil")
             prefix_all(PREFIXED_SHADERS_DEPENDENCIES LIST ${ARG_SHADER_DEPENDENCIES} PREFIX "dxil_")
-            add_dxil_sample(NAME ${ARG_NAME} SOURCES ${ARG_SOURCES} DEPENDENCIES ${ARG_DEPENDENCIES} ${PREFIXED_SHADERS_DEPENDENCIES})
+            add_dxil_sample(NAME ${ARG_NAME} SOURCES ${ARG_SOURCES} DEPENDENCIES ${ARG_DEPENDENCIES} ${PREFIXED_SHADERS_DEPENDENCIES} ADDITIONAL_INCLUDE_DIRECTORIES ${ARG_ADDITIONAL_INCLUDE_DIRECTORIES})
         elseif(target_api STREQUAL "vk")
             prefix_all(PREFIXED_SHADERS_DEPENDENCIES LIST ${ARG_SHADER_DEPENDENCIES} PREFIX "vk_")
-            add_vk_sample(NAME ${ARG_NAME} SOURCES ${ARG_SOURCES} DEPENDENCIES ${ARG_DEPENDENCIES} ${PREFIXED_SHADERS_DEPENDENCIES})
+            add_vk_sample(NAME ${ARG_NAME} SOURCES ${ARG_SOURCES} DEPENDENCIES ${ARG_DEPENDENCIES} ${PREFIXED_SHADERS_DEPENDENCIES} ADDITIONAL_INCLUDE_DIRECTORIES ${ARG_ADDITIONAL_INCLUDE_DIRECTORIES})
         else()
             message(FATAL_ERROR "Invalid target API \"${target_api}\"" )
         endif()
@@ -125,7 +129,7 @@ function(add_samples)
 endfunction()
 
 function(add_samples_for_all_apis)
-    set(multiValueArgs SOURCES DEPENDENCIES SHADER_DEPENDENCIES)
+    set(multiValueArgs SOURCES DEPENDENCIES SHADER_DEPENDENCIES ADDITIONAL_INCLUDE_DIRECTORIES)
     cmake_parse_arguments(PARSE_ARGV 0 "ARG" "" "NAME" "${multiValueArgs}")
     add_samples(
         NAME ${ARG_NAME}
@@ -133,5 +137,6 @@ function(add_samples_for_all_apis)
         SOURCES ${ARG_SOURCES}
         DEPENDENCIES ${ARG_DEPENDENCIES}
         SHADER_DEPENDENCIES ${ARG_SHADER_DEPENDENCIES}
+        ADDITIONAL_INCLUDE_DIRECTORIES ${ARG_ADDITIONAL_INCLUDE_DIRECTORIES}
     )
 endfunction()
