@@ -494,7 +494,7 @@ void ProjApp::Setup()
         writes[3].pImageView            = mGBufferRenderPass->GetRenderTargetTexture(3)->GetSampledImageView();
         // Environment map and IBL are not currently used.
         // Create a 1x1 image for unused textures.
-        PPX_CHECKED_CALL(grfx_util::CreateTexture1x1(GetDevice()->GetGraphicsQueue(), float4(1), &m1x1WhiteTexture));
+        PPX_CHECKED_CALL(grfx_util::CreateTexture1x1<uint8_t>(GetDevice()->GetGraphicsQueue(), {255, 255, 255, 255}, &m1x1WhiteTexture));
         writes[4].binding      = GBUFFER_ENV_REGISTER;
         writes[4].arrayIndex   = 0;
         writes[4].type         = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;

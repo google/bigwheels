@@ -204,8 +204,8 @@ ppx::Result Material::CreateMaterials(ppx::grfx::Queue* pQueue, ppx::grfx::Descr
 
     // Create 1x1 black and white textures
     {
-        PPX_CHECKED_CALL(grfx_util::CreateTexture1x1(pQueue, float4(0), &s1x1BlackTexture));
-        PPX_CHECKED_CALL(grfx_util::CreateTexture1x1(pQueue, float4(1), &s1x1WhiteTexture));
+        PPX_CHECKED_CALL(grfx_util::CreateTexture1x1<uint8_t>(pQueue, {0, 0, 0, 0}, &s1x1BlackTexture));
+        PPX_CHECKED_CALL(grfx_util::CreateTexture1x1<uint8_t>(pQueue, {255, 255, 255, 255}, &s1x1WhiteTexture));
     }
 
     // Create sampler

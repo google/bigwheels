@@ -418,8 +418,8 @@ void ProjApp::SetupMaterials()
 
 void ProjApp::Setup()
 {
-    PPX_CHECKED_CALL(grfx_util::CreateTexture1x1(GetDevice()->GetGraphicsQueue(), float4(0), &m1x1BlackTexture));
-    PPX_CHECKED_CALL(grfx_util::CreateTexture1x1(GetDevice()->GetGraphicsQueue(), float4(1), &m1x1WhiteTexture));
+    PPX_CHECKED_CALL(grfx_util::CreateTexture1x1<uint8_t>(GetDevice()->GetGraphicsQueue(), {0, 0, 0, 0}, &m1x1BlackTexture));
+    PPX_CHECKED_CALL(grfx_util::CreateTexture1x1<uint8_t>(GetDevice()->GetGraphicsQueue(), {255, 255, 255, 255}, &m1x1WhiteTexture));
     mF0Index = static_cast<uint32_t>(mF0Names.size() - 1);
 
     // Cameras

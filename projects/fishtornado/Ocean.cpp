@@ -90,8 +90,8 @@ void Ocean::Setup(uint32_t numFramesInFlight)
         TriMesh        mesh    = TriMesh::CreatePlane(TRI_MESH_PLANE_NEGATIVE_Y, float2(2500.0f), 10, 10, options);
         PPX_CHECKED_CALL(grfx_util::CreateMeshFromTriMesh(queue, &mesh, &mSurfaceMesh));
 
-        PPX_CHECKED_CALL(grfx_util::CreateTexture1x1(queue, float4(0, 0, 0, 0), &mSurfaceAlbedoTexture));
-        PPX_CHECKED_CALL(grfx_util::CreateTexture1x1(queue, float4(1, 1, 1, 1), &mSurfaceRoughnessTexture));
+        PPX_CHECKED_CALL(grfx_util::CreateTexture1x1<uint8_t>(queue, {0, 0, 0, 0}, &mSurfaceAlbedoTexture));
+        PPX_CHECKED_CALL(grfx_util::CreateTexture1x1<uint8_t>(queue, {255, 255, 255, 255}, &mSurfaceRoughnessTexture));
         PPX_CHECKED_CALL(grfx_util::CreateTextureFromFile(queue, pApp->GetAssetPath("fishtornado/textures/ocean/surfaceNormalMap.png"), &mSurfaceNormalMapTexture));
 
         PPX_CHECKED_CALL(mSurfaceMaterialConstants.Create(device, PPX_MINIMUM_CONSTANT_BUFFER_SIZE));

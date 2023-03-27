@@ -201,7 +201,7 @@ void FishTornadoApp::SetupPipelineInterfaces()
 
 void FishTornadoApp::SetupTextures()
 {
-    PPX_CHECKED_CALL(grfx_util::CreateTexture1x1(GetGraphicsQueue(), {0, 0, 0, 0}, &m1x1BlackTexture));
+    PPX_CHECKED_CALL(grfx_util::CreateTexture1x1<uint8_t>(GetGraphicsQueue(), {0, 0, 0, 0}, &m1x1BlackTexture));
 }
 
 void FishTornadoApp::SetupSamplers()

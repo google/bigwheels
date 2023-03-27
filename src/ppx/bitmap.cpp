@@ -260,69 +260,6 @@ Result Bitmap::ScaleTo(Bitmap* pTargetBitmap) const
     return ppx::SUCCESS;
 }
 
-void Bitmap::Fill(float r, float g, float b, float a)
-{
-    PPX_ASSERT_MSG(mData != nullptr, "data is null");
-
-    if (mFormat == Bitmap::FORMAT_UNDEFINED) {
-        PPX_ASSERT_MSG(false, "format is undefined");
-        return;
-    }
-
-    uint8_t rgbaU8[4] = {
-        static_cast<uint8_t>(UINT8_MAX * std::min<float>(r, 1.0f)),
-        static_cast<uint8_t>(UINT8_MAX * std::min<float>(g, 1.0f)),
-        static_cast<uint8_t>(UINT8_MAX * std::min<float>(b, 1.0f)),
-        static_cast<uint8_t>(UINT8_MAX * std::min<float>(a, 1.0f)),
-    };
-
-    uint16_t rgbaU16[4] = {
-        static_cast<uint8_t>(UINT16_MAX * std::min<float>(r, 1.0f)),
-        static_cast<uint8_t>(UINT16_MAX * std::min<float>(g, 1.0f)),
-        static_cast<uint8_t>(UINT16_MAX * std::min<float>(b, 1.0f)),
-        static_cast<uint8_t>(UINT16_MAX * std::min<float>(a, 1.0f)),
-    };
-
-    uint16_t rgbaU32[4] = {
-        static_cast<uint8_t>(UINT32_MAX * std::min<float>(r, 1.0f)),
-        static_cast<uint8_t>(UINT32_MAX * std::min<float>(g, 1.0f)),
-        static_cast<uint8_t>(UINT32_MAX * std::min<float>(b, 1.0f)),
-        static_cast<uint8_t>(UINT32_MAX * std::min<float>(a, 1.0f)),
-    };
-
-    float rgbaF32[4] = {
-        r,
-        g,
-        b,
-        a,
-    };
-
-    const uint32_t         channelCount = Bitmap::ChannelCount(mFormat);
-    const Bitmap::DataType dataType     = Bitmap::ChannelDataType(mFormat);
-
-    char* pData = mData;
-    for (uint32_t y = 0; y < mHeight; ++y) {
-        for (uint32_t x = 0; x < mWidth; ++x) {
-            uint8_t*  pDataU8  = reinterpret_cast<uint8_t*>(pData);
-            uint16_t* pDataU16 = reinterpret_cast<uint16_t*>(pData);
-            uint32_t* pDataU32 = reinterpret_cast<uint32_t*>(pData);
-            float*    pDataF32 = reinterpret_cast<float*>(pData);
-            for (uint32_t c = 0; c < channelCount; ++c) {
-                // clang-format off
-                switch (dataType) {
-                    default: break;
-                    case Bitmap::DATA_TYPE_UINT8  : pDataU8[c]  = rgbaU8[c]; break;
-                    case Bitmap::DATA_TYPE_UINT16 : pDataU16[c] = rgbaU16[c]; break;
-                    case Bitmap::DATA_TYPE_UINT32 : pDataU32[c] = rgbaU32[c]; break;
-                    case Bitmap::DATA_TYPE_FLOAT  : pDataF32[c] = rgbaF32[c]; break;
-                }
-                // clang-format on
-            }
-            pData += mPixelStride;
-        }
-    }
-}
-
 char* Bitmap::GetPixelAddress(uint32_t x, uint32_t y)
 {
     char* pPixel = nullptr;
