@@ -677,6 +677,11 @@ bool Device::DynamicRenderingSupported() const
     return mHasDynamicRendering;
 }
 
+bool Device::IndependentBlendingSupported() const
+{
+    return mDeviceFeatures.independentBlend == VK_TRUE;
+}
+
 void Device::ResetQueryPoolEXT(
     VkQueryPool queryPool,
     uint32_t    firstQuery,

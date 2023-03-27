@@ -36,6 +36,7 @@ public:
 
     virtual bool PipelineStatsAvailable() const override;
     virtual bool DynamicRenderingSupported() const override;
+    virtual bool IndependentBlendingSupported() const override;
 
     Result GetStructuredBufferSRV(
         const grfx::Buffer*                                  pBuffer,

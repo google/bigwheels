@@ -688,6 +688,11 @@ bool Device::DynamicRenderingSupported() const
     return mRenderPassTier > D3D12_RENDER_PASS_TIER_0;
 }
 
+bool Device::IndependentBlendingSupported() const
+{
+    return true;
+}
+
 } // namespace dx12
 } // namespace grfx
 } // namespace ppx
