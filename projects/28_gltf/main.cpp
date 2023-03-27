@@ -102,7 +102,6 @@ private:
     PerspCamera                  mCamera;
     float3                       mLightPosition = float3(10, 100, 10);
 
-    RenderList             mRenderList;
     std::vector<Material>  mMaterials;
     std::vector<Primitive> mPrimitives;
     std::vector<Object>    mObjects;
@@ -165,7 +164,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.window.width               = 1920;
     settings.window.height              = 1080;
     settings.grfx.api                   = kApi;
-    settings.grfx.enableDebug           = true;
+    settings.grfx.enableDebug           = false;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
 #if defined(USE_DXIL)
     settings.grfx.enableDXIL = true;
@@ -249,7 +248,7 @@ void ProjApp::LoadMaterial(
 {
     grfx::Device* pDevice = pQueue->GetDevice();
     if (material.extensions_count != 0) {
-        printf("Material %s has extensions, but they are ignored. Rendered aspect may vary.\n", material.name);
+        printf("Material %s has extensions, but they are ignored. Rendered result may vary.\n", material.name);
     }
 
     // This is to simplify the pipeline creation for now. Need to revisit later.
@@ -295,7 +294,7 @@ void ProjApp::LoadMaterial(
     }
 
     if (material.normal_texture.texture == nullptr) {
-        LoadTexture(ColorToBitmap(float3(0.f, 1.f, 0.f)), pQueue, &pOutput->textures[1]);
+        LoadTexture(ColorToBitmap(float3(0.f, 0.f, 1.f)), pQueue, &pOutput->textures[1]);
     }
     else {
         LoadTexture(gltfFolder, material.normal_texture, pQueue, pTextureCache, &pOutput->textures[1]);
@@ -724,7 +723,7 @@ void ProjApp::Render()
     PPX_CHECKED_CALL(frame.renderCompleteFence->WaitAndReset());
 
     // Update camera(s)
-    mCamera.LookAt(float3(19, 1, -3), float3(0, 0, 0));
+    mCamera.LookAt(float3(2, 2, 2), float3(0, 0, 0));
 
     // Update uniform buffers
     for (auto& object : mObjects) {
@@ -743,17 +742,16 @@ void ProjApp::Render()
         scene.ambient                    = float4(0.3f);
         scene.cameraViewProjectionMatrix = mCamera.GetViewProjectionMatrix();
         scene.lightPosition              = float4(mLightPosition, 0);
-        scene.eyePosition                = glm::float4(mCamera.GetEyePosition(), 0.f);
+        scene.eyePosition                = float4(mCamera.GetEyePosition(), 0.f);
 
         object.pUniformBuffer->CopyFromSource(sizeof(scene), &scene);
     }
 
     {
-        // FIXME: this assumes we have only PBR, and with 3 materials per texture. Needs to be revisited.
+        // FIXME: this assumes we have only PBR, and with 3 textures per materials. Needs to be revisited.
         constexpr size_t                                    TEXTURE_COUNT    = 3;
         constexpr size_t                                    DESCRIPTOR_COUNT = 1 + TEXTURE_COUNT * 2 /* uniform + 3 * (sampler + texture) */;
         std::array<grfx::WriteDescriptor, DESCRIPTOR_COUNT> write;
-        std::memset(write.data(), 0, sizeof(write[0]) * write.size());
         for (auto& object : mObjects) {
             for (auto& renderable : object.renderables) {
                 auto* pPrimitive     = renderable.pPrimitive;

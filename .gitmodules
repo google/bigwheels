@@ -43,4 +43,3 @@
 [submodule "third_party/cgltf"]
 	path = third_party/cgltf
 	url = https://github.com/jkuhlmann/cgltf.git
-  branch = dds
