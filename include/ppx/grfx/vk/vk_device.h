@@ -42,6 +42,7 @@ public:
 
     virtual bool PipelineStatsAvailable() const override;
     virtual bool DynamicRenderingSupported() const override;
+    virtual bool IndependentBlendingSupported() const override;
 
     void ResetQueryPoolEXT(
         VkQueryPool queryPool,

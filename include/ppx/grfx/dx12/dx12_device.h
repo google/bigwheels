@@ -63,6 +63,7 @@ public:
 
     virtual bool PipelineStatsAvailable() const override;
     virtual bool DynamicRenderingSupported() const override;
+    virtual bool IndependentBlendingSupported() const override;
 
 protected:
     virtual Result AllocateObject(grfx::Buffer** ppObject) override;

@@ -197,6 +197,7 @@ Result Device::ConfigureFeatures(const grfx::DeviceCreateInfo* pCreateInfo, VkPh
     features                                      = {};
     features.fullDrawIndexUint32                  = VK_TRUE;
     features.imageCubeArray                       = VK_TRUE;
+    features.independentBlend                     = foundFeatures.independentBlend;
     features.pipelineStatisticsQuery              = foundFeatures.pipelineStatisticsQuery;
     features.geometryShader                       = foundFeatures.geometryShader;
     features.tessellationShader                   = foundFeatures.tessellationShader;
@@ -674,6 +675,11 @@ bool Device::PipelineStatsAvailable() const
 bool Device::DynamicRenderingSupported() const
 {
     return mHasDynamicRendering;
+}
+
+bool Device::IndependentBlendingSupported() const
+{
+    return mDeviceFeatures.independentBlend == VK_TRUE;
 }
 
 void Device::ResetQueryPoolEXT(

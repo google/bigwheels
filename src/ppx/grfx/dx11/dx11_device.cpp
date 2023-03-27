@@ -382,6 +382,11 @@ bool Device::DynamicRenderingSupported() const
     return false;
 }
 
+bool Device::IndependentBlendingSupported() const
+{
+    return true;
+}
+
 Result Device::GetStructuredBufferSRV(
     const grfx::Buffer*                                  pBuffer,
     UINT                                                 numElements,
