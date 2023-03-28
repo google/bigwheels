@@ -335,7 +335,7 @@ Result GraphicsPipeline::InitializeColorBlend(
         VkPipelineColorBlendAttachmentState vkAttachment = {};
         vkAttachment.blendEnable                         = attachment.blendEnable ? VK_TRUE : VK_FALSE;
         vkAttachment.srcColorBlendFactor                 = ToVkBlendFactor(attachment.srcColorBlendFactor);
-        vkAttachment.dstColorBlendFactor                 = ToVkBlendFactor(attachment.dstAlphaBlendFactor);
+        vkAttachment.dstColorBlendFactor                 = ToVkBlendFactor(attachment.dstColorBlendFactor);
         vkAttachment.colorBlendOp                        = ToVkBlendOp(attachment.colorBlendOp);
         vkAttachment.srcAlphaBlendFactor                 = ToVkBlendFactor(attachment.srcAlphaBlendFactor);
         vkAttachment.dstAlphaBlendFactor                 = ToVkBlendFactor(attachment.dstAlphaBlendFactor);
