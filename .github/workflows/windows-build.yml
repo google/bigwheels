@@ -15,7 +15,8 @@ jobs:
     name: Build and run unit tests on Windows
     runs-on: "windows-2019"
     steps:
-      - uses: GuillaumeFalourd/setup-windows10-sdk-action@v1.7
+      - name: Setup Windows SDK
+        uses: GuillaumeFalourd/setup-windows10-sdk-action@v1.7
         with:
           sdk-version: 22621
       - name: Setup Vulkan SDK
@@ -23,6 +24,11 @@ jobs:
           Start-BitsTransfer -Source https://sdk.lunarg.com/sdk/download/1.3.216.0/windows/VulkanSDK-1.3.216.0-Installer.exe
           .\VulkanSDK-1.3.216.0-Installer.exe install --accept-licenses --default-answer --confirm-command --root "$HOME\vulkan-sdk"
           "VULKAN_SDK=${HOME}\vulkan-sdk" >> $env:GITHUB_ENV
+
+          # Get the vulkan-1.dll and add it to the PATH, which is required when we execute binaries.
+          Start-BitsTransfer -Source https://sdk.lunarg.com/sdk/download/1.3.216.0/windows/VulkanRT-1.3.216.0-Components.zip
+          Expand-Archive VulkanRT-1.3.216.0-Components.zip -DestinationPath "$HOME\vulkan-sdk\RTComponents"
+          "$HOME\vulkan-sdk\RTComponents\VulkanRT-1.3.216.0-Components\x64" >> $env:GITHUB_PATH
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
@@ -46,3 +52,10 @@ jobs:
         run: |
           cd build
           cmake --build . --target RUN_TESTS --config Release -- /nologo /verbosity:minimal /maxcpucount
+      - name: Run runtime tests
+        run: |
+          cd build/bin/Release
+          .\dx12_03_square_textured --headless --frame-count 2
+          .\dx12_09_obj_geometry --headless --frame-count 2
+          .\dx12_13_normal_map --headless --frame-count 2
+          .\dx12_fishtornado --headless --frame-count 2
