@@ -22,6 +22,7 @@
 #include <numeric>
 #include <unordered_map>
 #include <optional>
+#include <filesystem>
 
 #if defined(PPX_LINUX_XCB)
 #include <X11/Xlib-xcb.h>
@@ -1144,8 +1145,9 @@ void Application::TakeScreenshot()
     unsigned char* texels = nullptr;
     screenshotBuf->MapMemory(0, (void**)&texels);
 
-    std::string filename = mStandardOptions.screenshot_out_dir + "screenshot_frame" + std::to_string(mFrameCount) + ".ppm";
-    PPX_CHECKED_CALL(ExportToPPM(filename, swapchainImg->GetFormat(), texels, width, height, outPitch.rowPitch));
+    std::string filename = "screenshot_frame" + std::to_string(mFrameCount) + ".ppm";
+    std::string filepath = (std::filesystem::path(mStandardOptions.screenshot_out_dir) / filename).string();
+    PPX_CHECKED_CALL(ExportToPPM(filepath, swapchainImg->GetFormat(), texels, width, height, outPitch.rowPitch));
 
     screenshotBuf->UnmapMemory();
 
