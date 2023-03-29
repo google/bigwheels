@@ -992,36 +992,6 @@ Result CreateTextureFromFile(
 
 // -------------------------------------------------------------------------------------------------
 
-Result CreateTexture1x1(
-    grfx::Queue*          pQueue,
-    const float4&         color,
-    grfx::Texture**       ppTexture,
-    const TextureOptions& options)
-{
-    PPX_ASSERT_NULL_ARG(pQueue);
-    PPX_ASSERT_NULL_ARG(ppTexture);
-
-    Result ppxres = ppx::SUCCESS;
-
-    // Create bitmap
-    Bitmap bitmap = Bitmap::Create(1, 1, Bitmap::FORMAT_RGBA_UINT8, &ppxres);
-    if (Failed(ppxres)) {
-        return ppx::ERROR_BITMAP_CREATE_FAILED;
-    }
-
-    // Fill color
-    bitmap.Fill(color.r, color.g, color.b, color.a);
-
-    ppxres = CreateTextureFromBitmap(pQueue, &bitmap, ppTexture, options);
-    if (Failed(ppxres)) {
-        return ppxres;
-    }
-
-    return ppx::SUCCESS;
-}
-
-// -------------------------------------------------------------------------------------------------
-
 struct SubImage
 {
     uint32_t width        = 0;

@@ -86,7 +86,8 @@ public:
     Result Resize(uint32_t width, uint32_t height);
     Result ScaleTo(Bitmap* pTargetBitmap) const;
 
-    void Fill(float r, float g, float b, float a);
+    template <typename PixelDataType>
+    void Fill(PixelDataType r, PixelDataType g, PixelDataType b, PixelDataType a);
 
     // Returns byte address of pixel at (x,y)
     char*       GetPixelAddress(uint32_t x, uint32_t y);
@@ -194,6 +195,28 @@ private:
     char*             mData            = nullptr;
     std::vector<char> mInternalStorage = {};
 };
+
+template <typename PixelDataType>
+void Bitmap::Fill(PixelDataType r, PixelDataType g, PixelDataType b, PixelDataType a)
+{
+    PPX_ASSERT_MSG(mData != nullptr, "data is null");
+    PPX_ASSERT_MSG(mFormat != Bitmap::FORMAT_UNDEFINED, "format is undefined");
+
+    PixelDataType rgba[4] = {r, g, b, a};
+
+    const uint32_t channelCount = Bitmap::ChannelCount(mFormat);
+
+    char* pData = mData;
+    for (uint32_t y = 0; y < mHeight; ++y) {
+        for (uint32_t x = 0; x < mWidth; ++x) {
+            PixelDataType* pPixelData = reinterpret_cast<PixelDataType*>(pData);
+            for (uint32_t c = 0; c < channelCount; ++c) {
+                pPixelData[c] = rgba[c];
+            }
+            pData += mPixelStride;
+        }
+    }
+}
 
 } // namespace ppx
 

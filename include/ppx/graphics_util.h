@@ -22,7 +22,9 @@
 #include "ppx/geometry.h"
 #include "gli/gli.hpp"
 
+#include <array>
 #include <filesystem>
+#include <type_traits>
 
 namespace ppx {
 namespace grfx_util {
@@ -138,12 +140,6 @@ private:
         const std::filesystem::path& path,
         grfx::Texture**              ppTexture,
         const TextureOptions&        options);
-
-    friend Result CreateTexture1x1(
-        grfx::Queue*          pQueue,
-        const float4&         color,
-        grfx::Texture**       ppTexture,
-        const TextureOptions& options);
 };
 
 //! @fn CreateTextureFromBitmap
@@ -176,11 +172,49 @@ Result CreateTextureFromFile(
     grfx::Texture**              ppTexture,
     const TextureOptions&        options = TextureOptions());
 
+// Create a 1x1 texture with the specified pixel data. The format
+// for the texture is derived from the pixel data type, which
+// can be one of uint8, uint16, uint32 or float.
+template <typename PixelDataType>
 Result CreateTexture1x1(
-    grfx::Queue*          pQueue,
-    const float4&         color,
-    grfx::Texture**       ppTexture,
-    const TextureOptions& options = TextureOptions());
+    grfx::Queue*                       pQueue,
+    const std::array<PixelDataType, 4> color,
+    grfx::Texture**                    ppTexture,
+    const TextureOptions&              options = TextureOptions())
+{
+    PPX_ASSERT_NULL_ARG(pQueue);
+    PPX_ASSERT_NULL_ARG(ppTexture);
+
+    Bitmap::Format format = Bitmap::FORMAT_UNDEFINED;
+    if constexpr (std::is_same_v<PixelDataType, float>) {
+        format = Bitmap::FORMAT_RGBA_FLOAT;
+    }
+    else if constexpr (std::is_same_v<PixelDataType, uint32_t>) {
+        format = Bitmap::FORMAT_RGBA_UINT32;
+    }
+    else if constexpr (std::is_same_v<PixelDataType, uint16_t>) {
+        format = Bitmap::FORMAT_RGBA_UINT16;
+    }
+    else if constexpr (std::is_same_v<PixelDataType, uint8_t>) {
+        format = Bitmap::FORMAT_RGBA_UINT8;
+    }
+    else {
+        PPX_ASSERT_MSG(false, "Invalid pixel data type: must be one of uint8, uint16, uint32 or float.")
+        return ppx::ERROR_INVALID_CREATE_ARGUMENT;
+    }
+
+    // Create bitmap
+    Result ppxres = ppx::SUCCESS;
+    Bitmap bitmap = Bitmap::Create(1, 1, format, &ppxres);
+    if (Failed(ppxres)) {
+        return ppx::ERROR_BITMAP_CREATE_FAILED;
+    }
+
+    // Fill color
+    bitmap.Fill(color[0], color[1], color[2], color[3]);
+
+    return CreateTextureFromBitmap(pQueue, &bitmap, ppTexture, options);
+}
 
 // -------------------------------------------------------------------------------------------------
 
