@@ -725,7 +725,6 @@ void ProjApp::Render()
 
     // Update uniform buffers
     for (auto& object : mObjects) {
-        // Draw uniform buffers
         struct Scene
         {
             float4x4 modelMatrix;                // Transforms object space to world space

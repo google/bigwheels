@@ -143,7 +143,7 @@ float4 psmain(VSOutput input) : SV_TARGET
     const float3 kD = lerp(float3(1, 1, 1) - F, float3(0, 0, 0), metalness);
     const float3 diffuseBRDF = kD * albedo.rgb;
     const float3 specularBRDF = (F * D * G) / max(0.00001, 4.0 * cosLi * cosLo);
-    const float3 Co = (diffuseBRDF + specularBRDF) * Lrad * cosLi + Scene.Ambient * albedo.rgb;
+    const float3 Co = (diffuseBRDF + specularBRDF) * Lrad * cosLi + Scene.Ambient.rrr * albedo.rgb;
 
     return float4(Co, 1);
 }
