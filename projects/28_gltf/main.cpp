@@ -87,6 +87,7 @@ private:
     struct Object
     {
         float4x4                modelMatrix;
+        float4x4                ITModelMatrix;
         grfx::BufferPtr         pUniformBuffer;
         std::vector<Renderable> renderables;
     };
@@ -569,6 +570,7 @@ void ProjApp::LoadNodes(
 
         Object item;
         item.modelMatrix = ComputeObjectMatrix(&node);
+        item.ITModelMatrix = glm::inverse(glm::transpose(item.modelMatrix));
 
         for (size_t j = 0; j < node.mesh->primitives_count; j++) {
             const size_t primitive_index = primitiveToIndex.at(&node.mesh->primitives[j]);
@@ -727,6 +729,7 @@ void ProjApp::Render()
         struct Scene
         {
             float4x4 modelMatrix;                // Transforms object space to world space
+            float4x4 ITModelMatrix;              // Inverse-transpose of the model matrix.
             float4   ambient;                    // Object's ambient intensity
             float4x4 cameraViewProjectionMatrix; // Camera's view projection matrix
             float4   lightPosition;              // Light's position
@@ -735,6 +738,7 @@ void ProjApp::Render()
 
         Scene scene                      = {};
         scene.modelMatrix                = object.modelMatrix;
+        scene.ITModelMatrix              = object.ITModelMatrix;
         scene.ambient                    = float4(0.3f);
         scene.cameraViewProjectionMatrix = mCamera.GetViewProjectionMatrix();
         scene.lightPosition              = float4(mLightPosition, 0);

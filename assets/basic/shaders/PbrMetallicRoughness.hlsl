@@ -14,11 +14,12 @@
 
 struct SceneData
 {
-    float4x4 ModelMatrix;                // Transforms object space to world space
-    float4   Ambient;                    // Object's ambient intensity
-    float4x4 CameraViewProjectionMatrix; // Camera's view projection matrix
-    float4   LightPosition;              // Light's position
-    float4   EyePosition;                // Eye (camera) position
+    float4x4 ModelMatrix;                // Transforms object space to world space.
+    float4x4 ITModelMatrix;                // Inverse transpose of the ModelMatrix.
+    float4   Ambient;                    // Object's ambient intensity.
+    float4x4 CameraViewProjectionMatrix; // Camera's view projection matrix.
+    float4   LightPosition;              // Light's position.
+    float4   EyePosition;                // Eye (camera) position.
 };
 
 // ConstantBuffer was addd in SM5.1 for D3D12
@@ -59,9 +60,9 @@ VSOutput vsmain(
   result.world_position = mul(Scene.ModelMatrix, position);
   result.position = mul(Scene.CameraViewProjectionMatrix, result.world_position);
   result.uv = uv;
-  result.normal = mul(Scene.ModelMatrix, float4(normal, 0)).xyz;
-  result.normalTS    = mul(Scene.ModelMatrix, float4(normal, 0)).xyz;
-  result.tangentTS   = mul(Scene.ModelMatrix, float4(tangent, 0)).xyz;
+  result.normal      = mul(Scene.ITModelMatrix, float4(normal, 0)).xyz;
+  result.normalTS    = mul(Scene.ITModelMatrix, float4(normal, 0)).xyz;
+  result.tangentTS   = mul(Scene.ITModelMatrix, float4(tangent, 0)).xyz;
   result.bitangentTS = cross(normal, tangent);
 
   return result;
@@ -142,7 +143,7 @@ float4 psmain(VSOutput input) : SV_TARGET
     const float3 kD = lerp(float3(1, 1, 1) - F, float3(0, 0, 0), metalness);
     const float3 diffuseBRDF = kD * albedo.rgb;
     const float3 specularBRDF = (F * D * G) / max(0.00001, 4.0 * cosLi * cosLo);
-    const float3 Co = (diffuseBRDF + specularBRDF) * Lrad * cosLi + 0.3f * albedo.rgb;
+    const float3 Co = (diffuseBRDF + specularBRDF) * Lrad * cosLi + Scene.Ambient * albedo.rgb;
 
-    return float4(saturate(Co), 1);
+    return float4(Co, 1);
 }
