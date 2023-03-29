@@ -363,10 +363,10 @@ void ProjApp::LoadPrimitive(const cgltf_primitive& primitive, grfx::BufferPtr pS
     PPX_ASSERT_MSG(primitive.indices != nullptr, "only primitives with indices are supported for now.");
 
     // Attribute accessors.
-    constexpr size_t                     POSITION_INDEX = 0;
-    constexpr size_t                     UV_INDEX       = 1;
-    constexpr size_t                     NORMAL_INDEX   = 2;
-    constexpr size_t                     TANGENT_INDEX  = 3;
+    constexpr size_t                                   POSITION_INDEX  = 0;
+    constexpr size_t                                   UV_INDEX        = 1;
+    constexpr size_t                                   NORMAL_INDEX    = 2;
+    constexpr size_t                                   TANGENT_INDEX   = 3;
     constexpr size_t                                   ATTRIBUTE_COUNT = 4;
     std::array<const cgltf_accessor*, ATTRIBUTE_COUNT> accessors;
     GetAccessorsForPrimitive(primitive, &accessors[POSITION_INDEX], &accessors[UV_INDEX], &accessors[NORMAL_INDEX], &accessors[TANGENT_INDEX]);
@@ -416,7 +416,7 @@ void ProjApp::LoadPrimitive(const cgltf_primitive& primitive, grfx::BufferPtr pS
 
     // Copy geometry data to mesh.
     {
-        const auto&                bufferView   = *indices.buffer_view;
+        const auto& bufferView = *indices.buffer_view;
         PPX_ASSERT_MSG(indicesTypes == cgltf_component_type_r_16u || indicesTypes == cgltf_component_type_r_32u, "only 32u or 16u are supported for indices.");
         PPX_ASSERT_MSG(bufferView.data == nullptr, "Doesn't support extra data");
 
@@ -569,7 +569,7 @@ void ProjApp::LoadNodes(
         }
 
         Object item;
-        item.modelMatrix = ComputeObjectMatrix(&node);
+        item.modelMatrix   = ComputeObjectMatrix(&node);
         item.ITModelMatrix = glm::inverse(glm::transpose(item.modelMatrix));
 
         for (size_t j = 0; j < node.mesh->primitives_count; j++) {
