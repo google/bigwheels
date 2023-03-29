@@ -86,7 +86,7 @@ private:
 
     struct Object
     {
-        float4x4                model;
+        float4x4                modelMatrix;
         grfx::BufferPtr         pUniformBuffer;
         std::vector<Renderable> renderables;
     };
@@ -140,6 +140,8 @@ private:
         grfx::Queue*  pQueue,
         Texture*      pOutput) const;
 
+    // Load the given primitive to the GPU.
+    // `pStagingBuffer` must already contain all data referenced by `primitive`.
     void LoadPrimitive(
         const cgltf_primitive& primitive,
         grfx::BufferPtr        pStagingBuffer,
@@ -148,7 +150,6 @@ private:
 
     void LoadNodes(
         const cgltf_data*                                         data,
-        grfx::BufferPtr                                           pStagingBuffer,
         grfx::Queue*                                              pQueue,
         grfx::DescriptorPool*                                     pDescriptorPool,
         std::vector<Object>*                                      objects,
@@ -311,7 +312,7 @@ void ProjApp::LoadMaterial(
     }
 }
 
-static inline size_t count_primitives(const cgltf_mesh* array, size_t count)
+static inline size_t CountPrimitives(const cgltf_mesh* array, size_t count)
 {
     size_t total = 0;
     for (size_t i = 0; i < count; i++) {
@@ -365,24 +366,25 @@ void ProjApp::LoadPrimitive(const cgltf_primitive& primitive, grfx::BufferPtr pS
     constexpr size_t                     UV_INDEX       = 1;
     constexpr size_t                     NORMAL_INDEX   = 2;
     constexpr size_t                     TANGENT_INDEX  = 3;
-    std::array<const cgltf_accessor*, 4> accessors;
+    constexpr size_t                                   ATTRIBUTE_COUNT = 4;
+    std::array<const cgltf_accessor*, ATTRIBUTE_COUNT> accessors;
     GetAccessorsForPrimitive(primitive, &accessors[POSITION_INDEX], &accessors[UV_INDEX], &accessors[NORMAL_INDEX], &accessors[TANGENT_INDEX]);
+
+    const cgltf_accessor&      indices      = *primitive.indices;
+    const cgltf_component_type indicesTypes = indices.component_type;
 
     grfx::MeshPtr targetMesh;
     {
         // Indices.
-        const cgltf_accessor&      indicesAccessor = *primitive.indices;
-        const cgltf_component_type indicesTypes    = indicesAccessor.component_type;
         PPX_ASSERT_MSG(indicesTypes == cgltf_component_type_r_16u || indicesTypes == cgltf_component_type_r_32u, "only 32u or 16u are supported for indices.");
 
         // Create mesh.
         grfx::MeshCreateInfo ci;
-        std::memset(&ci.vertexBuffers, 0, PPX_MAX_VERTEX_BINDINGS * sizeof(*ci.vertexBuffers));
 
         ci.indexType         = indicesTypes == cgltf_component_type_r_16u
                                    ? grfx::IndexType::INDEX_TYPE_UINT16
                                    : grfx::IndexType::INDEX_TYPE_UINT32;
-        ci.indexCount        = static_cast<uint32_t>(indicesAccessor.count);
+        ci.indexCount        = static_cast<uint32_t>(indices.count);
         ci.vertexCount       = static_cast<uint32_t>(accessors[POSITION_INDEX]->count);
         ci.memoryUsage       = grfx::MEMORY_USAGE_GPU_ONLY;
         ci.vertexBufferCount = 4;
@@ -400,7 +402,7 @@ void ProjApp::LoadPrimitive(const cgltf_primitive& primitive, grfx::BufferPtr pS
                                                                                    : grfx::FORMAT_R32G32B32A32_FLOAT;
             ci.vertexBuffers[i].attributes[0].stride = static_cast<uint32_t>(bv.stride == 0 ? a.stride : bv.stride);
 
-            std::array<grfx::VertexSemantic, accessors.size()> semantics = {
+            constexpr std::array<grfx::VertexSemantic, ATTRIBUTE_COUNT> semantics = {
                 grfx::VERTEX_SEMANTIC_POSITION,
                 grfx::VERTEX_SEMANTIC_TEXCOORD,
                 grfx::VERTEX_SEMANTIC_NORMAL,
@@ -413,8 +415,6 @@ void ProjApp::LoadPrimitive(const cgltf_primitive& primitive, grfx::BufferPtr pS
 
     // Copy geometry data to mesh.
     {
-        const cgltf_accessor&      indices      = *primitive.indices;
-        const cgltf_component_type indicesTypes = indices.component_type;
         const auto&                bufferView   = *indices.buffer_view;
         PPX_ASSERT_MSG(indicesTypes == cgltf_component_type_r_16u || indicesTypes == cgltf_component_type_r_32u, "only 32u or 16u are supported for indices.");
         PPX_ASSERT_MSG(bufferView.data == nullptr, "Doesn't support extra data");
@@ -432,7 +432,7 @@ void ProjApp::LoadPrimitive(const cgltf_primitive& primitive, grfx::BufferPtr pS
             copyInfo.size                             = vertexBuffer->GetSize();
             copyInfo.srcBuffer.offset                 = accessors[i]->offset + bufferView.offset;
             copyInfo.dstBuffer.offset                 = 0;
-            PPX_CHECKED_CALL(pQueue->CopyBufferToBuffer(&copyInfo, pStagingBuffer, targetMesh->GetVertexBuffer(i), grfx::RESOURCE_STATE_VERTEX_BUFFER, grfx::RESOURCE_STATE_VERTEX_BUFFER));
+            PPX_CHECKED_CALL(pQueue->CopyBufferToBuffer(&copyInfo, pStagingBuffer, vertexBuffer, grfx::RESOURCE_STATE_VERTEX_BUFFER, grfx::RESOURCE_STATE_VERTEX_BUFFER));
         }
     }
 
@@ -477,7 +477,7 @@ void ProjApp::LoadScene(
     Timer timerStagingBufferLoading;
     timerStagingBufferLoading.Start();
     grfx::ScopeDestroyer SCOPED_DESTROYER(pQueue->GetDevice());
-    // Copy main buffer data to stating buffer.
+    // Copy main buffer data to staging buffer.
     grfx::BufferPtr stagingBuffer;
     {
         grfx::BufferCreateInfo ci      = {};
@@ -494,7 +494,7 @@ void ProjApp::LoadScene(
     Timer timerPrimitiveLoading;
     timerPrimitiveLoading.Start();
     std::unordered_map<const cgltf_primitive*, size_t> primitiveToIndex;
-    pPrimitives->resize(count_primitives(data->meshes, data->meshes_count));
+    pPrimitives->resize(CountPrimitives(data->meshes, data->meshes_count));
     {
         size_t nextSlot = 0;
         for (size_t i = 0; i < data->meshes_count; i++) {
@@ -518,7 +518,7 @@ void ProjApp::LoadScene(
 
     Timer timerNodeLoading;
     timerNodeLoading.Start();
-    LoadNodes(data, stagingBuffer, pQueue, pDescriptorPool, pObjects, primitiveToIndex, pPrimitives, pMaterials);
+    LoadNodes(data, pQueue, pDescriptorPool, pObjects, primitiveToIndex, pPrimitives, pMaterials);
     const double timerNodeLoadingElapsed = timerNodeLoading.SecondsSinceStart();
 
     printf("Scene loading time breakdown for '%s':\n", filename.c_str());
@@ -530,7 +530,7 @@ void ProjApp::LoadScene(
     printf("\t     nodes loading: %lfs\n", timerNodeLoadingElapsed);
 }
 
-float4x4 compute_object_matrix(const cgltf_node* node)
+float4x4 ComputeObjectMatrix(const cgltf_node* node)
 {
     float4x4 output(1.f);
     while (node != nullptr) {
@@ -553,7 +553,6 @@ float4x4 compute_object_matrix(const cgltf_node* node)
 
 void ProjApp::LoadNodes(
     const cgltf_data*                                         data,
-    grfx::BufferPtr                                           pStagingBuffer,
     grfx::Queue*                                              pQueue,
     grfx::DescriptorPool*                                     pDescriptorPool,
     std::vector<Object>*                                      objects,
@@ -569,7 +568,7 @@ void ProjApp::LoadNodes(
         }
 
         Object item;
-        item.model = compute_object_matrix(&node);
+        item.modelMatrix = ComputeObjectMatrix(&node);
 
         for (size_t j = 0; j < node.mesh->primitives_count; j++) {
             const size_t primitive_index = primitiveToIndex.at(&node.mesh->primitives[j]);
@@ -673,8 +672,6 @@ void ProjApp::Setup()
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mSetLayout));
     }
 
-    Timer timer;
-    timer.Start();
     LoadScene(
         "basic/models/altimeter/altimeter.gltf",
         GetDevice(),
@@ -685,7 +682,6 @@ void ProjApp::Setup()
         &mObjects,
         &mPrimitives,
         &mMaterials);
-    printf("geometry loaded in %lfs\n", timer.SecondsSinceStart());
 
     // Per frame data
     {
@@ -738,7 +734,7 @@ void ProjApp::Render()
         };
 
         Scene scene                      = {};
-        scene.modelMatrix                = object.model;
+        scene.modelMatrix                = object.modelMatrix;
         scene.ambient                    = float4(0.3f);
         scene.cameraViewProjectionMatrix = mCamera.GetViewProjectionMatrix();
         scene.lightPosition              = float4(mLightPosition, 0);
