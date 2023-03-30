@@ -40,3 +40,6 @@
 [submodule "third_party/OpenXR-SDK-Source"]
 	path = third_party/OpenXR-SDK-Source
 	url = https://github.com/KhronosGroup/OpenXR-SDK-Source.git
+[submodule "third_party/cgltf"]
+	path = third_party/cgltf
+	url = https://github.com/jkuhlmann/cgltf.git

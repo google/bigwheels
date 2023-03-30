@@ -26,6 +26,7 @@ function(_add_sample_internal)
 
     target_include_directories("${TARGET_NAME}" PUBLIC ${PPX_DIR}/include ${ARG_ADDITIONAL_INCLUDE_DIRECTORIES})
     target_compile_definitions("${TARGET_NAME}" PRIVATE ${ARG_API_DEFINES})
+    target_include_directories("${TARGET_NAME}" PUBLIC ${PPX_DIR})
 
     target_link_libraries("${TARGET_NAME}" PUBLIC ppx glfw)
 
