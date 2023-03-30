@@ -125,7 +125,7 @@ float4 psmain(VSOutput input) : SV_TARGET
     const float roughness = MetalRoughness.Sample(MetalRoughnessSampler, input.uv).g;
     const float metalness = MetalRoughness.Sample(MetalRoughnessSampler, input.uv).b;
     const float3 F0 = lerp(0.04f, albedo.rgb, metalness);
-    const float Lrad = 1.2f;
+    const float Lrad = 4.f;
 
     const float3 Li    = normalize(Scene.LightPosition.xyz - input.world_position.xyz);
     const float3 E     = normalize(Scene.EyePosition.xyz - input.world_position.xyz);
@@ -145,5 +145,5 @@ float4 psmain(VSOutput input) : SV_TARGET
     const float3 specularBRDF = (F * D * G) / max(0.00001, 4.0 * cosLi * cosLo);
     const float3 Co = (diffuseBRDF + specularBRDF) * Lrad * cosLi + Scene.Ambient.rrr * albedo.rgb;
 
-    return float4(Co, 1);
+    return float4(Co / (Co + 1.f), 1);
 }
