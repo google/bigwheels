@@ -1,4 +1,4 @@
-# Copyright 2022 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,12 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-project(assets)
 
-add_subdirectory(basic/shaders)
-add_subdirectory(benchmarks/shaders)
-add_subdirectory(fishtornado/shaders)
-add_subdirectory(fluid_simulation/shaders)
-add_subdirectory(gbuffer/shaders)
-add_subdirectory(materials/shaders)
-add_subdirectory(oit_demo/shaders)
+cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
+
+project(oit_demo)
+
+add_samples_for_all_apis(
+    NAME ${PROJECT_NAME}
+    SOURCES
+        "OITDemoApplication.h" "OITDemoApplication.cpp"
+        "UnsortedOver.cpp"
+        "WeightedSum.cpp"
+        "WeightedAverage.cpp"
+        "WeightedAverageWithCoverage.cpp"
+        "main.cpp"
+    SHADER_DEPENDENCIES "shader_oit_demo"
+    ADDITIONAL_INCLUDE_DIRECTORIES "${PPX_DIR}/assets/oit_demo"
+)
+
