@@ -67,3 +67,6 @@ BigWheels includes a variety of benchmarks that test graphics fundamentals under
 
 # Software rendering
 If you don't have a compatible GPU, you can use a software renderer to run BigWheels applications. See the [documentation](docs/software_rendering.md) for software rendering options for Vulkan and DirectX.
+
+# CI and testing
+We run automated workflows for testing as part of PR submissions. See the [documentation](docs/ci_testing.md) for information on what is tested and common maintenance tasks.
