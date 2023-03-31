@@ -15,9 +15,6 @@
 #include "ppx/grfx/grfx_instance.h"
 #include "ppx/grfx/grfx_device.h"
 #include "ppx/grfx/grfx_gpu.h"
-#if defined(PPX_D3D11)
-#include "ppx/grfx/dx11/dx11_instance.h"
-#endif // defined(PPX_D3D12)
 #if defined(PPX_D3D12)
 #include "ppx/grfx/dx12/dx12_instance.h"
 #endif // defined(PPX_D3D12)
@@ -242,16 +239,6 @@ Result CreateInstance(const grfx::InstanceCreateInfo* pCreateInfo, grfx::Instanc
             PPX_ASSERT_MSG(false, "Unsupported API");
             return ppx::ERROR_UNSUPPORTED_API;
         } break;
-
-#if defined(PPX_D3D11)
-        case grfx::API_DX_11_0:
-        case grfx::API_DX_11_1: {
-            pObject = new dx11::Instance();
-            if (IsNull(pObject)) {
-                return ppx::ERROR_ALLOCATION_FAILED;
-            }
-        } break;
-#endif // defiend(PPX_D3D11)
 
 #if defined(PPX_D3D12)
         case grfx::API_DX_12_0:

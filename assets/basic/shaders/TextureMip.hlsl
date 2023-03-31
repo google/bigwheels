@@ -12,22 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
-// ConstantBuffer was addd in SM5.1 for D3D12
-//
-#if defined(PPX_D3D11)
-struct InputData
-{
-    float4x4 M;
-    int mipLevel;
-};
-
-cbuffer Constants : register(b0)
-{
-    InputData Constants;
-};
-#else
 struct InputData
 {
     float4x4 M;
@@ -35,10 +19,8 @@ struct InputData
 };
 
 ConstantBuffer<InputData> Constants : register(b0);
-#endif
-
-Texture2D                     Tex0      : register(t1);
-SamplerState                  Sampler0  : register(s2);
+Texture2D                 Tex0      : register(t1);
+SamplerState              Sampler0  : register(s2);
 
 struct VSOutput {
 	float4 Position : SV_POSITION;

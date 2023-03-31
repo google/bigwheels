@@ -60,20 +60,6 @@ function(add_vk_sample)
     endif()
 endfunction()
 
-function(add_dx11_sample)
-    set(multiValueArgs SOURCES DEPENDENCIES ADDITIONAL_INCLUDE_DIRECTORIES)
-    cmake_parse_arguments(PARSE_ARGV 0 "ARG" "" "NAME" "${multiValueArgs}")
-    if (PPX_D3D11)
-        _add_sample_internal(NAME ${ARG_NAME}
-                   API_TAG "dx11"
-                   SHADER_FORMAT "dxbc50"
-                   API_DEFINES "USE_DX11"
-                   SOURCES ${ARG_SOURCES}
-                   DEPENDENCIES ${ARG_DEPENDENCIES}
-                   ADDITIONAL_INCLUDE_DIRECTORIES ${ARG_ADDITIONAL_INCLUDE_DIRECTORIES})
-    endif()
-endfunction()
-
 function(add_dx12_sample)
     set(multiValueArgs SOURCES DEPENDENCIES ADDITIONAL_INCLUDE_DIRECTORIES)
     cmake_parse_arguments(PARSE_ARGV 0 "ARG" "" "NAME" "${multiValueArgs}")
@@ -107,10 +93,7 @@ function(add_samples)
     cmake_parse_arguments(PARSE_ARGV 0 "ARG" "" "NAME" "${multiValueArgs}")
 
     foreach(target_api ${ARG_TARGET_APIS})
-        if(target_api STREQUAL "dx11")
-            prefix_all(PREFIXED_SHADERS_DEPENDENCIES LIST ${ARG_SHADER_DEPENDENCIES} PREFIX "d3d11_")
-            add_dx11_sample(NAME ${ARG_NAME} SOURCES ${ARG_SOURCES} DEPENDENCIES ${ARG_DEPENDENCIES} ${PREFIXED_SHADERS_DEPENDENCIES} ADDITIONAL_INCLUDE_DIRECTORIES ${ARG_ADDITIONAL_INCLUDE_DIRECTORIES})
-        elseif(target_api STREQUAL "dx12")
+        if(target_api STREQUAL "dx12")
             prefix_all(PREFIXED_SHADERS_DEPENDENCIES LIST ${ARG_SHADER_DEPENDENCIES} PREFIX "d3d12_")
             add_dx12_sample(NAME ${ARG_NAME} SOURCES ${ARG_SOURCES} DEPENDENCIES ${ARG_DEPENDENCIES} ${PREFIXED_SHADERS_DEPENDENCIES} ADDITIONAL_INCLUDE_DIRECTORIES ${ARG_ADDITIONAL_INCLUDE_DIRECTORIES})
         elseif(target_api STREQUAL "dxil")
@@ -130,7 +113,7 @@ function(add_samples_for_all_apis)
     cmake_parse_arguments(PARSE_ARGV 0 "ARG" "" "NAME" "${multiValueArgs}")
     add_samples(
         NAME ${ARG_NAME}
-        TARGET_APIS "dx12" "dx11" "vk" "dxil"
+        TARGET_APIS "dx12" "vk" "dxil"
         SOURCES ${ARG_SOURCES}
         DEPENDENCIES ${ARG_DEPENDENCIES}
         SHADER_DEPENDENCIES ${ARG_SHADER_DEPENDENCIES}

@@ -17,17 +17,8 @@ struct ParamsData
     float2 texel_size;
     int    filter;
 };
-// ConstantBuffer was added in SM5.1 for D3D12
-//
-#if defined(PPX_D3D11)
-cbuffer Param : register(b1)
-{
-    ParamsData Param;
-};
-#else
-ConstantBuffer<ParamsData> Param : register(b1);
-#endif
 
+ConstantBuffer<ParamsData> Param : register(b1);
 RWTexture2D<float4> Output : register(u0);
 SamplerState        nearestSampler : register(s2);
 Texture2D<float4>   srcTex : register(t3);

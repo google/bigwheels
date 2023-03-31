@@ -36,13 +36,6 @@ void XrComponent::InitializeBeforeGrfxDeviceInit(const XrComponentCreateInfo& cr
             PPX_ASSERT_MSG(false, "Unsupported API");
         } break;
 
-#if defined(PPX_D3D11)
-        case grfx::API_DX_11_0:
-        case grfx::API_DX_11_1:
-            graphicsAPIExtension = XR_KHR_D3D11_ENABLE_EXTENSION_NAME;
-            break;
-#endif // defiend(PPX_D3D11)
-
 #if defined(PPX_D3D12)
         case grfx::API_DX_12_0:
         case grfx::API_DX_12_1:

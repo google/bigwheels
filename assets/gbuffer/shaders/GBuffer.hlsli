@@ -21,8 +21,7 @@
 
 // 
 // The register numbers are purposely incremental to
-// achieve compatability between all D3D11, D3D12 and
-// Vulkan.
+// achieve compatibility between D3D12 and Vulkan.
 //
 #define GBUFFER_RT0_REGISTER     t16
 #define GBUFFER_RT1_REGISTER     t17

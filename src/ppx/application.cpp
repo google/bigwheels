@@ -867,13 +867,6 @@ Result Application::InitializeImGui()
             return ppx::ERROR_UNSUPPORTED_API;
         } break;
 
-#if defined(PPX_D3D11)
-        case grfx::API_DX_11_0:
-        case grfx::API_DX_11_1: {
-            mImGui = std::unique_ptr<ImGuiImpl>(new ImGuiImplDx11());
-        } break;
-#endif // defined(PPX_D3D11)
-
 #if defined(PPX_D3D12)
         case grfx::API_DX_12_0:
         case grfx::API_DX_12_1: {

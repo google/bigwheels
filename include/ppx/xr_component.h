@@ -17,11 +17,6 @@
 
 #if defined(PPX_BUILD_XR)
 
-#if defined(PPX_D3D11)
-#include <d3d11_4.h>
-#define XR_USE_GRAPHICS_API_D3D11
-#endif // defined(PPX_D3D11)
-
 #if defined(PPX_D3D12)
 #include <d3d12.h>
 #define XR_USE_GRAPHICS_API_D3D12

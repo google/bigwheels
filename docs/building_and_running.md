@@ -10,8 +10,6 @@ Shaders are also written to `<build-dir>`, but prefixed with their path and the 
 - For DXBC51, `$REPO/assets/shaders/my_shader.hlsl` is compiled to `$BUILD_DIR/assets/shaders/dxbc51/my_shader.dxbc51`.
 
 Binaries have prefixes indicating the target graphics API and shader format:
- * **dx11** - D3D11 with SM 5.0
-   * Shaders are compiled with FXC
  * **dx12** - D3D12 with SM 5.1
    * Shaders are compiled with FXC
  * **dxil** - D3D12 with SM 6.0+
@@ -56,10 +54,9 @@ for each API depending on the need. API support depends on the system nature and
 
 To request a specific API, flags can be passed to Cmake:
  - `PPX_D3D12`: DirectX 12 support.
- - `PPX_D3D11`: DirectX 11 support.
  - `PPX_VULKAN`: Vulkan support.
 
-All targets require DXC. Additionally, DirectX 11 and DirectX 12 require FXC.
+All targets require DXC. Additionally, DirectX 12 requires FXC.
 
 ## DXC
 The build system will look for `dxc.exe` or `dxc` in the Vulkan SDK bin directory.

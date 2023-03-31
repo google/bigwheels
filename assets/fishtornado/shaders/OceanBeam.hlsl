@@ -20,20 +20,8 @@ struct BeamModelData
     float4x4 modelMatrix[2];
 };
 
-#if defined(PPX_D3D11) // -----------------------------------------------------
-cbuffer Scene : register(RENDER_SCENE_DATA_REGISTER)
-{
-    SceneData Scene;
-};
-
-cbuffer BeamModelData : register(RENDER_MODEL_DATA_REGISTER)
-{
-    BeamModelData Model;
-};
-#else // --- D3D12 / Vulkan ----------------------------------------------------
 ConstantBuffer<SceneData>     Scene : register(RENDER_SCENE_DATA_REGISTER, SCENE_SPACE);
 ConstantBuffer<BeamModelData> Model : register(RENDER_MODEL_DATA_REGISTER, MODEL_SPACE);
-#endif // -- defined (PPX_D3D11) -----------------------------------------------
 
 // -------------------------------------------------------------------------------------------------
 

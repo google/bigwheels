@@ -16,32 +16,6 @@
 #include "GBuffer.hlsli"
 #include "Config.hlsli"
 
-#if defined(PPX_D3D11) // -----------------------------------------------------
-cbuffer Scene : register(SCENE_CONSTANTS_REGISTER)
-{
-    SceneData Scene;
-};
-
-cbuffer Material : register(MATERIAL_CONSTANTS_REGISTER)
-{
-    MaterialData Material;
-};
-
-cbuffer Model : register(MODEL_CONSTANTS_REGISTER)
-{
-    ModelData Model;
-};
-
-StructuredBuffer<Light> Lights : register(LIGHT_DATA_REGISTER);
-
-Texture2D    AlbedoTex      : register(MATERIAL_ALBEDO_TEXTURE_REGISTER);
-Texture2D    RoughnessTex   : register(MATERIAL_ROUGHNESS_TEXTURE_REGISTER);
-Texture2D    MetalnessTex   : register(MATERIAL_METALNESS_TEXTURE_REGISTER);
-Texture2D    NormalMapTex   : register(MATERIAL_NORMAL_MAP_TEXTURE_REGISTER);
-SamplerState ClampedSampler : register(CLAMPED_SAMPLER_REGISTER);
-
-#else // --- D3D12 / Vulkan ----------------------------------------------------
-
 ConstantBuffer<SceneData>    Scene    : register(SCENE_CONSTANTS_REGISTER,    SCENE_DATA_SPACE);
 StructuredBuffer<Light>      Lights   : register(LIGHT_DATA_REGISTER,         SCENE_DATA_SPACE);
 ConstantBuffer<MaterialData> Material : register(MATERIAL_CONSTANTS_REGISTER, MATERIAL_DATA_SPACE);
@@ -52,8 +26,6 @@ Texture2D    RoughnessTex   : register(MATERIAL_ROUGHNESS_TEXTURE_REGISTER,  MAT
 Texture2D    MetalnessTex   : register(MATERIAL_METALNESS_TEXTURE_REGISTER,  MATERIAL_RESOURCES_SPACE);
 Texture2D    NormalMapTex   : register(MATERIAL_NORMAL_MAP_TEXTURE_REGISTER, MATERIAL_RESOURCES_SPACE);
 SamplerState ClampedSampler : register(CLAMPED_SAMPLER_REGISTER,             MATERIAL_RESOURCES_SPACE);
-
-#endif // -- defined (PPX_D3D11) -----------------------------------------------
 
 PackedGBuffer psmain(VSOutput input)
 {

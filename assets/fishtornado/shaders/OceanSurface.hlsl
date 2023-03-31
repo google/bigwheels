@@ -15,28 +15,6 @@
 #include "Config.hlsli"
 #include "Lighting.hlsli"
 
-#if defined(PPX_D3D11) // -----------------------------------------------------
-cbuffer Scene : register(RENDER_SCENE_DATA_REGISTER)
-{
-    SceneData Scene;
-};
-cbuffer Model : register(RENDER_MODEL_DATA_REGISTER)
-{
-    ModelData Model;
-};
-cbuffer Material : register(RENDER_MATERIAL_DATA_REGISTER)
-{
-    MaterialData Material;
-};
-Texture2D              ShadowTexture : register(RENDER_SHADOW_TEXTURE_REGISTER);
-SamplerComparisonState ShadowSampler : register(RENDER_SHADOW_SAMPLER_REGISTER);
-Texture2D              AlbedoTexture : register(RENDER_ALBEDO_TEXTURE_REGISTER);
-Texture2D              RoughnessTexture : register(RENDER_ROUGHNESS_TEXTURE_REGISTER);
-Texture2D              NormalMapTexture : register(RENDER_NORMAL_MAP_TEXTURE_REGISTER);
-SamplerState           ClampedSampler : register(RENDER_CLAMPED_SAMPLER_REGISTER);
-Texture2DArray         CausticsTexture : register(RENDER_CAUSTICS_TEXTURE_REGISTER);
-SamplerState           RepeatSampler : register(RENDER_REPEAT_SAMPLER_REGISTER);
-#else // --- D3D12 / Vulkan ----------------------------------------------------
 ConstantBuffer<SceneData>    Scene : register(RENDER_SCENE_DATA_REGISTER, SCENE_SPACE);
 Texture2D                    ShadowTexture : register(RENDER_SHADOW_TEXTURE_REGISTER, SCENE_SPACE);
 ConstantBuffer<ModelData>    Model : register(RENDER_MODEL_DATA_REGISTER, MODEL_SPACE);
@@ -47,7 +25,6 @@ Texture2D                    NormalMapTexture : register(RENDER_NORMAL_MAP_TEXTU
 Texture2DArray               CausticsTexture : register(RENDER_CAUSTICS_TEXTURE_REGISTER, MATERIAL_SPACE);
 SamplerState                 ClampedSampler : register(RENDER_CLAMPED_SAMPLER_REGISTER, MATERIAL_SPACE);
 SamplerState                 RepeatSampler : register(RENDER_REPEAT_SAMPLER_REGISTER, MATERIAL_SPACE);
-#endif
 
 // -------------------------------------------------------------------------------------------------
 

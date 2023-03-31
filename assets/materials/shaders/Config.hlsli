@@ -22,8 +22,7 @@
 
 // 
 // The register numbers are purposely incremental to
-// achieve compatability between all D3D11, D3D12 and
-// Vulkan.
+// achieve compatibility between D3D12 and Vulkan.
 //
 #define SCENE_CONSTANTS_REGISTER    b0
 #define MATERIAL_CONSTANTS_REGISTER b1

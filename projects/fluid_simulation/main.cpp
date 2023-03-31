@@ -52,9 +52,7 @@ namespace FluidSim {
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
 {
-#if defined(USE_DX11)
-    const ppx::grfx::Api kApi = ppx::grfx::API_DX_11_1;
-#elif defined(USE_DX12)
+#if defined(USE_DX12)
     const ppx::grfx::Api kApi = ppx::grfx::API_DX_12_0;
 #elif defined(USE_VK)
     const ppx::grfx::Api kApi = ppx::grfx::API_VK_1_1;

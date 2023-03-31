@@ -19,10 +19,6 @@
 
 #include "grfx/grfx_config.h"
 
-#if defined(PPX_D3D11)
-struct ID3D11DeviceContext;
-#endif // defined(PPX_D3D11)
-
 #if defined(PPX_D3D12)
 struct ID3D12DescriptorHeap;
 #endif // defined(PPX_D3D12)
@@ -65,26 +61,6 @@ protected:
 private:
     grfx::DescriptorPoolPtr mPool;
 };
-
-#if defined(PPX_D3D11)
-class ImGuiImplDx11
-    : public ImGuiImpl
-{
-public:
-    ImGuiImplDx11() {}
-    virtual ~ImGuiImplDx11() {}
-
-    virtual void Shutdown(ppx::Application* pApp) override;
-    virtual void Render(grfx::CommandBuffer* pCommandBuffer) override;
-
-protected:
-    virtual Result InitApiObjects(ppx::Application* pApp) override;
-    virtual void   NewFrameApi() override;
-
-private:
-    ID3D11DeviceContext* mDeviceContext = nullptr;
-};
-#endif // defined(PPX_D3D11)
 
 #if defined(PPX_D3D12)
 class ImGuiImplDx12
