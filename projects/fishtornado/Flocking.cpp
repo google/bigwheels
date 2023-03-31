@@ -289,7 +289,7 @@ void Flocking::Setup(uint32_t numFramesInFlight)
     PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, pApp->GetAssetPath("fishtornado/models/trevallie/trevallie.obj"), &mMesh, options));
 
     // Create textures
-#if defined(PPX_GGP) && (PPX_D3D12)
+#if defined(PPX_D3D12)
     grfx_util::TextureOptions textureOptions = grfx_util::TextureOptions().MipLevelCount(1);
 #else
     grfx_util::TextureOptions textureOptions = grfx_util::TextureOptions().MipLevelCount(PPX_REMAINING_MIP_LEVELS);

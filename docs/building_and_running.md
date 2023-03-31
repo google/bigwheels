@@ -41,41 +41,6 @@ Open `build\BigWheels.sln` and build
 
 Built binaries are written to `build\bin`.
 
-## GGP (on Windows)
-```
-git clone --recursive https://github.com/google/BigWheels
-cd BigWheels
-cmake -B build-ggp -G "Visual Studio 16 2019" -DCMAKE_TOOLCHAIN_FILE="C:\\Program Files\\GGP SDK\\cmake\\ggp.cmake" -DPPX_GGP=1
-```
-Open `build-ggp/BigWheels.sln` and build
-
-Built binaries are written to `build-ggp\bin\vk_*`.
-
-**NOTE:** GGP supplied Vulkan headers and libraries are used for building *but* the build system will look for the DXC
-executable in the Vulkan SDK directory.
-
-## GGP (on Linux)
-```
-git clone --recursive https://github.com/google/BigWheels
-cd BigWheels
-cmake . -GNinja -DCMAKE_TOOLCHAIN_FILE=$PATH_TO_GGP_SDK/cmake/ggp.cmake -DPPX_GGP=1
-ninja
-```
-
-Built binaries are written to `bin/vk_*`.
-
-### Running on GGP
-Push the `assets` folder to the instance before running. Since shaders are compiled per project, they must be built and pushed *before* running the application. Then push and run the application. For example, on Linux:
-```
-ggp ssh put -r assets
-ggp ssh sync -R bin/vk_01_triangle
-ggp run --cmd "bin/vk_01_triangle"
-```
-
-You can use the `tools/ggp-run.py` script to automate pushing and running applications on GGP. For example:
-```
-python tools/ggp-run.py bin/vk_01_triangle --binary_args "--resolution 1920x1080"
-``` 
 ## OpenXR
 OpenXR support can be enabled by adding `-DPPX_BUILD_XR=1` flag.
 For example, for Windows build:
@@ -83,11 +48,10 @@ For example, for Windows build:
 cmake -B build -G "Visual Studio 16 2019" -A x64 -DPPX_BUILD_XR=1
 ```
 
-
 # Shader Compilation
 Shader binaries are generated during project build. Since BigWheels can target multiple graphics APIs, we compile shaders
 for each API depending on the need. API support depends on the system nature and configuration:
-    - For GGP and Linux, only SPIR-V is generated.
+    - For Linux, only SPIR-V is generated.
     - For Windows, DXBC, DXIL, and SPIR-V is generated.
 
 To request a specific API, flags can be passed to Cmake:

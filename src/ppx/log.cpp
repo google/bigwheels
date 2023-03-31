@@ -16,10 +16,8 @@
 
 // Use current platform if one isn't defined
 // clang-format off
-#if ! (defined(PPX_GGP) || defined(PPX_LINUX) || defined(PPX_MSW))
-#   if defined(__ggp__)
-#       define PPX_GGP
-#   elif defined(__linux__)
+#if ! (defined(PPX_LINUX) || defined(PPX_MSW))
+#   if defined(__linux__)
 #       define PPX_LINUX
 #   elif defined(WIN32)
 #       define PPX_MSW

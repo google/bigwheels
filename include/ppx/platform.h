@@ -22,7 +22,6 @@ namespace ppx {
 enum PlatformId
 {
     PLATFORM_ID_UNDEFINED = 0,
-    PLATFORM_ID_GGP,
     PLATFORM_ID_LINUX,
     PLATFORM_ID_MSW,
 };
