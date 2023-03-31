@@ -54,8 +54,21 @@ jobs:
           cmake --build . --target RUN_TESTS --config Release -- /nologo /verbosity:minimal /maxcpucount
       - name: Run runtime tests
         run: |
-          cd build/bin/Release
-          .\dx12_03_square_textured --headless --frame-count 2
-          .\dx12_09_obj_geometry --headless --frame-count 2
-          .\dx12_13_normal_map --headless --frame-count 2
-          .\dx12_fishtornado --headless --frame-count 2
+          cd build\bin\Release
+
+          .\dx12_03_square_textured --headless --frame-count 2 --screenshot-frame-number 1
+          magick convert screenshot_frame1.ppm dx12_03_square_textured_screenshot.png
+
+          .\dx12_09_obj_geometry --headless --frame-count 2 --screenshot-frame-number 1
+          magick convert screenshot_frame1.ppm dx12_09_obj_geometry_screenshot.png
+
+          .\dx12_13_normal_map --headless --frame-count 2 --screenshot-frame-number 1
+          magick convert screenshot_frame1.ppm dx12_13_normal_map_screenshot.png
+
+          .\dx12_fishtornado --headless --frame-count 2 --screenshot-frame-number 1
+          magick convert screenshot_frame1.ppm dx12_fishtornado_screenshot.png
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v3
+        with:
+          name: screenshots
+          path: build\bin\Release\*.png
