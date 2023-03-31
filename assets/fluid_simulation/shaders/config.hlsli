@@ -80,15 +80,7 @@ struct CSInput
     float2 normalizationScale;
 };
 
-#if defined(PPX_D3D11)
-cbuffer Param : register(b0)
-{
-    CSInput Params;
-}
-#else
-// ConstantBuffer is available in SM5.1 and above.
 ConstantBuffer<CSInput> Params : register(b0);
-#endif
 
 SamplerState Sampler : register(s1);
 

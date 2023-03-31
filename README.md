@@ -6,7 +6,6 @@ Supported platforms:
 * Linux
 
 Supported graphics APIs:
-* DirectX 11
 * DirectX 12
 * Vulkan
 

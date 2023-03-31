@@ -310,18 +310,6 @@ private:
 };
 
 // -------------------------------------------------------------------------------------------------
-inline bool IsDx11(grfx::Api api)
-{
-    switch (api) {
-        default: break;
-        case grfx::API_DX_11_0:
-        case grfx::API_DX_11_1: {
-            return true;
-        } break;
-    }
-    return false;
-}
-
 inline bool IsDx12(grfx::Api api)
 {
     switch (api) {
@@ -336,10 +324,7 @@ inline bool IsDx12(grfx::Api api)
 
 inline bool IsDx(grfx::Api api)
 {
-    bool isDx11 = IsDx11(api);
-    bool isDx12 = IsDx12(api);
-    bool isDx   = isDx11 || isDx12;
-    return isDx;
+    return IsDx12(api);
 }
 
 inline bool IsVk(grfx::Api api)

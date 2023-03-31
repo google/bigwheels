@@ -76,47 +76,6 @@
 #define PPX_SEMANTIC_NAME_BITANGENT "BITANGENT"
 #define PPX_SEMANTIC_NAME_CUSTOM    "CUSTOM"
 
-// D3D11's descriptor handling doesn't have a concept of set/spaces
-// but the resources types are still namespaced to s,t,u,b registers.
-// Since Vulkan doesn't support register namespaces, a map is
-// is used to force compatability to maximize the number of possible
-// descriptors. The compatability mapping allows the full range
-// of descriptors to be use in applications that need to run
-// on D3D11, D3D12, and Vulkan.
-//
-//    *** D3D11 -> D3D12/Vulkan Compatability ***
-//    =================================================
-//    Register     | Set#/Space# | Range (inclusive)
-//    -------------|-----------------------------------
-//    b# (CBV)     | 0           | [0, 13]
-//    t# (SRV)     | 1           | [0, 127]
-//    s# (Sampler) | 2           | [0, 15]
-//    u# (UAV)     | 3           | [0, 63]
-//
-// This isn't a strict requirement, if an application only uses
-// set0/space0 then it only needs to ensure that the register
-// numbers (aka slots) are under the D3D11 limits and don't overlap.
-//
-//    *** D3D11 Register Limits ***
-//    =================================================
-//    Register     | Limit
-//    -------------|-----------------------------------
-//    b# (CBV)     | 14  (D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT)
-//    t# (SRV)     | 128 (D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT)
-//    s# (Sampler) | 16  (D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT)
-//    u# (UAV)     | 64  (D3D11_1_UAV_SLOT_COUNT)
-//
-//
-#define PPX_D3D11_COMPAT_CBV_SET     0
-#define PPX_D3D11_COMPAT_SRV_SET     1
-#define PPX_D3D11_COMPAT_SAMPLER_SET 2
-#define PPX_D3D11_COMPAT_UAV_SET     3
-
-#define PPX_D3D11_COMPAT_MAX_CBV_SLOTS     14
-#define PPX_D3D11_COMPAT_MAX_SRV_SLOTS     128
-#define PPX_D3D11_COMPAT_MAX_SAMPLER_SLOTS 16
-#define PPX_D3D11_COMPAT_MAX_UAV_SLOTS     64
-
 namespace ppx {
 namespace grfx {
 

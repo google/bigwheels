@@ -895,7 +895,7 @@ void FishTornadoApp::Render()
 #endif
     }
 
-    if (grfx::IsDx11(GetDevice()->GetApi()) || mForceSingleCommandBuffer) {
+    if (mForceSingleCommandBuffer) {
         RenderSceneUsingSingleCommandBuffer(frameIndex, frame, prevFrameIndex, prevFrame, swapchain, imageIndex);
     }
     else {
@@ -971,11 +971,11 @@ void FishTornadoApp::DrawGui()
         ImGui::EndDisabled();
     }
 
-    if (mForceSingleCommandBuffer || grfx::IsDx11(GetDevice()->GetApi())) {
+    if (mForceSingleCommandBuffer) {
         ImGui::BeginDisabled();
     }
     ImGui::Checkbox("Use Async Compute", &mUseAsyncCompute);
-    if (mForceSingleCommandBuffer || grfx::IsDx11(GetDevice()->GetApi())) {
+    if (mForceSingleCommandBuffer) {
         ImGui::EndDisabled();
     }
 }

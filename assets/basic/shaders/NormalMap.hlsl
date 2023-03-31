@@ -28,16 +28,7 @@ struct SceneData
     float4   EyePosition; // Eye (camera) position
 };
 
-// ConstantBuffer was addd in SM5.1 for D3D12
-//
-#if defined(PPX_D3D11)
-cbuffer Scene : register(b0)
-{
-    SceneData Scene;
-};
-#else
 ConstantBuffer<SceneData> Scene : register(b0);
-#endif // defined(PPX_D3D11)
 
 Texture2D                 AlbedoTexture : register(t1);
 Texture2D                 NormalMap     : register(t2);

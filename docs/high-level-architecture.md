@@ -6,7 +6,7 @@ BigWheels's core is the API-agnostic graphics framework, in the `ppx::grfx` name
 
 The graphics framework exposes graphics types and functionality found in common graphics APIs (buffers, textures, shaders, queues, command buffers, etc.) while abstracting away implementation details.
 
-Currently, the graphics framework supports DirectX 11, DirectX 12, and Vulkan.
+Currently, the graphics framework supports DirectX 12 and Vulkan.
 
 ### API selection and device creation
 

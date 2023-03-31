@@ -17,7 +17,7 @@
 
 // Borrowed from DXC
 
-#if defined(PPX_D3D12) || defined(PPX_D3D11)
+#if defined(PPX_D3D12)
 
 #if defined(PPX_MSW)
 #if !defined(VC_EXTRALEAN)
@@ -207,6 +207,6 @@ public:
     }
 };
 
-#endif // #if defined(PPX_D3D12) || defined(PPX_D3D11)
+#endif // #if defined(PPX_D3D12)
 
 #endif // ppx_ccomptr_h

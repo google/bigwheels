@@ -69,21 +69,6 @@ function(internal_generate_rules_for_shader TARGET_NAME)
     file(RELATIVE_PATH PATH_PREFIX "${PPX_DIR}" "${ARG_SOURCE}")
     get_filename_component(PATH_PREFIX "${PATH_PREFIX}" DIRECTORY)
 
-    # D3D11, dxbc50, sm 5_0.
-    if (PPX_D3D11)
-        internal_add_compile_shader_target(
-            "d3d11_${TARGET_NAME}_${ARG_SHADER_STAGE}"
-            COMPILER_PATH "${FXC_PATH}"
-            SOURCE "${ARG_SOURCE}"
-            INCLUDES ${ARG_INCLUDES}
-            OUTPUT_FILE "${CMAKE_BINARY_DIR}/${PATH_PREFIX}/dxbc50/${BASE_NAME}.${ARG_SHADER_STAGE}.dxbc50"
-            SHADER_STAGE "${ARG_SHADER_STAGE}"
-            OUTPUT_FORMAT "DXCB_5_0"
-            TARGET_FOLDER "${TARGET_NAME}"
-            COMPILER_FLAGS "-T" "${ARG_SHADER_STAGE}_5_0" "-E" "${ARG_SHADER_STAGE}main" "/DPPX_D3D11=1")
-        add_dependencies("d3d11_${TARGET_NAME}" "d3d11_${TARGET_NAME}_${ARG_SHADER_STAGE}")
-    endif ()
-
     # D3D12:
     #   dxbc51, sm 5_1.
     #   dxil,   sm 6_5.
@@ -138,10 +123,6 @@ function(generate_rules_for_shader TARGET_NAME)
     message(STATUS "creating shader target ${TARGET_NAME}.")
     add_dependencies("all-shaders" "${TARGET_NAME}")
 
-    if (PPX_D3D11)
-        add_custom_target_in_folder("d3d11_${TARGET_NAME}" SOURCES "${ARG_SOURCE}" ${ARG_INCLUDES} FOLDER "${TARGET_NAME}")
-        add_dependencies("${TARGET_NAME}" "d3d11_${TARGET_NAME}")
-    endif ()
     if (PPX_D3D12)
         add_custom_target_in_folder("d3d12_${TARGET_NAME}" SOURCES "${ARG_SOURCE}" ${ARG_INCLUDES} FOLDER "${TARGET_NAME}")
         add_dependencies("${TARGET_NAME}" "d3d12_${TARGET_NAME}")
@@ -164,10 +145,6 @@ function(generate_group_rule_for_shader TARGET_NAME)
 
     add_custom_target_in_folder("${TARGET_NAME}" DEPENDS ${ARG_CHILDREN} FOLDER "${TARGET_NAME}")
 
-    if (PPX_D3D11)
-        prefix_all(PREFIXED_CHILDREN LIST ${ARG_CHILDREN} PREFIX "d3d11_")
-        add_custom_target_in_folder("d3d11_${TARGET_NAME}" DEPENDS ${PREFIXED_CHILDREN} FOLDER "${TARGET_NAME}")
-    endif ()
     if (PPX_D3D12)
         prefix_all(PREFIXED_CHILDREN LIST ${ARG_CHILDREN} PREFIX "d3d12_")
         add_custom_target_in_folder("d3d12_${TARGET_NAME}" DEPENDS ${PREFIXED_CHILDREN} FOLDER "${TARGET_NAME}")

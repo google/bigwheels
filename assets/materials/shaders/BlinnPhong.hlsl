@@ -15,30 +15,6 @@
 
 #include "Config.hlsli"
 
-#if defined (PPX_D3D11) // -----------------------------------------------------
-cbuffer Scene : register(SCENE_CONSTANTS_REGISTER) 
-{
-    SceneData Scene;
-};
-
-cbuffer Material : register(MATERIAL_CONSTANTS_REGISTER) 
-{
-    MaterialData Material;
-};
-
-cbuffer Model : register(MODEL_CONSTANTS_REGISTER) 
-{
-    ModelData Model;
-};
-
-StructuredBuffer<Light> Lights : register(LIGHT_DATA_REGISTER);
-
-Texture2D    AlbedoTex      : register(ALBEDO_TEXTURE_REGISTER);
-Texture2D    RoughnessTex   : register(ROUGHNESS_TEXTURE_REGISTER);
-Texture2D    MetalnessTex   : register(METALNESS_TEXTURE_REGISTER);
-Texture2D    NormalMapTex   : register(NORMAL_MAP_TEXTURE_REGISTER);
-SamplerState ClampedSampler : register(CLAMPED_SAMPLER_REGISTER);
-#else // --- D3D12 / Vulkan ----------------------------------------------------
 ConstantBuffer<SceneData>    Scene    : register(SCENE_CONSTANTS_REGISTER,    SCENE_DATA_SPACE);
 ConstantBuffer<MaterialData> Material : register(MATERIAL_CONSTANTS_REGISTER, MATERIAL_DATA_SPACE);
 ConstantBuffer<ModelData>    Model    : register(MODEL_CONSTANTS_REGISTER,    MODEL_DATA_SPACE);
@@ -50,7 +26,6 @@ Texture2D    RoughnessTex   : register(ROUGHNESS_TEXTURE_REGISTER,  MATERIAL_RES
 Texture2D    MetalnessTex   : register(METALNESS_TEXTURE_REGISTER,  MATERIAL_RESOURCES_SPACE);
 Texture2D    NormalMapTex   : register(NORMAL_MAP_TEXTURE_REGISTER, MATERIAL_RESOURCES_SPACE);
 SamplerState ClampedSampler : register(CLAMPED_SAMPLER_REGISTER,    MATERIAL_RESOURCES_SPACE);
-#endif // -- defined (PPX_D3D11) -----------------------------------------------
 
 float Lambert(float3 N, float3 L)
 {

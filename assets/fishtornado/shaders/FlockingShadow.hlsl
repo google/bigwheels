@@ -14,30 +14,12 @@
 
 #include "Config.hlsli"
 
-#if defined(PPX_D3D11) // -----------------------------------------------------
-cbuffer Scene : register(RENDER_SCENE_DATA_REGISTER)
-{
-    SceneData Scene;
-};
-cbuffer Model : register(RENDER_MODEL_DATA_REGISTER)
-{
-    ModelData Model;
-};
-cbuffer Flocking : register(RENDER_FLOCKING_DATA_REGISTER)
-{
-    FlockingData Flocking;
-};
-Texture2D<float4> PrevPositionTex : register(RENDER_PREVIOUS_POSITION_TEXTURE_REGISTER);
-Texture2D<float4> CurrPositionTex : register(RENDER_CURRENT_POSITION_TEXTURE_REGISTER);
-Texture2D<float4> CurrVelocityTex : register(RENDER_CURRENT_VELOCITY_TEXTURE_REGISTER);
-#else // --- D3D12 / Vulkan ----------------------------------------------------
 ConstantBuffer<SceneData>    Scene           : register(RENDER_SCENE_DATA_REGISTER, SCENE_SPACE);
 ConstantBuffer<ModelData>    Model           : register(RENDER_MODEL_DATA_REGISTER, MODEL_SPACE);
 ConstantBuffer<FlockingData> Flocking        : register(RENDER_FLOCKING_DATA_REGISTER, FLOCKING_SPACE);
 Texture2D<float4>            PrevPositionTex : register(RENDER_PREVIOUS_POSITION_TEXTURE_REGISTER, FLOCKING_SPACE);
 Texture2D<float4>            CurrPositionTex : register(RENDER_CURRENT_POSITION_TEXTURE_REGISTER, FLOCKING_SPACE);
 Texture2D<float4>            CurrVelocityTex : register(RENDER_CURRENT_VELOCITY_TEXTURE_REGISTER, FLOCKING_SPACE);
-#endif // -- defined (PPX_D3D11) -----------------------------------------------
 
 // -------------------------------------------------------------------------------------------------
 

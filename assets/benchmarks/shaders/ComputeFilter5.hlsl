@@ -12,26 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// ConstantBuffer was addd in SM5.1 for D3D12
-//
 struct ParamsData
 {
     float2 texel_size;
 };
-#if defined(PPX_D3D11)
-
-cbuffer Param : register(b1)
-{
-    ParamsData Param;
-};
-#else
 
 ConstantBuffer<ParamsData> Param : register(b1);
-#endif
-
-RWTexture2D<float4> Output : register(u0);
-SamplerState        nearestSampler : register(s2);
-Texture2D<float4>   srcTex : register(t3);
+RWTexture2D<float4>        Output : register(u0);
+SamplerState               nearestSampler : register(s2);
+Texture2D<float4>          srcTex : register(t3);
 
 [numthreads(1, 1, 1)] void csmain(uint3 tid
                                   : SV_DispatchThreadID) {
