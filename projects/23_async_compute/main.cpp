@@ -925,16 +925,17 @@ void ProjApp::BlitAndPresent(PerFrame& frame, uint32_t swapchainImageIndex)
     }
     PPX_CHECKED_CALL(cmd->End());
 
-    const grfx::Semaphore* ppWaitSemaphores[4] = {
+    const grfx::Semaphore* ppWaitSemaphores[] = {
         frame.composeData[0].completeSemaphore,
         frame.composeData[1].completeSemaphore,
         frame.composeData[2].completeSemaphore,
-        frame.composeData[3].completeSemaphore};
+        frame.composeData[3].completeSemaphore,
+        frame.imageAcquiredSemaphore};
 
     grfx::SubmitInfo submitInfo     = {};
     submitInfo.commandBufferCount   = 1;
     submitInfo.ppCommandBuffers     = &cmd;
-    submitInfo.waitSemaphoreCount   = 4;
+    submitInfo.waitSemaphoreCount   = sizeof(ppWaitSemaphores) / sizeof(ppWaitSemaphores[0]);
     submitInfo.ppWaitSemaphores     = ppWaitSemaphores;
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.ppSignalSemaphores   = &frame.renderCompleteSemaphore;
