@@ -31,20 +31,7 @@ namespace vk {
 Result Surface::CreateApiObjects(const grfx::SurfaceCreateInfo* pCreateInfo)
 {
     VkResult vkres = VK_SUCCESS;
-#if defined(PPX_GGP)
-    VkStreamDescriptorSurfaceCreateInfoGGP vkci = {VK_STRUCTURE_TYPE_STREAM_DESCRIPTOR_SURFACE_CREATE_INFO_GGP};
-    vkci.streamDescriptor                       = GgpStreamDescriptorConstants::kGgpPrimaryStreamDescriptor;
-
-    PFN_vkCreateStreamDescriptorSurfaceGGP vkCreateStreamDescriptorSurfaceGGP = reinterpret_cast<PFN_vkCreateStreamDescriptorSurfaceGGP>(
-        vkGetInstanceProcAddr(ToApi(GetInstance())->GetVkInstance(), "vkCreateStreamDescriptorSurfaceGGP"));
-    PPX_ASSERT_MSG(vkCreateStreamDescriptorSurfaceGGP != nullptr, "Error getting function vkCreateStreamDescriptorSurfaceGGP");
-
-    vkres = vkCreateStreamDescriptorSurfaceGGP(
-        ToApi(GetInstance())->GetVkInstance(),
-        &vkci,
-        nullptr,
-        &mSurface);
-#elif defined(PPX_LINUX_XCB)
+#if defined(PPX_LINUX_XCB)
     VkXcbSurfaceCreateInfoKHR vkci = {VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR};
     vkci.connection                = pCreateInfo->connection;
     vkci.window                    = pCreateInfo->window;

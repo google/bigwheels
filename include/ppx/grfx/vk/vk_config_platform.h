@@ -16,11 +16,7 @@
 #define ppx_grfx_vk_config_platform_h
 
 // clang-format off
-#if defined(PPX_GGP)
-#   if ! defined(VK_USE_PLATFORM_GGP)
-#       define VK_USE_PLATFORM_GGP
-#   endif
-#elif defined(PPX_LINUX)
+#if defined(PPX_LINUX)
 #   if defined(PPX_LINUX_XCB)
 #       if ! defined(VK_USE_PLATFORM_XCB_KHR)
 #           define VK_USE_PLATFORM_XCB_KHR

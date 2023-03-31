@@ -4,7 +4,6 @@ BigWheels is a cross-platform, API agnostic framework to build graphics applicat
 Supported platforms:
 * Windows
 * Linux
-* GGP (Google Gaming Platform, i.e. Stadia)
 
 Supported graphics APIs:
 * DirectX 11
@@ -15,11 +14,6 @@ Supported graphics APIs:
 
 # Requirements
  * Software
-   * GGP
-     * Visual Studio 2019 or 2022
-     * GGP SDK
-     * Recent Vulkan SDK
-       * 1.3.216.0 or later
    * Linux
      * Visual Studio Code or CLI
      * Recent Vulkan SDK

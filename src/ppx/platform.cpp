@@ -122,9 +122,7 @@ Platform::~Platform()
 
 PlatformId Platform::GetPlatformId()
 {
-#if defined(PPX_GGP)
-    return ppx::PLATFORM_ID_GGP;
-#elif defined(PPX_LINUX)
+#if defined(PPX_LINUX)
     return ppx::PLATFORM_ID_LINUX;
 #elif defined(PPX_MSW)
     return ppx::PLATFORM_ID_MSW;
@@ -135,9 +133,7 @@ PlatformId Platform::GetPlatformId()
 
 const char* Platform::GetPlatformString()
 {
-#if defined(PPX_GGP)
-    return "GGP";
-#elif defined(PPX_LINUX)
+#if defined(PPX_LINUX)
     return "Linux";
 #elif defined(PPX_MSW)
     return "Windows";

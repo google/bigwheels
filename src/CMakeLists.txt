@@ -24,12 +24,8 @@ if (PPX_VULKAN)
     # Determine Vulkan's include directory
     if (NOT VULKAN_INCLUDE_DIR)
         if (LINUX)
-            if (GGP)
-                set(VULKAN_INCLUDE_DIR "${GGP_SYSROOT_PATH}/usr/local/include")
-            else()
-                if (DEFINED ENV{VULKAN_SDK})
-                    set(VULKAN_INCLUDE_DIR "$ENV{VULKAN_SDK}/include")
-                endif()
+            if (DEFINED ENV{VULKAN_SDK})
+                set(VULKAN_INCLUDE_DIR "$ENV{VULKAN_SDK}/include")
             endif()
         elseif (APPLE OR WIN32)
             if (DEFINED ENV{VULKAN_SDK})
@@ -41,12 +37,8 @@ if (PPX_VULKAN)
     # Determine Vulkan's library directory
     if (NOT VULKAN_LIBRARY_DIR)
         if (LINUX)
-            if (GGP)
-                set(VULKAN_LIBRARY_DIR "${GGP_SYSROOT_PATH}/usr/local/lib")
-            else()
-                if (DEFINED ENV{VULKAN_SDK})
-                    set(VULKAN_LIBRARY_DIR "$ENV{VULKAN_SDK}/lib")
-                endif()
+            if (DEFINED ENV{VULKAN_SDK})
+                set(VULKAN_LIBRARY_DIR "$ENV{VULKAN_SDK}/lib")
             endif()
         elseif (APPLE OR WIN32)
             if (DEFINED ENV{VULKAN_SDK})
@@ -448,7 +440,7 @@ add_library(
     ${XXHASH_FILES}
 )
 
-if (PPX_LINUX OR PPX_GGP)
+if (PPX_LINUX)
     set_target_properties(
         ${PROJECT_NAME} PROPERTIES PREFIX "lib"
     )
@@ -517,12 +509,7 @@ target_compile_definitions(
     PUBLIC  GLFW_INCLUDE_NONE
 )
 
-if (PPX_GGP)
-    target_compile_definitions(
-        ${PROJECT_NAME}
-        PUBLIC  PPX_GGP
-    )
-elseif (PPX_LINUX)
+if (PPX_LINUX)
     target_compile_definitions(
         ${PROJECT_NAME}
         PUBLIC  PPX_LINUX
@@ -581,21 +568,7 @@ if (PPX_VULKAN)
         PUBLIC  PPX_VULKAN
     )
     # Platform specific Vulkan defintions
-    if (PPX_GGP)
-        target_compile_definitions(
-            ${PROJECT_NAME}
-            PRIVATE
-        )
-        #
-        # Disaable Wno-missing-braces because it's meaningless in the cases
-        # that PPX uses.
-        #
-        target_compile_options(
-            ${PROJECT_NAME}
-            PUBLIC -Wno-missing-braces
-                   -Werror=return-type
-		)
-    elseif (PPX_LINUX)
+    if (PPX_LINUX)
         target_compile_definitions(
             ${PROJECT_NAME}
             PUBLIC ${PPX_LINUX_VULKAN_SURFACE}
@@ -631,18 +604,8 @@ if (PPX_D3D12)
 endif()
 
 if (PPX_VULKAN)
-    # GGP
-    if (PPX_GGP)
-        # Link directories
-        target_link_directories(${PROJECT_NAME}
-            PUBLIC ${VULKAN_LIBRARY_DIR}
-        )
-        # Link libraries
-        target_link_libraries(${PROJECT_NAME}
-            PUBLIC vulkan
-        )
     #Linux
-    elseif (PPX_LINUX)
+    if (PPX_LINUX)
         # Link directories
         target_link_directories(${PROJECT_NAME}
             PUBLIC ${VULKAN_LIBRARY_DIR}

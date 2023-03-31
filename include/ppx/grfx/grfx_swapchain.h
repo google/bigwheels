@@ -21,9 +21,7 @@
 #endif
 
 // clang-format off
-#if defined(PPX_GGP)
-#   include <ggp_c/vulkan_types.h>
-#elif defined(PPX_LINUX_XCB)
+#if defined(PPX_LINUX_XCB)
 #   include <xcb/xcb.h>
 #elif defined(PPX_LINUX_XLIB)
 #   include <X11/Xlib.h>

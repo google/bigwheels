@@ -824,16 +824,6 @@ Result Application::InitializeGrfxSwapchain()
                 mSettings.window.width  = std::min(mSettings.window.width, surfaceMaxImageWidth);
                 mSettings.window.height = std::min(mSettings.window.height, surfaceMaxImageHeight);
             }
-
-#if defined(PPX_GGP)
-            const uint32_t surfaceMinImageWidth  = mSurface->GetMinImageWidth();
-            const uint32_t surfaceMinImageHeight = mSurface->GetMinImageHeight();
-            if ((surfaceMinImageWidth > mSettings.window.width) || (surfaceMinImageHeight > mSettings.window.height)) {
-                PPX_LOG_WARN("readjusting swapchain/window size from " << mSettings.window.width << "x" << mSettings.window.height << " to " << surfaceMinImageWidth << "x" << surfaceMinImageHeight << " to match surface requirements");
-                mSettings.window.width  = surfaceMinImageWidth;
-                mSettings.window.height = surfaceMinImageHeight;
-            }
-#endif
         }
 
         grfx::SwapchainCreateInfo ci = {};

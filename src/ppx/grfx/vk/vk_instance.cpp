@@ -179,9 +179,7 @@ Result Instance::ConfigureLayersAndExtensions(const grfx::InstanceCreateInfo* pC
     // Swapchain surface extensions
     if (pCreateInfo->enableSwapchain) {
         mExtensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
-#if defined(PPX_GGP)
-        mExtensions.push_back(VK_GGP_STREAM_DESCRIPTOR_SURFACE_EXTENSION_NAME);
-#elif defined(PPX_LINUX_XCB)
+#if defined(PPX_LINUX_XCB)
         mExtensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
 #elif defined(PPX_LINUX_XLIB)
 #error "Xlib not implemented"

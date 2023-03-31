@@ -61,11 +61,7 @@ Result ImGuiImpl::Init(ppx::Application* pApp)
     ImGuiIO& io = ImGui::GetIO();
 
     float fontSize = 16.0f;
-#if defined(PPX_GGP)
-    if (pApp->GetWindowHeight() > 1080) {
-        fontSize = 40.0f;
-    }
-#elif defined(PPX_MSW)
+#if defined(PPX_MSW)
     HWND     activeWindow = GetActiveWindow();
     HMONITOR monitor      = MonitorFromWindow(activeWindow, MONITOR_DEFAULTTONEAREST);
 

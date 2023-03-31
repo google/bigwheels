@@ -37,7 +37,7 @@ ppx::PlatformId BaseApplication::GetPlatformId() const
 uint32_t BaseApplication::GetProcessId() const
 {
     uint32_t pid = UINT32_MAX;
-#if defined(PPX_LINUX) || defined(PPX_GGP)
+#if defined(PPX_LINUX)
     pid = static_cast<uint32_t>(getpid());
 #elif defined(PPX_MSW)
     pid                       = static_cast<uint32_t>(::GetCurrentProcessId());
@@ -48,7 +48,7 @@ uint32_t BaseApplication::GetProcessId() const
 std::filesystem::path BaseApplication::GetApplicationPath() const
 {
     std::filesystem::path path;
-#if defined(PPX_LINUX) || defined(PPX_GGP)
+#if defined(PPX_LINUX)
     char buf[PATH_MAX];
     std::memset(buf, 0, PATH_MAX);
     readlink("/proc/self/exe", buf, PATH_MAX);
