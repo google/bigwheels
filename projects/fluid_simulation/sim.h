@@ -174,6 +174,13 @@ private:
     void         DrawColor(ppx::float4 color);
     void         DrawDisplay();
     ppx::float3  GenerateColor();
+
+    /// @brief             Return a vector describing a rectangle with dimensions that can fit "resolution" pixels.
+    ///
+    /// @param resolution  The minimum size of the rectangle to fit this many pixels.
+    ///
+    /// @return            A vector of 2 dimensions. The dimensions have the same aspect ratio as
+    ///                    the application window and can fit at least "resolution" pixels in it.
     ppx::int2    GetResolution(float resolution);
     ppx::float3  HSVtoRGB(ppx::float3 hsv);
     void         InitBloomTextures();
