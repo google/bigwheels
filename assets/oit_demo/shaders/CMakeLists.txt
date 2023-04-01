@@ -60,7 +60,7 @@ generate_rules_for_shader(
     STAGES "ps" "vs")
 
 generate_rules_for_shader(
-    "weighted_average_with_coverage_gather"
+    "weighted_average_exact_coverage_gather"
     SOURCE "${PPX_DIR}/assets/oit_demo/shaders/WeightedAverageExactCoverageGather.hlsl"
     INCLUDES
     ${TRANSPARENCY_INCLUDE_FILES}
@@ -68,7 +68,7 @@ generate_rules_for_shader(
     STAGES "ps" "vs")
 
 generate_rules_for_shader(
-    "weighted_average_with_coverage_combine"
+    "weighted_average_exact_coverage_combine"
     SOURCE "${PPX_DIR}/assets/oit_demo/shaders/WeightedAverageExactCoverageCombine.hlsl"
     INCLUDES
     ${FULLSCREEN_INCLUDE_FILES}
