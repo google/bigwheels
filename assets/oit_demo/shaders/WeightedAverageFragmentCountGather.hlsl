@@ -12,20 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#define IS_SHADER
-#include "Common.hlsli"
-#include "TransparencyVS.hlsli"
+#define WEIGHTED_AVERAGE_FRAGMENT_COUNT
+#include "WeightedAverageGather.hlsli"
 
-struct PSOutput
-{
-    float4 color    : SV_TARGET0;
-    float  coverage : SV_TARGET1;
-};
-
-PSOutput psmain(VSOutput input)
-{
-    PSOutput output = (PSOutput)0;
-    output.color    = float4(input.color * g_Globals.meshOpacity, g_Globals.meshOpacity);
-    output.coverage = (1.0f - g_Globals.meshOpacity);
-    return output;
-}

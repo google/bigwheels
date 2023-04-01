@@ -35,15 +35,12 @@ void OITDemoApp::SetupWeightedAverage()
         createInfo.usageFlags.bits.sampled         = true;
         createInfo.memoryUsage                     = grfx::MEMORY_USAGE_GPU_ONLY;
         createInfo.initialState                    = grfx::RESOURCE_STATE_SHADER_RESOURCE;
-        createInfo.DSVClearValue                   = {1.0f, 0xFF};
 
-        createInfo.imageFormat   = grfx::FORMAT_R16G16B16A16_FLOAT;
-        createInfo.RTVClearValue = {0, 0, 0, 0};
+        createInfo.imageFormat = grfx::FORMAT_R16G16B16A16_FLOAT;
         PPX_CHECKED_CALL(GetDevice()->CreateTexture(&createInfo, &mWeightedAverage.colorTexture));
 
-        createInfo.imageFormat   = grfx::FORMAT_R16_FLOAT;
-        createInfo.RTVClearValue = {0, 0, 0, 0};
-        PPX_CHECKED_CALL(GetDevice()->CreateTexture(&createInfo, &mWeightedAverage.countTexture));
+        createInfo.imageFormat = grfx::FORMAT_R16_FLOAT;
+        PPX_CHECKED_CALL(GetDevice()->CreateTexture(&createInfo, &mWeightedAverage.extraTexture));
     }
 
     ////////////////////////////////////////
@@ -57,13 +54,19 @@ void OITDemoApp::SetupWeightedAverage()
         createInfo.height                     = mWeightedAverage.colorTexture->GetHeight();
         createInfo.renderTargetCount          = 2;
         createInfo.pRenderTargetImages[0]     = mWeightedAverage.colorTexture->GetImage();
-        createInfo.pRenderTargetImages[1]     = mWeightedAverage.countTexture->GetImage();
+        createInfo.pRenderTargetImages[1]     = mWeightedAverage.extraTexture->GetImage();
         createInfo.pDepthStencilImage         = mOpaquePass->GetDepthStencilTexture()->GetImage();
         createInfo.depthStencilState          = grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE;
         createInfo.renderTargetClearValues[0] = {0, 0, 0, 0};
-        createInfo.renderTargetClearValues[1] = {0, 0, 0, 0};
         createInfo.depthStencilClearValue     = {1.0f, 0xFF};
-        PPX_CHECKED_CALL(GetDevice()->CreateDrawPass(&createInfo, &mWeightedAverage.gatherPass));
+
+        // Count type
+        createInfo.renderTargetClearValues[1] = {0, 0, 0, 0};
+        PPX_CHECKED_CALL(GetDevice()->CreateDrawPass(&createInfo, &mWeightedAverage.count.gatherPass));
+
+        // Coverage type
+        createInfo.renderTargetClearValues[1] = {1, 1, 1, 1};
+        PPX_CHECKED_CALL(GetDevice()->CreateDrawPass(&createInfo, &mWeightedAverage.coverage.gatherPass));
     }
 
     // Descriptor
@@ -91,13 +94,8 @@ void OITDemoApp::SetupWeightedAverage()
         piCreateInfo.sets[0].pLayout                   = mWeightedAverage.gatherDescriptorSetLayout;
         PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mWeightedAverage.gatherPipelineInterface));
 
-        grfx::ShaderModulePtr VS, PS;
-        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "WeightedAverageGather.vs", &VS));
-        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "WeightedAverageGather.ps", &PS));
-
+        grfx::ShaderModulePtr            VS, PS;
         grfx::GraphicsPipelineCreateInfo gpCreateInfo   = {};
-        gpCreateInfo.VS                                 = {VS, "vsmain"};
-        gpCreateInfo.PS                                 = {PS, "psmain"};
         gpCreateInfo.vertexInputState.bindingCount      = 1;
         gpCreateInfo.vertexInputState.bindings[0]       = mMonkeyMesh->GetDerivedVertexBindings()[0];
         gpCreateInfo.inputAssemblyState.topology        = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -120,8 +118,6 @@ void OITDemoApp::SetupWeightedAverage()
         gpCreateInfo.colorBlendState.blendAttachments[0].colorWriteMask      = grfx::ColorComponentFlags::RGBA();
 
         gpCreateInfo.colorBlendState.blendAttachments[1].blendEnable         = true;
-        gpCreateInfo.colorBlendState.blendAttachments[1].srcColorBlendFactor = grfx::BLEND_FACTOR_ONE;
-        gpCreateInfo.colorBlendState.blendAttachments[1].dstColorBlendFactor = grfx::BLEND_FACTOR_ONE;
         gpCreateInfo.colorBlendState.blendAttachments[1].colorBlendOp        = grfx::BLEND_OP_ADD;
         gpCreateInfo.colorBlendState.blendAttachments[1].srcAlphaBlendFactor = grfx::BLEND_FACTOR_ZERO;
         gpCreateInfo.colorBlendState.blendAttachments[1].dstAlphaBlendFactor = grfx::BLEND_FACTOR_ZERO;
@@ -130,11 +126,29 @@ void OITDemoApp::SetupWeightedAverage()
 
         gpCreateInfo.outputState.renderTargetCount      = 2;
         gpCreateInfo.outputState.renderTargetFormats[0] = mWeightedAverage.colorTexture->GetImageFormat();
-        gpCreateInfo.outputState.renderTargetFormats[1] = mWeightedAverage.countTexture->GetImageFormat();
+        gpCreateInfo.outputState.renderTargetFormats[1] = mWeightedAverage.extraTexture->GetImageFormat();
         gpCreateInfo.outputState.depthStencilFormat     = mOpaquePass->GetDepthStencilTexture()->GetImageFormat();
         gpCreateInfo.pPipelineInterface                 = mWeightedAverage.gatherPipelineInterface;
-        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mWeightedAverage.gatherPipeline));
 
+        // Count type
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "WeightedAverageFragmentCountGather.vs", &VS));
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "WeightedAverageFragmentCountGather.ps", &PS));
+        gpCreateInfo.VS                                                      = {VS, "vsmain"};
+        gpCreateInfo.PS                                                      = {PS, "psmain"};
+        gpCreateInfo.colorBlendState.blendAttachments[1].srcColorBlendFactor = grfx::BLEND_FACTOR_ONE;
+        gpCreateInfo.colorBlendState.blendAttachments[1].dstColorBlendFactor = grfx::BLEND_FACTOR_ONE;
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mWeightedAverage.count.gatherPipeline));
+        GetDevice()->DestroyShaderModule(VS);
+        GetDevice()->DestroyShaderModule(PS);
+
+        // Coverage type
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "WeightedAverageExactCoverageGather.vs", &VS));
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "WeightedAverageExactCoverageGather.ps", &PS));
+        gpCreateInfo.VS                                                      = {VS, "vsmain"};
+        gpCreateInfo.PS                                                      = {PS, "psmain"};
+        gpCreateInfo.colorBlendState.blendAttachments[1].srcColorBlendFactor = grfx::BLEND_FACTOR_ZERO;
+        gpCreateInfo.colorBlendState.blendAttachments[1].dstColorBlendFactor = grfx::BLEND_FACTOR_SRC_COLOR;
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mWeightedAverage.coverage.gatherPipeline));
         GetDevice()->DestroyShaderModule(VS);
         GetDevice()->DestroyShaderModule(PS);
     }
@@ -162,7 +176,7 @@ void OITDemoApp::SetupWeightedAverage()
         writes[1].binding    = CUSTOM_TEXTURE_1_REGISTER;
         writes[1].arrayIndex = 0;
         writes[1].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        writes[1].pImageView = mWeightedAverage.countTexture->GetSampledImageView();
+        writes[1].pImageView = mWeightedAverage.extraTexture->GetSampledImageView();
 
         PPX_CHECKED_CALL(mWeightedAverage.combineDescriptorSet->UpdateDescriptors(2, writes));
     }
@@ -175,13 +189,8 @@ void OITDemoApp::SetupWeightedAverage()
         piCreateInfo.sets[0].pLayout                   = mWeightedAverage.combineDescriptorSetLayout;
         PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mWeightedAverage.combinePipelineInterface));
 
-        grfx::ShaderModulePtr VS, PS;
-        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "WeightedAverageCombine.vs", &VS));
-        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "WeightedAverageCombine.ps", &PS));
-
+        grfx::ShaderModulePtr             VS, PS;
         grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
-        gpCreateInfo.VS                                 = {VS, "vsmain"};
-        gpCreateInfo.PS                                 = {PS, "psmain"};
         gpCreateInfo.vertexInputState.bindingCount      = 0;
         gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
@@ -194,8 +203,22 @@ void OITDemoApp::SetupWeightedAverage()
         gpCreateInfo.outputState.renderTargetFormats[0] = mTransparencyTexture->GetImageFormat();
         gpCreateInfo.outputState.depthStencilFormat     = mOpaquePass->GetDepthStencilTexture()->GetImageFormat();
         gpCreateInfo.pPipelineInterface                 = mWeightedAverage.combinePipelineInterface;
-        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mWeightedAverage.combinePipeline));
 
+        // Count type
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "WeightedAverageFragmentCountCombine.vs", &VS));
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "WeightedAverageFragmentCountCombine.ps", &PS));
+        gpCreateInfo.VS = {VS, "vsmain"};
+        gpCreateInfo.PS = {PS, "psmain"};
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mWeightedAverage.count.combinePipeline));
+        GetDevice()->DestroyShaderModule(VS);
+        GetDevice()->DestroyShaderModule(PS);
+
+        // Coverage type
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "WeightedAverageExactCoverageCombine.vs", &VS));
+        PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "WeightedAverageExactCoverageCombine.ps", &PS));
+        gpCreateInfo.VS = {VS, "vsmain"};
+        gpCreateInfo.PS = {PS, "psmain"};
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mWeightedAverage.coverage.combinePipeline));
         GetDevice()->DestroyShaderModule(VS);
         GetDevice()->DestroyShaderModule(PS);
     }
@@ -203,28 +226,50 @@ void OITDemoApp::SetupWeightedAverage()
 
 void OITDemoApp::RecordWeightedAverage()
 {
+    grfx::DrawPassPtr         gatherPass;
+    grfx::GraphicsPipelinePtr gatherPipeline;
+    grfx::GraphicsPipelinePtr combinePipeline;
+    switch (mGuiParameters.weightedAverageType) {
+        case WEIGHTED_AVERAGE_TYPE_FRAGMENT_COUNT: {
+            gatherPass      = mWeightedAverage.count.gatherPass;
+            gatherPipeline  = mWeightedAverage.count.gatherPipeline;
+            combinePipeline = mWeightedAverage.count.combinePipeline;
+            break;
+        }
+        case WEIGHTED_AVERAGE_TYPE_EXACT_COVERAGE: {
+            gatherPass      = mWeightedAverage.coverage.gatherPass;
+            gatherPipeline  = mWeightedAverage.coverage.gatherPipeline;
+            combinePipeline = mWeightedAverage.coverage.combinePipeline;
+            break;
+        }
+        default: {
+            PPX_ASSERT_MSG(false, "unknown weighted average type");
+            break;
+        }
+    }
+
     // Gather pass: compute the formula factors for each pixels
     {
         mCommandBuffer->TransitionImageLayout(
-            mWeightedAverage.gatherPass,
+            gatherPass,
             grfx::RESOURCE_STATE_SHADER_RESOURCE,
             grfx::RESOURCE_STATE_RENDER_TARGET,
             grfx::RESOURCE_STATE_SHADER_RESOURCE,
             grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE);
-        mCommandBuffer->BeginRenderPass(mWeightedAverage.gatherPass, grfx::DRAW_PASS_CLEAR_FLAG_CLEAR_RENDER_TARGETS);
+        mCommandBuffer->BeginRenderPass(gatherPass, grfx::DRAW_PASS_CLEAR_FLAG_CLEAR_RENDER_TARGETS);
 
         mCommandBuffer->SetScissors(mTransparencyPass->GetScissor());
         mCommandBuffer->SetViewports(mTransparencyPass->GetViewport());
 
         mCommandBuffer->BindGraphicsDescriptorSets(mWeightedAverage.gatherPipelineInterface, 1, &mWeightedAverage.gatherDescriptorSet);
-        mCommandBuffer->BindGraphicsPipeline(mWeightedAverage.gatherPipeline);
+        mCommandBuffer->BindGraphicsPipeline(gatherPipeline);
         mCommandBuffer->BindIndexBuffer(mMonkeyMesh);
         mCommandBuffer->BindVertexBuffers(mMonkeyMesh);
         mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
 
         mCommandBuffer->EndRenderPass();
         mCommandBuffer->TransitionImageLayout(
-            mWeightedAverage.gatherPass,
+            gatherPass,
             grfx::RESOURCE_STATE_RENDER_TARGET,
             grfx::RESOURCE_STATE_SHADER_RESOURCE,
             grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE,
@@ -245,7 +290,7 @@ void OITDemoApp::RecordWeightedAverage()
         mCommandBuffer->SetViewports(mTransparencyPass->GetViewport());
 
         mCommandBuffer->BindGraphicsDescriptorSets(mWeightedAverage.combinePipelineInterface, 1, &mWeightedAverage.combineDescriptorSet);
-        mCommandBuffer->BindGraphicsPipeline(mWeightedAverage.combinePipeline);
+        mCommandBuffer->BindGraphicsPipeline(combinePipeline);
         mCommandBuffer->Draw(3);
 
         mCommandBuffer->EndRenderPass();

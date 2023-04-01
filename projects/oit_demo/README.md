@@ -10,7 +10,7 @@ It is also often used in computer-aided design to let creators see through multi
 
 Transparency is typically achieved by alpha blending fragments from back to front from the camera's perspective.
 Technically, this means sorting the geometry on the CPU before sending it to the GPU for rendering.
-However, in addition to having a non-negligeable CPU cost, that solution cannot produce accurate results in several situations, e.g. intersecting geometry or meshes with concave hulls.
+However, in addition to having a non-negligible CPU cost, that solution cannot produce accurate results in several situations, e.g. intersecting geometry or meshes with concave hulls.
 
 OIT is a family of GPU techniques that removes the need of sorting geometry before rendering.
 Some algorithms produce accurate transparency rendering results, while others aim for fast approximations.
@@ -42,12 +42,18 @@ Algorithms are kept separated on purpose, so that each algorithm can be studied 
 
 The following algorithms are currently supported.
 
-| Algorithm                           | Type              | Additional options      | References
-| ---                                 | ---               | ---                     |---
-| Unsorted over                       | Approximate       | Split draw calls for back/front faces | [PD1984]
-| Weighted sum                        | Approximate       | | [MK2007], [BM2008]
-| Weighted average                    | Approximate       | | [BM2008]
-| Weighted average with coverage      | Approximate       | | [BM2008], [MB2013]
+| ID    |Algorithm                           | Type              | Additional options      | References
+| ---   | ---                                | ---               | ---                     | ---
+| 0     |Unsorted over                       | Approximate       | Split draw calls for back/front faces | [PD1984]
+| 1     |Weighted sum                        | Approximate       | | [MK2007], [BM2008]
+| 2     |Weighted average                    | Approximate       | | [BM2008]
+| 3     |Weighted average with coverage      | Approximate       | | [BM2008], [MB2013]
+
+## Command line options
+
+| Option                | Description
+| ---                   | ---
+| algorithm <ID>        | Specify the selected algorithm when the application starts
 
 ## References
 

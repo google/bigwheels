@@ -12,14 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO Cleanup objects
-// TODO Several meshes on top of each other
-// TODO Control clear color from ImGui
+// TODO Several meshes on top of each other (including opaque ones)
 // TODO Choice of cubemaps as background
+// TODO Add WeightedAverage with depth
+// TODO Add Depth peeling (basic and dual)
+// TODO Add buffer-based algorithms
 
 #include "OITDemoApplication.h"
 #include "ppx/graphics_util.h"
 #include "shaders/Common.hlsli"
+
+OITDemoApp::GuiParameters::GuiParameters()
+    : meshOpacity(1.0f), algorithmDataIndex(0), displayBackground(true), faceMode(FACE_MODE_ALL), weightedAverageType(WEIGHTED_AVERAGE_TYPE_FRAGMENT_COUNT)
+{
+    backgroundColor[0] = 0.51f;
+    backgroundColor[1] = 0.71f;
+    backgroundColor[2] = 0.85f;
+}
 
 void OITDemoApp::Config(ppx::ApplicationSettings& settings)
 {
@@ -30,9 +39,7 @@ void OITDemoApp::Config(ppx::ApplicationSettings& settings)
 
     settings.grfx.swapchain.colorFormat = grfx::FORMAT_B8G8R8A8_UNORM;
 
-#if defined(USE_DX11)
-    settings.grfx.api = grfx::API_DX_11_1;
-#elif defined(USE_DX12)
+#if defined(USE_DX12)
     settings.grfx.api = grfx::API_DX_12_0;
 #elif defined(USE_VK)
     settings.grfx.api = grfx::API_VK_1_1;
@@ -78,6 +85,15 @@ void OITDemoApp::SetupCommon()
         createInfo.structuredBuffer               = 16;
         createInfo.storageTexelBuffer             = 16;
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&createInfo, &mDescriptorPool));
+    }
+
+    // Sampler
+    {
+        grfx::SamplerCreateInfo createInfo = {};
+        createInfo.magFilter               = grfx::FILTER_NEAREST;
+        createInfo.minFilter               = grfx::FILTER_NEAREST;
+        createInfo.mipmapMode              = grfx::SAMPLER_MIPMAP_MODE_NEAREST;
+        PPX_CHECKED_CALL(GetDevice()->CreateSampler(&createInfo, &mNearestSampler));
     }
 
     // Meshes
@@ -214,24 +230,29 @@ void OITDemoApp::SetupCommon()
     // Descriptor
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{NEAREST_SAMPLER_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{OPAQUE_TEXTURE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{TRANSPARENCY_TEXTURE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mCompositeDescriptorSetLayout));
         PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mCompositeDescriptorSetLayout, &mCompositeDescriptorSet));
 
-        grfx::WriteDescriptor writes[2] = {};
+        grfx::WriteDescriptor writes[3] = {};
 
-        writes[0].binding    = OPAQUE_TEXTURE_REGISTER;
-        writes[0].arrayIndex = 0;
-        writes[0].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        writes[0].pImageView = mOpaquePass->GetRenderTargetTexture(0)->GetSampledImageView();
+        writes[0].binding  = NEAREST_SAMPLER_REGISTER;
+        writes[0].type     = grfx::DESCRIPTOR_TYPE_SAMPLER;
+        writes[0].pSampler = mNearestSampler;
 
-        writes[1].binding    = TRANSPARENCY_TEXTURE_REGISTER;
+        writes[1].binding    = OPAQUE_TEXTURE_REGISTER;
         writes[1].arrayIndex = 0;
         writes[1].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        writes[1].pImageView = mTransparencyTexture->GetSampledImageView();
+        writes[1].pImageView = mOpaquePass->GetRenderTargetTexture(0)->GetSampledImageView();
 
-        PPX_CHECKED_CALL(mCompositeDescriptorSet->UpdateDescriptors(2, writes));
+        writes[2].binding    = TRANSPARENCY_TEXTURE_REGISTER;
+        writes[2].arrayIndex = 0;
+        writes[2].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        writes[2].pImageView = mTransparencyTexture->GetSampledImageView();
+
+        PPX_CHECKED_CALL(mCompositeDescriptorSet->UpdateDescriptors(3, writes));
     }
 
     // Pipeline
@@ -286,7 +307,16 @@ void OITDemoApp::FillSupportedAlgorithmData()
     AddSupportedAlgorithm("Weighted sum", ALGORITHM_WEIGHTED_SUM);
     if (GetDevice()->IndependentBlendingSupported()) {
         AddSupportedAlgorithm("Weighted average", ALGORITHM_WEIGHTED_AVERAGE);
-        AddSupportedAlgorithm("Weighted average with coverage", ALGORITHM_WEIGHTED_AVERAGE_WITH_COVERAGE);
+    }
+}
+
+void OITDemoApp::SetDefaultAlgorithmIndex(Algorithm defaultAlgorithm)
+{
+    for (size_t i = 0; i < mSupportedAlgorithmIds.size(); ++i) {
+        if (mSupportedAlgorithmIds[i] == defaultAlgorithm) {
+            mGuiParameters.algorithmDataIndex = static_cast<int32_t>(i);
+            break;
+        }
     }
 }
 
@@ -295,10 +325,15 @@ void OITDemoApp::Setup()
     SetupCommon();
     FillSupportedAlgorithmData();
 
+    {
+        const CliOptions& cliOptions       = GetExtraOptions();
+        const Algorithm   defaultAlgorithm = static_cast<Algorithm>(cliOptions.GetExtraOptionValueOrDefault("algorithm", static_cast<int32_t>(ALGORITHM_UNSORTED_OVER)));
+        SetDefaultAlgorithmIndex(defaultAlgorithm);
+    }
+
     SetupUnsortedOver();
     SetupWeightedSum();
     SetupWeightedAverage();
-    SetupWeightedAverageWithCoverage();
 }
 
 void OITDemoApp::Update()
@@ -359,6 +394,16 @@ void OITDemoApp::Update()
                 ImGui::Combo("Face draw mode", reinterpret_cast<int32_t*>(&mGuiParameters.faceMode), faceModeChoices, IM_ARRAYSIZE(faceModeChoices));
                 break;
             }
+            case ALGORITHM_WEIGHTED_AVERAGE: {
+                const char* typeChoices[] =
+                    {
+                        "Fragment count",
+                        "Exact coverage",
+                    };
+                static_assert(IM_ARRAYSIZE(typeChoices) == WEIGHTED_AVERAGE_TYPES_COUNT, "Weighted average types count mismatch");
+                ImGui::Combo("Type", reinterpret_cast<int32_t*>(&mGuiParameters.weightedAverageType), typeChoices, IM_ARRAYSIZE(typeChoices));
+                break;
+            }
             default: {
                 break;
             }
@@ -408,9 +453,6 @@ void OITDemoApp::RecordTransparency()
             break;
         case ALGORITHM_WEIGHTED_AVERAGE:
             RecordWeightedAverage();
-            break;
-        case ALGORITHM_WEIGHTED_AVERAGE_WITH_COVERAGE:
-            RecordWeightedAverageWithCoverage();
             break;
         default:
             PPX_ASSERT_MSG(false, "unknown algorithm");

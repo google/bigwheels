@@ -12,56 +12,76 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(INCLUDE_FILES
+set(COMMON_INCLUDE_FILES
     "${PPX_DIR}/assets/oit_demo/shaders/Common.hlsli")
+
+set(TRANSPARENCY_INCLUDE_FILES
+    ${COMMON_INCLUDE_FILES}
+    "${PPX_DIR}/assets/oit_demo/shaders/TransparencyVS.hlsli")
+
+set(FULLSCREEN_INCLUDE_FILES
+    ${COMMON_INCLUDE_FILES}
+    "${PPX_DIR}/assets/oit_demo/shaders/FullscreenVS.hlsli")
+
+################################################################################
 
 generate_rules_for_shader(
     "opaque"
     SOURCE "${PPX_DIR}/assets/oit_demo/shaders/Opaque.hlsl"
-    INCLUDES ${INCLUDE_FILES}
+    INCLUDES ${COMMON_INCLUDE_FILES}
     STAGES "ps" "vs")
 
 generate_rules_for_shader(
     "unsorted_over"
     SOURCE "${PPX_DIR}/assets/oit_demo/shaders/UnsortedOver.hlsl"
-    INCLUDES ${INCLUDE_FILES}
+    INCLUDES ${TRANSPARENCY_INCLUDE_FILES}
     STAGES "ps" "vs")
 
 generate_rules_for_shader(
     "weighted_sum"
 	SOURCE "${PPX_DIR}/assets/oit_demo/shaders/WeightedSum.hlsl"
-    INCLUDES ${INCLUDE_FILES}
+    INCLUDES ${TRANSPARENCY_INCLUDE_FILES}
     STAGES "ps" "vs")
 
 generate_rules_for_shader(
-    "weighted_average_gather"
-    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/WeightedAverageGather.hlsl"
-    INCLUDES ${INCLUDE_FILES}
+    "weighted_average_fragment_count_gather"
+    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/WeightedAverageFragmentCountGather.hlsl"
+    INCLUDES
+    ${TRANSPARENCY_INCLUDE_FILES}
+    "${PPX_DIR}/assets/oit_demo/shaders/WeightedAverageGather.hlsli"
     STAGES "ps" "vs")
 
 generate_rules_for_shader(
-    "weighted_average_combine"
-	SOURCE "${PPX_DIR}/assets/oit_demo/shaders/WeightedAverageCombine.hlsl"
-    INCLUDES ${INCLUDE_FILES}
+    "weighted_average_fragment_count_combine"
+    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/WeightedAverageFragmentCountCombine.hlsl"
+    INCLUDES
+    ${FULLSCREEN_INCLUDE_FILES}
+    "${PPX_DIR}/assets/oit_demo/shaders/WeightedAverageCombine.hlsli"
     STAGES "ps" "vs")
 
 generate_rules_for_shader(
     "weighted_average_with_coverage_gather"
-    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/WeightedAverageWithCoverageGather.hlsl"
-    INCLUDES ${INCLUDE_FILES}
+    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/WeightedAverageExactCoverageGather.hlsl"
+    INCLUDES
+    ${TRANSPARENCY_INCLUDE_FILES}
+    "${PPX_DIR}/assets/oit_demo/shaders/WeightedAverageGather.hlsli"
     STAGES "ps" "vs")
 
 generate_rules_for_shader(
     "weighted_average_with_coverage_combine"
-    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/WeightedAverageWithCoverageCombine.hlsl"
-    INCLUDES ${INCLUDE_FILES}
+    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/WeightedAverageExactCoverageCombine.hlsl"
+    INCLUDES
+    ${FULLSCREEN_INCLUDE_FILES}
+    "${PPX_DIR}/assets/oit_demo/shaders/WeightedAverageCombine.hlsli"
     STAGES "ps" "vs")
 
 generate_rules_for_shader(
     "composite"
     SOURCE "${PPX_DIR}/assets/oit_demo/shaders/Composite.hlsl"
-    INCLUDES ${INCLUDE_FILES}
+    INCLUDES ${FULLSCREEN_INCLUDE_FILES}
     STAGES "ps" "vs")
+
+################################################################################
 
 generate_group_rule_for_shader(
     "shader_oit_demo"
@@ -69,6 +89,10 @@ generate_group_rule_for_shader(
     "opaque"
     "unsorted_over"
     "weighted_sum"
+    "weighted_average_fragment_count_gather"
+    "weighted_average_fragment_count_combine"
+    "weighted_average_exact_coverage_gather"
+    "weighted_average_exact_coverage_combine"
     "composite"
 )
 

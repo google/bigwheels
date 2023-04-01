@@ -30,7 +30,6 @@ private:
         ALGORITHM_UNSORTED_OVER,
         ALGORITHM_WEIGHTED_SUM,
         ALGORITHM_WEIGHTED_AVERAGE,
-        ALGORITHM_WEIGHTED_AVERAGE_WITH_COVERAGE,
         ALGORITHMS_COUNT,
     };
 
@@ -43,21 +42,27 @@ private:
         FACE_MODES_COUNT,
     };
 
+    enum WeightAverageType : int32_t
+    {
+        WEIGHTED_AVERAGE_TYPE_FRAGMENT_COUNT,
+        WEIGHTED_AVERAGE_TYPE_EXACT_COVERAGE,
+        WEIGHTED_AVERAGE_TYPES_COUNT,
+    };
+
     struct GuiParameters
     {
-        GuiParameters()
-            : meshOpacity(1.0f), algorithmDataIndex(0), faceMode(FACE_MODE_ALL), displayBackground(true)
-        {
-            backgroundColor[0] = 0.51f;
-            backgroundColor[1] = 0.71f;
-            backgroundColor[2] = 0.85f;
-        }
+        GuiParameters();
 
-        float    meshOpacity;
-        int32_t  algorithmDataIndex;
+        float   meshOpacity;
+        int32_t algorithmDataIndex;
+        float   backgroundColor[3];
+        bool    displayBackground;
+
+        // Unsorted over
         FaceMode faceMode;
-        float    backgroundColor[3];
-        bool     displayBackground;
+
+        // Weighted average
+        WeightAverageType weightedAverageType;
     };
 
     std::vector<const char*> mSupportedAlgorithmNames;
@@ -69,10 +74,10 @@ private:
     void SetupUnsortedOver();
     void SetupWeightedSum();
     void SetupWeightedAverage();
-    void SetupWeightedAverageWithCoverage();
 
     void      FillSupportedAlgorithmData();
     void      AddSupportedAlgorithm(const char* name, Algorithm algorithm);
+    void      SetDefaultAlgorithmIndex(Algorithm defaultAlgorithm);
     Algorithm GetSelectedAlgorithm() const;
 
     void Update();
@@ -81,7 +86,6 @@ private:
     void RecordUnsortedOver();
     void RecordWeightedSum();
     void RecordWeightedAverage();
-    void RecordWeightedAverageWithCoverage();
     void RecordTransparency();
     void RecordComposite(grfx::RenderPassPtr renderPass);
 
@@ -95,6 +99,8 @@ private:
 
     grfx::CommandBufferPtr  mCommandBuffer;
     grfx::DescriptorPoolPtr mDescriptorPool;
+
+    grfx::SamplerPtr mNearestSampler;
 
     grfx::MeshPtr mBackgroundMesh;
     grfx::MeshPtr mMonkeyMesh;
@@ -137,35 +143,31 @@ private:
 
     struct
     {
-        grfx::TexturePtr  colorTexture;
-        grfx::TexturePtr  countTexture;
-        grfx::DrawPassPtr gatherPass;
+        grfx::TexturePtr colorTexture;
+        grfx::TexturePtr extraTexture;
 
         grfx::DescriptorSetLayoutPtr gatherDescriptorSetLayout;
         grfx::DescriptorSetPtr       gatherDescriptorSet;
         grfx::PipelineInterfacePtr   gatherPipelineInterface;
-        grfx::GraphicsPipelinePtr    gatherPipeline;
 
         grfx::DescriptorSetLayoutPtr combineDescriptorSetLayout;
         grfx::DescriptorSetPtr       combineDescriptorSet;
         grfx::PipelineInterfacePtr   combinePipelineInterface;
-        grfx::GraphicsPipelinePtr    combinePipeline;
+
+        struct
+        {
+            grfx::DrawPassPtr         gatherPass;
+            grfx::GraphicsPipelinePtr gatherPipeline;
+
+            grfx::GraphicsPipelinePtr combinePipeline;
+        } count;
+
+        struct
+        {
+            grfx::DrawPassPtr         gatherPass;
+            grfx::GraphicsPipelinePtr gatherPipeline;
+
+            grfx::GraphicsPipelinePtr combinePipeline;
+        } coverage;
     } mWeightedAverage;
-
-    struct
-    {
-        grfx::TexturePtr  colorTexture;
-        grfx::TexturePtr  coverageTexture;
-        grfx::DrawPassPtr gatherPass;
-
-        grfx::DescriptorSetLayoutPtr gatherDescriptorSetLayout;
-        grfx::DescriptorSetPtr       gatherDescriptorSet;
-        grfx::PipelineInterfacePtr   gatherPipelineInterface;
-        grfx::GraphicsPipelinePtr    gatherPipeline;
-
-        grfx::DescriptorSetLayoutPtr combineDescriptorSetLayout;
-        grfx::DescriptorSetPtr       combineDescriptorSet;
-        grfx::PipelineInterfacePtr   combinePipelineInterface;
-        grfx::GraphicsPipelinePtr    combinePipeline;
-    } mWeightedAverageWithCoverage;
 };
