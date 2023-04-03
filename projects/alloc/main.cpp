@@ -39,7 +39,6 @@ private:
 void ProjApp::Config(ppx::ApplicationSettings& settings)
 {
     settings.appName          = "alloc";
-    settings.enableImGui      = true;
     settings.grfx.api         = kApi;
     settings.grfx.enableDebug = false;
 #if defined(USE_DXIL)
@@ -77,7 +76,7 @@ Result ProjApp::TryAllocateRange(uint32_t rangeStart, uint32_t rangeEnd, uint32_
         bufferCreateInfo.size                   = i;
         bufferCreateInfo.usageFlags.flags       = usageFlags;
         bufferCreateInfo.memoryUsage            = grfx::MEMORY_USAGE_CPU_TO_GPU;
-        //        bufferCreateInfo.initialState                 = grfx::RESOURCE_STATE_UNIFORM_BUFFER;
+
         // We allocate a buffer of size i and see if it succeeds. If there's
         // a change, we print the range of unchanging success/failure runs
         // that came before.
@@ -95,7 +94,10 @@ Result ProjApp::TryAllocateRange(uint32_t rangeStart, uint32_t rangeEnd, uint32_
         }
         state = didSucceed;
         last  = i;
-        GetDevice()->DestroyBuffer(buffer);
+
+        if (buffer) {
+            GetDevice()->DestroyBuffer(buffer);
+        }
     }
     PrintRange(state, first, last);
     return ppx::SUCCESS;
@@ -111,26 +113,26 @@ void ProjApp::Setup()
 {
     grfx::BufferUsageFlags usageFlags;
 
-    Range range = {4, 256 * 1024 * 1024}; // 4, 256MB
-    fprintf(stderr, "Trying uniform buffer allocations in [%d %d] in powers of 2.\n", range.start, range.end);
+    Range range = {PPX_MINIMUM_UNIFORM_BUFFER_SIZE, 256 * 1024 * 1024};
+    fprintf(stderr, "Trying uniform buffer allocations in [%d, %d] in powers of 2.\n", range.start, range.end);
     usageFlags.bits.uniformBuffer = 1;
     TryAllocateRange(range.start, range.end, usageFlags);
 
-    range.start = 4;
-    range.end   = 256;
-
+    range            = {4, 256};
     usageFlags.flags = 0;
-    fprintf(stderr, "Trying storage texel buffer allocations in [%d %d] in powers of 2.\n", range.start, range.end);
+    fprintf(stderr, "Trying storage texel buffer allocations in [%d, %d] in powers of 2.\n", range.start, range.end);
     usageFlags.bits.storageTexelBuffer = 1;
     TryAllocateRange(range.start, range.end, usageFlags);
     usageFlags.flags = 0;
-    fprintf(stderr, "Trying storage buffer allocations in [%d %d] in powers of 2.\n", range.start, range.end);
+    fprintf(stderr, "Trying storage buffer allocations in [%d, %d] in powers of 2.\n", range.start, range.end);
     usageFlags.bits.rawStorageBuffer = 1;
     TryAllocateRange(range.start, range.end, usageFlags);
     usageFlags.flags = 0;
-    fprintf(stderr, "Trying uniform texel buffer allocations in [%d %d] in powers of 2.\n", range.start, range.end);
+    fprintf(stderr, "Trying uniform texel buffer allocations in [%d, %d] in powers of 2.\n", range.start, range.end);
     usageFlags.bits.uniformTexelBuffer = 1;
     TryAllocateRange(range.start, range.end, usageFlags);
+
+    Quit();
 }
 
 void ProjApp::Render()
