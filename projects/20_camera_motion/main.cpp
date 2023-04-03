@@ -745,8 +745,7 @@ void ProjApp::Render()
             }
 
             // Draw ImGui
-            DrawDebugInfo([this]() { this->DrawCameraInfo(); });
-            DrawInstructions();
+            DrawDebugInfo([this]() { DrawCameraInfo(); DrawInstructions(); });
             DrawImGui(frame.cmd);
         }
         frame.cmd->EndRenderPass();
