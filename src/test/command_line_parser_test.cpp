@@ -44,7 +44,7 @@ TEST(CommandLineParserTest, FirstArgumentIgnored)
 TEST(CommandLineParserTest, StandardOptionsSuccessfullyParsed)
 {
     CommandLineParser parser;
-    const char*       args[] = {"/path/to/executable", "--help", "--list-gpus", "--gpu", "5", "--resolution", "1920x1080", "--frame-count", "11", "--use-software-renderer", "--screenshot-frame-number", "321", "--screenshot-out-dir", "/path/to/screenshot/dir"};
+    const char*       args[] = {"/path/to/executable", "--help", "--list-gpus", "--gpu", "5", "--resolution", "1920x1080", "--frame-count", "11", "--use-software-renderer", "--screenshot-frame-number", "321", "--screenshot-path", "/path/to/screenshot/dir/filename"};
     EXPECT_FALSE(parser.Parse(14, args));
 
     StandardOptions wantOptions;
@@ -55,7 +55,7 @@ TEST(CommandLineParserTest, StandardOptionsSuccessfullyParsed)
     wantOptions.frame_count           = 11;
     wantOptions.use_software_renderer = true;
     wantOptions.screenshot_frame_number = 321;
-    wantOptions.screenshot_out_dir      = "/path/to/screenshot/dir";
+    wantOptions.screenshot_path         = "/path/to/screenshot/dir/filename";
 
     EXPECT_EQ(parser.GetOptions().GetStandardOptions(), wantOptions);
     EXPECT_EQ(parser.GetOptions().GetNumExtraOptions(), 0);
