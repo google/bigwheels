@@ -127,11 +127,11 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
             }
             mOpts.standardOptions.screenshot_frame_number = opt.GetValueOrDefault<int>(-1);
         }
-        else if (opt.GetName() == "screenshot-out-dir") {
+        else if (opt.GetName() == "screenshot-path") {
             if (!opt.HasValue()) {
-                return std::string("Command-line option --screenshot-out-dir requires a parameter");
+                return std::string("Command-line option --screenshot-path requires a parameter");
             }
-            mOpts.standardOptions.screenshot_out_dir = opt.GetValueOrDefault<std::string>("");
+            mOpts.standardOptions.screenshot_path = opt.GetValueOrDefault<std::string>("");
         }
         else {
             // Non-standard option.
