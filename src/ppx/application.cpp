@@ -1128,8 +1128,14 @@ void Application::TakeScreenshot()
     unsigned char* texels = nullptr;
     screenshotBuf->MapMemory(0, (void**)&texels);
 
-    std::string filename = "screenshot_frame" + std::to_string(mFrameCount) + ".ppm";
-    std::string filepath = (std::filesystem::path(mStandardOptions.screenshot_out_dir) / filename).string();
+    std::string filepath;
+    if (mStandardOptions.screenshot_filepath.empty()) {
+        std::string filename = "screenshot_frame" + std::to_string(mFrameCount) + ".ppm";
+        filepath             = (std::filesystem::path(mStandardOptions.screenshot_out_dir) / filename).string();
+    }
+    else {
+        filepath = std::filesystem::path(mStandardOptions.screenshot_filepath).string();
+    }
     PPX_CHECKED_CALL(ExportToPPM(filepath, swapchainImg->GetFormat(), texels, width, height, outPitch.rowPitch));
 
     screenshotBuf->UnmapMemory();

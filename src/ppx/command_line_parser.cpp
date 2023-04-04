@@ -133,12 +133,21 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
             }
             mOpts.standardOptions.screenshot_out_dir = opt.GetValueOrDefault<std::string>("");
         }
+        else if (opt.GetName() == "screenshot-filepath") {
+            if (!opt.HasValue()) {
+                return std::string("Command-line option --screenshot-filepath requires a parameter");
+            }
+            mOpts.standardOptions.screenshot_filepath = opt.GetValueOrDefault<std::string>("");
+        }
         else {
             // Non-standard option.
             mOpts.AddExtraOption(opt);
         }
     }
 
+    if (!mOpts.standardOptions.screenshot_filepath.empty()) {
+        mOpts.standardOptions.screenshot_out_dir.clear();
+    }
     return std::nullopt;
 }
 

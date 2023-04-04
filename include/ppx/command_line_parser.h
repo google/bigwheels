@@ -43,6 +43,7 @@ struct StandardOptions
 
     int         screenshot_frame_number                  = -1;
     std::string screenshot_out_dir                       = "";
+    std::string screenshot_filepath                      = "";
     bool        operator==(const StandardOptions&) const = default;
 };
 
@@ -174,8 +175,10 @@ private:
 --screenshot-frame-number <N> Take a screenshot of frame number N and save it in PPM format, in the directory specified by --screenshot-out-dir.
                               The file name will be "screenshot_frameN".
 --screenshot-out-dir <path>   The path to the directory where the screenshot will be saved in (see --screenshot-frame-number).
-                              Default: working directory.
+                              Default: working directory. Ignored if `--screenshot-filepath` is set.
 --use-software-renderer       Use a software renderer instead of a hardware device, if available.
+--headless                    Run the sample without creating windows.
+--screenshot-filepath         Save the screenshot to this specif path. If is ignored `--screenshot-out-dir` if also set.
 )";
 };
 } // namespace ppx
