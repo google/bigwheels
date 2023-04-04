@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,28 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#define WEIGHTED_AVERAGE_FRAGMENT_COUNT
+#include "WeightedAverageCombine.hlsli"
 
-struct TransformData
-{
-    float4x4 M;
-};
-
-ConstantBuffer<TransformData> Transform : register(b0);
-
-struct VSOutput {
-	float4 Position : SV_POSITION;
-	float3 Color    : COLOR;
-};
-
-VSOutput vsmain(float4 Position : POSITION, float3 Color : COLOR)
-{
-	VSOutput result;
-	result.Position = mul(Transform.M, Position);
-	result.Color = Color;
-	return result;
-}
-
-float4 psmain(VSOutput input) : SV_TARGET
-{
-	return float4(input.Color, 1);
-}

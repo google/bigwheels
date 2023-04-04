@@ -1728,7 +1728,7 @@ void Application::DrawDebugInfo(std::function<void(void)> drawAdditionalFn)
 
         ImGui::Separator();
 
-        // Average FPS
+        // Frame count
         {
             ImGui::Text("Frame Count");
             ImGui::NextColumn();
