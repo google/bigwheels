@@ -368,6 +368,15 @@ void OITDemoApp::Update()
         mShaderGlobalsBuffer->CopyFromSource(sizeof(shaderGlobals), &shaderGlobals);
     }
 
+    UpdateGUI();
+}
+
+void OITDemoApp::UpdateGUI()
+{
+    if (!GetSettings()->enableImGui) {
+        return;
+    }
+
     // GUI
     if (ImGui::Begin("Parameters")) {
         ImGui::Combo("Algorithm", &mGuiParameters.algorithmDataIndex, mSupportedAlgorithmNames.data(), static_cast<int>(mSupportedAlgorithmNames.size()));

@@ -81,6 +81,7 @@ private:
     Algorithm GetSelectedAlgorithm() const;
 
     void Update();
+    void UpdateGUI();
 
     void RecordOpaque();
     void RecordUnsortedOver();
