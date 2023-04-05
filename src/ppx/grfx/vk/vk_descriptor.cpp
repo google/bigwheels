@@ -234,7 +234,7 @@ Result DescriptorSet::UpdateDescriptors(uint32_t writeCount, const grfx::WriteDe
         VkWriteDescriptorSet& vkWrite = mWriteStore[mWriteCount];
         vkWrite                       = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
         vkWrite.dstSet                = mDescriptorSet;
-        vkWrite.dstBinding            = srcWrite.binding;
+        vkWrite.dstBinding            = srcWrite.binding + srcWrite.arrayIndex;
         vkWrite.dstArrayElement       = 0;
         vkWrite.descriptorCount       = 1;
         vkWrite.descriptorType        = descriptorType;
