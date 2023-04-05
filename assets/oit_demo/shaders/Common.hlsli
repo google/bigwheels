@@ -18,22 +18,34 @@
 #define SHADER_REGISTER(type, num) num
 #endif
 
-#define NEAREST_SAMPLER_REGISTER      SHADER_REGISTER(s, 0)
-#define SHADER_GLOBALS_REGISTER       SHADER_REGISTER(b, 1)
-#define OPAQUE_TEXTURE_REGISTER       SHADER_REGISTER(t, 2)
-#define TRANSPARENCY_TEXTURE_REGISTER SHADER_REGISTER(t, 3)
-#define CUSTOM_TEXTURE_0_REGISTER     SHADER_REGISTER(t, 4)
-#define CUSTOM_TEXTURE_1_REGISTER     SHADER_REGISTER(t, 5)
+#define SHADER_GLOBALS_REGISTER       SHADER_REGISTER(b, 0)
+#define CUSTOM_SAMPLER_0_REGISTER     SHADER_REGISTER(s, 1)
+#define CUSTOM_SAMPLER_1_REGISTER     SHADER_REGISTER(s, 2)
+#define CUSTOM_TEXTURE_0_REGISTER     SHADER_REGISTER(t, 3)
+#define CUSTOM_TEXTURE_1_REGISTER     SHADER_REGISTER(t, 4)
+#define CUSTOM_TEXTURE_2_REGISTER     SHADER_REGISTER(t, 5)
+#define CUSTOM_TEXTURE_3_REGISTER     SHADER_REGISTER(t, 6)
+#define CUSTOM_TEXTURE_4_REGISTER     SHADER_REGISTER(t, 7)
+#define CUSTOM_TEXTURE_5_REGISTER     SHADER_REGISTER(t, 8)
+#define CUSTOM_TEXTURE_6_REGISTER     SHADER_REGISTER(t, 9)
+#define CUSTOM_TEXTURE_7_REGISTER     SHADER_REGISTER(t, 10)
 
 #define EPSILON 0.0001f
+
+#define DEPTH_PEELING_LAYERS_COUNT          8
+#define DEPTH_PEELING_DEPTH_TEXTURES_COUNT  2
+
+#define meshOpacity                     meshParameters.x
+#define depthPeelingFrontLayerIndex     depthPeelingParameters.x
+#define depthPeelingBackLayerIndex      depthPeelingParameters.y
 
 struct ShaderGlobals
 {
     float4x4 backgroundMVP;
     float4   backgroundColor;
-
     float4x4 meshMVP;
-    float    meshOpacity;
+    float4   meshParameters;
+    int4     depthPeelingParameters;
 };
 
 #if defined(IS_SHADER)

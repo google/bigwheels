@@ -557,7 +557,7 @@ VkImageUsageFlags ToVkImageUsageFlags(const grfx::ImageUsageFlags& value)
     if (value.bits.storage               ) flags |= VK_IMAGE_USAGE_STORAGE_BIT;
     if (value.bits.colorAttachment       ) flags |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     if (value.bits.depthStencilAttachment) flags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-    if (value.bits.transientAattachment  ) flags |= VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
+    if (value.bits.transientAttachment   ) flags |= VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
     if (value.bits.inputAttachment       ) flags |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
     if (value.bits.shadingRateImageNv    ) flags |= VK_IMAGE_USAGE_SHADING_RATE_IMAGE_BIT_NV;
     if (value.bits.fragmentDensityMap    ) flags |= VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT;

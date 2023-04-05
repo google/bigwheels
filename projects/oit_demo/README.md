@@ -33,7 +33,7 @@ The A channel must specify the coverage, i.e. how much of the background is obsc
 
 The formula used to compute the final color during the composite pass is:
 
-    final_color = transparent_color + (1 - coverage) * opaque_color
+    final_color = transparent_RGB + (1 - coverage) * opaque_RGB
 
 ## Algorithms
 
@@ -42,18 +42,42 @@ Algorithms are kept separated on purpose, so that each algorithm can be studied 
 
 The following algorithms are currently supported.
 
-| ID    |Algorithm                           | Type              | Additional options      | References
-| ---   | ---                                | ---               | ---                     | ---
-| 0     |Unsorted over                       | Approximate       | Split draw calls for back/front faces | [PD1984]
-| 1     |Weighted sum                        | Approximate       | | [MK2007], [BM2008]
-| 2     |Weighted average                    | Approximate       | | [BM2008]
-| 3     |Weighted average with coverage      | Approximate       | | [BM2008], [MB2013]
+|ID    |Algorithm                           |Type              |References
+|:---  |:---                                |:---              |:---
+|0     |Unsorted over                       |Approximate       |[PD1984]
+|1     |Weighted sum                        |Approximate       |[MK2007], [BM2008]
+|2     |Weighted average                    |Approximate       |[BM2008]
+|3     |Depth peeling                       |Exact             |[EC2001], [BM2008]
+
+## Meshes
+
+The following meshes are available as transparent objects.
+
+|ID    |Mesh
+|:---  |:---
+|0     |Monkey
+|1     |Horse
+|2     |Megaphone
+|3     |Cannon
 
 ## Command line options
 
-| Option                | Description
-| ---                   | ---
-| algorithm <ID>        | Specify the selected algorithm when the application starts
+The following command line options are available.
+
+|Option                |Description                                   |Algorithm           |Value
+|:---                  |:---                                          |:---                |:---
+|algorithm <ID>        |Select the OIT algorithm                      |All                 |Algorithm ID (see [Algorithms](algorithms))
+|bg_display            |Turns the background on/off                   |All                 |True or false
+|bg_red                |Set the red channel of the background color   |All                 |0.0 to 1.0
+|bg_green              |Set the green channel of the background color |All                 |0.0 to 1.0
+|bg_blue               |Set the blue channel of the background color  |All                 |0.0 to 1.0
+|mo_mesh <ID>          |Select the mesh of the transparent model      |All                 |Mesh ID (see [Meshes](meshes))
+|mo_opacity <float>    |Set the opacity of the model                  |All                 |0.0 to 1.0
+|mo_scale <float>      |Set the scale of the model                    |All                 |1.0 to 5.0
+|uo_face_mode <int>    |Set the face mode                             |Unsorted over       |0 = all faces, 1 = back + front, 2 = back, 3 = front
+|wa_type <int>         |Select the average type                       |Weighted average    |0 = fragment count, 1 = exact coverage
+|dp_start_layer <int>  |Set the starting layer to draw                |Depth peeling       |0 to 7
+|dp_layers_count <int> |Set the number of layers to draw              |Depth peeling       |1 to 8
 
 ## References
 

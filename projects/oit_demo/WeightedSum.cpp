@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include "OITDemoApplication.h"
-#include "shaders/Common.hlsli"
 
 void OITDemoApp::SetupWeightedSum()
 {
@@ -50,7 +49,7 @@ void OITDemoApp::SetupWeightedSum()
         gpCreateInfo.VS                                                      = {VS, "vsmain"};
         gpCreateInfo.PS                                                      = {PS, "psmain"};
         gpCreateInfo.vertexInputState.bindingCount                           = 1;
-        gpCreateInfo.vertexInputState.bindings[0]                            = mMonkeyMesh->GetDerivedVertexBindings()[0];
+        gpCreateInfo.vertexInputState.bindings[0]                            = GetTransparentMesh()->GetDerivedVertexBindings()[0];
         gpCreateInfo.inputAssemblyState.topology                             = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         gpCreateInfo.rasterState.polygonMode                                 = grfx::POLYGON_MODE_FILL;
         gpCreateInfo.rasterState.cullMode                                    = grfx::CULL_MODE_NONE;
@@ -93,9 +92,9 @@ void OITDemoApp::RecordWeightedSum()
 
     mCommandBuffer->BindGraphicsDescriptorSets(mWeightedSum.pipelineInterface, 1, &mWeightedSum.descriptorSet);
     mCommandBuffer->BindGraphicsPipeline(mWeightedSum.pipeline);
-    mCommandBuffer->BindIndexBuffer(mMonkeyMesh);
-    mCommandBuffer->BindVertexBuffers(mMonkeyMesh);
-    mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
+    mCommandBuffer->BindIndexBuffer(GetTransparentMesh());
+    mCommandBuffer->BindVertexBuffers(GetTransparentMesh());
+    mCommandBuffer->DrawIndexed(GetTransparentMesh()->GetIndexCount());
 
     mCommandBuffer->EndRenderPass();
     mCommandBuffer->TransitionImageLayout(
