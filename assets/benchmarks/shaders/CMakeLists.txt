@@ -60,3 +60,13 @@ generate_rules_for_shader("shader_benchmarks_texture_load_4_textures"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/TextureLoad4Textures.hlsl"
     INCLUDES ${INCLUDE_FILES}
     STAGES "vs" "ps")
+
+generate_rules_for_shader("shader_benchmark_pbr_metallic_roughness"
+    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_PbrMetallicRoughness.hlsl"
+    INCLUDES ${INCLUDE_FILES}
+    STAGES "vs" "ps")
+
+generate_rules_for_shader("shader_benchmark_diffuse"
+    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_Diffuse.hlsl"
+    INCLUDES ${INCLUDE_FILES}
+    STAGES "vs" "ps")

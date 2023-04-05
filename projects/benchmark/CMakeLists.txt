@@ -18,4 +18,6 @@ project(benchmark)
 add_samples_for_all_apis(
     NAME ${PROJECT_NAME}
     SOURCES "main.cpp"
-    SHADER_DEPENDENCIES "shader_pbr_metallic_roughness")
+    SHADER_DEPENDENCIES
+      "shader_benchmark_pbr_metallic_roughness"
+      "shader_benchmark_diffuse")
