@@ -329,21 +329,21 @@ void OITDemoApp::ParseCommandLineOptions()
         }
     }
 
-    mGuiParameters.background.display = cliOptions.GetExtraOptionValueOrDefault("bg_display", true);
+    mGuiParameters.background.display  = cliOptions.GetExtraOptionValueOrDefault("bg_display", true);
     mGuiParameters.background.color[0] = std::clamp(cliOptions.GetExtraOptionValueOrDefault("bg_red", 0.51f), 0.0f, 1.0f);
     mGuiParameters.background.color[1] = std::clamp(cliOptions.GetExtraOptionValueOrDefault("bg_green", 0.71f), 0.0f, 1.0f);
     mGuiParameters.background.color[2] = std::clamp(cliOptions.GetExtraOptionValueOrDefault("bg_blue", 0.85f), 0.0f, 1.0f);
 
-    mGuiParameters.mesh.type    = static_cast<MeshType>(std::clamp(cliOptions.GetExtraOptionValueOrDefault("mo_mesh", 0), 0, MESH_TYPES_COUNT - 1));
-    mGuiParameters.mesh.opacity = std::clamp(cliOptions.GetExtraOptionValueOrDefault("mo_opacity", 1.0f), 0.0f, 1.0f);
-    mGuiParameters.mesh.scale   = std::clamp(cliOptions.GetExtraOptionValueOrDefault("mo_scale", MESH_SCALE_DEFAULT), MESH_SCALE_MIN, MESH_SCALE_MAX);
-    mGuiParameters.mesh.auto_rotate   = cliOptions.GetExtraOptionValueOrDefault("mo_auto_rotate", true);
+    mGuiParameters.mesh.type        = static_cast<MeshType>(std::clamp(cliOptions.GetExtraOptionValueOrDefault("mo_mesh", 0), 0, MESH_TYPES_COUNT - 1));
+    mGuiParameters.mesh.opacity     = std::clamp(cliOptions.GetExtraOptionValueOrDefault("mo_opacity", 1.0f), 0.0f, 1.0f);
+    mGuiParameters.mesh.scale       = std::clamp(cliOptions.GetExtraOptionValueOrDefault("mo_scale", MESH_SCALE_DEFAULT), MESH_SCALE_MIN, MESH_SCALE_MAX);
+    mGuiParameters.mesh.auto_rotate = cliOptions.GetExtraOptionValueOrDefault("mo_auto_rotate", true);
 
     mGuiParameters.unsortedOver.faceMode = static_cast<FaceMode>(std::clamp(cliOptions.GetExtraOptionValueOrDefault("uo_face_mode", 0), 0, FACE_MODES_COUNT - 1));
 
     mGuiParameters.weightedAverage.type = static_cast<WeightAverageType>(std::clamp(cliOptions.GetExtraOptionValueOrDefault("wa_type", 0), 0, WEIGHTED_AVERAGE_TYPES_COUNT - 1));
 
-    mGuiParameters.depthPeeling.startLayer = std::clamp(cliOptions.GetExtraOptionValueOrDefault("dp_start_layer", 0), 0, DEPTH_PEELING_LAYERS_COUNT - 1);
+    mGuiParameters.depthPeeling.startLayer  = std::clamp(cliOptions.GetExtraOptionValueOrDefault("dp_start_layer", 0), 0, DEPTH_PEELING_LAYERS_COUNT - 1);
     mGuiParameters.depthPeeling.layersCount = std::clamp(cliOptions.GetExtraOptionValueOrDefault("dp_layers_count", DEPTH_PEELING_LAYERS_COUNT), 1, DEPTH_PEELING_LAYERS_COUNT);
 }
 
