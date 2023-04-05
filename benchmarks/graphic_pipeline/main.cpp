@@ -77,10 +77,10 @@ private:
 
     struct Material
     {
-        grfx::PipelineInterfacePtr pInterface;
+        grfx::PipelineInterfacePtr                                      pInterface;
         std::array<grfx::GraphicsPipelinePtr, kAvailableShaders.size()> mPipelines;
-        grfx::DescriptorSetPtr     pDescriptorSet;
-        std::vector<Texture>       textures;
+        grfx::DescriptorSetPtr                                          pDescriptorSet;
+        std::vector<Texture>                                            textures;
     };
 
     struct Primitive
@@ -109,12 +109,12 @@ private:
     using RenderList   = std::unordered_map<Material*, std::vector<Object*>>;
     using TextureCache = std::unordered_map<std::string, grfx::ImagePtr>;
 
-    std::vector<PerFrame>        mPerFrame;
-    grfx::DescriptorPoolPtr      mDescriptorPool;
-    grfx::DescriptorSetLayoutPtr mSetLayout;
+    std::vector<PerFrame>                           mPerFrame;
+    grfx::DescriptorPoolPtr                         mDescriptorPool;
+    grfx::DescriptorSetLayoutPtr                    mSetLayout;
     std::array<ShaderSet, kAvailableShaders.size()> mShaderSets;
-    PerspCamera                  mCamera;
-    float3                       mLightPosition = float3(10, 100, 10);
+    PerspCamera                                     mCamera;
+    float3                                          mLightPosition = float3(10, 100, 10);
     BenchmarkSettings                               mBenchmarkSettings;
 
     std::vector<Material>  mMaterials;
@@ -177,7 +177,7 @@ private:
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
 {
-    settings.appName                    = "benchmark";
+    settings.appName                    = "graphic_pipeline";
     settings.enableImGui                = true;
     settings.window.width               = 1920;
     settings.window.height              = 1080;
