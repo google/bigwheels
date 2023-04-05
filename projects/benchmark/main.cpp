@@ -16,6 +16,7 @@
 #include <utility>
 #include <queue>
 #include <unordered_set>
+#include <array>
 
 #include "ppx/ppx.h"
 #include "ppx/timer.h"
@@ -33,6 +34,15 @@ const grfx::Api kApi = grfx::API_DX_12_0;
 #elif defined(USE_VK)
 const grfx::Api kApi = grfx::API_VK_1_1;
 #endif
+
+static constexpr std::array<const char*, 2> kAvailableShaders = {
+    "Benchmark_PbrMetallicRoughness",
+    "Benchmark_Diffuse"};
+
+struct BenchmarkSettings
+{
+    int32_t shaderIndex = 0;
+};
 
 class ProjApp
     : public ppx::Application
@@ -52,6 +62,12 @@ private:
         grfx::FencePtr         renderCompleteFence;
     };
 
+    struct ShaderSet
+    {
+        grfx::ShaderModulePtr vertexShader;
+        grfx::ShaderModulePtr pixelShader;
+    };
+
     struct Texture
     {
         grfx::ImagePtr            pImage;
@@ -62,7 +78,7 @@ private:
     struct Material
     {
         grfx::PipelineInterfacePtr pInterface;
-        grfx::GraphicsPipelinePtr  pPipeline;
+        std::array<grfx::GraphicsPipelinePtr, kAvailableShaders.size()> mPipelines;
         grfx::DescriptorSetPtr     pDescriptorSet;
         std::vector<Texture>       textures;
     };
@@ -96,10 +112,10 @@ private:
     std::vector<PerFrame>        mPerFrame;
     grfx::DescriptorPoolPtr      mDescriptorPool;
     grfx::DescriptorSetLayoutPtr mSetLayout;
-    grfx::ShaderModulePtr        mVertexShader;
-    grfx::ShaderModulePtr        mPixelShader;
+    std::array<ShaderSet, kAvailableShaders.size()> mShaderSets;
     PerspCamera                  mCamera;
     float3                       mLightPosition = float3(10, 100, 10);
+    BenchmarkSettings                               mBenchmarkSettings;
 
     std::vector<Material>  mMaterials;
     std::vector<Primitive> mPrimitives;
@@ -155,6 +171,8 @@ private:
         const std::unordered_map<const cgltf_primitive*, size_t>& primitiveToIndex,
         std::vector<Primitive>*                                   pPrimitives,
         std::vector<Material>*                                    pMaterials) const;
+
+    void UpdateGUI();
 };
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
@@ -254,34 +272,37 @@ void ProjApp::LoadMaterial(
     // This is to simplify the pipeline creation for now. Need to revisit later.
     PPX_ASSERT_MSG(material.has_pbr_metallic_roughness, "Only PBR metallic roughness supported for now.");
 
-    grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
-    piCreateInfo.setCount                          = 1;
-    piCreateInfo.sets[0].set                       = 0;
-    piCreateInfo.sets[0].pLayout                   = mSetLayout;
-    PPX_CHECKED_CALL(pDevice->CreatePipelineInterface(&piCreateInfo, &pOutput->pInterface));
+    for (size_t i = 0; i < kAvailableShaders.size(); i++) {
+        grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
+        piCreateInfo.setCount                          = 1;
+        piCreateInfo.sets[0].set                       = 0;
+        piCreateInfo.sets[0].pLayout                   = mSetLayout;
+        PPX_CHECKED_CALL(pDevice->CreatePipelineInterface(&piCreateInfo, &pOutput->pInterface));
 
-    grfx::GraphicsPipelineCreateInfo2 gpCreateInfo = {};
-    gpCreateInfo.VS                                = {mVertexShader.Get(), "vsmain"};
-    gpCreateInfo.PS                                = {mPixelShader.Get(), "psmain"};
-    // FIXME: assuming all primitives provides POSITION, UV, NORMAL and TANGENT. Might not be the case.
-    gpCreateInfo.vertexInputState.bindingCount      = 4;
-    gpCreateInfo.vertexInputState.bindings[0]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[0];
-    gpCreateInfo.vertexInputState.bindings[1]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[1];
-    gpCreateInfo.vertexInputState.bindings[2]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[2];
-    gpCreateInfo.vertexInputState.bindings[3]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[3];
-    gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
-    gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
-    gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
-    gpCreateInfo.depthReadEnable                    = true;
-    gpCreateInfo.depthWriteEnable                   = true;
-    gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
-    gpCreateInfo.outputState.renderTargetCount      = 1;
-    gpCreateInfo.outputState.renderTargetFormats[0] = pSwapchain->GetColorFormat();
-    gpCreateInfo.outputState.depthStencilFormat     = pSwapchain->GetDepthFormat();
-    gpCreateInfo.pPipelineInterface                 = pOutput->pInterface;
+        grfx::GraphicsPipelineCreateInfo2 gpCreateInfo = {};
+        gpCreateInfo.VS                                = {mShaderSets[i].vertexShader.Get(), "vsmain"};
+        gpCreateInfo.PS                                = {mShaderSets[i].pixelShader.Get(), "psmain"};
 
-    PPX_CHECKED_CALL(pDevice->CreateGraphicsPipeline(&gpCreateInfo, &pOutput->pPipeline));
+        // FIXME: assuming all primitives provides POSITION, UV, NORMAL and TANGENT. Might not be the case.
+        gpCreateInfo.vertexInputState.bindingCount      = 4;
+        gpCreateInfo.vertexInputState.bindings[0]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[0];
+        gpCreateInfo.vertexInputState.bindings[1]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[1];
+        gpCreateInfo.vertexInputState.bindings[2]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[2];
+        gpCreateInfo.vertexInputState.bindings[3]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[3];
+        gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
+        gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
+        gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
+        gpCreateInfo.depthReadEnable                    = true;
+        gpCreateInfo.depthWriteEnable                   = true;
+        gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
+        gpCreateInfo.outputState.renderTargetCount      = 1;
+        gpCreateInfo.outputState.renderTargetFormats[0] = pSwapchain->GetColorFormat();
+        gpCreateInfo.outputState.depthStencilFormat     = pSwapchain->GetDepthFormat();
+        gpCreateInfo.pPipelineInterface                 = pOutput->pInterface;
+
+        PPX_CHECKED_CALL(pDevice->CreateGraphicsPipeline(&gpCreateInfo, &pOutput->mPipelines[i]));
+    }
 
     pOutput->textures.resize(3);
     if (material.pbr_metallic_roughness.base_color_texture.texture == nullptr) {
@@ -601,6 +622,10 @@ void ProjApp::LoadNodes(
 
 void ProjApp::Setup()
 {
+    const auto& cl_options         = GetExtraOptions();
+    mBenchmarkSettings.shaderIndex = cl_options.GetExtraOptionValueOrDefault<int32_t>("shader-index", 0);
+    PPX_ASSERT_MSG(mBenchmarkSettings.shaderIndex >= 0 && mBenchmarkSettings.shaderIndex < kAvailableShaders.size(), "shader-index out of range.");
+
     // Cameras
     {
         mCamera = PerspCamera(60.0f, GetWindowAspect());
@@ -615,15 +640,19 @@ void ProjApp::Setup()
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&poolCreateInfo, &mDescriptorPool));
     }
 
-    std::vector<char> bytecode = LoadShader("basic/shaders", "PbrMetallicRoughness.vs");
-    PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
-    grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-    PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mVertexShader));
+    for (size_t i = 0; i < kAvailableShaders.size(); i++) {
+        const std::string shaderBaseName = kAvailableShaders[i];
 
-    bytecode = LoadShader("basic/shaders", "PbrMetallicRoughness.ps");
-    PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
-    shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-    PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPixelShader));
+        std::vector<char> bytecode = LoadShader("benchmarks/shaders", shaderBaseName + ".vs");
+        PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
+        grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mShaderSets[i].vertexShader));
+
+        bytecode = LoadShader("benchmarks/shaders", shaderBaseName + ".ps");
+        PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
+        shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mShaderSets[i].pixelShader));
+    }
 
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
@@ -703,8 +732,10 @@ void ProjApp::Setup()
         mPerFrame.push_back(frame);
     }
 
-    GetDevice()->DestroyShaderModule(mVertexShader);
-    GetDevice()->DestroyShaderModule(mPixelShader);
+    for (const auto& set : mShaderSets) {
+        GetDevice()->DestroyShaderModule(set.vertexShader);
+        GetDevice()->DestroyShaderModule(set.pixelShader);
+    }
 }
 
 void ProjApp::Render()
@@ -774,6 +805,8 @@ void ProjApp::Render()
         }
     }
 
+    UpdateGUI();
+
     // Build command buffer
     PPX_CHECKED_CALL(frame.cmd->Begin());
     {
@@ -792,7 +825,7 @@ void ProjApp::Render()
             // Draw entities
             for (auto& object : mObjects) {
                 for (auto& renderable : object.renderables) {
-                    frame.cmd->BindGraphicsPipeline(renderable.pMaterial->pPipeline);
+                    frame.cmd->BindGraphicsPipeline(renderable.pMaterial->mPipelines[mBenchmarkSettings.shaderIndex]);
                     frame.cmd->BindGraphicsDescriptorSets(renderable.pMaterial->pInterface, 1, &renderable.pDescriptorSet);
 
                     frame.cmd->BindIndexBuffer(renderable.pPrimitive->mesh);
@@ -820,6 +853,19 @@ void ProjApp::Render()
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
 
     PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.renderCompleteSemaphore));
+}
+
+void ProjApp::UpdateGUI()
+{
+    if (!GetSettings()->enableImGui) {
+        return;
+    }
+
+    // GUI
+    if (ImGui::Begin("Parameters")) {
+        ImGui::Combo("Shader", &mBenchmarkSettings.shaderIndex, kAvailableShaders.data(), static_cast<int>(kAvailableShaders.size()));
+    }
+    ImGui::End();
 }
 
 int main(int argc, char** argv)
