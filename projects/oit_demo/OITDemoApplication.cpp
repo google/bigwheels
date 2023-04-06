@@ -30,8 +30,9 @@ void OITDemoApp::Config(ppx::ApplicationSettings& settings)
 {
     settings.appName = "OIT demo";
 
-    settings.enableImGui      = true;
-    settings.grfx.enableDebug = false;
+    settings.allowThirdPartyAssets = true;
+    settings.enableImGui           = true;
+    settings.grfx.enableDebug      = false;
 
     settings.grfx.swapchain.colorFormat = grfx::FORMAT_B8G8R8A8_UNORM;
 
