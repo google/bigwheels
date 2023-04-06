@@ -35,17 +35,19 @@
 #define DEPTH_PEELING_LAYERS_COUNT          8
 #define DEPTH_PEELING_DEPTH_TEXTURES_COUNT  2
 
-#define meshOpacity                     meshParameters.x
-#define depthPeelingFrontLayerIndex     depthPeelingParameters.x
-#define depthPeelingBackLayerIndex      depthPeelingParameters.y
-
 struct ShaderGlobals
 {
     float4x4 backgroundMVP;
     float4   backgroundColor;
     float4x4 meshMVP;
-    float4   meshParameters;
-    int4     depthPeelingParameters;
+    float    meshOpacity;
+    float    meshParametersUnused0;
+    float    meshParametersUnused1;
+    float    meshParametersUnused2;
+    int      depthPeelingFrontLayerIndex;
+    int      depthPeelingBackLayerIndex;
+    int      depthPeelingParametersUnused0;
+    int      depthPeelingParametersUnused1;
 };
 
 #if defined(IS_SHADER)

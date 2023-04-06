@@ -30,13 +30,13 @@ float4 psmain(VSOutput input) : SV_TARGET
 
     // Test against opaque depth
     {
-        const float opaqueDepth = OpaqueDepthTexture.Sample(NearestSampler, uv);
+        const float opaqueDepth = OpaqueDepthTexture.Sample(NearestSampler, uv).r;
         clip(input.position.z < opaqueDepth ? 1.0f : -1.0f);
     }
 #if !defined(IS_FIRST_LAYER)
     // Test against previous layer depth
     {
-        const float layerDepth = LayerDepthTexture.Sample(NearestSampler, uv);
+        const float layerDepth = LayerDepthTexture.Sample(NearestSampler, uv).r;
         clip(input.position.z > layerDepth ? 1.0f : -1.0f);
     }
 #endif
