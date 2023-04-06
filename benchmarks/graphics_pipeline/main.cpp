@@ -177,7 +177,7 @@ private:
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
 {
-    settings.appName                    = "graphic_pipeline";
+    settings.appName                    = "graphics_pipeline";
     settings.enableImGui                = true;
     settings.window.width               = 1920;
     settings.window.height              = 1080;
