@@ -41,6 +41,18 @@ Result Surface::CreateApiObjects(const grfx::SurfaceCreateInfo* pCreateInfo)
         &vkci,
         nullptr,
         &mSurface);
+#elif defined(PPX_ANDROID)
+    VkAndroidSurfaceCreateInfoKHR createInfo{
+        .sType  = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR,
+        .pNext  = nullptr,
+        .flags  = 0,
+        .window = pCreateInfo->androidAppContext->window};
+
+    vkres = vkCreateAndroidSurfaceKHR(
+        ToApi(GetInstance())->GetVkInstance(),
+        &createInfo,
+        nullptr,
+        &mSurface);
 #elif defined(PPX_LINUX_XLIB)
 #error "Xlib not implemented"
 #elif defined(PPX_LINUX_WAYLAND)
@@ -453,7 +465,7 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
             imageCreateInfo.usageFlags.bits.sampled         = true;
             imageCreateInfo.usageFlags.bits.storage         = true;
             imageCreateInfo.usageFlags.bits.colorAttachment = true;
-            imageCreateInfo.pApiObject                      = colorImages[i];
+            imageCreateInfo.pApiObject                      = (void*)(colorImages[i]);
 
             grfx::ImagePtr image;
             Result         ppxres = GetDevice()->CreateImage(&imageCreateInfo, &image);
@@ -467,7 +479,7 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
 
         for (size_t i = 0; i < depthImages.size(); ++i) {
             grfx::ImageCreateInfo imageCreateInfo = grfx::ImageCreateInfo::DepthStencilTarget(pCreateInfo->width, pCreateInfo->height, pCreateInfo->depthFormat, grfx::SAMPLE_COUNT_1);
-            imageCreateInfo.pApiObject            = depthImages[i];
+            imageCreateInfo.pApiObject            = (void*)(depthImages[i]);
 
             grfx::ImagePtr image;
             Result         ppxres = GetDevice()->CreateImage(&imageCreateInfo, &image);

@@ -868,11 +868,4 @@ void ProjApp::UpdateGUI()
     ImGui::End();
 }
 
-int main(int argc, char** argv)
-{
-    ProjApp app;
-
-    int res = app.Run(argc, argv);
-
-    return res;
-}
+SETUP_APPLICATION(ProjApp)

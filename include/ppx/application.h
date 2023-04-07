@@ -21,6 +21,7 @@
 #include "ppx/imgui_impl.h"
 #include "ppx/timer.h"
 #include "ppx/xr_component.h"
+#include "ppx/fs.h"
 
 #include <deque>
 #include <filesystem>
@@ -30,6 +31,36 @@
 #   define GLFW_INCLUDE_NONE
 #endif
 #include <GLFW/glfw3.h>
+
+#if defined(PPX_ANDROID)
+    #define SETUP_APPLICATION(AppType)                  \
+        AppType app;                                    \
+        bool InitVulkan(android_app* androidContext)    \
+        {                                               \
+            app.SetAndroidContext(androidContext);      \
+            return true;                                \
+        }                                               \
+        void DeleteVulkan(void)                         \
+        {                                               \
+        }                                               \
+        bool IsVulkanReady(void)                        \
+        {                                               \
+            return app.GetAndroidContext() != nullptr;  \
+        }                                               \
+        bool VulkanDrawFrame(void)                      \
+        {                                               \
+            int res = app.Run(0, nullptr);              \
+            return res;                                 \
+        }
+#else
+    #define SETUP_APPLICATION(AppType)                  \
+        int main(int argc, char** argv)                 \
+        {                                               \
+            AppType app;                                \
+            int res = app.Run(argc, argv);              \
+            return res;                                 \
+        }
+#endif
 // clang-format on
 
 namespace ppx {
@@ -254,7 +285,14 @@ struct ApplicationSettings
 
         struct
         {
+            // NVIDIA only supports B8G8R8A8, ANDROID only supports R8G8B8A8, and
+            // AMD supports both. So the default has to special-case either NVIDIA
+            // or ANDROID :(
+#if defined(PPX_ANDROID)
+            grfx::Format colorFormat = grfx::FORMAT_R8G8B8A8_UNORM;
+#else
             grfx::Format colorFormat = grfx::FORMAT_B8G8R8A8_UNORM;
+#endif
             grfx::Format depthFormat = grfx::FORMAT_UNDEFINED;
             uint32_t     imageCount  = 2;
         } swapchain;

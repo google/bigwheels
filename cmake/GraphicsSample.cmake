@@ -21,14 +21,25 @@ function(_add_sample_internal)
     cmake_parse_arguments(PARSE_ARGV 0 "ARG" "" "${oneValueArgs}" "${multiValueArgs}")
 
     set (TARGET_NAME "${ARG_API_TAG}_${ARG_NAME}")
-    add_executable("${TARGET_NAME}" ${ARG_SOURCES})
+
+    # For Android, each sample is a lib
+    if (PPX_ANDROID)
+        add_library("${TARGET_NAME}" ${ARG_SOURCES})
+    else()
+        add_executable("${TARGET_NAME}" ${ARG_SOURCES})
+    endif()
+
     set_target_properties("${TARGET_NAME}" PROPERTIES FOLDER "ppx/samples/${ARG_API_TAG}")
 
     target_include_directories("${TARGET_NAME}" PUBLIC ${PPX_DIR}/include ${ARG_ADDITIONAL_INCLUDE_DIRECTORIES})
     target_compile_definitions("${TARGET_NAME}" PRIVATE ${ARG_API_DEFINES})
     target_include_directories("${TARGET_NAME}" PUBLIC ${PPX_DIR})
 
-    target_link_libraries("${TARGET_NAME}" PUBLIC ppx glfw)
+    target_link_libraries("${TARGET_NAME}" PUBLIC ppx)
+
+    if (NOT PPX_ANDROID)
+        target_link_libraries("${TARGET_NAME}" PUBLIC glfw)
+    endif()
 
     # OpenXR libs
     if (PPX_BUILD_XR)

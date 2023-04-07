@@ -226,7 +226,7 @@ void ImGuiImplDx12::Render(grfx::CommandBuffer* pCommandBuffer)
 // -------------------------------------------------------------------------------------------------
 // ImGuiImplVk
 // -------------------------------------------------------------------------------------------------
-#if defined(PPX_VULKAN)
+#if defined(PPX_VULKAN) && !defined(PPX_ANDROID)
 
 Result ImGuiImplVk::InitApiObjects(ppx::Application* pApp)
 {
@@ -350,6 +350,24 @@ void ImGuiImplVk::Render(grfx::CommandBuffer* pCommandBuffer)
 {
     ImGui::Render();
     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), grfx::vk::ToApi(pCommandBuffer)->GetVkCommandBuffer());
+}
+
+#elif defined(PPX_ANDROID)
+Result ImGuiImplVk::InitApiObjects(ppx::Application* pApp)
+{
+    return ppx::SUCCESS;
+}
+
+void ImGuiImplVk::Shutdown(ppx::Application* pApp)
+{
+}
+
+void ImGuiImplVk::NewFrameApi()
+{
+}
+
+void ImGuiImplVk::Render(grfx::CommandBuffer* pCommandBuffer)
+{
 }
 
 #endif // defined(PPX_VULKAN)

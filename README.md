@@ -4,6 +4,7 @@ BigWheels is a cross-platform, API agnostic framework to build graphics applicat
 Supported platforms:
 * Windows
 * Linux
+* Android
 
 Supported graphics APIs:
 * DirectX 12
@@ -23,6 +24,10 @@ Supported graphics APIs:
        * 1.3.216.0 or later
      * Recent version of Windows SDK
        * 10.0.22621.0 or later
+   * Android
+     * Android Studio, 2022.1.1 Patch 2 or later
+     * Recent version of NDK
+       * 25.1.8937393 or later
  * Hardware (*not an exhaustive list*)
    * AMD
      * Vega GPUs

@@ -137,8 +137,4 @@ void ProjApp::Render()
 
 } // namespace FluidSim
 
-int main(int argc, char** argv)
-{
-    FluidSim::ProjApp app;
-    return app.Run(argc, argv);
-}
+SETUP_APPLICATION(FluidSim::ProjApp)

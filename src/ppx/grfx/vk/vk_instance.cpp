@@ -181,6 +181,8 @@ Result Instance::ConfigureLayersAndExtensions(const grfx::InstanceCreateInfo* pC
         mExtensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
 #if defined(PPX_LINUX_XCB)
         mExtensions.push_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
+#elif defined(PPX_ANDROID)
+        mExtensions.push_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
 #elif defined(PPX_LINUX_XLIB)
 #error "Xlib not implemented"
 #elif defined(PPX_LINUX_WAYLAND)
