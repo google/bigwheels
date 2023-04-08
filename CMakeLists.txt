@@ -191,6 +191,7 @@ add_custom_target(ppx_assets)
 if(NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR))
     add_custom_target(ppx_copy_assets
         COMMAND ${CMAKE_COMMAND} -E copy_directory "${PPX_ASSET_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/assets"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${PPX_3P_ASSET_SOURCE_DIR}" "${CMAKE_BINARY_DIR}/third_party/assets"
     )
     add_dependencies(ppx_assets ppx_copy_assets)
 endif()
