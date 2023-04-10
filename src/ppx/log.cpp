@@ -37,6 +37,10 @@
 #endif
 // clang-format on
 
+#if defined(PPX_ANDROID)
+#include <android/log.h>
+#endif
+
 namespace ppx {
 
 static Log sLogInstance;
@@ -130,7 +134,7 @@ bool Log::CreateObjects(uint32_t modes, const char* filePath)
     //// Allocate mutex dynamically since it doesn't like being
     //// initialized before main...and lock will crash.
     ////
-    //mWriteMutex = std::make_unique<std::mutex>();
+    // mWriteMutex = std::make_unique<std::mutex>();
 
     mModes = modes;
     if ((mModes & LOG_MODE_FILE) != 0) {
@@ -162,6 +166,30 @@ void Log::Write(const char* msg)
         else {
             std::cout << msg;
         }
+#elif defined(PPX_ANDROID)
+        android_LogPriority prio;
+        switch (mLevel) {
+            case LOG_LEVEL_INFO:
+                prio = ANDROID_LOG_INFO;
+                break;
+            case LOG_LEVEL_WARN:
+                prio = ANDROID_LOG_WARN;
+                break;
+            case LOG_LEVEL_DEBUG:
+                prio = ANDROID_LOG_DEBUG;
+                break;
+            case LOG_LEVEL_ERROR:
+                prio = ANDROID_LOG_ERROR;
+                break;
+            case LOG_LEVEL_FATAL:
+                prio = ANDROID_LOG_FATAL;
+                break;
+            case LOG_LEVEL_DEFAULT:
+            default:
+                prio = ANDROID_LOG_INFO;
+                break;
+        }
+        __android_log_write(prio, "PPX", msg);
 #else
         std::cout << msg;
 #endif
@@ -205,6 +233,31 @@ void Log::Flush()
     // Clear buffer
     mBuffer.str(std::string());
     mBuffer.clear();
+}
+
+void Log::SetLevel(LogLevel level)
+{
+    mLevel = level;
+#if !defined(PPX_ANDROID)
+    switch (level) {
+        case LOG_LEVEL_WARN:
+            mBuffer << "[WARNING] ";
+            break;
+        case LOG_LEVEL_DEBUG:
+            mBuffer << "[DEBUG] ";
+            break;
+        case LOG_LEVEL_ERROR:
+            mBuffer << "[ERROR] ";
+            break;
+        case LOG_LEVEL_FATAL:
+            mBuffer << "[FATAL ERROR] ";
+            break;
+        case LOG_LEVEL_INFO:
+        case LOG_LEVEL_DEFAULT:
+        default:
+            break;
+    }
+#endif
 }
 
 } // namespace ppx
