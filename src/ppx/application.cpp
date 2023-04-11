@@ -1682,7 +1682,7 @@ Result Application::CreateShader(const std::filesystem::path& baseDir, const std
 
 float Application::GetElapsedSeconds() const
 {
-#if defined(DETERMINICTIC)
+#if defined(PPX_DETERMINISTIC)
     return static_cast<float>(mFrameCount * (1.f / 60.f));
 #else
     return static_cast<float>(mTimer.SecondsSinceStart());

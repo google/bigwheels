@@ -159,7 +159,7 @@ endif()
 
 if (PPX_DETERMINISTIC)
     message("Building deterministic flavor of ${PROJECT_NAME}")
-    add_definitions("-DDETERMINISTIC")
+    add_definitions("-DPPX_DETERMINISTIC")
 endif ()
 
 set(CMAKE_CXX_STANDARD 20)
