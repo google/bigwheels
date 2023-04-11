@@ -34,6 +34,7 @@ struct StandardOptions
     bool list_gpus             = false;
     bool use_software_renderer = false;
     bool headless              = false;
+    bool deterministic         = false;
 
     // Options
     int                 gpu_index          = -1;
@@ -177,6 +178,7 @@ private:
 --headless                    Run the sample without creating windows.
 --screenshot-path             Save the screenshot to this path. If not specified, BigWheels will create a
                               "screenshot_frameN" file in the current working directory.
+--deterministic               Disable non-deterministic behaviors, like clocks.
 )";
 };
 } // namespace ppx
