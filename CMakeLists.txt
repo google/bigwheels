@@ -24,6 +24,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # Options.
 # ------------------------------------------------------------------------------
 option(PPX_BUILD_PROJECTS "Build sample projets" ON)
+option(PPX_DETERMINISTIC "Makes BigWheels deterministic" OFF)
 
 # ------------------------------------------------------------------------------
 # Detect DXC presence. This is REQUIRED to compile DXIL and SPIR-V shaders.
@@ -155,6 +156,11 @@ else()
         -Wno-nullability-completeness \
         -Wno-deprecated-anon-enum-enum-conversion")
 endif()
+
+if (PPX_DETERMINISTIC)
+    message("Building deterministic flavor of ${PROJECT_NAME}")
+    add_definitions("-DDETERMINISTIC")
+endif ()
 
 set(CMAKE_CXX_STANDARD 20)
 
