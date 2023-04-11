@@ -16,7 +16,7 @@ jobs:
     runs-on: "windows-2019"
     steps:
       - name: Setup Windows SDK
-        uses: GuillaumeFalourd/setup-windows10-sdk-action@v1.7
+        uses: GuillaumeFalourd/setup-windows10-sdk-action@v1.11
         with:
           sdk-version: 22621
       - name: Setup Vulkan SDK
