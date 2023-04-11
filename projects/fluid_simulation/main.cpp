@@ -129,6 +129,10 @@ void ProjApp::Render()
     PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.renderCompleteSemaphore));
 
     mSim->FreeComputeShaderResources();
+    mSim->FreeGraphicsShaderResources();
+
+    // Update the simulation state.  This schedules new compute shaders to draw the next frame.
+    mSim->Update();
 }
 
 } // namespace FluidSim

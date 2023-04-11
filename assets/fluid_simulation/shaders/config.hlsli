@@ -84,7 +84,7 @@ ConstantBuffer<CSInput> Params : register(b0);
 
 SamplerState Sampler : register(s1);
 
-// Used by splat.hlsl.
+// Used by clear.hlsl and splat.hlsl.
 Texture2D UTexture : register(t2);
 
 // Used by vorticity.hlsl, advection.hlsl, curl.hlsl, divergence.hlsl, gradient_subtract.hlsl.

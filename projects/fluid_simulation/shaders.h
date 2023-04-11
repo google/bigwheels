@@ -205,6 +205,27 @@ private:
     ppx::grfx::ComputePipelinePtr mPipeline;
 };
 
+class AdvectionShader : public ComputeShader
+{
+public:
+    AdvectionShader(FluidSimulation* sim)
+        : ComputeShader(sim, "advection") {}
+
+    ComputeDispatchRecord GetDR(Texture* uVelocity, Texture* uSource, Texture* output, float delta, float dissipation, ppx::float2 texelSize, ppx::float2 dyeTexelSize)
+    {
+        ScalarInput si(output);
+        si.texelSize    = texelSize;
+        si.dyeTexelSize = dyeTexelSize;
+        si.dissipation  = dissipation;
+        si.dt           = delta;
+        ComputeDispatchRecord dr(this, output, si);
+        dr.BindInputTexture(uVelocity, 3);
+        dr.BindInputTexture(uSource, 5);
+        dr.BindOutputTexture(11);
+        return dr;
+    }
+};
+
 class BloomBlurShader : public ComputeShader
 {
 public:
@@ -342,6 +363,23 @@ public:
     }
 };
 
+class ClearShader : public ComputeShader
+{
+public:
+    ClearShader(FluidSimulation* sim)
+        : ComputeShader(sim, "clear") {}
+
+    ComputeDispatchRecord GetDR(Texture* uTexture, Texture* output, float clearValue)
+    {
+        ScalarInput si(output);
+        si.clearValue = clearValue;
+        ComputeDispatchRecord dr(this, output, si);
+        dr.BindInputTexture(uTexture, 2);
+        dr.BindOutputTexture(11);
+        return dr;
+    }
+};
+
 class ColorShader : public ComputeShader
 {
 public:
@@ -358,6 +396,24 @@ public:
         si.color = color;
 
         ComputeDispatchRecord dr(this, output, si);
+        dr.BindOutputTexture(11);
+        return dr;
+    }
+};
+
+class CurlShader : public ComputeShader
+{
+public:
+    CurlShader(FluidSimulation* sim)
+        : ComputeShader(sim, "curl") {}
+
+    ComputeDispatchRecord GetDR(Texture* velocity, Texture* output, ppx::float2 texelSize)
+    {
+        ScalarInput si(output);
+        si.texelSize = texelSize;
+
+        ComputeDispatchRecord dr(this, output, si);
+        dr.BindInputTexture(velocity, 3);
         dr.BindOutputTexture(11);
         return dr;
     }
@@ -384,6 +440,59 @@ public:
         dr.BindInputTexture(uBloom, 6);
         dr.BindInputTexture(uSunrays, 7);
         dr.BindInputTexture(uDithering, 8);
+        dr.BindOutputTexture(11);
+        return dr;
+    }
+};
+
+class DivergenceShader : public ComputeShader
+{
+public:
+    DivergenceShader(FluidSimulation* sim)
+        : ComputeShader(sim, "divergence") {}
+
+    ComputeDispatchRecord GetDR(Texture* uVelocity, Texture* output, ppx::float2 texelSize)
+    {
+        ScalarInput si(output);
+        si.texelSize = texelSize;
+        ComputeDispatchRecord dr(this, output, si);
+        dr.BindInputTexture(uVelocity, 3);
+        dr.BindOutputTexture(11);
+        return dr;
+    }
+};
+
+class GradientSubtractShader : public ComputeShader
+{
+public:
+    GradientSubtractShader(FluidSimulation* sim)
+        : ComputeShader(sim, "gradient_subtract") {}
+
+    ComputeDispatchRecord GetDR(Texture* uPressure, Texture* uVelocity, Texture* output, ppx::float2 texelSize)
+    {
+        ScalarInput si(output);
+        si.texelSize = texelSize;
+        ComputeDispatchRecord dr(this, output, si);
+        dr.BindInputTexture(uPressure, 9);
+        dr.BindInputTexture(uVelocity, 3);
+        dr.BindOutputTexture(11);
+        return dr;
+    }
+};
+
+class PressureShader : public ComputeShader
+{
+public:
+    PressureShader(FluidSimulation* sim)
+        : ComputeShader(sim, "pressure") {}
+
+    ComputeDispatchRecord GetDR(Texture* uPressure, Texture* uDivergence, Texture* output, ppx::float2 texelSize)
+    {
+        ScalarInput si(output);
+        si.texelSize = texelSize;
+        ComputeDispatchRecord dr(this, output, si);
+        dr.BindInputTexture(uPressure, 9);
+        dr.BindInputTexture(uDivergence, 10);
         dr.BindOutputTexture(11);
         return dr;
     }
@@ -456,6 +565,25 @@ public:
         si.weight = weight;
         ComputeDispatchRecord dr(this, output, si);
         dr.BindInputTexture(uTexture, 2);
+        dr.BindOutputTexture(11);
+        return dr;
+    }
+};
+
+class VorticityShader : public ComputeShader
+{
+public:
+    VorticityShader(FluidSimulation* sim)
+        : ComputeShader(sim, "vorticity") {}
+
+    ComputeDispatchRecord GetDR(Texture* uVelocity, Texture* uCurl, Texture* output, ppx::float2 texelSize, int curl, float delta)
+    {
+        ScalarInput si(output);
+        si.curl = curl;
+        si.dt   = delta;
+        ComputeDispatchRecord dr(this, output, si);
+        dr.BindInputTexture(uVelocity, 3);
+        dr.BindInputTexture(uCurl, 4);
         dr.BindOutputTexture(11);
         return dr;
     }
