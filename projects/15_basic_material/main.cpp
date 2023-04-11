@@ -480,6 +480,14 @@ void ProjApp::Setup()
         }
     }
 
+    const auto& cl_options = GetExtraOptions();
+    mMaterialIndex         = cl_options.GetExtraOptionValueOrDefault<uint32_t>("material-index", 0);
+    PPX_ASSERT_MSG(mMaterialIndex < mMaterialNames.size(), "Material index out-of-range.");
+    mMeshIndex = cl_options.GetExtraOptionValueOrDefault<uint32_t>("mesh-index", 0);
+    PPX_ASSERT_MSG(mMeshIndex < mMeshes.size(), "Mesh index out-of-range.");
+    mShaderIndex = cl_options.GetExtraOptionValueOrDefault<uint32_t>("shader-index", 0);
+    PPX_ASSERT_MSG(mShaderIndex < mShaderNames.size(), "Shader index out-of-range.");
+
     // Scene data
     {
         grfx::DescriptorSetLayoutCreateInfo createInfo = {};
