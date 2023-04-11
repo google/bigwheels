@@ -65,7 +65,7 @@ public:
     Log();
     ~Log();
 
-    static bool Initialize(uint32_t modes, const char* filePath = nullptr);
+    static bool Initialize(uint32_t modes, const char* filePath = nullptr, std::ostream* consoleStream = &std::cout);
     static void Shutdown();
 
     static Log* Get();
@@ -75,8 +75,7 @@ public:
 
     void Lock();
     void Unlock();
-    void Flush();
-    void SetLevel(LogLevel level);
+    void Flush(LogLevel level);
 
     template <typename T>
     Log& operator<<(const T& value)
@@ -89,81 +88,74 @@ public:
     {
         if (manip == (std::basic_ostream<char> & (*)(std::basic_ostream<char>&)) & std::endl) {
             mBuffer << std::endl;
-            Flush();
         }
         return *this;
     }
 
 private:
-    bool CreateObjects(uint32_t mode, const char* filePath);
+    bool CreateObjects(uint32_t mode, const char* filePath, std::ostream* consoleStream);
     void DestroyObjects();
 
-    void Write(const char* msg);
+    void Write(const char* msg, LogLevel level);
 
 private:
     uint32_t          mModes = LOG_MODE_OFF;
     std::string       mFilePath;
     std::ofstream     mFileStream;
+    std::ostream*     mConsoleStream = nullptr;
     std::stringstream mBuffer;
     std::mutex        mWriteMutex;
-    LogLevel          mLevel = LOG_LEVEL_DEFAULT;
 };
 
 } // namespace ppx
 
 // clang-format off
-#define PPX_LOG_RAW(MSG)                                   \
-    if (ppx::Log::IsActive()) {                            \
-        ppx::Log::Get()->Lock();                           \
-        ppx::Log::Get()->SetLevel(ppx::LOG_LEVEL_DEFAULT); \
-        (*ppx::Log::Get()) << MSG << PPX_LOG_ENDL;         \
-        ppx::Log::Get()->Flush();                          \
-        ppx::Log::Get()->Unlock();                         \
-    }
-
-#define PPX_LOG_INFO(MSG)                               \
+#define PPX_LOG_RAW(MSG)                                \
     if (ppx::Log::IsActive()) {                         \
         ppx::Log::Get()->Lock();                        \
-        ppx::Log::Get()->SetLevel(ppx::LOG_LEVEL_INFO); \
         (*ppx::Log::Get()) << MSG << PPX_LOG_ENDL;      \
-        ppx::Log::Get()->Flush();                       \
+        ppx::Log::Get()->Flush(ppx::LOG_LEVEL_DEFAULT); \
         ppx::Log::Get()->Unlock();                      \
     }
 
-#define PPX_LOG_WARN(MSG)                               \
-    if (ppx::Log::IsActive()) {                         \
-        ppx::Log::Get()->Lock();                        \
-        ppx::Log::Get()->SetLevel(ppx::LOG_LEVEL_WARN); \
-        (*ppx::Log::Get()) << MSG << PPX_LOG_ENDL;      \
-        ppx::Log::Get()->Flush();                       \
-        ppx::Log::Get()->Unlock();                      \
+#define PPX_LOG_INFO(MSG)                            \
+    if (ppx::Log::IsActive()) {                      \
+        ppx::Log::Get()->Lock();                     \
+        (*ppx::Log::Get()) << MSG << PPX_LOG_ENDL;   \
+        ppx::Log::Get()->Flush(ppx::LOG_LEVEL_INFO); \
+        ppx::Log::Get()->Unlock();                   \
     }
 
-#define PPX_LOG_DEBUG(MSG)                               \
-    if (ppx::Log::IsActive()) {                          \
-        ppx::Log::Get()->Lock();                         \
-        ppx::Log::Get()->SetLevel(ppx::LOG_LEVEL_DEBUG); \
-        (*ppx::Log::Get()) << MSG << PPX_LOG_ENDL;       \
-        ppx::Log::Get()->Flush();                        \
-        ppx::Log::Get()->Unlock();                       \
+#define PPX_LOG_WARN(MSG)                            \
+    if (ppx::Log::IsActive()) {                      \
+        ppx::Log::Get()->Lock();                     \
+        (*ppx::Log::Get()) << MSG << PPX_LOG_ENDL;   \
+        ppx::Log::Get()->Flush(ppx::LOG_LEVEL_WARN); \
+        ppx::Log::Get()->Unlock();                   \
     }
 
-#define PPX_LOG_ERROR(MSG)                               \
-    if (ppx::Log::IsActive()) {                          \
-        ppx::Log::Get()->Lock();                         \
-        ppx::Log::Get()->SetLevel(ppx::LOG_LEVEL_ERROR); \
-        (*ppx::Log::Get()) << MSG << PPX_LOG_ENDL;       \
-        ppx::Log::Get()->Flush();                        \
-        ppx::Log::Get()->Unlock();                       \
+#define PPX_LOG_DEBUG(MSG)                            \
+    if (ppx::Log::IsActive()) {                       \
+        ppx::Log::Get()->Lock();                      \
+        (*ppx::Log::Get()) << MSG << PPX_LOG_ENDL;    \
+        ppx::Log::Get()->Flush(ppx::LOG_LEVEL_DEBUG); \
+        ppx::Log::Get()->Unlock();                    \
     }
 
-#define PPX_LOG_FATAL(MSG)                               \
-    if (ppx::Log::IsActive()) {                          \
-        ppx::Log::Get()->Lock();                         \
-        ppx::Log::Get()->SetLevel(ppx::LOG_LEVEL_FATAL); \
-        (*ppx::Log::Get()) << MSG << PPX_LOG_ENDL;       \
-        ppx::Log::Get()->Flush();                        \
-        ppx::Log::Get()->Unlock();                       \
+#define PPX_LOG_ERROR(MSG)                            \
+    if (ppx::Log::IsActive()) {                       \
+        ppx::Log::Get()->Lock();                      \
+        (*ppx::Log::Get()) << MSG << PPX_LOG_ENDL;    \
+        ppx::Log::Get()->Flush(ppx::LOG_LEVEL_ERROR); \
+        ppx::Log::Get()->Unlock();                    \
+    }
+
+#define PPX_LOG_FATAL(MSG)                            \
+    if (ppx::Log::IsActive()) {                       \
+        ppx::Log::Get()->Lock();                      \
+        (*ppx::Log::Get()) << MSG << PPX_LOG_ENDL;    \
+        ppx::Log::Get()->Flush(ppx::LOG_LEVEL_FATAL); \
+        ppx::Log::Get()->Unlock();                    \
     }
 // clang-format on
 

@@ -54,7 +54,7 @@ Log::~Log()
     Shutdown();
 }
 
-bool Log::Initialize(uint32_t mode, const char* filePath)
+bool Log::Initialize(uint32_t mode, const char* filePath, std::ostream* consoleStream)
 {
     // This means that instance is already initialized
     if (sLogInstance.mModes != LOG_MODE_OFF) {
@@ -62,7 +62,7 @@ bool Log::Initialize(uint32_t mode, const char* filePath)
     }
 
     // Create internal objects
-    bool result = sLogInstance.CreateObjects(mode, filePath);
+    bool result = sLogInstance.CreateObjects(mode, filePath, consoleStream);
     if (!result) {
         return false;
     }
@@ -70,7 +70,7 @@ bool Log::Initialize(uint32_t mode, const char* filePath)
     sLogInstance.Lock();
     {
         sLogInstance << "Logging started" << std::endl;
-        sLogInstance.Flush();
+        sLogInstance.Flush(LOG_LEVEL_DEFAULT);
     }
     sLogInstance.Unlock();
 
@@ -89,7 +89,7 @@ void Log::Shutdown()
     sLogInstance.Lock();
     {
         sLogInstance << "Logging stopped" << std::endl;
-        sLogInstance.Flush();
+        sLogInstance.Flush(LOG_LEVEL_DEFAULT);
 
         // Destroy internal objects
         sLogInstance.DestroyObjects();
@@ -129,19 +129,17 @@ bool Log::IsModeActive(LogMode mode)
     return result;
 }
 
-bool Log::CreateObjects(uint32_t modes, const char* filePath)
+bool Log::CreateObjects(uint32_t modes, const char* filePath, std::ostream* consoleStream)
 {
-    //// Allocate mutex dynamically since it doesn't like being
-    //// initialized before main...and lock will crash.
-    ////
-    // mWriteMutex = std::make_unique<std::mutex>();
-
     mModes = modes;
     if ((mModes & LOG_MODE_FILE) != 0) {
         mFilePath = filePath;
         if (!mFilePath.empty()) {
             mFileStream.open(mFilePath.c_str());
         }
+    }
+    if ((mModes & LOG_MODE_CONSOLE) != 0) {
+        mConsoleStream = consoleStream;
     }
     return true;
 }
@@ -155,20 +153,42 @@ void Log::DestroyObjects()
     }
 }
 
-void Log::Write(const char* msg)
+void Log::Write(const char* msg, LogLevel level)
 {
+    std::string levelString;
+    switch (level) {
+        case LOG_LEVEL_WARN:
+            levelString = "[WARNING] ";
+            break;
+        case LOG_LEVEL_DEBUG:
+            levelString = "[DEBUG] ";
+            break;
+        case LOG_LEVEL_ERROR:
+            levelString = "[ERROR] ";
+            break;
+        case LOG_LEVEL_FATAL:
+            levelString = "[FATAL ERROR] ";
+            break;
+        case LOG_LEVEL_INFO:
+        case LOG_LEVEL_DEFAULT:
+        default:
+            levelString = "";
+            break;
+    }
+
     // Console
     if ((mModes & LOG_MODE_CONSOLE) != 0) {
 #if defined(PPX_MSW)
         if (IsDebuggerPresent()) {
+            OutputDebugStringA(levelString);
             OutputDebugStringA(msg);
         }
         else {
-            std::cout << msg;
+            *mConsoleStream << levelString << msg;
         }
 #elif defined(PPX_ANDROID)
         android_LogPriority prio;
-        switch (mLevel) {
+        switch (level) {
             case LOG_LEVEL_INFO:
                 prio = ANDROID_LOG_INFO;
                 break;
@@ -191,12 +211,12 @@ void Log::Write(const char* msg)
         }
         __android_log_write(prio, "PPX", msg);
 #else
-        std::cout << msg;
+        *mConsoleStream << levelString << msg;
 #endif
     }
     // File
     if (((mModes & LOG_MODE_FILE) != 0) && (mFileStream.is_open())) {
-        mFileStream << msg;
+        mFileStream << levelString << msg;
     }
 }
 
@@ -210,19 +230,21 @@ void Log::Unlock()
     mWriteMutex.unlock();
 }
 
-void Log::Flush()
+void Log::Flush(LogLevel level)
 {
     // Write anything that's in the buffer
-    Write(mBuffer.str().c_str());
+    if (mBuffer.str().size() > 0) {
+        Write(mBuffer.str().c_str(), level);
+    }
 
     // Signal flush for console
     if ((mModes & LOG_MODE_CONSOLE) != 0) {
 #if defined(PPX_MSW)
         if (!IsDebuggerPresent()) {
-            std::cout << std::flush;
+            *mConsoleStream << std::flush;
         }
 #else
-        std::cout << std::flush;
+        *mConsoleStream << std::flush;
 #endif
     }
     // Signal flush for file
@@ -233,31 +255,6 @@ void Log::Flush()
     // Clear buffer
     mBuffer.str(std::string());
     mBuffer.clear();
-}
-
-void Log::SetLevel(LogLevel level)
-{
-    mLevel = level;
-#if !defined(PPX_ANDROID)
-    switch (level) {
-        case LOG_LEVEL_WARN:
-            mBuffer << "[WARNING] ";
-            break;
-        case LOG_LEVEL_DEBUG:
-            mBuffer << "[DEBUG] ";
-            break;
-        case LOG_LEVEL_ERROR:
-            mBuffer << "[ERROR] ";
-            break;
-        case LOG_LEVEL_FATAL:
-            mBuffer << "[FATAL ERROR] ";
-            break;
-        case LOG_LEVEL_INFO:
-        case LOG_LEVEL_DEFAULT:
-        default:
-            break;
-    }
-#endif
 }
 
 } // namespace ppx
