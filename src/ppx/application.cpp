@@ -1682,6 +1682,9 @@ Result Application::CreateShader(const std::filesystem::path& baseDir, const std
 
 float Application::GetElapsedSeconds() const
 {
+    if (mStandardOptions.deterministic) {
+        return static_cast<float>(mFrameCount * (1.f / 60.f));
+    }
     return static_cast<float>(mTimer.SecondsSinceStart());
 }
 

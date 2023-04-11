@@ -80,6 +80,9 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
         else if (opt.GetName() == "headless") {
             mOpts.standardOptions.headless = true;
         }
+        else if (opt.GetName() == "deterministic") {
+            mOpts.standardOptions.deterministic = true;
+        }
         else if (opt.GetName() == "gpu") {
             if (!opt.HasValue()) {
                 return std::string("Command-line option --gpu requires a parameter");

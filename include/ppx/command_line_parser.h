@@ -34,6 +34,7 @@ struct StandardOptions
     bool list_gpus             = false;
     bool use_software_renderer = false;
     bool headless              = false;
+    bool deterministic         = false;
 
     // Options
     int                 gpu_index          = -1;
@@ -165,18 +166,20 @@ private:
     CliOptions        mOpts;
     const std::string mUsageMsg = R"(
 --help                        Prints this help message and exits.
---list-gpus                   Prints a list of the available GPUs on the current system with their index and exits (see --gpu).
---gpu <index>                 Select the gpu with the given index. To determine the set of valid indices use --list-gpus.
---resolution <Width>x<Height> Specify the main window resolution in pixels. Width and Height must be two positive integers greater or equal to 1.
+
+--deterministic               Disable non-deterministic behaviors, like clocks.
 --frame-count <N>             Shutdown the application after successfully rendering N frames.
---stats-frame-window <N>      Calculate frame statistics over the last N frames only.
-                              Set to 0 to use all frames since the beginning of the application.
+--gpu <index>                 Select the gpu with the given index. To determine the set of valid indices use --list-gpus.
+--headless                    Run the sample without creating windows.
+--list-gpus                   Prints a list of the available GPUs on the current system with their index and exits (see --gpu).
+--resolution <Width>x<Height> Specify the main window resolution in pixels. Width and Height must be two positive integers greater or equal to 1.
 --screenshot-frame-number <N> Take a screenshot of frame number N and save it in PPM format.
                               See also `--screenshot-path`.
---use-software-renderer       Use a software renderer instead of a hardware device, if available.
---headless                    Run the sample without creating windows.
 --screenshot-path             Save the screenshot to this path. If not specified, BigWheels will create a
                               "screenshot_frameN" file in the current working directory.
+--stats-frame-window <N>      Calculate frame statistics over the last N frames only.
+                              Set to 0 to use all frames since the beginning of the application.
+--use-software-renderer       Use a software renderer instead of a hardware device, if available.
 )";
 };
 } // namespace ppx
