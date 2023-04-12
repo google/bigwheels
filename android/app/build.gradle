@@ -2,20 +2,26 @@ plugins {
     id 'com.android.application'
 }
 
+ext {
+  oculusOpenxrSdkLocation = System.getenv('OCULUS_OPENXR_SDK')
+}
+
 android {
     namespace 'com.google.bigwheels'
     compileSdk 32
 
     defaultConfig {
-        applicationId "com.google.bigwheels"
+        applicationId 'com.google.bigwheels'
         minSdk 29
         targetSdk 32
         versionCode 1
-        versionName "1.0"
+        versionName '1.0'
 
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
         externalNativeBuild {
             cmake {
+                arguments '-DPPX_ANDROID=TRUE',
+                          '-DBUILD_TESTS=FALSE'
                 cppFlags '-std=c++17'
             }
         }
@@ -26,6 +32,115 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+        debug {
+            applicationIdSuffix '.debug'
+            debuggable true
+        }
+    }
+    flavorDimensions 'device', 'project'
+    productFlavors {
+        // BigWheels Projects
+        cube {
+            dimension 'project'
+            externalNativeBuild {
+                cmake {
+                    arguments '-DPPX_PROJECT=vk_04_cube'
+                }
+            }
+        }
+        cubexr {
+            dimension 'project'
+            externalNativeBuild {
+                cmake {
+                    arguments '-DPPX_PROJECT=vk_04_cube_xr'
+                }
+            }
+        }
+        gbuffer {
+            dimension 'project'
+            externalNativeBuild {
+                cmake {
+                    arguments '-DPPX_PROJECT=vk_16_gbuffer'
+                }
+            }
+        }
+        fishtornado {
+            dimension 'project'
+            externalNativeBuild {
+                cmake {
+                    arguments '-DPPX_PROJECT=vk_fishtornado'
+                }
+            }
+        }
+        fishtornadoxr {
+            dimension 'project'
+            externalNativeBuild {
+                cmake {
+                    arguments '-DPPX_PROJECT=vk_fishtornado_xr'
+                }
+            }
+        }
+
+        // Platform features
+        mobile {
+            dimension 'device'
+            externalNativeBuild {
+                cmake {
+                    arguments '-DPPX_BUILD_XR=FALSE',
+                              '-DPPX_XR_QUEST=FALSE',
+                              '-DBUILD_LOADER=FALSE'
+                }
+            }
+        }
+        openxr {
+            dimension 'device'
+            applicationIdSuffix '.xr'
+            versionNameSuffix '-xr'
+            externalNativeBuild {
+                cmake {
+                    arguments '-DPPX_BUILD_XR=TRUE',
+                              '-DPPX_XR_QUEST=FALSE',
+                              '-DBUILD_LOADER=TRUE',
+                              '-DBUILD_ALL_EXTENSIONS=TRUE'
+                    cppFlags '-DXR_USE_PLATFORM_ANDROID'
+                }
+            }
+        }
+        quest {
+            dimension 'device'
+            applicationIdSuffix '.quest'
+            versionNameSuffix '-quest'
+            externalNativeBuild {
+                ndk {
+                    abiFilters 'arm64-v8a', 'armeabi-v7a'
+                }
+                cmake {
+                  arguments '-DPPX_BUILD_XR=TRUE',
+                            '-DPPX_XR_QUEST=TRUE',
+                            '-DBUILD_LOADER=FALSE',
+                            '-DBUILD_ALL_EXTENSIONS=FALSE',
+                            "-DOCULUS_OPENXR_SDK=${oculusOpenxrSdkLocation}"
+                  cppFlags '-DXR_USE_PLATFORM_ANDROID'
+                }
+            }
+        }
+    }
+    variantFilter { variant ->
+      def deviceFlavors = variant.flavors.findAll { it.dimension == 'device' }
+      def projectFlavors = variant.flavors.findAll { it.dimension == 'project'}
+      def device = deviceFlavors[0].name
+      def project = projectFlavors[0].name
+
+      def xrProjects = ['cubexr', 'fishtornadoxr']
+
+      if (device == 'mobile' && xrProjects.contains(project)) {
+        // Ignore XR projects for mobile devices.
+        setIgnore(true)
+      }
+      if ((device == 'openxr' || device == 'quest') && !xrProjects.contains(project)) {
+        // Ignore non-XR projects for OpenXR and Quest devices.
+        setIgnore(true)
+      }
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -37,20 +152,23 @@ android {
     externalNativeBuild {
         cmake {
             path file('src/main/cpp/CMakeLists.txt')
-            version '3.22.1'
+            version '3.22.1+'
         }
     }
     sourceSets {
-    main {
-        assets {
-            srcDirs '..\\..\\assets'
+        main {
+            assets {
+                srcDirs '..\\..\\assets'
+            }
         }
-    }
     }
 }
 
-dependencies {
+tasks.register('cleanCxx') {
+   delete "${rootDir}/app/.cxx/"
+}
 
+dependencies {
     implementation 'androidx.appcompat:appcompat:1.5.1'
     implementation 'com.google.android.material:material:1.7.0'
     implementation 'androidx.games:games-activity:1.0.0'

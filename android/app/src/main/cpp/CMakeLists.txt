@@ -9,44 +9,26 @@ cmake_minimum_required(VERSION 3.18.1)
 
 project("bigwheels")
 
-set(BIGWHEELS_ROOT_DIR "${CMAKE_SOURCE_DIR}/../../../../..") 
+if(PPX_BUILD_XR AND PPX_XR_QUEST)
+  # Quest devices do not use the standard OpenXR loader.
+  add_library(openxr_loader SHARED IMPORTED)
+  set_property(
+          TARGET
+          openxr_loader
+          PROPERTY
+          IMPORTED_LOCATION
+          ${OCULUS_OPENXR_SDK}/OpenXR/Libs/Android/${ANDROID_ABI}/Debug/libopenxr_loader.so)
+endif()
+
+set(BIGWHEELS_ROOT_DIR "${CMAKE_SOURCE_DIR}/../../../../..")
 add_subdirectory(${BIGWHEELS_ROOT_DIR} "${BIGWHEELS_ROOT_DIR}/android/app/build")
 
-# Creates and names a library, sets it as either STATIC
-# or SHARED, and provides the relative paths to its source code.
-# You can define multiple libraries, and CMake builds them for you.
-# Gradle automatically packages shared libraries with your APK.
+add_library(bigwheels SHARED main.cpp)
 
-add_library( # Sets the name of the library.
-        bigwheels
-
-        # Sets the library as a shared library.
-        SHARED
-
-        # Provides a relative path to your source file(s).
-        main.cpp)
-
-# Searches for a specified prebuilt library and stores the path as a
-# variable. Because CMake includes system libraries in the search path by
-# default, you only need to specify the name of the public NDK library
-# you want to add. CMake verifies that the library exists before
-# completing its build.
-
-find_library( # Sets the name of the path variable.
-        log-lib
-
-        # Specifies the name of the NDK library that
-        # you want CMake to locate.
-        log)
+find_library(log-lib log)
 
 # Note: android and game-activity::game-activity are already linked
 # in BigWheels CMakeLists and do not need to be linked here
 
-target_link_libraries( # Specifies the target library.
-        bigwheels
+target_link_libraries(bigwheels ${PPX_PROJECT} ${log-lib})
 
-        vk_16_gbuffer  # Which bigwheels sample to link against
-
-        # Links the target library to the log library
-        # included in the NDK.
-        ${log-lib})

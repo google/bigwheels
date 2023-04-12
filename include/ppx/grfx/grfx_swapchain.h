@@ -57,7 +57,7 @@ struct SurfaceCreateInfo
     HINSTANCE             hinstance;
     HWND                  hwnd;
 #elif defined(PPX_ANDROID)
-    android_app*          androidAppContext;           
+    android_app*          androidAppContext;
 #endif
     // clang-format on
 };
@@ -113,7 +113,14 @@ public:
     Swapchain() {}
     virtual ~Swapchain() {}
 
-    bool         IsHeadless() const { return mCreateInfo.pSurface == nullptr; }
+    bool IsHeadless() const
+    {
+#if defined(PPX_BUILD_XR)
+        return mCreateInfo.pXrComponent == nullptr && mCreateInfo.pSurface == nullptr;
+#else
+        return mCreateInfo.pSurface == nullptr;
+#endif
+    }
     uint32_t     GetWidth() const { return mCreateInfo.width; }
     uint32_t     GetHeight() const { return mCreateInfo.height; }
     uint32_t     GetImageCount() const { return mCreateInfo.imageCount; }

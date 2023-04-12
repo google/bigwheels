@@ -39,12 +39,33 @@ Open `build\BigWheels.sln` and build
 
 Built binaries are written to `build\bin`.
 
-## Android (on Windows or Linux)
+## Android (on Linux)
 ```
 git clone --recursive https://github.com/google/BigWheels
+cd BigWheels/android
+./gradlew clean
+./gradlew cleanCxx
+./gradlew buildMobileGbufferDebug
+# With device available over adb
+./gradlew installMobileGbufferDebug
 ```
 
-Use Android Studio to open `android` subfolder and build
+Alternatively, use Android Studio to open `android` subfolder and build. There
+are build variants for the different supported projects.
+
+## Android (on Windows)
+```
+git clone --recursive https://github.com/google/BigWheels
+cd BigWheels/android
+gradlew.bat clean
+gradlew.bat cleanCxx
+gradlew.bat buildMobileGbufferDebug
+# With device available over adb
+gradlew.bat installMobileGbufferDebug
+```
+
+Alternatively, use Android Studio to open `android` subfolder and build. There
+are build variants for the different supported projects.
 
 ## OpenXR
 OpenXR support can be enabled by adding `-DPPX_BUILD_XR=1` flag.
@@ -52,6 +73,24 @@ For example, for Windows build:
 ```
 cmake -B build -G "Visual Studio 16 2019" -A x64 -DPPX_BUILD_XR=1
 ```
+
+### Standalone
+For running bigwheels standalone on XR devices such as Quests, use the Android
+build variants.
+
+```
+cd BigWheels/android
+./gradlew clean && ./gradlew cleanCxx
+./gradlew buildQuestCubexrDebug
+./gradlew installQuestCubexrDebug
+```
+
+Alternatively, Android Studio can be used to select a build variant, build, and
+install projects onto the XR device.
+
+**Note**: For Quest devices specifically, the Oculus OpenXR SDK is needed. Set
+the path to the Oculus OpenXR SDK as an environment variable named
+`OCULUS_OPENXR_SDK`.
 
 # Shader Compilation
 Shader binaries are generated during project build. Since BigWheels can target multiple graphics APIs, we compile shaders

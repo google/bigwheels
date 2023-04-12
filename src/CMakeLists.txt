@@ -450,7 +450,7 @@ if (PPX_BUILD_XR)
     add_dependencies(${PROJECT_NAME} generate_openxr_header)
     target_include_directories(
         ${PROJECT_NAME}
-        PUBLIC ${CMAKE_BINARY_DIR}/third_party/OpenXR-SDK-Source/include
+        PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/../third_party/OpenXR-SDK-Source/include
     )
 endif()
 
@@ -489,6 +489,13 @@ if (PPX_BUILD_XR)
 	target_compile_definitions(
         ${PROJECT_NAME}
         PUBLIC PPX_BUILD_XR
+    )
+endif()
+
+if (PPX_XR_QUEST)
+  target_compile_definitions(
+        ${PROJECT_NAME}
+        PUBLIC PPX_XR_QUEST
     )
 endif()
 
