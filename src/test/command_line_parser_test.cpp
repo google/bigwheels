@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 #include "gmock/gmock.h"
 
 #include "ppx/command_line_parser.h"
@@ -48,12 +48,12 @@ TEST(CommandLineParserTest, StandardOptionsSuccessfullyParsed)
     EXPECT_FALSE(parser.Parse(14, args));
 
     StandardOptions wantOptions;
-    wantOptions.help                  = true;
-    wantOptions.list_gpus             = true;
-    wantOptions.gpu_index             = 5;
-    wantOptions.resolution            = {1920, 1080};
-    wantOptions.frame_count           = 11;
-    wantOptions.use_software_renderer = true;
+    wantOptions.help                    = true;
+    wantOptions.list_gpus               = true;
+    wantOptions.gpu_index               = 5;
+    wantOptions.resolution              = {1920, 1080};
+    wantOptions.frame_count             = 11;
+    wantOptions.use_software_renderer   = true;
     wantOptions.screenshot_frame_number = 321;
     wantOptions.screenshot_path         = "/path/to/screenshot/dir/filename";
 
