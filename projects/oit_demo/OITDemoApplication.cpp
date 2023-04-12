@@ -15,27 +15,24 @@
 // TODO Several meshes on top of each other (including opaque ones)
 // TODO Choice of cubemaps as background
 // TODO Add WeightedAverage with depth
-// TODO Add Depth peeling (basic and dual)
+// TODO Add Dual depth peeling
 // TODO Add buffer-based algorithms
+// TODO Add split windows support to compare algorithms
 
 #include "OITDemoApplication.h"
 #include "ppx/graphics_util.h"
-#include "shaders/Common.hlsli"
 
-OITDemoApp::GuiParameters::GuiParameters()
-    : meshOpacity(1.0f), algorithmDataIndex(0), displayBackground(true), faceMode(FACE_MODE_ALL), weightedAverageType(WEIGHTED_AVERAGE_TYPE_FRAGMENT_COUNT)
-{
-    backgroundColor[0] = 0.51f;
-    backgroundColor[1] = 0.71f;
-    backgroundColor[2] = 0.85f;
-}
+static constexpr float MESH_SCALE_DEFAULT = 2.0f;
+static constexpr float MESH_SCALE_MIN     = 1.0f;
+static constexpr float MESH_SCALE_MAX     = 5.0f;
 
 void OITDemoApp::Config(ppx::ApplicationSettings& settings)
 {
     settings.appName = "OIT demo";
 
-    settings.enableImGui      = true;
-    settings.grfx.enableDebug = false;
+    settings.allowThirdPartyAssets = true;
+    settings.enableImGui           = true;
+    settings.grfx.enableDebug      = false;
 
     settings.grfx.swapchain.colorFormat = grfx::FORMAT_B8G8R8A8_UNORM;
 
@@ -53,6 +50,9 @@ void OITDemoApp::Config(ppx::ApplicationSettings& settings)
 
 void OITDemoApp::SetupCommon()
 {
+    mPreviousElapsedSeconds = GetElapsedSeconds();
+    mMeshAnimationSeconds   = mPreviousElapsedSeconds;
+
     ////////////////////////////////////////
     // Shared
     ////////////////////////////////////////
@@ -101,7 +101,10 @@ void OITDemoApp::SetupCommon()
         grfx::QueuePtr queue   = this->GetGraphicsQueue();
         TriMeshOptions options = TriMeshOptions().Indices();
         PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, this->GetAssetPath("basic/models/cube.obj"), &mBackgroundMesh, options));
-        PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, this->GetAssetPath("basic/models/monkey.obj"), &mMonkeyMesh, options));
+        PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, this->GetAssetPath("basic/models/monkey.obj"), &mTransparentMeshes[MESH_TYPE_MONKEY], options));
+        PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, this->GetAssetPath("oit_demo/models/horse.obj"), &mTransparentMeshes[MESH_TYPE_HORSE], options));
+        PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, this->GetAssetPath("oit_demo/models/megaphone.obj"), &mTransparentMeshes[MESH_TYPE_MEGAPHONE], options));
+        PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, this->GetAssetPath("oit_demo/models/cannon.obj"), &mTransparentMeshes[MESH_TYPE_CANNON], options));
     }
 
     // Shader globals
@@ -126,7 +129,7 @@ void OITDemoApp::SetupCommon()
         createInfo.renderTargetFormats[0]       = GetSwapchain()->GetColorFormat();
         createInfo.depthStencilFormat           = grfx::FORMAT_D32_FLOAT;
         createInfo.renderTargetUsageFlags[0]    = grfx::IMAGE_USAGE_SAMPLED;
-        createInfo.depthStencilUsageFlags       = grfx::IMAGE_USAGE_SAMPLED;
+        createInfo.depthStencilUsageFlags       = grfx::IMAGE_USAGE_TRANSFER_SRC | grfx::IMAGE_USAGE_SAMPLED;
         createInfo.renderTargetInitialStates[0] = grfx::RESOURCE_STATE_SHADER_RESOURCE;
         createInfo.depthStencilInitialState     = grfx::RESOURCE_STATE_SHADER_RESOURCE;
         createInfo.renderTargetClearValues[0]   = {0, 0, 0, 0};
@@ -230,24 +233,24 @@ void OITDemoApp::SetupCommon()
     // Descriptor
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{NEAREST_SAMPLER_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{OPAQUE_TEXTURE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{TRANSPARENCY_TEXTURE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_SAMPLER_0_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_TEXTURE_0_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_TEXTURE_1_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mCompositeDescriptorSetLayout));
         PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mCompositeDescriptorSetLayout, &mCompositeDescriptorSet));
 
         grfx::WriteDescriptor writes[3] = {};
 
-        writes[0].binding  = NEAREST_SAMPLER_REGISTER;
+        writes[0].binding  = CUSTOM_SAMPLER_0_REGISTER;
         writes[0].type     = grfx::DESCRIPTOR_TYPE_SAMPLER;
         writes[0].pSampler = mNearestSampler;
 
-        writes[1].binding    = OPAQUE_TEXTURE_REGISTER;
+        writes[1].binding    = CUSTOM_TEXTURE_0_REGISTER;
         writes[1].arrayIndex = 0;
         writes[1].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         writes[1].pImageView = mOpaquePass->GetRenderTargetTexture(0)->GetSampledImageView();
 
-        writes[2].binding    = TRANSPARENCY_TEXTURE_REGISTER;
+        writes[2].binding    = CUSTOM_TEXTURE_1_REGISTER;
         writes[2].arrayIndex = 0;
         writes[2].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         writes[2].pImageView = mTransparencyTexture->GetSampledImageView();
@@ -289,56 +292,79 @@ void OITDemoApp::SetupCommon()
     }
 }
 
-void OITDemoApp::AddSupportedAlgorithm(const char* name, Algorithm algorithm)
-{
-    mSupportedAlgorithmNames.push_back(name);
-    mSupportedAlgorithmIds.push_back(algorithm);
-    PPX_ASSERT_MSG(mSupportedAlgorithmNames.size() == mSupportedAlgorithmIds.size(), "supported algorithm data is out-of-sync");
-}
-
 OITDemoApp::Algorithm OITDemoApp::GetSelectedAlgorithm() const
 {
     return mSupportedAlgorithmIds[mGuiParameters.algorithmDataIndex];
 }
 
-void OITDemoApp::FillSupportedAlgorithmData()
+grfx::MeshPtr OITDemoApp::GetTransparentMesh() const
 {
-    AddSupportedAlgorithm("Unsorted over", ALGORITHM_UNSORTED_OVER);
-    AddSupportedAlgorithm("Weighted sum", ALGORITHM_WEIGHTED_SUM);
-    if (GetDevice()->IndependentBlendingSupported()) {
-        AddSupportedAlgorithm("Weighted average", ALGORITHM_WEIGHTED_AVERAGE);
-    }
+    return mTransparentMeshes[mGuiParameters.mesh.type];
 }
 
-void OITDemoApp::SetDefaultAlgorithmIndex(Algorithm defaultAlgorithm)
+void OITDemoApp::FillSupportedAlgorithmData()
 {
+    const auto addSupportedAlgorithm = [this](const char* name, Algorithm algorithm) {
+        mSupportedAlgorithmNames.push_back(name);
+        mSupportedAlgorithmIds.push_back(algorithm);
+        PPX_ASSERT_MSG(mSupportedAlgorithmNames.size() == mSupportedAlgorithmIds.size(), "supported algorithm data is out-of-sync");
+    };
+
+    addSupportedAlgorithm("Unsorted over", ALGORITHM_UNSORTED_OVER);
+    addSupportedAlgorithm("Weighted sum", ALGORITHM_WEIGHTED_SUM);
+    if (GetDevice()->IndependentBlendingSupported()) {
+        addSupportedAlgorithm("Weighted average", ALGORITHM_WEIGHTED_AVERAGE);
+    }
+    addSupportedAlgorithm("Depth peeling", ALGORITHM_DEPTH_PEELING);
+}
+
+void OITDemoApp::ParseCommandLineOptions()
+{
+    const CliOptions& cliOptions = GetExtraOptions();
+
+    const Algorithm defaultAlgorithm = static_cast<Algorithm>(cliOptions.GetExtraOptionValueOrDefault("algorithm", static_cast<int32_t>(ALGORITHM_UNSORTED_OVER)));
     for (size_t i = 0; i < mSupportedAlgorithmIds.size(); ++i) {
         if (mSupportedAlgorithmIds[i] == defaultAlgorithm) {
             mGuiParameters.algorithmDataIndex = static_cast<int32_t>(i);
             break;
         }
     }
+
+    mGuiParameters.background.display  = cliOptions.GetExtraOptionValueOrDefault("bg_display", true);
+    mGuiParameters.background.color[0] = std::clamp(cliOptions.GetExtraOptionValueOrDefault("bg_red", 0.51f), 0.0f, 1.0f);
+    mGuiParameters.background.color[1] = std::clamp(cliOptions.GetExtraOptionValueOrDefault("bg_green", 0.71f), 0.0f, 1.0f);
+    mGuiParameters.background.color[2] = std::clamp(cliOptions.GetExtraOptionValueOrDefault("bg_blue", 0.85f), 0.0f, 1.0f);
+
+    mGuiParameters.mesh.type        = static_cast<MeshType>(std::clamp(cliOptions.GetExtraOptionValueOrDefault("mo_mesh", 0), 0, MESH_TYPES_COUNT - 1));
+    mGuiParameters.mesh.opacity     = std::clamp(cliOptions.GetExtraOptionValueOrDefault("mo_opacity", 1.0f), 0.0f, 1.0f);
+    mGuiParameters.mesh.scale       = std::clamp(cliOptions.GetExtraOptionValueOrDefault("mo_scale", MESH_SCALE_DEFAULT), MESH_SCALE_MIN, MESH_SCALE_MAX);
+    mGuiParameters.mesh.auto_rotate = cliOptions.GetExtraOptionValueOrDefault("mo_auto_rotate", true);
+
+    mGuiParameters.unsortedOver.faceMode = static_cast<FaceMode>(std::clamp(cliOptions.GetExtraOptionValueOrDefault("uo_face_mode", 0), 0, FACE_MODES_COUNT - 1));
+
+    mGuiParameters.weightedAverage.type = static_cast<WeightAverageType>(std::clamp(cliOptions.GetExtraOptionValueOrDefault("wa_type", 0), 0, WEIGHTED_AVERAGE_TYPES_COUNT - 1));
+
+    mGuiParameters.depthPeeling.startLayer  = std::clamp(cliOptions.GetExtraOptionValueOrDefault("dp_start_layer", 0), 0, DEPTH_PEELING_LAYERS_COUNT - 1);
+    mGuiParameters.depthPeeling.layersCount = std::clamp(cliOptions.GetExtraOptionValueOrDefault("dp_layers_count", DEPTH_PEELING_LAYERS_COUNT), 1, DEPTH_PEELING_LAYERS_COUNT);
 }
 
 void OITDemoApp::Setup()
 {
     SetupCommon();
     FillSupportedAlgorithmData();
-
-    {
-        const CliOptions& cliOptions       = GetExtraOptions();
-        const Algorithm   defaultAlgorithm = static_cast<Algorithm>(cliOptions.GetExtraOptionValueOrDefault("algorithm", static_cast<int32_t>(ALGORITHM_UNSORTED_OVER)));
-        SetDefaultAlgorithmIndex(defaultAlgorithm);
-    }
+    ParseCommandLineOptions();
 
     SetupUnsortedOver();
     SetupWeightedSum();
     SetupWeightedAverage();
+    SetupDepthPeeling();
 }
 
 void OITDemoApp::Update()
 {
-    const float time = GetElapsedSeconds();
+    const float elapsedSeconds = GetElapsedSeconds();
+    const float deltaSeconds   = elapsedSeconds - mPreviousElapsedSeconds;
+    mPreviousElapsedSeconds    = elapsedSeconds;
 
     // Shader globals
     {
@@ -351,20 +377,27 @@ void OITDemoApp::Update()
             const float4x4 M            = glm::scale(float3(20.0));
             shaderGlobals.backgroundMVP = VP * M;
 
-            shaderGlobals.backgroundColor.r = mGuiParameters.backgroundColor[0];
-            shaderGlobals.backgroundColor.g = mGuiParameters.backgroundColor[1];
-            shaderGlobals.backgroundColor.b = mGuiParameters.backgroundColor[2];
+            shaderGlobals.backgroundColor.r = mGuiParameters.background.color[0];
+            shaderGlobals.backgroundColor.g = mGuiParameters.background.color[1];
+            shaderGlobals.backgroundColor.b = mGuiParameters.background.color[2];
             shaderGlobals.backgroundColor.a = 1.0f;
         }
         {
+            if (mGuiParameters.mesh.auto_rotate) {
+                mMeshAnimationSeconds += deltaSeconds;
+            }
             const float4x4 M =
-                glm::rotate(time, float3(0, 0, 1)) *
-                glm::rotate(2 * time, float3(0, 1, 0)) *
-                glm::rotate(time, float3(1, 0, 0)) *
-                glm::scale(float3(2));
+                glm::rotate(mMeshAnimationSeconds, float3(0.0f, 0.0f, 1.0f)) *
+                glm::rotate(2.0f * mMeshAnimationSeconds, float3(0.0f, 1.0f, 0.0f)) *
+                glm::rotate(mMeshAnimationSeconds, float3(1.0f, 0.0f, 0.0f)) *
+                glm::scale(float3(mGuiParameters.mesh.scale));
             shaderGlobals.meshMVP = VP * M;
         }
-        shaderGlobals.meshOpacity = mGuiParameters.meshOpacity;
+        shaderGlobals.meshOpacity = mGuiParameters.mesh.opacity;
+
+        shaderGlobals.depthPeelingFrontLayerIndex = std::max(0, mGuiParameters.depthPeeling.startLayer);
+        shaderGlobals.depthPeelingBackLayerIndex  = std::min(DEPTH_PEELING_LAYERS_COUNT - 1, mGuiParameters.depthPeeling.startLayer + mGuiParameters.depthPeeling.layersCount - 1);
+
         mShaderGlobalsBuffer->CopyFromSource(sizeof(shaderGlobals), &shaderGlobals);
     }
 
@@ -381,17 +414,34 @@ void OITDemoApp::UpdateGUI()
     if (ImGui::Begin("Parameters")) {
         ImGui::Combo("Algorithm", &mGuiParameters.algorithmDataIndex, mSupportedAlgorithmNames.data(), static_cast<int>(mSupportedAlgorithmNames.size()));
 
-        ImGui::SliderFloat("Opacity", &mGuiParameters.meshOpacity, 0.0f, 1.0f, "%.2f");
-        ImGui::Checkbox("Display background", &mGuiParameters.displayBackground);
-        if (mGuiParameters.displayBackground) {
+        ImGui::Separator();
+        ImGui::Text("Model");
+        const char* meshesChoices[] =
+            {
+                "Monkey",
+                "Horse",
+                "Megaphone",
+                "Cannon",
+            };
+        static_assert(IM_ARRAYSIZE(meshesChoices) == MESH_TYPES_COUNT, "Mesh types count mismatch");
+        ImGui::Combo("Mesh", reinterpret_cast<int32_t*>(&mGuiParameters.mesh.type), meshesChoices, IM_ARRAYSIZE(meshesChoices));
+        ImGui::SliderFloat("Opacity", &mGuiParameters.mesh.opacity, 0.0f, 1.0f, "%.2f");
+        ImGui::SliderFloat("Scale", &mGuiParameters.mesh.scale, MESH_SCALE_MIN, MESH_SCALE_MAX, "%.2f");
+        ImGui::Checkbox("Auto rotate", &mGuiParameters.mesh.auto_rotate);
+
+        ImGui::Separator();
+        ImGui::Text("Background");
+        ImGui::Checkbox("BG display", &mGuiParameters.background.display);
+        if (mGuiParameters.background.display) {
             ImGui::ColorPicker3(
-                "Background color", mGuiParameters.backgroundColor, ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoDragDrop | ImGuiColorEditFlags_NoOptions | ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoSmallPreview | ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_InputRGB);
+                "BG color", mGuiParameters.background.color, ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoTooltip | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoDragDrop | ImGuiColorEditFlags_NoOptions | ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoSmallPreview | ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_InputRGB);
         }
 
         ImGui::Separator();
 
         switch (GetSelectedAlgorithm()) {
             case ALGORITHM_UNSORTED_OVER: {
+                ImGui::Text(mSupportedAlgorithmNames[mGuiParameters.algorithmDataIndex]);
                 const char* faceModeChoices[] =
                     {
                         "All",
@@ -400,17 +450,24 @@ void OITDemoApp::UpdateGUI()
                         "Front only",
                     };
                 static_assert(IM_ARRAYSIZE(faceModeChoices) == FACE_MODES_COUNT, "Face modes count mismatch");
-                ImGui::Combo("Face draw mode", reinterpret_cast<int32_t*>(&mGuiParameters.faceMode), faceModeChoices, IM_ARRAYSIZE(faceModeChoices));
+                ImGui::Combo("UO face mode", reinterpret_cast<int32_t*>(&mGuiParameters.unsortedOver.faceMode), faceModeChoices, IM_ARRAYSIZE(faceModeChoices));
                 break;
             }
             case ALGORITHM_WEIGHTED_AVERAGE: {
+                ImGui::Text(mSupportedAlgorithmNames[mGuiParameters.algorithmDataIndex]);
                 const char* typeChoices[] =
                     {
                         "Fragment count",
                         "Exact coverage",
                     };
                 static_assert(IM_ARRAYSIZE(typeChoices) == WEIGHTED_AVERAGE_TYPES_COUNT, "Weighted average types count mismatch");
-                ImGui::Combo("Type", reinterpret_cast<int32_t*>(&mGuiParameters.weightedAverageType), typeChoices, IM_ARRAYSIZE(typeChoices));
+                ImGui::Combo("WA Type", reinterpret_cast<int32_t*>(&mGuiParameters.weightedAverage.type), typeChoices, IM_ARRAYSIZE(typeChoices));
+                break;
+            }
+            case ALGORITHM_DEPTH_PEELING: {
+                ImGui::Text(mSupportedAlgorithmNames[mGuiParameters.algorithmDataIndex]);
+                ImGui::SliderInt("DP first layer", &mGuiParameters.depthPeeling.startLayer, 0, DEPTH_PEELING_LAYERS_COUNT - 1);
+                ImGui::SliderInt("DP layers count", &mGuiParameters.depthPeeling.layersCount, 1, DEPTH_PEELING_LAYERS_COUNT);
                 break;
             }
             default: {
@@ -434,7 +491,7 @@ void OITDemoApp::RecordOpaque()
     mCommandBuffer->SetScissors(mOpaquePass->GetScissor());
     mCommandBuffer->SetViewports(mOpaquePass->GetViewport());
 
-    if (mGuiParameters.displayBackground) {
+    if (mGuiParameters.background.display) {
         mCommandBuffer->BindGraphicsDescriptorSets(mOpaquePipelineInterface, 1, &mOpaqueDescriptorSet);
         mCommandBuffer->BindGraphicsPipeline(mOpaquePipeline);
         mCommandBuffer->BindIndexBuffer(mBackgroundMesh);
@@ -462,6 +519,9 @@ void OITDemoApp::RecordTransparency()
             break;
         case ALGORITHM_WEIGHTED_AVERAGE:
             RecordWeightedAverage();
+            break;
+        case ALGORITHM_DEPTH_PEELING:
+            RecordDepthPeeling();
             break;
         default:
             PPX_ASSERT_MSG(false, "unknown algorithm");

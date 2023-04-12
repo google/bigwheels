@@ -16,6 +16,8 @@
 
 using namespace ppx;
 
+#include "shaders/Common.hlsli"
+
 class OITDemoApp
     : public ppx::Application
 {
@@ -30,7 +32,17 @@ private:
         ALGORITHM_UNSORTED_OVER,
         ALGORITHM_WEIGHTED_SUM,
         ALGORITHM_WEIGHTED_AVERAGE,
+        ALGORITHM_DEPTH_PEELING,
         ALGORITHMS_COUNT,
+    };
+
+    enum MeshType : int32_t
+    {
+        MESH_TYPE_MONKEY,
+        MESH_TYPE_HORSE,
+        MESH_TYPE_MEGAPHONE,
+        MESH_TYPE_CANNON,
+        MESH_TYPES_COUNT,
     };
 
     enum FaceMode : int32_t
@@ -51,18 +63,37 @@ private:
 
     struct GuiParameters
     {
-        GuiParameters();
-
-        float   meshOpacity;
         int32_t algorithmDataIndex;
-        float   backgroundColor[3];
-        bool    displayBackground;
 
-        // Unsorted over
-        FaceMode faceMode;
+        struct
+        {
+            float color[3];
+            bool  display;
+        } background;
 
-        // Weighted average
-        WeightAverageType weightedAverageType;
+        struct
+        {
+            MeshType type;
+            float    opacity;
+            float    scale;
+            bool     auto_rotate;
+        } mesh;
+
+        struct
+        {
+            FaceMode faceMode;
+        } unsortedOver;
+
+        struct
+        {
+            WeightAverageType type;
+        } weightedAverage;
+
+        struct
+        {
+            int32_t startLayer;
+            int32_t layersCount;
+        } depthPeeling;
     };
 
     std::vector<const char*> mSupportedAlgorithmNames;
@@ -70,15 +101,16 @@ private:
 
 private:
     void SetupCommon();
-
     void SetupUnsortedOver();
     void SetupWeightedSum();
     void SetupWeightedAverage();
+    void SetupDepthPeeling();
 
-    void      FillSupportedAlgorithmData();
-    void      AddSupportedAlgorithm(const char* name, Algorithm algorithm);
-    void      SetDefaultAlgorithmIndex(Algorithm defaultAlgorithm);
-    Algorithm GetSelectedAlgorithm() const;
+    void FillSupportedAlgorithmData();
+    void ParseCommandLineOptions();
+
+    Algorithm     GetSelectedAlgorithm() const;
+    grfx::MeshPtr GetTransparentMesh() const;
 
     void Update();
     void UpdateGUI();
@@ -87,11 +119,15 @@ private:
     void RecordUnsortedOver();
     void RecordWeightedSum();
     void RecordWeightedAverage();
+    void RecordDepthPeeling();
     void RecordTransparency();
     void RecordComposite(grfx::RenderPassPtr renderPass);
 
 private:
-    GuiParameters mGuiParameters;
+    GuiParameters mGuiParameters = {};
+
+    float mPreviousElapsedSeconds;
+    float mMeshAnimationSeconds;
 
     grfx::SemaphorePtr mImageAcquiredSemaphore;
     grfx::FencePtr     mImageAcquiredFence;
@@ -104,7 +140,7 @@ private:
     grfx::SamplerPtr mNearestSampler;
 
     grfx::MeshPtr mBackgroundMesh;
-    grfx::MeshPtr mMonkeyMesh;
+    grfx::MeshPtr mTransparentMeshes[MESH_TYPES_COUNT];
 
     grfx::BufferPtr mShaderGlobalsBuffer;
 
@@ -171,4 +207,22 @@ private:
             grfx::GraphicsPipelinePtr combinePipeline;
         } coverage;
     } mWeightedAverage;
+
+    struct
+    {
+        grfx::TexturePtr  layerTextures[DEPTH_PEELING_LAYERS_COUNT];
+        grfx::TexturePtr  depthTextures[DEPTH_PEELING_DEPTH_TEXTURES_COUNT];
+        grfx::DrawPassPtr layerPasses[DEPTH_PEELING_LAYERS_COUNT];
+
+        grfx::DescriptorSetLayoutPtr layerDescriptorSetLayout;
+        grfx::DescriptorSetPtr       layerDescriptorSets[DEPTH_PEELING_DEPTH_TEXTURES_COUNT];
+        grfx::PipelineInterfacePtr   layerPipelineInterface;
+        grfx::GraphicsPipelinePtr    layerPipeline_OtherLayers;
+        grfx::GraphicsPipelinePtr    layerPipeline_FirstLayer;
+
+        grfx::DescriptorSetLayoutPtr combineDescriptorSetLayout;
+        grfx::DescriptorSetPtr       combineDescriptorSet;
+        grfx::PipelineInterfacePtr   combinePipelineInterface;
+        grfx::GraphicsPipelinePtr    combinePipeline;
+    } mDepthPeeling;
 };

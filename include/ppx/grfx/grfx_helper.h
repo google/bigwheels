@@ -152,7 +152,7 @@ struct ImageUsageFlags
             bool storage                : 1;
             bool colorAttachment        : 1;
             bool depthStencilAttachment : 1;
-            bool transientAattachment   : 1;
+            bool transientAttachment    : 1;
             bool inputAttachment        : 1;
             bool shadingRateImageNv     : 1;
             bool fragmentDensityMap     : 1;

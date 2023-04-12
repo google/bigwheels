@@ -23,6 +23,7 @@ add_samples_for_all_apis(
         "UnsortedOver.cpp"
         "WeightedSum.cpp"
         "WeightedAverage.cpp"
+        "DepthPeeling.cpp"
         "main.cpp"
     SHADER_DEPENDENCIES "shader_oit_demo"
     ADDITIONAL_INCLUDE_DIRECTORIES "${PPX_DIR}/assets/oit_demo"

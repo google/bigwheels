@@ -16,16 +16,15 @@
 #include "Common.hlsli"
 #include "FullscreenVS.hlsli"
 
-SamplerState NearestSampler      : register(NEAREST_SAMPLER_REGISTER);
-Texture2D    OpaqueTexture       : register(OPAQUE_TEXTURE_REGISTER);
-Texture2D    TransparencyTexture : register(TRANSPARENCY_TEXTURE_REGISTER);
+SamplerState NearestSampler      : register(CUSTOM_SAMPLER_0_REGISTER);
+Texture2D    OpaqueTexture       : register(CUSTOM_TEXTURE_0_REGISTER);
+Texture2D    TransparencyTexture : register(CUSTOM_TEXTURE_1_REGISTER);
 
 float4 psmain(VSOutput input) : SV_TARGET
 {
     const float3 opaqueColor = OpaqueTexture.Sample(NearestSampler, input.uv).rgb;
 
-    const int3 texelCoord = int3(input.position.xy, 0);
-    const float4 transparencySample = TransparencyTexture.Load(texelCoord);
+    const float4 transparencySample = TransparencyTexture.Sample(NearestSampler, input.uv);
     const float3 transparencyColor  = transparencySample.rgb;
     const float  coverage           = transparencySample.a;
 

@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include "OITDemoApplication.h"
-#include "shaders/Common.hlsli"
 
 void OITDemoApp::SetupUnsortedOver()
 {
@@ -50,7 +49,7 @@ void OITDemoApp::SetupUnsortedOver()
         gpCreateInfo.VS                                                      = {VS, "vsmain"};
         gpCreateInfo.PS                                                      = {PS, "psmain"};
         gpCreateInfo.vertexInputState.bindingCount                           = 1;
-        gpCreateInfo.vertexInputState.bindings[0]                            = mMonkeyMesh->GetDerivedVertexBindings()[0];
+        gpCreateInfo.vertexInputState.bindings[0]                            = GetTransparentMesh()->GetDerivedVertexBindings()[0];
         gpCreateInfo.inputAssemblyState.topology                             = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         gpCreateInfo.rasterState.polygonMode                                 = grfx::POLYGON_MODE_FILL;
         gpCreateInfo.rasterState.frontFace                                   = grfx::FRONT_FACE_CCW;
@@ -99,29 +98,29 @@ void OITDemoApp::RecordUnsortedOver()
     mCommandBuffer->SetViewports(mTransparencyPass->GetViewport());
 
     mCommandBuffer->BindGraphicsDescriptorSets(mUnsortedOver.pipelineInterface, 1, &mUnsortedOver.descriptorSet);
-    mCommandBuffer->BindIndexBuffer(mMonkeyMesh);
-    mCommandBuffer->BindVertexBuffers(mMonkeyMesh);
-    switch (mGuiParameters.faceMode) {
+    mCommandBuffer->BindIndexBuffer(GetTransparentMesh());
+    mCommandBuffer->BindVertexBuffers(GetTransparentMesh());
+    switch (mGuiParameters.unsortedOver.faceMode) {
         case FACE_MODE_ALL: {
             mCommandBuffer->BindGraphicsPipeline(mUnsortedOver.meshAllFacesPipeline);
-            mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
+            mCommandBuffer->DrawIndexed(GetTransparentMesh()->GetIndexCount());
             break;
         }
         case FACE_MODE_ALL_BACK_THEN_FRONT: {
             mCommandBuffer->BindGraphicsPipeline(mUnsortedOver.meshBackFacesPipeline);
-            mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
+            mCommandBuffer->DrawIndexed(GetTransparentMesh()->GetIndexCount());
             mCommandBuffer->BindGraphicsPipeline(mUnsortedOver.meshFrontFacesPipeline);
-            mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
+            mCommandBuffer->DrawIndexed(GetTransparentMesh()->GetIndexCount());
             break;
         }
         case FACE_MODE_BACK_ONLY: {
             mCommandBuffer->BindGraphicsPipeline(mUnsortedOver.meshBackFacesPipeline);
-            mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
+            mCommandBuffer->DrawIndexed(GetTransparentMesh()->GetIndexCount());
             break;
         }
         case FACE_MODE_FRONT_ONLY: {
             mCommandBuffer->BindGraphicsPipeline(mUnsortedOver.meshFrontFacesPipeline);
-            mCommandBuffer->DrawIndexed(mMonkeyMesh->GetIndexCount());
+            mCommandBuffer->DrawIndexed(GetTransparentMesh()->GetIndexCount());
             break;
         }
         default: {
