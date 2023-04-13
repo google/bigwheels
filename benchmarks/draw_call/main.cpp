@@ -86,9 +86,6 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.enableDebug               = false;
     settings.grfx.device.graphicsQueueCount = 1;
     settings.grfx.numFramesInFlight         = 1;
-#if defined(USE_DXIL)
-    settings.grfx.enableDXIL = true;
-#endif
 }
 
 void ProjApp::SaveResultsToFile()

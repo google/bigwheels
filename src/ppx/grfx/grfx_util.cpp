@@ -24,8 +24,6 @@ const char* ToString(grfx::Api value)
         default: break;
         case grfx::API_VK_1_1: return "Vulkan 1.1"; break;
         case grfx::API_VK_1_2: return "Vulkan 1.2"; break;
-        case grfx::API_DX_11_0: return "Direct3D 11.0"; break;
-        case grfx::API_DX_11_1: return "Direct3D 11.1"; break;
         case grfx::API_DX_12_0: return "Direct3D 12.0"; break;
         case grfx::API_DX_12_1: return "Direct3D 12.1"; break;
     }

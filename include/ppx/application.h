@@ -271,7 +271,6 @@ struct ApplicationSettings
     {
         grfx::Api api               = grfx::API_UNDEFINED;
         bool      enableDebug       = false;
-        bool      enableDXIL        = false;
         uint32_t  numFramesInFlight = 1;
         uint32_t  pacedFrameRate    = 60;
 
@@ -360,20 +359,18 @@ public:
     grfx::Rect                 GetScissor() const;
     grfx::Viewport             GetViewport(float minDepth = 0.0f, float maxDepth = 1.0f) const;
 
-    // Loads a DXBC, DXIL, or SPV shader from baseDir
+    // Loads a DXIL or SPV shader from baseDir.
     //
-    // 'baseDir' is path to the directory that contains dxbc, dxil, and spv subdirectories.
-    // 'baseName' is the filename WITHOUT the dxbc, dxil, and spv extension.
+    // 'baseDir' is the path to the directory that contains dxil, and spv subdirectories.
+    // 'baseName' is the filename WITHOUT the dxil, and spv extension.
     //
     // Example(s):
     //   LoadShader("shaders", "Texture.vs")
-    //     - loads shader file: shaders/dxbc/Texture.vs.dxbc for API_DX_12_0, API_DX_12_1 if enableDXIL = false
-    //     - loads shader file: shaders/dxil/Texture.vs.dxil for API_DX_12_0, API_DX_12_1 if enableDXIL = true
+    //     - loads shader file: shaders/dxil/Texture.vs.dxil for API_DX_12_0, API_DX_12_1
     //     - loads shader file: shaders/spv/Texture.vs.spv   for API_VK_1_1, API_VK_1_2
     //
     //   LoadShader("some/path/shaders", "Texture.vs")
-    //     - loads shader file: some/path/shaders/dxbc/Texture.vs.dxbc for API_DX_12_0, API_DX_12_1 if enableDXIL = false
-    //     - loads shader file: some/path/shaders/dxil/Texture.vs.dxil for API_DX_12_0, API_DX_12_1 if enableDXIL = true
+    //     - loads shader file: some/path/shaders/dxil/Texture.vs.dxil for API_DX_12_0, API_DX_12_1
     //     - loads shader file: some/path/shaders/spv/Texture.vs.spv   for API_VK_1_1, API_VK_1_2
     //
     std::vector<char> LoadShader(const std::filesystem::path& baseDir, const std::string& baseName) const;

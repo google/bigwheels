@@ -151,9 +151,6 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.swapchain.imageCount     = mNumFramesInFlight;
     settings.grfx.device.computeQueueCount = 1;
     settings.grfx.numFramesInFlight        = mNumFramesInFlight;
-#if defined(USE_DXIL)
-    settings.grfx.enableDXIL = true;
-#endif
 }
 
 void ProjApp::Setup()

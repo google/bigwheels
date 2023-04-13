@@ -23,8 +23,6 @@ enum Api
     API_UNDEFINED = 0,
     API_VK_1_1,
     API_VK_1_2,
-    API_DX_11_0,
-    API_DX_11_1,
     API_DX_12_0,
     API_DX_12_1,
 };

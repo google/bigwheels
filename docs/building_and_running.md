@@ -7,13 +7,11 @@ Binaries are written to `<build-dir>/bin` and libraries to `<build-dir>/lib`.
 Shaders are also written to `<build-dir>`, but prefixed with their path and the format. For example:
 
 - For SPIR-V, `$REPO/assets/shaders/my_shader.hlsl` is compiled to `$BUILD_DIR/assets/shaders/spv/my_shader.spv`.
-- For DXBC51, `$REPO/assets/shaders/my_shader.hlsl` is compiled to `$BUILD_DIR/assets/shaders/dxbc51/my_shader.dxbc51`.
+- For DXIL, `$REPO/assets/shaders/my_shader.hlsl` is compiled to `$BUILD_DIR/assets/shaders/dxil/my_shader.dxil`.
 
 Binaries have prefixes indicating the target graphics API and shader format:
- * **dx12** - D3D12 with SM 5.1
-   * Shaders are compiled with FXC
- * **dxil** - D3D12 with SM 6.0+
-   * Shaders are compiled with DXC/DXIL
+ * **dx12** - D3D12 with SM 6.5
+   * Shaders are compiled with DXC/DXIL.
  * **vk** - Vulkan
    * Shaders are compiled with DXC/SPIR-V
 
@@ -57,19 +55,14 @@ cmake -B build -G "Visual Studio 16 2019" -A x64 -DPPX_BUILD_XR=1
 Shader binaries are generated during project build. Since BigWheels can target multiple graphics APIs, we compile shaders
 for each API depending on the need. API support depends on the system nature and configuration:
     - For Linux, only SPIR-V is generated.
-    - For Windows, DXBC, DXIL, and SPIR-V is generated.
+    - For Windows, both DXIL and SPIR-V are generated.
 
 To request a specific API, flags can be passed to Cmake:
  - `PPX_D3D12`: DirectX 12 support.
  - `PPX_VULKAN`: Vulkan support.
 
-All targets require DXC. Additionally, DirectX 12 requires FXC.
+**All targets require DXC.**
 
 ## DXC
 The build system will look for `dxc.exe` or `dxc` in the Vulkan SDK bin directory.
 The DXC path can also be provided using `-DDXC_PATH=<path to DXC executable>`.
-**DXC is REQUIRED.**
-
-## FXC
-The build system will look for `fxc.exe` in the Windows SDK version that CMake selects.
-The FXC path can also be provided using `-DFXC_PATH=<path to FXC executable>`.

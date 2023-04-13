@@ -262,9 +262,6 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.enableDebug           = false;
     settings.enableImGui                = true;
     settings.grfx.numFramesInFlight     = 1;
-#if defined(USE_DXIL)
-    settings.grfx.enableDXIL = true;
-#endif
 }
 
 void ProjApp::SetupSamplers()

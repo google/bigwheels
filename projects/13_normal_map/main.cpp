@@ -97,9 +97,6 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.api                   = kApi;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
     settings.grfx.enableDebug           = false;
-#if defined(USE_DXIL)
-    settings.grfx.enableDXIL = true;
-#endif
 }
 
 void ProjApp::SetupEntity(
