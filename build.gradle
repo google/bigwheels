@@ -32,8 +32,10 @@ android {
         }
     }
     buildTypes.each {
+        // The same string needs to be defined for both the manifest and
+        // the MainActivity. Maybe there is a better way.
         it.buildConfigField "String", "sample_library_name", '"vk_01_triangle"'
-        it.resValue "string", "sample_library_name", 'vk_01_triangle'
+        it.resValue         "string", "sample_library_name",  'vk_01_triangle'
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -49,18 +51,17 @@ android {
         }
     }
     sourceSets {
-    main {
-        java.srcDirs = [ 'src/android' ]
-        manifest.srcFile 'src/android/AndroidManifest.xml'
-        assets {
-            srcDirs 'assets'
+        main {
+            java.srcDirs = [ 'src/android' ]
+            manifest.srcFile 'src/android/AndroidManifest.xml'
+            assets {
+                srcDirs 'assets'
+            }
         }
-    }
     }
 }
 
 dependencies {
-
     implementation 'androidx.appcompat:appcompat:1.5.1'
     implementation 'com.google.android.material:material:1.7.0'
     implementation 'androidx.games:games-activity:1.0.0'
@@ -68,4 +69,3 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.4'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.0'
 }
-
