@@ -693,6 +693,11 @@ bool Device::IndependentBlendingSupported() const
     return true;
 }
 
+bool Device::FragmentStoresAndAtomicsSupported() const
+{
+    return true;
+}
+
 } // namespace dx12
 } // namespace grfx
 } // namespace ppx

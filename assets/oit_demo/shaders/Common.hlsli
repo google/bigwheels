@@ -29,11 +29,17 @@
 #define CUSTOM_TEXTURE_5_REGISTER     SHADER_REGISTER(t, 8)
 #define CUSTOM_TEXTURE_6_REGISTER     SHADER_REGISTER(t, 9)
 #define CUSTOM_TEXTURE_7_REGISTER     SHADER_REGISTER(t, 10)
+#define CUSTOM_UAV_0_REGISTER         SHADER_REGISTER(u, 11)
+#define CUSTOM_UAV_1_REGISTER         SHADER_REGISTER(u, 12)
+#define CUSTOM_UAV_2_REGISTER         SHADER_REGISTER(u, 13)
+#define CUSTOM_UAV_3_REGISTER         SHADER_REGISTER(u, 14)
 
 #define EPSILON 0.0001f
 
 #define DEPTH_PEELING_LAYERS_COUNT          8
 #define DEPTH_PEELING_DEPTH_TEXTURES_COUNT  2
+
+#define BUFFER_BUCKET_SIZE_PER_PIXEL        8
 
 struct ShaderGlobals
 {
@@ -41,13 +47,13 @@ struct ShaderGlobals
     float4   backgroundColor;
     float4x4 meshMVP;
     float    meshOpacity;
-    float    meshParametersUnused0;
-    float    meshParametersUnused1;
-    float    meshParametersUnused2;
+    float    _floatUnused0;
+    float    _floatUnused1;
+    float    _floatUnused2;
     int      depthPeelingFrontLayerIndex;
     int      depthPeelingBackLayerIndex;
-    int      depthPeelingParametersUnused0;
-    int      depthPeelingParametersUnused1;
+    int      bufferFragmentsMaxCount;
+    int      _intUnused0;
 };
 
 #if defined(IS_SHADER)

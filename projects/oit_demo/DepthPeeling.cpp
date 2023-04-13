@@ -20,8 +20,8 @@ void OITDemoApp::SetupDepthPeeling()
     {
         grfx::TextureCreateInfo createInfo         = {};
         createInfo.imageType                       = grfx::IMAGE_TYPE_2D;
-        createInfo.width                           = GetSwapchain()->GetWidth();
-        createInfo.height                          = GetSwapchain()->GetHeight();
+        createInfo.width                           = mTransparencyTexture->GetWidth();
+        createInfo.height                          = mTransparencyTexture->GetHeight();
         createInfo.depth                           = 1;
         createInfo.imageFormat                     = grfx::FORMAT_B8G8R8A8_UNORM;
         createInfo.sampleCount                     = grfx::SAMPLE_COUNT_1;
@@ -114,7 +114,7 @@ void OITDemoApp::SetupDepthPeeling()
             writes[3].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
             writes[3].pImageView = mDepthPeeling.depthTextures[(i + 1) % DEPTH_PEELING_DEPTH_TEXTURES_COUNT]->GetSampledImageView();
 
-            PPX_CHECKED_CALL(mDepthPeeling.layerDescriptorSets[i]->UpdateDescriptors(4, writes));
+            PPX_CHECKED_CALL(mDepthPeeling.layerDescriptorSets[i]->UpdateDescriptors(sizeof(writes) / sizeof(writes[0]), writes));
         }
     }
 
@@ -174,7 +174,7 @@ void OITDemoApp::SetupDepthPeeling()
 
         PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mDepthPeeling.combineDescriptorSetLayout, &mDepthPeeling.combineDescriptorSet));
 
-        grfx::WriteDescriptor writes[10] = {};
+        grfx::WriteDescriptor writes[2 + DEPTH_PEELING_LAYERS_COUNT] = {};
 
         writes[0].binding      = SHADER_GLOBALS_REGISTER;
         writes[0].type         = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -193,7 +193,7 @@ void OITDemoApp::SetupDepthPeeling()
             writes[2 + i].pImageView = mDepthPeeling.layerTextures[i]->GetSampledImageView();
         }
 
-        PPX_CHECKED_CALL(mDepthPeeling.combineDescriptorSet->UpdateDescriptors(10, writes));
+        PPX_CHECKED_CALL(mDepthPeeling.combineDescriptorSet->UpdateDescriptors(sizeof(writes) / sizeof(writes[0]), writes));
     }
 
     // Pipeline

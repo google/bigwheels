@@ -184,6 +184,7 @@ public:
     virtual bool PipelineStatsAvailable() const    = 0;
     virtual bool DynamicRenderingSupported() const = 0;
     virtual bool IndependentBlendingSupported() const = 0;
+    virtual bool FragmentStoresAndAtomicsSupported() const = 0;
 
 protected:
     virtual Result Create(const grfx::DeviceCreateInfo* pCreateInfo) override;

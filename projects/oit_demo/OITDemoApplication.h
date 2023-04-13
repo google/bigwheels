@@ -33,6 +33,7 @@ private:
         ALGORITHM_WEIGHTED_SUM,
         ALGORITHM_WEIGHTED_AVERAGE,
         ALGORITHM_DEPTH_PEELING,
+        ALGORITHM_BUFFER,
         ALGORITHMS_COUNT,
     };
 
@@ -94,6 +95,11 @@ private:
             int32_t startLayer;
             int32_t layersCount;
         } depthPeeling;
+
+        struct
+        {
+            int32_t fragmentsMaxCount;
+        } buffer;
     };
 
     std::vector<const char*> mSupportedAlgorithmNames;
@@ -105,6 +111,7 @@ private:
     void SetupWeightedSum();
     void SetupWeightedAverage();
     void SetupDepthPeeling();
+    void SetupBuffer();
 
     void FillSupportedAlgorithmData();
     void ParseCommandLineOptions();
@@ -120,6 +127,7 @@ private:
     void RecordWeightedSum();
     void RecordWeightedAverage();
     void RecordDepthPeeling();
+    void RecordBuffer();
     void RecordTransparency();
     void RecordComposite(grfx::RenderPassPtr renderPass);
 
@@ -225,4 +233,22 @@ private:
         grfx::PipelineInterfacePtr   combinePipelineInterface;
         grfx::GraphicsPipelinePtr    combinePipeline;
     } mDepthPeeling;
+
+    struct
+    {
+        grfx::TexturePtr  countTexture;
+        grfx::TexturePtr  fragmentTexture;
+        grfx::DrawPassPtr clearPass;
+        grfx::DrawPassPtr gatherPass;
+
+        grfx::DescriptorSetLayoutPtr gatherDescriptorSetLayout;
+        grfx::DescriptorSetPtr       gatherDescriptorSet;
+        grfx::PipelineInterfacePtr   gatherPipelineInterface;
+        grfx::GraphicsPipelinePtr    gatherPipeline;
+
+        grfx::DescriptorSetLayoutPtr combineDescriptorSetLayout;
+        grfx::DescriptorSetPtr       combineDescriptorSet;
+        grfx::PipelineInterfacePtr   combinePipelineInterface;
+        grfx::GraphicsPipelinePtr    combinePipeline;
+    } mBuffer;
 };

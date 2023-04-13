@@ -201,6 +201,7 @@ Result Device::ConfigureFeatures(const grfx::DeviceCreateInfo* pCreateInfo, VkPh
     features.pipelineStatisticsQuery              = foundFeatures.pipelineStatisticsQuery;
     features.geometryShader                       = foundFeatures.geometryShader;
     features.tessellationShader                   = foundFeatures.tessellationShader;
+    features.fragmentStoresAndAtomics             = foundFeatures.fragmentStoresAndAtomics;
     features.shaderStorageImageReadWithoutFormat  = foundFeatures.shaderStorageImageReadWithoutFormat;
     features.shaderStorageImageWriteWithoutFormat = foundFeatures.shaderStorageImageWriteWithoutFormat;
     features.samplerAnisotropy                    = foundFeatures.samplerAnisotropy;
@@ -680,6 +681,11 @@ bool Device::DynamicRenderingSupported() const
 bool Device::IndependentBlendingSupported() const
 {
     return mDeviceFeatures.independentBlend == VK_TRUE;
+}
+
+bool Device::FragmentStoresAndAtomicsSupported() const
+{
+    return mDeviceFeatures.fragmentStoresAndAtomics == VK_TRUE;
 }
 
 void Device::ResetQueryPoolEXT(
