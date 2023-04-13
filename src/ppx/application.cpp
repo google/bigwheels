@@ -1499,7 +1499,7 @@ int Application::Run(int argc, char** argv)
         }
 
         // Take screenshot if this is the requested frame.
-        if (mFrameCount == mStandardOptions.screenshot_frame_number) {
+        if (mFrameCount == static_cast<uint64_t>(mStandardOptions.screenshot_frame_number)) {
             TakeScreenshot();
         }
 

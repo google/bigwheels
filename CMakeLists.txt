@@ -153,7 +153,15 @@ else()
         -std=c++20 \
         -fdiagnostics-color=always \
         -Wno-nullability-completeness \
-        -Wno-deprecated-anon-enum-enum-conversion")
+        -Wno-deprecated-anon-enum-enum-conversion \
+        -Wno-missing-field-initializers \
+        -Wno-unused-parameter \
+        -Wno-ignored-qualifiers \
+        -Wno-deprecated-copy \
+        -Wno-deprecated-enum-enum-conversion \
+        -Wno-pointer-bool-conversion \
+        -Werror \
+    ")
 endif()
 
 set(CMAKE_CXX_STANDARD 20)
