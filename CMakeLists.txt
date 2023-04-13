@@ -159,6 +159,7 @@ else()
         -Wno-ignored-qualifiers \
         -Wno-deprecated-copy \
         -Wno-deprecated-enum-enum-conversion \
+        -Wno-pointer-bool-conversion \
         -Werror \
     ")
 endif()
