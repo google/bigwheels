@@ -50,7 +50,8 @@ git clone --recursive https://github.com/google/BigWheels
 
 ### With Android Studio
 
-Use Android Studio to open `android` subfolder and build
+Use Android Studio to open the BigWheels folder and build it.
+A custom DXC_PATH can be set through the env of a `.properties` file.
 
 ### Command line
 

@@ -1,5 +1,6 @@
 plugins {
-    id 'com.android.application'
+    id 'com.android.application' version '7.3.1'
+    id 'com.android.library' version '7.3.1' apply false
 }
 
 android {
@@ -16,7 +17,7 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
-                cppFlags '-std=c++17'
+                cppFlags '-std=c++20'
                 if (project.hasProperty('DXC_PATH')) {
                   arguments "-DDXC_PATH=$DXC_PATH"
                 }
@@ -28,8 +29,11 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+    }
+    buildTypes.each {
+        it.buildConfigField "String", "sample_library_name", '"vk_01_triangle"'
+        it.resValue "string", "sample_library_name", 'vk_01_triangle'
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -40,14 +44,16 @@ android {
     }
     externalNativeBuild {
         cmake {
-            path file('src/main/cpp/CMakeLists.txt')
+            path file('CMakeLists.txt')
             version '3.22.1'
         }
     }
     sourceSets {
     main {
+        java.srcDirs = [ 'src/android' ]
+        manifest.srcFile 'src/android/AndroidManifest.xml'
         assets {
-            srcDirs '..\\..\\assets'
+            srcDirs 'assets'
         }
     }
     }
@@ -62,3 +68,4 @@ dependencies {
     androidTestImplementation 'androidx.test.ext:junit:1.1.4'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.0'
 }
+

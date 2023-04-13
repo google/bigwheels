@@ -13,7 +13,9 @@
 # limitations under the License.
 project(projects)
 
-add_subdirectory(00_ppx_info)
+if (!PPX_ANDROID)
+  add_subdirectory(00_ppx_info)
+endif ()
 add_subdirectory(01_triangle)
 add_subdirectory(02_triangle_spinning)
 add_subdirectory(03_square_textured)
