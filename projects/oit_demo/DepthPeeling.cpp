@@ -92,7 +92,7 @@ void OITDemoApp::SetupDepthPeeling()
         for (uint32_t i = 0; i < DEPTH_PEELING_DEPTH_TEXTURES_COUNT; ++i) {
             PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mDepthPeeling.layerDescriptorSetLayout, &mDepthPeeling.layerDescriptorSets[i]));
 
-            grfx::WriteDescriptor writes[4] = {};
+            std::array<grfx::WriteDescriptor, 4> writes = {};
 
             writes[0].binding      = SHADER_GLOBALS_REGISTER;
             writes[0].type         = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -114,7 +114,7 @@ void OITDemoApp::SetupDepthPeeling()
             writes[3].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
             writes[3].pImageView = mDepthPeeling.depthTextures[(i + 1) % DEPTH_PEELING_DEPTH_TEXTURES_COUNT]->GetSampledImageView();
 
-            PPX_CHECKED_CALL(mDepthPeeling.layerDescriptorSets[i]->UpdateDescriptors(sizeof(writes) / sizeof(writes[0]), writes));
+            PPX_CHECKED_CALL(mDepthPeeling.layerDescriptorSets[i]->UpdateDescriptors(static_cast<uint32_t>(writes.size()), writes.data()));
         }
     }
 
@@ -174,7 +174,7 @@ void OITDemoApp::SetupDepthPeeling()
 
         PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mDepthPeeling.combineDescriptorSetLayout, &mDepthPeeling.combineDescriptorSet));
 
-        grfx::WriteDescriptor writes[2 + DEPTH_PEELING_LAYERS_COUNT] = {};
+        std::array<grfx::WriteDescriptor, 2 + DEPTH_PEELING_LAYERS_COUNT> writes = {};
 
         writes[0].binding      = SHADER_GLOBALS_REGISTER;
         writes[0].type         = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -193,7 +193,7 @@ void OITDemoApp::SetupDepthPeeling()
             writes[2 + i].pImageView = mDepthPeeling.layerTextures[i]->GetSampledImageView();
         }
 
-        PPX_CHECKED_CALL(mDepthPeeling.combineDescriptorSet->UpdateDescriptors(sizeof(writes) / sizeof(writes[0]), writes));
+        PPX_CHECKED_CALL(mDepthPeeling.combineDescriptorSet->UpdateDescriptors(static_cast<uint32_t>(writes.size()), writes.data()));
     }
 
     // Pipeline

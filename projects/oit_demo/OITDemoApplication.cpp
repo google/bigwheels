@@ -239,7 +239,7 @@ void OITDemoApp::SetupCommon()
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mCompositeDescriptorSetLayout));
         PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mCompositeDescriptorSetLayout, &mCompositeDescriptorSet));
 
-        grfx::WriteDescriptor writes[3] = {};
+        std::array<grfx::WriteDescriptor, 3> writes = {};
 
         writes[0].binding  = CUSTOM_SAMPLER_0_REGISTER;
         writes[0].type     = grfx::DESCRIPTOR_TYPE_SAMPLER;
@@ -255,7 +255,7 @@ void OITDemoApp::SetupCommon()
         writes[2].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         writes[2].pImageView = mTransparencyTexture->GetSampledImageView();
 
-        PPX_CHECKED_CALL(mCompositeDescriptorSet->UpdateDescriptors(sizeof(writes) / sizeof(writes[0]), writes));
+        PPX_CHECKED_CALL(mCompositeDescriptorSet->UpdateDescriptors(static_cast<uint32_t>(writes.size()), writes.data()));
     }
 
     // Pipeline

@@ -16,6 +16,8 @@
 
 void OITDemoApp::SetupBuffer()
 {
+    mBuffer.countTextureNeedClear = true;
+
     // Count texture
     {
         grfx::TextureCreateInfo createInfo         = {};
@@ -67,12 +69,11 @@ void OITDemoApp::SetupBuffer()
 
     // Gather pass
     {
-        grfx::DrawPassCreateInfo2 createInfo  = {};
-        createInfo.width                      = mBuffer.countTexture->GetWidth();
-        createInfo.height                     = mBuffer.countTexture->GetHeight();
-        createInfo.renderTargetCount          = 0;
-        createInfo.pDepthStencilImage         = nullptr;
-        createInfo.renderTargetClearValues[0] = {0, 0, 0, 0};
+        grfx::DrawPassCreateInfo2 createInfo = {};
+        createInfo.width                     = mBuffer.countTexture->GetWidth();
+        createInfo.height                    = mBuffer.countTexture->GetHeight();
+        createInfo.renderTargetCount         = 0;
+        createInfo.pDepthStencilImage        = nullptr;
         PPX_CHECKED_CALL(GetDevice()->CreateDrawPass(&createInfo, &mBuffer.gatherPass));
     }
 
@@ -91,7 +92,7 @@ void OITDemoApp::SetupBuffer()
 
         PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mBuffer.gatherDescriptorSetLayout, &mBuffer.gatherDescriptorSet));
 
-        grfx::WriteDescriptor writes[4] = {};
+        std::array<grfx::WriteDescriptor, 4> writes = {};
 
         writes[0].binding      = SHADER_GLOBALS_REGISTER;
         writes[0].type         = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -114,7 +115,7 @@ void OITDemoApp::SetupBuffer()
         writes[3].type       = grfx::DESCRIPTOR_TYPE_STORAGE_IMAGE;
         writes[3].pImageView = mBuffer.fragmentTexture->GetStorageImageView();
 
-        PPX_CHECKED_CALL(mBuffer.gatherDescriptorSet->UpdateDescriptors(sizeof(writes) / sizeof(writes[0]), writes));
+        PPX_CHECKED_CALL(mBuffer.gatherDescriptorSet->UpdateDescriptors(static_cast<uint32_t>(writes.size()), writes.data()));
     }
 
     // Pipeline
@@ -163,7 +164,7 @@ void OITDemoApp::SetupBuffer()
 
         PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mBuffer.combineDescriptorSetLayout, &mBuffer.combineDescriptorSet));
 
-        grfx::WriteDescriptor writes[3] = {};
+        std::array<grfx::WriteDescriptor, 3> writes = {};
 
         writes[0].binding      = SHADER_GLOBALS_REGISTER;
         writes[0].type         = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -181,7 +182,7 @@ void OITDemoApp::SetupBuffer()
         writes[2].type       = grfx::DESCRIPTOR_TYPE_STORAGE_IMAGE;
         writes[2].pImageView = mBuffer.fragmentTexture->GetStorageImageView();
 
-        PPX_CHECKED_CALL(mBuffer.combineDescriptorSet->UpdateDescriptors(sizeof(writes) / sizeof(writes[0]), writes));
+        PPX_CHECKED_CALL(mBuffer.combineDescriptorSet->UpdateDescriptors(static_cast<uint32_t>(writes.size()), writes.data()));
     }
 
     // Pipeline
@@ -220,8 +221,7 @@ void OITDemoApp::SetupBuffer()
 
 void OITDemoApp::RecordBuffer()
 {
-    static bool sTextureNeedClear = true;
-    if (sTextureNeedClear) {
+    if (mBuffer.countTextureNeedClear) {
         mCommandBuffer->TransitionImageLayout(
             mBuffer.clearPass,
             grfx::RESOURCE_STATE_SHADER_RESOURCE,
@@ -241,12 +241,12 @@ void OITDemoApp::RecordBuffer()
             grfx::RESOURCE_STATE_SHADER_RESOURCE,
             grfx::RESOURCE_STATE_SHADER_RESOURCE);
 
-        sTextureNeedClear = false;
+        mBuffer.countTextureNeedClear = false;
     }
 
     {
-        mCommandBuffer->TransitionImageLayout(mBuffer.countTexture, 0, 1, 0, 1, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_GENERAL);
-        mCommandBuffer->TransitionImageLayout(mBuffer.fragmentTexture, 0, 1, 0, 1, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_GENERAL);
+        mCommandBuffer->TransitionImageLayout(mBuffer.countTexture, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_GENERAL);
+        mCommandBuffer->TransitionImageLayout(mBuffer.fragmentTexture, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_GENERAL);
         mCommandBuffer->BeginRenderPass(mBuffer.gatherPass, 0);
 
         mCommandBuffer->SetScissors(mBuffer.gatherPass->GetScissor());
@@ -259,13 +259,13 @@ void OITDemoApp::RecordBuffer()
         mCommandBuffer->DrawIndexed(GetTransparentMesh()->GetIndexCount());
 
         mCommandBuffer->EndRenderPass();
-        mCommandBuffer->TransitionImageLayout(mBuffer.countTexture, 0, 1, 0, 1, grfx::RESOURCE_STATE_GENERAL, grfx::RESOURCE_STATE_SHADER_RESOURCE);
-        mCommandBuffer->TransitionImageLayout(mBuffer.fragmentTexture, 0, 1, 0, 1, grfx::RESOURCE_STATE_GENERAL, grfx::RESOURCE_STATE_SHADER_RESOURCE);
+        mCommandBuffer->TransitionImageLayout(mBuffer.countTexture, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_GENERAL, grfx::RESOURCE_STATE_SHADER_RESOURCE);
+        mCommandBuffer->TransitionImageLayout(mBuffer.fragmentTexture, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_GENERAL, grfx::RESOURCE_STATE_SHADER_RESOURCE);
     }
 
     {
-        mCommandBuffer->TransitionImageLayout(mBuffer.countTexture, 0, 1, 0, 1, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_GENERAL);
-        mCommandBuffer->TransitionImageLayout(mBuffer.fragmentTexture, 0, 1, 0, 1, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_GENERAL);
+        mCommandBuffer->TransitionImageLayout(mBuffer.countTexture, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_GENERAL);
+        mCommandBuffer->TransitionImageLayout(mBuffer.fragmentTexture, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_GENERAL);
         mCommandBuffer->TransitionImageLayout(
             mTransparencyPass,
             grfx::RESOURCE_STATE_SHADER_RESOURCE,
@@ -288,7 +288,7 @@ void OITDemoApp::RecordBuffer()
             grfx::RESOURCE_STATE_SHADER_RESOURCE,
             grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE,
             grfx::RESOURCE_STATE_SHADER_RESOURCE);
-        mCommandBuffer->TransitionImageLayout(mBuffer.countTexture, 0, 1, 0, 1, grfx::RESOURCE_STATE_GENERAL, grfx::RESOURCE_STATE_SHADER_RESOURCE);
-        mCommandBuffer->TransitionImageLayout(mBuffer.fragmentTexture, 0, 1, 0, 1, grfx::RESOURCE_STATE_GENERAL, grfx::RESOURCE_STATE_SHADER_RESOURCE);
+        mCommandBuffer->TransitionImageLayout(mBuffer.countTexture, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_GENERAL, grfx::RESOURCE_STATE_SHADER_RESOURCE);
+        mCommandBuffer->TransitionImageLayout(mBuffer.fragmentTexture, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_GENERAL, grfx::RESOURCE_STATE_SHADER_RESOURCE);
     }
 }

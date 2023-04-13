@@ -166,7 +166,7 @@ void OITDemoApp::SetupWeightedAverage()
 
         PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mWeightedAverage.combineDescriptorSetLayout, &mWeightedAverage.combineDescriptorSet));
 
-        grfx::WriteDescriptor writes[3] = {};
+        std::array<grfx::WriteDescriptor, 3> writes = {};
 
         writes[0].binding  = CUSTOM_SAMPLER_0_REGISTER;
         writes[0].type     = grfx::DESCRIPTOR_TYPE_SAMPLER;
@@ -182,7 +182,7 @@ void OITDemoApp::SetupWeightedAverage()
         writes[2].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         writes[2].pImageView = mWeightedAverage.extraTexture->GetSampledImageView();
 
-        PPX_CHECKED_CALL(mWeightedAverage.combineDescriptorSet->UpdateDescriptors(sizeof(writes) / sizeof(writes[0]), writes));
+        PPX_CHECKED_CALL(mWeightedAverage.combineDescriptorSet->UpdateDescriptors(static_cast<uint32_t>(writes.size()), writes.data()));
     }
 
     // Pipeline

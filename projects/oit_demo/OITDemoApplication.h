@@ -250,5 +250,7 @@ private:
         grfx::DescriptorSetPtr       combineDescriptorSet;
         grfx::PipelineInterfacePtr   combinePipelineInterface;
         grfx::GraphicsPipelinePtr    combinePipeline;
+
+        bool textureNeedClear;
     } mBuffer;
 };
