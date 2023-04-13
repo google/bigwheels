@@ -441,7 +441,7 @@ void OITDemoApp::UpdateGUI()
 
         switch (GetSelectedAlgorithm()) {
             case ALGORITHM_UNSORTED_OVER: {
-                ImGui::Text(mSupportedAlgorithmNames[mGuiParameters.algorithmDataIndex]);
+                ImGui::Text("%s", mSupportedAlgorithmNames[mGuiParameters.algorithmDataIndex]);
                 const char* faceModeChoices[] =
                     {
                         "All",
@@ -454,7 +454,7 @@ void OITDemoApp::UpdateGUI()
                 break;
             }
             case ALGORITHM_WEIGHTED_AVERAGE: {
-                ImGui::Text(mSupportedAlgorithmNames[mGuiParameters.algorithmDataIndex]);
+                ImGui::Text("%s", mSupportedAlgorithmNames[mGuiParameters.algorithmDataIndex]);
                 const char* typeChoices[] =
                     {
                         "Fragment count",
@@ -465,7 +465,7 @@ void OITDemoApp::UpdateGUI()
                 break;
             }
             case ALGORITHM_DEPTH_PEELING: {
-                ImGui::Text(mSupportedAlgorithmNames[mGuiParameters.algorithmDataIndex]);
+                ImGui::Text("%s", mSupportedAlgorithmNames[mGuiParameters.algorithmDataIndex]);
                 ImGui::SliderInt("DP first layer", &mGuiParameters.depthPeeling.startLayer, 0, DEPTH_PEELING_LAYERS_COUNT - 1);
                 ImGui::SliderInt("DP layers count", &mGuiParameters.depthPeeling.layersCount, 1, DEPTH_PEELING_LAYERS_COUNT);
                 break;

@@ -624,7 +624,7 @@ void ProjApp::Setup()
 {
     const auto& cl_options         = GetExtraOptions();
     mBenchmarkSettings.shaderIndex = cl_options.GetExtraOptionValueOrDefault<int32_t>("shader-index", 0);
-    PPX_ASSERT_MSG(mBenchmarkSettings.shaderIndex >= 0 && mBenchmarkSettings.shaderIndex < kAvailableShaders.size(), "shader-index out of range.");
+    PPX_ASSERT_MSG(mBenchmarkSettings.shaderIndex >= 0 && static_cast<uint32_t>(mBenchmarkSettings.shaderIndex) < kAvailableShaders.size(), "shader-index out of range.");
 
     // Cameras
     {

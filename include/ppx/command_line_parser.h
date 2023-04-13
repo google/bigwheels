@@ -59,7 +59,7 @@ struct CliOptions
             : name(name), value(value) {}
 
         const std::string& GetName() const { return name; }
-        const bool         HasValue() const { return !value.empty(); }
+        bool               HasValue() const { return !value.empty(); }
 
         // Get the option value after converting it into the desired integral,
         // floating-point, or boolean type. If the value fails to be converted,
