@@ -17,8 +17,12 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags '-std=c++17'
+                if (project.hasProperty('DXC_PATH')) {
+                  arguments "-DDXC_PATH=$DXC_PATH"
+                }
             }
         }
+        multiDexEnabled true
     }
 
     buildTypes {

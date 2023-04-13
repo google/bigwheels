@@ -40,11 +40,48 @@ Open `build\BigWheels.sln` and build
 Built binaries are written to `build\bin`.
 
 ## Android (on Windows or Linux)
+
+Install the Android SDK and NDK with CMake support.
+(Can be done through the SDK manager of Android Studio).
+
 ```
 git clone --recursive https://github.com/google/BigWheels
 ```
 
+### With Android Studio
+
 Use Android Studio to open `android` subfolder and build
+
+### Command line
+
+The Android build will also require DXC. DXC can either be retrieved from
+the Vulkan SDK, or provided manually (same as the linux build).
+
+Make sure the Android SDK path is in your env
+
+```bash
+export ANDROID_HOME=/path/to/android/sdk
+```
+
+To use Vulkan's SDK DXC version:
+
+```bash
+cd android/
+./gradlew assembleDebug
+```
+
+To provide the DXC path:
+
+```bash
+cd android/
+./gradlew assembleDebug -PDXC_PATH=some/path/to/dxc
+```
+
+Built application can be installed with ADB
+
+```
+adb install app/build/outputs/apk/debug/app-debug.apk
+```
 
 ## OpenXR
 OpenXR support can be enabled by adding `-DPPX_BUILD_XR=1` flag.
