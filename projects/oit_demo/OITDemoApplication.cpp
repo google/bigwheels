@@ -317,7 +317,7 @@ void OITDemoApp::FillSupportedAlgorithmData()
     }
     addSupportedAlgorithm("Depth peeling", ALGORITHM_DEPTH_PEELING);
     if (GetDevice()->FragmentStoresAndAtomicsSupported()) {
-        addSupportedAlgorithm("Buffer", "Buffer");
+        addSupportedAlgorithm("Buffer", ALGORITHM_BUFFER);
     }
 }
 

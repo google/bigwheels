@@ -251,6 +251,6 @@ private:
         grfx::PipelineInterfacePtr   combinePipelineInterface;
         grfx::GraphicsPipelinePtr    combinePipeline;
 
-        bool textureNeedClear;
+        bool countTextureNeedClear;
     } mBuffer;
 };
