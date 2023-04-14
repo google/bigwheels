@@ -47,7 +47,11 @@ jobs:
           # the targets for other APIs unless we're running them.
           # We also build all shaders targets, irrespective of the API, to
           # ensure shader compilation succeeds.
-          cmake --build . --target all-shaders all-dx12 build-tests --config Release -- /nologo /verbosity:minimal /maxcpucount
+
+          # TODO(https://github.com/google/bigwheels/issues/97): an issue around duplicated targets
+          # requires us to build shader targets with a single core.
+          cmake --build . --target all-shaders --config Release -- /nologo /verbosity:minimal /maxcpucount:1
+          cmake --build . --target all-dx12 build-tests --config Release -- /nologo /verbosity:minimal /maxcpucount
       - name: Run unit tests
         run: |
           cd build
