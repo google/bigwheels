@@ -20,6 +20,8 @@
 #include <unordered_map>
 #include <vector>
 
+// TODO Do not allow delete or copy on classes
+
 namespace ppx {
 namespace metrics {
 
