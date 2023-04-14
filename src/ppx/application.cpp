@@ -1059,9 +1059,9 @@ void Application::DispatchKeyUp(KeyCode key)
     KeyUp(key);
 }
 
-void Application::DispatchMouseMove(int32_t x, int32_t y, int32_t dx12, int32_t dy, uint32_t buttons)
+void Application::DispatchMouseMove(int32_t x, int32_t y, int32_t dx, int32_t dy, uint32_t buttons)
 {
-    MouseMove(x, y, dx12, dy, buttons);
+    MouseMove(x, y, dx, dy, buttons);
 }
 
 void Application::DispatchMouseDown(int32_t x, int32_t y, uint32_t buttons)
@@ -1074,9 +1074,9 @@ void Application::DispatchMouseUp(int32_t x, int32_t y, uint32_t buttons)
     MouseUp(x, y, buttons);
 }
 
-void Application::DispatchScroll(float dx12, float dy)
+void Application::DispatchScroll(float dx, float dy)
 {
-    Scroll(dx12, dy);
+    Scroll(dx, dy);
 }
 
 void Application::DispatchRender()
@@ -1197,9 +1197,9 @@ void Application::MouseMoveCallback(int32_t x, int32_t y, uint32_t buttons)
         return;
     }
 
-    int32_t dx12 = (mPreviousMouseX != INT32_MAX) ? (x - mPreviousMouseX) : 0;
-    int32_t dy   = (mPreviousMouseY != INT32_MAX) ? (y - mPreviousMouseY) : 0;
-    DispatchMouseMove(x, y, dx12, dy, buttons);
+    int32_t dx = (mPreviousMouseX != INT32_MAX) ? (x - mPreviousMouseX) : 0;
+    int32_t dy = (mPreviousMouseY != INT32_MAX) ? (y - mPreviousMouseY) : 0;
+    DispatchMouseMove(x, y, dx, dy, buttons);
     mPreviousMouseX = x;
     mPreviousMouseY = y;
 }
@@ -1222,13 +1222,13 @@ void Application::MouseUpCallback(int32_t x, int32_t y, uint32_t buttons)
     DispatchMouseUp(x, y, buttons);
 }
 
-void Application::ScrollCallback(float dx12, float dy)
+void Application::ScrollCallback(float dx, float dy)
 {
     if (mSettings.enableImGui && ImGui::GetIO().WantCaptureMouse) {
         return;
     }
 
-    DispatchScroll(dx12, dy);
+    DispatchScroll(dx, dy);
 }
 
 void Application::DrawImGui(grfx::CommandBuffer* pCommandBuffer)
