@@ -33,9 +33,11 @@ cd BigWheels
 cmake -B build -G "Visual Studio 16 2019" -A x64
 ```
 
-Open `build\BigWheels.sln` and build
+Open `build\BigWheels.sln` and build.
 
 Built binaries are written to `build\bin`.
+
+**Note: there is an outstanding [issue](https://github.com/google/bigwheels/issues/97) around duplicate targets in VS solutions which may cause build failures when building many shader targets in parallel. As a temporary workaround, you can re-trigger the build and it will eventually work.**
 
 ## Android (on Windows or Linux)
 ```
