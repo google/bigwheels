@@ -141,9 +141,6 @@ void FishTornadoApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
     settings.xr.ui.pos                  = {0.2f, -0.3f, -0.5f};
     settings.xr.ui.size                 = {1.f, 1.f};
-#if defined(USE_DXIL)
-    settings.grfx.enableDXIL = true;
-#endif
 
     settings.grfx.device.computeQueueCount = 1;
 }

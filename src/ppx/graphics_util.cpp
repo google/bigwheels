@@ -406,8 +406,6 @@ Result CreateImageFromBitmapGpu(
             case grfx::API_VK_1_2:
                 bytecode = {std::begin(GenerateMipShaderVK), std::end(GenerateMipShaderVK)};
                 break;
-            case grfx::API_DX_11_0:
-            case grfx::API_DX_11_1:
             case grfx::API_DX_12_0:
             case grfx::API_DX_12_1:
                 bytecode = {std::begin(GenerateMipShaderDX), std::end(GenerateMipShaderDX)};

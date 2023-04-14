@@ -4,7 +4,7 @@ BigWheels uses [GitHub Actions]() for its CI and testing solution.
 ## Current testing 
 The following tests are run as part of every PR submission:
 * On Windows: 
-  * Full build of BigWheels, all shader targets, and DX12 samples with Visual Studio 2019.
+  * Full build of BigWheels, all shader targets, and DX12 samples with Visual Studio 2022.
   * Unit tests.
   * Some DX12 samples are run in headless mode using DX12's software renderer.
 * On Linux:
@@ -21,7 +21,7 @@ Testing workflows are found under the [`.github/workflows`](https://github.com/g
 We use the freely-available GitHub-hosted runners. There may be the need of updating dependencies or other settings used by the workflows as GitHub updates their runners, or as BigWheels' needs change.
 
 Common maintenance tasks:
-* Updating the runner's images: we are currently using `ubuntu-20.04` and `windows-2019`.
+* Updating the runner's images: we are currently using `ubuntu-20.04` and `windows-2022`.
 * Updating the Vulkan SDK and its components that are downloaded and installed as part of the workflows. This should be a simple change of the version string in the workflows' files:
   * On [Windows](https://github.com/google/bigwheels/blob/main/.github/workflows/windows-build.yml#L24), both the Vulkan SDK and the RT components are used.
   * On [Linux](https://github.com/google/bigwheels/blob/main/.github/workflows/linux-build.yml#L24), only the Vulkan SDK is used.

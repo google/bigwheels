@@ -13,7 +13,7 @@ permissions: read-all
 jobs:
   windows-build:
     name: Build and run unit tests on Windows
-    runs-on: "windows-2019"
+    runs-on: "windows-2022"
     steps:
       - name: Setup Windows SDK
         uses: GuillaumeFalourd/setup-windows10-sdk-action@v1.11
@@ -29,6 +29,12 @@ jobs:
           Start-BitsTransfer -Source https://sdk.lunarg.com/sdk/download/1.3.216.0/windows/VulkanRT-1.3.216.0-Components.zip
           Expand-Archive VulkanRT-1.3.216.0-Components.zip -DestinationPath "$HOME\vulkan-sdk\RTComponents"
           "$HOME\vulkan-sdk\RTComponents\VulkanRT-1.3.216.0-Components\x64" >> $env:GITHUB_PATH
+      - name: Setup software renderer (WARP)
+        run: |
+          # We download the latest version of WARP instead of using the one provided by Windows
+          # since it supports newer features and shader model 6.5, which we use for DX12.
+          # See https://devblogs.microsoft.com/directx/announcing-warp-preview-with-shader-model-6-7-support/.
+          Install-Package Microsoft.Direct3D.WARP -Source https://www.nuget.org/api/v2 -Destination "$HOME\warp" -RequiredVersion 1.0.5 -Force
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
@@ -41,13 +47,18 @@ jobs:
         run: |
           mkdir build
           cd build
-          cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_SYSTEM_VERSION=10.0.22621.0 -DPPX_BUILD_TESTS=ON -DPPX_BUILD_XR=1 ..
+          cmake -G "Visual Studio 17 2022" -A x64 -DCMAKE_SYSTEM_VERSION=10.0.22621.0 -DPPX_BUILD_TESTS=ON -DPPX_BUILD_XR=1 ..
 
           # We only build DX12 projects since there is no benefit in building
           # the targets for other APIs unless we're running them.
           # We also build all shaders targets, irrespective of the API, to
           # ensure shader compilation succeeds.
-          cmake --build . --target all-shaders all-dx12 build-tests --config Release -- /nologo /verbosity:minimal /maxcpucount
+
+          # TODO(https://github.com/google/bigwheels/issues/97): an issue
+          # around duplicated targets requires us to build shader targets
+          # with a single core.
+          cmake --build . --target all-shaders --config Release -- /nologo /verbosity:minimal /maxcpucount:1
+          cmake --build . --target all-dx12 build-tests --config Release -- /nologo /verbosity:minimal /maxcpucount
       - name: Run unit tests
         run: |
           cd build
@@ -55,6 +66,10 @@ jobs:
       - name: Run runtime tests
         run: |
           cd build\bin\Release
+
+          # Copy software renderer DLL. Note the DLL is called `d3d10` but
+          # this is used for all DirectX versions.
+          cp "$HOME\warp\Microsoft.Direct3D.WARP.1.0.5\build\native\amd64\d3d10warp.dll" .\
 
           .\dx12_03_square_textured --headless --frame-count 2 --screenshot-frame-number 1
           magick convert screenshot_frame1.ppm dx12_03_square_textured_screenshot.png

@@ -71,9 +71,6 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.xr.enableDebugCapture      = false;
     settings.xr.ui.pos                  = {0.1f, -0.2f, -0.5f};
     settings.xr.ui.size                 = {1.f, 1.f};
-#if defined(USE_DXIL)
-    settings.grfx.enableDXIL = true;
-#endif
 }
 
 void ProjApp::Setup()

@@ -69,24 +69,10 @@ function(internal_generate_rules_for_shader TARGET_NAME)
     file(RELATIVE_PATH PATH_PREFIX "${PPX_DIR}" "${ARG_SOURCE}")
     get_filename_component(PATH_PREFIX "${PATH_PREFIX}" DIRECTORY)
 
-    # D3D12:
-    #   dxbc51, sm 5_1.
-    #   dxil,   sm 6_5.
+    # D3D12, dxil, sm 6_5.
     if (PPX_D3D12)
         internal_add_compile_shader_target(
-            "d3d12_${TARGET_NAME}_${ARG_SHADER_STAGE}"
-            COMPILER_PATH "${FXC_PATH}"
-            SOURCE "${ARG_SOURCE}"
-            INCLUDES ${ARG_INCLUDES}
-            OUTPUT_FILE "${CMAKE_BINARY_DIR}/${PATH_PREFIX}/dxbc51/${BASE_NAME}.${ARG_SHADER_STAGE}.dxbc51"
-            SHADER_STAGE "${ARG_SHADER_STAGE}"
-            OUTPUT_FORMAT "DXBC_5_1"
-            TARGET_FOLDER "${TARGET_NAME}"
-            COMPILER_FLAGS "-T" "${ARG_SHADER_STAGE}_5_1" "-E" "${ARG_SHADER_STAGE}main" "/DPPX_D3D12=1")
-        add_dependencies("d3d12_${TARGET_NAME}" "d3d12_${TARGET_NAME}_${ARG_SHADER_STAGE}")
-
-        internal_add_compile_shader_target(
-            "dxil_${TARGET_NAME}_${ARG_SHADER_STAGE}"
+            "dx12_${TARGET_NAME}_${ARG_SHADER_STAGE}"
             COMPILER_PATH "${DXC_PATH}"
             SOURCE "${ARG_SOURCE}"
             INCLUDES ${ARG_INCLUDES}
@@ -95,7 +81,7 @@ function(internal_generate_rules_for_shader TARGET_NAME)
             OUTPUT_FORMAT "DXIL_6_5"
             TARGET_FOLDER "${TARGET_NAME}"
             COMPILER_FLAGS "-T" "${ARG_SHADER_STAGE}_6_5" "-E" "${ARG_SHADER_STAGE}main" "-DPPX_DX12=1")
-        add_dependencies("dxil_${TARGET_NAME}" "dxil_${TARGET_NAME}_${ARG_SHADER_STAGE}")
+        add_dependencies("dx12_${TARGET_NAME}" "dx12_${TARGET_NAME}_${ARG_SHADER_STAGE}")
     endif ()
     
     # Vulkan, spv, sm 6_6.
@@ -132,11 +118,8 @@ function(generate_rules_for_shader TARGET_NAME)
     add_dependencies("all-shaders" "${TARGET_NAME}")
 
     if (PPX_D3D12)
-        add_custom_target_in_folder("d3d12_${TARGET_NAME}" SOURCES "${ARG_SOURCE}" ${ARG_INCLUDES} FOLDER "${TARGET_NAME}")
-        add_dependencies("${TARGET_NAME}" "d3d12_${TARGET_NAME}")
-
-        add_custom_target_in_folder("dxil_${TARGET_NAME}" SOURCES "${ARG_SOURCE}" ${ARG_INCLUDES} FOLDER "${TARGET_NAME}")
-        add_dependencies("${TARGET_NAME}" "dxil_${TARGET_NAME}")
+        add_custom_target_in_folder("dx12_${TARGET_NAME}" SOURCES "${ARG_SOURCE}" ${ARG_INCLUDES} FOLDER "${TARGET_NAME}")
+        add_dependencies("${TARGET_NAME}" "dx12_${TARGET_NAME}")
     endif ()
     if (PPX_VULKAN)
         add_custom_target_in_folder("vk_${TARGET_NAME}" SOURCES "${ARG_SOURCE}" ${ARG_INCLUDES} FOLDER "${TARGET_NAME}")
@@ -154,11 +137,8 @@ function(generate_group_rule_for_shader TARGET_NAME)
     add_custom_target_in_folder("${TARGET_NAME}" DEPENDS ${ARG_CHILDREN} FOLDER "${TARGET_NAME}")
 
     if (PPX_D3D12)
-        prefix_all(PREFIXED_CHILDREN LIST ${ARG_CHILDREN} PREFIX "d3d12_")
-        add_custom_target_in_folder("d3d12_${TARGET_NAME}" DEPENDS ${PREFIXED_CHILDREN} FOLDER "${TARGET_NAME}")
-
-        prefix_all(PREFIXED_CHILDREN LIST ${ARG_CHILDREN} PREFIX "dxil_")
-        add_custom_target_in_folder("dxil_${TARGET_NAME}" DEPENDS ${PREFIXED_CHILDREN} FOLDER "${TARGET_NAME}")
+        prefix_all(PREFIXED_CHILDREN LIST ${ARG_CHILDREN} PREFIX "dx12_")
+        add_custom_target_in_folder("dx12_${TARGET_NAME}" DEPENDS ${PREFIXED_CHILDREN} FOLDER "${TARGET_NAME}")
     endif ()
     if (PPX_VULKAN)
         prefix_all(PREFIXED_CHILDREN LIST ${ARG_CHILDREN} PREFIX "vk_")

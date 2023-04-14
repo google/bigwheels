@@ -63,10 +63,6 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.api              = kApi;
     settings.grfx.enableDebug      = false;
     settings.allowThirdPartyAssets = true;
-
-#if defined(USE_DXIL)
-    settings.grfx.enableDXIL = true;
-#endif
 }
 
 void ProjApp::Setup()

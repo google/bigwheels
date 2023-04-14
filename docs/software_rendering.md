@@ -11,6 +11,10 @@ BigWheels supports using WARP as the renderer natively. Simply pass `--use-softw
 bin/bigwheels_application.exe --use-software-renderer
 ```
 
+**Note that while WARP already comes with Windows, we use DX12 features that require the latest version of WARP, which is distributed indipendently.
+You can download the latest pre-built WARP DLL [here](https://nuget.info/packages/Microsoft.Direct3D.WARP) (simply double-click `d3d10warp.dll` under `build/native/amd64` to download).
+Place this DLL in the same folder of your executables before running.**
+
 ## SwiftShader (Vulkan)
 BigWheels can use SwiftShader's Vulkan ICD in place of a GPU's ICD using the `VK_ICD_FILENAMES` environment variable, which will instruct the Vulkan loader to load a specific ICD.
 

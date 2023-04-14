@@ -44,7 +44,7 @@ GPU queues can be accessed through the device object by using the `GetGraphicsQu
 
 ### Shaders, descriptors and shader bindings
 
-In order to easily compile shaders into bytecode that works with both DirectX and Vulkan, shaders are usually written in HLSL and compiled offline into a variety of formats (DXBC for DirectX 12 and below, DXIL for DirectX 12, SPIR-V for Vulkan).
+In order to easily compile shaders into bytecode that works with both DirectX and Vulkan, shaders are usually written in HLSL and compiled offline into a variety of formats (DXIL for DirectX 12, SPIR-V for Vulkan).
 
 However, D3D12 and Vulkan have significantly different binding models. In order to support both of them through the same interface, BigWheels makes some assumptions. The general binding model exposed by BigWheels follows the Vulkan one, with the concepts of descriptor sets and bindings. The mapping from HLSL is the following:
 

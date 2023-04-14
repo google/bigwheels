@@ -51,44 +51,6 @@ endif ()
 message(STATUS "DXC_PATH: ${DXC_PATH}")
 
 # ------------------------------------------------------------------------------
-# Detect FXC presence. This is required to compile DXCB shaders.
-# ------------------------------------------------------------------------------
-
-if (WIN32)
-    message(CHECK_START "Looking for FXC")
-    # To support compiling shaders to DXBC we need to know the FXC_PATH.
-    # In order to find that, we need CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION.
-    # However, when a custom TOOLCHAIN is used, that variable is not set. This
-    # logic tries to infer CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION in that case.
-    if (NOT FXC_PATH)
-        if (NOT CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION)
-            set(TARGET_DIR "C:\\Program Files (x86)\\Windows Kits\\10\\bin")
-            file(GLOB children RELATIVE ${TARGET_DIR} ${TARGET_DIR}/*)
-            foreach(child ${children})
-                if (IS_DIRECTORY ${TARGET_DIR}\\${child} AND (${child} MATCHES 10.*))
-                    set(CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION ${child})
-                endif()
-            endforeach()
-        endif()
-
-        if (NOT CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION)
-            message(FATAL_ERROR "Windows SDK not found on this system. Make sure that CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION is set.")
-        endif()
-        message(STATUS "CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION is set to: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}.")
-
-        set(FXC_PATH "C:\\Program Files (x86)\\Windows Kits\\10\\bin\\${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}\\x64\\fxc.exe")
-    endif()
-
-    if (NOT EXISTS "${FXC_PATH}")
-        message(CHECK_FAIL "Cannot open FXC at ${FXC_PATH}")
-        message(FATAL_ERROR "FXC is required if PPX_D3D12 is set.")
-    else ()
-        message(CHECK_PASS "FXC_PATH: ${FXC_PATH}")
-    endif ()
-endif ()
-
-
-# ------------------------------------------------------------------------------
 # Configure target platform.
 # ------------------------------------------------------------------------------
 

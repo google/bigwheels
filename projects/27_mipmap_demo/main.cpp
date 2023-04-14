@@ -78,9 +78,6 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
     settings.grfx.enableDebug           = false;
     settings.enableImGui                = true;
-#if defined(USE_DXIL)
-    settings.grfx.enableDXIL = true;
-#endif
 }
 
 void ProjApp::Setup()

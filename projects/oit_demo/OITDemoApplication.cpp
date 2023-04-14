@@ -43,9 +43,6 @@ void OITDemoApp::Config(ppx::ApplicationSettings& settings)
 #else
 #error
 #endif
-#if defined(USE_DXIL)
-    settings.grfx.enableDXIL = true;
-#endif
 }
 
 void OITDemoApp::SetupCommon()

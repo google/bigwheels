@@ -716,7 +716,6 @@ Result Application::InitializeGrfxDevice()
         ci.transferQueueCount     = mSettings.grfx.device.transferQueueCount;
         ci.vulkanExtensions       = {};
         ci.pVulkanDeviceFeatures  = nullptr;
-        ci.enableDXIL             = mSettings.grfx.enableDXIL;
 #if defined(PPX_BUILD_XR)
         ci.pXrComponent = mSettings.xr.enable ? &mXrComponent : nullptr;
 #endif
@@ -1016,23 +1015,7 @@ void Application::DispatchConfig()
         mSettings.window.title = mSettings.appName;
     }
 
-    // Decorate DX's API name with shader bytecode mode
-    std::stringstream ss;
-    ss << ToString(mSettings.grfx.api);
-    switch (mSettings.grfx.api) {
-        default: break;
-        case grfx::API_DX_12_0:
-        case grfx::API_DX_12_1: {
-            if (mSettings.grfx.enableDXIL) {
-                ss << " (DXIL)";
-            }
-            else {
-                ss << " (DXBC)";
-            }
-        } break;
-    }
-
-    mDecoratedApiName = ss.str();
+    mDecoratedApiName = ToString(mSettings.grfx.api);
 
     if (mSettings.allowThirdPartyAssets) {
         std::filesystem::path path = GetApplicationPath();
@@ -1625,16 +1608,9 @@ namespace {
 std::optional<std::filesystem::path> GetShaderPathSuffix(const ppx::ApplicationSettings& settings, const std::string& baseName)
 {
     switch (settings.grfx.api) {
-        case grfx::API_DX_11_0:
-        case grfx::API_DX_11_1:
-            return std::filesystem::path("dxbc50") / (baseName + ".dxbc50");
         case grfx::API_DX_12_0:
-        case grfx::API_DX_12_1: {
-            if (settings.grfx.enableDXIL) {
-                return std::filesystem::path("dxil") / (baseName + ".dxil");
-            }
-            return std::filesystem::path("dxbc51") / (baseName + ".dxbc51");
-        }
+        case grfx::API_DX_12_1:
+            return std::filesystem::path("dxil") / (baseName + ".dxil");
         case grfx::API_VK_1_1:
         case grfx::API_VK_1_2:
             return std::filesystem::path("spv") / (baseName + ".spv");
