@@ -51,5 +51,6 @@ list(
     ppm_export_test.cpp
     string_util_test.cpp
     transform_test.cpp
+    metrics_test.cpp
 )
 package_add_test(ppx_tests ${TEST_SOURCES})
