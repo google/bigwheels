@@ -30,6 +30,7 @@ class ProjApp
 public:
     virtual void Config(ppx::ApplicationSettings& settings) override;
     virtual void Setup() override;
+    virtual void MouseMove(int32_t x, int32_t y, int32_t dx, int32_t dy, uint32_t buttons) override;
     virtual void Render() override;
 
 private:
@@ -66,8 +67,10 @@ private:
     ppx::grfx::ImagePtr            mCubeMapImage;
     ppx::grfx::SampledImageViewPtr mCubeMapImageView;
     ppx::grfx::SamplerPtr          mCubeMapSampler;
+    int32_t                        mPrevX           = 0;
+    int32_t                        mPrevY           = 0;
     float                          mRotY            = 0;
-    float                          mRotX            = 0;
+    float                          mTargetRotY      = 0;
     uint64_t                       mGpuWorkDuration = 0;
 
 private:
@@ -78,6 +81,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
 {
     settings.appName                    = "10_cube_map";
     settings.enableImGui                = true;
+    settings.allowThirdPartyAssets      = true;
     settings.grfx.api                   = kApi;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
     settings.grfx.enableDebug           = false;
@@ -131,7 +135,7 @@ void ProjApp::Setup()
         createInfo.posZ                         = PPX_ENCODE_CUBE_FACE(2, grfx_util::CUBE_FACE_OP_NONE, grfx_util::CUBE_FACE_OP_NONE);
         createInfo.negZ                         = PPX_ENCODE_CUBE_FACE(4, grfx_util::CUBE_FACE_OP_NONE, grfx_util::CUBE_FACE_OP_NONE);
 
-        PPX_CHECKED_CALL(grfx_util::CreateCubeMapFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("basic/textures/cube_map_debug.jpg"), &createInfo, &mCubeMapImage));
+        PPX_CHECKED_CALL(grfx_util::CreateCubeMapFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("PolyHaven/textures/hilly_terrain.png"), &createInfo, &mCubeMapImage));
 
         grfx::SampledImageViewCreateInfo viewCreateInfo = grfx::SampledImageViewCreateInfo::GuessFromImage(mCubeMapImage);
         PPX_CHECKED_CALL(GetDevice()->CreateSampledImageView(&viewCreateInfo, &mCubeMapImageView));
@@ -271,6 +275,13 @@ void ProjApp::Setup()
     }
 }
 
+void ProjApp::MouseMove(int32_t x, int32_t y, int32_t dx, int32_t dy, uint32_t buttons)
+{
+    if (buttons & ppx::MOUSE_BUTTON_LEFT) {
+        mTargetRotY += 0.25f * dx;
+    }
+}
+
 void ProjApp::Render()
 {
     PerFrame& frame = mPerFrame[0];
@@ -297,12 +308,17 @@ void ProjApp::Render()
     frame.timestampQuery->Reset(0, 2);
 #endif // defined(ENABLE_GPU_QUERIES)
 
+    // Update smoothed rotation
+    mRotY += (mTargetRotY - mRotY) * 0.10f;
+
     // Update uniform buffer
     {
-        float3   eyePos = float3(0, 0, 5);
-        float4x4 P      = glm::perspective(glm::radians(60.0f), GetWindowAspect(), 0.001f, 10000.0f);
-        float4x4 V      = glm::lookAt(eyePos, float3(0, 0, 0), float3(0, 1, 0));
-        float4x4 M      = glm::translate(float3(0, 0, 0));
+        float3   startEyePos = float3(0, 0, 5);
+        float4x4 Reye        = glm::rotate(glm::radians(-mRotY), float3(0, 1, 0));
+        float3   eyePos      = Reye * float4(startEyePos, 0);
+        float4x4 P           = glm::perspective(glm::radians(60.0f), GetWindowAspect(), 0.001f, 10000.0f);
+        float4x4 V           = glm::lookAt(eyePos, float3(0, 0, 0), float3(0, 1, 0));
+        float4x4 M           = glm::translate(float3(0, 0, 0));
 
         // Sky box
         float4x4 mat = P * V * M;
@@ -318,7 +334,7 @@ void ProjApp::Render()
         };
 
         float4x4 T = glm::translate(float3(0, 0, 0));
-        float4x4 R = glm::rotate(glm::radians(mRotX), float3(1, 0, 0)) * glm::rotate(glm::radians(mRotY), float3(0, 1, 0));
+        float4x4 R = float4x4(1);
         float4x4 S = glm::scale(float3(3, 3, 3));
         M          = T * R * S;
         float3x3 N = glm::inverseTranspose(float3x3(M));
@@ -429,11 +445,6 @@ void ProjApp::DrawGui()
 
         ImGui::Columns(1);
     }
-
-    ImGui::Separator();
-
-    ImGui::SliderFloat("Rot X", &mRotX, 0.0f, 360.0f, "%.03f degrees");
-    ImGui::SliderFloat("Rot Y", &mRotY, 0.0f, 360.0f, "%.03f degrees");
 }
 
 SETUP_APPLICATION(ProjApp)
