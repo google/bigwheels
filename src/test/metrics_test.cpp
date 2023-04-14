@@ -16,5 +16,12 @@
 
 #include "ppx/metrics.h"
 
-using namespace ppx;
+namespace ppx {
 
+TEST(MetricsTest, CreateManager)
+{
+    metrics::Manager manager;
+    EXPECT_TRUE(true);
+}
+
+} // namespace ppx
