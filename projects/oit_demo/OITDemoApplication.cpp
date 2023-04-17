@@ -16,7 +16,7 @@
 // TODO Choice of cubemaps as background
 // TODO Add WeightedAverage with depth
 // TODO Add Dual depth peeling
-// TODO Add buffer-based algorithms
+// TODO Add linked list algorithms
 // TODO Add split windows support to compare algorithms
 
 #include "OITDemoApplication.h"
@@ -236,7 +236,7 @@ void OITDemoApp::SetupCommon()
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mCompositeDescriptorSetLayout));
         PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mCompositeDescriptorSetLayout, &mCompositeDescriptorSet));
 
-        grfx::WriteDescriptor writes[3] = {};
+        std::array<grfx::WriteDescriptor, 3> writes = {};
 
         writes[0].binding  = CUSTOM_SAMPLER_0_REGISTER;
         writes[0].type     = grfx::DESCRIPTOR_TYPE_SAMPLER;
@@ -252,7 +252,7 @@ void OITDemoApp::SetupCommon()
         writes[2].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
         writes[2].pImageView = mTransparencyTexture->GetSampledImageView();
 
-        PPX_CHECKED_CALL(mCompositeDescriptorSet->UpdateDescriptors(3, writes));
+        PPX_CHECKED_CALL(mCompositeDescriptorSet->UpdateDescriptors(static_cast<uint32_t>(writes.size()), writes.data()));
     }
 
     // Pipeline
@@ -313,6 +313,9 @@ void OITDemoApp::FillSupportedAlgorithmData()
         addSupportedAlgorithm("Weighted average", ALGORITHM_WEIGHTED_AVERAGE);
     }
     addSupportedAlgorithm("Depth peeling", ALGORITHM_DEPTH_PEELING);
+    if (GetDevice()->FragmentStoresAndAtomicsSupported()) {
+        addSupportedAlgorithm("Buffer", ALGORITHM_BUFFER);
+    }
 }
 
 void OITDemoApp::ParseCommandLineOptions()
@@ -343,6 +346,8 @@ void OITDemoApp::ParseCommandLineOptions()
 
     mGuiParameters.depthPeeling.startLayer  = std::clamp(cliOptions.GetExtraOptionValueOrDefault("dp_start_layer", 0), 0, DEPTH_PEELING_LAYERS_COUNT - 1);
     mGuiParameters.depthPeeling.layersCount = std::clamp(cliOptions.GetExtraOptionValueOrDefault("dp_layers_count", DEPTH_PEELING_LAYERS_COUNT), 1, DEPTH_PEELING_LAYERS_COUNT);
+
+    mGuiParameters.buffer.fragmentsMaxCount = std::clamp(cliOptions.GetExtraOptionValueOrDefault("bu_fragments_max_count", BUFFER_BUCKET_SIZE_PER_PIXEL), 1, BUFFER_BUCKET_SIZE_PER_PIXEL);
 }
 
 void OITDemoApp::Setup()
@@ -351,10 +356,20 @@ void OITDemoApp::Setup()
     FillSupportedAlgorithmData();
     ParseCommandLineOptions();
 
-    SetupUnsortedOver();
-    SetupWeightedSum();
-    SetupWeightedAverage();
-    SetupDepthPeeling();
+    void (OITDemoApp::*setupFuncs[])() =
+        {
+            &OITDemoApp::SetupUnsortedOver,
+            &OITDemoApp::SetupWeightedSum,
+            &OITDemoApp::SetupWeightedAverage,
+            &OITDemoApp::SetupDepthPeeling,
+            &OITDemoApp::SetupBuffer,
+        };
+    static_assert(sizeof(setupFuncs) / sizeof(setupFuncs[0]) == ALGORITHMS_COUNT, "Algorithm setup func count mismatch");
+
+    for (const Algorithm algorithm : mSupportedAlgorithmIds) {
+        PPX_ASSERT_MSG(algorithm >= 0 && algorithm < ALGORITHMS_COUNT, "unknown algorithm");
+        (this->*setupFuncs[algorithm])();
+    }
 }
 
 void OITDemoApp::Update()
@@ -395,6 +410,8 @@ void OITDemoApp::Update()
         shaderGlobals.depthPeelingFrontLayerIndex = std::max(0, mGuiParameters.depthPeeling.startLayer);
         shaderGlobals.depthPeelingBackLayerIndex  = std::min(DEPTH_PEELING_LAYERS_COUNT - 1, mGuiParameters.depthPeeling.startLayer + mGuiParameters.depthPeeling.layersCount - 1);
 
+        shaderGlobals.bufferFragmentsMaxCount = std::min(BUFFER_BUCKET_SIZE_PER_PIXEL, mGuiParameters.buffer.fragmentsMaxCount);
+
         mShaderGlobalsBuffer->CopyFromSource(sizeof(shaderGlobals), &shaderGlobals);
     }
 
@@ -413,7 +430,7 @@ void OITDemoApp::UpdateGUI()
 
         ImGui::Separator();
         ImGui::Text("Model");
-        const char* meshesChoices[] =
+        const char* const meshesChoices[] =
             {
                 "Monkey",
                 "Horse",
@@ -467,6 +484,11 @@ void OITDemoApp::UpdateGUI()
                 ImGui::SliderInt("DP layers count", &mGuiParameters.depthPeeling.layersCount, 1, DEPTH_PEELING_LAYERS_COUNT);
                 break;
             }
+            case ALGORITHM_BUFFER: {
+                ImGui::Text("%s", mSupportedAlgorithmNames[mGuiParameters.algorithmDataIndex]);
+                ImGui::SliderInt("BU fragments max count", &mGuiParameters.buffer.fragmentsMaxCount, 1, BUFFER_BUCKET_SIZE_PER_PIXEL);
+                break;
+            }
             default: {
                 break;
             }
@@ -507,23 +529,19 @@ void OITDemoApp::RecordOpaque()
 
 void OITDemoApp::RecordTransparency()
 {
-    switch (GetSelectedAlgorithm()) {
-        case ALGORITHM_UNSORTED_OVER:
-            RecordUnsortedOver();
-            break;
-        case ALGORITHM_WEIGHTED_SUM:
-            RecordWeightedSum();
-            break;
-        case ALGORITHM_WEIGHTED_AVERAGE:
-            RecordWeightedAverage();
-            break;
-        case ALGORITHM_DEPTH_PEELING:
-            RecordDepthPeeling();
-            break;
-        default:
-            PPX_ASSERT_MSG(false, "unknown algorithm");
-            break;
-    }
+    void (OITDemoApp::*recordFuncs[])() =
+        {
+            &OITDemoApp::RecordUnsortedOver,
+            &OITDemoApp::RecordWeightedSum,
+            &OITDemoApp::RecordWeightedAverage,
+            &OITDemoApp::RecordDepthPeeling,
+            &OITDemoApp::RecordBuffer,
+        };
+    static_assert(sizeof(recordFuncs) / sizeof(recordFuncs[0]) == ALGORITHMS_COUNT, "Algorithm record func count mismatch");
+
+    const Algorithm algorithm = GetSelectedAlgorithm();
+    PPX_ASSERT_MSG(algorithm >= 0 && algorithm < ALGORITHMS_COUNT, "unknown algorithm");
+    (this->*recordFuncs[algorithm])();
 }
 
 void OITDemoApp::RecordComposite(grfx::RenderPassPtr renderPass)
