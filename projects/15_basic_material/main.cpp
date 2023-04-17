@@ -1131,32 +1131,32 @@ void ProjApp::DrawGui()
 
     ImGui::Text("IAVertices");
     ImGui::NextColumn();
-    ImGui::Text("%lu", mPipelineStatistics.IAVertices);
+    ImGui::Text("%" PRIu64, mPipelineStatistics.IAVertices);
     ImGui::NextColumn();
 
     ImGui::Text("IAPrimitives");
     ImGui::NextColumn();
-    ImGui::Text("%lu", mPipelineStatistics.IAPrimitives);
+    ImGui::Text("%" PRIu64, mPipelineStatistics.IAPrimitives);
     ImGui::NextColumn();
 
     ImGui::Text("VSInvocations");
     ImGui::NextColumn();
-    ImGui::Text("%lu", mPipelineStatistics.VSInvocations);
+    ImGui::Text("%" PRIu64, mPipelineStatistics.VSInvocations);
     ImGui::NextColumn();
 
     ImGui::Text("CInvocations");
     ImGui::NextColumn();
-    ImGui::Text("%lu", mPipelineStatistics.CInvocations);
+    ImGui::Text("%" PRIu64, mPipelineStatistics.CInvocations);
     ImGui::NextColumn();
 
     ImGui::Text("CPrimitives");
     ImGui::NextColumn();
-    ImGui::Text("%lu", mPipelineStatistics.CPrimitives);
+    ImGui::Text("%" PRIu64, mPipelineStatistics.CPrimitives);
     ImGui::NextColumn();
 
     ImGui::Text("PSInvocations");
     ImGui::NextColumn();
-    ImGui::Text("%lu", mPipelineStatistics.PSInvocations);
+    ImGui::Text("%" PRIu64, mPipelineStatistics.PSInvocations);
     ImGui::NextColumn();
 
     ImGui::Columns(1);

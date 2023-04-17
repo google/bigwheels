@@ -1746,7 +1746,7 @@ void Application::DrawDebugInfo(std::function<void(void)> drawAdditionalFn)
         {
             ImGui::Text("Frame Count");
             ImGui::NextColumn();
-            ImGui::Text("%lu", mFrameCount);
+            ImGui::Text("%" PRIu64, mFrameCount);
             ImGui::NextColumn();
         }
 
@@ -1858,7 +1858,7 @@ void Application::DrawProfilerGrfxApiFunctions()
                 ImGui::TableNextColumn();
                 ImGui::Text("%s", event.GetName().c_str());
                 ImGui::TableNextColumn();
-                ImGui::Text("%lu", count);
+                ImGui::Text("%" PRIu64, count);
                 ImGui::TableNextColumn();
                 ImGui::Text("%f ms", average);
                 ImGui::TableNextColumn();
