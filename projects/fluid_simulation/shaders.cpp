@@ -149,8 +149,8 @@ ComputeDispatchRecord::ComputeDispatchRecord(ComputeShader* cs, Texture* output,
     write[1].type     = ppx::grfx::DESCRIPTOR_TYPE_SAMPLER;
     write[1].pSampler = mShader->GetComputeResources()->mClampSampler;
 
-    write[2].binding = 12;
-    write[2].type    = ppx::grfx::DESCRIPTOR_TYPE_SAMPLER;
+    write[2].binding  = 12;
+    write[2].type     = ppx::grfx::DESCRIPTOR_TYPE_SAMPLER;
     write[2].pSampler = mShader->GetComputeResources()->mRepeatSampler;
 
     PPX_CHECKED_CALL(mDescriptorSet->UpdateDescriptors(numBindings, write));
@@ -181,17 +181,17 @@ void ComputeDispatchRecord::BindOutputTexture(uint32_t bindingSlot)
     PPX_CHECKED_CALL(mDescriptorSet->UpdateDescriptors(1, &write));
 }
 
-void ComputeShader::Dispatch(const PerFrame& frame, ComputeDispatchRecord& dr)
+void ComputeShader::Dispatch(const PerFrame& frame, const std::unique_ptr<ComputeDispatchRecord>& dr)
 {
-    ppx::float3 dispatchSize = ppx::float3(dr.mOutput->GetWidth(), dr.mOutput->GetHeight(), 1);
+    ppx::float3 dispatchSize = ppx::float3(dr->mOutput->GetWidth(), dr->mOutput->GetHeight(), 1);
 
     PPX_LOG_DEBUG("Running compute shader '" << mShaderFile << ".cs' (" << dispatchSize << ")\n");
 
-    frame.cmd->TransitionImageLayout(dr.mOutput->GetImagePtr(), PPX_ALL_SUBRESOURCES, ppx::grfx::RESOURCE_STATE_SHADER_RESOURCE, ppx::grfx::RESOURCE_STATE_UNORDERED_ACCESS);
-    frame.cmd->BindComputeDescriptorSets(dr.mShader->GetComputeResources()->mPipelineInterface, 1, &dr.mDescriptorSet);
+    frame.cmd->TransitionImageLayout(dr->mOutput->GetImagePtr(), PPX_ALL_SUBRESOURCES, ppx::grfx::RESOURCE_STATE_SHADER_RESOURCE, ppx::grfx::RESOURCE_STATE_UNORDERED_ACCESS);
+    frame.cmd->BindComputeDescriptorSets(dr->mShader->GetComputeResources()->mPipelineInterface, 1, &dr->mDescriptorSet);
     frame.cmd->BindComputePipeline(mPipeline);
     frame.cmd->Dispatch(dispatchSize.x, dispatchSize.y, dispatchSize.z);
-    frame.cmd->TransitionImageLayout(dr.mOutput->GetImagePtr(), PPX_ALL_SUBRESOURCES, ppx::grfx::RESOURCE_STATE_UNORDERED_ACCESS, ppx::grfx::RESOURCE_STATE_SHADER_RESOURCE);
+    frame.cmd->TransitionImageLayout(dr->mOutput->GetImagePtr(), PPX_ALL_SUBRESOURCES, ppx::grfx::RESOURCE_STATE_UNORDERED_ACCESS, ppx::grfx::RESOURCE_STATE_SHADER_RESOURCE);
 }
 
 GraphicsDispatchRecord::GraphicsDispatchRecord(GraphicsShader* gs, Texture* image)
@@ -257,9 +257,9 @@ GraphicsShader::GraphicsShader(FluidSimulation* sim)
     PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateGraphicsPipeline(&gpci, &mPipeline));
 }
 
-void GraphicsShader::Dispatch(const PerFrame& frame, GraphicsDispatchRecord& dr)
+void GraphicsShader::Dispatch(const PerFrame& frame, const std::unique_ptr<GraphicsDispatchRecord>& dr)
 {
-    frame.cmd->BindGraphicsDescriptorSets(GetGraphicsResources()->mPipelineInterface, 1, &dr.mDescriptorSet);
+    frame.cmd->BindGraphicsDescriptorSets(GetGraphicsResources()->mPipelineInterface, 1, &dr->mDescriptorSet);
     frame.cmd->BindGraphicsPipeline(mPipeline);
     frame.cmd->BindVertexBuffers(1, &GetGraphicsResources()->mVertexBuffer, &GetGraphicsResources()->mVertexBinding.GetStride());
     frame.cmd->Draw(6, 1, 0, 0);

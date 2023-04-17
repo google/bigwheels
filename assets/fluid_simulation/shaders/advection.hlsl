@@ -8,7 +8,7 @@
 #include "config.hlsli"
 
 // Undefine to disable manual filtering.
-#define MANUAL_FILTERING
+#undef MANUAL_FILTERING
 
 float4 bilerp(Texture2D sam, float2 vUv, float2 tsize)
 {

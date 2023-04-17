@@ -28,7 +28,7 @@ struct SimulationConfig
     float       velocityDissipation = 0.2f;
     float       pressure            = 0.8f;
     int         pressureIterations  = 20;
-    int         curl                = 30;
+    float       curl                = 30.0f;
     float       splatRadius         = 0.25f;
     float       splatForce          = 6000.0f;
     bool        shading             = true;
@@ -159,10 +159,10 @@ private:
     std::unique_ptr<GraphicsShader> mDraw;
 
     // Queue of compute shaders to execute.
-    std::vector<ComputeDispatchRecord> mComputeDispatchQueue;
+    std::vector<std::unique_ptr<ComputeDispatchRecord>> mComputeDispatchQueue;
 
     // Textures that should be rendered after a round of simulation.
-    std::vector<GraphicsDispatchRecord> mGraphicsDispatchQueue;
+    std::vector<std::unique_ptr<GraphicsDispatchRecord>> mGraphicsDispatchQueue;
 
     // Textures that should be initialized before simulation starts.
     std::vector<Texture*> mTexturesToInitialize;
@@ -222,14 +222,14 @@ private:
     /// @param dr   The dispatch record describing the shader to be executed and
     ///             the data used to execute it (descriptor set and uniform buffer).
     ///             @see ComputeDispatchRecord.
-    void ScheduleDR(const ComputeDispatchRecord& dr) { mComputeDispatchQueue.push_back(dr); }
+    void ScheduleDR(std::unique_ptr<ComputeDispatchRecord> dr) { mComputeDispatchQueue.push_back(std::move(dr)); }
 
     /// @brief Schedule a graphics shader for execution.
     ///
     /// @param dr   The dispatch record describing the shader to be executed and
     ///             the descriptor set and texture used to execute it.
     ///             @see GraphicsDispatchRecord.
-    void ScheduleDR(const GraphicsDispatchRecord& dr) { mGraphicsDispatchQueue.push_back(dr); }
+    void ScheduleDR(std::unique_ptr<GraphicsDispatchRecord> dr) { mGraphicsDispatchQueue.push_back(std::move(dr)); }
 };
 
 class ProjApp : public ppx::Application

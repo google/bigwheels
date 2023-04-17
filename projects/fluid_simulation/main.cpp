@@ -61,7 +61,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.appName               = "fluid_simulation";
     settings.enableImGui           = false;
     settings.grfx.api              = kApi;
-    settings.grfx.enableDebug      = false;
+    settings.grfx.enableDebug      = true;
     settings.allowThirdPartyAssets = true;
 }
 
