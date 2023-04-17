@@ -46,6 +46,8 @@ namespace ppx {
 const char*    kDefaultAppName      = "PPX Application";
 const uint32_t kDefaultWindowWidth  = 1280;
 const uint32_t kDefaultWindowHeight = 720;
+const uint32_t kImGuiMinWidth       = 400;
+const uint32_t kImGuiMinHeight      = 300;
 
 static Application* sApplicationInstance = nullptr;
 
@@ -1685,7 +1687,9 @@ void Application::DrawDebugInfo(std::function<void(void)> drawAdditionalFn)
     if (!mImGui) {
         return;
     }
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, {static_cast<float>(GetWindowWidth() / 2), static_cast<float>(GetWindowHeight() / 2)});
+    uint32_t minWidth  = std::min(kImGuiMinWidth, GetWindowWidth() / 2);
+    uint32_t minHeight = std::min(kImGuiMinHeight, GetWindowHeight() / 2);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, {static_cast<float>(minWidth), static_cast<float>(minHeight)});
     if (ImGui::Begin("Debug Info")) {
         ImGui::Columns(2);
 
