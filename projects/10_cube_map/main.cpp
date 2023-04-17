@@ -135,7 +135,7 @@ void ProjApp::Setup()
         createInfo.posZ                         = PPX_ENCODE_CUBE_FACE(2, grfx_util::CUBE_FACE_OP_NONE, grfx_util::CUBE_FACE_OP_NONE);
         createInfo.negZ                         = PPX_ENCODE_CUBE_FACE(4, grfx_util::CUBE_FACE_OP_NONE, grfx_util::CUBE_FACE_OP_NONE);
 
-        PPX_CHECKED_CALL(grfx_util::CreateCubeMapFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("PolyHaven/textures/hilly_terrain.png"), &createInfo, &mCubeMapImage));
+        PPX_CHECKED_CALL(grfx_util::CreateCubeMapFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("poly_haven/textures/hilly_terrain.png"), &createInfo, &mCubeMapImage));
 
         grfx::SampledImageViewCreateInfo viewCreateInfo = grfx::SampledImageViewCreateInfo::GuessFromImage(mCubeMapImage);
         PPX_CHECKED_CALL(GetDevice()->CreateSampledImageView(&viewCreateInfo, &mCubeMapImageView));
