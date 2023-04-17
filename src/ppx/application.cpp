@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "ppx/application.h"
+#include "ppx/config.h"
 #include "ppx/profiler.h"
 #include "ppx/ppm_export.h"
 #include "ppx/fs.h"
@@ -855,6 +856,7 @@ Result Application::InitializeGrfxSwapchain()
         ci.depthFormat               = mSettings.grfx.swapchain.depthFormat;
         ci.imageCount                = mSettings.grfx.swapchain.imageCount;
         ci.presentMode               = grfx::PRESENT_MODE_IMMEDIATE;
+        ci.createRenderPass          = !mSettings.useRenderTarget;
 
         grfx::SwapchainPtr swapchain;
         Result             ppxres = mDevice->CreateSwapchain(&ci, &swapchain);
@@ -876,6 +878,130 @@ Result Application::InitializeGrfxSwapchain()
         mSwapchain.push_back(swapchain);
     }
 
+    return ppx::SUCCESS;
+}
+
+Result Application::InitializeRenderTarget()
+{
+#if defined(PPX_BUILD_XR)
+    if (mSettings.xr.enable) {
+        return ppx::SUCCESS;
+    }
+#else
+    if (mSwapchain.size() != 1) {
+        PPX_LOG_WARN("Expecting one swapchain for non-XR applications.")
+        if (mSwapchain.size() == 0) {
+            return ppx::ERROR_FAILED;
+        }
+    }
+    grfx::SwapchainPtr swapchain = mSwapchain.back();
+
+    RenderTarget* currentRenderTarget = nullptr;
+    if (!mSwapchainRenderTarget) {
+        mSwapchainRenderTarget = SwapchainRenderTarget::Create(swapchain.Get());
+        currentRenderTarget    = mSwapchainRenderTarget.get();
+    }
+
+    if (!mSettings.useRenderTarget) {
+        return ppx::SUCCESS;
+    }
+
+    if (!mRenderTargetImGuiHook) {
+        mRenderTargetImGuiHook = RenderTargetPresentHook::Create(
+            mDevice->GetGraphicsQueue(),
+            currentRenderTarget,
+            [this](grfx::CommandBuffer* cb) {
+                if (!mImGui) {
+                    return;
+                }
+                mImGui->NewFrame();
+                DrawDebugUI();
+                DrawImGui(cb);
+            });
+        currentRenderTarget = mRenderTargetImGuiHook.get();
+    }
+
+    if (!mSettings.grfx.framebuffer.offscreen) {
+        return ppx::SUCCESS;
+    }
+
+    // Backward compatibility.
+    if (mSettings.grfx.framebuffer.colorFormat == grfx::FORMAT_UNDEFINED) {
+        mSettings.grfx.framebuffer.colorFormat = mSettings.grfx.swapchain.colorFormat;
+    }
+    if (mSettings.grfx.framebuffer.depthFormat == grfx::FORMAT_UNDEFINED) {
+        mSettings.grfx.framebuffer.depthFormat = mSettings.grfx.swapchain.depthFormat;
+    }
+
+    if (mSettings.grfx.framebuffer.width == 0 ||
+        mSettings.grfx.framebuffer.height == 0) {
+        mSettings.grfx.framebuffer.width  = 4096;
+        mSettings.grfx.framebuffer.height = 4096;
+    }
+
+    if (!mOffscreenRenderTarget) {
+        mOffscreenRenderTarget = IndirectRenderTarget::Create({
+            currentRenderTarget,
+            mDevice->GetGraphicsQueue(),
+            mSettings.grfx.framebuffer.width,
+            mSettings.grfx.framebuffer.height,
+            mSettings.grfx.framebuffer.colorFormat,
+            mSettings.grfx.framebuffer.depthFormat,
+            mSwapchainRenderTarget->GetImageCount(),
+        });
+    }
+
+    uint32_t width  = std::min(mSettings.window.width, mOffscreenRenderTarget->GetImageWidth());
+    uint32_t height = std::min(mSettings.window.height, mOffscreenRenderTarget->GetImageHeight());
+    mOffscreenRenderTarget->UpdateViewport(mSettings.window.width, mSettings.window.height);
+
+    return ppx::SUCCESS;
+#endif
+}
+
+Result Application::UpdateRenderTarget()
+{
+    if (!mSwapchainRenderTarget) {
+        return ppx::SUCCESS;
+    }
+    if (!mSwapchainRenderTarget->NeedUpdate()) {
+        return ppx::SUCCESS;
+    }
+
+    if (mOffscreenRenderTarget) {
+        uint32_t width  = std::min(mSettings.window.width, mOffscreenRenderTarget->GetImageWidth());
+        uint32_t height = std::min(mSettings.window.height, mOffscreenRenderTarget->GetImageHeight());
+        mOffscreenRenderTarget->UpdateViewport(width, height);
+    }
+
+    ppx::Result ppxres = ppx::ERROR_FAILED;
+
+    ppxres = mSwapchainRenderTarget->ResizeSwapchain(mSettings.window.width, mSettings.window.height);
+    if (ppxres != ERROR_UNSUPPORTED_API) {
+        // Either success, or something went wrong.
+        return ppxres;
+    }
+
+    // Recreate surface/swapchain if swapchain resize is not supported.
+    mDevice->WaitIdle();
+    for (auto& sc : mSwapchain) {
+        mDevice->DestroySwapchain(sc);
+        sc.Reset();
+    }
+    mSwapchain.clear();
+    if (mSurface) {
+        mInstance->DestroySurface(mSurface);
+        mSurface.Reset();
+    }
+    ppxres = InitializeGrfxSurface();
+    if (Failed(ppxres)) {
+        return ppxres;
+    }
+    ppxres = InitializeGrfxSwapchain();
+    if (Failed(ppxres)) {
+        return ppxres;
+    }
+    mSwapchainRenderTarget->ReplaceSwapchain(mSwapchain.back().Get());
     return ppx::SUCCESS;
 }
 
@@ -1166,6 +1292,9 @@ void Application::ResizeCallback(uint32_t width, uint32_t height)
         mSettings.window.width  = width;
         mSettings.window.height = height;
         mWindowSurfaceInvalid   = ((width == 0) || (height == 0));
+        if (mSwapchainRenderTarget) {
+            mSwapchainRenderTarget->SetNeedUpdate();
+        }
     }
 }
 
@@ -1379,6 +1508,11 @@ int Application::Run(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
+    ppxres = InitializeRenderTarget();
+    if (Failed(ppxres)) {
+        return EXIT_FAILURE;
+    }
+
     if (!mSettings.xr.enable && !mSettings.headless) {
 #if !defined(PPX_ANDROID)
         // Update the window size if the settings got changed due to surface requirements
@@ -1420,6 +1554,10 @@ int Application::Run(int argc, char** argv)
 
     mRunningHeadless = mSettings.headless;
     while (IsRunning()) {
+        if (Failed(UpdateRenderTarget())) {
+            return EXIT_FAILURE;
+        }
+
         // Frame start
         mFrameStartTime = static_cast<float>(mTimer.MillisSinceStart());
 
@@ -1473,7 +1611,7 @@ int Application::Run(int argc, char** argv)
             }
 
             // Start new Imgui frame
-            if (mImGui) {
+            if (mImGui && !mRenderTargetImGuiHook) {
                 mImGui->NewFrame();
             }
 
@@ -1583,6 +1721,10 @@ const CliOptions& Application::GetExtraOptions() const
 
 grfx::Rect Application::GetScissor() const
 {
+    if (GetRenderTarget()) {
+        return GetRenderTarget()->GetRenderArea();
+    }
+
     grfx::Rect rect = {};
     rect.x          = 0;
     rect.y          = 0;
@@ -1593,6 +1735,10 @@ grfx::Rect Application::GetScissor() const
 
 grfx::Viewport Application::GetViewport(float minDepth, float maxDepth) const
 {
+    if (GetRenderTarget()) {
+        return GetRenderTarget()->GetViewport(minDepth, maxDepth);
+    }
+
     grfx::Viewport viewport = {};
     viewport.x              = 0.0f;
     viewport.y              = 0.0f;
@@ -1678,6 +1824,11 @@ float2 Application::GetNormalizedDeviceCoordinates(int32_t x, int32_t y) const
     float  fy  = y / static_cast<float>(GetWindowHeight());
     float2 ndc = float2(2.0f, -2.0f) * (float2(fx, fy) - float2(0.5f));
     return ndc;
+}
+
+void Application::DrawDebugUI()
+{
+    DrawDebugInfo();
 }
 
 void Application::DrawDebugInfo(std::function<void(void)> drawAdditionalFn)
@@ -1796,6 +1947,26 @@ void Application::DrawDebugInfo(std::function<void(void)> drawAdditionalFn)
             ImGui::Text("Swapchain Image Count");
             ImGui::NextColumn();
             ImGui::Text("%d", GetSwapchain()->GetImageCount());
+            ImGui::NextColumn();
+        }
+
+        // Framebuffer Resolution
+        if (mSettings.grfx.framebuffer.offscreen) {
+            grfx::Rect renderArea = GetRenderTarget()->GetRenderArea();
+
+            ImGui::Text("Framebuffer Resolution");
+            ImGui::NextColumn();
+            ImGui::Text("%ux%u", GetRenderTarget()->GetImageWidth(), GetRenderTarget()->GetImageHeight());
+            ImGui::NextColumn();
+
+            ImGui::Text("Framebuffer Image Count");
+            ImGui::NextColumn();
+            ImGui::Text("%u", GetRenderTarget()->GetImageCount());
+            ImGui::NextColumn();
+
+            ImGui::Text("Viewport Size");
+            ImGui::NextColumn();
+            ImGui::Text("%ux%u", renderArea.width, renderArea.height);
             ImGui::NextColumn();
         }
 

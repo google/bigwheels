@@ -13,10 +13,12 @@
 // limitations under the License.
 
 #include "ppx/grfx/dx12/dx12_swapchain.h"
+#include "ppx/config.h"
 #include "ppx/grfx/dx12/dx12_device.h"
 #include "ppx/grfx/dx12/dx12_instance.h"
 #include "ppx/grfx/dx12/dx12_queue.h"
 #include "ppx/grfx/dx12/dx12_sync.h"
+#include "ppx/grfx/dx12/dx12_image.h"
 
 namespace ppx {
 namespace grfx {
@@ -45,6 +47,34 @@ void Surface::DestroyApiObjects()
 // -------------------------------------------------------------------------------------------------
 // Swapchain
 // -------------------------------------------------------------------------------------------------
+namespace {
+
+Result ImageFromSwapchain(std::vector<ID3D12Resource*>* colorImages, DXGISwapChainPtr swapchain)
+{
+    // Store the texture resources created by the swapchain.
+    // Query the image count again in case the underlying swapchain
+    // modified the number of images created.
+
+    DXGI_SWAP_CHAIN_DESC dxDesc = {};
+    HRESULT              hr     = swapchain->GetDesc(&dxDesc);
+    if (FAILED(hr)) {
+        PPX_ASSERT_MSG(false, "IDXGISwapChain::GetDesc failed");
+        return ppx::ERROR_API_FAILURE;
+    }
+
+    for (UINT i = 0; i < dxDesc.BufferCount; ++i) {
+        D3D12ResourcePtr resource;
+        HRESULT          hr = swapchain->GetBuffer(i, IID_PPV_ARGS(&resource));
+        if (FAILED(hr)) {
+            return ppx::ERROR_API_FAILURE;
+        }
+        colorImages->push_back(resource);
+    }
+    return ppx::SUCCESS;
+}
+
+} // namespace
+
 Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
 {
     if (IsHeadless()) {
@@ -132,7 +162,7 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
         }
 
         // Present mode behavior
-        UINT flags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+        mSwapchainFlags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
 
         // Set swapchain flags. We enable tearing if supported.
         {
@@ -149,11 +179,11 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
                 } break;
                 case grfx::PRESENT_MODE_IMMEDIATE: {
                     mSyncInterval = 0;
-                    flags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
+                    mSwapchainFlags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
                 } break;
             }
 
-            if (flags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) {
+            if (mSwapchainFlags & DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING) {
                 HRESULT hr = factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &mTearingEnabled, sizeof(mTearingEnabled));
                 if (!SUCCEEDED(hr)) {
                     return ppx::ERROR_API_FAILURE;
@@ -182,7 +212,7 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
         dxDesc.Scaling               = DXGI_SCALING_NONE;
         dxDesc.SwapEffect            = swapEffect;
         dxDesc.AlphaMode             = DXGI_ALPHA_MODE_IGNORE;
-        dxDesc.Flags                 = flags;
+        dxDesc.Flags                 = mSwapchainFlags;
 
         D3D12CommandQueuePtr::InterfaceType* pCmdQueue = ToApi(pCreateInfo->pQueue)->GetDxQueue();
         CComPtr<IDXGISwapChain1>             dxgiSwapChain;
@@ -217,75 +247,59 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
             return ppx::ERROR_API_FAILURE;
         }
 
-        // Store the texture resources created by the swapchain.
-        // Query the image count again in case the underlying swapchain
-        // modified the number of images created.
-        {
-            DXGI_SWAP_CHAIN_DESC dxDesc = {};
-            HRESULT              hr     = mSwapchain->GetDesc(&dxDesc);
-            if (FAILED(hr)) {
-                PPX_ASSERT_MSG(false, "IDXGISwapChain::GetDesc failed");
-                return ppx::ERROR_API_FAILURE;
-            }
-
-            for (UINT i = 0; i < dxDesc.BufferCount; ++i) {
-                D3D12ResourcePtr resource;
-                HRESULT          hr = mSwapchain->GetBuffer(i, IID_PPV_ARGS(&resource));
-                if (FAILED(hr)) {
-                    return ppx::ERROR_API_FAILURE;
-                }
-                colorImages.push_back(resource);
-            }
-        }
+        ImageFromSwapchain(&colorImages, mSwapchain);
     }
 
-    // Create images.
-    {
-        for (size_t i = 0; i < colorImages.size(); ++i) {
-            grfx::ImageCreateInfo imageCreateInfo           = {};
-            imageCreateInfo.type                            = grfx::IMAGE_TYPE_2D;
-            imageCreateInfo.width                           = pCreateInfo->width;
-            imageCreateInfo.height                          = pCreateInfo->height;
-            imageCreateInfo.depth                           = 1;
-            imageCreateInfo.format                          = pCreateInfo->colorFormat;
-            imageCreateInfo.sampleCount                     = grfx::SAMPLE_COUNT_1;
-            imageCreateInfo.mipLevelCount                   = 1;
-            imageCreateInfo.arrayLayerCount                 = 1;
-            imageCreateInfo.usageFlags.bits.transferSrc     = true;
-            imageCreateInfo.usageFlags.bits.transferDst     = true;
-            imageCreateInfo.usageFlags.bits.sampled         = true;
-            imageCreateInfo.usageFlags.bits.storage         = true;
-            imageCreateInfo.usageFlags.bits.colorAttachment = true;
-            imageCreateInfo.pApiObject                      = colorImages[i];
-
-            grfx::ImagePtr image;
-            Result         ppxres = GetDevice()->CreateImage(&imageCreateInfo, &image);
-            if (Failed(ppxres)) {
-                PPX_ASSERT_MSG(false, "image create failed");
-                return ppxres;
-            }
-
-            mColorImages.push_back(image);
-        }
-
-        for (size_t i = 0; i < depthImages.size(); ++i) {
-            grfx::ImageCreateInfo imageCreateInfo = grfx::ImageCreateInfo::DepthStencilTarget(pCreateInfo->width, pCreateInfo->height, pCreateInfo->depthFormat, grfx::SAMPLE_COUNT_1);
-            imageCreateInfo.pApiObject            = depthImages[i];
-
-            grfx::ImagePtr image;
-            Result         ppxres = GetDevice()->CreateImage(&imageCreateInfo, &image);
-            if (Failed(ppxres)) {
-                PPX_ASSERT_MSG(false, "image create failed");
-                return ppxres;
-            }
-
-            mDepthImages.push_back(image);
-        }
-    }
+    CreateImages(colorImages, depthImages);
 
     // Save queue for later use
     mQueue = ToApi(pCreateInfo->pQueue)->GetDxQueue();
 
+    return ppx::SUCCESS;
+}
+
+Result Swapchain::CreateImages(std::vector<ID3D12Resource*> colorImages, std::vector<ID3D12Resource*> depthImages)
+{
+    for (size_t i = 0; i < colorImages.size(); ++i) {
+        grfx::ImageCreateInfo imageCreateInfo           = {};
+        imageCreateInfo.type                            = grfx::IMAGE_TYPE_2D;
+        imageCreateInfo.width                           = mCreateInfo.width;
+        imageCreateInfo.height                          = mCreateInfo.height;
+        imageCreateInfo.depth                           = 1;
+        imageCreateInfo.format                          = mCreateInfo.colorFormat;
+        imageCreateInfo.sampleCount                     = grfx::SAMPLE_COUNT_1;
+        imageCreateInfo.mipLevelCount                   = 1;
+        imageCreateInfo.arrayLayerCount                 = 1;
+        imageCreateInfo.usageFlags.bits.transferSrc     = true;
+        imageCreateInfo.usageFlags.bits.transferDst     = true;
+        imageCreateInfo.usageFlags.bits.sampled         = true;
+        imageCreateInfo.usageFlags.bits.storage         = true;
+        imageCreateInfo.usageFlags.bits.colorAttachment = true;
+        imageCreateInfo.pApiObject                      = colorImages[i];
+
+        grfx::ImagePtr image;
+        Result         ppxres = GetDevice()->CreateImage(&imageCreateInfo, &image);
+        if (Failed(ppxres)) {
+            PPX_ASSERT_MSG(false, "image create failed");
+            return ppxres;
+        }
+
+        mColorImages.push_back(image);
+    }
+
+    for (size_t i = 0; i < depthImages.size(); ++i) {
+        grfx::ImageCreateInfo imageCreateInfo = grfx::ImageCreateInfo::DepthStencilTarget(mCreateInfo.width, mCreateInfo.height, mCreateInfo.depthFormat, grfx::SAMPLE_COUNT_1);
+        imageCreateInfo.pApiObject            = depthImages[i];
+
+        grfx::ImagePtr image;
+        Result         ppxres = GetDevice()->CreateImage(&imageCreateInfo, &image);
+        if (Failed(ppxres)) {
+            PPX_ASSERT_MSG(false, "image create failed");
+            return ppxres;
+        }
+
+        mDepthImages.push_back(image);
+    }
     return ppx::SUCCESS;
 }
 
@@ -373,6 +387,60 @@ Result Swapchain::PresentInternal(
     if (FAILED(hr)) {
         PPX_ASSERT_MSG(false, "IDXGISwapChain::Present failed");
         return ppx::ERROR_API_FAILURE;
+    }
+
+    return ppx::SUCCESS;
+}
+
+Result Swapchain::ResizeInternal(uint32_t width, uint32_t height)
+{
+    GetDevice()->WaitIdle();
+    if (!mLoadRenderPasses.empty() || !mClearRenderPasses.empty()) {
+        PPX_LOG_WARN("IDXGISwapChain::Resize failed, resize swapchain with renderpass not supported")
+        return ppx::ERROR_UNSUPPORTED_API;
+    }
+
+    for (auto& elem : mColorImages) {
+        // Release the image we acquired from swapchain.
+        ToApi(elem.Get())->GetDxResource()->Release();
+        if (elem) {
+            GetDevice()->DestroyImage(elem);
+        }
+    }
+    mColorImages.clear();
+
+    for (auto& elem : mDepthImages) {
+        if (elem) {
+            GetDevice()->DestroyImage(elem);
+        }
+    }
+    mDepthImages.clear();
+
+    HRESULT res = mSwapchain->ResizeBuffers(
+        0, // Keep the same number of back buffers.
+        static_cast<UINT>(width),
+        static_cast<UINT>(height),
+        DXGI_FORMAT_UNKNOWN, // Preserve existing format.
+        mSwapchainFlags);
+
+    if (res != S_OK) {
+        PPX_ASSERT_MSG(false, "IDXGISwapChain::Resize failed");
+        return ppx::ERROR_API_FAILURE;
+    }
+
+    // Update swapchain images.
+    {
+        std::vector<ID3D12Resource*> colorImages;
+
+        Result ppxres = ImageFromSwapchain(&colorImages, mSwapchain);
+        if (ppxres != ppx::SUCCESS) {
+            return ppxres;
+        }
+
+        ppxres = CreateImages(colorImages, {});
+        if (ppxres != ppx::SUCCESS) {
+            return ppxres;
+        }
     }
 
     return ppx::SUCCESS;

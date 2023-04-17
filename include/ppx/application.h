@@ -22,6 +22,7 @@
 #include "ppx/timer.h"
 #include "ppx/xr_component.h"
 #include "ppx/fs.h"
+#include "ppx/render_target.h"
 
 #include <deque>
 #include <filesystem>
@@ -238,6 +239,7 @@ struct ApplicationSettings
     bool        headless              = false;
     bool        enableImGui           = false;
     bool        allowThirdPartyAssets = false;
+    bool        useRenderTarget       = false;
 
     struct
     {
@@ -295,6 +297,16 @@ struct ApplicationSettings
             grfx::Format depthFormat = grfx::FORMAT_UNDEFINED;
             uint32_t     imageCount  = 2;
         } swapchain;
+
+        // Requires useRenderTarget
+        struct
+        {
+            bool         offscreen   = false;
+            grfx::Format colorFormat = grfx::FORMAT_UNDEFINED;
+            grfx::Format depthFormat = grfx::FORMAT_UNDEFINED;
+            uint32_t     width       = 4096;
+            uint32_t     height      = 4096;
+        } framebuffer;
     } grfx;
 };
 
@@ -343,6 +355,8 @@ protected:
     void DrawImGui(grfx::CommandBuffer* pCommandBuffer);
     void DrawDebugInfo(std::function<void(void)> drawAdditionalFn = []() {});
     void DrawProfilerGrfxApiFunctions();
+
+    virtual void DrawDebugUI();
 
 public:
     int  Run(int argc, char** argv);
@@ -394,6 +408,18 @@ public:
         return mSwapchain[index];
     }
 
+    RenderTarget* GetRenderTarget() const
+    {
+        if (mOffscreenRenderTarget) {
+            return mOffscreenRenderTarget.get();
+        }
+        if (mRenderTargetImGuiHook) {
+            return mRenderTargetImGuiHook.get();
+        }
+        return mSwapchainRenderTarget.get();
+    }
+    RenderTarget* GetSwapchainRenderTarget() const { return mSwapchainRenderTarget.get(); }
+
     float    GetElapsedSeconds() const;
     float    GetPrevFrameTime() const { return mPreviousFrameTime; }
     uint64_t GetFrameCount() const { return mFrameCount; }
@@ -434,6 +460,8 @@ private:
     Result InitializeGrfxDevice();
     Result InitializeGrfxSurface();
     Result InitializeGrfxSwapchain();
+    Result InitializeRenderTarget();
+    Result UpdateRenderTarget();
     Result InitializeImGui();
     void   ShutdownImGui();
     void   StopGrfx();
@@ -486,6 +514,12 @@ private:
     float             mAverageFrameTime  = 0;
     double            mFirstFrameTime    = 0;
     std::deque<float> mFrameTimesMs;
+
+    // Requires offscreenRenderTarget
+    // Application => [OffscreenBuffer] => [ImGuiHook] => Swapchain
+    std::unique_ptr<IndirectRenderTarget>    mOffscreenRenderTarget;
+    std::unique_ptr<RenderTargetPresentHook> mRenderTargetImGuiHook;
+    std::unique_ptr<SwapchainRenderTarget>   mSwapchainRenderTarget;
 
 #if defined(PPX_BUILD_XR)
     XrComponent mXrComponent;

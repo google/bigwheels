@@ -533,6 +533,13 @@ Result Swapchain::AcquireNextImageInternal(
         fence,
         pImageIndex);
 
+    if (vkres == VK_SUBOPTIMAL_KHR) {
+        return ppx::ERROR_SUBOPTIMAL;
+    }
+    if (vkres == VK_ERROR_OUT_OF_DATE_KHR) {
+        return ppx::ERROR_OUT_OF_DATE;
+    }
+
     // Handle failure cases
     if (vkres < VK_SUCCESS) {
         PPX_ASSERT_MSG(false, "vkAcquireNextImageKHR failed: " << ToString(vkres));
@@ -569,6 +576,12 @@ Result Swapchain::PresentInternal(
     VkResult vkres = vk::QueuePresent(
         mQueue,
         &vkpi);
+    if (vkres == VK_SUBOPTIMAL_KHR) {
+        return ppx::ERROR_SUBOPTIMAL;
+    }
+    if (vkres == VK_ERROR_OUT_OF_DATE_KHR) {
+        return ppx::ERROR_OUT_OF_DATE;
+    }
     if (vkres != VK_SUCCESS) {
         return ppx::ERROR_API_FAILURE;
     }

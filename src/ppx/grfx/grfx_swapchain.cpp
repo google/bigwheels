@@ -89,52 +89,54 @@ Result Swapchain::Create(const grfx::SwapchainCreateInfo* pCreateInfo)
         }
     }
 
-    // Create render passes with grfx::ATTACHMENT_LOAD_OP_CLEAR for render target.
-    for (size_t i = 0; i < mCreateInfo.imageCount; ++i) {
-        grfx::RenderPassCreateInfo3 rpCreateInfo = {};
-        rpCreateInfo.width                       = pCreateInfo->width;
-        rpCreateInfo.height                      = pCreateInfo->height;
-        rpCreateInfo.renderTargetCount           = 1;
-        rpCreateInfo.pRenderTargetImages[0]      = mColorImages[i];
-        rpCreateInfo.pDepthStencilImage          = mDepthImages.empty() ? nullptr : mDepthImages[i];
-        rpCreateInfo.renderTargetClearValues[0]  = {{0.0f, 0.0f, 0.0f, 0.0f}};
-        rpCreateInfo.depthStencilClearValue      = {1.0f, 0xFF};
-        rpCreateInfo.renderTargetLoadOps[0]      = grfx::ATTACHMENT_LOAD_OP_CLEAR;
-        rpCreateInfo.depthLoadOp                 = grfx::ATTACHMENT_LOAD_OP_CLEAR;
-        rpCreateInfo.ownership                   = grfx::OWNERSHIP_RESTRICTED;
+    if (mCreateInfo.createRenderPass) {
+        // Create render passes with grfx::ATTACHMENT_LOAD_OP_CLEAR for render target.
+        for (size_t i = 0; i < mCreateInfo.imageCount; ++i) {
+            grfx::RenderPassCreateInfo3 rpCreateInfo = {};
+            rpCreateInfo.width                       = pCreateInfo->width;
+            rpCreateInfo.height                      = pCreateInfo->height;
+            rpCreateInfo.renderTargetCount           = 1;
+            rpCreateInfo.pRenderTargetImages[0]      = mColorImages[i];
+            rpCreateInfo.pDepthStencilImage          = mDepthImages.empty() ? nullptr : mDepthImages[i];
+            rpCreateInfo.renderTargetClearValues[0]  = {{0.0f, 0.0f, 0.0f, 0.0f}};
+            rpCreateInfo.depthStencilClearValue      = {1.0f, 0xFF};
+            rpCreateInfo.renderTargetLoadOps[0]      = grfx::ATTACHMENT_LOAD_OP_CLEAR;
+            rpCreateInfo.depthLoadOp                 = grfx::ATTACHMENT_LOAD_OP_CLEAR;
+            rpCreateInfo.ownership                   = grfx::OWNERSHIP_RESTRICTED;
 
-        grfx::RenderPassPtr renderPass;
-        ppxres = GetDevice()->CreateRenderPass(&rpCreateInfo, &renderPass);
-        if (Failed(ppxres)) {
-            PPX_ASSERT_MSG(false, "grfx::Swapchain::CreateRenderPass(CLEAR) failed");
-            return ppxres;
+            grfx::RenderPassPtr renderPass;
+            ppxres = GetDevice()->CreateRenderPass(&rpCreateInfo, &renderPass);
+            if (Failed(ppxres)) {
+                PPX_ASSERT_MSG(false, "grfx::Swapchain::CreateRenderPass(CLEAR) failed");
+                return ppxres;
+            }
+
+            mClearRenderPasses.push_back(renderPass);
         }
 
-        mClearRenderPasses.push_back(renderPass);
-    }
+        // Create render passes with grfx::ATTACHMENT_LOAD_OP_LOAD for render target.
+        for (size_t i = 0; i < mCreateInfo.imageCount; ++i) {
+            grfx::RenderPassCreateInfo3 rpCreateInfo = {};
+            rpCreateInfo.width                       = pCreateInfo->width;
+            rpCreateInfo.height                      = pCreateInfo->height;
+            rpCreateInfo.renderTargetCount           = 1;
+            rpCreateInfo.pRenderTargetImages[0]      = mColorImages[i];
+            rpCreateInfo.pDepthStencilImage          = mDepthImages.empty() ? nullptr : mDepthImages[i];
+            rpCreateInfo.renderTargetClearValues[0]  = {{0.0f, 0.0f, 0.0f, 0.0f}};
+            rpCreateInfo.depthStencilClearValue      = {1.0f, 0xFF};
+            rpCreateInfo.renderTargetLoadOps[0]      = grfx::ATTACHMENT_LOAD_OP_LOAD;
+            rpCreateInfo.depthLoadOp                 = grfx::ATTACHMENT_LOAD_OP_CLEAR;
+            rpCreateInfo.ownership                   = grfx::OWNERSHIP_RESTRICTED;
 
-    // Create render passes with grfx::ATTACHMENT_LOAD_OP_LOAD for render target.
-    for (size_t i = 0; i < mCreateInfo.imageCount; ++i) {
-        grfx::RenderPassCreateInfo3 rpCreateInfo = {};
-        rpCreateInfo.width                       = pCreateInfo->width;
-        rpCreateInfo.height                      = pCreateInfo->height;
-        rpCreateInfo.renderTargetCount           = 1;
-        rpCreateInfo.pRenderTargetImages[0]      = mColorImages[i];
-        rpCreateInfo.pDepthStencilImage          = mDepthImages.empty() ? nullptr : mDepthImages[i];
-        rpCreateInfo.renderTargetClearValues[0]  = {{0.0f, 0.0f, 0.0f, 0.0f}};
-        rpCreateInfo.depthStencilClearValue      = {1.0f, 0xFF};
-        rpCreateInfo.renderTargetLoadOps[0]      = grfx::ATTACHMENT_LOAD_OP_LOAD;
-        rpCreateInfo.depthLoadOp                 = grfx::ATTACHMENT_LOAD_OP_CLEAR;
-        rpCreateInfo.ownership                   = grfx::OWNERSHIP_RESTRICTED;
+            grfx::RenderPassPtr renderPass;
+            ppxres = GetDevice()->CreateRenderPass(&rpCreateInfo, &renderPass);
+            if (Failed(ppxres)) {
+                PPX_ASSERT_MSG(false, "grfx::Swapchain::CreateRenderPass(LOAD) failed");
+                return ppxres;
+            }
 
-        grfx::RenderPassPtr renderPass;
-        ppxres = GetDevice()->CreateRenderPass(&rpCreateInfo, &renderPass);
-        if (Failed(ppxres)) {
-            PPX_ASSERT_MSG(false, "grfx::Swapchain::CreateRenderPass(LOAD) failed");
-            return ppxres;
+            mLoadRenderPasses.push_back(renderPass);
         }
-
-        mLoadRenderPasses.push_back(renderPass);
     }
 
     if (IsHeadless()) {
@@ -253,6 +255,42 @@ grfx::ImagePtr Swapchain::GetDepthImage(uint32_t imageIndex) const
     grfx::ImagePtr object;
     GetDepthImage(imageIndex, &object);
     return object;
+}
+
+Result Swapchain::ResizeInternal(uint32_t width, uint32_t height)
+{
+    return ppx::ERROR_UNSUPPORTED_API;
+}
+
+Result Swapchain::Resize(uint32_t width, uint32_t height)
+{
+    if (mCreateInfo.createRenderPass) {
+        return ppx::ERROR_UNSUPPORTED_API;
+    }
+    bool   needDepthImage = (mCreateInfo.depthFormat != grfx::FORMAT_UNDEFINED) && (!mDepthImages.empty());
+    Result ppxres         = ResizeInternal(width, height);
+    if (ppxres == ppx::SUCCESS) {
+        mCreateInfo.width  = width;
+        mCreateInfo.height = height;
+    };
+    if (needDepthImage && mDepthImages.empty()) {
+        // Recreate Depth Images
+        for (uint32_t i = 0; i < mCreateInfo.imageCount; ++i) {
+            grfx::ImageCreateInfo dpCreateInfo = ImageCreateInfo::DepthStencilTarget(mCreateInfo.width, mCreateInfo.height, mCreateInfo.depthFormat);
+            dpCreateInfo.ownership             = grfx::OWNERSHIP_RESTRICTED;
+            dpCreateInfo.DSVClearValue         = {1.0f, 0xFF};
+
+            grfx::ImagePtr depthStencilTarget;
+            ppxres = GetDevice()->CreateImage(&dpCreateInfo, &depthStencilTarget);
+            if (Failed(ppxres)) {
+                return ppxres;
+            }
+
+            mDepthImages.push_back(depthStencilTarget);
+        }
+    }
+
+    return ppxres;
 }
 
 grfx::RenderPassPtr Swapchain::GetRenderPass(uint32_t imageIndex, grfx::AttachmentLoadOp loadOp) const

@@ -21,7 +21,7 @@
 #       define VC_EXTRALEAN
 #   endif
 #   if !defined(WIN32_LEAN_AND_MEAN)
-#       define WIN32_LEAN_AND_MEAN 
+#       define WIN32_LEAN_AND_MEAN
 #   endif
 #   if !defined(NOMINMAX)
 #       define NOMINMAX
@@ -112,6 +112,8 @@ enum Result
     ERROR_NO_GPUS_FOUND                = -16,
     ERROR_REQUIRED_FEATURE_UNAVAILABLE = -17,
     ERROR_BAD_DATA_SOURCE              = -18,
+    ERROR_OUT_OF_DATE                  = -19,
+    ERROR_SUBOPTIMAL                   = -20,
 
     ERROR_GLFW_INIT_FAILED          = -200,
     ERROR_GLFW_CREATE_WINDOW_FAILED = -201,
@@ -191,6 +193,8 @@ inline const char* ToString(ppx::Result value)
         case Result::ERROR_NO_GPUS_FOUND                              : return "ERROR_NO_GPUS_FOUND";
         case Result::ERROR_REQUIRED_FEATURE_UNAVAILABLE               : return "ERROR_REQUIRED_FEATURE_UNAVAILABLE";
         case Result::ERROR_BAD_DATA_SOURCE                            : return "ERROR_BAD_DATA_SOURCE";
+        case Result::ERROR_OUT_OF_DATE                                : return "ERROR_OUT_OF_DATE";
+        case Result::ERROR_SUBOPTIMAL                                 : return "ERROR_SUBOPTIMAL";
 
         case Result::ERROR_GLFW_INIT_FAILED                           : return "ERROR_GLFW_INIT_FAILED";
         case Result::ERROR_GLFW_CREATE_WINDOW_FAILED                  : return "ERROR_GLFW_CREATE_WINDOW_FAILED";

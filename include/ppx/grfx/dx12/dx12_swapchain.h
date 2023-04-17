@@ -70,10 +70,13 @@ protected:
         grfx::Fence*     pFence,
         uint32_t*        pImageIndex) override;
 
+    virtual Result ResizeInternal(uint32_t width, uint32_t height) override;
+
 private:
     DXGISwapChainPtr     mSwapchain;
     HANDLE               mFrameLatencyWaitableObject = nullptr;
     D3D12CommandQueuePtr mQueue;
+    UINT                 mSwapchainFlags;
 
     //
     // Store sync internval so we can control its behavior based
@@ -84,6 +87,8 @@ private:
     //
     UINT mSyncInterval   = 1;
     BOOL mTearingEnabled = FALSE;
+
+    Result CreateImages(std::vector<ID3D12Resource*> colorImages, std::vector<ID3D12Resource*> depthImages);
 };
 
 } // namespace dx12
