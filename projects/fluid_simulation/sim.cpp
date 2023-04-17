@@ -96,7 +96,18 @@ void FluidSimulation::InitComputeShaders()
     sci.addressModeW                 = ppx::grfx::SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     sci.minLod                       = 0.0f;
     sci.maxLod                       = FLT_MAX;
-    PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateSampler(&sci, &mCompute.mSampler));
+    PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateSampler(&sci, &mCompute.mClampSampler));
+
+    sci              = {};
+    sci.magFilter    = ppx::grfx::FILTER_LINEAR;
+    sci.minFilter    = ppx::grfx::FILTER_LINEAR;
+    sci.mipmapMode   = ppx::grfx::SAMPLER_MIPMAP_MODE_NEAREST;
+    sci.addressModeU = ppx::grfx::SAMPLER_ADDRESS_MODE_REPEAT;
+    sci.addressModeV = ppx::grfx::SAMPLER_ADDRESS_MODE_REPEAT;
+    sci.addressModeW = ppx::grfx::SAMPLER_ADDRESS_MODE_REPEAT;
+    sci.minLod       = 0.0f;
+    sci.maxLod       = FLT_MAX;
+    PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateSampler(&sci, &mCompute.mRepeatSampler));
 
     // Create compute shaders for filtering.
     mAdvection         = std::make_unique<AdvectionShader>(this);
@@ -449,9 +460,9 @@ void FluidSimulation::Update()
 
 float FluidSimulation::CalcDeltaTime()
 {
-    float now = mTimer.MillisSinceStart();
-    float delta = (now - mLastUpdateTime) / 1000;
-    delta       = std::min(delta, 0.016666f);
+    float now       = mTimer.MillisSinceStart();
+    float delta     = (now - mLastUpdateTime) / 1000;
+    delta           = std::min(delta, 0.016666f);
     mLastUpdateTime = now;
     return delta;
 }
@@ -468,10 +479,12 @@ void FluidSimulation::UpdateColors(float deltaTime)
 
 void FluidSimulation::MoveObjects()
 {
+#if 0
     if (mSplatQ.size() > 0) {
         MultipleSplats(mSplatQ.front());
         mSplatQ.pop();
     }
+#endif
 
     // Move the marble so that it bounces off of the window borders.
     mMarble.coord += mMarble.delta;
@@ -493,10 +506,12 @@ void FluidSimulation::MoveObjects()
         mMarble.delta.y *= -1.0f;
     }
 
+#if 0
     if (mRandom.Float() > 0.9) {
         ppx::float2 delta = mMarble.delta * mConfig.splatForce;
         Splat(mMarble.coord, delta, mMarble.color);
     }
+#endif
 }
 
 void FluidSimulation::Step(float delta)

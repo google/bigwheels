@@ -136,7 +136,7 @@ ComputeDispatchRecord::ComputeDispatchRecord(ComputeShader* cs, Texture* output,
     memcpy(pData, &si, sizeof(si));
     mUniformBuffer->UnmapMemory();
 
-    const size_t               numBindings = 2;
+    const size_t               numBindings = 3;
     ppx::grfx::WriteDescriptor write[numBindings];
 
     write[0].binding      = 0;
@@ -147,7 +147,11 @@ ComputeDispatchRecord::ComputeDispatchRecord(ComputeShader* cs, Texture* output,
 
     write[1].binding  = 1;
     write[1].type     = ppx::grfx::DESCRIPTOR_TYPE_SAMPLER;
-    write[1].pSampler = mShader->GetComputeResources()->mSampler;
+    write[1].pSampler = mShader->GetComputeResources()->mClampSampler;
+
+    write[2].binding = 12;
+    write[2].type    = ppx::grfx::DESCRIPTOR_TYPE_SAMPLER;
+    write[2].pSampler = mShader->GetComputeResources()->mRepeatSampler;
 
     PPX_CHECKED_CALL(mDescriptorSet->UpdateDescriptors(numBindings, write));
 }

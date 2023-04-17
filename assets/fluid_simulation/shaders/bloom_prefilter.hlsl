@@ -10,7 +10,7 @@
 [numthreads(1, 1, 1)] void csmain(uint2 tid
                                   : SV_DispatchThreadID) {
     Coord  coord = BaseVS(tid, Params.normalizationScale, Params.texelSize);
-    float3 c     = UTexture.SampleLevel(Sampler, coord.vUv, 0).rgb;
+    float3 c     = UTexture.SampleLevel(ClampSampler, coord.vUv, 0).rgb;
     float  br    = max(c.r, max(c.g, c.b));
     float  rq    = clamp(br - Params.curve.x, 0.0, Params.curve.y);
     rq           = Params.curve.z * rq * rq;

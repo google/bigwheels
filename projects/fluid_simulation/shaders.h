@@ -26,7 +26,8 @@ class FluidSimulation;
 struct ComputeResources
 {
     ppx::grfx::PipelineInterfacePtr   mPipelineInterface;
-    ppx::grfx::SamplerPtr             mSampler;
+    ppx::grfx::SamplerPtr             mClampSampler;
+    ppx::grfx::SamplerPtr             mRepeatSampler;
     ppx::grfx::DescriptorSetLayoutPtr mDescriptorSetLayout;
 };
 
