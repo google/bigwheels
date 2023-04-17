@@ -1,4 +1,5 @@
 ---
+Language: Cpp
 AccessModifierOffset: -4
 AlignAfterOpenBracket: AlwaysBreak
 AlignConsecutiveAssignments: true
@@ -51,7 +52,6 @@ IndentPPDirectives: None
 IndentWidth: 4
 IndentWrappedFunctionNames: false
 KeepEmptyLinesAtTheStartOfBlocks: false
-Language: Cpp
 NamespaceIndentation: None
 PenaltyBreakAssignment: 200
 PenaltyBreakBeforeFirstCallParameter: 10
@@ -74,5 +74,8 @@ SpacesInParentheses: false
 SpacesInSquareBrackets: false
 TabWidth: 4
 UseTab: Never
+---
+Language: Java
+ColumnLimit: 120
 
 ...

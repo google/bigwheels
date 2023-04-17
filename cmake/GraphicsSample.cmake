@@ -24,7 +24,9 @@ function(_add_sample_internal)
 
     # For Android, each sample is a lib
     if (PPX_ANDROID)
-        add_library("${TARGET_NAME}" ${ARG_SOURCES})
+        SET(LIBRARY_SOURCES "${ARG_SOURCES}")
+        LIST(APPEND LIBRARY_SOURCES "${PPX_DIR}/src/android/main.cpp")
+        add_library("${TARGET_NAME}" SHARED ${LIBRARY_SOURCES})
     else()
         add_executable("${TARGET_NAME}" ${ARG_SOURCES})
     endif()
@@ -37,7 +39,13 @@ function(_add_sample_internal)
 
     target_link_libraries("${TARGET_NAME}" PUBLIC ppx)
 
-    if (NOT PPX_ANDROID)
+    if (PPX_ANDROID)
+        find_library(log-lib log)
+        target_link_libraries("${TARGET_NAME}" PUBLIC
+          android
+          ${log-lib}
+        )
+    else ()
         target_link_libraries("${TARGET_NAME}" PUBLIC glfw)
     endif()
 

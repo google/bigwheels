@@ -1,5 +1,6 @@
 plugins {
-    id 'com.android.application'
+    id 'com.android.application' version '7.3.1'
+    id 'com.android.library' version '7.3.1' apply false
 }
 
 android {
@@ -16,7 +17,7 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
-                cppFlags '-std=c++17'
+                cppFlags '-std=c++20'
                 if (project.hasProperty('DXC_PATH')) {
                   arguments "-DDXC_PATH=$DXC_PATH"
                 }
@@ -28,8 +29,13 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+    }
+    buildTypes.each {
+        // The same string needs to be defined for both the manifest and
+        // the MainActivity. Maybe there is a better way.
+        it.buildConfigField "String", "sample_library_name", '"vk_16_gbuffer"'
+        it.resValue         "string", "sample_library_name",  'vk_16_gbuffer'
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -40,21 +46,22 @@ android {
     }
     externalNativeBuild {
         cmake {
-            path file('src/main/cpp/CMakeLists.txt')
+            path file('CMakeLists.txt')
             version '3.22.1'
         }
     }
     sourceSets {
-    main {
-        assets {
-            srcDirs '..\\..\\assets'
+        main {
+            java.srcDirs = [ 'src/android' ]
+            manifest.srcFile 'src/android/AndroidManifest.xml'
+            assets {
+                srcDirs 'assets'
+            }
         }
-    }
     }
 }
 
 dependencies {
-
     implementation 'androidx.appcompat:appcompat:1.5.1'
     implementation 'com.google.android.material:material:1.7.0'
     implementation 'androidx.games:games-activity:1.0.0'
