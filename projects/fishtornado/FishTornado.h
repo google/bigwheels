@@ -72,6 +72,7 @@ public:
     virtual void Shutdown() override;
     virtual void Scroll(float dx, float dy) override;
     virtual void Render() override;
+    virtual void DrawDebugUI() override;
 
     bool WasLastFrameAsync() { return mLastFrameWasAsyncCompute; }
 
@@ -143,19 +144,19 @@ private:
     void UpdateTime();
     void UpdateScene(uint32_t frameIndex);
     void RenderSceneUsingSingleCommandBuffer(
-        uint32_t            frameIndex,
-        PerFrame&           frame,
-        uint32_t            prevFrameIndex,
-        PerFrame&           prevFrame,
-        grfx::SwapchainPtr& swapchain,
-        uint32_t            imageIndex);
+        uint32_t      frameIndex,
+        PerFrame&     frame,
+        uint32_t      prevFrameIndex,
+        PerFrame&     prevFrame,
+        RenderTarget* swapchain,
+        uint32_t      imageIndex);
     void RenderSceneUsingMultipleCommandBuffers(
-        uint32_t            frameIndex,
-        PerFrame&           frame,
-        uint32_t            prevFrameIndex,
-        PerFrame&           prevFrame,
-        grfx::SwapchainPtr& swapchain,
-        uint32_t            imageIndex);
+        uint32_t      frameIndex,
+        PerFrame&     frame,
+        uint32_t      prevFrameIndex,
+        PerFrame&     prevFrame,
+        RenderTarget* swapchain,
+        uint32_t      imageIndex);
     void DrawGui();
 };
 

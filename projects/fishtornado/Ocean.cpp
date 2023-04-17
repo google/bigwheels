@@ -130,8 +130,8 @@ void Ocean::Setup(uint32_t numFramesInFlight)
             gpCreateInfo.depthWriteEnable                   = false;
             gpCreateInfo.blendModes[0]                      = {grfx::BLEND_MODE_ADDITIVE};
             gpCreateInfo.outputState.renderTargetCount      = 1;
-            gpCreateInfo.outputState.renderTargetFormats[0] = pApp->GetSwapchain()->GetColorFormat();
-            gpCreateInfo.outputState.depthStencilFormat     = pApp->GetSwapchain()->GetDepthFormat();
+            gpCreateInfo.outputState.renderTargetFormats[0] = pApp->GetRenderTarget()->GetColorFormat();
+            gpCreateInfo.outputState.depthStencilFormat     = pApp->GetRenderTarget()->GetDepthFormat();
             gpCreateInfo.pPipelineInterface                 = pApp->GetForwardPipelineInterface();
             // Vertex description
             gpCreateInfo.vertexInputState.bindingCount = vertexDescription.GetBindingCount();

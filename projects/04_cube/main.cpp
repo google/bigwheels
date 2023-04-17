@@ -49,8 +49,6 @@ private:
     ppx::grfx::DescriptorSetLayoutPtr mDescriptorSetLayout;
     ppx::grfx::DescriptorSetPtr       mDescriptorSet;
     ppx::grfx::BufferPtr              mUniformBuffer;
-    grfx::Viewport                    mViewport;
-    grfx::Rect                        mScissorRect;
     grfx::VertexBinding               mVertexBinding;
 };
 
@@ -61,6 +59,9 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.api                   = kApi;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
     settings.grfx.enableDebug           = false;
+    settings.useRenderTarget            = true;
+    settings.grfx.framebuffer.offscreen = false;
+    settings.window.resizable           = true;
 }
 
 void ProjApp::Setup()
@@ -130,8 +131,8 @@ void ProjApp::Setup()
         gpCreateInfo.depthWriteEnable                   = true;
         gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
         gpCreateInfo.outputState.renderTargetCount      = 1;
-        gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
-        gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
+        gpCreateInfo.outputState.renderTargetFormats[0] = GetRenderTarget()->GetColorFormat();
+        gpCreateInfo.outputState.depthStencilFormat     = GetRenderTarget()->GetDepthFormat();
         gpCreateInfo.pPipelineInterface                 = mPipelineInterface;
         PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mPipeline));
     }
@@ -159,7 +160,7 @@ void ProjApp::Setup()
     // Vertex buffer and geometry data
     {
         // clang-format off
-        std::vector<float> vertexData = {  
+        std::vector<float> vertexData = {
             // position          // vertex colors
             -1.0f,-1.0f,-1.0f,   1.0f, 0.0f, 0.0f,  // -Z side
              1.0f, 1.0f,-1.0f,   1.0f, 0.0f, 0.0f,
@@ -218,20 +219,21 @@ void ProjApp::Setup()
         memcpy(pAddr, vertexData.data(), dataSize);
         mVertexBuffer->UnmapMemory();
     }
-
-    // Viewport and scissor rect
-    mViewport    = {0, 0, float(GetWindowWidth()), float(GetWindowHeight()), 0, 1};
-    mScissorRect = {0, 0, GetWindowWidth(), GetWindowHeight()};
 }
 
 void ProjApp::Render()
 {
     PerFrame& frame = mPerFrame[0];
 
-    grfx::SwapchainPtr swapchain = GetSwapchain();
+    RenderTarget* swapchain = GetRenderTarget();
 
     uint32_t imageIndex = UINT32_MAX;
-    PPX_CHECKED_CALL(swapchain->AcquireNextImage(UINT64_MAX, frame.imageAcquiredSemaphore, frame.imageAcquiredFence, &imageIndex));
+
+    Result ppxres = swapchain->AcquireNextImage(UINT64_MAX, frame.imageAcquiredSemaphore, frame.imageAcquiredFence, &imageIndex);
+    if (ppxres == ERROR_OUT_OF_DATE) {
+        return;
+    }
+    PPX_CHECKED_CALL(ppxres);
 
     // Wait for and reset image acquired fence
     PPX_CHECKED_CALL(frame.imageAcquiredFence->WaitAndReset());
@@ -242,7 +244,7 @@ void ProjApp::Render()
     // Update uniform buffer
     {
         float    t   = GetElapsedSeconds();
-        float4x4 P   = glm::perspective(glm::radians(60.0f), GetWindowAspect(), 0.001f, 10000.0f);
+        float4x4 P   = glm::perspective(glm::radians(60.0f), swapchain->GetAspect(), 0.001f, 10000.0f);
         float4x4 V   = glm::lookAt(float3(0, 0, 3), float3(0, 0, 0), float3(0, 1, 0));
         float4x4 M   = glm::rotate(t, float3(0, 0, 1)) * glm::rotate(t, float3(0, 1, 0)) * glm::rotate(t, float3(1, 0, 0));
         float4x4 mat = P * V * M;
@@ -261,7 +263,7 @@ void ProjApp::Render()
 
         grfx::RenderPassBeginInfo beginInfo = {};
         beginInfo.pRenderPass               = renderPass;
-        beginInfo.renderArea                = renderPass->GetRenderArea();
+        beginInfo.renderArea                = swapchain->GetRenderArea();
         beginInfo.RTVClearCount             = 1;
         beginInfo.RTVClearValues[0]         = {{0, 0, 0, 0}};
         beginInfo.DSVClearValue             = {1.0f, 0xFF};
@@ -269,16 +271,15 @@ void ProjApp::Render()
         frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
         frame.cmd->BeginRenderPass(&beginInfo);
         {
-            frame.cmd->SetScissors(1, &mScissorRect);
-            frame.cmd->SetViewports(1, &mViewport);
+            grfx::Rect     scissor  = GetScissor();
+            grfx::Viewport viewport = GetViewport();
+
+            frame.cmd->SetScissors(1, &scissor);
+            frame.cmd->SetViewports(1, &viewport);
             frame.cmd->BindGraphicsDescriptorSets(mPipelineInterface, 1, &mDescriptorSet);
             frame.cmd->BindGraphicsPipeline(mPipeline);
             frame.cmd->BindVertexBuffers(1, &mVertexBuffer, &mVertexBinding.GetStride());
             frame.cmd->Draw(36, 1, 0, 0);
-
-            // Draw ImGui
-            DrawDebugInfo();
-            DrawImGui(frame.cmd);
         }
         frame.cmd->EndRenderPass();
         frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
@@ -296,7 +297,11 @@ void ProjApp::Render()
 
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
 
-    PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.renderCompleteSemaphore));
+    ppxres = swapchain->Present(imageIndex, 1, &frame.renderCompleteSemaphore);
+    if (ppxres == ERROR_OUT_OF_DATE) {
+        return;
+    }
+    PPX_CHECKED_CALL(ppxres);
 }
 
 SETUP_APPLICATION(ProjApp)

@@ -78,8 +78,8 @@ grfx::GraphicsPipelinePtr FishTornadoApp::CreateForwardPipeline(
     gpCreateInfo.depthWriteEnable                   = true;
     gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
     gpCreateInfo.outputState.renderTargetCount      = 1;
-    gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
-    gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
+    gpCreateInfo.outputState.renderTargetFormats[0] = GetRenderTarget()->GetColorFormat();
+    gpCreateInfo.outputState.depthStencilFormat     = GetRenderTarget()->GetDepthFormat();
     gpCreateInfo.pPipelineInterface                 = IsNull(pPipelineInterface) ? mForwardPipelineInterface.Get() : pPipelineInterface;
     // Vertex description
     gpCreateInfo.vertexInputState.bindingCount = vertexDescription.GetBindingCount();
@@ -136,6 +136,9 @@ void FishTornadoApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.enableDebug           = false;
     settings.grfx.swapchain.imageCount  = 3;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
+    settings.useRenderTarget            = true;
+    settings.grfx.framebuffer.offscreen = false;
+    settings.window.resizable           = true;
 
     settings.grfx.device.computeQueueCount = 1;
 }
@@ -388,7 +391,7 @@ void FishTornadoApp::SetupDebug()
 
 void FishTornadoApp::SetupScene()
 {
-    mCamera.SetPerspective(45.0f, GetWindowAspect());
+    mCamera.SetPerspective(45.0f, GetRenderTarget()->GetAspect());
     mCamera.LookAt(float3(135.312f, 64.086f, -265.332f), float3(0.0f, 100.0f, 0.0f));
     mCamera.MoveAlongViewDirection(-300.0f);
 
@@ -452,6 +455,8 @@ void FishTornadoApp::UpdateScene(uint32_t frameIndex)
 {
     PerFrame& frame = mPerFrame[frameIndex];
 
+    mCamera.SetPerspective(45.0f, GetRenderTarget()->GetAspect());
+
     hlsl::SceneData* pSceneData            = static_cast<hlsl::SceneData*>(frame.sceneConstants.GetMappedAddress());
     pSceneData->time                       = GetTime();
     pSceneData->eyePosition                = mCamera.GetEyePosition();
@@ -470,12 +475,12 @@ void FishTornadoApp::UpdateScene(uint32_t frameIndex)
 }
 
 void FishTornadoApp::RenderSceneUsingSingleCommandBuffer(
-    uint32_t            frameIndex,
-    PerFrame&           frame,
-    uint32_t            prevFrameIndex,
-    PerFrame&           prevFrame,
-    grfx::SwapchainPtr& swapchain,
-    uint32_t            imageIndex)
+    uint32_t      frameIndex,
+    PerFrame&     frame,
+    uint32_t      prevFrameIndex,
+    PerFrame&     prevFrame,
+    RenderTarget* swapchain,
+    uint32_t      imageIndex)
 {
     // Build command buffer
     PPX_CHECKED_CALL(frame.cmd->Begin());
@@ -547,8 +552,8 @@ void FishTornadoApp::RenderSceneUsingSingleCommandBuffer(
         frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
         frame.cmd->BeginRenderPass(&beginInfo);
         {
-            frame.cmd->SetScissors(renderPass->GetScissor());
-            frame.cmd->SetViewports(renderPass->GetViewport());
+            frame.cmd->SetScissors(GetScissor());
+            frame.cmd->SetViewports(GetViewport());
 
             mShark.DrawForward(frameIndex, frame.cmd);
 #if defined(ENABLE_GPU_QUERIES)
@@ -564,13 +569,6 @@ void FishTornadoApp::RenderSceneUsingSingleCommandBuffer(
 #endif
 
             mOcean.DrawForward(frameIndex, frame.cmd);
-
-            // Draw ImGui
-            DrawDebugInfo([this]() { this->DrawGui(); });
-#if defined(PPX_ENABLE_PROFILE_GRFX_API_FUNCTIONS)
-            DrawProfilerGrfxApiFunctions();
-#endif // defined(PPX_ENABLE_PROFILE_GRFX_API_FUNCTIONS)
-            DrawImGui(frame.cmd);
         }
         frame.cmd->EndRenderPass();
         frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
@@ -607,12 +605,12 @@ void FishTornadoApp::RenderSceneUsingSingleCommandBuffer(
 }
 
 void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
-    uint32_t            frameIndex,
-    PerFrame&           frame,
-    uint32_t            prevFrameIndex,
-    PerFrame&           prevFrame,
-    grfx::SwapchainPtr& swapchain,
-    uint32_t            imageIndex)
+    uint32_t      frameIndex,
+    PerFrame&     frame,
+    uint32_t      prevFrameIndex,
+    PerFrame&     prevFrame,
+    RenderTarget* swapchain,
+    uint32_t      imageIndex)
 {
 #if defined(ENABLE_GPU_QUERIES)
     frame.startTimestampQuery->Reset(0, 1);
@@ -763,8 +761,8 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
         frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
         frame.cmd->BeginRenderPass(&beginInfo);
         {
-            frame.cmd->SetScissors(renderPass->GetScissor());
-            frame.cmd->SetViewports(renderPass->GetViewport());
+            frame.cmd->SetScissors(GetScissor());
+            frame.cmd->SetViewports(GetViewport());
 
             mShark.DrawForward(frameIndex, frame.cmd);
 #if defined(ENABLE_GPU_QUERIES)
@@ -780,13 +778,6 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
 #endif
 
             mOcean.DrawForward(frameIndex, frame.cmd);
-
-            // Draw ImGui
-            DrawDebugInfo([this]() { this->DrawGui(); });
-#if defined(PPX_ENABLE_PROFILE_GRFX_API_FUNCTIONS)
-            DrawProfilerGrfxApiFunctions();
-#endif // defined(PPX_ENABLE_PROFILE_GRFX_API_FUNCTIONS)
-            DrawImGui(frame.cmd);
         }
         frame.cmd->EndRenderPass();
         frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
@@ -857,11 +848,11 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
 
 void FishTornadoApp::Render()
 {
-    uint32_t           frameIndex     = GetInFlightFrameIndex();
-    PerFrame&          frame          = mPerFrame[frameIndex];
-    uint32_t           prevFrameIndex = GetPreviousInFlightFrameIndex();
-    PerFrame&          prevFrame      = mPerFrame[prevFrameIndex];
-    grfx::SwapchainPtr swapchain      = GetSwapchain();
+    uint32_t      frameIndex     = GetInFlightFrameIndex();
+    PerFrame&     frame          = mPerFrame[frameIndex];
+    uint32_t      prevFrameIndex = GetPreviousInFlightFrameIndex();
+    PerFrame&     prevFrame      = mPerFrame[prevFrameIndex];
+    RenderTarget* swapchain      = GetRenderTarget();
 
     UpdateTime();
 
@@ -871,7 +862,13 @@ void FishTornadoApp::Render()
     mOcean.Update(frameIndex);
 
     uint32_t imageIndex = UINT32_MAX;
-    PPX_CHECKED_CALL(swapchain->AcquireNextImage(UINT64_MAX, frame.imageAcquiredSemaphore, frame.imageAcquiredFence, &imageIndex));
+    {
+        Result ppxres = swapchain->AcquireNextImage(UINT64_MAX, frame.imageAcquiredSemaphore, frame.imageAcquiredFence, &imageIndex);
+        if (ppxres == ERROR_OUT_OF_DATE) {
+            return;
+        }
+        PPX_CHECKED_CALL(ppxres);
+    }
 
     // Wait for and reset image acquired fence
     PPX_CHECKED_CALL(frame.imageAcquiredFence->WaitAndReset());
@@ -902,6 +899,14 @@ void FishTornadoApp::Render()
     mLastFrameWasAsyncCompute = mUseAsyncCompute;
 
     PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.frameCompleteSemaphore));
+}
+
+void FishTornadoApp::DrawDebugUI()
+{
+    DrawDebugInfo([this]() { this->DrawGui(); });
+#if defined(PPX_ENABLE_PROFILE_GRFX_API_FUNCTIONS)
+    DrawProfilerGrfxApiFunctions();
+#endif // defined(PPX_ENABLE_PROFILE_GRFX_API_FUNCTIONS)
 }
 
 void FishTornadoApp::DrawGui()
