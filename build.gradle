@@ -3,6 +3,10 @@ plugins {
     id 'com.android.library' version '7.3.1' apply false
 }
 
+ext {
+  oculusOpenxrSdkLocation = System.getenv('OCULUS_OPENXR_SDK')
+}
+
 android {
     namespace 'com.google.bigwheels'
     compileSdk 32
@@ -17,6 +21,9 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
+                arguments '-DPPX_ANDROID=TRUE',
+                          '-DPPX_BUILD_TESTS=FALSE',
+                          '-DBUILD_TESTS=FALSE' // Required for OpenXR
                 cppFlags '-std=c++20'
                 if (project.hasProperty('DXC_PATH')) {
                   arguments "-DDXC_PATH=$DXC_PATH"
@@ -30,13 +37,106 @@ android {
         release {
             minifyEnabled false
         }
+        debug {
+          applicationIdSuffix '.debug'
+          debuggable true
+        }
     }
-    buildTypes.each {
-        // The same string needs to be defined for both the manifest and
-        // the MainActivity. Maybe there is a better way.
-        it.buildConfigField "String", "sample_library_name", '"vk_16_gbuffer"'
-        it.resValue         "string", "sample_library_name",  'vk_16_gbuffer'
+    def defineFlavor = { sample_name ->
+      return {
+        dimension 'project'
+        it.buildConfigField "String", "sample_library_name", '"vk_' + sample_name + '"'
+        it.resValue         "string", "sample_library_name",  'vk_' + sample_name
+        it.resValue         "string", "app_label", sample_name
+      }
     }
+
+    flavorDimensions 'device', 'project'
+    productFlavors {
+        triangle      defineFlavor('01_triangle')
+        cube          defineFlavor('04_cube')
+        cubexr        defineFlavor('04_cube_xr')
+        gbuffer       defineFlavor('16_gbuffer')
+        fishtornado   defineFlavor('fishtornado')
+        fishtornadoxr defineFlavor('fishtornado_xr')
+
+        mobile {
+            dimension 'device'
+            externalNativeBuild {
+                cmake {
+                    arguments '-DPPX_BUILD_XR=FALSE',
+                              '-DPPX_XR_QUEST=FALSE',
+                              '-DBUILD_LOADER=FALSE'
+                }
+            }
+            sourceSets {
+                main {
+                    manifest.srcFile 'src/android/AndroidManifest.xml'
+                }
+            }
+        }
+        openxr {
+            dimension 'device'
+            applicationIdSuffix '.xr'
+            versionNameSuffix '-xr'
+            externalNativeBuild {
+                cmake {
+                    arguments '-DPPX_BUILD_XR=TRUE',
+                              '-DPPX_XR_QUEST=FALSE',
+                              '-DBUILD_LOADER=TRUE',
+                              '-DBUILD_ALL_EXTENSIONS=TRUE'
+                    cppFlags '-DXR_USE_PLATFORM_ANDROID'
+                }
+            }
+            sourceSets {
+                main {
+                    manifest.srcFile 'src/android/AndroidManifest.XR.xml'
+                }
+            }
+        }
+        quest {
+            dimension 'device'
+            applicationIdSuffix '.quest'
+            versionNameSuffix '-quest'
+            externalNativeBuild {
+                ndk {
+                    abiFilters 'arm64-v8a', 'armeabi-v7a'
+                }
+                cmake {
+                  arguments '-DPPX_BUILD_XR=TRUE',
+                            '-DPPX_XR_QUEST=TRUE',
+                            '-DBUILD_LOADER=FALSE',
+                            '-DBUILD_ALL_EXTENSIONS=FALSE',
+                            "-DOCULUS_OPENXR_SDK=${oculusOpenxrSdkLocation}"
+                  cppFlags '-DXR_USE_PLATFORM_ANDROID'
+                }
+            }
+            sourceSets {
+                main {
+                    manifest.srcFile 'src/android/AndroidManifest.Quest.xml'
+                }
+            }
+        }
+    }
+
+    variantFilter { variant ->
+        def deviceFlavors = variant.flavors.findAll { it.dimension == 'device' }
+        def projectFlavors = variant.flavors.findAll { it.dimension == 'project'}
+        def device = deviceFlavors[0].name
+        def project = projectFlavors[0].name
+
+        def xrProjects = ['cubexr', 'fishtornadoxr']
+
+        if (device == 'mobile' && xrProjects.contains(project)) {
+            // Ignore XR projects for mobile devices.
+            setIgnore(true)
+        }
+        if ((device == 'openxr' || device == 'quest') && !xrProjects.contains(project)) {
+            // Ignore non-XR projects for OpenXR and Quest devices.
+            setIgnore(true)
+        }
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -47,13 +147,12 @@ android {
     externalNativeBuild {
         cmake {
             path file('CMakeLists.txt')
-            version '3.22.1'
+            version '3.22.1+'
         }
     }
     sourceSets {
         main {
             java.srcDirs = [ 'src/android' ]
-            manifest.srcFile 'src/android/AndroidManifest.xml'
             assets {
                 srcDirs 'assets'
             }

@@ -1322,7 +1322,12 @@ int Application::Run(int argc, char** argv)
         XrComponentCreateInfo createInfo = {};
         createInfo.api                   = mSettings.grfx.api;
         createInfo.appName               = mSettings.appName;
+#if defined(PPX_ANDROID)
+        createInfo.androidContext = GetAndroidContext();
+        createInfo.colorFormat    = grfx::FORMAT_R8G8B8A8_SRGB;
+#else
         createInfo.colorFormat           = grfx::FORMAT_B8G8R8A8_SRGB;
+#endif
         createInfo.depthFormat           = grfx::FORMAT_D32_FLOAT;
         createInfo.refSpaceType          = XrRefSpace::XR_STAGE;
         createInfo.viewConfigType        = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;

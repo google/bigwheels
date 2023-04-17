@@ -204,6 +204,7 @@ Result Device::ConfigureFeatures(const grfx::DeviceCreateInfo* pCreateInfo, VkPh
     features.fragmentStoresAndAtomics             = foundFeatures.fragmentStoresAndAtomics;
     features.shaderStorageImageReadWithoutFormat  = foundFeatures.shaderStorageImageReadWithoutFormat;
     features.shaderStorageImageWriteWithoutFormat = foundFeatures.shaderStorageImageWriteWithoutFormat;
+    features.shaderStorageImageMultisample        = foundFeatures.shaderStorageImageMultisample;
     features.samplerAnisotropy                    = foundFeatures.samplerAnisotropy;
 
     // Select between default or custom features.
@@ -333,9 +334,12 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
     VkResult vkres;
 #if defined(PPX_BUILD_XR)
     if (pCreateInfo->pXrComponent != nullptr) {
+#if !defined(PPX_ANDROID)
+        // TODO: is this still needed for Air Link?
         // This fixes a validation error with Oculus Quest 2 Runtime
         mDeviceFeatures.samplerAnisotropy             = VK_TRUE;
         mDeviceFeatures.shaderStorageImageMultisample = VK_TRUE;
+#endif // !defined(PPX_ANDROID)
 
         const XrComponent&          xrComponent = *pCreateInfo->pXrComponent;
         XrVulkanDeviceCreateInfoKHR deviceCreateInfo{XR_TYPE_VULKAN_DEVICE_CREATE_INFO_KHR};

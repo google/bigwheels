@@ -23,6 +23,26 @@ bool IsXrExtensionSupported(const std::vector<XrExtensionProperties>& supportedE
     auto it = std::find_if(supportedExts.begin(), supportedExts.end(), [&](const XrExtensionProperties& e) { return extName == e.extensionName; });
     return it != supportedExts.end();
 }
+
+XRAPI_ATTR
+static XrBool32 XrDebugUtilsMessengerCallback(XrDebugUtilsMessageSeverityFlagsEXT severity, XrDebugUtilsMessageTypeFlagsEXT /*messageTypes*/, const XrDebugUtilsMessengerCallbackDataEXT* callbackData, void* /*userData*/)
+{
+    switch (severity) {
+        case XR_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+            PPX_LOG_ERROR(callbackData->functionName << ": " << callbackData->message);
+            break;
+        case XR_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+            PPX_LOG_WARN(callbackData->functionName << ": " << callbackData->message);
+            break;
+        case XR_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+        case XR_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+        default:
+            PPX_LOG_INFO(callbackData->functionName << ": " << callbackData->message);
+            break;
+    }
+    return XR_FALSE; /* OpenXR spec suggests always returning false. */
+}
+
 } // namespace
 
 namespace ppx {
@@ -53,6 +73,17 @@ void XrComponent::InitializeBeforeGrfxDeviceInit(const XrComponentCreateInfo& cr
 
     std::vector<const char*> xrInstanceExtensions;
     xrInstanceExtensions.push_back(graphicsAPIExtension);
+#if defined(PPX_ANDROID) and defined(PPX_OPENXR)
+    XrLoaderInitInfoAndroidKHR loaderInitInfoAndroid = {XR_TYPE_LOADER_INIT_INFO_ANDROID_KHR};
+    loaderInitInfoAndroid.applicationVM              = createInfo.androidContext->activity->vm;
+    loaderInitInfoAndroid.applicationContext         = createInfo.androidContext->activity->javaGameActivity;
+    PFN_xrInitializeLoaderKHR pfnInitializeLoaderKHR = nullptr;
+    CHECK_XR_CALL(xrGetInstanceProcAddr(XR_NULL_HANDLE, "xrInitializeLoaderKHR", (PFN_xrVoidFunction*)(&pfnInitializeLoaderKHR)));
+    PPX_ASSERT_MSG(pfnInitializeLoaderKHR != nullptr, "Cannot get xrInitializeLoaderKHR function pointer!");
+    CHECK_XR_CALL(pfnInitializeLoaderKHR((const XrLoaderInitInfoBaseHeaderKHR*)&loaderInitInfoAndroid));
+    xrInstanceExtensions.push_back(XR_KHR_ANDROID_CREATE_INSTANCE_EXTENSION_NAME);
+#endif // defined(PPX_ANDROID)
+
     if (mCreateInfo.enableDebug) {
         xrInstanceExtensions.push_back(XR_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
@@ -106,18 +137,32 @@ void XrComponent::InitializeBeforeGrfxDeviceInit(const XrComponentCreateInfo& cr
     instanceCreateInfo.enabledApiLayerCount       = (uint32_t)xrInstanceLayers.size();
     instanceCreateInfo.enabledApiLayerNames       = xrInstanceLayers.data();
     instanceCreateInfo.applicationInfo.apiVersion = XR_CURRENT_API_VERSION;
+
+#if defined(PPX_ANDROID)
+    // Android Info
+    XrInstanceCreateInfoAndroidKHR instanceCreateInfoAndroid = {XR_TYPE_INSTANCE_CREATE_INFO_ANDROID_KHR};
+    instanceCreateInfoAndroid.next                           = nullptr;
+    instanceCreateInfoAndroid.applicationVM                  = createInfo.androidContext->activity->vm;
+    instanceCreateInfoAndroid.applicationActivity            = createInfo.androidContext->activity->javaGameActivity;
+
+    instanceCreateInfo.next = &instanceCreateInfoAndroid;
+#endif // defined(PPX_ANDROID)
+
     strncpy(instanceCreateInfo.applicationInfo.applicationName, createInfo.appName.c_str(), sizeof(instanceCreateInfo.applicationInfo.applicationName));
     CHECK_XR_CALL(xrCreateInstance(&instanceCreateInfo, &mInstance));
-    PPX_ASSERT_MSG(mInstance != nullptr, "XrInstance Creation Failed!");
+    PPX_ASSERT_MSG(mInstance != XR_NULL_HANDLE, "XrInstance Creation Failed!");
 
     // Get System Id
     XrSystemGetInfo systemInfo = {XR_TYPE_SYSTEM_GET_INFO};
     systemInfo.formFactor      = XR_FORM_FACTOR_HEAD_MOUNTED_DISPLAY;
     CHECK_XR_CALL(xrGetSystem(mInstance, &systemInfo, &mSystemId));
 
-    // Use the first available Blend Mode
+    // Get all supported blend modes.
     uint32_t blendCount = 0;
-    CHECK_XR_CALL(xrEnumerateEnvironmentBlendModes(mInstance, mSystemId, mCreateInfo.viewConfigType, 1, &blendCount, &mBlend));
+    CHECK_XR_CALL(xrEnumerateEnvironmentBlendModes(mInstance, mSystemId, mCreateInfo.viewConfigType, 0, &blendCount, nullptr));
+    mBlendModes.reserve(blendCount);
+    mBlendModes.resize(blendCount, XR_ENVIRONMENT_BLEND_MODE_MAX_ENUM);
+    CHECK_XR_CALL(xrEnumerateEnvironmentBlendModes(mInstance, mSystemId, mCreateInfo.viewConfigType, blendCount, &blendCount, mBlendModes.data()));
 
     // Create Debug Utils Messenger
     if (mCreateInfo.enableDebug) {
@@ -132,11 +177,7 @@ void XrComponent::InitializeBeforeGrfxDeviceInit(const XrComponentCreateInfo& cr
             XR_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
             XR_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
             XR_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-        debug_info.userCallback = [](XrDebugUtilsMessageSeverityFlagsEXT severity, XrDebugUtilsMessageTypeFlagsEXT types, const XrDebugUtilsMessengerCallbackDataEXT* msg, void* user_data) {
-            printf("%s: %s\n", msg->functionName, msg->message);
-            // Returning XR_TRUE here will force the calling function to fail
-            return (XrBool32)XR_FALSE;
-        };
+        debug_info.userCallback = XrDebugUtilsMessengerCallback;
 
         PFN_xrCreateDebugUtilsMessengerEXT pfnCreateDebugUtilsMessengerEXT = nullptr;
         CHECK_XR_CALL(xrGetInstanceProcAddr(mInstance, "xrCreateDebugUtilsMessengerEXT", (PFN_xrVoidFunction*)(&pfnCreateDebugUtilsMessengerEXT)));
@@ -390,6 +431,7 @@ void XrComponent::EndFrame(const std::vector<grfx::SwapchainPtr>& swapchains, ui
         }
     }
 
+    XrEnvironmentBlendMode                     blendMode = mBlendModes[0];
     std::vector<XrCompositionLayerBaseHeader*> layers;
     XrCompositionLayerProjection               compositionLayerProjection = {XR_TYPE_COMPOSITION_LAYER_PROJECTION};
     compositionLayerProjection.layerFlags                                 = 0;
@@ -407,7 +449,7 @@ void XrComponent::EndFrame(const std::vector<grfx::SwapchainPtr>& swapchains, ui
     XrFrameEndInfo frameEndInfo = {
         .type                 = XR_TYPE_FRAME_END_INFO,
         .displayTime          = mFrameState.predictedDisplayTime,
-        .environmentBlendMode = mBlend,
+        .environmentBlendMode = blendMode,
         .layerCount           = static_cast<uint32_t>(layers.size()),
         .layers               = layers.data(),
     };

@@ -122,8 +122,14 @@ else()
         -Wno-deprecated-copy \
         -Wno-deprecated-enum-enum-conversion \
         -Wno-pointer-bool-conversion \
-        -Werror \
     ")
+
+    if (NOT PPX_BUILD_XR)
+        # OpenXR has way too many warnings to enabled -Werror with it.
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+            -Werror \
+        ")
+    endif ()
 endif()
 
 set(CMAKE_CXX_STANDARD 20)
