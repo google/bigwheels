@@ -925,32 +925,32 @@ void FishTornadoApp::DrawGui()
 
         ImGui::Text("Fish IAVertices");
         ImGui::NextColumn();
-        ImGui::Text("%lu", mPipelineStatistics.IAVertices);
+        ImGui::Text("%" PRIu64, mPipelineStatistics.IAVertices);
         ImGui::NextColumn();
 
         ImGui::Text("Fish IAPrimitives");
         ImGui::NextColumn();
-        ImGui::Text("%lu", mPipelineStatistics.IAPrimitives);
+        ImGui::Text("%" PRIu64, mPipelineStatistics.IAPrimitives);
         ImGui::NextColumn();
 
         ImGui::Text("Fish VSInvocations");
         ImGui::NextColumn();
-        ImGui::Text("%lu", mPipelineStatistics.VSInvocations);
+        ImGui::Text("%" PRIu64, mPipelineStatistics.VSInvocations);
         ImGui::NextColumn();
 
         ImGui::Text("Fish CInvocations");
         ImGui::NextColumn();
-        ImGui::Text("%lu", mPipelineStatistics.CInvocations);
+        ImGui::Text("%" PRIu64, mPipelineStatistics.CInvocations);
         ImGui::NextColumn();
 
         ImGui::Text("Fish CPrimitives");
         ImGui::NextColumn();
-        ImGui::Text("%lu", mPipelineStatistics.CPrimitives);
+        ImGui::Text("%" PRIu64, mPipelineStatistics.CPrimitives);
         ImGui::NextColumn();
 
         ImGui::Text("Fish PSInvocations");
         ImGui::NextColumn();
-        ImGui::Text("%lu", mPipelineStatistics.PSInvocations);
+        ImGui::Text("%" PRIu64, mPipelineStatistics.PSInvocations);
         ImGui::NextColumn();
 
         ImGui::Columns(1);
