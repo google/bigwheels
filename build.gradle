@@ -34,8 +34,8 @@ android {
     buildTypes.each {
         // The same string needs to be defined for both the manifest and
         // the MainActivity. Maybe there is a better way.
-        it.buildConfigField "String", "sample_library_name", '"vk_01_triangle"'
-        it.resValue         "string", "sample_library_name",  'vk_01_triangle'
+        it.buildConfigField "String", "sample_library_name", '"vk_16_gbuffer"'
+        it.resValue         "string", "sample_library_name",  'vk_16_gbuffer'
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
