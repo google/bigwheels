@@ -36,14 +36,14 @@
 
 #define EPSILON 0.0001f
 
-#define DEPTH_PEELING_LAYERS_COUNT          8
-#define DEPTH_PEELING_DEPTH_TEXTURES_COUNT  2
+#define DEPTH_PEELING_LAYERS_COUNT              8
+#define DEPTH_PEELING_DEPTH_TEXTURES_COUNT      2
 
-#define BUFFER_BUCKET_SIZE_PER_PIXEL        8
+#define BUFFER_BUCKETS_SIZE_PER_PIXEL           8
 
-#define BUFFER_BUFFER_MAX_SCALE             8
-#define BUFFER_LINKED_LIST_MAX_SIZE         64
-#define BUFFER_LINKED_LIST_INVALID_INDEX    0xFFFFFFFFU
+#define BUFFER_LISTS_FRAGMENT_BUFFER_MAX_SCALE  8
+#define BUFFER_LISTS_MAX_SIZE                   64
+#define BUFFER_LISTS_INVALID_INDEX              0xFFFFFFFFU
 
 struct ShaderGlobals
 {
@@ -58,10 +58,9 @@ struct ShaderGlobals
 
     int      depthPeelingFrontLayerIndex;
     int      depthPeelingBackLayerIndex;
-    int      bufferBucketFragmentsMaxCount;
-    int      bufferFragmentBufferScale;
-
-    int      bufferLinkedListMaxSize;
+    int      bufferBucketsFragmentsMaxCount;
+    int      bufferListsFragmentBufferScale;
+    int      bufferListsMaxSize;
     int      _intUnused0;
     int      _intUnused1;
     int      _intUnused2;

@@ -22,15 +22,15 @@ RWTexture2D<uint2> FragmentTexture : register(CUSTOM_UAV_1_REGISTER);
 float4 psmain(VSOutput input) : SV_TARGET
 {
     const uint2 bucketIndex   = (uint2)input.position.xy;
-    const int fragmentCount   = min(min((int)CountTexture[bucketIndex], g_Globals.bufferBucketFragmentsMaxCount), BUFFER_BUCKET_SIZE_PER_PIXEL);
+    const int fragmentCount   = min(min((int)CountTexture[bucketIndex], g_Globals.bufferBucketsFragmentsMaxCount), BUFFER_BUCKETS_SIZE_PER_PIXEL);
     CountTexture[bucketIndex] = 0U; // Reset fragment count for the next frame
 
-    uint2 sortedFragments[BUFFER_BUCKET_SIZE_PER_PIXEL];
+    uint2 sortedFragments[BUFFER_BUCKETS_SIZE_PER_PIXEL];
 
     // Copy the fragments into local memory for sorting
     {
         uint2 fragmentIndex = bucketIndex;
-        fragmentIndex.y *= BUFFER_BUCKET_SIZE_PER_PIXEL;
+        fragmentIndex.y *= BUFFER_BUCKETS_SIZE_PER_PIXEL;
         for(int i = 0; i < fragmentCount; ++i)
         {
             sortedFragments[i] = FragmentTexture[fragmentIndex];

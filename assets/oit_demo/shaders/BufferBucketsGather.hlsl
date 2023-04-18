@@ -34,14 +34,14 @@ void psmain(VSOutput input)
     InterlockedAdd(CountTexture[bucketIndex], 1U, nextBucketFragmentIndex);
 
     // Ignore the fragment if the bucket is already full
-    if(nextBucketFragmentIndex >= BUFFER_BUCKET_SIZE_PER_PIXEL)
+    if(nextBucketFragmentIndex >= BUFFER_BUCKETS_SIZE_PER_PIXEL)
     {
         clip(-1.0f);
     }
 
     // Add the fragment to the bucket
     uint2 textureFragmentIndex = bucketIndex;
-    textureFragmentIndex.y *= BUFFER_BUCKET_SIZE_PER_PIXEL;
+    textureFragmentIndex.y *= BUFFER_BUCKETS_SIZE_PER_PIXEL;
     textureFragmentIndex.y += nextBucketFragmentIndex;
     FragmentTexture[textureFragmentIndex] = uint2(PackColor(float4(input.color, g_Globals.meshOpacity)), asuint(input.position.z));
 }

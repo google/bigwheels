@@ -42,7 +42,7 @@ void OITDemoApp::SetupBufferBuckets()
         grfx::TextureCreateInfo createInfo = {};
         createInfo.imageType               = grfx::IMAGE_TYPE_2D;
         createInfo.width                   = mBuffer.buckets.countTexture->GetWidth();
-        createInfo.height                  = mBuffer.buckets.countTexture->GetHeight() * BUFFER_BUCKET_SIZE_PER_PIXEL;
+        createInfo.height                  = mBuffer.buckets.countTexture->GetHeight() * BUFFER_BUCKETS_SIZE_PER_PIXEL;
         createInfo.depth                   = 1;
         createInfo.imageFormat             = grfx::FORMAT_R32G32_UINT;
         createInfo.sampleCount             = grfx::SAMPLE_COUNT_1;
@@ -243,7 +243,7 @@ void OITDemoApp::SetupBufferLinkedLists()
         PPX_CHECKED_CALL(GetDevice()->CreateTexture(&createInfo, &mBuffer.lists.linkedListHeadTexture));
     }
 
-    const uint32_t fragmentBufferElementCount = mTransparencyTexture->GetWidth() * mTransparencyTexture->GetHeight() * BUFFER_BUFFER_MAX_SCALE;
+    const uint32_t fragmentBufferElementCount = mTransparencyTexture->GetWidth() * mTransparencyTexture->GetHeight() * BUFFER_LISTS_FRAGMENT_BUFFER_MAX_SCALE;
     const uint32_t fragmentBufferElementSize  = static_cast<uint32_t>(sizeof(uint4));
     const uint32_t fragmentBufferSize         = fragmentBufferElementCount * fragmentBufferElementSize;
 
@@ -271,7 +271,7 @@ void OITDemoApp::SetupBufferLinkedLists()
 
     // Clear pass
     {
-        constexpr uint            clearValueUint  = BUFFER_LINKED_LIST_INVALID_INDEX;
+        constexpr uint            clearValueUint  = BUFFER_LISTS_INVALID_INDEX;
         const float               clearValueFloat = *reinterpret_cast<const float*>(&clearValueUint);
         grfx::DrawPassCreateInfo2 createInfo      = {};
         createInfo.width                          = mBuffer.lists.linkedListHeadTexture->GetWidth();
