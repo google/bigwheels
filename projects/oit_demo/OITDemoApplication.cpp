@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO Fix DX12 structured buffer issue
-// TODO Add support for linked lists options
 // TODO Remove all unecessary depth buffer attachment
 // TODO Recheck if there are any unnecessary clears (especially for combines)
 // TODO Several meshes on top of each other (including opaque ones)
