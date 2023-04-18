@@ -544,7 +544,7 @@ void ProjApp::Setup()
         // Descriptor set layout
         grfx::DescriptorSetLayoutCreateInfo createInfo = {};
         createInfo.bindings.push_back({grfx::DescriptorBinding{SCENE_CONSTANTS_REGISTER, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS}});
-        createInfo.bindings.push_back({grfx::DescriptorBinding{LIGHT_DATA_REGISTER, grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS}});
+        createInfo.bindings.push_back({grfx::DescriptorBinding{LIGHT_DATA_REGISTER, grfx::DESCRIPTOR_TYPE_RO_STRUCTURED_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS}});
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&createInfo, &mSceneDataLayout));
 
         // Allocate descriptor set
@@ -561,7 +561,7 @@ void ProjApp::Setup()
 
         writes[1].binding                = LIGHT_DATA_REGISTER;
         writes[1].arrayIndex             = 0;
-        writes[1].type                   = grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER;
+        writes[1].type                   = grfx::DESCRIPTOR_TYPE_RO_STRUCTURED_BUFFER;
         writes[1].bufferOffset           = 0;
         writes[1].bufferRange            = PPX_WHOLE_SIZE;
         writes[1].structuredElementCount = 1;

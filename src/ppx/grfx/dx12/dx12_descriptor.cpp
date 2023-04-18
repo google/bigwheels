@@ -296,7 +296,7 @@ Result DescriptorSet::UpdateDescriptors(uint32_t writeCount, const grfx::WriteDe
                 device->CreateShaderResourceView(ToApi(pView->GetImage())->GetDxResource(), &desc, handle);
             } break;
 
-            case grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER: {
+            case grfx::DESCRIPTOR_TYPE_RO_STRUCTURED_BUFFER: {
                 D3D12_SHADER_RESOURCE_VIEW_DESC desc = {};
                 desc.Format                          = DXGI_FORMAT_UNKNOWN;
                 desc.ViewDimension                   = D3D12_SRV_DIMENSION_BUFFER;
@@ -310,6 +310,21 @@ Result DescriptorSet::UpdateDescriptors(uint32_t writeCount, const grfx::WriteDe
                 D3D12_CPU_DESCRIPTOR_HANDLE handle = D3D12_CPU_DESCRIPTOR_HANDLE{ptr};
 
                 device->CreateShaderResourceView(ToApi(srcWrite.pBuffer)->GetDxResource(), &desc, handle);
+            } break;
+
+            case grfx::DESCRIPTOR_TYPE_RW_STRUCTURED_BUFFER: {
+                D3D12_UNORDERED_ACCESS_VIEW_DESC desc = {};
+                desc.Format                           = DXGI_FORMAT_UNKNOWN;
+                desc.ViewDimension                    = D3D12_UAV_DIMENSION_BUFFER;
+                desc.Buffer.FirstElement              = 0;
+                desc.Buffer.NumElements               = static_cast<UINT>(srcWrite.structuredElementCount);
+                desc.Buffer.StructureByteStride       = static_cast<UINT>(srcWrite.pBuffer->GetStructuredElementStride());
+                desc.Buffer.Flags                     = D3D12_BUFFER_UAV_FLAG_NONE;
+
+                SIZE_T                      ptr    = heapOffset.descriptorHandle.ptr + static_cast<SIZE_T>(handleIncSizeCBVSRVUAV * srcWrite.arrayIndex);
+                D3D12_CPU_DESCRIPTOR_HANDLE handle = D3D12_CPU_DESCRIPTOR_HANDLE{ptr};
+
+                device->CreateUnorderedAccessView(ToApi(srcWrite.pBuffer)->GetDxResource(), nullptr, &desc, handle);
             } break;
 
             case grfx::DESCRIPTOR_TYPE_RAW_STORAGE_BUFFER: {
