@@ -249,23 +249,23 @@ void OITDemoApp::SetupBufferLinkedLists()
 
     // Fragment buffer
     {
-        grfx::BufferCreateInfo bufferCreateInfo           = {};
-        bufferCreateInfo.size                             = fragmentBufferSize;
-        bufferCreateInfo.structuredElementStride          = fragmentBufferElementSize;
-        bufferCreateInfo.usageFlags.bits.structuredBuffer = true;
-        bufferCreateInfo.memoryUsage                      = grfx::MEMORY_USAGE_GPU_ONLY;
-        bufferCreateInfo.initialState                     = grfx::RESOURCE_STATE_GENERAL;
+        grfx::BufferCreateInfo bufferCreateInfo             = {};
+        bufferCreateInfo.size                               = fragmentBufferSize;
+        bufferCreateInfo.structuredElementStride            = fragmentBufferElementSize;
+        bufferCreateInfo.usageFlags.bits.rwStructuredBuffer = true;
+        bufferCreateInfo.memoryUsage                        = grfx::MEMORY_USAGE_GPU_ONLY;
+        bufferCreateInfo.initialState                       = grfx::RESOURCE_STATE_GENERAL;
         PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mBuffer.lists.fragmentBuffer));
     }
 
     // Atomic counter
     {
-        grfx::BufferCreateInfo bufferCreateInfo           = {};
-        bufferCreateInfo.size                             = std::max(sizeof(uint), static_cast<size_t>(PPX_MINIMUM_UNIFORM_BUFFER_SIZE));
-        bufferCreateInfo.structuredElementStride          = sizeof(uint);
-        bufferCreateInfo.usageFlags.bits.structuredBuffer = true;
-        bufferCreateInfo.memoryUsage                      = grfx::MEMORY_USAGE_GPU_ONLY;
-        bufferCreateInfo.initialState                     = grfx::RESOURCE_STATE_GENERAL;
+        grfx::BufferCreateInfo bufferCreateInfo             = {};
+        bufferCreateInfo.size                               = std::max(sizeof(uint), static_cast<size_t>(PPX_MINIMUM_UNIFORM_BUFFER_SIZE));
+        bufferCreateInfo.structuredElementStride            = sizeof(uint);
+        bufferCreateInfo.usageFlags.bits.rwStructuredBuffer = true;
+        bufferCreateInfo.memoryUsage                        = grfx::MEMORY_USAGE_GPU_ONLY;
+        bufferCreateInfo.initialState                       = grfx::RESOURCE_STATE_GENERAL;
         PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mBuffer.lists.atomicCounter));
     }
 
@@ -304,8 +304,8 @@ void OITDemoApp::SetupBufferLinkedLists()
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{SHADER_GLOBALS_REGISTER, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_TEXTURE_0_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_UAV_0_REGISTER, grfx::DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_UAV_1_REGISTER, grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_UAV_2_REGISTER, grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_UAV_1_REGISTER, grfx::DESCRIPTOR_TYPE_RW_STRUCTURED_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_UAV_2_REGISTER, grfx::DESCRIPTOR_TYPE_RW_STRUCTURED_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mBuffer.lists.gatherDescriptorSetLayout));
 
         PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mBuffer.lists.gatherDescriptorSetLayout, &mBuffer.lists.gatherDescriptorSet));
@@ -329,14 +329,14 @@ void OITDemoApp::SetupBufferLinkedLists()
         writes[2].pImageView = mBuffer.lists.linkedListHeadTexture->GetStorageImageView();
 
         writes[3].binding                = CUSTOM_UAV_1_REGISTER;
-        writes[3].type                   = grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER;
+        writes[3].type                   = grfx::DESCRIPTOR_TYPE_RW_STRUCTURED_BUFFER;
         writes[3].bufferOffset           = 0;
         writes[3].bufferRange            = PPX_WHOLE_SIZE;
         writes[3].structuredElementCount = fragmentBufferElementCount;
         writes[3].pBuffer                = mBuffer.lists.fragmentBuffer;
 
         writes[4].binding                = CUSTOM_UAV_2_REGISTER;
-        writes[4].type                   = grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER;
+        writes[4].type                   = grfx::DESCRIPTOR_TYPE_RW_STRUCTURED_BUFFER;
         writes[4].bufferOffset           = 0;
         writes[4].bufferRange            = PPX_WHOLE_SIZE;
         writes[4].structuredElementCount = 1;
@@ -386,8 +386,8 @@ void OITDemoApp::SetupBufferLinkedLists()
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{SHADER_GLOBALS_REGISTER, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_UAV_0_REGISTER, grfx::DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_UAV_1_REGISTER, grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_UAV_2_REGISTER, grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_UAV_1_REGISTER, grfx::DESCRIPTOR_TYPE_RW_STRUCTURED_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_UAV_2_REGISTER, grfx::DESCRIPTOR_TYPE_RW_STRUCTURED_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mBuffer.lists.combineDescriptorSetLayout));
 
         PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mBuffer.lists.combineDescriptorSetLayout, &mBuffer.lists.combineDescriptorSet));
@@ -406,14 +406,14 @@ void OITDemoApp::SetupBufferLinkedLists()
         writes[1].pImageView = mBuffer.lists.linkedListHeadTexture->GetStorageImageView();
 
         writes[2].binding                = CUSTOM_UAV_1_REGISTER;
-        writes[2].type                   = grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER;
+        writes[2].type                   = grfx::DESCRIPTOR_TYPE_RW_STRUCTURED_BUFFER;
         writes[2].bufferOffset           = 0;
         writes[2].bufferRange            = PPX_WHOLE_SIZE;
         writes[2].structuredElementCount = fragmentBufferElementCount;
         writes[2].pBuffer                = mBuffer.lists.fragmentBuffer;
 
         writes[3].binding                = CUSTOM_UAV_2_REGISTER;
-        writes[3].type                   = grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER;
+        writes[3].type                   = grfx::DESCRIPTOR_TYPE_RW_STRUCTURED_BUFFER;
         writes[3].bufferOffset           = 0;
         writes[3].bufferRange            = PPX_WHOLE_SIZE;
         writes[3].structuredElementCount = 1;
