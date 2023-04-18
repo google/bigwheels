@@ -1028,9 +1028,13 @@ Result TriMesh::CreateFromOBJ(const std::filesystem::path& path, const TriMeshOp
                 }
             }
 
-            uint32_t triVtx0 = pTriMesh->AppendPosition(vtx0.position * options.mScale) - 1;
-            uint32_t triVtx1 = pTriMesh->AppendPosition(vtx1.position * options.mScale) - 1;
-            uint32_t triVtx2 = pTriMesh->AppendPosition(vtx2.position * options.mScale) - 1;
+            float3 pos0 = (vtx0.position * options.mScale) + options.mTranslate;
+            float3 pos1 = (vtx1.position * options.mScale) + options.mTranslate;
+            float3 pos2 = (vtx2.position * options.mScale) + options.mTranslate;
+
+            uint32_t triVtx0 = pTriMesh->AppendPosition(pos0) - 1;
+            uint32_t triVtx1 = pTriMesh->AppendPosition(pos1) - 1;
+            uint32_t triVtx2 = pTriMesh->AppendPosition(pos2) - 1;
 
             if (options.mEnableVertexColors || options.mEnableObjectColor) {
                 if (options.mEnableObjectColor) {

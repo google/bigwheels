@@ -49,7 +49,9 @@ float4 psmain(VSOutput input) : SV_TARGET
     float3 albedo = Material.albedo;
     if (Material.albedoSelect == 1) {
         albedo = AlbedoTex.Sample(ClampedSampler, input.texCoord).rgb;
-    }
+        // Remove gamma
+        albedo = pow(albedo, 2.2);
+    }    
     
     float roughness = Material.roughness;
     if (Material.roughnessSelect == 1) {
@@ -70,13 +72,13 @@ float4 psmain(VSOutput input) : SV_TARGET
 
         diffuse += Lambert(N, L);
        
-        specular += Phong(N, L, V, hardness);
+        specular += Phong(N, L, V, hardness) * Lights[i].intensity;
     }
         
-    float3 color = (diffuse + (specular * metalness) + Scene.ambient) * albedo;
+    float3 color = (diffuse + Scene.ambient) * albedo + specular;
     
-    // Faux HDR tonemapping
-    color = color / (color + float3(1, 1, 1));
+    // Reapply gamma
+    color = pow(color, 1 / 2.2); 
     
     return float4(color, 1);
 }
