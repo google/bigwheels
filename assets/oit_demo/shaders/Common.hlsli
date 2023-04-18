@@ -42,7 +42,7 @@
 #define BUFFER_BUCKETS_SIZE_PER_PIXEL           8
 
 #define BUFFER_LISTS_FRAGMENT_BUFFER_MAX_SCALE  8
-#define BUFFER_LISTS_MAX_SIZE                   64
+#define BUFFER_LISTS_SORTED_FRAGMENT_MAX_COUNT  64
 #define BUFFER_LISTS_INVALID_INDEX              0xFFFFFFFFU
 
 struct ShaderGlobals
@@ -60,7 +60,7 @@ struct ShaderGlobals
     int      depthPeelingBackLayerIndex;
     int      bufferBucketsFragmentsMaxCount;
     int      bufferListsFragmentBufferScale;
-    int      bufferListsMaxSize;
+    int      bufferListsSortedFragmentMaxCount;
     int      _intUnused0;
     int      _intUnused1;
     int      _intUnused2;

@@ -350,10 +350,10 @@ void OITDemoApp::ParseCommandLineOptions()
     mGuiParameters.depthPeeling.startLayer  = std::clamp(cliOptions.GetExtraOptionValueOrDefault("dp_start_layer", 0), 0, DEPTH_PEELING_LAYERS_COUNT - 1);
     mGuiParameters.depthPeeling.layersCount = std::clamp(cliOptions.GetExtraOptionValueOrDefault("dp_layers_count", DEPTH_PEELING_LAYERS_COUNT), 1, DEPTH_PEELING_LAYERS_COUNT);
 
-    mGuiParameters.buffer.type                    = static_cast<BufferAlgorithmType>(std::clamp(cliOptions.GetExtraOptionValueOrDefault("bu_type", 0), 0, BUFFER_ALGORITHMS_COUNT - 1));
-    mGuiParameters.buffer.bucketFragmentsMaxCount = std::clamp(cliOptions.GetExtraOptionValueOrDefault("bu_bucket_fragments_max_count", BUFFER_BUCKETS_SIZE_PER_PIXEL), 1, BUFFER_BUCKETS_SIZE_PER_PIXEL);
-    mGuiParameters.buffer.fragmentBufferScale     = std::clamp(cliOptions.GetExtraOptionValueOrDefault("bu_fragment_buffer_scale", BUFFER_LISTS_FRAGMENT_BUFFER_MAX_SCALE), 1, BUFFER_LISTS_FRAGMENT_BUFFER_MAX_SCALE);
-    mGuiParameters.buffer.linkedListMaxSize       = std::clamp(cliOptions.GetExtraOptionValueOrDefault("bu_linked_list_max_size", BUFFER_LISTS_MAX_SIZE), 1, BUFFER_LISTS_MAX_SIZE);
+    mGuiParameters.buffer.type                        = static_cast<BufferAlgorithmType>(std::clamp(cliOptions.GetExtraOptionValueOrDefault("bu_type", 0), 0, BUFFER_ALGORITHMS_COUNT - 1));
+    mGuiParameters.buffer.bucketsFragmentsMaxCount    = std::clamp(cliOptions.GetExtraOptionValueOrDefault("bu_buckets_fragments_max_count", BUFFER_BUCKETS_SIZE_PER_PIXEL), 1, BUFFER_BUCKETS_SIZE_PER_PIXEL);
+    mGuiParameters.buffer.listsFragmentBufferScale    = std::clamp(cliOptions.GetExtraOptionValueOrDefault("bu_lists_fragment_buffer_scale", BUFFER_LISTS_FRAGMENT_BUFFER_MAX_SCALE), 1, BUFFER_LISTS_FRAGMENT_BUFFER_MAX_SCALE);
+    mGuiParameters.buffer.listsSortedFragmentMaxCount = std::clamp(cliOptions.GetExtraOptionValueOrDefault("bu_lists_sorted_fragment_max_count", BUFFER_LISTS_SORTED_FRAGMENT_MAX_COUNT), 1, BUFFER_LISTS_SORTED_FRAGMENT_MAX_COUNT);
 }
 
 void OITDemoApp::Setup()
@@ -416,9 +416,9 @@ void OITDemoApp::Update()
         shaderGlobals.depthPeelingFrontLayerIndex = std::max(0, mGuiParameters.depthPeeling.startLayer);
         shaderGlobals.depthPeelingBackLayerIndex  = std::min(DEPTH_PEELING_LAYERS_COUNT - 1, mGuiParameters.depthPeeling.startLayer + mGuiParameters.depthPeeling.layersCount - 1);
 
-        shaderGlobals.bufferBucketsFragmentsMaxCount = std::min(BUFFER_BUCKETS_SIZE_PER_PIXEL, mGuiParameters.buffer.bucketFragmentsMaxCount);
-        shaderGlobals.bufferListsFragmentBufferScale = std::min(BUFFER_LISTS_FRAGMENT_BUFFER_MAX_SCALE, mGuiParameters.buffer.fragmentBufferScale);
-        shaderGlobals.bufferListsMaxSize             = std::min(BUFFER_LISTS_MAX_SIZE, mGuiParameters.buffer.linkedListMaxSize);
+        shaderGlobals.bufferBucketsFragmentsMaxCount    = std::min(BUFFER_BUCKETS_SIZE_PER_PIXEL, mGuiParameters.buffer.bucketsFragmentsMaxCount);
+        shaderGlobals.bufferListsFragmentBufferScale    = std::min(BUFFER_LISTS_FRAGMENT_BUFFER_MAX_SCALE, mGuiParameters.buffer.listsFragmentBufferScale);
+        shaderGlobals.bufferListsSortedFragmentMaxCount = std::min(BUFFER_LISTS_SORTED_FRAGMENT_MAX_COUNT, mGuiParameters.buffer.listsSortedFragmentMaxCount);
 
         mShaderGlobalsBuffer->CopyFromSource(sizeof(shaderGlobals), &shaderGlobals);
     }
@@ -503,12 +503,12 @@ void OITDemoApp::UpdateGUI()
                 ImGui::Combo("BU type", reinterpret_cast<int32_t*>(&mGuiParameters.buffer.type), typeChoices, IM_ARRAYSIZE(typeChoices));
                 switch (mGuiParameters.buffer.type) {
                     case BUFFER_ALGORITHM_BUCKETS: {
-                        ImGui::SliderInt("BU bucket fragments max count", &mGuiParameters.buffer.bucketFragmentsMaxCount, 1, BUFFER_BUCKETS_SIZE_PER_PIXEL);
+                        ImGui::SliderInt("BU bucket fragments max count", &mGuiParameters.buffer.bucketsFragmentsMaxCount, 1, BUFFER_BUCKETS_SIZE_PER_PIXEL);
                         break;
                     }
                     case BUFFER_ALGORITHM_LINKED_LISTS: {
-                        ImGui::SliderInt("BU fragment buffer scale", &mGuiParameters.buffer.fragmentBufferScale, 1, BUFFER_LISTS_FRAGMENT_BUFFER_MAX_SCALE);
-                        ImGui::SliderInt("BU linked list max size", &mGuiParameters.buffer.linkedListMaxSize, 1, BUFFER_LISTS_MAX_SIZE);
+                        ImGui::SliderInt("BU fragment buffer scale", &mGuiParameters.buffer.listsFragmentBufferScale, 1, BUFFER_LISTS_FRAGMENT_BUFFER_MAX_SCALE);
+                        ImGui::SliderInt("BU linked list max size", &mGuiParameters.buffer.listsSortedFragmentMaxCount, 1, BUFFER_LISTS_SORTED_FRAGMENT_MAX_COUNT);
                         break;
                     }
                     default: {

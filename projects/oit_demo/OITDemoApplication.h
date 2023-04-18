@@ -106,9 +106,9 @@ private:
         struct
         {
             BufferAlgorithmType type;
-            int32_t             bucketFragmentsMaxCount;
-            int32_t             fragmentBufferScale;
-            int32_t             linkedListMaxSize;
+            int32_t             bucketsFragmentsMaxCount;
+            int32_t             listsFragmentBufferScale;
+            int32_t             listsSortedFragmentMaxCount;
         } buffer;
     };
 

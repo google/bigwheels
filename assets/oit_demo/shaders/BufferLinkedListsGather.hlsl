@@ -34,9 +34,10 @@ void psmain(VSOutput input)
     InterlockedAdd(AtomicCounter[0], 1U, nextFragmentIndex);
 
     // Ignore the fragment if the fragment buffer is full
-    uint fragmentBufferElementCount   = 0;
-    uint fragmentBufferStride         = 0;
-    FragmentBuffer.GetDimensions(fragmentBufferElementCount, fragmentBufferStride);
+    uint fragmentBufferMaxElementCount = 0;
+    uint fragmentBufferStride          = 0;
+    FragmentBuffer.GetDimensions(fragmentBufferMaxElementCount, fragmentBufferStride);
+    const uint fragmentBufferElementCount = min((fragmentBufferMaxElementCount / BUFFER_LISTS_FRAGMENT_BUFFER_MAX_SCALE) * g_Globals.bufferListsFragmentBufferScale, fragmentBufferMaxElementCount);
     if(nextFragmentIndex >= fragmentBufferElementCount)
     {
         clip(-1.0f);

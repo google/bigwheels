@@ -30,9 +30,10 @@ float4 psmain(VSOutput input) : SV_TARGET
     LinkedListHeadTexture[input.position.xy] = BUFFER_LISTS_INVALID_INDEX; // Reset the list head for the next frame
 
     // Copy the fragments into local memory for sorting
-    uint2 sortedFragments[BUFFER_LISTS_MAX_SIZE];
+    uint2 sortedFragments[BUFFER_LISTS_SORTED_FRAGMENT_MAX_COUNT];
     uint fragmentCount = 0U;
-    while(fragmentIndex != BUFFER_LISTS_INVALID_INDEX && fragmentCount < BUFFER_LISTS_MAX_SIZE)
+    const uint sortedFragmentMaxCount = min(g_Globals.bufferListsSortedFragmentMaxCount, BUFFER_LISTS_SORTED_FRAGMENT_MAX_COUNT);
+    while(fragmentIndex != BUFFER_LISTS_INVALID_INDEX && fragmentCount < sortedFragmentMaxCount)
     {
         const uint4 fragment = FragmentBuffer[fragmentIndex];
         fragmentIndex = fragment.z;
