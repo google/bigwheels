@@ -541,7 +541,7 @@ void ProjApp::Setup()
 
         {
             Geometry geo;
-            TriMesh mesh = TriMesh::CreateFromOBJ(GetAssetPath("poly_haven/models/measuring_tape/measuring_tape_01.obj"), TriMeshOptions(options).Translate(float3(0, -0.4f, 0)).InvertTexCoordsV());
+            TriMesh  mesh = TriMesh::CreateFromOBJ(GetAssetPath("poly_haven/models/measuring_tape/measuring_tape_01.obj"), TriMeshOptions(options).Translate(float3(0, -0.4f, 0)).InvertTexCoordsV());
             PPX_CHECKED_CALL(Geometry::Create(mesh, &geo));
             PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mMeasuringTape));
             mMeshes.push_back(mMeasuringTape);
@@ -549,7 +549,7 @@ void ProjApp::Setup()
 
         {
             Geometry geo;
-            TriMesh mesh = TriMesh::CreateFromOBJ(GetAssetPath("poly_haven/models/food_kiwi/food_kiwi_01.obj"), TriMeshOptions(options).Translate(float3(0, -0.7f, 0)).InvertTexCoordsV());
+            TriMesh  mesh = TriMesh::CreateFromOBJ(GetAssetPath("poly_haven/models/food_kiwi/food_kiwi_01.obj"), TriMeshOptions(options).Translate(float3(0, -0.7f, 0)).InvertTexCoordsV());
             PPX_CHECKED_CALL(Geometry::Create(mesh, &geo));
             PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mKiwi));
             mMeshes.push_back(mKiwi);
@@ -557,7 +557,7 @@ void ProjApp::Setup()
 
         {
             Geometry geo;
-            TriMesh mesh = TriMesh::CreateFromOBJ(GetAssetPath("poly_haven/models/hand_plane/hand_plane_no4_1k.obj"), TriMeshOptions(options).Translate(float3(0, -0.5f, 0)).InvertTexCoordsV());
+            TriMesh  mesh = TriMesh::CreateFromOBJ(GetAssetPath("poly_haven/models/hand_plane/hand_plane_no4_1k.obj"), TriMeshOptions(options).Translate(float3(0, -0.5f, 0)).InvertTexCoordsV());
             PPX_CHECKED_CALL(Geometry::Create(mesh, &geo));
             PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mHandPlane));
             mMeshes.push_back(mHandPlane);
@@ -565,7 +565,7 @@ void ProjApp::Setup()
 
         {
             Geometry geo;
-            TriMesh mesh = TriMesh::CreateFromOBJ(GetAssetPath("poly_haven/models/horse_statue/horse_statue_01_1k.obj"), TriMeshOptions(options).Translate(float3(0, -0.725f, 0)).InvertTexCoordsV());
+            TriMesh  mesh = TriMesh::CreateFromOBJ(GetAssetPath("poly_haven/models/horse_statue/horse_statue_01_1k.obj"), TriMeshOptions(options).Translate(float3(0, -0.725f, 0)).InvertTexCoordsV());
             PPX_CHECKED_CALL(Geometry::Create(mesh, &geo));
             PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mHorseStatue));
             mMeshes.push_back(mHorseStatue);
