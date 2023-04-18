@@ -222,6 +222,8 @@ void OITDemoApp::SetupBufferBuckets()
 
 void OITDemoApp::SetupBufferLinkedLists()
 {
+    mBuffer.lists.linkedListHeadTextureNeedClear = true;
+
     // Linked list head texture
     {
         grfx::TextureCreateInfo createInfo         = {};
@@ -536,8 +538,7 @@ void OITDemoApp::RecordBufferBuckets()
 
 void OITDemoApp::RecordBufferLinkedLists()
 {
-    static bool sListsTextureNeedClear = true;
-    if (sListsTextureNeedClear) {
+    if (mBuffer.lists.linkedListHeadTextureNeedClear) {
         mCommandBuffer->TransitionImageLayout(
             mBuffer.lists.clearPass,
             grfx::RESOURCE_STATE_SHADER_RESOURCE,
@@ -557,7 +558,7 @@ void OITDemoApp::RecordBufferLinkedLists()
             grfx::RESOURCE_STATE_SHADER_RESOURCE,
             grfx::RESOURCE_STATE_SHADER_RESOURCE);
 
-        sListsTextureNeedClear = false;
+        mBuffer.lists.linkedListHeadTextureNeedClear = false;
     }
 
     {

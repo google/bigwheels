@@ -267,8 +267,8 @@ private:
             grfx::DescriptorSetPtr       combineDescriptorSet;
             grfx::PipelineInterfacePtr   combinePipelineInterface;
             grfx::GraphicsPipelinePtr    combinePipeline;
-			
-			bool countTextureNeedClear;
+
+            bool countTextureNeedClear;
         } buckets;
 
         struct
@@ -288,6 +288,8 @@ private:
             grfx::DescriptorSetPtr       combineDescriptorSet;
             grfx::PipelineInterfacePtr   combinePipelineInterface;
             grfx::GraphicsPipelinePtr    combinePipeline;
+
+            bool linkedListHeadTextureNeedClear;
         } lists;
     } mBuffer;
 };
