@@ -66,11 +66,17 @@ public:
 
     Bitmap& operator=(const Bitmap& rhs);
 
+    //! Creates a bitmap with internal storage.
     static Result Create(uint32_t width, uint32_t height, Bitmap::Format format, Bitmap* pBitmap);
+    //! Creates a bitmap with external storage. If \b rowStride is 0, default row stride for format is used.
     static Result Create(uint32_t width, uint32_t height, Bitmap::Format format, uint32_t rowStride, char* pExternalStorage, Bitmap* pBitmap);
+    //! Creates a bitmap with external storage.
     static Result Create(uint32_t width, uint32_t height, Bitmap::Format format, char* pExternalStorage, Bitmap* pBitmap);
+    //! Returns a bitmap with internal storage.
     static Bitmap Create(uint32_t width, uint32_t height, Bitmap::Format format, Result* pResult = nullptr);
+    //! Returns a bitmap with external storage. If \b rowStride is 0, default row stride for format is used.
     static Bitmap Create(uint32_t width, uint32_t height, Bitmap::Format format, uint32_t rowStride, char* pExternalStorage, Result* pResult = nullptr);
+    //! Returns a bitmap with external storage.
     static Bitmap Create(uint32_t width, uint32_t height, Bitmap::Format format, char* pExternalStorage, Result* pResult = nullptr);
 
     // Returns true if dimensions are greater than one, format is valid, and storage is valid
