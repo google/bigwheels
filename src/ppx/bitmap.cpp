@@ -65,10 +65,18 @@ void Bitmap::InternalCtor()
     mInternalStorage.clear();
 }
 
-Result Bitmap::InternalInitialize(uint32_t width, uint32_t height, Bitmap::Format format, char* pExternalStorage)
+Result Bitmap::InternalInitialize(uint32_t width, uint32_t height, Bitmap::Format format, uint32_t rowStride, char* pExternalStorage)
 {
     if (format == Bitmap::FORMAT_UNDEFINED) {
         return ppx::ERROR_IMAGE_INVALID_FORMAT;
+    }
+
+    uint32_t minimumRowStride = (width * Bitmap::FormatSize(format));
+    if ((rowStride > 0) && (rowStride < minimumRowStride)) {
+        return ppx::ERROR_BITMAP_FOOTPRINT_MISMATCH;
+    }
+    if (rowStride == 0) {
+        rowStride = minimumRowStride;
     }
 
     mWidth        = width;
@@ -76,7 +84,7 @@ Result Bitmap::InternalInitialize(uint32_t width, uint32_t height, Bitmap::Forma
     mFormat       = format;
     mChannelCount = Bitmap::ChannelCount(format);
     mPixelStride  = Bitmap::FormatSize(format);
-    mRowStride    = width * Bitmap::FormatSize(format);
+    mRowStride    = rowStride;
     mData         = pExternalStorage;
 
     if (IsNull(mData)) {
@@ -129,7 +137,22 @@ Result Bitmap::Create(uint32_t width, uint32_t height, Bitmap::Format format, Bi
         return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
     }
 
-    Result ppxres = pBitmap->InternalInitialize(width, height, format, nullptr);
+    Result ppxres = pBitmap->InternalInitialize(width, height, format, 0, nullptr);
+    if (Failed(ppxres)) {
+        return ppxres;
+    }
+
+    return ppx::SUCCESS;
+}
+
+Result Bitmap::Create(uint32_t width, uint32_t height, Bitmap::Format format, uint32_t rowStride, char* pExternalStorage, Bitmap* pBitmap)
+{
+    PPX_ASSERT_NULL_ARG(pBitmap);
+    if (IsNull(pBitmap)) {
+        return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
+    }
+
+    Result ppxres = pBitmap->InternalInitialize(width, height, format, rowStride, pExternalStorage);
     if (Failed(ppxres)) {
         return ppxres;
     }
@@ -139,17 +162,7 @@ Result Bitmap::Create(uint32_t width, uint32_t height, Bitmap::Format format, Bi
 
 Result Bitmap::Create(uint32_t width, uint32_t height, Bitmap::Format format, char* pExternalStorage, Bitmap* pBitmap)
 {
-    PPX_ASSERT_NULL_ARG(pBitmap);
-    if (IsNull(pBitmap)) {
-        return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
-    }
-
-    Result ppxres = pBitmap->InternalInitialize(width, height, format, pExternalStorage);
-    if (Failed(ppxres)) {
-        return ppxres;
-    }
-
-    return ppx::SUCCESS;
+    return Bitmap::Create(width, height, format, 0, pExternalStorage, pBitmap);
 }
 
 Bitmap Bitmap::Create(uint32_t width, uint32_t height, Bitmap::Format format, Result* pResult)
@@ -165,10 +178,10 @@ Bitmap Bitmap::Create(uint32_t width, uint32_t height, Bitmap::Format format, Re
     return bitmap;
 }
 
-Bitmap Bitmap::Create(uint32_t width, uint32_t height, Bitmap::Format format, char* pExternalStorage, Result* pResult)
+Bitmap Bitmap::Create(uint32_t width, uint32_t height, Bitmap::Format format, uint32_t rowStride, char* pExternalStorage, Result* pResult)
 {
     Bitmap bitmap;
-    Result ppxres = Bitmap::Create(width, height, format, pExternalStorage, &bitmap);
+    Result ppxres = Bitmap::Create(width, height, format, rowStride, pExternalStorage, &bitmap);
     if (Failed(ppxres)) {
         bitmap.InternalCtor();
     }
@@ -176,6 +189,11 @@ Bitmap Bitmap::Create(uint32_t width, uint32_t height, Bitmap::Format format, ch
         *pResult = ppxres;
     }
     return bitmap;
+}
+
+Bitmap Bitmap::Create(uint32_t width, uint32_t height, Bitmap::Format format, char* pExternalStorage, Result* pResult)
+{
+    return Bitmap::Create(width, height, format, 0, pExternalStorage, pResult);
 }
 
 bool Bitmap::IsOk() const

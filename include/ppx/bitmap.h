@@ -67,8 +67,10 @@ public:
     Bitmap& operator=(const Bitmap& rhs);
 
     static Result Create(uint32_t width, uint32_t height, Bitmap::Format format, Bitmap* pBitmap);
+    static Result Create(uint32_t width, uint32_t height, Bitmap::Format format, uint32_t rowStride, char* pExternalStorage, Bitmap* pBitmap);
     static Result Create(uint32_t width, uint32_t height, Bitmap::Format format, char* pExternalStorage, Bitmap* pBitmap);
     static Bitmap Create(uint32_t width, uint32_t height, Bitmap::Format format, Result* pResult = nullptr);
+    static Bitmap Create(uint32_t width, uint32_t height, Bitmap::Format format, uint32_t rowStride, char* pExternalStorage, Result* pResult = nullptr);
     static Bitmap Create(uint32_t width, uint32_t height, Bitmap::Format format, char* pExternalStorage, Result* pResult = nullptr);
 
     // Returns true if dimensions are greater than one, format is valid, and storage is valid
@@ -182,7 +184,7 @@ public:
 
 private:
     void   InternalCtor();
-    Result InternalInitialize(uint32_t width, uint32_t height, Bitmap::Format format, char* pExternalStorage);
+    Result InternalInitialize(uint32_t width, uint32_t height, Bitmap::Format format, uint32_t rowStride, char* pExternalStorage);
     Result InternalCopy(const Bitmap& obj);
 
 private:
