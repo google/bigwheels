@@ -535,10 +535,10 @@ void ProjApp::Setup()
         bufferCreateInfo.structuredElementStride     = 32;
         PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mCpuLightConstants));
 
-        bufferCreateInfo.structuredElementStride          = 32;
-        bufferCreateInfo.usageFlags.bits.transferDst      = true;
-        bufferCreateInfo.usageFlags.bits.structuredBuffer = true;
-        bufferCreateInfo.memoryUsage                      = grfx::MEMORY_USAGE_GPU_ONLY;
+        bufferCreateInfo.structuredElementStride            = 32;
+        bufferCreateInfo.usageFlags.bits.transferDst        = true;
+        bufferCreateInfo.usageFlags.bits.roStructuredBuffer = true;
+        bufferCreateInfo.memoryUsage                        = grfx::MEMORY_USAGE_GPU_ONLY;
         PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mGpuLightConstants));
 
         // Descriptor set layout
