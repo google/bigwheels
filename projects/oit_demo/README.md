@@ -65,21 +65,23 @@ The following meshes are available as transparent objects.
 
 The following command line options are available.
 
-|Option                  |Description                                   |Algorithm           |Value
-|:---                    |:---                                          |:---                |:---
-|algorithm <ID>          |Select the OIT algorithm                      |All                 |Algorithm ID (see [Algorithms](algorithms))
-|bg_display              |Turns the background on/off                   |All                 |True or false
-|bg_red                  |Set the red channel of the background color   |All                 |0.0 to 1.0
-|bg_green                |Set the green channel of the background color |All                 |0.0 to 1.0
-|bg_blue                 |Set the blue channel of the background color  |All                 |0.0 to 1.0
-|mo_mesh <ID>            |Select the mesh of the transparent model      |All                 |Mesh ID (see [Meshes](meshes))
-|mo_opacity <float>      |Set the opacity of the model                  |All                 |0.0 to 1.0
-|mo_scale <float>        |Set the scale of the model                    |All                 |1.0 to 5.0
-|uo_face_mode <int>      |Set the face mode                             |Unsorted over       |0 = all faces, 1 = back + front, 2 = back, 3 = front
-|wa_type <int>           |Select the average type                       |Weighted average    |0 = fragment count, 1 = exact coverage
-|dp_start_layer <int>    |Set the starting layer to draw                |Depth peeling       |0 to 7
-|dp_layers_count <int>   |Set the number of layers to draw              |Depth peeling       |1 to 8
-|bu_fragments_max_count  |Set the maximum number of fragment per pixel  |Buffer              |1 to 8
+|Option                             |Description                                                    |Algorithm             |Value
+|:---                               |:---                                                           |:---                  |:---
+|algorithm <ID>                     |Select the OIT algorithm                                       |All                   |Algorithm ID (see [Algorithms](algorithms))
+|bg_display                         |Turns the background on/off                                    |All                   |True or false
+|bg_red                             |Set the red channel of the background color                    |All                   |0.0 to 1.0
+|bg_green                           |Set the green channel of the background color                  |All                   |0.0 to 1.0
+|bg_blue                            |Set the blue channel of the background color                   |All                   |0.0 to 1.0
+|mo_mesh <ID>                       |Select the mesh of the transparent model                       |All                   |Mesh ID (see [Meshes](meshes))
+|mo_opacity <float>                 |Set the opacity of the model                                   |All                   |0.0 to 1.0
+|mo_scale <float>                   |Set the scale of the model                                     |All                   |1.0 to 5.0
+|uo_face_mode <int>                 |Set the face mode                                              |Unsorted over         |0 = all faces, 1 = back + front, 2 = back, 3 = front
+|wa_type <int>                      |Select the average type                                        |Weighted average      |0 = fragment count, 1 = exact coverage
+|dp_start_layer <int>               |Set the starting layer to draw                                 |Depth peeling         |0 to 7
+|dp_layers_count <int>              |Set the number of layers to draw                               |Depth peeling         |1 to 8
+|bu_buckets_fragments_max_count     |Set the maximum number of fragments per pixel                  |Buffer (buckets)      |1 to 8
+|bu_lists_fragment_buffer_scale     |Set the ratio of fragments to pixel for the transparency pass  |Buffer (linked lists) |1 to 8
+|bu_lists_sorted_fragment_max_count |Set the maximum number of fragments per pixel                  |Buffer (linked lists) |1 to 64
 
 ## References
 
