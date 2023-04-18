@@ -20,12 +20,6 @@ Texture2D          OpaqueDepthTexture : register(CUSTOM_TEXTURE_0_REGISTER);
 RWTexture2D<uint>  CountTexture       : register(CUSTOM_UAV_0_REGISTER);
 RWTexture2D<uint2> FragmentTexture    : register(CUSTOM_UAV_1_REGISTER);
 
-uint PackColor(float4 color)
-{
-    const uint4 ci = (uint4)(clamp(color, 0.0f, 1.0f) * 255.0f);
-    return (ci.r << 24) | (ci.g << 16) | (ci.b << 8) | ci.a;
-}
-
 void psmain(VSOutput input)
 {
     // Test fragment against opaque depth

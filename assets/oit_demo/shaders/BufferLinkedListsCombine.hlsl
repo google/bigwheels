@@ -16,26 +16,28 @@
 #include "Common.hlsli"
 #include "FullscreenVS.hlsli"
 
-RWTexture2D<uint>  CountTexture    : register(CUSTOM_UAV_0_REGISTER);
-RWTexture2D<uint2> FragmentTexture : register(CUSTOM_UAV_1_REGISTER);
+RWTexture2D<uint>         LinkedListHeadTexture : register(CUSTOM_UAV_0_REGISTER);
+RWStructuredBuffer<uint4> FragmentBuffer        : register(CUSTOM_UAV_1_REGISTER);
+RWStructuredBuffer<uint>  AtomicCounter         : register(CUSTOM_UAV_2_REGISTER);
 
 float4 psmain(VSOutput input) : SV_TARGET
 {
-    const uint2 bucketIndex   = (uint2)input.position.xy;
-    const int fragmentCount   = min(min((int)CountTexture[bucketIndex], g_Globals.bufferBucketFragmentsMaxCount), BUFFER_BUCKET_SIZE_PER_PIXEL);
-    CountTexture[bucketIndex] = 0U; // Reset fragment count for the next frame
+    // Reset the atomic counter for the next frame
+    AtomicCounter[0] = 0;
 
-    uint2 sortedFragments[BUFFER_BUCKET_SIZE_PER_PIXEL];
+    // Get the first fragment index in the linked list
+    uint fragmentIndex = LinkedListHeadTexture[input.position.xy];
+    LinkedListHeadTexture[input.position.xy] = BUFFER_LINKED_LIST_INVALID_INDEX; // Reset the list head for the next frame
 
     // Copy the fragments into local memory for sorting
+    uint2 sortedFragments[BUFFER_LINKED_LIST_MAX_SIZE];
+    uint fragmentCount = 0U;
+    while(fragmentIndex != BUFFER_LINKED_LIST_INVALID_INDEX && fragmentCount < BUFFER_LINKED_LIST_MAX_SIZE)
     {
-        uint2 fragmentIndex = bucketIndex;
-        fragmentIndex.y *= BUFFER_BUCKET_SIZE_PER_PIXEL;
-        for(int i = 0; i < fragmentCount; ++i)
-        {
-            sortedFragments[i] = FragmentTexture[fragmentIndex];
-            fragmentIndex.y += 1U;
-        }
+        const uint4 fragment = FragmentBuffer[fragmentIndex];
+        fragmentIndex = fragment.z;
+        sortedFragments[fragmentCount] = fragment.xy;
+        ++fragmentCount;
     }
 
     if(fragmentCount <= 0)

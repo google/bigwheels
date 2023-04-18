@@ -115,6 +115,18 @@ generate_rules_for_shader(
     INCLUDES ${FULLSCREEN_INCLUDE_FILES}
     STAGES "ps" "vs")
 
+generate_rules_for_shader(
+    "buffer_linked_lists_gather"
+    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/BufferLinkedListsGather.hlsl"
+    INCLUDES ${TRANSPARENCY_INCLUDE_FILES}
+    STAGES "ps" "vs")
+
+generate_rules_for_shader(
+    "buffer_linked_lists_combine"
+    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/BufferLinkedListsCombine.hlsl"
+    INCLUDES ${FULLSCREEN_INCLUDE_FILES}
+    STAGES "ps" "vs")
+
 ################################################################################
 
 generate_group_rule_for_shader(
@@ -132,6 +144,8 @@ generate_group_rule_for_shader(
     "depth_peeling_combine"
     "buffer_buckets_gather"
     "buffer_buckets_combine"
+    "buffer_linked_lists_gather"
+    "buffer_linked_lists_combine"
     "composite"
 )
 

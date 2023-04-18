@@ -41,23 +41,55 @@
 
 #define BUFFER_BUCKET_SIZE_PER_PIXEL        8
 
+#define BUFFER_BUFFER_MAX_SCALE             8
+#define BUFFER_LINKED_LIST_MAX_SIZE         64
+#define BUFFER_LINKED_LIST_INVALID_INDEX    0xFFFFFFFFU
+
 struct ShaderGlobals
 {
     float4x4 backgroundMVP;
     float4   backgroundColor;
     float4x4 meshMVP;
+
     float    meshOpacity;
     float    _floatUnused0;
     float    _floatUnused1;
     float    _floatUnused2;
+
     int      depthPeelingFrontLayerIndex;
     int      depthPeelingBackLayerIndex;
-    int      bufferFragmentsMaxCount;
+    int      bufferBucketFragmentsMaxCount;
+    int      bufferFragmentBufferScale;
+
+    int      bufferLinkedListMaxSize;
     int      _intUnused0;
+    int      _intUnused1;
+    int      _intUnused2;
 };
 
 #if defined(IS_SHADER)
 
 ConstantBuffer<ShaderGlobals> g_Globals : register(SHADER_GLOBALS_REGISTER);
+
+void MergeColor(inout float4 outColor, float4 fragmentColor)
+{
+    outColor.rgb = lerp(outColor.rgb, fragmentColor.rgb, fragmentColor.a);
+    outColor.a *= 1.0f - fragmentColor.a;
+}
+
+uint PackColor(float4 color)
+{
+    const uint4 ci = (uint4)(clamp(color, 0.0f, 1.0f) * 255.0f);
+    return (ci.r << 24) | (ci.g << 16) | (ci.b << 8) | ci.a;
+}
+
+float4 UnpackColor(uint data)
+{
+    const float red   = float((data >> 24) & 0xFF) / 255.0f;
+    const float green = float((data >> 16) & 0xFF) / 255.0f;
+    const float blue  = float((data >> 8) & 0xFF) / 255.0f;
+    const float alpha = float(data & 0xFF) / 255.0f;
+    return float4(red, green, blue, alpha);
+}
 
 #endif
