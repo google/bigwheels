@@ -589,7 +589,7 @@ void ProjApp::Setup()
     {
         grfx::DescriptorSetLayoutCreateInfo createInfo = {};
         createInfo.bindings.push_back({grfx::DescriptorBinding{SCENE_CONSTANTS_REGISTER, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS}});
-        createInfo.bindings.push_back({grfx::DescriptorBinding{LIGHT_DATA_REGISTER, grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS}});
+        createInfo.bindings.push_back({grfx::DescriptorBinding{LIGHT_DATA_REGISTER, grfx::DESCRIPTOR_TYPE_RO_STRUCTURED_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS}});
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&createInfo, &mSceneDataLayout));
 
         PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mSceneDataLayout, &mSceneDataSet));
@@ -613,10 +613,10 @@ void ProjApp::Setup()
         bufferCreateInfo.memoryUsage                 = grfx::MEMORY_USAGE_CPU_TO_GPU;
         PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mCpuLightConstants));
 
-        bufferCreateInfo.structuredElementStride          = 32;
-        bufferCreateInfo.usageFlags.bits.transferDst      = true;
-        bufferCreateInfo.usageFlags.bits.structuredBuffer = true;
-        bufferCreateInfo.memoryUsage                      = grfx::MEMORY_USAGE_GPU_ONLY;
+        bufferCreateInfo.structuredElementStride            = 32;
+        bufferCreateInfo.usageFlags.bits.transferDst        = true;
+        bufferCreateInfo.usageFlags.bits.roStructuredBuffer = true;
+        bufferCreateInfo.memoryUsage                        = grfx::MEMORY_USAGE_GPU_ONLY;
         PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mGpuLightConstants));
 
         grfx::WriteDescriptor write = {};
@@ -631,7 +631,7 @@ void ProjApp::Setup()
         write                        = {};
         write.binding                = LIGHT_DATA_REGISTER;
         write.arrayIndex             = 0;
-        write.type                   = grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER;
+        write.type                   = grfx::DESCRIPTOR_TYPE_RO_STRUCTURED_BUFFER;
         write.bufferOffset           = 0;
         write.bufferRange            = PPX_WHOLE_SIZE;
         write.structuredElementCount = 1;

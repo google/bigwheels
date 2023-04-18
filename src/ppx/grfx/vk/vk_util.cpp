@@ -248,13 +248,13 @@ VkBufferUsageFlags ToVkBufferUsageFlags(const grfx::BufferUsageFlags& value)
     if (value.bits.uniformTexelBuffer            ) flags |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
     if (value.bits.storageTexelBuffer            ) flags |= VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
     if (value.bits.uniformBuffer                 ) flags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-    if (value.bits.rawStorageBuffer                 ) flags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-    if (value.bits.structuredBuffer              ) flags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    if (value.bits.rawStorageBuffer              ) flags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    if (value.bits.roStructuredBuffer            ) flags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    if (value.bits.rwStructuredBuffer            ) flags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     if (value.bits.indexBuffer                   ) flags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
     if (value.bits.vertexBuffer                  ) flags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     if (value.bits.indirectBuffer                ) flags |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
     if (value.bits.conditionalRendering          ) flags |= VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT;
-    //if (value.bits.rayTracing                    ) flags |= VK_BUFFER_USAGE_RAY_TRACING_BIT_KHR;
     if (value.bits.transformFeedbackBuffer       ) flags |= VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_BUFFER_BIT_EXT;
     if (value.bits.transformFeedbackCounterBuffer) flags |= VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_COUNTER_BUFFER_BIT_EXT;
     if (value.bits.shaderDeviceAddress           ) flags |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT_KHR;
@@ -362,8 +362,9 @@ VkDescriptorType ToVkDescriptorType(grfx::DescriptorType value)
         case grfx::DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER   : return VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER  ; break;
         case grfx::DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER   : return VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER  ; break;
         case grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER         : return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER        ; break;
-        case grfx::DESCRIPTOR_TYPE_RAW_STORAGE_BUFFER         : return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER        ; break;
-        case grfx::DESCRIPTOR_TYPE_STRUCTURED_BUFFER      : return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER        ; break;
+        case grfx::DESCRIPTOR_TYPE_RAW_STORAGE_BUFFER     : return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER        ; break;
+        case grfx::DESCRIPTOR_TYPE_RO_STRUCTURED_BUFFER   : return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER        ; break;
+        case grfx::DESCRIPTOR_TYPE_RW_STRUCTURED_BUFFER   : return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER        ; break;
         case grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC : return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC; break;
         case grfx::DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC : return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC; break;
         case grfx::DESCRIPTOR_TYPE_INPUT_ATTACHMENT       : return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT      ; break;

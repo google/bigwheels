@@ -39,7 +39,8 @@ struct BufferUsageFlags
             bool storageTexelBuffer             : 1;
             bool uniformBuffer                  : 1;
             bool rawStorageBuffer               : 1;
-            bool structuredBuffer               : 1;
+            bool roStructuredBuffer             : 1;
+            bool rwStructuredBuffer             : 1;
             bool indexBuffer                    : 1;
             bool vertexBuffer                   : 1;
             bool indirectBuffer                 : 1;

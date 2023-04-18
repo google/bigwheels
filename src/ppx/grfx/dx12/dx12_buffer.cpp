@@ -23,8 +23,8 @@ Result Buffer::CreateApiObjects(const grfx::BufferCreateInfo* pCreateInfo)
 {
     D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
 
-    //
-    if (pCreateInfo->usageFlags.bits.rawStorageBuffer) {
+    if (pCreateInfo->usageFlags.bits.rawStorageBuffer ||
+        pCreateInfo->usageFlags.bits.rwStructuredBuffer) {
         flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
     }
 
