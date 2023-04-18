@@ -106,7 +106,10 @@ private:
     grfx::MeshPtr              mSphere;
     grfx::MeshPtr              mCube;
     grfx::MeshPtr              mMonkey;
-    grfx::MeshPtr              mAltimeterModel;
+    grfx::MeshPtr              mMeasuringTape;
+    grfx::MeshPtr              mKiwi;
+    grfx::MeshPtr              mHandPlane;
+    grfx::MeshPtr              mHorseStatue;
     std::vector<grfx::MeshPtr> mMeshes;
 
     // Descriptor Set 0 - Scene Data
@@ -132,7 +135,11 @@ private:
     grfx::SamplerPtr                  mSampler;
     MaterialResources                 mWoodMaterial;
     MaterialResources                 mTilesMaterial;
-    MaterialResources                 mAltimeterMaterial;
+    MaterialResources                 mStoneWallMaterial;
+    MaterialResources                 mMeasuringTapeMaterial;
+    MaterialResources                 mKiwiMaterial;
+    MaterialResources                 mHandPlaneMaterial;
+    MaterialResources                 mHorseStatueMaterial;
     std::vector<grfx::DescriptorSet*> mMaterialResourcesSets;
 
     // Descriptor Set 2 - MaterialData Data
@@ -164,7 +171,7 @@ private:
         bool   albedoSelect    = 1;    // 0 = value, 1 = texture
         bool   roughnessSelect = 1;    // 0 = value, 1 = texture
         bool   metalnessSelect = 1;    // 0 = value, 1 = texture
-        bool   normalSelect    = 0;    // 0 = attrb, 1 = texture
+        bool   normalSelect    = 1;    // 0 = attrb, 1 = texture
         bool   iblSelect       = 0;    // 0 = white, 1 = texture
         bool   envSelect       = 1;    // 0 = none,  1 = texture
     };
@@ -202,7 +209,10 @@ private:
         "Sphere",
         "Cube",
         "Monkey",
-        "Altimeter",
+        "Measuring Tape",
+        "Kiwi",
+        "Hand Plane",
+        "Horse Statue",
     };
 
     uint32_t                 mF0Index = 0;
@@ -229,9 +239,14 @@ private:
 
     uint32_t                 mMaterialIndex = 0;
     std::vector<const char*> mMaterialNames = {
+        "Green Metal Rust",
         "Wood",
         "Tiles",
-        "Altimeter",
+        "Stone Wall",
+        "Measuring Tape",
+        "Kiwi",
+        "Hand Plane",
+        "Horse Statue",
     };
 
     uint32_t                 mShaderIndex = 3;
@@ -257,6 +272,7 @@ private:
 void ProjApp::Config(ppx::ApplicationSettings& settings)
 {
     settings.appName                    = "basic_material";
+    settings.allowThirdPartyAssets      = true;
     settings.grfx.api                   = kApi;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
     settings.grfx.enableDebug           = false;
@@ -377,13 +393,24 @@ void ProjApp::SetupMaterials()
     createInfo.bindings.push_back({grfx::DescriptorBinding{CLAMPED_SAMPLER_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS}});
     PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&createInfo, &mMaterialResourcesLayout));
 
+    // Green metal rust
+    {
+        SetupMaterialResources(
+            "poly_haven/textures/green_metal_rust/diffuse.png",
+            "poly_haven/textures/green_metal_rust/roughness.png",
+            "poly_haven/textures/green_metal_rust/metalness.png",
+            "poly_haven/textures/green_metal_rust/normal.png",
+            mWoodMaterial);
+        mMaterialResourcesSets.push_back(mWoodMaterial.set);
+    };
+
     // Wood
     {
         SetupMaterialResources(
-            "materials/textures/wood/albedo.png",
-            "materials/textures/wood/roughness.png",
-            "materials/textures/wood/metalness.png",
-            "materials/textures/wood/normal.png",
+            "poly_haven/textures/weathered_planks/diffuse.png",
+            "poly_haven/textures/weathered_planks/roughness.png",
+            "poly_haven/textures/weathered_planks/metalness.png",
+            "poly_haven/textures/weathered_planks/normal.png",
             mWoodMaterial);
         mMaterialResourcesSets.push_back(mWoodMaterial.set);
     };
@@ -391,23 +418,67 @@ void ProjApp::SetupMaterials()
     // Tiles
     {
         SetupMaterialResources(
-            "materials/textures/tiles/albedo.png",
-            "materials/textures/tiles/roughness.png",
-            "materials/textures/tiles/metalness.png",
-            "materials/textures/tiles/normal.png",
+            "poly_haven/textures/square_floor/diffuse.png",
+            "poly_haven/textures/square_floor/roughness.png",
+            "poly_haven/textures/square_floor/metalness.png",
+            "poly_haven/textures/square_floor/normal.png",
             mTilesMaterial);
         mMaterialResourcesSets.push_back(mTilesMaterial.set);
     };
 
-    // Altimeter
+    // Stone Wall
     {
         SetupMaterialResources(
-            "materials/textures/altimeter/albedo.jpg",
-            "materials/textures/altimeter/roughness.jpg",
-            "materials/textures/altimeter/metalness.jpg",
-            "materials/textures/altimeter/normal.jpg",
-            mAltimeterMaterial);
-        mMaterialResourcesSets.push_back(mAltimeterMaterial.set);
+            "poly_haven/textures/yellow_stone_wall/diffuse.png",
+            "poly_haven/textures/yellow_stone_wall/roughness.png",
+            "poly_haven/textures/yellow_stone_wall/metalness.png",
+            "poly_haven/textures/yellow_stone_wall/normal.png",
+            mStoneWallMaterial);
+        mMaterialResourcesSets.push_back(mStoneWallMaterial.set);
+    }
+
+    // Measuring Tape
+    {
+        SetupMaterialResources(
+            "poly_haven/models/measuring_tape/textures/diffuse.png",
+            "poly_haven/models/measuring_tape/textures/roughness.png",
+            "poly_haven/models/measuring_tape/textures/metalness.png",
+            "poly_haven/models/measuring_tape/textures/normal.png",
+            mMeasuringTapeMaterial);
+        mMaterialResourcesSets.push_back(mMeasuringTapeMaterial.set);
+    }
+
+    // Kiwi
+    {
+        SetupMaterialResources(
+            "poly_haven/models/food_kiwi/textures/diffuse.png",
+            "poly_haven/models/food_kiwi/textures/roughness.png",
+            "poly_haven/models/food_kiwi/textures/metalness.png",
+            "poly_haven/models/food_kiwi/textures/normal.png",
+            mKiwiMaterial);
+        mMaterialResourcesSets.push_back(mKiwiMaterial.set);
+    }
+
+    // Hand Plane
+    {
+        SetupMaterialResources(
+            "poly_haven/models/hand_plane/textures/diffuse.png",
+            "poly_haven/models/hand_plane/textures/roughness.png",
+            "poly_haven/models/hand_plane/textures/metalness.png",
+            "poly_haven/models/hand_plane/textures/normal.png",
+            mHandPlaneMaterial);
+        mMaterialResourcesSets.push_back(mHandPlaneMaterial.set);
+    }
+
+    // Horse Statue
+    {
+        SetupMaterialResources(
+            "poly_haven/models/horse_statue/textures/diffuse.png",
+            "poly_haven/models/horse_statue/textures/roughness.png",
+            "poly_haven/models/horse_statue/textures/metalness.png",
+            "poly_haven/models/horse_statue/textures/normal.png",
+            mHorseStatueMaterial);
+        mMaterialResourcesSets.push_back(mHorseStatueMaterial.set);
     }
 }
 
@@ -470,19 +541,43 @@ void ProjApp::Setup()
 
         {
             Geometry geo;
-            TriMesh  mesh = TriMesh::CreateFromOBJ(GetAssetPath("basic/models/altimeter/altimeter.obj"), TriMeshOptions(options).Scale(float3(0.75f)));
+            TriMesh mesh = TriMesh::CreateFromOBJ(GetAssetPath("poly_haven/models/measuring_tape/measuring_tape_01.obj"), TriMeshOptions(options).Translate(float3(0, -0.4f, 0)).InvertTexCoordsV());
             PPX_CHECKED_CALL(Geometry::Create(mesh, &geo));
-            PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mAltimeterModel));
-            mMeshes.push_back(mAltimeterModel);
+            PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mMeasuringTape));
+            mMeshes.push_back(mMeasuringTape);
+        }
+
+        {
+            Geometry geo;
+            TriMesh mesh = TriMesh::CreateFromOBJ(GetAssetPath("poly_haven/models/food_kiwi/food_kiwi_01.obj"), TriMeshOptions(options).Translate(float3(0, -0.7f, 0)).InvertTexCoordsV());
+            PPX_CHECKED_CALL(Geometry::Create(mesh, &geo));
+            PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mKiwi));
+            mMeshes.push_back(mKiwi);
+        }
+
+        {
+            Geometry geo;
+            TriMesh mesh = TriMesh::CreateFromOBJ(GetAssetPath("poly_haven/models/hand_plane/hand_plane_no4_1k.obj"), TriMeshOptions(options).Translate(float3(0, -0.5f, 0)).InvertTexCoordsV());
+            PPX_CHECKED_CALL(Geometry::Create(mesh, &geo));
+            PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mHandPlane));
+            mMeshes.push_back(mHandPlane);
+        }
+
+        {
+            Geometry geo;
+            TriMesh mesh = TriMesh::CreateFromOBJ(GetAssetPath("poly_haven/models/horse_statue/horse_statue_01_1k.obj"), TriMeshOptions(options).Translate(float3(0, -0.725f, 0)).InvertTexCoordsV());
+            PPX_CHECKED_CALL(Geometry::Create(mesh, &geo));
+            PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mHorseStatue));
+            mMeshes.push_back(mHorseStatue);
         }
     }
 
     const auto& cl_options = GetExtraOptions();
-    mMaterialIndex         = cl_options.GetExtraOptionValueOrDefault<uint32_t>("material-index", 0);
+    mMaterialIndex         = cl_options.GetExtraOptionValueOrDefault<uint32_t>("material-index", mMaterialIndex);
     PPX_ASSERT_MSG(mMaterialIndex < mMaterialNames.size(), "Material index out-of-range.");
-    mMeshIndex = cl_options.GetExtraOptionValueOrDefault<uint32_t>("mesh-index", 0);
+    mMeshIndex = cl_options.GetExtraOptionValueOrDefault<uint32_t>("mesh-index", mMeshIndex);
     PPX_ASSERT_MSG(mMeshIndex < mMeshes.size(), "Mesh index out-of-range.");
-    mShaderIndex = cl_options.GetExtraOptionValueOrDefault<uint32_t>("shader-index", 0);
+    mShaderIndex = cl_options.GetExtraOptionValueOrDefault<uint32_t>("shader-index", mShaderIndex);
     PPX_ASSERT_MSG(mShaderIndex < mShaderNames.size(), "Shader index out-of-range.");
 
     // Scene data
@@ -850,10 +945,16 @@ void ProjApp::Render()
         pLight[2].position = float3(1, 10, 3);
         pLight[3].position = float3(-1, 0, 15);
 
-        pLight[0].intensity = 0.07f;
-        pLight[1].intensity = 0.10f;
-        pLight[2].intensity = 0.15f;
-        pLight[3].intensity = 0.17f;
+        pLight[0].color = float3(1.0f, 1.0f, 1.0f);
+        pLight[1].color = float3(1.0f, 1.0f, 1.0f);
+        pLight[2].color = float3(1.0f, 1.0f, 1.0f);
+        pLight[3].color = float3(1.0f, 1.0f, 1.0f);
+
+        // These values favor PBR and will look a bit overblown using Phong or Blinn
+        pLight[0].intensity = 0.77f;
+        pLight[1].intensity = 0.70f;
+        pLight[2].intensity = 0.85f;
+        pLight[3].intensity = 0.77f;
 
         mCpuLightConstants->UnmapMemory();
 
@@ -1028,10 +1129,6 @@ void ProjApp::DrawGui()
 {
     ImGui::Separator();
 
-    // ImGui::SliderFloat("Rot Y", &mRotY, -180.0f, 180.0f, "%.03f degrees");
-    //
-    // ImGui::Separator();
-
     ImGui::SliderFloat("Ambient", &mAmbient, 0.0f, 1.0f, "%.03f");
 
     ImGui::Separator();
@@ -1070,27 +1167,6 @@ void ProjApp::DrawGui()
 
     ImGui::Separator();
 
-    static const char* currentF0Name = "Albedo Color";
-    if (ImGui::BeginCombo("F0", currentF0Name)) {
-        for (size_t i = 0; i < mF0Names.size(); ++i) {
-            bool isSelected = (currentF0Name == mF0Names[i]);
-            if (ImGui::Selectable(mF0Names[i], isSelected)) {
-                currentF0Name = mF0Names[i];
-                mF0Index      = static_cast<uint32_t>(i);
-            }
-            if (isSelected) {
-                ImGui::SetItemDefaultFocus();
-            }
-        }
-        ImGui::EndCombo();
-    }
-
-    ImGui::Separator();
-
-    ImGui::ColorPicker4("Albedo Color", (float*)&mAlbedoColor, ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoSmallPreview);
-
-    ImGui::Separator();
-
     static const char* currentMaterialName = mMaterialNames[0];
     if (ImGui::BeginCombo("Material Textures", currentMaterialName)) {
         for (size_t i = 0; i < mMaterialNames.size(); ++i) {
@@ -1108,8 +1184,6 @@ void ProjApp::DrawGui()
 
     ImGui::Separator();
 
-    ImGui::SliderFloat("Roughness", &mMaterialData.roughness, 0.0f, 1.0f, "%.03f degrees");
-    ImGui::SliderFloat("Metalness", &mMaterialData.metalness, 0.0f, 1.0f, "%.03f degrees");
     ImGui::Checkbox("PBR Use Albedo Texture", &mMaterialData.albedoSelect);
     ImGui::Checkbox("PBR Use Roughness Texture", &mMaterialData.roughnessSelect);
     ImGui::Checkbox("PBR Use Metalness Texture", &mMaterialData.metalnessSelect);

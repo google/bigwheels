@@ -40,6 +40,7 @@
 #define IBL_MAP_TEXTURE_REGISTER    t11
 #define ENV_MAP_TEXTURE_REGISTER    t12
 
+#define EPSILON 0.00001
 #define PI 3.1415292
 
 struct SceneData
