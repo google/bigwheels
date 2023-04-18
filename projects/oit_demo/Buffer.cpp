@@ -310,7 +310,7 @@ void OITDemoApp::SetupBufferLinkedLists()
 
         PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mBuffer.lists.gatherDescriptorSetLayout, &mBuffer.lists.gatherDescriptorSet));
 
-        grfx::WriteDescriptor writes[5] = {};
+        std::array<grfx::WriteDescriptor, 5> writes = {};
 
         writes[0].binding      = SHADER_GLOBALS_REGISTER;
         writes[0].type         = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -342,7 +342,7 @@ void OITDemoApp::SetupBufferLinkedLists()
         writes[4].structuredElementCount = 1;
         writes[4].pBuffer                = mBuffer.lists.atomicCounter;
 
-        PPX_CHECKED_CALL(mBuffer.lists.gatherDescriptorSet->UpdateDescriptors(sizeof(writes) / sizeof(writes[0]), writes));
+        PPX_CHECKED_CALL(mBuffer.lists.gatherDescriptorSet->UpdateDescriptors(static_cast<uint32_t>(writes.size()), writes.data()));
     }
 
     // Pipeline
@@ -392,7 +392,7 @@ void OITDemoApp::SetupBufferLinkedLists()
 
         PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mBuffer.lists.combineDescriptorSetLayout, &mBuffer.lists.combineDescriptorSet));
 
-        grfx::WriteDescriptor writes[4] = {};
+        std::array<grfx::WriteDescriptor, 4> writes = {};
 
         writes[0].binding      = SHADER_GLOBALS_REGISTER;
         writes[0].type         = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -419,7 +419,7 @@ void OITDemoApp::SetupBufferLinkedLists()
         writes[3].structuredElementCount = 1;
         writes[3].pBuffer                = mBuffer.lists.atomicCounter;
 
-        PPX_CHECKED_CALL(mBuffer.lists.combineDescriptorSet->UpdateDescriptors(sizeof(writes) / sizeof(writes[0]), writes));
+        PPX_CHECKED_CALL(mBuffer.lists.combineDescriptorSet->UpdateDescriptors(static_cast<uint32_t>(writes.size()), writes.data()));
     }
 
     // Pipeline
@@ -608,17 +608,13 @@ void OITDemoApp::RecordBufferLinkedLists()
 
 void OITDemoApp::RecordBuffer()
 {
-    switch (mGuiParameters.buffer.type) {
-        case BUFFER_ALGORITHM_BUCKETS: {
-            RecordBufferBuckets();
-            break;
-        }
-        case BUFFER_ALGORITHM_LINKED_LISTS: {
-            RecordBufferLinkedLists();
-            break;
-        }
-        default: {
-            break;
-        }
-    }
+    void (OITDemoApp::*recordFuncs[])() =
+        {
+            &OITDemoApp::RecordBufferBuckets,
+            &OITDemoApp::RecordBufferLinkedLists,
+        };
+    static_assert(sizeof(recordFuncs) / sizeof(recordFuncs[0]) == BUFFER_ALGORITHMS_COUNT, "Algorithm record func count mismatch");
+
+    PPX_ASSERT_MSG(mGuiParameters.buffer.type >= 0 && mGuiParameters.buffer.type < BUFFER_ALGORITHMS_COUNT, "unknown buffer algorithm type");
+    (this->*recordFuncs[mGuiParameters.buffer.type])();
 }
