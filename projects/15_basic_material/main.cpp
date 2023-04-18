@@ -102,14 +102,6 @@ private:
     std::vector<PerFrame>      mPerFrame;
     PerspCamera                mCamera;
     grfx::DescriptorPoolPtr    mDescriptorPool;
-    grfx::MeshPtr              mKnob;
-    grfx::MeshPtr              mSphere;
-    grfx::MeshPtr              mCube;
-    grfx::MeshPtr              mMonkey;
-    grfx::MeshPtr              mMeasuringTape;
-    grfx::MeshPtr              mKiwi;
-    grfx::MeshPtr              mHandPlane;
-    grfx::MeshPtr              mHorseStatue;
     std::vector<grfx::MeshPtr> mMeshes;
 
     // Descriptor Set 0 - Scene Data
@@ -133,6 +125,7 @@ private:
     };
 
     grfx::SamplerPtr                  mSampler;
+    MaterialResources                 mMetalMaterial;
     MaterialResources                 mWoodMaterial;
     MaterialResources                 mTilesMaterial;
     MaterialResources                 mStoneWallMaterial;
@@ -400,8 +393,8 @@ void ProjApp::SetupMaterials()
             "poly_haven/textures/green_metal_rust/roughness.png",
             "poly_haven/textures/green_metal_rust/metalness.png",
             "poly_haven/textures/green_metal_rust/normal.png",
-            mWoodMaterial);
-        mMaterialResourcesSets.push_back(mWoodMaterial.set);
+            mMetalMaterial);
+        mMaterialResourcesSets.push_back(mMetalMaterial.set);
     };
 
     // Wood
@@ -418,10 +411,10 @@ void ProjApp::SetupMaterials()
     // Tiles
     {
         SetupMaterialResources(
-            "poly_haven/textures/square_floor/diffuse.png",
-            "poly_haven/textures/square_floor/roughness.png",
-            "poly_haven/textures/square_floor/metalness.png",
-            "poly_haven/textures/square_floor/normal.png",
+            "poly_haven/textures/square_floor_tiles/diffuse.png",
+            "poly_haven/textures/square_floor_tiles/roughness.png",
+            "poly_haven/textures/square_floor_tiles/metalness.png",
+            "poly_haven/textures/square_floor_tiles/normal.png",
             mTilesMaterial);
         mMaterialResourcesSets.push_back(mTilesMaterial.set);
     };
@@ -504,6 +497,7 @@ void ProjApp::Setup()
     }
 
     // Meshes
+    std::vector<grfx::VertexBinding> vertexBindings;
     {
         TriMeshOptions options = TriMeshOptions().Indices().VertexColors().Normals().TexCoords().Tangents();
 
@@ -511,64 +505,75 @@ void ProjApp::Setup()
             Geometry geo;
             TriMesh  mesh = TriMesh::CreateFromOBJ(GetAssetPath("basic/models/material_sphere.obj"), options);
             PPX_CHECKED_CALL(Geometry::Create(mesh, &geo));
-            PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mKnob));
-            mMeshes.push_back(mKnob);
+            grfx::MeshPtr gpuMesh;
+            PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &gpuMesh));
+            mMeshes.push_back(gpuMesh);
+
+            // Grab the vertex bindings
+            vertexBindings = gpuMesh->GetDerivedVertexBindings();
         }
 
         {
             Geometry geo;
             TriMesh  mesh = TriMesh::CreateSphere(0.75f, 128, 64, TriMeshOptions(options).TexCoordScale(float2(2)));
             PPX_CHECKED_CALL(Geometry::Create(mesh, &geo));
-            PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mSphere));
-            mMeshes.push_back(mSphere);
+            grfx::MeshPtr gpuMesh;
+            PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &gpuMesh));
+            mMeshes.push_back(gpuMesh);
         }
 
         {
             Geometry geo;
             TriMesh  mesh = TriMesh::CreateCube(float3(1.0f), options);
             PPX_CHECKED_CALL(Geometry::Create(mesh, &geo));
-            PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mCube));
-            mMeshes.push_back(mCube);
+            grfx::MeshPtr gpuMesh;
+            PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &gpuMesh));
+            mMeshes.push_back(gpuMesh);
         }
 
         {
             Geometry geo;
             TriMesh  mesh = TriMesh::CreateFromOBJ(GetAssetPath("basic/models/monkey.obj"), TriMeshOptions(options).Scale(float3(0.75f)));
             PPX_CHECKED_CALL(Geometry::Create(mesh, &geo));
-            PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mMonkey));
-            mMeshes.push_back(mMonkey);
+            grfx::MeshPtr gpuMesh;
+            PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &gpuMesh));
+            mMeshes.push_back(gpuMesh);
         }
 
         {
             Geometry geo;
             TriMesh  mesh = TriMesh::CreateFromOBJ(GetAssetPath("poly_haven/models/measuring_tape/measuring_tape_01.obj"), TriMeshOptions(options).Translate(float3(0, -0.4f, 0)).InvertTexCoordsV());
             PPX_CHECKED_CALL(Geometry::Create(mesh, &geo));
-            PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mMeasuringTape));
-            mMeshes.push_back(mMeasuringTape);
+            grfx::MeshPtr gpuMesh;
+            PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &gpuMesh));
+            mMeshes.push_back(gpuMesh);
         }
 
         {
             Geometry geo;
             TriMesh  mesh = TriMesh::CreateFromOBJ(GetAssetPath("poly_haven/models/food_kiwi/food_kiwi_01.obj"), TriMeshOptions(options).Translate(float3(0, -0.7f, 0)).InvertTexCoordsV());
             PPX_CHECKED_CALL(Geometry::Create(mesh, &geo));
-            PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mKiwi));
-            mMeshes.push_back(mKiwi);
+            grfx::MeshPtr gpuMesh;
+            PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &gpuMesh));
+            mMeshes.push_back(gpuMesh);
         }
 
         {
             Geometry geo;
             TriMesh  mesh = TriMesh::CreateFromOBJ(GetAssetPath("poly_haven/models/hand_plane/hand_plane_no4_1k.obj"), TriMeshOptions(options).Translate(float3(0, -0.5f, 0)).InvertTexCoordsV());
             PPX_CHECKED_CALL(Geometry::Create(mesh, &geo));
-            PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mHandPlane));
-            mMeshes.push_back(mHandPlane);
+            grfx::MeshPtr gpuMesh;
+            PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &gpuMesh));
+            mMeshes.push_back(gpuMesh);
         }
 
         {
             Geometry geo;
             TriMesh  mesh = TriMesh::CreateFromOBJ(GetAssetPath("poly_haven/models/horse_statue/horse_statue_01_1k.obj"), TriMeshOptions(options).Translate(float3(0, -0.725f, 0)).InvertTexCoordsV());
             PPX_CHECKED_CALL(Geometry::Create(mesh, &geo));
-            PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mHorseStatue));
-            mMeshes.push_back(mHorseStatue);
+            grfx::MeshPtr gpuMesh;
+            PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &gpuMesh));
+            mMeshes.push_back(gpuMesh);
         }
     }
 
@@ -719,13 +724,13 @@ void ProjApp::Setup()
     // Pipeline
     {
         grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
-        gpCreateInfo.vertexInputState.bindingCount      = CountU32(mKnob->GetDerivedVertexBindings());
-        gpCreateInfo.vertexInputState.bindings[0]       = mKnob->GetDerivedVertexBindings()[0];
-        gpCreateInfo.vertexInputState.bindings[1]       = mKnob->GetDerivedVertexBindings()[1];
-        gpCreateInfo.vertexInputState.bindings[2]       = mKnob->GetDerivedVertexBindings()[2];
-        gpCreateInfo.vertexInputState.bindings[3]       = mKnob->GetDerivedVertexBindings()[3];
-        gpCreateInfo.vertexInputState.bindings[4]       = mKnob->GetDerivedVertexBindings()[4];
-        gpCreateInfo.vertexInputState.bindings[5]       = mKnob->GetDerivedVertexBindings()[5];
+        gpCreateInfo.vertexInputState.bindingCount      = CountU32(vertexBindings);
+        gpCreateInfo.vertexInputState.bindings[0]       = vertexBindings[0];
+        gpCreateInfo.vertexInputState.bindings[1]       = vertexBindings[1];
+        gpCreateInfo.vertexInputState.bindings[2]       = vertexBindings[2];
+        gpCreateInfo.vertexInputState.bindings[3]       = vertexBindings[3];
+        gpCreateInfo.vertexInputState.bindings[4]       = vertexBindings[4];
+        gpCreateInfo.vertexInputState.bindings[5]       = vertexBindings[5];
         gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
         gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
