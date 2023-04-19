@@ -86,9 +86,7 @@ public:
 
     Log& operator<<(std::ostream& (*manip)(std::ostream&))
     {
-        if (manip == (std::basic_ostream<char> & (*)(std::basic_ostream<char>&)) & std::endl) {
-            mBuffer << std::endl;
-        }
+        mBuffer << *manip;
         return *this;
     }
 
