@@ -102,17 +102,28 @@ Result CopyBitmapToImage(
     // Scoped destroy
     grfx::ScopeDestroyer SCOPED_DESTROYER(pQueue->GetDevice());
 
-    // Row stride alignment to handle DX's requirement
-    uint32_t rowStrideAlignement = grfx::IsDx12(pQueue->GetDevice()->GetApi()) ? PPX_D3D12_TEXTURE_DATA_PITCH_ALIGNMENT : 1;
-    uint32_t alignedRowStride    = RoundUp<uint32_t>(pBitmap->GetRowStride(), rowStrideAlignement);
+    // This is the number of bytes we're going to copy per row.
+    uint32_t rowCopySize = pBitmap->GetWidth() * pBitmap->GetPixelStride();
+
+    // When copying from a buffer to a image/texture, D3D12 requires that the rows
+    // stored in the source buffer (aka staging buffer) are aligned to 256 bytes.
+    // Vulkan does not have this requirement. So for the staging buffer, we want
+    // to enforce the alignment for D3D12 but not for Vulkan.
+    //
+    uint32_t apiRowStrideAligement = grfx::IsDx12(pQueue->GetDevice()->GetApi()) ? PPX_D3D12_TEXTURE_DATA_PITCH_ALIGNMENT : 1;
+    // The staging buffer's row stride alignemnt needs to be based off the bitmap's
+    // width (i.e. the number of bytes we're going to copy) and not the bitmap's row
+    // stride. The bitmap's may be padded beyond width * pixel stride.
+    //
+    uint32_t stagingBufferRowStride = RoundUp<uint32_t>(rowCopySize, apiRowStrideAligement);
 
     // Create staging buffer
     grfx::BufferPtr stagingBuffer;
     {
-        uint64_t bitmapFootprintSize = pBitmap->GetFootprintSize(rowStrideAlignement);
+        uint64_t bufferSize = stagingBufferRowStride * pBitmap->GetHeight();
 
         grfx::BufferCreateInfo ci      = {};
-        ci.size                        = bitmapFootprintSize;
+        ci.size                        = bufferSize;
         ci.usageFlags.bits.transferSrc = true;
         ci.memoryUsage                 = grfx::MEMORY_USAGE_CPU_TO_GPU;
 
@@ -132,9 +143,9 @@ Result CopyBitmapToImage(
         const char*    pSrc         = pBitmap->GetData();
         char*          pDst         = static_cast<char*>(pBufferAddress);
         const uint32_t srcRowStride = pBitmap->GetRowStride();
-        const uint32_t dstRowStride = alignedRowStride;
+        const uint32_t dstRowStride = stagingBufferRowStride;
         for (uint32_t y = 0; y < pBitmap->GetHeight(); ++y) {
-            memcpy(pDst, pSrc, srcRowStride);
+            memcpy(pDst, pSrc, rowCopySize);
             pSrc += srcRowStride;
             pDst += dstRowStride;
         }
@@ -146,7 +157,7 @@ Result CopyBitmapToImage(
     grfx::BufferToImageCopyInfo copyInfo = {};
     copyInfo.srcBuffer.imageWidth        = pBitmap->GetWidth();
     copyInfo.srcBuffer.imageHeight       = pBitmap->GetHeight();
-    copyInfo.srcBuffer.imageRowStride    = alignedRowStride;
+    copyInfo.srcBuffer.imageRowStride    = stagingBufferRowStride;
     copyInfo.srcBuffer.footprintOffset   = 0;
     copyInfo.srcBuffer.footprintWidth    = pBitmap->GetWidth();
     copyInfo.srcBuffer.footprintHeight   = pBitmap->GetHeight();
@@ -178,6 +189,7 @@ Result CopyBitmapToImage(
 
     return ppx::SUCCESS;
 }
+
 // -------------------------------------------------------------------------------------------------
 
 Result CreateImageFromBitmap(
