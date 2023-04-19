@@ -60,6 +60,8 @@ enum class MetricType
 
 class Metric
 {
+    friend class Run;
+
 public:
     const MetricMetadata& GetMetadata() const;
     MetricType            GetType() const;
@@ -104,6 +106,10 @@ private:
     };
 
 private:
+    MetricGauge(MetricGauge&) = delete;
+    ~MetricGauge();
+
+private:
     std::vector<TimeSeriesEntry> mTimeSeries;
 };
 
@@ -111,10 +117,16 @@ private:
 
 class MetricCounter final : public Metric
 {
+    friend class Run;
+
 public:
     MetricCounter(const MetricMetadata& metadata);
     uint64_t Increment(uint64_t add);
     uint64_t Get() const;
+
+private:
+    MetricCounter(MetricCounter&) = delete;
+    ~MetricCounter();
 
 private:
     uint64_t mCounter;
@@ -124,11 +136,25 @@ private:
 
 class Run final
 {
+    friend class Manager;
+
 public:
+    Result       AddMetricGauge(MetricGauge*& outMetric, MetricMetadata metadata);
+    MetricGauge* GetMetricGauge(const char* name) const;
+
+    Result         AddMetricCounter(MetricCounter*& outMetric, MetricMetadata metadata);
+    MetricCounter* GetMetricCounter(const char* name) const;
+
+private:
     Run(const char* name);
     ~Run();
-    MetricGauge*   AddMetricGauge(MetricMetadata metadata);
-    MetricCounter* AddMetricCounter(MetricMetadata metadata);
+    Run(Run&)       = delete;
+    Run(const Run&) = delete;
+
+    Metric* GetMetric(const char* name) const;
+
+    template <typename T>
+    Result AddMetric(T*& outMetric, MetricMetadata metadata);
 
 private:
     std::string                              mName;
@@ -142,8 +168,13 @@ class Manager final
 public:
     Manager();
     ~Manager();
+
     Result AddRun(Run*& outRun, const char* name);
     Run*   GetRun(const char* name) const;
+
+private:
+    Manager(Manager&)       = delete;
+    Manager(const Manager&) = delete;
 
 private:
     std::unordered_map<std::string, Run*> mRuns;
