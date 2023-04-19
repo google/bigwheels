@@ -74,7 +74,6 @@ void OITDemoApp::SetupBufferBuckets()
         createInfo.height                     = mBuffer.buckets.countTexture->GetHeight();
         createInfo.renderTargetCount          = 0;
         createInfo.pDepthStencilImage         = nullptr;
-        createInfo.renderTargetClearValues[0] = {0, 0, 0, 0};
         PPX_CHECKED_CALL(GetDevice()->CreateDrawPass(&createInfo, &mBuffer.buckets.gatherPass));
     }
 
