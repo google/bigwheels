@@ -69,11 +69,11 @@ void OITDemoApp::SetupBufferBuckets()
 
     // Gather pass
     {
-        grfx::DrawPassCreateInfo2 createInfo  = {};
-        createInfo.width                      = mBuffer.buckets.countTexture->GetWidth();
-        createInfo.height                     = mBuffer.buckets.countTexture->GetHeight();
-        createInfo.renderTargetCount          = 0;
-        createInfo.pDepthStencilImage         = nullptr;
+        grfx::DrawPassCreateInfo2 createInfo = {};
+        createInfo.width                     = mBuffer.buckets.countTexture->GetWidth();
+        createInfo.height                    = mBuffer.buckets.countTexture->GetHeight();
+        createInfo.renderTargetCount         = 0;
+        createInfo.pDepthStencilImage        = nullptr;
         PPX_CHECKED_CALL(GetDevice()->CreateDrawPass(&createInfo, &mBuffer.buckets.gatherPass));
     }
 
