@@ -30,8 +30,7 @@ MetricType Metric::GetType() const
 }
 
 Metric::Metric(const MetricMetadata& metadata, MetricType type)
-: mMetadata(metadata)
-, mType(type)
+    : mMetadata(metadata), mType(type)
 {
 }
 
@@ -42,7 +41,7 @@ Metric::~Metric()
 ////////////////////////////////////////////////////////////////////////////////
 
 MetricGauge::MetricGauge(const MetricMetadata& metadata)
-: Metric(metadata, MetricType::GAUGE)
+    : Metric(metadata, MetricType::GAUGE)
 {
 }
 
@@ -51,7 +50,7 @@ void MetricGauge::RecordEntry(double seconds, double value)
     // TODO Add statistics support
     TimeSeriesEntry entry;
     entry.seconds = seconds;
-    entry.value = value;
+    entry.value   = value;
     mTimeSeries.push_back(entry);
 }
 
@@ -63,8 +62,8 @@ size_t MetricGauge::GetEntriesCount() const
 void MetricGauge::GetEntry(size_t index, double& seconds, double& value) const
 {
     const TimeSeriesEntry entry = mTimeSeries[index];
-    seconds = entry.seconds;
-    value = entry.value;
+    seconds                     = entry.seconds;
+    value                       = entry.value;
 }
 
 const GaugeStatistics MetricGauge::GetStatistics() const
@@ -77,7 +76,7 @@ const GaugeStatistics MetricGauge::GetStatistics() const
 ////////////////////////////////////////////////////////////////////////////////
 
 MetricCounter::MetricCounter(const MetricMetadata& metadata)
-: Metric(metadata, MetricType::COUNTER)
+    : Metric(metadata, MetricType::COUNTER)
 {
 }
 
@@ -95,7 +94,7 @@ uint64_t MetricCounter::Get() const
 ////////////////////////////////////////////////////////////////////////////////
 
 Run::Run(const char* name)
-: mName(name)
+    : mName(name)
 {
 }
 
@@ -108,8 +107,7 @@ MetricGauge* Run::AddMetricGauge(MetricMetadata metadata)
 {
     // TODO Check name double
     MetricGauge* metric = new MetricGauge(metadata);
-    if(metric == nullptr)
-    {
+    if (metric == nullptr) {
         return nullptr;
     }
     mMetrics.insert(make_pair(metadata.name, metric));
@@ -120,8 +118,7 @@ MetricCounter* Run::AddMetricCounter(MetricMetadata metadata)
 {
     // TODO Check name double
     MetricCounter* metric = new MetricCounter(metadata);
-    if(metric == nullptr)
-    {
+    if (metric == nullptr) {
         return nullptr;
     }
     mMetrics.insert(make_pair(metadata.name, metric));
@@ -136,14 +133,33 @@ Manager::Manager()
 
 Manager::~Manager()
 {
-    // TODO Delete runs
+    for (auto [key, value] : mRuns) {
+        delete value;
+    }
+    mRuns.clear();
 }
 
-Run* Manager::AddRun(const char* name)
+Result Manager::AddRun(Run*& outRun, const char* name)
 {
-    // TODO Implement
-    // TODO Check for double names
-    return nullptr;
+    outRun  = nullptr;
+    auto it = mRuns.find(name);
+    if (it != mRuns.end()) {
+        return ERROR_DUPLICATE_ELEMENT;
+    }
+    Run* run = new Run(name);
+    if (run == nullptr) {
+        return ERROR_OUT_OF_MEMORY;
+    }
+    const auto ret = mRuns.insert({name, run});
+    PPX_ASSERT_MSG(ret.second, "An insertion shall always take place when adding runs");
+    outRun = run;
+    return SUCCESS;
+}
+
+Run* Manager::GetRun(const char* name) const
+{
+    auto it = mRuns.find(name);
+    return it == mRuns.end() ? nullptr : it->second;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
