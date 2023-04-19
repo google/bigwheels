@@ -125,7 +125,7 @@ else()
     ")
 
     if (NOT PPX_BUILD_XR)
-        # OpenXR has way too many warnings to enabled -Werror with it.
+        # OpenXR has way too many warnings to enable -Werror with it.
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
             -Werror \
         ")

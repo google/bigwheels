@@ -73,7 +73,7 @@ void XrComponent::InitializeBeforeGrfxDeviceInit(const XrComponentCreateInfo& cr
 
     std::vector<const char*> xrInstanceExtensions;
     xrInstanceExtensions.push_back(graphicsAPIExtension);
-#if defined(PPX_ANDROID) and defined(PPX_OPENXR)
+#if defined(PPX_ANDROID) and (defined(PPX_OPENXR) or defined(PPX_QUEST))
     XrLoaderInitInfoAndroidKHR loaderInitInfoAndroid = {XR_TYPE_LOADER_INIT_INFO_ANDROID_KHR};
     loaderInitInfoAndroid.applicationVM              = createInfo.androidContext->activity->vm;
     loaderInitInfoAndroid.applicationContext         = createInfo.androidContext->activity->javaGameActivity;
@@ -82,7 +82,7 @@ void XrComponent::InitializeBeforeGrfxDeviceInit(const XrComponentCreateInfo& cr
     PPX_ASSERT_MSG(pfnInitializeLoaderKHR != nullptr, "Cannot get xrInitializeLoaderKHR function pointer!");
     CHECK_XR_CALL(pfnInitializeLoaderKHR((const XrLoaderInitInfoBaseHeaderKHR*)&loaderInitInfoAndroid));
     xrInstanceExtensions.push_back(XR_KHR_ANDROID_CREATE_INSTANCE_EXTENSION_NAME);
-#endif // defined(PPX_ANDROID)
+#endif // defined(PPX_ANDROID) and defined(PPX_OPENXR)
 
     if (mCreateInfo.enableDebug) {
         xrInstanceExtensions.push_back(XR_EXT_DEBUG_UTILS_EXTENSION_NAME);
@@ -138,7 +138,7 @@ void XrComponent::InitializeBeforeGrfxDeviceInit(const XrComponentCreateInfo& cr
     instanceCreateInfo.enabledApiLayerNames       = xrInstanceLayers.data();
     instanceCreateInfo.applicationInfo.apiVersion = XR_CURRENT_API_VERSION;
 
-#if defined(PPX_ANDROID)
+#if defined(PPX_OPENXR) or defined(PPX_QUEST)
     // Android Info
     XrInstanceCreateInfoAndroidKHR instanceCreateInfoAndroid = {XR_TYPE_INSTANCE_CREATE_INFO_ANDROID_KHR};
     instanceCreateInfoAndroid.next                           = nullptr;
