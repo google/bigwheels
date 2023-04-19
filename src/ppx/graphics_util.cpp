@@ -110,17 +110,17 @@ Result CopyBitmapToImage(
     // Vulkan does not have this requirement. So for the staging buffer, we want
     // to enforce the alignment for D3D12 but not for Vulkan.
     //
-    uint32_t apiRowStrideAlignement = grfx::IsDx12(pQueue->GetDevice()->GetApi()) ? PPX_D3D12_TEXTURE_DATA_PITCH_ALIGNMENT : 1;
+    uint32_t apiRowStrideAligement = grfx::IsDx12(pQueue->GetDevice()->GetApi()) ? PPX_D3D12_TEXTURE_DATA_PITCH_ALIGNMENT : 1;
     // The staging buffer's row stride alignemnt needs to be based off the bitmap's
     // width (i.e. the number of bytes we're going to copy) and not the bitmap's row
     // stride. The bitmap's may be padded beyond width * pixel stride.
     //
-    uint32_t stagingBufferignedRowStride = RoundUp<uint32_t>(rowCopySize, apiRowStrideAlignement);
+    uint32_t stagingBufferRowStride = RoundUp<uint32_t>(rowCopySize, apiRowStrideAligement);
 
     // Create staging buffer
     grfx::BufferPtr stagingBuffer;
     {
-        uint64_t bufferSize = stagingBufferignedRowStride * pBitmap->GetHeight();
+        uint64_t bufferSize = stagingBufferRowStride * pBitmap->GetHeight();
 
         grfx::BufferCreateInfo ci      = {};
         ci.size                        = bufferSize;
@@ -143,7 +143,7 @@ Result CopyBitmapToImage(
         const char*    pSrc         = pBitmap->GetData();
         char*          pDst         = static_cast<char*>(pBufferAddress);
         const uint32_t srcRowStride = pBitmap->GetRowStride();
-        const uint32_t dstRowStride = stagingBufferignedRowStride;
+        const uint32_t dstRowStride = stagingBufferRowStride;
         for (uint32_t y = 0; y < pBitmap->GetHeight(); ++y) {
             memcpy(pDst, pSrc, rowCopySize);
             pSrc += srcRowStride;
@@ -157,7 +157,7 @@ Result CopyBitmapToImage(
     grfx::BufferToImageCopyInfo copyInfo = {};
     copyInfo.srcBuffer.imageWidth        = pBitmap->GetWidth();
     copyInfo.srcBuffer.imageHeight       = pBitmap->GetHeight();
-    copyInfo.srcBuffer.imageRowStride    = stagingBufferignedRowStride;
+    copyInfo.srcBuffer.imageRowStride    = stagingBufferRowStride;
     copyInfo.srcBuffer.footprintOffset   = 0;
     copyInfo.srcBuffer.footprintWidth    = pBitmap->GetWidth();
     copyInfo.srcBuffer.footprintHeight   = pBitmap->GetHeight();
