@@ -37,3 +37,11 @@ generate_rules_for_shader("shader_mtl_pbr"
     SOURCE "${PPX_DIR}/assets/materials/shaders/PBR.hlsl"
     INCLUDES ${INCLUDE_FILES}
     STAGES "ps")
+
+generate_rules_for_shader("shader_mtl_env_draw_vertex_shader"
+    SOURCE "${PPX_DIR}/assets/materials/shaders/EnvDraw.hlsl"
+    STAGES "vs")
+
+generate_rules_for_shader("shader_mtl_env_draw_pixel_shader"
+    SOURCE "${PPX_DIR}/assets/materials/shaders/EnvDraw.hlsl"
+    STAGES "ps")

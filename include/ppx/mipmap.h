@@ -20,6 +20,22 @@
 
 namespace ppx {
 
+//! @class MipMap
+//!
+//! Stores a mipmap as a linear chunk of memory with each mip level accessible
+//! as a Bitmap. 
+//!
+//! The expected disk format used by Mipmap::LoadFile is an vertically tailed
+//! mip map:
+//!   +---------------------+
+//!   | MIP 0               |
+//!   |                     |
+//!   +---------------------+
+//!   | MIP 1    |          |
+//!   +----------+----------+
+//!   | ... |               |
+//!   +-----+---------------+
+//!
 class Mipmap
 {
 public:
@@ -40,11 +56,11 @@ public:
     uint32_t GetHeight(uint32_t level) const;
 
     static uint32_t CalculateLevelCount(uint32_t width, uint32_t height);
-    static Result   LoadFile(const std::filesystem::path& path, Mipmap* pMipmap, uint32_t levelCount = PPX_REMAINING_MIP_LEVELS);
+    static Result   LoadFile(const std::filesystem::path& path, uint32_t baseWidth, uint32_t baseHeight, Mipmap* pMipmap, uint32_t levelCount = PPX_REMAINING_MIP_LEVELS);
+    static Result   SaveFile(const std::filesystem::path& path, const Mipmap* pMipmap, uint32_t levelCount = PPX_REMAINING_MIP_LEVELS);
 
 private:
-    std::vector<char>
-                        mData;
+    std::vector<char>   mData;
     std::vector<Bitmap> mMips;
 };
 
