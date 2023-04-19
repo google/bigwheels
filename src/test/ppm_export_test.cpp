@@ -95,7 +95,7 @@ TEST(PPMExport, ExportRGB_UNORM)
 TEST(PPMExport, ExportRGB_SINT)
 {
     std::stringstream buffer(std::stringstream::out | std::stringstream::in | std::ios::binary);
-    std::vector<char> texels = {-128, -127, -126, 0, 1, 2, 127, 126, 125, -1, -2, -3};
+    std::vector<signed char> texels = {-128, -127, -126, 0, 1, 2, 127, 126, 125, -1, -2, -3};
     Result            res    = ExportToPPM(buffer, grfx::FORMAT_R8G8B8_SINT, texels.data(), 2, 2, 6);
     EXPECT_EQ(res, 0);
 
@@ -113,7 +113,7 @@ TEST(PPMExport, ExportRGB_SINT)
 TEST(PPMExport, ExportRGB_SNORM)
 {
     std::stringstream buffer(std::stringstream::out | std::stringstream::in | std::ios::binary);
-    std::vector<char> texels = {-128, -127, -126, 0, 1, 2, 127, 126, 125, -1, -2, -3};
+    std::vector<signed char> texels = {-128, -127, -126, 0, 1, 2, 127, 126, 125, -1, -2, -3};
     Result            res    = ExportToPPM(buffer, grfx::FORMAT_R8G8B8_SNORM, texels.data(), 2, 2, 6);
     EXPECT_EQ(res, 0);
 
