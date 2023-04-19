@@ -23,7 +23,7 @@ namespace ppx {
 //! @class MipMap
 //!
 //! Stores a mipmap as a linear chunk of memory with each mip level accessible
-//! as a Bitmap. 
+//! as a Bitmap.
 //!
 //! The expected disk format used by Mipmap::LoadFile is an vertically tailed
 //! mip map:
