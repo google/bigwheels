@@ -25,6 +25,7 @@
 
 #include <deque>
 #include <filesystem>
+#include <cinttypes>
 
 // clang-format off
 #if ! defined(GLFW_INCLUDE_NONE)
