@@ -1010,11 +1010,10 @@ void ProjApp::Setup()
             shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
             PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &PS));
 
-            grfx::GraphicsPipelineCreateInfo2 gpCreateInfo = {};
             gpCreateInfo.vertexInputState.bindingCount     = CountU32(mEnvDrawMesh->GetDerivedVertexBindings());
             gpCreateInfo.vertexInputState.bindings[0]      = mEnvDrawMesh->GetDerivedVertexBindings()[0];
             gpCreateInfo.vertexInputState.bindings[1]      = mEnvDrawMesh->GetDerivedVertexBindings()[1];
-            gpCreateInfo.frontFace                         = grfx::FRONT_FACE_CCW;
+            gpCreateInfo.cullMode                          = grfx::CULL_MODE_FRONT;
             gpCreateInfo.pPipelineInterface                = mEnvDrawPipelineInterface;
 
             gpCreateInfo.VS = {VS.Get(), "vsmain"};
