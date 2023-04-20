@@ -70,7 +70,7 @@ void MetricGauge::GetEntry(size_t index, double& seconds, double& value) const
     value                       = entry.value;
 }
 
-const GaugeStatistics MetricGauge::GetStatistics() const
+const GaugeStatistics MetricGauge::GetStatistics(bool realtime) const
 {
     GaugeStatistics statistics = {};
     // TODO Implement

@@ -99,7 +99,7 @@ public:
     size_t GetEntriesCount() const;
     void   GetEntry(size_t index, double& seconds, double& value) const;
 
-    const GaugeStatistics GetStatistics() const;
+    const GaugeStatistics GetStatistics(bool realtime) const;
 
 private:
     struct TimeSeriesEntry

@@ -237,4 +237,36 @@ TEST_F(MetricsTestFixture, MetricsCounter)
     ASSERT_EQ(pMetric->Get(), 5U);
 }
 
+TEST_F(MetricsTestFixture, MetricsGaugeEntries)
+{
+    constexpr const char*   METRIC_NAME = "frame_time";
+    metrics::MetricGauge*   pMetric;
+    metrics::MetricMetadata metadata;
+    metadata.name       = METRIC_NAME;
+    const Result result = pRun->AddMetricGauge(pMetric, metadata);
+    ASSERT_EQ(pMetric->GetMetadata().name, METRIC_NAME);
+    ASSERT_EQ(pMetric->GetType(), metrics::MetricType::GAUGE);
+
+    ASSERT_EQ(pMetric->GetEntriesCount(), 0U);
+    pMetric->RecordEntry(0.0000, 11.0);
+    ASSERT_EQ(pMetric->GetEntriesCount(), 1U);
+    pMetric->RecordEntry(0.0110, 11.7);
+    ASSERT_EQ(pMetric->GetEntriesCount(), 2U);
+    pMetric->RecordEntry(0.0227, 12.2);
+    ASSERT_EQ(pMetric->GetEntriesCount(), 3U);
+    pMetric->RecordEntry(0.0349, 10.8);
+    ASSERT_EQ(pMetric->GetEntriesCount(), 4U);
+    pMetric->RecordEntry(0.0457, 11.1);
+    ASSERT_EQ(pMetric->GetEntriesCount(), 5U);
+
+    double seconds;
+    double value;
+    pMetric->GetEntry(0, seconds, value);
+    ASSERT_EQ(seconds, 0.0000);
+    ASSERT_EQ(value, 11.0);
+    pMetric->GetEntry(4, seconds, value);
+    ASSERT_EQ(seconds, 0.0457);
+    ASSERT_EQ(value, 11.1);
+}
+
 } // namespace ppx
