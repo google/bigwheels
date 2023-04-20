@@ -88,6 +88,9 @@ struct GaugeStatistics
     double median;
     double standardDeviation;
     double timeRatio;
+    double percentile90;
+    double percentile95;
+    double percentile99;
 };
 
 class MetricGauge final : public Metric
@@ -112,8 +115,12 @@ private:
     ~MetricGauge();
     METRICS_NO_COPY(MetricGauge)
 
+    void UpdateRealTimeStatistics(double seconds, double value);
+
 private:
     std::vector<TimeSeriesEntry> mTimeSeries;
+    GaugeStatistics              mRealTimeStatistics;
+    double                       mAccumlatedValue;
 };
 
 ////////////////////////////////////////////////////////////////////////////////

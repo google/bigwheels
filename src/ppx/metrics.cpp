@@ -19,6 +19,15 @@ namespace metrics {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+Metric::Metric(const MetricMetadata& metadata, MetricType type)
+    : mMetadata(metadata), mType(type)
+{
+}
+
+Metric::~Metric()
+{
+}
+
 const MetricMetadata& Metric::GetMetadata() const
 {
     return mMetadata;
@@ -29,33 +38,28 @@ MetricType Metric::GetType() const
     return mType;
 }
 
-Metric::Metric(const MetricMetadata& metadata, MetricType type)
-    : mMetadata(metadata), mType(type)
-{
-}
-
-Metric::~Metric()
-{
-}
-
 ////////////////////////////////////////////////////////////////////////////////
+
+MetricGauge::MetricGauge(const MetricMetadata& metadata)
+    : Metric(metadata, MetricType::GAUGE)
+{
+    memset(&mRealTimeStatistics, 0, sizeof(mRealTimeStatistics));
+    mRealTimeStatistics.min = std::numeric_limits<double>::max();
+    mRealTimeStatistics.max = std::numeric_limits<double>::min();
+}
 
 MetricGauge::~MetricGauge()
 {
 }
 
-MetricGauge::MetricGauge(const MetricMetadata& metadata)
-    : Metric(metadata, MetricType::GAUGE)
-{
-}
-
 void MetricGauge::RecordEntry(double seconds, double value)
 {
-    // TODO Add statistics support
     TimeSeriesEntry entry;
     entry.seconds = seconds;
     entry.value   = value;
     mTimeSeries.push_back(entry);
+
+    UpdateRealTimeStatistics(seconds, value);
 }
 
 size_t MetricGauge::GetEntriesCount() const
@@ -72,19 +76,50 @@ void MetricGauge::GetEntry(size_t index, double& seconds, double& value) const
 
 const GaugeStatistics MetricGauge::GetStatistics(bool realtime) const
 {
-    GaugeStatistics statistics = {};
-    // TODO Implement
+    GaugeStatistics statistics   = mRealTimeStatistics;
+    const size_t    entriesCount = mTimeSeries.size();
+    if (!realtime && entriesCount > 0) {
+        std::vector<TimeSeriesEntry> sorted = mTimeSeries;
+        std::sort(
+            sorted.begin(), sorted.end(), [](const TimeSeriesEntry& lhs, const TimeSeriesEntry& rhs) {
+                return lhs.value < rhs.value;
+            });
+
+        const size_t medianIndex = (entriesCount / 2U) + (((entriesCount & 0x1U) && entriesCount > 1) ? 1U : 0U);
+        statistics.median        = sorted[medianIndex].value;
+
+        // TODO Implement standard deviation
+        // TODO Implement time ratio
+
+        const size_t percentileIndex90 = entriesCount * 90 / 100;
+        statistics.percentile90        = sorted[percentileIndex90].value;
+        const size_t percentileIndex95 = entriesCount * 95 / 100;
+        statistics.percentile95        = sorted[percentileIndex95].value;
+        const size_t percentileIndex99 = entriesCount * 99 / 100;
+        statistics.percentile99        = sorted[percentileIndex99].value;
+    }
     return statistics;
+}
+
+void MetricGauge::UpdateRealTimeStatistics(double seconds, double value)
+{
+    mAccumlatedValue += value;
+
+    mRealTimeStatistics.min     = std::min(mRealTimeStatistics.min, value);
+    mRealTimeStatistics.max     = std::max(mRealTimeStatistics.max, value);
+    mRealTimeStatistics.average = mAccumlatedValue / GetEntriesCount();
+
+    // TODO Implement
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-MetricCounter::~MetricCounter()
+MetricCounter::MetricCounter(const MetricMetadata& metadata)
+    : Metric(metadata, MetricType::COUNTER), mCounter(0U)
 {
 }
 
-MetricCounter::MetricCounter(const MetricMetadata& metadata)
-    : Metric(metadata, MetricType::COUNTER), mCounter(0U)
+MetricCounter::~MetricCounter()
 {
 }
 
