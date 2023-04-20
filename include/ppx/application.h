@@ -490,9 +490,10 @@ private:
 
 #if defined(PPX_BUILD_XR)
     XrComponent mXrComponent;
-    uint32_t    mDebugCaptureSwapchainIndex = 0;
-    uint32_t    mUISwapchainIndex           = 0;
-    uint32_t    mStereoscopicSwapchainIndex = 0;
+    uint32_t    mDebugCaptureSwapchainIndex  = 0;
+    uint32_t    mUISwapchainIndex            = 0;
+    uint32_t    mStereoscopicSwapchainIndex  = 0;
+    int         mTogglePassthroughFrameCount = 0;
 #endif
 };
 
