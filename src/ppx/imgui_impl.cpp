@@ -37,6 +37,10 @@
 #include "ppx/grfx/vk/vk_render_pass.h"
 #endif // defined(PPX_VULKAN)
 
+#if defined(PPX_ANDROID)
+#include "backends/imgui_impl_android.h"
+#endif
+
 #if defined(PPX_MSW)
 #include <ShellScalingApi.h>
 #endif
@@ -226,13 +230,17 @@ void ImGuiImplDx12::Render(grfx::CommandBuffer* pCommandBuffer)
 // -------------------------------------------------------------------------------------------------
 // ImGuiImplVk
 // -------------------------------------------------------------------------------------------------
-#if defined(PPX_VULKAN) && !defined(PPX_ANDROID)
+#if defined(PPX_VULKAN)
 
 Result ImGuiImplVk::InitApiObjects(ppx::Application* pApp)
 {
+#if defined(PPX_ANDROID)
+    ImGui_ImplAndroid_Init(pApp->GetAndroidContext()->window);
+#else
     // Setup GLFW binding
     GLFWwindow* pWindow = static_cast<GLFWwindow*>(pApp->GetWindow());
     ImGui_ImplGlfw_InitForVulkan(pWindow, false);
+#endif
 
     // Setup style
     SetColorStyle();
@@ -330,7 +338,11 @@ Result ImGuiImplVk::InitApiObjects(ppx::Application* pApp)
 void ImGuiImplVk::Shutdown(ppx::Application* pApp)
 {
     ImGui_ImplVulkan_Shutdown();
+#if defined(PPX_ANDROID)
+    ImGui_ImplAndroid_Shutdown();
+#else
     ImGui_ImplGlfw_Shutdown();
+#endif
     ImGui::DestroyContext();
 
     if (mPool) {
@@ -342,7 +354,11 @@ void ImGuiImplVk::Shutdown(ppx::Application* pApp)
 void ImGuiImplVk::NewFrameApi()
 {
     ImGui_ImplVulkan_NewFrame();
+#if defined(PPX_ANDROID)
+    ImGui_ImplAndroid_NewFrame();
+#else
     ImGui_ImplGlfw_NewFrame();
+#endif
     ImGui::NewFrame();
 }
 
@@ -351,25 +367,6 @@ void ImGuiImplVk::Render(grfx::CommandBuffer* pCommandBuffer)
     ImGui::Render();
     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), grfx::vk::ToApi(pCommandBuffer)->GetVkCommandBuffer());
 }
-
-#elif defined(PPX_ANDROID)
-Result ImGuiImplVk::InitApiObjects(ppx::Application* pApp)
-{
-    return ppx::SUCCESS;
-}
-
-void ImGuiImplVk::Shutdown(ppx::Application* pApp)
-{
-}
-
-void ImGuiImplVk::NewFrameApi()
-{
-}
-
-void ImGuiImplVk::Render(grfx::CommandBuffer* pCommandBuffer)
-{
-}
-
 #endif // defined(PPX_VULKAN)
 
 } // namespace ppx
