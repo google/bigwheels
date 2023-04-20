@@ -18,7 +18,44 @@
 
 namespace ppx {
 
-TEST(MetricsTest, ManagerAddRunSingle)
+////////////////////////////////////////////////////////////////////////////////
+// Fixture
+////////////////////////////////////////////////////////////////////////////////
+
+class MetricsTestFixture : public ::testing::Test
+{
+protected:
+    inline static const char* DEFAULT_RUN_NAME = "default_run";
+
+protected:
+    void SetUp() override
+    {
+        pManager = new metrics::Manager();
+        ASSERT_NE(pManager, nullptr);
+        const Result result = pManager->AddRun(pRun, DEFAULT_RUN_NAME);
+        ASSERT_EQ(result, SUCCESS);
+        ASSERT_EQ(pRun, pManager->GetRun(DEFAULT_RUN_NAME));
+        ASSERT_EQ(nullptr, pManager->GetRun("dummy"));
+    }
+
+    void TearDown() override
+    {
+        if (pManager != nullptr) {
+            delete pManager;
+            pManager = nullptr;
+        }
+    }
+
+protected:
+    metrics::Manager* pManager;
+    metrics::Run*     pRun;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+// Manager
+////////////////////////////////////////////////////////////////////////////////
+
+TEST(MetricsTest, ManagerAddSingleRun)
 {
     metrics::Manager      manager;
     metrics::Run*         run;
@@ -29,7 +66,7 @@ TEST(MetricsTest, ManagerAddRunSingle)
     ASSERT_EQ(nullptr, manager.GetRun("dummy"));
 }
 
-TEST(MetricsTest, ManagerAddRunMultiple)
+TEST(MetricsTest, ManagerAddMultipleRun)
 {
     metrics::Manager manager;
 
@@ -54,7 +91,7 @@ TEST(MetricsTest, ManagerAddRunMultiple)
     }
 }
 
-TEST(MetricsTest, ManagerAddRunDuplicate)
+TEST(MetricsTest, ManagerAddDuplicateRun)
 {
     metrics::Manager      manager;
     constexpr const char* RUN_NAME = "run";
@@ -72,7 +109,11 @@ TEST(MetricsTest, ManagerAddRunDuplicate)
     }
 }
 
-TEST(MetricsTest, RunAddMetricSingle)
+////////////////////////////////////////////////////////////////////////////////
+// Run
+////////////////////////////////////////////////////////////////////////////////
+
+TEST(MetricsTest, RunAddSingleMetric)
 {
     metrics::Manager manager;
     {
@@ -112,7 +153,7 @@ TEST(MetricsTest, RunAddMetricSingle)
     }
 }
 
-TEST(MetricsTest, RunAddMetricMultiple)
+TEST(MetricsTest, RunAddMultipleMetric)
 {
     Result           result;
     metrics::Manager manager;
@@ -148,7 +189,7 @@ TEST(MetricsTest, RunAddMetricMultiple)
     ASSERT_EQ(run->GetMetricCounter(METRIC_NAME_GAUGE), nullptr);
 }
 
-TEST(MetricsTest, RunAddMetricDuplicate)
+TEST(MetricsTest, RunAddDuplicateMetric)
 {
     Result           result;
     metrics::Manager manager;
@@ -173,6 +214,27 @@ TEST(MetricsTest, RunAddMetricDuplicate)
     result = run->AddMetricCounter(metricCounter, metadata);
     ASSERT_EQ(result, ERROR_DUPLICATE_ELEMENT);
     ASSERT_EQ(metricCounter, nullptr);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Metrics
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_F(MetricsTestFixture, MetricsCounter)
+{
+    constexpr const char*   METRIC_NAME = "counter";
+    metrics::MetricCounter* pMetric;
+    metrics::MetricMetadata metadata;
+    metadata.name       = METRIC_NAME;
+    const Result result = pRun->AddMetricCounter(pMetric, metadata);
+    ASSERT_EQ(pMetric->GetMetadata().name, METRIC_NAME);
+    ASSERT_EQ(pMetric->GetType(), metrics::MetricType::COUNTER);
+    ASSERT_EQ(pMetric->Get(), 0U);
+
+    pMetric->Increment(1U);
+    ASSERT_EQ(pMetric->Get(), 1U);
+    pMetric->Increment(4U);
+    ASSERT_EQ(pMetric->Get(), 5U);
 }
 
 } // namespace ppx

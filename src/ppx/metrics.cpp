@@ -84,7 +84,7 @@ MetricCounter::~MetricCounter()
 }
 
 MetricCounter::MetricCounter(const MetricMetadata& metadata)
-    : Metric(metadata, MetricType::COUNTER)
+    : Metric(metadata, MetricType::COUNTER), mCounter(0U)
 {
 }
 
