@@ -54,6 +54,8 @@ MetricGauge::~MetricGauge()
 
 void MetricGauge::RecordEntry(double seconds, double value)
 {
+    PPX_ASSERT_MSG(mTimeSeries.size() == 0 || seconds >= mTimeSeries.back().seconds, "The entries' seconds must form a monotically increasing function");
+
     TimeSeriesEntry entry;
     entry.seconds = seconds;
     entry.value   = value;
@@ -98,8 +100,6 @@ const GaugeStatistics MetricGauge::GetStatistics(bool realtime) const
             statistics.standardDeviation = sqrt(variance);
         }
 
-        // TODO Implement time ratio
-
         const size_t percentileIndex90 = entriesCount * 90 / 100;
         statistics.percentile90        = sorted[percentileIndex90].value;
         const size_t percentileIndex95 = entriesCount * 95 / 100;
@@ -114,11 +114,20 @@ void MetricGauge::UpdateRealTimeStatistics(double seconds, double value)
 {
     mAccumlatedValue += value;
 
-    mRealTimeStatistics.min     = std::min(mRealTimeStatistics.min, value);
-    mRealTimeStatistics.max     = std::max(mRealTimeStatistics.max, value);
-    mRealTimeStatistics.average = mAccumlatedValue / GetEntriesCount();
+    mRealTimeStatistics.min = std::min(mRealTimeStatistics.min, value);
+    mRealTimeStatistics.max = std::max(mRealTimeStatistics.max, value);
 
-    // TODO Implement
+    const size_t entriesCount   = mTimeSeries.size();
+    mRealTimeStatistics.average = mAccumlatedValue / entriesCount;
+    if (entriesCount > 1) {
+        const double timeSpan = mTimeSeries.back().value - mTimeSeries.front().value;
+        statistics.timeRatio  = mAccumlatedValue / timeSpan;
+    }
+    else {
+        statistics.timeRatio = mTimeSeries.front().value;
+    }
+
+    // TODO Implement median, standard deviation and percentiles approximations if necessary at runtime
 }
 
 ////////////////////////////////////////////////////////////////////////////////
