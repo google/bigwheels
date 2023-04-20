@@ -25,6 +25,11 @@
 namespace ppx {
 namespace metrics {
 
+#define METRICS_NO_COPY(type)              \
+    type(type&)                  = delete; \
+    type(const type&)            = delete; \
+    type& operator=(const type&) = delete;
+
 ////////////////////////////////////////////////////////////////////////////////
 
 enum class MetricInterpretation
@@ -104,8 +109,8 @@ private:
     };
 
 private:
-    MetricGauge(MetricGauge&) = delete;
     ~MetricGauge();
+    METRICS_NO_COPY(MetricGauge)
 
 private:
     std::vector<TimeSeriesEntry> mTimeSeries;
@@ -123,8 +128,8 @@ public:
     uint64_t Get() const;
 
 private:
-    MetricCounter(MetricCounter&) = delete;
     ~MetricCounter();
+    METRICS_NO_COPY(MetricCounter)
 
 private:
     uint64_t mCounter;
@@ -146,8 +151,7 @@ public:
 private:
     Run(const char* name);
     ~Run();
-    Run(Run&)       = delete;
-    Run(const Run&) = delete;
+    METRICS_NO_COPY(Run)
 
     Metric* GetMetric(const char* name) const;
 
@@ -171,14 +175,15 @@ public:
     Run*   GetRun(const char* name) const;
 
 private:
-    Manager(Manager&)       = delete;
-    Manager(const Manager&) = delete;
+    METRICS_NO_COPY(Manager)
 
 private:
     std::unordered_map<std::string, Run*> mRuns;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
+
+#undef METRICS_NO_COPY
 
 } // namespace metrics
 } // namespace ppx
