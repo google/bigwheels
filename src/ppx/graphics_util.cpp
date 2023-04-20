@@ -1149,11 +1149,11 @@ Result CreateIBLTexturesFromFile(
     grfx::Queue*                 pQueue,
     const std::filesystem::path& path,
     grfx::Texture**              ppIrradianceTexture,
-    grfx::Texture**              ppEnvironemntTexture)
+    grfx::Texture**              ppEnvironmentTexture)
 {
     PPX_ASSERT_NULL_ARG(pQueue);
     PPX_ASSERT_NULL_ARG(ppIrradianceTexture);
-    PPX_ASSERT_NULL_ARG(ppEnvironemntTexture);
+    PPX_ASSERT_NULL_ARG(ppEnvironmentTexture);
 
     std::ifstream is = std::ifstream(path.string().c_str());
     if (!is.is_open()) {
@@ -1195,7 +1195,7 @@ Result CreateIBLTexturesFromFile(
     }
 
     // Create environment texture
-    ppxres = CreateTextureFromMipmap(pQueue, &mipmap, ppEnvironemntTexture);
+    ppxres = CreateTextureFromMipmap(pQueue, &mipmap, ppEnvironmentTexture);
     if (Failed(ppxres)) {
         return ppxres;
     }

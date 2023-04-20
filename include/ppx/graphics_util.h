@@ -238,7 +238,7 @@ Result CreateIBLTexturesFromFile(
     grfx::Queue*                 pQueue,
     const std::filesystem::path& path,
     grfx::Texture**              ppIrradianceTexture,
-    grfx::Texture**              ppEnvironemntTexture);
+    grfx::Texture**              ppEnvironmentTexture);
 
 // -------------------------------------------------------------------------------------------------
 
