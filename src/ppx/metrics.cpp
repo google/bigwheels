@@ -88,7 +88,16 @@ const GaugeStatistics MetricGauge::GetStatistics(bool realtime) const
         const size_t medianIndex = (entriesCount / 2U) + (((entriesCount & 0x1U) && entriesCount > 1) ? 1U : 0U);
         statistics.median        = sorted[medianIndex].value;
 
-        // TODO Implement standard deviation
+        {
+            double squareDiffSum = 0.0;
+            for (auto entry : mTimeSeries) {
+                const double diff = entry.value - mRealTimeStatistics.average;
+                squareDiffSum += (diff * diff);
+            }
+            const double variance        = squareDiffSum / entriesCount;
+            statistics.standardDeviation = sqrt(variance);
+        }
+
         // TODO Implement time ratio
 
         const size_t percentileIndex90 = entriesCount * 90 / 100;
