@@ -787,27 +787,26 @@ void ProjApp::Setup()
         bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_GPU_ONLY;
         PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mGpuEnvDrawConstants));
 
-        grfx::WriteDescriptor write = {};
-        write.binding               = 0;
-        write.arrayIndex            = 0;
-        write.type                  = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        write.bufferOffset          = 0;
-        write.bufferRange           = PPX_WHOLE_SIZE;
-        write.pBuffer               = mGpuEnvDrawConstants;
-        PPX_CHECKED_CALL(mEnvDrawSet->UpdateDescriptors(1, &write));
+        grfx::WriteDescriptor writes[3] = {};
+        // Constants
+        writes[0].binding      = 0;
+        writes[0].arrayIndex   = 0;
+        writes[0].type         = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        writes[0].bufferOffset = 0;
+        writes[0].bufferRange  = PPX_WHOLE_SIZE;
+        writes[0].pBuffer      = mGpuEnvDrawConstants;
+        // IBL texture
+        writes[1].binding    = 1;
+        writes[1].arrayIndex = 0;
+        writes[1].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        writes[1].pImageView = mIBLResources[mCurrentIBLIndex].environmentTexture->GetSampledImageView();
+        // Sampler
+        writes[2].binding    = 2;
+        writes[2].arrayIndex = 0;
+        writes[2].type       = grfx::DESCRIPTOR_TYPE_SAMPLER;
+        writes[2].pSampler   = mSampler;
 
-        write            = {};
-        write.binding    = 1;
-        write.arrayIndex = 0;
-        write.type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        write.pImageView = mIBLResources[mCurrentIBLIndex].environmentTexture->GetSampledImageView();
-        PPX_CHECKED_CALL(mEnvDrawSet->UpdateDescriptors(1, &write));
-
-        write.binding    = 2;
-        write.arrayIndex = 0;
-        write.type       = grfx::DESCRIPTOR_TYPE_SAMPLER;
-        write.pSampler   = mSampler;
-        PPX_CHECKED_CALL(mEnvDrawSet->UpdateDescriptors(1, &write));
+        PPX_CHECKED_CALL(mEnvDrawSet->UpdateDescriptors(3, writes));
     }
 
     // Material data resources

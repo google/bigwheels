@@ -222,7 +222,7 @@ Result Mipmap::LoadFile(const std::filesystem::path& path, uint32_t baseWidth, u
         totalHeight += (baseHeight >> i);
     }
 
-    // Verify that dimemnsions make sense
+    // Verify that dimensions make sense
     if ((width != baseWidth) || (height < totalHeight)) {
         return ppx::ERROR_BITMAP_FOOTPRINT_MISMATCH;
     }
