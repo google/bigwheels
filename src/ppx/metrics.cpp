@@ -120,11 +120,11 @@ void MetricGauge::UpdateRealTimeStatistics(double seconds, double value)
     const size_t entriesCount   = mTimeSeries.size();
     mRealTimeStatistics.average = mAccumlatedValue / entriesCount;
     if (entriesCount > 1) {
-        const double timeSpan = mTimeSeries.back().value - mTimeSeries.front().value;
-        statistics.timeRatio  = mAccumlatedValue / timeSpan;
+        const double timeSpan         = mTimeSeries.back().value - mTimeSeries.front().value;
+        mRealTimeStatistics.timeRatio = mAccumlatedValue / timeSpan;
     }
     else {
-        statistics.timeRatio = mTimeSeries.front().value;
+        mRealTimeStatistics.timeRatio = mTimeSeries.front().value;
     }
 
     // TODO Implement median, standard deviation and percentiles approximations if necessary at runtime
