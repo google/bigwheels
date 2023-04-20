@@ -48,7 +48,7 @@ const grfx::Api kApi = grfx::API_VK_1_1;
 #define NORMAL_MAP_TEXTURE_REGISTER 8
 #define AMB_OCC_TEXTURE_REGISTER    9
 #define HEIGHT_MAP_TEXTURE_REGISTER 10
-#define IBL_MAP_TEXTURE_REGISTER    11
+#define IRR_MAP_TEXTURE_REGISTER    11
 #define ENV_MAP_TEXTURE_REGISTER    12
 
 const float3 F0_MetalTitanium   = float3(0.542f, 0.497f, 0.449f);
@@ -103,6 +103,7 @@ private:
     PerspCamera                mCamera;
     grfx::DescriptorPoolPtr    mDescriptorPool;
     std::vector<grfx::MeshPtr> mMeshes;
+    grfx::MeshPtr              mEnvDrawMesh;
 
     // Descriptor Set 0 - Scene Data
     grfx::DescriptorSetLayoutPtr mSceneDataLayout;
@@ -114,6 +115,8 @@ private:
 
     // Descriptor Set 1 - MaterialData Resources
     grfx::DescriptorSetLayoutPtr mMaterialResourcesLayout;
+    grfx::BufferPtr              mCpuEnvDrawConstants;
+    grfx::BufferPtr              mGpuEnvDrawConstants;
 
     struct MaterialResources
     {
@@ -135,6 +138,13 @@ private:
     MaterialResources                 mHorseStatueMaterial;
     std::vector<grfx::DescriptorSet*> mMaterialResourcesSets;
 
+    struct IBLResources
+    {
+        grfx::TexturePtr irradianceTexture;
+        grfx::TexturePtr environmentTexture;
+    };
+    std::vector<IBLResources> mIBLResources;
+
     // Descriptor Set 2 - MaterialData Data
     grfx::DescriptorSetLayoutPtr mMaterialDataLayout;
     grfx::DescriptorSetPtr       mMaterialDataSet;
@@ -147,12 +157,19 @@ private:
     grfx::BufferPtr              mCpuModelConstants;
     grfx::BufferPtr              mGpuModelConstants;
 
+    // Descriptor Set 4 - Env Draw Data
+    grfx::DescriptorSetLayoutPtr mEnvDrawLayout;
+    grfx::DescriptorSetPtr       mEnvDrawSet;
+
     grfx::PipelineInterfacePtr           mPipelineInterface;
     grfx::GraphicsPipelinePtr            mGouraudPipeline;
     grfx::GraphicsPipelinePtr            mPhongPipeline;
     grfx::GraphicsPipelinePtr            mBlinnPhongPipeline;
     grfx::GraphicsPipelinePtr            mPBRPipeline;
     std::vector<grfx::GraphicsPipeline*> mShaderPipelines;
+
+    grfx::PipelineInterfacePtr mEnvDrawPipelineInterface;
+    grfx::GraphicsPipelinePtr  mEnvDrawPipeline;
 
     struct MaterialData
     {
@@ -169,11 +186,13 @@ private:
         bool   envSelect       = 1;    // 0 = none,  1 = texture
     };
 
-    float        mRotY         = 0;
-    float        mTargetRotY   = 0;
-    float        mAmbient      = 0;
-    MaterialData mMaterialData = {};
-    float3       mAlbedoColor  = float3(1);
+    float        mModelRotY        = 0;
+    float        mTargetModelRotY  = 0;
+    float        mCameraRotY       = 0;
+    float        mTargetCameraRotY = 0;
+    float        mAmbient          = 0;
+    MaterialData mMaterialData     = {};
+    float3       mAlbedoColor      = float3(1);
 
     std::vector<float3> mF0 = {
         F0_MetalTitanium,
@@ -250,6 +269,18 @@ private:
         "PBR",
     };
 
+    uint32_t                 mIBLIndex        = 0;
+    uint32_t                 mCurrentIBLIndex = 0;
+    std::vector<const char*> mIBLNames        = {
+        "Old Depot",
+        "Palermo Square",
+        "Venice Sunset",
+        "Hilly Terrain",
+        "Neon Photo Studio",
+        "Sky Lit Garage",
+        "Noon Grass",
+    };
+
 private:
     void SetupSamplers();
     void SetupMaterialResources(
@@ -259,6 +290,7 @@ private:
         const std::filesystem::path& normalMapPath,
         MaterialResources&           materialResources);
     void SetupMaterials();
+    void SetupIBL();
     void DrawGui();
 };
 
@@ -342,23 +374,23 @@ void ProjApp::SetupMaterialResources(
         PPX_CHECKED_CALL(materialResources.set->UpdateDescriptors(1, &write));
     }
 
-    // IBL map (not used)
+    // Irradiance map
     {
         grfx::WriteDescriptor write = {};
-        write.binding               = IBL_MAP_TEXTURE_REGISTER;
+        write.binding               = IRR_MAP_TEXTURE_REGISTER;
         write.arrayIndex            = 0;
         write.type                  = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        write.pImageView            = m1x1WhiteTexture->GetSampledImageView();
+        write.pImageView            = mIBLResources[mCurrentIBLIndex].irradianceTexture->GetSampledImageView();
         PPX_CHECKED_CALL(materialResources.set->UpdateDescriptors(1, &write));
     }
 
-    // Environment reflection map (not used)
+    // Environment map
     {
         grfx::WriteDescriptor write = {};
         write.binding               = ENV_MAP_TEXTURE_REGISTER;
         write.arrayIndex            = 0;
         write.type                  = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-        write.pImageView            = m1x1WhiteTexture->GetSampledImageView();
+        write.pImageView            = mIBLResources[mCurrentIBLIndex].environmentTexture->GetSampledImageView();
         PPX_CHECKED_CALL(materialResources.set->UpdateDescriptors(1, &write));
     }
 
@@ -381,7 +413,7 @@ void ProjApp::SetupMaterials()
     createInfo.bindings.push_back({grfx::DescriptorBinding{ROUGHNESS_TEXTURE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS}});
     createInfo.bindings.push_back({grfx::DescriptorBinding{METALNESS_TEXTURE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS}});
     createInfo.bindings.push_back({grfx::DescriptorBinding{NORMAL_MAP_TEXTURE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS}});
-    createInfo.bindings.push_back({grfx::DescriptorBinding{IBL_MAP_TEXTURE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS}});
+    createInfo.bindings.push_back({grfx::DescriptorBinding{IRR_MAP_TEXTURE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS}});
     createInfo.bindings.push_back({grfx::DescriptorBinding{ENV_MAP_TEXTURE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS}});
     createInfo.bindings.push_back({grfx::DescriptorBinding{CLAMPED_SAMPLER_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS}});
     PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&createInfo, &mMaterialResourcesLayout));
@@ -475,11 +507,94 @@ void ProjApp::SetupMaterials()
     }
 }
 
+void ProjApp::SetupIBL()
+{
+    // Old Depot - good mix of diffused over head and bright exterior lighting from windows
+    {
+        IBLResources reses = {};
+        PPX_CHECKED_CALL(grfx_util::CreateIBLTexturesFromFile(
+            GetDevice()->GetGraphicsQueue(),
+            GetAssetPath("poly_haven/ibl/old_depot_4k.ibl"),
+            &reses.irradianceTexture,
+            &reses.environmentTexture));
+        mIBLResources.push_back(reses);
+    }
+
+    // Palermo Square - almost fully difuse exterior lighting
+    {
+        IBLResources reses = {};
+        PPX_CHECKED_CALL(grfx_util::CreateIBLTexturesFromFile(
+            GetDevice()->GetGraphicsQueue(),
+            GetAssetPath("poly_haven/ibl/palermo_square_4k.ibl"),
+            &reses.irradianceTexture,
+            &reses.environmentTexture));
+        mIBLResources.push_back(reses);
+    }
+
+    // Venice Sunset - Golden Hour at beach
+    {
+        IBLResources reses = {};
+        PPX_CHECKED_CALL(grfx_util::CreateIBLTexturesFromFile(
+            GetDevice()->GetGraphicsQueue(),
+            GetAssetPath("poly_haven/ibl/venice_sunset_4k.ibl"),
+            &reses.irradianceTexture,
+            &reses.environmentTexture));
+        mIBLResources.push_back(reses);
+    }
+
+    // Hilly Terrain - Clear blue sky on hills
+    {
+        IBLResources reses = {};
+        PPX_CHECKED_CALL(grfx_util::CreateIBLTexturesFromFile(
+            GetDevice()->GetGraphicsQueue(),
+            GetAssetPath("poly_haven/ibl/hilly_terrain_01_4k.ibl"),
+            &reses.irradianceTexture,
+            &reses.environmentTexture));
+        mIBLResources.push_back(reses);
+    }
+
+    // Neon Photo Studio - interior artificial lighting
+    {
+        IBLResources reses = {};
+        PPX_CHECKED_CALL(grfx_util::CreateIBLTexturesFromFile(
+            GetDevice()->GetGraphicsQueue(),
+            GetAssetPath("poly_haven/ibl/neon_photostudio_4k.ibl"),
+            &reses.irradianceTexture,
+            &reses.environmentTexture));
+        mIBLResources.push_back(reses);
+    }
+
+    // Sky Lit Garage - diffused overhead exterior lighting
+    {
+        IBLResources reses = {};
+        PPX_CHECKED_CALL(grfx_util::CreateIBLTexturesFromFile(
+            GetDevice()->GetGraphicsQueue(),
+            GetAssetPath("poly_haven/ibl/skylit_garage_4k.ibl"),
+            &reses.irradianceTexture,
+            &reses.environmentTexture));
+        mIBLResources.push_back(reses);
+    }
+
+    // Noon Grass - harsh overhead exterior lighting
+    {
+        IBLResources reses = {};
+        PPX_CHECKED_CALL(grfx_util::CreateIBLTexturesFromFile(
+            GetDevice()->GetGraphicsQueue(),
+            GetAssetPath("poly_haven/ibl/noon_grass_4k.ibl"),
+            &reses.irradianceTexture,
+            &reses.environmentTexture));
+        mIBLResources.push_back(reses);
+    }
+}
+
 void ProjApp::Setup()
 {
     PPX_CHECKED_CALL(grfx_util::CreateTexture1x1<uint8_t>(GetDevice()->GetGraphicsQueue(), {0, 0, 0, 0}, &m1x1BlackTexture));
     PPX_CHECKED_CALL(grfx_util::CreateTexture1x1<uint8_t>(GetDevice()->GetGraphicsQueue(), {255, 255, 255, 255}, &m1x1WhiteTexture));
     mF0Index = static_cast<uint32_t>(mF0Names.size() - 1);
+
+    // IBL
+    SetupIBL();
 
     // Cameras
     {
@@ -577,6 +692,14 @@ void ProjApp::Setup()
         }
     }
 
+    // Environment draw mesh
+    {
+        Geometry geo;
+        TriMesh  mesh = TriMesh::CreateSphere(15.0f, 128, 64, TriMeshOptions().Indices().TexCoords());
+        PPX_CHECKED_CALL(Geometry::Create(mesh, &geo));
+        PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mEnvDrawMesh));
+    }
+
     const auto& cl_options = GetExtraOptions();
     mMaterialIndex         = cl_options.GetExtraOptionValueOrDefault<uint32_t>("material-index", mMaterialIndex);
     PPX_ASSERT_MSG(mMaterialIndex < mMaterialNames.size(), "Material index out-of-range.");
@@ -642,6 +765,50 @@ void ProjApp::Setup()
     // Samplers
     SetupSamplers();
 
+    // Env draw data
+    {
+        grfx::DescriptorSetLayoutCreateInfo createInfo = {};
+        createInfo.bindings.push_back({grfx::DescriptorBinding{0, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS}});
+        createInfo.bindings.push_back({grfx::DescriptorBinding{1, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS}});
+        createInfo.bindings.push_back({grfx::DescriptorBinding{2, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS}});
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&createInfo, &mEnvDrawLayout));
+
+        PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mEnvDrawLayout, &mEnvDrawSet));
+
+        // Scene constants
+        grfx::BufferCreateInfo bufferCreateInfo      = {};
+        bufferCreateInfo.size                        = PPX_MINIMUM_CONSTANT_BUFFER_SIZE;
+        bufferCreateInfo.usageFlags.bits.transferSrc = true;
+        bufferCreateInfo.memoryUsage                 = grfx::MEMORY_USAGE_CPU_TO_GPU;
+        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mCpuEnvDrawConstants));
+
+        bufferCreateInfo.usageFlags.bits.transferDst   = true;
+        bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
+        bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_GPU_ONLY;
+        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mGpuEnvDrawConstants));
+
+        grfx::WriteDescriptor writes[3] = {};
+        // Constants
+        writes[0].binding      = 0;
+        writes[0].arrayIndex   = 0;
+        writes[0].type         = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        writes[0].bufferOffset = 0;
+        writes[0].bufferRange  = PPX_WHOLE_SIZE;
+        writes[0].pBuffer      = mGpuEnvDrawConstants;
+        // IBL texture
+        writes[1].binding    = 1;
+        writes[1].arrayIndex = 0;
+        writes[1].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        writes[1].pImageView = mIBLResources[mCurrentIBLIndex].environmentTexture->GetSampledImageView();
+        // Sampler
+        writes[2].binding    = 2;
+        writes[2].arrayIndex = 0;
+        writes[2].type       = grfx::DESCRIPTOR_TYPE_SAMPLER;
+        writes[2].pSampler   = mSampler;
+
+        PPX_CHECKED_CALL(mEnvDrawSet->UpdateDescriptors(3, writes));
+    }
+
     // Material data resources
     SetupMaterials();
 
@@ -705,7 +872,7 @@ void ProjApp::Setup()
         PPX_CHECKED_CALL(mModelDataSet->UpdateDescriptors(1, &write));
     }
 
-    // Pipeline Interface
+    // Pipeline Interfaces
     {
         grfx::PipelineInterfaceCreateInfo createInfo = {};
         createInfo.setCount                          = 4;
@@ -719,6 +886,14 @@ void ProjApp::Setup()
         createInfo.sets[3].pLayout                   = mModelDataLayout;
 
         PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&createInfo, &mPipelineInterface));
+
+        // Env Draw
+        createInfo                 = {};
+        createInfo.setCount        = 1;
+        createInfo.sets[0].set     = 0;
+        createInfo.sets[0].pLayout = mEnvDrawLayout;
+
+        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&createInfo, &mEnvDrawPipelineInterface));
     }
 
     // Pipeline
@@ -821,6 +996,33 @@ void ProjApp::Setup()
 
             mShaderPipelines.push_back(mPBRPipeline);
         }
+
+        // Env Draw
+        {
+            bytecode = LoadShader("materials/shaders", "EnvDraw.vs");
+            PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
+            grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+            PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &VS));
+
+            grfx::ShaderModulePtr PS;
+            bytecode = LoadShader("materials/shaders", "EnvDraw.ps");
+            PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
+            shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+            PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &PS));
+
+            grfx::GraphicsPipelineCreateInfo2 gpCreateInfo = {};
+            gpCreateInfo.vertexInputState.bindingCount     = CountU32(mEnvDrawMesh->GetDerivedVertexBindings());
+            gpCreateInfo.vertexInputState.bindings[0]      = mEnvDrawMesh->GetDerivedVertexBindings()[0];
+            gpCreateInfo.vertexInputState.bindings[1]      = mEnvDrawMesh->GetDerivedVertexBindings()[1];
+            gpCreateInfo.frontFace                         = grfx::FRONT_FACE_CCW;
+            gpCreateInfo.pPipelineInterface                = mEnvDrawPipelineInterface;
+
+            gpCreateInfo.VS = {VS.Get(), "vsmain"};
+            gpCreateInfo.PS = {PS.Get(), "psmain"};
+
+            PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mEnvDrawPipeline));
+            GetDevice()->DestroyShaderModule(PS);
+        }
     }
 
     // Per frame data
@@ -866,7 +1068,12 @@ void ProjApp::Shutdown()
 void ProjApp::MouseMove(int32_t x, int32_t y, int32_t dx, int32_t dy, uint32_t buttons)
 {
     if (buttons & ppx::MOUSE_BUTTON_LEFT) {
-        mTargetRotY += 0.25f * dx;
+        if (GetKeyState(KEY_LEFT_CONTROL).down || GetKeyState(KEY_RIGHT_CONTROL).down) {
+            mTargetCameraRotY += 0.25f * dx;
+        }
+        else {
+            mTargetModelRotY += 0.25f * dx;
+        }
     }
 }
 
@@ -889,12 +1096,16 @@ void ProjApp::Render()
     // ---------------------------------------------------------------------------------------------
 
     // Smooth out the rotation on Y
-    mRotY += (mTargetRotY - mRotY) * 0.1f;
+    mModelRotY += (mTargetModelRotY - mModelRotY) * 0.1f;
+    mCameraRotY += (mTargetCameraRotY - mCameraRotY) * 0.1f;
 
     // ---------------------------------------------------------------------------------------------
 
     // Update camera(s)
-    mCamera.LookAt(float3(0, 0, 8), float3(0, 0, 0));
+    float3   startEyePos = float3(0, 0, 8);
+    float4x4 Reye        = glm::rotate(glm::radians(-mCameraRotY), float3(0, 1, 0));
+    float3   eyePos      = Reye * float4(startEyePos, 0);
+    mCamera.LookAt(eyePos, float3(0, 0, 0));
 
     // Update scene constants
     {
@@ -956,10 +1167,10 @@ void ProjApp::Render()
         pLight[3].color = float3(1.0f, 1.0f, 1.0f);
 
         // These values favor PBR and will look a bit overblown using Phong or Blinn
-        pLight[0].intensity = 0.77f;
-        pLight[1].intensity = 0.70f;
-        pLight[2].intensity = 0.85f;
-        pLight[3].intensity = 0.77f;
+        pLight[0].intensity = 0.37f;
+        pLight[1].intensity = 0.30f;
+        pLight[2].intensity = 0.45f;
+        pLight[3].intensity = 0.37f;
 
         mCpuLightConstants->UnmapMemory();
 
@@ -1012,7 +1223,7 @@ void ProjApp::Render()
 
     // Update model constants
     {
-        float4x4 R = glm::rotate(glm::radians(mRotY + 180.0f), float3(0, 1, 0));
+        float4x4 R = glm::rotate(glm::radians(mModelRotY + 180.0f), float3(0, 1, 0));
         float4x4 S = glm::scale(float3(3.0f));
         float4x4 M = R * S;
 
@@ -1036,6 +1247,52 @@ void ProjApp::Render()
 
         grfx::BufferToBufferCopyInfo copyInfo = {mCpuModelConstants->GetSize()};
         GetGraphicsQueue()->CopyBufferToBuffer(&copyInfo, mCpuModelConstants, mGpuModelConstants, grfx::RESOURCE_STATE_CONSTANT_BUFFER, grfx::RESOURCE_STATE_CONSTANT_BUFFER);
+    }
+
+    // Update env draw constants
+    {
+        float4x4 MVP = mCamera.GetViewProjectionMatrix();
+
+        void* pMappedAddress = nullptr;
+        PPX_CHECKED_CALL(mCpuEnvDrawConstants->MapMemory(0, &pMappedAddress));
+
+        std::memcpy(pMappedAddress, &MVP, sizeof(float4x4));
+
+        mCpuEnvDrawConstants->UnmapMemory();
+
+        grfx::BufferToBufferCopyInfo copyInfo = {mCpuEnvDrawConstants->GetSize()};
+        GetGraphicsQueue()->CopyBufferToBuffer(&copyInfo, mCpuEnvDrawConstants, mGpuEnvDrawConstants, grfx::RESOURCE_STATE_CONSTANT_BUFFER, grfx::RESOURCE_STATE_CONSTANT_BUFFER);
+    }
+
+    // Update descriptors if IBL selection changed
+    if (mIBLIndex != mCurrentIBLIndex) {
+        mCurrentIBLIndex = mIBLIndex;
+
+        for (auto& materialResources : mMaterialResourcesSets) {
+            // Irradiance map
+            grfx::WriteDescriptor write = {};
+            write.binding               = IRR_MAP_TEXTURE_REGISTER;
+            write.arrayIndex            = 0;
+            write.type                  = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+            write.pImageView            = mIBLResources[mCurrentIBLIndex].irradianceTexture->GetSampledImageView();
+            PPX_CHECKED_CALL(materialResources->UpdateDescriptors(1, &write));
+
+            // Environment map
+            write            = {};
+            write.binding    = ENV_MAP_TEXTURE_REGISTER;
+            write.arrayIndex = 0;
+            write.type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+            write.pImageView = mIBLResources[mCurrentIBLIndex].environmentTexture->GetSampledImageView();
+            PPX_CHECKED_CALL(materialResources->UpdateDescriptors(1, &write));
+        }
+
+        // Env Draw
+        grfx::WriteDescriptor write = {};
+        write.binding               = 1;
+        write.arrayIndex            = 0;
+        write.type                  = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        write.pImageView            = mIBLResources[mCurrentIBLIndex].environmentTexture->GetSampledImageView();
+        PPX_CHECKED_CALL(mEnvDrawSet->UpdateDescriptors(1, &write));
     }
 
 #ifdef ENABLE_GPU_QUERIES
@@ -1073,6 +1330,12 @@ void ProjApp::Render()
 #endif
             frame.cmd->SetScissors(GetScissor());
             frame.cmd->SetViewports(GetViewport());
+
+#ifdef ENABLE_GPU_QUERIES
+            if (GetDevice()->PipelineStatsAvailable()) {
+                frame.cmd->BeginQuery(frame.pipelineStatsQuery, 0);
+            }
+#endif
             // Draw model
             grfx::DescriptorSet* sets[4] = {nullptr};
             sets[0]                      = mSceneDataSet;
@@ -1080,18 +1343,21 @@ void ProjApp::Render()
             sets[2]                      = mMaterialDataSet;
             sets[3]                      = mModelDataSet;
             frame.cmd->BindGraphicsDescriptorSets(mPipelineInterface, 4, sets);
-
             frame.cmd->BindGraphicsPipeline(mShaderPipelines[mShaderIndex]);
 
             frame.cmd->BindIndexBuffer(mMeshes[mMeshIndex]);
             frame.cmd->BindVertexBuffers(mMeshes[mMeshIndex]);
-
-#ifdef ENABLE_GPU_QUERIES
-            if (GetDevice()->PipelineStatsAvailable()) {
-                frame.cmd->BeginQuery(frame.pipelineStatsQuery, 0);
-            }
-#endif
             frame.cmd->DrawIndexed(mMeshes[mMeshIndex]->GetIndexCount());
+
+            // Draw environnment
+            sets[0] = mEnvDrawSet;
+            frame.cmd->BindGraphicsDescriptorSets(mEnvDrawPipelineInterface, 1, sets);
+            frame.cmd->BindGraphicsPipeline(mEnvDrawPipeline);
+
+            frame.cmd->BindIndexBuffer(mEnvDrawMesh);
+            frame.cmd->BindVertexBuffers(mEnvDrawMesh);
+            frame.cmd->DrawIndexed(mEnvDrawMesh->GetIndexCount());
+
 #ifdef ENABLE_GPU_QUERIES
             if (GetDevice()->PipelineStatsAvailable()) {
                 frame.cmd->EndQuery(frame.pipelineStatsQuery, 0);
@@ -1138,23 +1404,6 @@ void ProjApp::DrawGui()
 
     ImGui::Separator();
 
-    static const char* currentModelName = mMeshNames[0];
-    if (ImGui::BeginCombo("Geometry", currentModelName)) {
-        for (size_t i = 0; i < mMeshNames.size(); ++i) {
-            bool isSelected = (currentModelName == mMeshNames[i]);
-            if (ImGui::Selectable(mMeshNames[i], isSelected)) {
-                currentModelName = mMeshNames[i];
-                mMeshIndex       = static_cast<uint32_t>(i);
-            }
-            if (isSelected) {
-                ImGui::SetItemDefaultFocus();
-            }
-        }
-        ImGui::EndCombo();
-    }
-
-    ImGui::Separator();
-
     static const char* currentShaderName = "PBR";
     if (ImGui::BeginCombo("Shader Pipeline", currentShaderName)) {
         for (size_t i = 0; i < mShaderNames.size(); ++i) {
@@ -1172,6 +1421,23 @@ void ProjApp::DrawGui()
 
     ImGui::Separator();
 
+    static const char* currentModelName = mMeshNames[0];
+    if (ImGui::BeginCombo("Geometry", currentModelName)) {
+        for (size_t i = 0; i < mMeshNames.size(); ++i) {
+            bool isSelected = (currentModelName == mMeshNames[i]);
+            if (ImGui::Selectable(mMeshNames[i], isSelected)) {
+                currentModelName = mMeshNames[i];
+                mMeshIndex       = static_cast<uint32_t>(i);
+            }
+            if (isSelected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    ImGui::Separator();
+
     static const char* currentMaterialName = mMaterialNames[0];
     if (ImGui::BeginCombo("Material Textures", currentMaterialName)) {
         for (size_t i = 0; i < mMaterialNames.size(); ++i) {
@@ -1179,6 +1445,23 @@ void ProjApp::DrawGui()
             if (ImGui::Selectable(mMaterialNames[i], isSelected)) {
                 currentMaterialName = mMaterialNames[i];
                 mMaterialIndex      = static_cast<uint32_t>(i);
+            }
+            if (isSelected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    ImGui::Separator();
+
+    static const char* currentIBLName = mIBLNames[0];
+    if (ImGui::BeginCombo("IBL Selection", currentIBLName)) {
+        for (size_t i = 0; i < mIBLNames.size(); ++i) {
+            bool isSelected = (currentIBLName == mIBLNames[i]);
+            if (ImGui::Selectable(mIBLNames[i], isSelected)) {
+                currentIBLName = mIBLNames[i];
+                mIBLIndex      = static_cast<uint32_t>(i);
             }
             if (isSelected) {
                 ImGui::SetItemDefaultFocus();

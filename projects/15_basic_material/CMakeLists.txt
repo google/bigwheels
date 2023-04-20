@@ -24,4 +24,5 @@ add_samples_for_all_apis(
     "shader_mtl_gouraud"
     "shader_mtl_phong"
     "shader_mtl_blinn_phong"
-    "shader_mtl_pbr")
+    "shader_mtl_pbr"
+    "shader_mtl_env_draw_shader")

@@ -24,7 +24,7 @@ Texture2D    AlbedoTex      : register(ALBEDO_TEXTURE_REGISTER,     MATERIAL_RES
 Texture2D    RoughnessTex   : register(ROUGHNESS_TEXTURE_REGISTER,  MATERIAL_RESOURCES_SPACE);
 Texture2D    MetalnessTex   : register(METALNESS_TEXTURE_REGISTER,  MATERIAL_RESOURCES_SPACE);
 Texture2D    NormalMapTex   : register(NORMAL_MAP_TEXTURE_REGISTER, MATERIAL_RESOURCES_SPACE);
-Texture2D    IBLTex         : register(IBL_MAP_TEXTURE_REGISTER,    MATERIAL_RESOURCES_SPACE);
+Texture2D    IrrMapTex      : register(IRR_MAP_TEXTURE_REGISTER,    MATERIAL_RESOURCES_SPACE);
 Texture2D    EnvMapTex      : register(ENV_MAP_TEXTURE_REGISTER,    MATERIAL_RESOURCES_SPACE);
 SamplerState ClampedSampler : register(CLAMPED_SAMPLER_REGISTER,    MATERIAL_RESOURCES_SPACE);
 
@@ -63,13 +63,50 @@ float Lambert()
     return 1.0 / PI;
 }
 
-float3 Environment(Texture2D tex, float3 coord, float lod)
+float3 SampleIBLTexture(Texture2D tex, float3 dir, float lod)
 {
-    float2 uv = CartesianToSphereical(normalize(coord));
+    float2 uv = CartesianToSphereical(normalize(dir));
     uv.x = saturate(uv.x / (2.0 * PI));
-    uv.y = saturate(uv.y / PI);
+    uv.y = saturate(uv.y / PI);   
     float3 color = tex.SampleLevel(ClampedSampler, uv, lod).rgb;
     return color;
+}
+
+float3 GetEnvDFGPolynomial(float3 specularColor, float gloss, float NoV)
+{
+    float x = gloss;
+    float y = NoV;
+    
+    float b1 = -0.1688;
+    float b2 = 1.895;
+    float b3 = 0.9903;
+    float b4 = -4.853;
+    float b5 = 8.404;
+    float b6 = -5.069;
+    float bias = saturate( min( b1 * x + b2 * x * x, b3 + b4 * y + b5 * y * y + b6 * y * y * y ) );
+    
+    float d0 = 0.6045;
+    float d1 = 1.699;
+    float d2 = -0.5228;
+    float d3 = -3.603;
+    float d4 = 1.404;
+    float d5 = 0.1939;
+    float d6 = 2.661;
+    float delta = saturate( d0 + d1 * x + d2 * y + d3 * x * x + d4 * x * y + d5 * y * y + d6 * x * x * x );
+    float scale = delta - bias;
+    
+    bias *= saturate( 50.0 * specularColor.y );
+    return specularColor * scale + bias;
+}
+
+float3 GetEnvDFGKaris(float3 specularColor, float roughness, float NoV)
+{
+    const float4 c0 = {-1, -0.0275, -0.572, 0.022};
+    const float4 c1 = {1, 0.0425, 1.04, -0.04};
+    float4 r = roughness * c0 + c1;
+    float a004 = min(r.x * r.x, exp2(-9.28 * NoV)) * r.x + r.y;
+    float2 AB = float2(-1.04, 1.04) * a004 + r.zw;
+    return specularColor * AB.x + AB.y;
 }
 
 float4 psmain(VSOutput input) : SV_TARGET
@@ -160,8 +197,32 @@ float4 psmain(VSOutput input) : SV_TARGET
         directLighting += finalBRDF;
     }
 
-    // TODO: Calculate indirect lighting
+    // Calculate indirect lighting
     float3 indirectLighting = 0;
+    {
+        float3 F = Fresnel_SchlickRoughness(NoV, F0, roughness);
+        float3 kS = F;
+        float3 kD = (1.0 - kS) * (1.0 - metalness);
+
+        // Diffuse BRDF
+        float3 irradiance = SampleIBLTexture(IrrMapTex, N, 0);
+        float3 diffuse = irradiance * diffuseColor * Lambert();
+        float3 diffuseBRDF = kD * diffuse;
+
+        // Specular BRDF - normally a LUT is used for the BRDF integration
+        // but to keep things fast for mobile we'll use an approximation.
+        float  lod = 7.0 * roughness;
+        float3 prefilteredColor = SampleIBLTexture(EnvMapTex, R, lod);
+        // Clamp upper bound to prevent INFs from filtering in
+        prefilteredColor = min(prefilteredColor, float3(10.0, 10.0, 10.0)); 
+        float3 specular = GetEnvDFGKaris(prefilteredColor, roughness, NoV);
+        float3 dielectricSpecular = (1.0 - metalness) * specularReflectance * specular; // non-metal specular
+        float3 metalSpecular = metalness * specular;
+        float3 specularBRDF = kS * (dielectricSpecular + metalSpecular);
+
+        // Combine diffuse and specular BRDFs
+        indirectLighting += diffuseBRDF + specularBRDF;
+    }
 
     // Final color
     float3 finalColor = directLighting + indirectLighting;

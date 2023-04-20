@@ -20,6 +20,7 @@
 #include "ppx/grfx/grfx_texture.h"
 #include "ppx/bitmap.h"
 #include "ppx/geometry.h"
+#include "ppx/mipmap.h"
 #include "gli/gli.hpp"
 
 #include <array>
@@ -135,6 +136,12 @@ private:
         grfx::Texture**       ppTexture,
         const TextureOptions& options);
 
+    friend Result CreateTextureFromMipmap(
+        grfx::Queue*          pQueue,
+        const Mipmap*         pMipmap,
+        grfx::Texture**       ppTexture,
+        const TextureOptions& options);
+
     friend Result CreateTextureFromFile(
         grfx::Queue*                 pQueue,
         const std::filesystem::path& path,
@@ -160,6 +167,16 @@ Result CopyBitmapToTexture(
 Result CreateTextureFromBitmap(
     grfx::Queue*          pQueue,
     const Bitmap*         pBitmap,
+    grfx::Texture**       ppTexture,
+    const TextureOptions& options = TextureOptions());
+
+//! @fn CreateTextureFromMipmap
+//!
+//! Mip level count from pMipmap is used. Mip level count from options is ignored.
+//!
+Result CreateTextureFromMipmap(
+    grfx::Queue*          pQueue,
+    const Mipmap*         pMipmap,
     grfx::Texture**       ppTexture,
     const TextureOptions& options = TextureOptions());
 
@@ -215,6 +232,13 @@ Result CreateTexture1x1(
 
     return CreateTextureFromBitmap(pQueue, &bitmap, ppTexture, options);
 }
+
+// Creates an irradiance and an environment texture from an *.ibl file
+Result CreateIBLTexturesFromFile(
+    grfx::Queue*                 pQueue,
+    const std::filesystem::path& path,
+    grfx::Texture**              ppIrradianceTexture,
+    grfx::Texture**              ppEnvironmentTexture);
 
 // -------------------------------------------------------------------------------------------------
 

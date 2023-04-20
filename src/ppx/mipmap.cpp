@@ -198,8 +198,15 @@ uint32_t Mipmap::CalculateLevelCount(uint32_t width, uint32_t height)
     return levelCount;
 }
 
-Result Mipmap::LoadFile(const std::filesystem::path& path, Mipmap* pMipmap, uint32_t levelCount)
+Result Mipmap::LoadFile(const std::filesystem::path& path, uint32_t baseWidth, uint32_t baseHeight, Mipmap* pMipmap, uint32_t levelCount)
 {
+    PPX_ASSERT_NULL_ARG(pMipmap);
+
+    // Figure out level count
+    uint32_t maxLevelCount = CalculateLevelCount(baseWidth, baseHeight);
+    levelCount             = std::min<uint32_t>(levelCount, maxLevelCount);
+
+    // Read file properites
     uint32_t       width  = 0;
     uint32_t       height = 0;
     Bitmap::Format format = Bitmap::FORMAT_UNDEFINED;
@@ -209,15 +216,18 @@ Result Mipmap::LoadFile(const std::filesystem::path& path, Mipmap* pMipmap, uint
         return ppxres;
     }
 
-    uint32_t maxLevelCount = CalculateLevelCount(width, height);
-    levelCount             = std::min<uint32_t>(levelCount, maxLevelCount);
-
-    *pMipmap = Mipmap(width, height, format, levelCount);
-    if (!pMipmap->IsOk()) {
-        // Something has gone really wrong if this happens
-        return ppx::ERROR_FAILED;
+    // Calculate total height of all mip levels
+    uint32_t totalHeight = 0;
+    for (uint32_t i = 0; i < levelCount; ++i) {
+        totalHeight += (baseHeight >> i);
     }
 
+    // Verify that dimensions make sense
+    if ((width != baseWidth) || (height < totalHeight)) {
+        return ppx::ERROR_BITMAP_FOOTPRINT_MISMATCH;
+    }
+
+    // Load bitmap
     void* pStbiData            = nullptr;
     int   stbiWidth            = 0;
     int   stbiHeight           = 0;
@@ -231,29 +241,51 @@ Result Mipmap::LoadFile(const std::filesystem::path& path, Mipmap* pMipmap, uint
     }
 
     if (IsNull(pStbiData)) {
-        return ppx::ERROR_IMAGE_FILE_LOAD_FAILED;
+        return ppx::ERROR_BAD_DATA_SOURCE;
     }
 
-    // Copy data to mip 0
-    Bitmap* pMip0 = pMipmap->GetMip(0);
-    memcpy(pMip0->GetData(), pStbiData, pMip0->GetFootprintSize());
+    // Row stride
+    uint32_t rowStride     = baseWidth * Bitmap::FormatSize(format);
+    uint32_t totalDataSize = rowStride * totalHeight;
+
+    // Allocate storage
+    pMipmap->mData.resize(totalDataSize);
+
+    // Copy data
+    std::memcpy(pMipmap->mData.data(), pStbiData, totalDataSize);
 
     // Free stbi data
     stbi_image_free(pStbiData);
 
-    // Generate mip
-    for (uint32_t level = 1; level < levelCount; ++level) {
-        uint32_t prevLevel = level - 1;
-        Bitmap*  pPrevMip  = pMipmap->GetMip(prevLevel);
-        Bitmap*  pMip      = pMipmap->GetMip(level);
+    // Allocate mips up front to prevent bitmap's internal copy
+    pMipmap->mMips.resize(levelCount);
 
-        ppxres = pPrevMip->ScaleTo(pMip);
+    // Build mips
+    uint32_t y         = 0;
+    uint32_t mipWidth  = baseWidth;
+    uint32_t mipHeight = baseHeight;
+    for (uint32_t level = 0; level < levelCount; ++level) {
+        uint32_t dataOffset       = y * rowStride;
+        char*    pExternalStorage = pMipmap->mData.data() + dataOffset;
+
+        Bitmap mip = {};
+        ppxres     = Bitmap::Create(mipWidth, mipHeight, format, rowStride, pExternalStorage, &pMipmap->mMips[level]);
         if (Failed(ppxres)) {
             return ppxres;
         }
+
+        y += mipHeight;
+        mipWidth >>= 1;
+        mipHeight >>= 1;
     }
 
     return ppx::SUCCESS;
+}
+
+Result Mipmap::SaveFile(const std::filesystem::path& path, const Mipmap* pMipmap, uint32_t levelCount)
+{
+    // TODO: Implement
+    return ppx::ERROR_FAILED;
 }
 
 } // namespace ppx

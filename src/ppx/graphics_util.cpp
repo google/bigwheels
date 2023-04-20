@@ -966,6 +966,85 @@ Result CreateTextureFromBitmap(
     return ppx::SUCCESS;
 }
 
+Result CreateTextureFromMipmap(
+    grfx::Queue*          pQueue,
+    const Mipmap*         pMipmap,
+    grfx::Texture**       ppTexture,
+    const TextureOptions& options)
+{
+    PPX_ASSERT_NULL_ARG(pQueue);
+    PPX_ASSERT_NULL_ARG(pMipmap);
+    PPX_ASSERT_NULL_ARG(ppTexture);
+
+    Result ppxres = ppx::ERROR_FAILED;
+
+    // Scoped destroy
+    grfx::ScopeDestroyer SCOPED_DESTROYER(pQueue->GetDevice());
+
+    // Cap mip level count
+    auto pMip0 = pMipmap->GetMip(0);
+
+    // Create target texture
+    grfx::TexturePtr targetTexture;
+    {
+        grfx::TextureCreateInfo ci     = {};
+        ci.pImage                      = nullptr;
+        ci.imageType                   = grfx::IMAGE_TYPE_2D;
+        ci.width                       = pMip0->GetWidth();
+        ci.height                      = pMip0->GetHeight();
+        ci.depth                       = 1;
+        ci.imageFormat                 = ToGrfxFormat(pMip0->GetFormat());
+        ci.sampleCount                 = grfx::SAMPLE_COUNT_1;
+        ci.mipLevelCount               = pMipmap->GetLevelCount();
+        ci.arrayLayerCount             = 1;
+        ci.usageFlags.bits.transferDst = true;
+        ci.usageFlags.bits.sampled     = true;
+        ci.memoryUsage                 = grfx::MEMORY_USAGE_GPU_ONLY;
+        ci.initialState                = options.mInitialState;
+        ci.RTVClearValue               = {{0, 0, 0, 0}};
+        ci.DSVClearValue               = {1.0f, 0xFF};
+        ci.sampledImageViewType        = grfx::IMAGE_VIEW_TYPE_UNDEFINED;
+        ci.sampledImageViewFormat      = grfx::FORMAT_UNDEFINED;
+        ci.renderTargetViewFormat      = grfx::FORMAT_UNDEFINED;
+        ci.depthStencilViewFormat      = grfx::FORMAT_UNDEFINED;
+        ci.storageImageViewFormat      = grfx::FORMAT_UNDEFINED;
+        ci.ownership                   = grfx::OWNERSHIP_REFERENCE;
+
+        ci.usageFlags.flags |= options.mAdditionalUsage;
+
+        ppxres = pQueue->GetDevice()->CreateTexture(&ci, &targetTexture);
+        if (Failed(ppxres)) {
+            return ppxres;
+        }
+        SCOPED_DESTROYER.AddObject(targetTexture);
+    }
+
+    // Copy mips to texture
+    for (uint32_t mipLevel = 0; mipLevel < pMipmap->GetLevelCount(); ++mipLevel) {
+        const Bitmap* pMip = pMipmap->GetMip(mipLevel);
+
+        ppxres = CopyBitmapToTexture(
+            pQueue,
+            pMip,
+            targetTexture,
+            mipLevel,
+            0,
+            options.mInitialState,
+            options.mInitialState);
+        if (Failed(ppxres)) {
+            return ppxres;
+        }
+    }
+
+    // Change ownership to reference so object doesn't get destroyed
+    targetTexture->SetOwnership(grfx::OWNERSHIP_REFERENCE);
+
+    // Assign output
+    *ppTexture = targetTexture;
+
+    return ppx::SUCCESS;
+}
+
 // -------------------------------------------------------------------------------------------------
 
 Result CreateTextureFromFile(
@@ -1064,6 +1143,64 @@ SubImage CalcSubimageCrossHorizontalLeft(
     subImage.bufferOffset = pixelOffsetX + pixelOffsetY;
 
     return subImage;
+}
+
+Result CreateIBLTexturesFromFile(
+    grfx::Queue*                 pQueue,
+    const std::filesystem::path& path,
+    grfx::Texture**              ppIrradianceTexture,
+    grfx::Texture**              ppEnvironmentTexture)
+{
+    PPX_ASSERT_NULL_ARG(pQueue);
+    PPX_ASSERT_NULL_ARG(ppIrradianceTexture);
+    PPX_ASSERT_NULL_ARG(ppEnvironmentTexture);
+
+    std::ifstream is = std::ifstream(path.string().c_str());
+    if (!is.is_open()) {
+        return ppx::ERROR_IMAGE_FILE_LOAD_FAILED;
+    }
+
+    std::filesystem::path irrFile;
+    is >> irrFile;
+
+    std::filesystem::path envFile;
+    is >> envFile;
+
+    uint32_t baseWidth = 0;
+    is >> baseWidth;
+
+    uint32_t baseHeight = 0;
+    is >> baseHeight;
+
+    uint32_t levelCount = 0;
+    is >> levelCount;
+
+    if (irrFile.empty() || envFile.empty() || (baseWidth == 0) || (baseHeight == 0) || (levelCount == 0)) {
+        return ppx::ERROR_IMAGE_FILE_LOAD_FAILED;
+    }
+
+    // Create irradiance texture - does not require mip maps
+    std::filesystem::path irrFilePath = path.parent_path() / irrFile;
+    Result                ppxres      = CreateTextureFromFile(pQueue, irrFilePath, ppIrradianceTexture);
+    if (Failed(ppxres)) {
+        return ppxres;
+    }
+
+    // Load IBL environment map - this is stored as a bitmap on disk
+    std::filesystem::path envFilePath = path.parent_path() / envFile;
+    Mipmap                mipmap      = {};
+    ppxres                            = Mipmap::LoadFile(envFilePath, baseWidth, baseHeight, &mipmap, levelCount);
+    if (Failed(ppxres)) {
+        return ppxres;
+    }
+
+    // Create environment texture
+    ppxres = CreateTextureFromMipmap(pQueue, &mipmap, ppEnvironmentTexture);
+    if (Failed(ppxres)) {
+        return ppxres;
+    }
+
+    return ppx::SUCCESS;
 }
 
 // -------------------------------------------------------------------------------------------------
