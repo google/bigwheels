@@ -31,6 +31,17 @@ function(_add_sample_internal)
         add_executable("${TARGET_NAME}" ${ARG_SOURCES})
     endif()
 
+    if(PPX_BUILD_XR AND PPX_XR_QUEST)
+        # Quest devices do not use the standard OpenXR loader.
+        add_library(openxr_loader SHARED IMPORTED)
+        set_property(
+            TARGET
+            openxr_loader
+            PROPERTY
+            IMPORTED_LOCATION
+            ${OCULUS_OPENXR_SDK}/OpenXR/Libs/Android/${ANDROID_ABI}/Debug/libopenxr_loader.so)
+    endif ()
+
     set_target_properties("${TARGET_NAME}" PROPERTIES FOLDER "ppx/samples/${ARG_API_TAG}")
 
     target_include_directories("${TARGET_NAME}" PUBLIC ${PPX_DIR}/include ${ARG_ADDITIONAL_INCLUDE_DIRECTORIES})

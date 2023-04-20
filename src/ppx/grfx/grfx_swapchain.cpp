@@ -209,6 +209,15 @@ void Swapchain::Destroy()
     grfx::DeviceObject<grfx::SwapchainCreateInfo>::Destroy();
 }
 
+bool Swapchain::IsHeadless() const
+{
+#if defined(PPX_BUILD_XR)
+    return mCreateInfo.pXrComponent == nullptr && mCreateInfo.pSurface == nullptr;
+#else
+    return mCreateInfo.pSurface == nullptr;
+#endif
+}
+
 Result Swapchain::GetColorImage(uint32_t imageIndex, grfx::Image** ppImage) const
 {
     if (!IsIndexInRange(imageIndex, mColorImages)) {

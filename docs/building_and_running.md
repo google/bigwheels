@@ -39,7 +39,12 @@ Built binaries are written to `build\bin`.
 
 **Note: there is an outstanding [issue](https://github.com/google/bigwheels/issues/97) around duplicate targets in VS solutions which may cause build failures when building many shader targets in parallel. As a temporary workaround, you can re-trigger the build and it will eventually work.**
 
-## Android (on Windows or Linux)
+## Android (on Windows)
+
+Use Android Studio to open the BigWheels folder and build it.
+A custom DXC_PATH can be set through the env of a `.properties` file.
+
+## Android (on Linux)
 
 Install the Android SDK and NDK with CMake support.
 (Can be done through the SDK manager of Android Studio).
@@ -50,38 +55,68 @@ git clone --recursive https://github.com/google/BigWheels
 
 ### With Android Studio
 
-Use Android Studio to open the BigWheels folder and build it.
-A custom DXC_PATH can be set through the env of a `.properties` file.
+See `Android (on Windows)`.
 
-### Command line
+### Command line - Mobile Android
 
 The Android build will also require DXC. DXC can either be retrieved from
 the Vulkan SDK, or provided manually (same as the linux build).
-
 Make sure the Android SDK path is in your env
 
 ```bash
 export ANDROID_HOME=/path/to/android/sdk
 ```
 
+Multiple targets are available, This example will assume the `triangle`
+target is built. Below the target naming scheme will be explained.
+
 To use Vulkan's SDK DXC version:
 
 ```bash
-cd android/
-./gradlew assembleDebug
+./gradlew buildMobileTriangleDebug
 ```
 
 To provide the DXC path:
 
 ```bash
-cd android/
-./gradlew assembleDebug -PDXC_PATH=some/path/to/dxc
+./gradlew buildMobileTriangleDebug -PDXC_PATH=some/path/to/dxc
 ```
 
-Built application can be installed with ADB
+To build & install the application through ADB
 
 ```
-adb install app/build/outputs/apk/debug/app-debug.apk
+./gradlew installMobileTriangleDebug -PDXC_PATH=some/path/to/dxc
+```
+
+The target names are composed using this pattern:
+<buildType><device><sampleName>[xr]<flavor>
+
+buildType:
+  - build: only build the artefacts
+  - install: build and package the APK and install with ADB.
+
+device:
+  - Mobile : an Android phone
+  - Openxr : an openXR device
+  - Quest  : Oculus Quest
+
+sampleName:
+  - Triangle    : 01_triangle
+  - Cube        : 04_cube
+  ...
+
+The `xr` suffix can be added on some samples (see projects/ directory)
+
+flavor:
+  - Debug
+  - Release
+
+Example:
+
+To build Fishtornado, XR, for OpenXR:
+
+```
+./gradlew buildOpenxrFishtornadoxrDebug
 ```
 
 ## OpenXR

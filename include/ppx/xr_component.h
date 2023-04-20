@@ -27,6 +27,10 @@
 #define XR_USE_GRAPHICS_API_VULKAN
 #endif // defined(PPX_VULKAN)
 
+#if defined(PPX_ANDROID)
+#include <game-activity/native_app_glue/android_native_app_glue.h>
+#endif // defined(PPX_ANDROID)
+
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 #include <ppx/grfx/grfx_config.h>
@@ -52,7 +56,12 @@ struct XrComponentCreateInfo
 {
     grfx::Api               api                  = grfx::API_UNDEFINED; // Direct3D or Vulkan.
     std::string             appName              = "";
+#if defined(PPX_ANDROID)
+    android_app* androidContext = nullptr;
+    grfx::Format colorFormat    = grfx::FORMAT_R8G8B8A8_SRGB;
+#else
     grfx::Format            colorFormat          = grfx::FORMAT_B8G8R8A8_SRGB;
+#endif
     grfx::Format            depthFormat          = grfx::FORMAT_D32_FLOAT;
     XrRefSpace              refSpaceType         = XrRefSpace::XR_STAGE;
     XrViewConfigurationType viewConfigType       = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
@@ -127,6 +136,7 @@ private:
 
     std::vector<XrViewConfigurationView> mConfigViews;
     std::vector<XrView>                  mViews;
+    std::vector<XrEnvironmentBlendMode>  mBlendModes;
     uint32_t                             mCurrentViewIndex = 0;
 
     XrSpace                  mRefSpace           = XR_NULL_HANDLE;
