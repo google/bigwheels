@@ -50,6 +50,7 @@ const grfx::Api kApi = grfx::API_VK_1_1;
 #define HEIGHT_MAP_TEXTURE_REGISTER 10
 #define IRR_MAP_TEXTURE_REGISTER    11
 #define ENV_MAP_TEXTURE_REGISTER    12
+#define BRDF_LUT_TEXTURE_REGISTER   13
 
 const float3 F0_MetalTitanium   = float3(0.542f, 0.497f, 0.449f);
 const float3 F0_MetalChromium   = float3(0.549f, 0.556f, 0.554f);
@@ -144,6 +145,7 @@ private:
         grfx::TexturePtr environmentTexture;
     };
     std::vector<IBLResources> mIBLResources;
+    grfx::TexturePtr          mBRDFLUTTexture;
 
     // Descriptor Set 2 - MaterialData Data
     grfx::DescriptorSetLayoutPtr mMaterialDataLayout;
@@ -193,6 +195,7 @@ private:
     float        mAmbient          = 0;
     MaterialData mMaterialData     = {};
     float3       mAlbedoColor      = float3(1);
+    bool         mUseBRDFLUT       = true;
 
     std::vector<float3> mF0 = {
         F0_MetalTitanium,
@@ -394,6 +397,16 @@ void ProjApp::SetupMaterialResources(
         PPX_CHECKED_CALL(materialResources.set->UpdateDescriptors(1, &write));
     }
 
+    // BRDF LUT
+    {
+        grfx::WriteDescriptor write = {};
+        write.binding               = BRDF_LUT_TEXTURE_REGISTER;
+        write.arrayIndex            = 0;
+        write.type                  = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        write.pImageView            = mBRDFLUTTexture->GetSampledImageView();
+        PPX_CHECKED_CALL(materialResources.set->UpdateDescriptors(1, &write));
+    }
+
     // Sampler
     {
         grfx::WriteDescriptor write = {};
@@ -415,6 +428,7 @@ void ProjApp::SetupMaterials()
     createInfo.bindings.push_back({grfx::DescriptorBinding{NORMAL_MAP_TEXTURE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS}});
     createInfo.bindings.push_back({grfx::DescriptorBinding{IRR_MAP_TEXTURE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS}});
     createInfo.bindings.push_back({grfx::DescriptorBinding{ENV_MAP_TEXTURE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS}});
+    createInfo.bindings.push_back({grfx::DescriptorBinding{BRDF_LUT_TEXTURE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS}});
     createInfo.bindings.push_back({grfx::DescriptorBinding{CLAMPED_SAMPLER_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS}});
     PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&createInfo, &mMaterialResourcesLayout));
 
@@ -509,6 +523,12 @@ void ProjApp::SetupMaterials()
 
 void ProjApp::SetupIBL()
 {
+    // BRDF LUT
+    PPX_CHECKED_CALL(grfx_util::CreateTextureFromFile(
+        GetDevice()->GetGraphicsQueue(),
+        GetAssetPath("pbr/textures/brdf_lut.hdr"),
+        &mBRDFLUTTexture));
+
     // Old Depot - good mix of diffused over head and bright exterior lighting from windows
     {
         IBLResources reses = {};
@@ -1117,8 +1137,8 @@ void ProjApp::Render()
             hlsl_float3<12>   eyePosition;
             hlsl_uint<4>      lightCount;
             hlsl_float<4>     ambient;
-            hlsl_float<4>     iblLevelCount;
             hlsl_float<4>     envLevelCount;
+            hlsl_uint<4>      useBRDFLUT;
         };
         PPX_HLSL_PACK_END();
 
@@ -1130,8 +1150,8 @@ void ProjApp::Render()
         pSceneData->eyePosition          = mCamera.GetEyePosition();
         pSceneData->lightCount           = 4;
         pSceneData->ambient              = mAmbient;
-        pSceneData->iblLevelCount        = 0;
-        pSceneData->envLevelCount        = 0;
+        pSceneData->envLevelCount        = static_cast<float>(mIBLResources[mCurrentIBLIndex].environmentTexture->GetMipLevelCount());
+        pSceneData->useBRDFLUT           = mUseBRDFLUT;
 
         mCpuSceneConstants->UnmapMemory();
 
@@ -1476,6 +1496,7 @@ void ProjApp::DrawGui()
     ImGui::Checkbox("PBR Use Metalness Texture", &mMaterialData.metalnessSelect);
     ImGui::Checkbox("PBR Use Normal Map", &mMaterialData.normalSelect);
     ImGui::Checkbox("PBR Use Reflection Map", &mMaterialData.envSelect);
+    ImGui::Checkbox("PBR Use BRDF LUT", &mUseBRDFLUT);
 
     ImGui::Separator();
 
