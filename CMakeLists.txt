@@ -246,6 +246,7 @@ endif()
 # ------------------------------------------------------------------------------
 # Add benchmarks.
 # ------------------------------------------------------------------------------
+option(PPX_BUILD_BENCHMARKS "Build benchmarks projects" ON)
 if (PPX_BUILD_BENCHMARKS)
     message("Building benchmarks projects")
     add_subdirectory(benchmarks)
