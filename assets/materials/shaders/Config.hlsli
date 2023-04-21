@@ -39,6 +39,7 @@
 #define HEIGHT_MAP_TEXTURE_REGISTER t10
 #define IRR_MAP_TEXTURE_REGISTER    t11
 #define ENV_MAP_TEXTURE_REGISTER    t12
+#define BRDF_LUT_TEXTURE_REGISTER   t13
 
 #define EPSILON 0.00001
 #define PI 3.1415292
@@ -51,8 +52,8 @@ struct SceneData
     float3   eyePosition;
     uint     lightCount;
     float    ambient;
-    float    iblLevelCount;
     float    envLevelCount;
+    uint     useBRDFLUT;
 };
 
 struct Light

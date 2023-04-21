@@ -26,6 +26,7 @@ Texture2D    MetalnessTex   : register(METALNESS_TEXTURE_REGISTER,  MATERIAL_RES
 Texture2D    NormalMapTex   : register(NORMAL_MAP_TEXTURE_REGISTER, MATERIAL_RESOURCES_SPACE);
 Texture2D    IrrMapTex      : register(IRR_MAP_TEXTURE_REGISTER,    MATERIAL_RESOURCES_SPACE);
 Texture2D    EnvMapTex      : register(ENV_MAP_TEXTURE_REGISTER,    MATERIAL_RESOURCES_SPACE);
+Texture2D    BRDFLUTTex     : register(BRDF_LUT_TEXTURE_REGISTER,   MATERIAL_RESOURCES_SPACE);
 SamplerState ClampedSampler : register(CLAMPED_SAMPLER_REGISTER,    MATERIAL_RESOURCES_SPACE);
 
 float Distribution_GGX(float3 N, float3 H, float roughness)
@@ -201,8 +202,7 @@ float4 psmain(VSOutput input) : SV_TARGET
     float3 indirectLighting = 0;
     {
         float3 F = Fresnel_SchlickRoughness(NoV, F0, roughness);
-        float3 kS = F;
-        float3 kD = (1.0 - kS) * (1.0 - metalness);
+        float3 kD = (1.0 - F) * (1.0 - metalness);
 
         // Diffuse BRDF
         float3 irradiance = SampleIBLTexture(IrrMapTex, N, 0);
@@ -211,14 +211,22 @@ float4 psmain(VSOutput input) : SV_TARGET
 
         // Specular BRDF - normally a LUT is used for the BRDF integration
         // but to keep things fast for mobile we'll use an approximation.
-        float  lod = 7.0 * roughness;
+        float  lod = Scene.envLevelCount * roughness;
         float3 prefilteredColor = SampleIBLTexture(EnvMapTex, R, lod);
-        // Clamp upper bound to prevent INFs from filtering in
-        prefilteredColor = min(prefilteredColor, float3(10.0, 10.0, 10.0)); 
-        float3 specular = GetEnvDFGKaris(prefilteredColor, roughness, NoV);
+        prefilteredColor = min(prefilteredColor, float3(10.0, 10.0, 10.0));
+        // Use split-sum BRDF integration or approximation
+        float3 specular = 0;
+        if (Scene.useBRDFLUT) {
+            float2 uv = float2(saturate(roughness), saturate(NoV));
+            float2 envBRDF = BRDFLUTTex.Sample(ClampedSampler, uv).rg;
+            specular = prefilteredColor * (F * envBRDF.x + envBRDF.y);
+        }
+        else {
+            specular = F * GetEnvDFGKaris(prefilteredColor, roughness, NoV);
+        }
         float3 dielectricSpecular = (1.0 - metalness) * specularReflectance * specular; // non-metal specular
         float3 metalSpecular = metalness * specular;
-        float3 specularBRDF = kS * (dielectricSpecular + metalSpecular);
+        float3 specularBRDF = dielectricSpecular + metalSpecular;
 
         // Combine diffuse and specular BRDFs
         indirectLighting += diffuseBRDF + specularBRDF;
