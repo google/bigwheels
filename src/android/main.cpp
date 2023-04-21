@@ -1,5 +1,7 @@
 #include <jni.h>
 
+#include <string>
+#include <vector>
 #include <game-activity/GameActivity.cpp>
 #include <game-text-input/gametextinput.cpp>
 #include <game-activity/native_app_glue/android_native_app_glue.h>
@@ -7,7 +9,37 @@
 extern bool InitVulkan(android_app* app);
 extern void DeleteVulkan(void);
 extern bool IsVulkanReady(void);
-extern bool VulkanDrawFrame(void);
+extern bool VulkanDrawFrame(int argc, char** argv);
+
+/*!
+ * Call the Java method constructCmdLineArgs on the MainActivity class to get
+ * the command line arguments from the intent extras.
+ */
+static std::vector<std::string> get_java_args(android_app* pApp)
+{
+    JavaVM* jVm  = pApp->activity->vm;
+    JNIEnv* jEnv = pApp->activity->env;
+    jVm->AttachCurrentThread(&jEnv, nullptr);
+
+    jobject      jMainActivity         = pApp->activity->javaGameActivity;
+    jclass       jMainActivityClass    = jEnv->GetObjectClass(jMainActivity);
+    jmethodID    jConstructCmdLineArgs = jEnv->GetMethodID(jMainActivityClass, "constructCmdLineArgs", "()[Ljava/lang/String;");
+    jobjectArray jArgs                 = static_cast<jobjectArray>(jEnv->CallObjectMethod(jMainActivity, jConstructCmdLineArgs));
+
+    std::vector<std::string> args;
+    int                      argCount = jEnv->GetArrayLength(jArgs);
+    for (int i = 0; i < argCount; i++) {
+        jstring     jStr = static_cast<jstring>(jEnv->GetObjectArrayElement(jArgs, i));
+        const char* data = jEnv->GetStringUTFChars(jStr, nullptr);
+        size_t      size = jEnv->GetStringUTFLength(jStr);
+        std::string str(data, size);
+        jEnv->ReleaseStringUTFChars(jStr, data);
+        args.push_back(str);
+    }
+
+    jVm->DetachCurrentThread();
+    return args;
+}
 
 extern "C"
 {
@@ -54,7 +86,14 @@ extern "C"
             }
 
             if (IsVulkanReady()) {
-                VulkanDrawFrame();
+                std::vector<std::string> cmdArgs = get_java_args(pApp);
+
+                std::vector<char*> args;
+                args.reserve(cmdArgs.size());
+                for (std::string& arg : cmdArgs) {
+                    args.push_back(const_cast<char*>(arg.c_str()));
+                }
+                VulkanDrawFrame(cmdArgs.size(), args.data());
             }
         } while (!pApp->destroyRequested);
     }

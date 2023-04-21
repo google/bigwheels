@@ -48,9 +48,9 @@
         {                                               \
             return app.GetAndroidContext() != nullptr;  \
         }                                               \
-        bool VulkanDrawFrame(void)                      \
+        bool VulkanDrawFrame(int argc, char** argv)     \
         {                                               \
-            int res = app.Run(0, nullptr);              \
+            int res = app.Run(argc, argv);              \
             return res;                                 \
         }
 #else
