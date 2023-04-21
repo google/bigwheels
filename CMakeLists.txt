@@ -176,6 +176,14 @@ if(NOT (CMAKE_BINARY_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR))
 endif()
 
 # ------------------------------------------------------------------------------
+# Enable testing support for CMake.
+# ------------------------------------------------------------------------------
+option(PPX_BUILD_TESTS "Build tests" ON)
+if (PPX_BUILD_TESTS)
+    enable_testing()
+endif()
+
+# ------------------------------------------------------------------------------
 # Configure GLFW.
 # ------------------------------------------------------------------------------
 if (NOT PPX_ANDROID)
@@ -239,10 +247,3 @@ if (PPX_BUILD_BENCHMARKS)
     add_subdirectory(benchmarks)
 endif()
 
-# ------------------------------------------------------------------------------
-# Enable testing support for CMake.
-# ------------------------------------------------------------------------------
-option(PPX_BUILD_TESTS "Build tests" ON)
-if (PPX_BUILD_TESTS)
-    enable_testing()
-endif()
