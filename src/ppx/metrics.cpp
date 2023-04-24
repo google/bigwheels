@@ -41,7 +41,7 @@ MetricType Metric::GetType() const
 ////////////////////////////////////////////////////////////////////////////////
 
 MetricGauge::MetricGauge(const MetricMetadata& metadata)
-    : Metric(metadata, MetricType::GAUGE)
+    : Metric(metadata, MetricType::GAUGE), mAccumlatedValue(0)
 {
     memset(&mRealTimeStatistics, 0, sizeof(mRealTimeStatistics));
     mRealTimeStatistics.min = std::numeric_limits<double>::max();
@@ -87,8 +87,15 @@ const GaugeStatistics MetricGauge::GetStatistics(bool realtime) const
                 return lhs.value < rhs.value;
             });
 
-        const size_t medianIndex = (entriesCount / 2U) + (((entriesCount & 0x1U) && entriesCount > 1) ? 1U : 0U);
-        statistics.median        = sorted[medianIndex].value;
+        if (entriesCount % 2 == 0) {
+            const size_t medianIndex = entriesCount / 2;
+            PPX_ASSERT_MSG(medianIndex > 0, "Unexpected median index");
+            statistics.median = (sorted[medianIndex - 1].value + sorted[medianIndex].value) * 0.5;
+        }
+        else {
+            const size_t medianIndex = entriesCount / 2;
+            statistics.median        = sorted[medianIndex].value;
+        }
 
         {
             double squareDiffSum = 0.0;
@@ -120,7 +127,7 @@ void MetricGauge::UpdateRealTimeStatistics(double seconds, double value)
     const size_t entriesCount   = mTimeSeries.size();
     mRealTimeStatistics.average = mAccumlatedValue / entriesCount;
     if (entriesCount > 1) {
-        const double timeSpan         = mTimeSeries.back().value - mTimeSeries.front().value;
+        const double timeSpan         = mTimeSeries.back().seconds - mTimeSeries.front().seconds;
         mRealTimeStatistics.timeRatio = mAccumlatedValue / timeSpan;
     }
     else {
