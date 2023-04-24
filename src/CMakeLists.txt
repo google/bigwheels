@@ -127,6 +127,13 @@ if (PPX_VULKAN)
     )
 endif()
 
+if (PPX_ANDROID)
+    list(APPEND IMGUI_SOURCE_FILES
+        ${IMGUI_DIR}/backends/imgui_impl_android.h
+        ${IMGUI_DIR}/backends/imgui_impl_android.cpp
+    )
+endif()
+
 if (PPX_D3D12)
     list(APPEND IMGUI_SOURCE_FILES
         ${IMGUI_DIR}/backends/imgui_impl_dx12.h

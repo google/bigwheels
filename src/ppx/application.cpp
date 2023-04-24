@@ -899,10 +899,7 @@ Result Application::InitializeImGui()
 #if defined(PPX_VULKAN)
         case grfx::API_VK_1_1:
         case grfx::API_VK_1_2: {
-#if !defined(PPX_ANDROID)
-            // ImGui does not support ANDROID
             mImGui = std::unique_ptr<ImGuiImpl>(new ImGuiImplVk());
-#endif
         } break;
 #endif // defined(PPX_VULKAN)
     }
