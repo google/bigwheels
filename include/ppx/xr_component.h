@@ -99,18 +99,18 @@ public:
     // This is a hack that assumes both views have the same width/height/sample count
     uint32_t GetWidth() const
     {
-        if (mCreateInfo.resolution.width > 0)
-            return mCreateInfo.resolution.width;
         if (mConfigViews.empty())
             return 0;
+        if (mCreateInfo.resolution.width > 0)
+            return mCreateInfo.resolution.width;
         return mConfigViews[0].recommendedImageRectWidth;
     }
     uint32_t GetHeight() const
     {
-        if (mCreateInfo.resolution.height > 0)
-            return mCreateInfo.resolution.height;
         if (mConfigViews.empty())
             return 0;
+        if (mCreateInfo.resolution.height > 0)
+            return mCreateInfo.resolution.height;
         return mConfigViews[0].recommendedImageRectHeight;
     }
     uint32_t GetSampleCount() const
