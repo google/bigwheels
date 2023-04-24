@@ -49,18 +49,24 @@ enum struct XrRefSpace
     XR_STAGE,
 };
 
+struct XrComponentResolution
+{
+    uint32_t width  = 0;
+    uint32_t height = 0;
+};
+
 //! @class XrSettings
 //!
 //!
 struct XrComponentCreateInfo
 {
-    grfx::Api               api                  = grfx::API_UNDEFINED; // Direct3D or Vulkan.
-    std::string             appName              = "";
+    grfx::Api   api     = grfx::API_UNDEFINED; // Direct3D or Vulkan.
+    std::string appName = "";
 #if defined(PPX_ANDROID)
     android_app* androidContext = nullptr;
     grfx::Format colorFormat    = grfx::FORMAT_R8G8B8A8_SRGB;
 #else
-    grfx::Format            colorFormat          = grfx::FORMAT_B8G8R8A8_SRGB;
+    grfx::Format colorFormat = grfx::FORMAT_B8G8R8A8_SRGB;
 #endif
     grfx::Format            depthFormat          = grfx::FORMAT_D32_FLOAT;
     XrRefSpace              refSpaceType         = XrRefSpace::XR_STAGE;
@@ -70,6 +76,7 @@ struct XrComponentCreateInfo
     bool                    enableDebug          = false;
     bool                    enableQuadLayer      = false;
     bool                    enableDepthSwapchain = false;
+    XrComponentResolution   resolution           = {0, 0};
 };
 
 //! @class XrComponent
@@ -92,12 +99,16 @@ public:
     // This is a hack that assumes both views have the same width/height/sample count
     uint32_t GetWidth() const
     {
+        if (mCreateInfo.resolution.width > 0)
+            return mCreateInfo.resolution.width;
         if (mConfigViews.empty())
             return 0;
         return mConfigViews[0].recommendedImageRectWidth;
     }
     uint32_t GetHeight() const
     {
+        if (mCreateInfo.resolution.height > 0)
+            return mCreateInfo.resolution.height;
         if (mConfigViews.empty())
             return 0;
         return mConfigViews[0].recommendedImageRectHeight;

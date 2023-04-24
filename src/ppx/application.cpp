@@ -1323,16 +1323,20 @@ int Application::Run(int argc, char** argv)
         createInfo.androidContext = GetAndroidContext();
         createInfo.colorFormat    = grfx::FORMAT_R8G8B8A8_SRGB;
 #else
-        createInfo.colorFormat           = grfx::FORMAT_B8G8R8A8_SRGB;
+        createInfo.colorFormat = grfx::FORMAT_B8G8R8A8_SRGB;
 #endif
-        createInfo.depthFormat           = grfx::FORMAT_D32_FLOAT;
-        createInfo.refSpaceType          = XrRefSpace::XR_STAGE;
-        createInfo.viewConfigType        = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
-        createInfo.enableDebug           = mSettings.grfx.enableDebug;
-        createInfo.enableQuadLayer       = mSettings.enableImGui;
-        createInfo.enableDepthSwapchain  = mSettings.xr.enableDepthSwapchain;
-        createInfo.quadLayerPos          = XrVector3f{mSettings.xr.ui.pos.x, mSettings.xr.ui.pos.y, mSettings.xr.ui.pos.z};
-        createInfo.quadLayerSize         = XrExtent2Df{mSettings.xr.ui.size.x, mSettings.xr.ui.size.y};
+        createInfo.depthFormat          = grfx::FORMAT_D32_FLOAT;
+        createInfo.refSpaceType         = XrRefSpace::XR_STAGE;
+        createInfo.viewConfigType       = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
+        createInfo.enableDebug          = mSettings.grfx.enableDebug;
+        createInfo.enableQuadLayer      = mSettings.enableImGui;
+        createInfo.enableDepthSwapchain = mSettings.xr.enableDepthSwapchain;
+        createInfo.quadLayerPos         = XrVector3f{mSettings.xr.ui.pos.x, mSettings.xr.ui.pos.y, mSettings.xr.ui.pos.z};
+        createInfo.quadLayerSize        = XrExtent2Df{mSettings.xr.ui.size.x, mSettings.xr.ui.size.y};
+        if ((mStandardOptions.resolution.first != -1) && (mStandardOptions.resolution.second != -1)) {
+            createInfo.resolution.width  = mStandardOptions.resolution.first;
+            createInfo.resolution.height = mStandardOptions.resolution.second;
+        }
 
         mXrComponent.InitializeBeforeGrfxDeviceInit(createInfo);
     }
