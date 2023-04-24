@@ -295,6 +295,45 @@ void TriMesh::AppendIndexU32(uint32_t value)
     mIndices.push_back(pBytes[3]);
 }
 
+void TriMesh::PreallocateForTriangleCount(size_t triangleCount, bool enableColors, bool enableNormals, bool enableTexCoords, bool enableTangents)
+{
+    size_t vertexCount = triangleCount * 3;
+
+    // Reserve for triangles
+    switch (mIndexType) {
+        case grfx::INDEX_TYPE_UINT16:
+            mIndices.reserve(vertexCount * sizeof(uint16_t));
+            break;
+        case grfx::INDEX_TYPE_UINT32:
+            mIndices.reserve(vertexCount * sizeof(uint32_t));
+            break;
+        default:
+            // Nothing to do; not indexing.
+            return;
+    }
+
+    // Position per vertex
+    mPositions.reserve(vertexCount);
+    // Color per vertex
+    if (enableColors) {
+        mColors.reserve(vertexCount);
+    }
+    // Normal per vertex
+    if (enableNormals) {
+        mNormals.reserve(vertexCount);
+    }
+    // TexCoord per vertex
+    if (enableTexCoords) {
+        int32_t dimCount = (mTexCoordDim == TRI_MESH_ATTRIBUTE_DIM_4) ? 4 : ((mTexCoordDim == TRI_MESH_ATTRIBUTE_DIM_3) ? 3 : ((mTexCoordDim == TRI_MESH_ATTRIBUTE_DIM_2) ? 2 : 0));
+        mTexCoords.reserve(vertexCount * dimCount);
+    }
+    // Tangents = 3 per triangle (NOT necessarily related to vertices!)
+    if (enableTangents) {
+        mTangents.reserve(triangleCount * 3);
+        mBitangents.reserve(triangleCount * 3);
+    }
+}
+
 uint32_t TriMesh::AppendTriangle(uint32_t v0, uint32_t v1, uint32_t v2)
 {
     if (mIndexType == grfx::INDEX_TYPE_UINT16) {
@@ -939,6 +978,17 @@ Result TriMesh::CreateFromOBJ(const std::filesystem::path& path, const TriMeshOp
     //    }
     //}
 
+    // Preallocate based on the total number of triangles.
+    size_t totalTriangles = 0;
+    for (size_t shapeIdx = 0; shapeIdx < numShapes; ++shapeIdx) {
+        totalTriangles += shapes[shapeIdx].mesh.indices.size() / 3;
+    }
+    pTriMesh->PreallocateForTriangleCount(totalTriangles,
+                                          /* enableColors= */ (options.mEnableVertexColors || options.mEnableObjectColor),
+                                          options.mEnableNormals,
+                                          options.mEnableTexCoords,
+                                          options.mEnableTangents);
+
     // Build geometry
     for (size_t shapeIdx = 0; shapeIdx < numShapes; ++shapeIdx) {
         const tinyobj::shape_t& shape     = shapes[shapeIdx];
@@ -1113,7 +1163,7 @@ Result TriMesh::CreateFromOBJ(const std::filesystem::path& path, const TriMeshOp
 
     double fnEndTime = timer.SecondsSinceStart();
     float  fnElapsed = static_cast<float>(fnEndTime - fnStartTime);
-    PPX_LOG_INFO("Created mesh from OBJ file: " << path << " (" << FloatString(fnElapsed) << " seconds)");
+    PPX_LOG_INFO("Created mesh from OBJ file: " << path << " (" << FloatString(fnElapsed) << " seconds, " << numShapes << " shapes, " << totalTriangles << " triangles)");
 
     return ppx::SUCCESS;
 }
