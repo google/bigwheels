@@ -62,6 +62,13 @@ private:
         WEIGHTED_AVERAGE_TYPES_COUNT,
     };
 
+    enum BufferAlgorithmType : int32_t
+    {
+        BUFFER_ALGORITHM_BUCKETS,
+        BUFFER_ALGORITHM_LINKED_LISTS,
+        BUFFER_ALGORITHMS_COUNT,
+    };
+
     struct GuiParameters
     {
         int32_t algorithmDataIndex;
@@ -98,7 +105,10 @@ private:
 
         struct
         {
-            int32_t fragmentsMaxCount;
+            BufferAlgorithmType type;
+            int32_t             bucketsFragmentsMaxCount;
+            int32_t             listsFragmentBufferScale;
+            int32_t             listsSortedFragmentMaxCount;
         } buffer;
     };
 
@@ -112,6 +122,8 @@ private:
     void SetupWeightedAverage();
     void SetupDepthPeeling();
     void SetupBuffer();
+    void SetupBufferBuckets();
+    void SetupBufferLinkedLists();
 
     void FillSupportedAlgorithmData();
     void ParseCommandLineOptions();
@@ -123,13 +135,16 @@ private:
     void UpdateGUI();
 
     void RecordOpaque();
+    void RecordTransparency();
+    void RecordComposite(grfx::RenderPassPtr renderPass);
+
     void RecordUnsortedOver();
     void RecordWeightedSum();
     void RecordWeightedAverage();
     void RecordDepthPeeling();
     void RecordBuffer();
-    void RecordTransparency();
-    void RecordComposite(grfx::RenderPassPtr renderPass);
+    void RecordBufferBuckets();
+    void RecordBufferLinkedLists();
 
 private:
     GuiParameters mGuiParameters = {};
@@ -236,21 +251,45 @@ private:
 
     struct
     {
-        grfx::TexturePtr  countTexture;
-        grfx::TexturePtr  fragmentTexture;
-        grfx::DrawPassPtr clearPass;
-        grfx::DrawPassPtr gatherPass;
+        struct
+        {
+            grfx::TexturePtr  countTexture;
+            grfx::TexturePtr  fragmentTexture;
+            grfx::DrawPassPtr clearPass;
+            grfx::DrawPassPtr gatherPass;
 
-        grfx::DescriptorSetLayoutPtr gatherDescriptorSetLayout;
-        grfx::DescriptorSetPtr       gatherDescriptorSet;
-        grfx::PipelineInterfacePtr   gatherPipelineInterface;
-        grfx::GraphicsPipelinePtr    gatherPipeline;
+            grfx::DescriptorSetLayoutPtr gatherDescriptorSetLayout;
+            grfx::DescriptorSetPtr       gatherDescriptorSet;
+            grfx::PipelineInterfacePtr   gatherPipelineInterface;
+            grfx::GraphicsPipelinePtr    gatherPipeline;
 
-        grfx::DescriptorSetLayoutPtr combineDescriptorSetLayout;
-        grfx::DescriptorSetPtr       combineDescriptorSet;
-        grfx::PipelineInterfacePtr   combinePipelineInterface;
-        grfx::GraphicsPipelinePtr    combinePipeline;
+            grfx::DescriptorSetLayoutPtr combineDescriptorSetLayout;
+            grfx::DescriptorSetPtr       combineDescriptorSet;
+            grfx::PipelineInterfacePtr   combinePipelineInterface;
+            grfx::GraphicsPipelinePtr    combinePipeline;
 
-        bool countTextureNeedClear;
+            bool countTextureNeedClear;
+        } buckets;
+
+        struct
+        {
+            grfx::TexturePtr  linkedListHeadTexture;
+            grfx::BufferPtr   fragmentBuffer;
+            grfx::BufferPtr   atomicCounter;
+            grfx::DrawPassPtr clearPass;
+            grfx::DrawPassPtr gatherPass;
+
+            grfx::DescriptorSetLayoutPtr gatherDescriptorSetLayout;
+            grfx::DescriptorSetPtr       gatherDescriptorSet;
+            grfx::PipelineInterfacePtr   gatherPipelineInterface;
+            grfx::GraphicsPipelinePtr    gatherPipeline;
+
+            grfx::DescriptorSetLayoutPtr combineDescriptorSetLayout;
+            grfx::DescriptorSetPtr       combineDescriptorSet;
+            grfx::PipelineInterfacePtr   combinePipelineInterface;
+            grfx::GraphicsPipelinePtr    combinePipeline;
+
+            bool linkedListHeadTextureNeedClear;
+        } lists;
     } mBuffer;
 };

@@ -19,12 +19,6 @@
 SamplerState NearestSampler                            : register(CUSTOM_SAMPLER_0_REGISTER);
 Texture2D    LayerTextures[DEPTH_PEELING_LAYERS_COUNT] : register(CUSTOM_TEXTURE_0_REGISTER);
 
-void MergeColor(inout float4 outColor, float4 layerColor)
-{
-    outColor.rgb = lerp(outColor.rgb, layerColor.rgb, layerColor.a);
-    outColor.a *= 1.0f - layerColor.a;
-}
-
 float4 psmain(VSOutput input) : SV_TARGET
 {
     float4 color = float4(0.0f, 0.0f, 0.0f, 1.0f);

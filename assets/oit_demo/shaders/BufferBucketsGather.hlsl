@@ -20,12 +20,6 @@ Texture2D          OpaqueDepthTexture : register(CUSTOM_TEXTURE_0_REGISTER);
 RWTexture2D<uint>  CountTexture       : register(CUSTOM_UAV_0_REGISTER);
 RWTexture2D<uint2> FragmentTexture    : register(CUSTOM_UAV_1_REGISTER);
 
-uint PackColor(float4 color)
-{
-    const uint4 ci = (uint4)(clamp(color, 0.0f, 1.0f) * 255.0f);
-    return (ci.r << 24) | (ci.g << 16) | (ci.b << 8) | ci.a;
-}
-
 void psmain(VSOutput input)
 {
     // Test fragment against opaque depth
@@ -40,14 +34,14 @@ void psmain(VSOutput input)
     InterlockedAdd(CountTexture[bucketIndex], 1U, nextBucketFragmentIndex);
 
     // Ignore the fragment if the bucket is already full
-    if(nextBucketFragmentIndex >= BUFFER_BUCKET_SIZE_PER_PIXEL)
+    if(nextBucketFragmentIndex >= BUFFER_BUCKETS_SIZE_PER_PIXEL)
     {
         clip(-1.0f);
     }
 
     // Add the fragment to the bucket
     uint2 textureFragmentIndex = bucketIndex;
-    textureFragmentIndex.y *= BUFFER_BUCKET_SIZE_PER_PIXEL;
+    textureFragmentIndex.y *= BUFFER_BUCKETS_SIZE_PER_PIXEL;
     textureFragmentIndex.y += nextBucketFragmentIndex;
     FragmentTexture[textureFragmentIndex] = uint2(PackColor(float4(input.color, g_Globals.meshOpacity)), asuint(input.position.z));
 }
