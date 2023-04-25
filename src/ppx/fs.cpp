@@ -84,6 +84,13 @@ void File::Close()
 #endif
 }
 
+#if defined(PPX_ANDROID)
+const void* File::GetBuffer()
+{
+    return AAsset_getBuffer(mFile);
+}
+#endif
+
 bool FileStream::Open(const char* path)
 {
     auto optional_buffer = load_file(path);
@@ -102,10 +109,16 @@ std::optional<std::vector<char>> load_file(const std::filesystem::path& path)
     if (!file.Open(path)) {
         return std::nullopt;
     }
-
     size_t size = file.GetLength();
     data.resize(size);
+
+#if defined(PPX_ANDROID)
+    // Allow the system to use MMIO if available.
+    const void* buf = file.GetBuffer();
+    memcpy(data.data(), buf, size);
+#else
     file.Read(data.data(), size);
+#endif
     file.Close();
     return data;
 }

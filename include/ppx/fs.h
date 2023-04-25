@@ -57,6 +57,9 @@ public:
     size_t Read(void* buf, size_t count);
     size_t GetLength();
     void   Close();
+#if defined(PPX_ANDROID)
+    const void* GetBuffer();
+#endif
 
 private:
 #if defined(PPX_ANDROID)
