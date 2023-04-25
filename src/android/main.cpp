@@ -2,9 +2,7 @@
 
 #include <string>
 #include <vector>
-#include <game-activity/GameActivity.cpp>
-#include <game-text-input/gametextinput.cpp>
-#include <game-activity/native_app_glue/android_native_app_glue.h>
+#include <android_native_app_glue.h>
 
 extern bool InitVulkan(android_app* app);
 extern void DeleteVulkan(void);
@@ -21,7 +19,7 @@ static std::vector<std::string> get_java_args(android_app* pApp)
     JNIEnv* jEnv = pApp->activity->env;
     jVm->AttachCurrentThread(&jEnv, nullptr);
 
-    jobject      jMainActivity         = pApp->activity->javaGameActivity;
+    jobject      jMainActivity         = pApp->activity->clazz;
     jclass       jMainActivityClass    = jEnv->GetObjectClass(jMainActivity);
     jmethodID    jConstructCmdLineArgs = jEnv->GetMethodID(jMainActivityClass, "constructCmdLineArgs", "()[Ljava/lang/String;");
     jobjectArray jArgs                 = static_cast<jobjectArray>(jEnv->CallObjectMethod(jMainActivity, jConstructCmdLineArgs));
@@ -43,8 +41,6 @@ static std::vector<std::string> get_java_args(android_app* pApp)
 
 extern "C"
 {
-#include <game-activity/native_app_glue/android_native_app_glue.c>
-
     /*!
      * Handles commands sent to this Android application
      * @param pApp the app the commands are coming from

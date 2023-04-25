@@ -54,6 +54,7 @@ function(_add_sample_internal)
         find_library(log-lib log)
         target_link_libraries("${TARGET_NAME}" PUBLIC
           android
+          android_native_app_glue
           ${log-lib}
         )
     else ()

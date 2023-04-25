@@ -30,7 +30,7 @@
 #elif defined(PPX_MSW)
 #   include <Windows.h>
 #elif defined(PPX_ANDROID)
-#   include <game-activity/native_app_glue/android_native_app_glue.h>
+#   include <android_native_app_glue.h>
 #endif
 // clang-format on
 
