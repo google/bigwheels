@@ -253,6 +253,11 @@ Result Bitmap::Resize(uint32_t width, uint32_t height)
 
 Result Bitmap::ScaleTo(Bitmap* pTargetBitmap) const
 {
+    return ScaleTo(pTargetBitmap, STBIR_FILTER_DEFAULT);
+}
+
+Result Bitmap::ScaleTo(Bitmap* pTargetBitmap, stbir_filter filterType) const
+{
     if (IsNull(pTargetBitmap)) {
         return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
     }
@@ -288,8 +293,8 @@ Result Bitmap::ScaleTo(Bitmap* pTargetBitmap) const
         0,
         STBIR_EDGE_CLAMP,
         STBIR_EDGE_CLAMP,
-        STBIR_FILTER_DEFAULT,
-        STBIR_FILTER_DEFAULT,
+        filterType,
+        filterType,
         STBIR_COLORSPACE_LINEAR,
         nullptr);
 

@@ -16,6 +16,7 @@
 #include "ppx/timer.h"
 
 #include "stb_image.h"
+#include "stb_image_resize.h"
 
 #include <filesystem>
 
@@ -136,7 +137,7 @@ Mipmap::Mipmap(const Bitmap& bitmap, uint32_t levelCount, bool useStaticPool)
                 Bitmap*  pPrevMip  = GetMip(prevLevel);
                 Bitmap*  pMip      = GetMip(level);
 
-                Result ppxres = pPrevMip->ScaleTo(pMip);
+                Result ppxres = pPrevMip->ScaleTo(pMip, STBIR_FILTER_BOX);
                 if (Failed(ppxres)) {
                     mData.clear();
                     mMips.clear();

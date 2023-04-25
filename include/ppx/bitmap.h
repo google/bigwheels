@@ -18,6 +18,8 @@
 #include "ppx/config.h"
 #include "ppx/grfx/grfx_format.h"
 
+#include "stb_image_resize.h"
+
 #include <filesystem>
 
 namespace ppx {
@@ -93,6 +95,7 @@ public:
 
     Result Resize(uint32_t width, uint32_t height);
     Result ScaleTo(Bitmap* pTargetBitmap) const;
+    Result ScaleTo(Bitmap* pTargetBitmap, stbir_filter filterType) const;
 
     template <typename PixelDataType>
     void Fill(PixelDataType r, PixelDataType g, PixelDataType b, PixelDataType a);
