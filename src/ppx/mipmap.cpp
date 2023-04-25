@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "ppx/mipmap.h"
+#include "ppx/timer.h"
 
 #include "stb_image.h"
 
@@ -63,7 +64,15 @@ static uint64_t CalculateDataSize(uint32_t width, uint32_t height, Bitmap::Forma
     return totalSize;
 }
 
+std::vector<char> Mipmap::mStaticData = {};
+
 Mipmap::Mipmap(uint32_t width, uint32_t height, Bitmap::Format format, uint32_t levelCount)
+    : Mipmap(width, height, format, levelCount, /* useStaticPool= */ false)
+{
+}
+
+Mipmap::Mipmap(uint32_t width, uint32_t height, Bitmap::Format format, uint32_t levelCount, bool useStaticPool)
+    : mUseStaticPool(useStaticPool)
 {
     levelCount = CalculatActualLevelCount(width, height, levelCount);
 
@@ -72,9 +81,12 @@ Mipmap::Mipmap(uint32_t width, uint32_t height, Bitmap::Format format, uint32_t 
         return;
     }
 
-    mData.resize(dataSize);
-    if (mData.size() != dataSize) {
-        return;
+    // Choose between static pool use and internal data.
+    // NOTE: This is designed for single-threaded use ONLY!
+    // This will need locks if the consuming paths ever become multi-threaded.
+    std::vector<char>& targetData = mUseStaticPool ? mStaticData : mData;
+    if (targetData.size() < dataSize) {
+        targetData.resize(dataSize);
     }
 
     mMips.resize(levelCount);
@@ -82,7 +94,7 @@ Mipmap::Mipmap(uint32_t width, uint32_t height, Bitmap::Format format, uint32_t 
     const size_t pixelWidth = static_cast<size_t>(Bitmap::FormatSize(format));
     size_t       offset     = 0;
     for (uint32_t i = 0; i < levelCount; ++i) {
-        char* pStorage = mData.data() + offset;
+        char* pStorage = targetData.data() + offset;
 
         Bitmap& mip = mMips[i];
 
@@ -102,7 +114,12 @@ Mipmap::Mipmap(uint32_t width, uint32_t height, Bitmap::Format format, uint32_t 
 }
 
 Mipmap::Mipmap(const Bitmap& bitmap, uint32_t levelCount)
-    : Mipmap(bitmap.GetWidth(), bitmap.GetHeight(), bitmap.GetFormat(), levelCount)
+    : Mipmap(bitmap, levelCount, /* useStaticPool= */ false)
+{
+}
+
+Mipmap::Mipmap(const Bitmap& bitmap, uint32_t levelCount, bool useStaticPool)
+    : Mipmap(bitmap.GetWidth(), bitmap.GetHeight(), bitmap.GetFormat(), levelCount, useStaticPool)
 {
     Bitmap* pMip0 = GetMip(0);
     if (!IsNull(pMip0)) {
@@ -147,7 +164,9 @@ bool Mipmap::IsOk() const
     uint32_t width       = bitmap.GetWidth();
     uint32_t height      = bitmap.GetHeight();
     uint64_t dataSize    = CalculateDataSize(width, height, format, levelCount);
-    uint64_t storageSize = static_cast<uint64_t>(mData.size());
+    uint64_t storageSize = mUseStaticPool
+                               ? static_cast<uint64_t>(mStaticData.size())
+                               : static_cast<uint64_t>(mData.size());
 
     if (storageSize < dataSize) {
         return false;
