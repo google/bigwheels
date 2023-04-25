@@ -69,11 +69,6 @@ android {
                               '-DBUILD_LOADER=FALSE'
                 }
             }
-            sourceSets {
-                main {
-                    manifest.srcFile 'src/android/AndroidManifest.xml'
-                }
-            }
         }
         openxr {
             dimension 'device'
@@ -86,11 +81,6 @@ android {
                               '-DBUILD_LOADER=TRUE',
                               '-DBUILD_ALL_EXTENSIONS=TRUE'
                     cppFlags '-DXR_USE_PLATFORM_ANDROID'
-                }
-            }
-            sourceSets {
-                main {
-                    manifest.srcFile 'src/android/AndroidManifest.XR.xml'
                 }
             }
         }
@@ -109,11 +99,6 @@ android {
                             '-DBUILD_ALL_EXTENSIONS=FALSE',
                             "-DOCULUS_OPENXR_SDK=${oculusOpenxrSdkLocation}"
                   cppFlags '-DXR_USE_PLATFORM_ANDROID'
-                }
-            }
-            sourceSets {
-                main {
-                    manifest.srcFile 'src/android/AndroidManifest.Quest.xml'
                 }
             }
         }
@@ -152,10 +137,17 @@ android {
     }
     sourceSets {
         main {
+            manifest.srcFile 'src/android/AndroidManifest.xml'
             java.srcDirs = [ 'src/android' ]
             assets {
                 srcDirs 'assets'
             }
+        }
+        openxr {
+            manifest.srcFile 'src/android/AndroidManifest.XR.xml'
+        }
+        quest {
+            manifest.srcFile 'src/android/AndroidManifest.Quest.xml'
         }
     }
 }
