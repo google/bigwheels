@@ -1,11 +1,11 @@
 package com.google.bigwheels;
 
+import android.app.NativeActivity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
-import com.google.androidgamesdk.GameActivity;
 
-public class MainActivity extends GameActivity {
+public class MainActivity extends NativeActivity {
   static { System.loadLibrary(BuildConfig.sample_library_name); }
 
   private String[] getArgsFromIntent(Intent intent) {

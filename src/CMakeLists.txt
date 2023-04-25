@@ -509,15 +509,6 @@ if (PPX_MSW)
     )
 endif()
 
-if (PPX_ANDROID)
-    target_link_libraries(
-        ${PROJECT_NAME}
-        PUBLIC
-        android
-        game-activity::game-activity
-    )
-endif()
-
 # ------------------------------------------------------------------------------
 # Graphics API compile definitions
 # ------------------------------------------------------------------------------

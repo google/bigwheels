@@ -19,7 +19,7 @@
 #include <optional>
 
 #if defined(PPX_ANDROID)
-#include <game-activity/native_app_glue/android_native_app_glue.h>
+#include <android_native_app_glue.h>
 android_app* gAndroidContext;
 #endif
 

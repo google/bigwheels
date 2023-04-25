@@ -76,7 +76,7 @@ void XrComponent::InitializeBeforeGrfxDeviceInit(const XrComponentCreateInfo& cr
 #if defined(PPX_ANDROID)
     XrLoaderInitInfoAndroidKHR loaderInitInfoAndroid = {XR_TYPE_LOADER_INIT_INFO_ANDROID_KHR};
     loaderInitInfoAndroid.applicationVM              = createInfo.androidContext->activity->vm;
-    loaderInitInfoAndroid.applicationContext         = createInfo.androidContext->activity->javaGameActivity;
+    loaderInitInfoAndroid.applicationContext         = createInfo.androidContext->activity->clazz;
     PFN_xrInitializeLoaderKHR pfnInitializeLoaderKHR = nullptr;
     CHECK_XR_CALL(xrGetInstanceProcAddr(XR_NULL_HANDLE, "xrInitializeLoaderKHR", (PFN_xrVoidFunction*)(&pfnInitializeLoaderKHR)));
     PPX_ASSERT_MSG(pfnInitializeLoaderKHR != nullptr, "Cannot get xrInitializeLoaderKHR function pointer!");
@@ -143,7 +143,7 @@ void XrComponent::InitializeBeforeGrfxDeviceInit(const XrComponentCreateInfo& cr
     XrInstanceCreateInfoAndroidKHR instanceCreateInfoAndroid = {XR_TYPE_INSTANCE_CREATE_INFO_ANDROID_KHR};
     instanceCreateInfoAndroid.next                           = nullptr;
     instanceCreateInfoAndroid.applicationVM                  = createInfo.androidContext->activity->vm;
-    instanceCreateInfoAndroid.applicationActivity            = createInfo.androidContext->activity->javaGameActivity;
+    instanceCreateInfoAndroid.applicationActivity            = createInfo.androidContext->activity->clazz;
 
     instanceCreateInfo.next = &instanceCreateInfoAndroid;
 #endif // defined(PPX_ANDROID)

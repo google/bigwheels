@@ -198,7 +198,11 @@ endif()
 # Add game-activity for ANDROID
 # ------------------------------------------------------------------------------
 if (PPX_ANDROID)
-    find_package(game-activity REQUIRED CONFIG)
+    include_directories("${ANDROID_NDK}/sources/android/native_app_glue/")
+    add_library(android_native_app_glue
+        OBJECT
+        "${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c")
+    target_compile_options(android_native_app_glue PRIVATE -fPIC)
 endif()
 
 # ------------------------------------------------------------------------------
