@@ -562,9 +562,12 @@ Application::Application()
 {
     InternalCtor();
 
-    mSettings.appName       = kDefaultAppName;
+    mSettings.appName = kDefaultAppName;
+
+#if !defined(PPX_ANDROID)
     mSettings.window.width  = kDefaultWindowWidth;
     mSettings.window.height = kDefaultWindowHeight;
+#endif
 }
 
 Application::Application(uint32_t windowWidth, uint32_t windowHeight, const char* windowTitle)
@@ -1290,6 +1293,13 @@ int Application::Run(int argc, char** argv)
     mSettings.headless = true;
 #endif
 
+#if defined(PPX_ANDROID)
+    if (mSettings.window.width == 0 || mSettings.window.height == 0) {
+        mSettings.window.width  = static_cast<uint32_t>(ANativeWindow_getWidth(GetAndroidContext()->window));
+        mSettings.window.height = static_cast<uint32_t>(ANativeWindow_getHeight(GetAndroidContext()->window));
+    }
+#endif
+
     // If command line argument provided width and height
     if ((mStandardOptions.resolution.first != -1) && (mStandardOptions.resolution.second != -1)) {
         mSettings.window.width  = mStandardOptions.resolution.first;
@@ -1323,16 +1333,16 @@ int Application::Run(int argc, char** argv)
         createInfo.androidContext = GetAndroidContext();
         createInfo.colorFormat    = grfx::FORMAT_R8G8B8A8_SRGB;
 #else
-        createInfo.colorFormat           = grfx::FORMAT_B8G8R8A8_SRGB;
+        createInfo.colorFormat = grfx::FORMAT_B8G8R8A8_SRGB;
 #endif
-        createInfo.depthFormat           = grfx::FORMAT_D32_FLOAT;
-        createInfo.refSpaceType          = XrRefSpace::XR_STAGE;
-        createInfo.viewConfigType        = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
-        createInfo.enableDebug           = mSettings.grfx.enableDebug;
-        createInfo.enableQuadLayer       = mSettings.enableImGui;
-        createInfo.enableDepthSwapchain  = mSettings.xr.enableDepthSwapchain;
-        createInfo.quadLayerPos          = XrVector3f{mSettings.xr.ui.pos.x, mSettings.xr.ui.pos.y, mSettings.xr.ui.pos.z};
-        createInfo.quadLayerSize         = XrExtent2Df{mSettings.xr.ui.size.x, mSettings.xr.ui.size.y};
+        createInfo.depthFormat          = grfx::FORMAT_D32_FLOAT;
+        createInfo.refSpaceType         = XrRefSpace::XR_STAGE;
+        createInfo.viewConfigType       = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
+        createInfo.enableDebug          = mSettings.grfx.enableDebug;
+        createInfo.enableQuadLayer      = mSettings.enableImGui;
+        createInfo.enableDepthSwapchain = mSettings.xr.enableDepthSwapchain;
+        createInfo.quadLayerPos         = XrVector3f{mSettings.xr.ui.pos.x, mSettings.xr.ui.pos.y, mSettings.xr.ui.pos.z};
+        createInfo.quadLayerSize        = XrExtent2Df{mSettings.xr.ui.size.x, mSettings.xr.ui.size.y};
 
         mXrComponent.InitializeBeforeGrfxDeviceInit(createInfo);
     }
