@@ -1333,10 +1333,8 @@ int Application::Run(int argc, char** argv)
         createInfo.enableDepthSwapchain = mSettings.xr.enableDepthSwapchain;
         createInfo.quadLayerPos         = XrVector3f{mSettings.xr.ui.pos.x, mSettings.xr.ui.pos.y, mSettings.xr.ui.pos.z};
         createInfo.quadLayerSize        = XrExtent2Df{mSettings.xr.ui.size.x, mSettings.xr.ui.size.y};
-        if ((mStandardOptions.resolution.first != -1) && (mStandardOptions.resolution.second != -1)) {
-            createInfo.resolution.width  = mStandardOptions.resolution.first;
-            createInfo.resolution.height = mStandardOptions.resolution.second;
-        }
+        createInfo.resolution.width     = mSettings.window.width;
+        createInfo.resolution.height    = mSettings.window.height;
 
         mXrComponent.InitializeBeforeGrfxDeviceInit(createInfo);
     }
