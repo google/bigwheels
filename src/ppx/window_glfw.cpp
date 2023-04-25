@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,17 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#if !defined(PPX_ANDROID)
+
 #include "ppx/application.h"
-#include "ppx/profiler.h"
-#include "ppx/ppm_export.h"
-#include "ppx/fs.h"
+#include "ppx/window.h"
+#include "ppx/grfx/grfx_swapchain.h"
+
 #include "backends/imgui_impl_glfw.h"
 
 #include <map>
-#include <numeric>
-#include <unordered_map>
-#include <optional>
-#include <filesystem>
 
 #if defined(PPX_LINUX_XCB)
 #include <X11/Xlib-xcb.h>
@@ -32,6 +30,7 @@
 #error "Wayland not implemented"
 #endif
 
+#include <GLFW/glfw3.h>
 // clang-format off
 #if defined(PPX_LINUX)
 #   define GLFW_EXPOSE_NATIVE_X11
@@ -206,7 +205,6 @@ struct WindowEvents
 
     static void MouseButtonCallback(GLFWwindow* window, int event_button, int event_action, int event_mods)
     {
-#if !defined(PPX_ANDROID)
         auto it = sWindows.find(window);
         if (it == sWindows.end()) {
             return;
@@ -244,12 +242,10 @@ struct WindowEvents
         if (p_application->GetSettings()->enableImGui) {
             ImGui_ImplGlfw_MouseButtonCallback(window, event_button, event_action, event_mods);
         }
-#endif
     }
 
     static void MouseMoveCallback(GLFWwindow* window, double event_x, double event_y)
     {
-#if !defined(PPX_ANDROID)
         auto it = sWindows.find(window);
         if (it == sWindows.end()) {
             return;
@@ -270,12 +266,10 @@ struct WindowEvents
             static_cast<int32_t>(event_x),
             static_cast<int32_t>(event_y),
             buttons);
-#endif
     }
 
     static void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
     {
-#if !defined(PPX_ANDROID)
         auto it = sWindows.find(window);
         if (it == sWindows.end()) {
             return;
@@ -289,12 +283,10 @@ struct WindowEvents
         if (p_application->GetSettings()->enableImGui) {
             ImGui_ImplGlfw_ScrollCallback(window, xoffset, yoffset);
         }
-#endif
     }
 
     static void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
     {
-#if !defined(PPX_ANDROID)
         auto it = sWindows.find(window);
         if (it == sWindows.end()) {
             return;
@@ -320,12 +312,10 @@ struct WindowEvents
         if (p_application->GetSettings()->enableImGui) {
             ImGui_ImplGlfw_KeyCallback(window, key, scancode, action, mods);
         }
-#endif
     }
 
     static void CharCallback(GLFWwindow* window, unsigned int c)
     {
-#if !defined(PPX_ANDROID)
         auto it = sWindows.find(window);
         if (it == sWindows.end()) {
             return;
@@ -335,12 +325,10 @@ struct WindowEvents
         if (p_application->GetSettings()->enableImGui) {
             ImGui_ImplGlfw_CharCallback(window, c);
         }
-#endif
     }
 
     static Result RegisterWindowEvents(GLFWwindow* window, Application* application)
     {
-#if !defined(PPX_ANDROID)
         auto it = sWindows.find(window);
         if (it != sWindows.end()) {
             return ppx::ERROR_WINDOW_EVENTS_ALREADY_REGISTERED;
@@ -355,11 +343,141 @@ struct WindowEvents
         glfwSetCharCallback(window, WindowEvents::CharCallback);
 
         sWindows[window] = application;
-#endif
         return ppx::SUCCESS;
     }
 };
 
 std::unordered_map<GLFWwindow*, Application*> WindowEvents::sWindows;
 
+// -------------------------------------------------------------------------------------------------
+// GLFW Window
+// -------------------------------------------------------------------------------------------------
+
+class WindowImplGLFW : public Window
+{
+public:
+    using Window::Window;
+
+    Result     Create(const char* title) final;
+    void       Quit() final;
+    Result     Destroy() final;
+    bool       IsRunning() const final;
+    WindowSize Size() const final;
+    Result     Resize(const WindowSize&) final;
+    void       FillSurfaceInfo(grfx::SurfaceCreateInfo*) const final;
+    void       ProcessEvent() final;
+    void*      NativeHandle() final;
+
+private:
+    GLFWwindow* mNative = nullptr;
+};
+
+std::unique_ptr<Window> Window::GetImplGLFW(Application* pApp)
+{
+    return std::unique_ptr<Window>(new WindowImplGLFW(pApp));
+}
+
+Result WindowImplGLFW::Create(const char* title)
+{
+    // Initializ glfw
+    int res = glfwInit();
+    if (res != GLFW_TRUE) {
+        PPX_ASSERT_MSG(false, "glfwInit failed");
+        return ppx::ERROR_GLFW_INIT_FAILED;
+    }
+
+    const ApplicationSettings* settings = App()->GetSettings();
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    glfwWindowHint(GLFW_RESIZABLE, settings->window.resizable ? GLFW_TRUE : GLFW_FALSE);
+
+    GLFWwindow* pWindow = glfwCreateWindow(
+        static_cast<int>(settings->window.width),
+        static_cast<int>(settings->window.height),
+        title,
+        nullptr,
+        nullptr);
+    if (IsNull(pWindow)) {
+        PPX_ASSERT_MSG(false, "glfwCreateWindow failed");
+        return ppx::ERROR_GLFW_CREATE_WINDOW_FAILED;
+    }
+
+    // Register window events
+    Result ppxres = WindowEvents::RegisterWindowEvents(pWindow, App());
+    if (Failed(ppxres)) {
+        PPX_ASSERT_MSG(false, "RegisterWindowEvents failed");
+        return ppxres;
+    }
+    mNative = pWindow;
+    return ppx::SUCCESS;
+}
+
+void WindowImplGLFW::Quit()
+{
+    glfwSetWindowShouldClose(mNative, 1);
+}
+
+Result WindowImplGLFW::Destroy()
+{
+    if (!IsNull(mNative)) {
+        glfwDestroyWindow(mNative);
+        mNative = nullptr;
+    }
+    return ppx::SUCCESS;
+}
+
+bool WindowImplGLFW::IsRunning() const
+{
+    int  value     = glfwWindowShouldClose(mNative);
+    bool isRunning = (value == 0);
+    return isRunning;
+}
+
+Result WindowImplGLFW::Resize(const WindowSize& size)
+{
+    if (Size() == size) {
+        return ppx::SUCCESS;
+    }
+
+    glfwSetWindowSize(
+        mNative,
+        static_cast<int>(size.width),
+        static_cast<int>(size.height));
+    return ppx::SUCCESS;
+}
+
+WindowSize WindowImplGLFW::Size() const
+{
+    int width  = 0;
+    int height = 0;
+    glfwGetWindowSize(mNative, &width, &height);
+    return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+}
+
+void WindowImplGLFW::FillSurfaceInfo(grfx::SurfaceCreateInfo* pCreateInfo) const
+{
+#if defined(PPX_LINUX_XCB)
+    pCreateInfo->connection = XGetXCBConnection(glfwGetX11Display());
+    pCreateInfo->window     = glfwGetX11Window(mNative);
+#elif defined(PPX_LINUX_XLIB)
+#error "Xlib not implemented"
+#elif defined(PPX_LINUX_WAYLAND)
+#error "Wayland not implemented"
+#elif defined(PPX_MSW)
+    pCreateInfo->hinstance = ::GetModuleHandle(nullptr);
+    pCreateInfo->hwnd      = glfwGetWin32Window(mNative);
+#endif
+}
+
+void WindowImplGLFW::ProcessEvent()
+{
+    glfwPollEvents();
+}
+
+void* WindowImplGLFW::NativeHandle()
+{
+    return mNative;
+}
+
 } // namespace ppx
+
+#endif
