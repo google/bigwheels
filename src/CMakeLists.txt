@@ -160,6 +160,7 @@ list(
     ${INC_DIR}/ppx/geometry.h
     ${INC_DIR}/ppx/graphics_util.h
     ${INC_DIR}/ppx/imgui_impl.h
+    ${INC_DIR}/ppx/knob.h
     ${INC_DIR}/ppx/log.h
     ${INC_DIR}/ppx/metrics.h
     ${INC_DIR}/ppx/mipmap.h
@@ -193,6 +194,7 @@ list(
     ${SRC_DIR}/ppx/geometry.cpp
     ${SRC_DIR}/ppx/graphics_util.cpp
     ${SRC_DIR}/ppx/imgui_impl.cpp
+    ${SRC_DIR}/ppx/knob.cpp
     ${SRC_DIR}/ppx/log.cpp
     ${SRC_DIR}/ppx/math_config.cpp
     ${SRC_DIR}/ppx/metrics.cpp
