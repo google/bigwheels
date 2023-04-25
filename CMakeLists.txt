@@ -195,7 +195,7 @@ if (NOT PPX_ANDROID)
 endif()
 
 # ------------------------------------------------------------------------------
-# Add game-activity for ANDROID
+# Add native activity for ANDROID
 # ------------------------------------------------------------------------------
 if (PPX_ANDROID)
     include_directories("${ANDROID_NDK}/sources/android/native_app_glue/")
