@@ -63,8 +63,6 @@ enum class MetricType
 
 class Metric
 {
-    friend class Run;
-
 public:
     const MetricMetadata& GetMetadata() const;
     MetricType            GetType() const;
@@ -95,6 +93,8 @@ struct GaugeStatistics
 
 class MetricGauge final : public Metric
 {
+    friend class Run;
+
 public:
     MetricGauge(const MetricMetadata& metadata);
 
@@ -157,26 +157,28 @@ private:
     ~Run();
     METRICS_NO_COPY(Run)
 
-    Metric* GetMetric(const char* name) const;
+    void AddMetric(MetricGauge* metric);
+    void AddMetric(MetricCounter* metric);
+    bool HasMetric(const char* name) const;
 
 private:
     std::string                              mName;
-    std::unordered_map<std::string, Metric*> mMetrics;
+    std::unordered_map<std::string, MetricGauge*> mGauges;
+    std::unordered_map<std::string, MetricCounter*> mCounters;
 };
 
 template <typename T>
 T* Run::AddMetric(MetricMetadata metadata)
 {
     PPX_ASSERT_MSG(!metadata.name.empty(), "The metric name must not be empty");
-    PPX_ASSERT_MSG(GetMetric(metadata.name.c_str()) == nullptr, "Metrics must have unique names (duplicate name detected)");
+    PPX_ASSERT_MSG(!HasMetric(metadata.name.c_str()), "Metrics must have unique names (duplicate name detected)");
 
     T* metric = new T(metadata);
     if (metric == nullptr) {
         return nullptr;
     }
 
-    const auto ret = mMetrics.insert({metadata.name, metric});
-    PPX_ASSERT_MSG(ret.second, "An insertion shall always take place when adding a metric");
+    AddMetric(metric);
     return metric;
 }
 

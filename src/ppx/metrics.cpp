@@ -169,16 +169,33 @@ Run::Run(const char* name)
 
 Run::~Run()
 {
-    for (auto [name, metric] : mMetrics) {
+    for (auto [name, metric] : mGauges) {
         delete metric;
     }
-    mMetrics.clear();
+    mGauges.clear();
+    for (auto [name, metric] : mCounters) {
+        delete metric;
+    }
+    mCounters.clear();
 }
 
-Metric* Run::GetMetric(const char* name) const
+void Run::AddMetric(MetricGauge* metric)
 {
-    auto it = mMetrics.find(name);
-    return mMetrics.find(name) == mMetrics.end() ? nullptr : it->second;
+    PPX_ASSERT_NULL_ARG(metric);
+    const auto ret = mGauges.insert({metric->GetMetadata().name, metric});
+    PPX_ASSERT_MSG(ret.second, "An insertion shall always take place when adding a metric");
+}
+
+void Run::AddMetric(MetricCounter* metric)
+{
+    PPX_ASSERT_NULL_ARG(metric);
+    const auto ret = mCounters.insert({metric->GetMetadata().name, metric});
+    PPX_ASSERT_MSG(ret.second, "An insertion shall always take place when adding a metric");
+}
+
+bool Run::HasMetric(const char* name) const
+{
+    return mGauges.find(name) != mGauges.end() || mCounters.find(name) != mCounters.end();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
