@@ -55,29 +55,6 @@ struct MetricMetadata
 
 ////////////////////////////////////////////////////////////////////////////////
 
-enum class MetricType
-{
-    GAUGE,
-    COUNTER,
-};
-
-class Metric
-{
-public:
-    const MetricMetadata& GetMetadata() const;
-    MetricType            GetType() const;
-
-protected:
-    Metric(const MetricMetadata& metadata, MetricType type);
-    virtual ~Metric();
-
-private:
-    MetricMetadata mMetadata;
-    MetricType     mType;
-};
-
-////////////////////////////////////////////////////////////////////////////////
-
 struct GaugeStatistics
 {
     double min;
@@ -91,7 +68,7 @@ struct GaugeStatistics
     double percentile99;
 };
 
-class MetricGauge final : public Metric
+class MetricGauge final
 {
     friend class Run;
 
@@ -118,6 +95,7 @@ private:
     void UpdateRealTimeStatistics(double seconds, double value);
 
 private:
+    MetricMetadata mMetadata;
     std::vector<TimeSeriesEntry> mTimeSeries;
     GaugeStatistics              mRealTimeStatistics;
     double                       mAccumulatedValue;
@@ -125,12 +103,13 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////
 
-class MetricCounter final : public Metric
+class MetricCounter final
 {
     friend class Run;
 
 public:
     MetricCounter(const MetricMetadata& metadata);
+
     uint64_t Increment(uint64_t add);
     uint64_t Get() const;
 
@@ -139,6 +118,7 @@ private:
     METRICS_NO_COPY(MetricCounter)
 
 private:
+    MetricMetadata mMetadata;
     uint64_t mCounter;
 };
 

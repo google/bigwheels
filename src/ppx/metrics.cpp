@@ -19,29 +19,8 @@ namespace metrics {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-Metric::Metric(const MetricMetadata& metadata, MetricType type)
-    : mMetadata(metadata), mType(type)
-{
-}
-
-Metric::~Metric()
-{
-}
-
-const MetricMetadata& Metric::GetMetadata() const
-{
-    return mMetadata;
-}
-
-MetricType Metric::GetType() const
-{
-    return mType;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
 MetricGauge::MetricGauge(const MetricMetadata& metadata)
-    : Metric(metadata, MetricType::GAUGE), mAccumulatedValue(0)
+    : mMetadata(metadata), mAccumulatedValue(0)
 {
     memset(&mRealTimeStatistics, 0, sizeof(mRealTimeStatistics));
     mRealTimeStatistics.min = std::numeric_limits<double>::max();
@@ -140,7 +119,7 @@ void MetricGauge::UpdateRealTimeStatistics(double seconds, double value)
 ////////////////////////////////////////////////////////////////////////////////
 
 MetricCounter::MetricCounter(const MetricMetadata& metadata)
-    : Metric(metadata, MetricType::COUNTER), mCounter(0U)
+    : mMetadata(metadata), mCounter(0U)
 {
 }
 
@@ -182,14 +161,14 @@ Run::~Run()
 void Run::AddMetric(MetricGauge* metric)
 {
     PPX_ASSERT_NULL_ARG(metric);
-    const auto ret = mGauges.insert({metric->GetMetadata().name, metric});
+    const auto ret = mGauges.insert({metric->mMetadata.name, metric});
     PPX_ASSERT_MSG(ret.second, "An insertion shall always take place when adding a metric");
 }
 
 void Run::AddMetric(MetricCounter* metric)
 {
     PPX_ASSERT_NULL_ARG(metric);
-    const auto ret = mCounters.insert({metric->GetMetadata().name, metric});
+    const auto ret = mCounters.insert({metric->mMetadata.name, metric});
     PPX_ASSERT_MSG(ret.second, "An insertion shall always take place when adding a metric");
 }
 

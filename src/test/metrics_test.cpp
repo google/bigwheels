@@ -123,9 +123,8 @@ TEST(MetricsTest, RunAddSingleMetric)
         result = manager.AddRun("run_gauge", &run);
         ASSERT_EQ(result, SUCCESS);
 
-        constexpr const char*   METRIC_NAME = "metric";
         metrics::MetricMetadata metadata    = {};
-        metadata.name                       = METRIC_NAME;
+        metadata.name                       = "metric";
         metrics::MetricGauge* metric = run->AddMetric<metrics::MetricGauge>(metadata);
         ASSERT_NE(metric, nullptr);
     }
@@ -137,9 +136,8 @@ TEST(MetricsTest, RunAddSingleMetric)
         result = manager.AddRun("run_counter", &run);
         ASSERT_EQ(result, SUCCESS);
 
-        constexpr const char*   METRIC_NAME = "metric";
         metrics::MetricMetadata metadata    = {};
-        metadata.name                       = METRIC_NAME;
+        metadata.name                       = "metric";
         metrics::MetricCounter* metric = run->AddMetric<metrics::MetricCounter>(metadata);
         ASSERT_NE(metric, nullptr);
     }
@@ -153,19 +151,17 @@ TEST(MetricsTest, RunAddMultipleMetric)
     result = manager.AddRun("run", &run);
     ASSERT_EQ(result, SUCCESS);
 
-    constexpr const char* METRIC_NAME_GAUGE = "metric_gauge";
     {
         metrics::MetricMetadata metadata = {};
-        metadata.name                    = METRIC_NAME_GAUGE;
+        metadata.name                    = "metric_gauge";
 
         metrics::MetricGauge* metricGauge = run->AddMetric<metrics::MetricGauge>(metadata);
         EXPECT_NE(metricGauge, nullptr);
     }
 
-    constexpr const char*   METRIC_NAME_COUNTER = "metric_counter";
     {
         metrics::MetricMetadata metadata = {};
-        metadata.name                    = METRIC_NAME_COUNTER;
+        metadata.name                    = "metric_counter";
 
         metrics::MetricCounter* metricCounter = run->AddMetric<metrics::MetricCounter>(metadata);
         EXPECT_NE(metricCounter, nullptr);
@@ -180,9 +176,8 @@ TEST(MetricsTest, RunAddDuplicateMetric)
     result = manager.AddRun("run", &run);
     ASSERT_EQ(result, SUCCESS);
 
-    constexpr const char*   METRIC_NAME = "metric";
     metrics::MetricMetadata metadata    = {};
-    metadata.name                       = METRIC_NAME;
+    metadata.name                       = "metric";
 
     metrics::MetricGauge* metricGauge = run->AddMetric<metrics::MetricGauge>(metadata);
     EXPECT_NE(metricGauge, nullptr);
@@ -202,12 +197,9 @@ TEST(MetricsTest, RunAddDuplicateMetric)
 
 TEST_F(MetricsTestFixture, MetricsCounter)
 {
-    constexpr const char*   METRIC_NAME = "counter";
     metrics::MetricMetadata metadata;
-    metadata.name       = METRIC_NAME;
+    metadata.name       = "counter";
     metrics::MetricCounter* metric = run->AddMetric<metrics::MetricCounter>(metadata);
-    EXPECT_EQ(metric->GetMetadata().name, METRIC_NAME);
-    EXPECT_EQ(metric->GetType(), metrics::MetricType::COUNTER);
     EXPECT_EQ(metric->Get(), 0U);
 
     metric->Increment(1U);
@@ -218,12 +210,9 @@ TEST_F(MetricsTestFixture, MetricsCounter)
 
 TEST_F(MetricsTestFixture, MetricsGaugeEntries)
 {
-    constexpr const char*   METRIC_NAME = "frame_time";
     metrics::MetricMetadata metadata;
-    metadata.name       = METRIC_NAME;
+    metadata.name       = "frame_time";
     metrics::MetricGauge*   metric = run->AddMetric<metrics::MetricGauge>(metadata);
-    EXPECT_EQ(metric->GetMetadata().name, METRIC_NAME);
-    EXPECT_EQ(metric->GetType(), metrics::MetricType::GAUGE);
 
     EXPECT_EQ(metric->GetEntriesCount(), 0U);
     metric->RecordEntry(0.0000, 11.0);
@@ -249,12 +238,9 @@ TEST_F(MetricsTestFixture, MetricsGaugeEntries)
 
 TEST_F(MetricsTestFixture, Statistics)
 {
-    constexpr const char*   METRIC_NAME = "frame_time";
     metrics::MetricMetadata metadata;
-    metadata.name       = METRIC_NAME;
+    metadata.name       = "frame_time";
     metrics::MetricGauge*   metric = run->AddMetric<metrics::MetricGauge>(metadata);
-    ASSERT_EQ(metric->GetMetadata().name, METRIC_NAME);
-    ASSERT_EQ(metric->GetType(), metrics::MetricType::GAUGE);
 
     metric->RecordEntry(0.0, 10.868892007019612);
     metric->RecordEntry(0.010868892007019612, 11.245153538647925);
