@@ -149,8 +149,8 @@ class Run final
     friend class Manager;
 
 public:
-    Result       AddMetricGauge(MetricMetadata metadata, MetricGauge** outMetric);
-    Result         AddMetricCounter(MetricMetadata metadata, MetricCounter** outMetric);
+    template <typename T>
+    Result AddMetric(MetricMetadata metadata, T** outMetric);
 
 private:
     Run(const char* name);
@@ -159,13 +159,32 @@ private:
 
     Metric* GetMetric(const char* name) const;
 
-    template <typename T>
-    Result AddMetric(MetricMetadata metadata, T** outMetric);
-
 private:
     std::string                              mName;
     std::unordered_map<std::string, Metric*> mMetrics;
 };
+
+template <typename T>
+Result Run::AddMetric(MetricMetadata metadata, T** outMetric)
+{
+    PPX_ASSERT_MSG(outMetric != nullptr, "The metric pointer must not be null");
+    PPX_ASSERT_MSG(!metadata.name.empty(), "The metric name must not be empty");
+
+    *outMetric = nullptr;
+    if (GetMetric(metadata.name.c_str()) != nullptr) {
+        return ERROR_DUPLICATE_ELEMENT;
+    }
+
+    T* metric = new T(metadata);
+    if (metric == nullptr) {
+        return ERROR_OUT_OF_MEMORY;
+    }
+
+    const auto ret = mMetrics.insert({metadata.name, metric});
+    PPX_ASSERT_MSG(ret.second, "An insertion shall always take place when adding a metric");
+    *outMetric = metric;
+    return SUCCESS;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 

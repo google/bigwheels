@@ -127,7 +127,7 @@ TEST(MetricsTest, RunAddSingleMetric)
         metrics::MetricMetadata metadata    = {};
         metadata.name                       = METRIC_NAME;
         metrics::MetricGauge* metric;
-        result = run->AddMetricGauge(metadata, &metric);
+        result = run->AddMetric(metadata, &metric);
         ASSERT_EQ(result, SUCCESS);
     }
 
@@ -142,7 +142,7 @@ TEST(MetricsTest, RunAddSingleMetric)
         metrics::MetricMetadata metadata    = {};
         metadata.name                       = METRIC_NAME;
         metrics::MetricCounter* metric;
-        result = run->AddMetricCounter(metadata, &metric);
+        result = run->AddMetric(metadata, &metric);
         ASSERT_EQ(result, SUCCESS);
     }
 }
@@ -161,7 +161,7 @@ TEST(MetricsTest, RunAddMultipleMetric)
         metrics::MetricMetadata metadata = {};
         metadata.name                    = METRIC_NAME_GAUGE;
 
-        result = run->AddMetricGauge(metadata, &metricGauge);
+        result = run->AddMetric(metadata, &metricGauge);
         ASSERT_EQ(result, SUCCESS);
         EXPECT_NE(metricGauge, nullptr);
     }
@@ -172,7 +172,7 @@ TEST(MetricsTest, RunAddMultipleMetric)
         metrics::MetricMetadata metadata = {};
         metadata.name                    = METRIC_NAME_COUNTER;
 
-        result = run->AddMetricCounter(metadata, &metricCounter);
+        result = run->AddMetric(metadata, &metricCounter);
         ASSERT_EQ(result, SUCCESS);
         EXPECT_NE(metricCounter, nullptr);
     }
@@ -191,16 +191,16 @@ TEST(MetricsTest, RunAddDuplicateMetric)
     metadata.name                       = METRIC_NAME;
 
     metrics::MetricGauge* metricGauge;
-    result = run->AddMetricGauge(metadata, &metricGauge);
+    result = run->AddMetric(metadata, &metricGauge);
     ASSERT_EQ(result, SUCCESS);
     EXPECT_NE(metricGauge, nullptr);
 
-    result = run->AddMetricGauge(metadata, &metricGauge);
+    result = run->AddMetric(metadata, &metricGauge);
     ASSERT_EQ(result, ERROR_DUPLICATE_ELEMENT);
     EXPECT_EQ(metricGauge, nullptr);
 
     metrics::MetricCounter* metricCounter;
-    result = run->AddMetricCounter(metadata, &metricCounter);
+    result = run->AddMetric(metadata, &metricCounter);
     ASSERT_EQ(result, ERROR_DUPLICATE_ELEMENT);
     EXPECT_EQ(metricCounter, nullptr);
 }
@@ -215,7 +215,7 @@ TEST_F(MetricsTestFixture, MetricsCounter)
     metrics::MetricCounter* metric;
     metrics::MetricMetadata metadata;
     metadata.name       = METRIC_NAME;
-    const Result result = run->AddMetricCounter(metadata, &metric);
+    const Result result = run->AddMetric(metadata, &metric);
     EXPECT_EQ(metric->GetMetadata().name, METRIC_NAME);
     EXPECT_EQ(metric->GetType(), metrics::MetricType::COUNTER);
     EXPECT_EQ(metric->Get(), 0U);
@@ -232,7 +232,7 @@ TEST_F(MetricsTestFixture, MetricsGaugeEntries)
     metrics::MetricGauge*   metric;
     metrics::MetricMetadata metadata;
     metadata.name       = METRIC_NAME;
-    const Result result = run->AddMetricGauge(metadata, &metric);
+    const Result result = run->AddMetric(metadata, &metric);
     EXPECT_EQ(metric->GetMetadata().name, METRIC_NAME);
     EXPECT_EQ(metric->GetType(), metrics::MetricType::GAUGE);
 
@@ -264,7 +264,7 @@ TEST_F(MetricsTestFixture, Statistics)
     metrics::MetricGauge*   metric;
     metrics::MetricMetadata metadata;
     metadata.name       = METRIC_NAME;
-    const Result result = run->AddMetricGauge(metadata, &metric);
+    const Result result = run->AddMetric(metadata, &metric);
     ASSERT_EQ(metric->GetMetadata().name, METRIC_NAME);
     ASSERT_EQ(metric->GetType(), metrics::MetricType::GAUGE);
 

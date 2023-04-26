@@ -175,38 +175,6 @@ Run::~Run()
     mMetrics.clear();
 }
 
-template <typename T>
-Result Run::AddMetric(MetricMetadata metadata, T** outMetric)
-{
-    PPX_ASSERT_MSG(outMetric != nullptr, "The metric pointer must not be null");
-    PPX_ASSERT_MSG(!metadata.name.empty(), "The metric name must not be empty");
-
-    *outMetric = nullptr;
-    if (GetMetric(metadata.name.c_str()) != nullptr) {
-        return ERROR_DUPLICATE_ELEMENT;
-    }
-
-    T* metric = new T(metadata);
-    if (metric == nullptr) {
-        return ERROR_OUT_OF_MEMORY;
-    }
-
-    const auto ret = mMetrics.insert({metadata.name, metric});
-    PPX_ASSERT_MSG(ret.second, "An insertion shall always take place when adding a metric");
-    *outMetric = metric;
-    return SUCCESS;
-}
-
-Result Run::AddMetricGauge(MetricMetadata metadata, MetricGauge** outMetric)
-{
-    return AddMetric(metadata, outMetric);
-}
-
-Result Run::AddMetricCounter(MetricMetadata metadata, MetricCounter** outMetric)
-{
-    return AddMetric(metadata, outMetric);
-}
-
 Metric* Run::GetMetric(const char* name) const
 {
     auto it = mMetrics.find(name);
