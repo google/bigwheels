@@ -126,9 +126,8 @@ TEST(MetricsTest, RunAddSingleMetric)
         constexpr const char*   METRIC_NAME = "metric";
         metrics::MetricMetadata metadata    = {};
         metadata.name                       = METRIC_NAME;
-        metrics::MetricGauge* metric;
-        result = run->AddMetric(metadata, &metric);
-        ASSERT_EQ(result, SUCCESS);
+        metrics::MetricGauge* metric = run->AddMetric<metrics::MetricGauge>(metadata);
+        ASSERT_NE(metric, nullptr);
     }
 
     {
@@ -141,9 +140,8 @@ TEST(MetricsTest, RunAddSingleMetric)
         constexpr const char*   METRIC_NAME = "metric";
         metrics::MetricMetadata metadata    = {};
         metadata.name                       = METRIC_NAME;
-        metrics::MetricCounter* metric;
-        result = run->AddMetric(metadata, &metric);
-        ASSERT_EQ(result, SUCCESS);
+        metrics::MetricCounter* metric = run->AddMetric<metrics::MetricCounter>(metadata);
+        ASSERT_NE(metric, nullptr);
     }
 }
 
@@ -156,24 +154,20 @@ TEST(MetricsTest, RunAddMultipleMetric)
     ASSERT_EQ(result, SUCCESS);
 
     constexpr const char* METRIC_NAME_GAUGE = "metric_gauge";
-    metrics::MetricGauge* metricGauge;
     {
         metrics::MetricMetadata metadata = {};
         metadata.name                    = METRIC_NAME_GAUGE;
 
-        result = run->AddMetric(metadata, &metricGauge);
-        ASSERT_EQ(result, SUCCESS);
+        metrics::MetricGauge* metricGauge = run->AddMetric<metrics::MetricGauge>(metadata);
         EXPECT_NE(metricGauge, nullptr);
     }
 
     constexpr const char*   METRIC_NAME_COUNTER = "metric_counter";
-    metrics::MetricCounter* metricCounter;
     {
         metrics::MetricMetadata metadata = {};
         metadata.name                    = METRIC_NAME_COUNTER;
 
-        result = run->AddMetric(metadata, &metricCounter);
-        ASSERT_EQ(result, SUCCESS);
+        metrics::MetricCounter* metricCounter = run->AddMetric<metrics::MetricCounter>(metadata);
         EXPECT_NE(metricCounter, nullptr);
     }
 }
@@ -190,19 +184,16 @@ TEST(MetricsTest, RunAddDuplicateMetric)
     metrics::MetricMetadata metadata    = {};
     metadata.name                       = METRIC_NAME;
 
-    metrics::MetricGauge* metricGauge;
-    result = run->AddMetric(metadata, &metricGauge);
-    ASSERT_EQ(result, SUCCESS);
+    metrics::MetricGauge* metricGauge = run->AddMetric<metrics::MetricGauge>(metadata);
     EXPECT_NE(metricGauge, nullptr);
 
-    result = run->AddMetric(metadata, &metricGauge);
-    ASSERT_EQ(result, ERROR_DUPLICATE_ELEMENT);
-    EXPECT_EQ(metricGauge, nullptr);
+    EXPECT_DEATH({
+        metricGauge = run->AddMetric<metrics::MetricGauge>(metadata);
+    }, "");
 
-    metrics::MetricCounter* metricCounter;
-    result = run->AddMetric(metadata, &metricCounter);
-    ASSERT_EQ(result, ERROR_DUPLICATE_ELEMENT);
-    EXPECT_EQ(metricCounter, nullptr);
+    EXPECT_DEATH({
+        metrics::MetricCounter* metricCounter = run->AddMetric<metrics::MetricCounter>(metadata);
+    }, "");
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -212,10 +203,9 @@ TEST(MetricsTest, RunAddDuplicateMetric)
 TEST_F(MetricsTestFixture, MetricsCounter)
 {
     constexpr const char*   METRIC_NAME = "counter";
-    metrics::MetricCounter* metric;
     metrics::MetricMetadata metadata;
     metadata.name       = METRIC_NAME;
-    const Result result = run->AddMetric(metadata, &metric);
+    metrics::MetricCounter* metric = run->AddMetric<metrics::MetricCounter>(metadata);
     EXPECT_EQ(metric->GetMetadata().name, METRIC_NAME);
     EXPECT_EQ(metric->GetType(), metrics::MetricType::COUNTER);
     EXPECT_EQ(metric->Get(), 0U);
@@ -229,10 +219,9 @@ TEST_F(MetricsTestFixture, MetricsCounter)
 TEST_F(MetricsTestFixture, MetricsGaugeEntries)
 {
     constexpr const char*   METRIC_NAME = "frame_time";
-    metrics::MetricGauge*   metric;
     metrics::MetricMetadata metadata;
     metadata.name       = METRIC_NAME;
-    const Result result = run->AddMetric(metadata, &metric);
+    metrics::MetricGauge*   metric = run->AddMetric<metrics::MetricGauge>(metadata);
     EXPECT_EQ(metric->GetMetadata().name, METRIC_NAME);
     EXPECT_EQ(metric->GetType(), metrics::MetricType::GAUGE);
 
@@ -261,10 +250,9 @@ TEST_F(MetricsTestFixture, MetricsGaugeEntries)
 TEST_F(MetricsTestFixture, Statistics)
 {
     constexpr const char*   METRIC_NAME = "frame_time";
-    metrics::MetricGauge*   metric;
     metrics::MetricMetadata metadata;
     metadata.name       = METRIC_NAME;
-    const Result result = run->AddMetric(metadata, &metric);
+    metrics::MetricGauge*   metric = run->AddMetric<metrics::MetricGauge>(metadata);
     ASSERT_EQ(metric->GetMetadata().name, METRIC_NAME);
     ASSERT_EQ(metric->GetType(), metrics::MetricType::GAUGE);
 

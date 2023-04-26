@@ -150,7 +150,7 @@ class Run final
 
 public:
     template <typename T>
-    Result AddMetric(MetricMetadata metadata, T** outMetric);
+    T* AddMetric(MetricMetadata metadata);
 
 private:
     Run(const char* name);
@@ -165,25 +165,19 @@ private:
 };
 
 template <typename T>
-Result Run::AddMetric(MetricMetadata metadata, T** outMetric)
+T* Run::AddMetric(MetricMetadata metadata)
 {
-    PPX_ASSERT_MSG(outMetric != nullptr, "The metric pointer must not be null");
     PPX_ASSERT_MSG(!metadata.name.empty(), "The metric name must not be empty");
-
-    *outMetric = nullptr;
-    if (GetMetric(metadata.name.c_str()) != nullptr) {
-        return ERROR_DUPLICATE_ELEMENT;
-    }
+    PPX_ASSERT_MSG(GetMetric(metadata.name.c_str()) == nullptr, "Metrics must have unique names (duplicate name detected)");
 
     T* metric = new T(metadata);
     if (metric == nullptr) {
-        return ERROR_OUT_OF_MEMORY;
+        return nullptr;
     }
 
     const auto ret = mMetrics.insert({metadata.name, metric});
     PPX_ASSERT_MSG(ret.second, "An insertion shall always take place when adding a metric");
-    *outMetric = metric;
-    return SUCCESS;
+    return metric;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
