@@ -70,12 +70,6 @@ private:
         grfx::FencePtr         renderCompleteFence;
     };
 
-    struct ShaderSet
-    {
-        grfx::ShaderModulePtr vertexShader;
-        grfx::ShaderModulePtr pixelShader;
-    };
-
     struct Texture
     {
         grfx::ImagePtr            pImage;
@@ -120,7 +114,8 @@ private:
     std::vector<PerFrame>                           mPerFrame;
     grfx::DescriptorPoolPtr                         mDescriptorPool;
     grfx::DescriptorSetLayoutPtr                    mSetLayout;
-    std::array<ShaderSet, kPipelineCount>           mShaderSets;
+    std::array<grfx::ShaderModulePtr, kAvailableVsShaders.size()> mVsShaders;
+    std::array<grfx::ShaderModulePtr, kAvailablePsShaders.size()> mPsShaders;
     PerspCamera                                     mCamera;
     float3                                          mLightPosition = float3(10, 100, 10);
     BenchmarkSettings                               mBenchmarkSettings;
@@ -190,7 +185,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.window.width               = 1920;
     settings.window.height              = 1080;
     settings.grfx.api                   = kApi;
-    settings.grfx.enableDebug           = false;
+    settings.grfx.enableDebug           = true;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
 }
 
@@ -287,8 +282,8 @@ void ProjApp::LoadMaterial(
             PPX_CHECKED_CALL(pDevice->CreatePipelineInterface(&piCreateInfo, &pOutput->pInterface));
 
             grfx::GraphicsPipelineCreateInfo2 gpCreateInfo = {};
-            gpCreateInfo.VS                                = {mShaderSets[i].vertexShader.Get(), "vsmain"};
-            gpCreateInfo.PS                                = {mShaderSets[j].pixelShader.Get(), "psmain"};
+            gpCreateInfo.VS                                = {mVsShaders[i].Get(), "vsmain"};
+            gpCreateInfo.PS                                = {mPsShaders[j].Get(), "psmain"};
 
             // FIXME: assuming all primitives provides POSITION, UV, NORMAL and TANGENT. Might not be the case.
             gpCreateInfo.vertexInputState.bindingCount      = 4;
@@ -650,24 +645,20 @@ void ProjApp::Setup()
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&poolCreateInfo, &mDescriptorPool));
     }
 
-    uint32_t pipeline_index = 0;
     for (size_t i = 0; i < kAvailableVsShaders.size(); i++) {
-        for (size_t j = 0; j < kAvailablePsShaders.size(); j++) {
-            const std::string vsShaderBaseName = kAvailableVsShaders[i];
-            const std::string psShaderBaseName = kAvailablePsShaders[j];
+        const std::string vsShaderBaseName = kAvailableVsShaders[i];
+        std::vector<char> bytecode         = LoadShader("benchmarks/shaders", vsShaderBaseName + ".vs");
+        PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
+        grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mVsShaders[i]));
+    }
 
-            std::vector<char> bytecode = LoadShader("benchmarks/shaders", vsShaderBaseName + ".vs");
-            PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
-            grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-            PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mShaderSets[pipeline_index].vertexShader));
-
-            bytecode = LoadShader("benchmarks/shaders", psShaderBaseName + ".ps");
-            PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
-            shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-            PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mShaderSets[pipeline_index].pixelShader));
-
-            pipeline_index++;
-        }
+    for (size_t j = 0; j < kAvailablePsShaders.size(); j++) {
+        const std::string psShaderBaseName = kAvailablePsShaders[j];
+        std::vector<char> bytecode         = LoadShader("benchmarks/shaders", psShaderBaseName + ".ps");
+        PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
+        grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPsShaders[j]));
     }
 
     {
@@ -748,9 +739,11 @@ void ProjApp::Setup()
         mPerFrame.push_back(frame);
     }
 
-    for (const auto& set : mShaderSets) {
-        GetDevice()->DestroyShaderModule(set.vertexShader);
-        GetDevice()->DestroyShaderModule(set.pixelShader);
+    for (const auto& shader : mVsShaders) {
+        GetDevice()->DestroyShaderModule(shader);
+    }
+    for (const auto& shader : mPsShaders) {
+        GetDevice()->DestroyShaderModule(shader);
     }
 }
 
