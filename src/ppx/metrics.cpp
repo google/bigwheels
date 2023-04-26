@@ -202,27 +202,9 @@ Result Run::AddMetricGauge(MetricMetadata metadata, MetricGauge** outMetric)
     return AddMetric(metadata, outMetric);
 }
 
-MetricGauge* Run::GetMetricGauge(const char* name) const
-{
-    Metric* metric = GetMetric(name);
-    if (metric != nullptr && metric->GetType() == MetricType::GAUGE) {
-        return static_cast<MetricGauge*>(metric);
-    }
-    return nullptr;
-}
-
 Result Run::AddMetricCounter(MetricMetadata metadata, MetricCounter** outMetric)
 {
     return AddMetric(metadata, outMetric);
-}
-
-MetricCounter* Run::GetMetricCounter(const char* name) const
-{
-    Metric* metric = GetMetric(name);
-    if (metric != nullptr && metric->GetType() == MetricType::COUNTER) {
-        return static_cast<MetricCounter*>(metric);
-    }
-    return nullptr;
 }
 
 Metric* Run::GetMetric(const char* name) const

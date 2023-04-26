@@ -150,10 +150,7 @@ class Run final
 
 public:
     Result       AddMetricGauge(MetricMetadata metadata, MetricGauge** outMetric);
-    MetricGauge* GetMetricGauge(const char* name) const;
-
     Result         AddMetricCounter(MetricMetadata metadata, MetricCounter** outMetric);
-    MetricCounter* GetMetricCounter(const char* name) const;
 
 private:
     Run(const char* name);
