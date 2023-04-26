@@ -24,6 +24,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # Options.
 # ------------------------------------------------------------------------------
 option(PPX_BUILD_PROJECTS "Build sample projets" ON)
+option(PPX_BUILD_BENCHMARKS "Build benchmarks projects" ON)
 
 # ------------------------------------------------------------------------------
 # Detect DXC presence. This is REQUIRED to compile DXIL and SPIR-V shaders.
@@ -246,7 +247,6 @@ endif()
 # ------------------------------------------------------------------------------
 # Add benchmarks.
 # ------------------------------------------------------------------------------
-option(PPX_BUILD_BENCHMARKS "Build benchmarks projects" ON)
 if (PPX_BUILD_BENCHMARKS)
     message("Building benchmarks projects")
     add_subdirectory(benchmarks)
