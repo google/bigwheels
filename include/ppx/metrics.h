@@ -149,10 +149,10 @@ class Run final
     friend class Manager;
 
 public:
-    Result       AddMetricGauge(MetricGauge*& outMetric, MetricMetadata metadata);
+    Result       AddMetricGauge(MetricMetadata metadata, MetricGauge** outMetric);
     MetricGauge* GetMetricGauge(const char* name) const;
 
-    Result         AddMetricCounter(MetricCounter*& outMetric, MetricMetadata metadata);
+    Result         AddMetricCounter(MetricMetadata metadata, MetricCounter** outMetric);
     MetricCounter* GetMetricCounter(const char* name) const;
 
 private:
@@ -163,7 +163,7 @@ private:
     Metric* GetMetric(const char* name) const;
 
     template <typename T>
-    Result AddMetric(T*& outMetric, MetricMetadata metadata);
+    Result AddMetric(MetricMetadata metadata, T** outMetric);
 
 private:
     std::string                              mName;
@@ -178,7 +178,7 @@ public:
     Manager();
     ~Manager();
 
-    Result AddRun(Run*& outRun, const char* name);
+    Result AddRun(const char* name, Run** outRun);
     Run*   GetRun(const char* name) const;
 
 private:

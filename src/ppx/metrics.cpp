@@ -176,12 +176,12 @@ Run::~Run()
 }
 
 template <typename T>
-Result Run::AddMetric(T*& outMetric, MetricMetadata metadata)
+Result Run::AddMetric(MetricMetadata metadata, T** outMetric)
 {
     PPX_ASSERT_MSG(outMetric != nullptr, "The metric pointer must not be null");
     PPX_ASSERT_MSG(!metadata.name.empty(), "The metric name must not be empty");
 
-    outMetric = nullptr;
+    *outMetric = nullptr;
     if (GetMetric(metadata.name.c_str()) != nullptr) {
         return ERROR_DUPLICATE_ELEMENT;
     }
@@ -193,13 +193,13 @@ Result Run::AddMetric(T*& outMetric, MetricMetadata metadata)
 
     const auto ret = mMetrics.insert({metadata.name, metric});
     PPX_ASSERT_MSG(ret.second, "An insertion shall always take place when adding a metric");
-    outMetric = metric;
+    *outMetric = metric;
     return SUCCESS;
 }
 
-Result Run::AddMetricGauge(MetricGauge*& outMetric, MetricMetadata metadata)
+Result Run::AddMetricGauge(MetricMetadata metadata, MetricGauge** outMetric)
 {
-    return AddMetric(outMetric, metadata);
+    return AddMetric(metadata, outMetric);
 }
 
 MetricGauge* Run::GetMetricGauge(const char* name) const
@@ -211,9 +211,9 @@ MetricGauge* Run::GetMetricGauge(const char* name) const
     return nullptr;
 }
 
-Result Run::AddMetricCounter(MetricCounter*& outMetric, MetricMetadata metadata)
+Result Run::AddMetricCounter(MetricMetadata metadata, MetricCounter** outMetric)
 {
-    return AddMetric(outMetric, metadata);
+    return AddMetric(metadata, outMetric);
 }
 
 MetricCounter* Run::GetMetricCounter(const char* name) const
@@ -245,12 +245,12 @@ Manager::~Manager()
     mRuns.clear();
 }
 
-Result Manager::AddRun(Run*& outRun, const char* name)
+Result Manager::AddRun(const char* name, Run** outRun)
 {
     PPX_ASSERT_MSG(outRun != nullptr, "The run pointer must not be null");
     PPX_ASSERT_MSG(name != nullptr, "A run name must not be null");
 
-    outRun = nullptr;
+    *outRun = nullptr;
     if (GetRun(name) != nullptr) {
         return ERROR_DUPLICATE_ELEMENT;
     }
@@ -262,7 +262,7 @@ Result Manager::AddRun(Run*& outRun, const char* name)
 
     const auto ret = mRuns.insert({name, run});
     PPX_ASSERT_MSG(ret.second, "An insertion shall always take place when adding a run");
-    outRun = run;
+    *outRun = run;
     return SUCCESS;
 }
 
