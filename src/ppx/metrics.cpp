@@ -41,7 +41,7 @@ MetricType Metric::GetType() const
 ////////////////////////////////////////////////////////////////////////////////
 
 MetricGauge::MetricGauge(const MetricMetadata& metadata)
-    : Metric(metadata, MetricType::GAUGE), mAccumlatedValue(0)
+    : Metric(metadata, MetricType::GAUGE), mAccumulatedValue(0)
 {
     memset(&mRealTimeStatistics, 0, sizeof(mRealTimeStatistics));
     mRealTimeStatistics.min = std::numeric_limits<double>::max();
@@ -119,16 +119,16 @@ const GaugeStatistics MetricGauge::GetStatistics(bool realtime) const
 
 void MetricGauge::UpdateRealTimeStatistics(double seconds, double value)
 {
-    mAccumlatedValue += value;
+    mAccumulatedValue += value;
 
     mRealTimeStatistics.min = std::min(mRealTimeStatistics.min, value);
     mRealTimeStatistics.max = std::max(mRealTimeStatistics.max, value);
 
     const size_t entriesCount   = mTimeSeries.size();
-    mRealTimeStatistics.average = mAccumlatedValue / entriesCount;
+    mRealTimeStatistics.average = mAccumulatedValue / entriesCount;
     if (entriesCount > 1) {
         const double timeSpan         = mTimeSeries.back().seconds - mTimeSeries.front().seconds;
-        mRealTimeStatistics.timeRatio = mAccumlatedValue / timeSpan;
+        mRealTimeStatistics.timeRatio = mAccumulatedValue / timeSpan;
     }
     else {
         mRealTimeStatistics.timeRatio = mTimeSeries.front().value;

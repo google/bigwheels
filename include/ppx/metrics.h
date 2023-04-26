@@ -120,7 +120,7 @@ private:
 private:
     std::vector<TimeSeriesEntry> mTimeSeries;
     GaugeStatistics              mRealTimeStatistics;
-    double                       mAccumlatedValue;
+    double                       mAccumulatedValue;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
