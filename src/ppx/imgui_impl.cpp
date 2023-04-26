@@ -157,7 +157,7 @@ void ImGuiImpl::NewFrame()
 Result ImGuiImplDx12::InitApiObjects(ppx::Application* pApp)
 {
     // Setup GLFW binding - yes...we're using the one for Vulkan :)
-    GLFWwindow* pWindow = static_cast<GLFWwindow*>(pApp->GetWindow());
+    GLFWwindow* pWindow = static_cast<GLFWwindow*>(pApp->GetWindow()->NativeHandle());
     ImGui_ImplGlfw_InitForVulkan(pWindow, false);
 
     // Setup style
@@ -238,7 +238,7 @@ Result ImGuiImplVk::InitApiObjects(ppx::Application* pApp)
     ImGui_ImplAndroid_Init(pApp->GetAndroidContext()->window);
 #else
     // Setup GLFW binding
-    GLFWwindow* pWindow = static_cast<GLFWwindow*>(pApp->GetWindow());
+    GLFWwindow* pWindow = static_cast<GLFWwindow*>(pApp->GetWindow()->NativeHandle());
     ImGui_ImplGlfw_InitForVulkan(pWindow, false);
 #endif
 

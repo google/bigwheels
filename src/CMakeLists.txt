@@ -173,6 +173,7 @@ list(
     ${INC_DIR}/ppx/transform.h
     ${INC_DIR}/ppx/tri_mesh.h
     ${INC_DIR}/ppx/util.h
+    ${INC_DIR}/ppx/window.h
     ${INC_DIR}/ppx/wire_mesh.h
     ${INC_DIR}/ppx/xr_component.h
 )
@@ -201,6 +202,9 @@ list(
     ${SRC_DIR}/ppx/timer.cpp
     ${SRC_DIR}/ppx/transform.cpp
     ${SRC_DIR}/ppx/tri_mesh.cpp
+    ${SRC_DIR}/ppx/window_android.cpp
+    ${SRC_DIR}/ppx/window_glfw.cpp
+    ${SRC_DIR}/ppx/window.cpp
     ${SRC_DIR}/ppx/wire_mesh.cpp
     ${SRC_DIR}/ppx/xr_component.cpp
     ${SRC_DIR}/ppx/imgui/font_inconsolata.h
