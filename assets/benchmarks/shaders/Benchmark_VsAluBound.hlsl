@@ -39,6 +39,9 @@ VSOutput vsmain(
 
   float4 jointIndices = {0, 1, 0, 0};
 
+  // TODO: Hardcode the joint weights and indices for now for testing.
+  // Check this later if we get a mesh that acctually contains the
+  // skinning data per vertex.
   float4x4 skinMat = jointWeights.x * jointMat[int(jointIndices.x)] +
     jointWeights.y * jointMat[int(jointIndices.y)] +
     jointWeights.z * jointMat[int(jointIndices.z)] +

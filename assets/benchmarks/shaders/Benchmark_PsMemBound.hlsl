@@ -78,10 +78,10 @@ float4 psmain(VSOutput input) : SV_TARGET
     const float roughness2 = MetalRoughness.Sample(MetalRoughnessSampler, uv2).g;
     const float roughness3 = MetalRoughness.Sample(MetalRoughnessSampler, uv3).g;
     const float roughness4 = MetalRoughness.Sample(MetalRoughnessSampler, uv4).g;
-    const float roughness5 = MetalRoughness.Sample(MetalRoughnessSampler, uv4).g;
+    const float roughness5 = MetalRoughness.Sample(MetalRoughnessSampler, uv5).g;
     const float roughness = (roughness1 + roughness2 + roughness3 + roughness4 + roughness5)/5.0;
 
-    const float ambientStrenth = 0.6;
+    const float ambientStrength = 0.6;
     const float lightIntensity = 0.8;
 
     float hardness = lerp(1.0, 100.0, 1.0 - saturate(roughness));
@@ -90,7 +90,7 @@ float4 psmain(VSOutput input) : SV_TARGET
 
     const float3 lightColor = {0.5, 0.5, 0.5};
 
-    float3 ambient = ambientStrenth * lightColor;
+    float3 ambient = ambientStrength * lightColor;
 
     const float3 L    = normalize(Scene.LightPosition.xyz - input.world_position.xyz);
     diffuse += Lambert(N, L);
