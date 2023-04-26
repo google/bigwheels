@@ -35,24 +35,13 @@
 #include <GLFW/glfw3.h>
 
 #if defined(PPX_ANDROID)
-    #define SETUP_APPLICATION(AppType)                  \
-        AppType app;                                    \
-        bool InitVulkan(android_app* androidContext)    \
-        {                                               \
-            app.SetAndroidContext(androidContext);      \
-            return true;                                \
-        }                                               \
-        void DeleteVulkan(void)                         \
-        {                                               \
-        }                                               \
-        bool IsVulkanReady(void)                        \
-        {                                               \
-            return app.GetAndroidContext() != nullptr;  \
-        }                                               \
-        bool VulkanDrawFrame(int argc, char** argv)     \
-        {                                               \
-            int res = app.Run(argc, argv);              \
-            return res;                                 \
+    #define SETUP_APPLICATION(AppType)                                   \
+        bool RunApp(android_app* pAndroidContext, int argc, char** argv) \
+        {                                                                \
+            AppType app;                                                 \
+            app.SetAndroidContext(pAndroidContext);                      \
+            int res = app.Run(argc, argv);                               \
+            return res;                                                  \
         }
 #else
     #define SETUP_APPLICATION(AppType)                  \
