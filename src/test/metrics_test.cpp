@@ -57,6 +57,14 @@ TEST(MetricsTest, ManagerAddSingleRun)
     EXPECT_NE(run, nullptr);
 }
 
+TEST(MetricsTest, ManagerAddRunWithNullName)
+{
+    metrics::Manager      manager;
+    EXPECT_DEATH({
+        metrics::Run* run = manager.AddRun(nullptr);
+        }, "");
+}
+
 TEST(MetricsTest, ManagerAddMultipleRun)
 {
     metrics::Manager manager;
@@ -117,6 +125,19 @@ TEST(MetricsTest, RunAddSingleMetric)
         ASSERT_NE(metric, nullptr);
     }
 }
+
+TEST(MetricsTest, ManagerAddMetricWithNullName)
+{
+    metrics::Manager manager;
+        metrics::Run* run = manager.AddRun("run");
+        ASSERT_NE(run, nullptr);
+
+        metrics::MetricMetadata metadata    = {};
+    EXPECT_DEATH({
+        run->AddMetric<metrics::MetricGauge>(metadata);
+        }, "");
+}
+
 
 TEST(MetricsTest, RunAddMultipleMetric)
 {
@@ -205,6 +226,43 @@ TEST_F(MetricsTestFixture, MetricsGaugeEntries)
     metric->GetEntry(4, seconds, value);
     EXPECT_EQ(seconds, 0.0457);
     EXPECT_EQ(value, 11.1);
+}
+
+TEST_F(MetricsTestFixture, RecordNegativeSeconds)
+{
+    metrics::MetricMetadata metadata;
+    metadata.name       = "frame_time";
+       metrics::MetricGauge*   metric = run->AddMetric<metrics::MetricGauge>(metadata);
+
+    EXPECT_DEATH({
+        metric->RecordEntry(-1.0, 10.868892007019612);
+        }, "");
+}
+
+TEST_F(MetricsTestFixture, RecordNonIncreasingSeconds)
+{
+    metrics::MetricMetadata metadata;
+    metadata.name       = "frame_time";
+       metrics::MetricGauge*   metric = run->AddMetric<metrics::MetricGauge>(metadata);
+
+        metric->RecordEntry(0.0, 10.868892007019612);
+        metric->RecordEntry(1.0, 10.868892007019612);
+    EXPECT_DEATH({
+        metric->RecordEntry(0.9, 10.868892007019612);
+        }, "");
+}
+
+TEST_F(MetricsTestFixture, RecordNonStrictlyIncreasingSeconds)
+{
+    metrics::MetricMetadata metadata;
+    metadata.name       = "frame_time";
+       metrics::MetricGauge*   metric = run->AddMetric<metrics::MetricGauge>(metadata);
+
+        metric->RecordEntry(0.0, 10.868892007019612);
+        metric->RecordEntry(1.0, 10.868892007019612);
+    EXPECT_DEATH({
+        metric->RecordEntry(1.0, 10.868892007019612);
+        }, "");
 }
 
 TEST_F(MetricsTestFixture, Statistics)
