@@ -15,8 +15,11 @@
 #ifndef ppx_knob_h
 #define ppx_knob_h
 
+#include "ppx/log.h"
+
 #include <functional>
 #include <iostream>
+#include <map>
 #include <vector>
 
 namespace ppx {
@@ -27,7 +30,8 @@ namespace ppx {
 
 enum class KnobType
 {
-    Unknown
+    Unknown,
+    Bool_Checkbox
 };
 
 std::ostream& operator<<(std::ostream& strm, KnobType kt);
@@ -42,6 +46,13 @@ struct KnobConfig
     std::string flagDesc;
     std::string displayName;
     int         parentId;
+};
+
+// Available knob types for the developer to specify
+struct BoolCheckboxConfig : KnobConfig
+{
+    bool                      defaultValue;
+    std::function<void(bool)> callback;
 };
 
 // ---------------------------------------------------------------------------------------------
@@ -63,12 +74,78 @@ public:
     void               AddChild(Knob* child) { children.push_back(child); }
     std::vector<Knob*> GetChildren() { return children; }
 
+    virtual void Draw()  = 0;
+    virtual void Reset() = 0;
+
+    // Used for Bool_Checkbox
+    virtual bool GetBoolValue()
+    {
+        PPX_LOG_ERROR("Flag of type " << type << " does not support GetBoolValue()");
+        return false;
+    };
+    virtual void SetBoolValue(bool newVal, bool isDefault)
+    {
+        PPX_LOG_ERROR("Flag of type " << type << " does not support SetBoolValue()");
+    };
+
 protected:
     std::string        displayName;
     std::string        flagName;
     std::string        flagDesc;
     KnobType           type;
     std::vector<Knob*> children;
+};
+
+class KnobBoolCheckbox
+    : public Knob
+{
+public:
+    KnobBoolCheckbox() {}
+    KnobBoolCheckbox(BoolCheckboxConfig config)
+        : Knob(config, KnobType::Bool_Checkbox)
+    {
+        defaultValue = config.defaultValue;
+        callback     = config.callback;
+    }
+    virtual ~KnobBoolCheckbox() {}
+
+    void Draw() override;
+    void Reset() override;
+
+    bool GetBoolValue() override;
+    void SetBoolValue(bool newVal, bool updateDefault) override;
+
+private:
+    bool                      value;
+    bool                      defaultValue;
+    std::function<void(bool)> callback;
+};
+
+class KnobManager
+{
+public:
+    KnobManager() {}
+    virtual ~KnobManager();
+
+    // Utilities
+    bool  IsEmpty() { return knobs.empty(); }
+    void  Reset();
+    Knob* GetKnob(int id, bool silentFail = false);
+
+    // Create knobs
+    void CreateBoolCheckbox(int i, BoolCheckboxConfig config);
+
+    // Read/Write knobs
+    bool GetKnobBoolValue(int id);
+    void SetKnobBoolValue(int id, bool newVal, bool updateDefault = false);
+
+private:
+    void InsertKnob(int id, Knob* knobPtr);
+    void ConfigureParent(Knob* knobPtr, int parentId);
+
+private:
+    std::map<int, Knob*> knobs;
+    std::vector<Knob*>   drawOrder;
 };
 
 } // namespace ppx

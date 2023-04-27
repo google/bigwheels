@@ -27,31 +27,59 @@ TEST(KnobTest, KnobTypeStream)
     out << testkt;
     EXPECT_EQ(out.str(), "Unknown");
     out.str("");
+
+    testkt = KnobType::Bool_Checkbox;
+    out << testkt;
+    EXPECT_EQ(out.str(), "Bool_Checkbox");
+    out.str("");
 }
 
-TEST(KnobTest, KnobBase)
+TEST(KnobTest, KnobBool)
 {
     // Basic knob properties
-    KnobConfig config  = {};
-    config.displayName = "Knob Name 1";
-    config.flagName    = "flag_name1";
-    config.flagDesc    = "description1";
+    BoolCheckboxConfig config = {};
+    config.displayName        = "Knob Name 1";
+    config.flagName           = "flag_name1";
+    config.flagDesc           = "description1";
+    config.defaultValue       = true;
 
-    Knob k1 = Knob(config, KnobType::Unknown);
+    auto k1 = KnobBoolCheckbox(config);
     EXPECT_EQ(k1.GetDisplayName(), "Knob Name 1");
     EXPECT_EQ(k1.GetFlagName(), "flag_name1");
     EXPECT_EQ(k1.GetFlagDesc(), "description1");
-    EXPECT_EQ(k1.GetType(), KnobType::Unknown);
+    EXPECT_EQ(k1.GetType(), KnobType::Bool_Checkbox);
+
+    // Initialize knob manager
+    KnobManager km;
+    EXPECT_TRUE(km.IsEmpty());
+
+    // Register bool knob with the knob manager
+    km.CreateBoolCheckbox(1, config);
+    EXPECT_EQ(km.GetKnobBoolValue(1), true);
+    EXPECT_FALSE(km.IsEmpty());
 
     // Child knob
-    config             = {};
-    config.displayName = "Knob Name 2";
-    config.flagName    = "flag_name2";
-    config.flagDesc    = "description2";
-    Knob k2            = Knob(config, KnobType::Unknown);
-    k1.AddChild(&k2);
-    EXPECT_FALSE(k1.GetChildren().empty());
-    EXPECT_EQ(k1.GetChildren()[0]->GetFlagName(), "flag_name2");
+    config              = {};
+    config.displayName  = "Knob Name 2";
+    config.flagName     = "flag_name2";
+    config.flagDesc     = "description2";
+    config.defaultValue = false;
+    config.parentId     = 1;
+    km.CreateBoolCheckbox(2, config);
+
+    auto knobPtr = km.GetKnob(1);
+    EXPECT_NE(knobPtr, nullptr);
+    EXPECT_FALSE(knobPtr->GetChildren().empty());
+    EXPECT_EQ(knobPtr->GetChildren()[0]->GetFlagName(), "flag_name2");
+
+    // Test changing bool knob value
+    EXPECT_EQ(km.GetKnobBoolValue(2), false);
+    km.SetKnobBoolValue(2, true);
+    EXPECT_EQ(km.GetKnobBoolValue(2), true);
+
+    // Test reset
+    km.Reset();
+    EXPECT_EQ(km.GetKnobBoolValue(2), false);
 }
 
 } // namespace ppx
