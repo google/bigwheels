@@ -147,6 +147,9 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// A run gathers metrics relevant to the execution of a benchmark.
+// It is expected that a new run is created each time parameters that affect the
+// metrics measurements are changed.
 class Run final
 {
     friend class Manager;
