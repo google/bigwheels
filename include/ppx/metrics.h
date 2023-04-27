@@ -55,14 +55,18 @@ struct MetricMetadata
 
 ////////////////////////////////////////////////////////////////////////////////
 
-struct GaugeStatistics
+struct GaugeBasicStatistics
 {
     double min;
     double max;
     double average;
+    double timeRatio;
+};
+
+struct GaugeComplexStatistics
+{
     double median;
     double standardDeviation;
-    double timeRatio;
     double percentile90;
     double percentile95;
     double percentile99;
@@ -79,7 +83,8 @@ public:
     size_t GetEntriesCount() const;
     void   GetEntry(size_t index, double& seconds, double& value) const;
 
-    const GaugeStatistics GetStatistics(bool realtime) const;
+    const GaugeBasicStatistics GetBasicStatistics() const;
+    const GaugeComplexStatistics ComputeComplexStatistics() const;
 
 private:
     struct TimeSeriesEntry
@@ -92,12 +97,12 @@ private:
     ~MetricGauge();
     METRICS_NO_COPY(MetricGauge)
 
-    void UpdateRealTimeStatistics(double seconds, double value);
+    void UpdateBasicStatistics(double seconds, double value);
 
 private:
     MetricMetadata mMetadata;
     std::vector<TimeSeriesEntry> mTimeSeries;
-    GaugeStatistics              mRealTimeStatistics;
+    GaugeBasicStatistics         mBasicStatistics;
     double                       mAccumulatedValue;
 };
 

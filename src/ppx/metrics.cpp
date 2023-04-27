@@ -22,9 +22,9 @@ namespace metrics {
 MetricGauge::MetricGauge(const MetricMetadata& metadata)
     : mMetadata(metadata), mAccumulatedValue(0)
 {
-    memset(&mRealTimeStatistics, 0, sizeof(mRealTimeStatistics));
-    mRealTimeStatistics.min = std::numeric_limits<double>::max();
-    mRealTimeStatistics.max = std::numeric_limits<double>::min();
+    memset(&mBasicStatistics, 0, sizeof(mBasicStatistics));
+    mBasicStatistics.min = std::numeric_limits<double>::max();
+    mBasicStatistics.max = std::numeric_limits<double>::min();
 }
 
 MetricGauge::~MetricGauge()
@@ -40,7 +40,7 @@ void MetricGauge::RecordEntry(double seconds, double value)
     entry.value   = value;
     mTimeSeries.push_back(entry);
 
-    UpdateRealTimeStatistics(seconds, value);
+    UpdateBasicStatistics(seconds, value);
 }
 
 size_t MetricGauge::GetEntriesCount() const
@@ -55,65 +55,71 @@ void MetricGauge::GetEntry(size_t index, double& seconds, double& value) const
     value                       = entry.value;
 }
 
-const GaugeStatistics MetricGauge::GetStatistics(bool realtime) const
+const GaugeBasicStatistics MetricGauge::GetBasicStatistics() const
 {
-    GaugeStatistics statistics   = mRealTimeStatistics;
+    return mBasicStatistics;
+}
+
+const GaugeComplexStatistics MetricGauge::ComputeComplexStatistics() const
+{
+    GaugeComplexStatistics statistics = {};
     const size_t    entriesCount = mTimeSeries.size();
-    if (!realtime && entriesCount > 0) {
-        std::vector<TimeSeriesEntry> sorted = mTimeSeries;
-        std::sort(
-            sorted.begin(), sorted.end(), [](const TimeSeriesEntry& lhs, const TimeSeriesEntry& rhs) {
-                return lhs.value < rhs.value;
-            });
-
-        if (entriesCount % 2 == 0) {
-            const size_t medianIndex = entriesCount / 2;
-            PPX_ASSERT_MSG(medianIndex > 0, "Unexpected median index");
-            statistics.median = (sorted[medianIndex - 1].value + sorted[medianIndex].value) * 0.5;
-        }
-        else {
-            const size_t medianIndex = entriesCount / 2;
-            statistics.median        = sorted[medianIndex].value;
-        }
-
-        {
-            double squareDiffSum = 0.0;
-            for (auto entry : mTimeSeries) {
-                const double diff = entry.value - mRealTimeStatistics.average;
-                squareDiffSum += (diff * diff);
-            }
-            const double variance        = squareDiffSum / entriesCount;
-            statistics.standardDeviation = sqrt(variance);
-        }
-
-        const size_t percentileIndex90 = entriesCount * 90 / 100;
-        statistics.percentile90        = sorted[percentileIndex90].value;
-        const size_t percentileIndex95 = entriesCount * 95 / 100;
-        statistics.percentile95        = sorted[percentileIndex95].value;
-        const size_t percentileIndex99 = entriesCount * 99 / 100;
-        statistics.percentile99        = sorted[percentileIndex99].value;
+    if (entriesCount == 0) {
+        return statistics;
     }
+
+    std::vector<TimeSeriesEntry> sorted = mTimeSeries;
+    std::sort(
+        sorted.begin(), sorted.end(), [](const TimeSeriesEntry& lhs, const TimeSeriesEntry& rhs) {
+            return lhs.value < rhs.value;
+        });
+
+    if (entriesCount % 2 == 0) {
+        const size_t medianIndex = entriesCount / 2;
+        PPX_ASSERT_MSG(medianIndex > 0, "Unexpected median index");
+        statistics.median = (sorted[medianIndex - 1].value + sorted[medianIndex].value) * 0.5;
+    }
+    else {
+        const size_t medianIndex = entriesCount / 2;
+        statistics.median        = sorted[medianIndex].value;
+    }
+
+    {
+        double squareDiffSum = 0.0;
+        for (auto entry : mTimeSeries) {
+            const double diff = entry.value - mBasicStatistics.average;
+            squareDiffSum += (diff * diff);
+        }
+        const double variance        = squareDiffSum / entriesCount;
+        statistics.standardDeviation = sqrt(variance);
+    }
+
+    const size_t percentileIndex90 = entriesCount * 90 / 100;
+    statistics.percentile90        = sorted[percentileIndex90].value;
+    const size_t percentileIndex95 = entriesCount * 95 / 100;
+    statistics.percentile95        = sorted[percentileIndex95].value;
+    const size_t percentileIndex99 = entriesCount * 99 / 100;
+    statistics.percentile99        = sorted[percentileIndex99].value;
+
     return statistics;
 }
 
-void MetricGauge::UpdateRealTimeStatistics(double seconds, double value)
+void MetricGauge::UpdateBasicStatistics(double seconds, double value)
 {
     mAccumulatedValue += value;
 
-    mRealTimeStatistics.min = std::min(mRealTimeStatistics.min, value);
-    mRealTimeStatistics.max = std::max(mRealTimeStatistics.max, value);
+    mBasicStatistics.min = std::min(mBasicStatistics.min, value);
+    mBasicStatistics.max = std::max(mBasicStatistics.max, value);
 
     const size_t entriesCount   = mTimeSeries.size();
-    mRealTimeStatistics.average = mAccumulatedValue / entriesCount;
+    mBasicStatistics.average = mAccumulatedValue / entriesCount;
     if (entriesCount > 1) {
         const double timeSpan         = mTimeSeries.back().seconds - mTimeSeries.front().seconds;
-        mRealTimeStatistics.timeRatio = mAccumulatedValue / timeSpan;
+        mBasicStatistics.timeRatio = mAccumulatedValue / timeSpan;
     }
     else {
-        mRealTimeStatistics.timeRatio = mTimeSeries.front().value;
+        mBasicStatistics.timeRatio = mTimeSeries.front().value;
     }
-
-    // TODO Implement median, standard deviation and percentiles approximations if necessary at runtime
 }
 
 ////////////////////////////////////////////////////////////////////////////////

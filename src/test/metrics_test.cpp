@@ -343,16 +343,18 @@ TEST_F(MetricsTestFixture, Statistics)
     metric->RecordEntry(1.1309168636044404, 11.3946157918795);
     metric->RecordEntry(1.1423114793963198, 11.310652174786224);
 
-    const metrics::GaugeStatistics statistics = metric->GetStatistics(false);
-    EXPECT_EQ(statistics.min, 10.50685559634115);
-    EXPECT_EQ(statistics.max, 12.465256618853836);
-    EXPECT_DOUBLE_EQ(statistics.average, 11.53622131571106);
-    EXPECT_EQ(statistics.median, 11.526757950183075);
-    EXPECT_DOUBLE_EQ(statistics.standardDeviation, 0.5296000886136008);
-    EXPECT_DOUBLE_EQ(statistics.timeRatio, 1009.9015482018648);
-    EXPECT_EQ(statistics.percentile90, 12.200557497396941);
-    EXPECT_EQ(statistics.percentile95, 12.367583932075869);
-    EXPECT_EQ(statistics.percentile99, 12.465256618853836);
+    const metrics::GaugeBasicStatistics basicStatistics = metric->GetBasicStatistics();
+    EXPECT_EQ(basicStatistics.min, 10.50685559634115);
+    EXPECT_EQ(basicStatistics.max, 12.465256618853836);
+    EXPECT_DOUBLE_EQ(basicStatistics.average, 11.53622131571106);
+    EXPECT_DOUBLE_EQ(basicStatistics.timeRatio, 1009.9015482018648);
+
+    const metrics::GaugeComplexStatistics complexStatistics = metric->ComputeComplexStatistics();
+    EXPECT_EQ(complexStatistics.median, 11.526757950183075);
+    EXPECT_DOUBLE_EQ(complexStatistics.standardDeviation, 0.5296000886136008);
+    EXPECT_EQ(complexStatistics.percentile90, 12.200557497396941);
+    EXPECT_EQ(complexStatistics.percentile95, 12.367583932075869);
+    EXPECT_EQ(complexStatistics.percentile99, 12.465256618853836);
 }
 
 } // namespace ppx
