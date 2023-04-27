@@ -507,6 +507,10 @@ void XrComponent::EndFrame(const std::vector<grfx::SwapchainPtr>& swapchains, ui
     std::vector<XrCompositionLayerProjectionView> compositionLayerProjectionViews(viewCount);
     std::vector<XrCompositionLayerDepthInfoKHR>   compositionLayerDepthInfos(viewCount);
     XrCompositionLayerQuad                        compositionLayerQuad = {XR_TYPE_COMPOSITION_LAYER_QUAD};
+#if defined(PPX_XR_QUEST)
+    XrCompositionLayerFlags         compositionLayerPassthroughFbFlags = {};
+    XrCompositionLayerPassthroughFB compositionLayerPassthroughFb      = {XR_TYPE_COMPOSITION_LAYER_PASSTHROUGH_FB};
+#endif
     if (mShouldRender) {
         // Projection and (optional) depth info layer from color+depth swapchains.
         for (size_t i = 0; i < viewCount; ++i) {
@@ -557,13 +561,11 @@ void XrComponent::EndFrame(const std::vector<grfx::SwapchainPtr>& swapchains, ui
         if (mPassthroughSupported && mPassthroughEnabled) {
 #if defined(PPX_XR_QUEST)
             if (mPassthroughLayer != XR_NULL_HANDLE) {
-                XrCompositionLayerFlags         compositionLayerPassthroughFlags = {};
-                XrCompositionLayerPassthroughFB compositionLayerPassthrough      = {XR_TYPE_COMPOSITION_LAYER_PASSTHROUGH_FB};
-                compositionLayerPassthrough.next                                 = nullptr;
-                compositionLayerPassthrough.flags                                = compositionLayerPassthroughFlags;
-                compositionLayerPassthrough.space                                = XR_NULL_HANDLE;
-                compositionLayerPassthrough.layerHandle                          = mPassthroughLayer;
-                layers.push_back(reinterpret_cast<XrCompositionLayerBaseHeader*>(&compositionLayerPassthrough));
+                compositionLayerPassthroughFb.next        = nullptr;
+                compositionLayerPassthroughFb.flags       = compositionLayerPassthroughFbFlags;
+                compositionLayerPassthroughFb.space       = XR_NULL_HANDLE;
+                compositionLayerPassthroughFb.layerHandle = mPassthroughLayer;
+                layers.push_back(reinterpret_cast<XrCompositionLayerBaseHeader*>(&compositionLayerPassthroughFb));
             }
 #else
             blendMode = XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND;
