@@ -33,7 +33,8 @@ MetricGauge::~MetricGauge()
 
 void MetricGauge::RecordEntry(double seconds, double value)
 {
-    PPX_ASSERT_MSG(mTimeSeries.size() == 0 || seconds >= mTimeSeries.back().seconds, "The entries' seconds must form a monotically increasing function");
+    PPX_ASSERT_MSG(seconds >= 0.0, "The entries' seconds must always be positive");
+    PPX_ASSERT_MSG(mTimeSeries.size() == 0 || seconds > mTimeSeries.back().seconds, "The entries' seconds must form a stricly increasing function");
 
     TimeSeriesEntry entry;
     entry.seconds = seconds;

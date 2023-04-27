@@ -55,6 +55,8 @@ struct MetricMetadata
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// Basic statistics are computed on the fly as metrics entries are recorded.
+// They can be retrieved without any significant run-time cost.
 struct GaugeBasicStatistics
 {
     double min;
@@ -63,6 +65,8 @@ struct GaugeBasicStatistics
     double timeRatio;
 };
 
+// Complex statistics cannot be computed on the fly.
+// They require significant computation (e.g. sorting).
 struct GaugeComplexStatistics
 {
     double median;
@@ -72,6 +76,11 @@ struct GaugeComplexStatistics
     double percentile99;
 };
 
+// A gauge metric represents a value that may increase or decrease over time.
+// The value is sampled frequently (e.g. every frame) and statistics can be
+// derived from the sampling process.
+// The most typical case is the frame time, but memory consumption and image
+// quality are also good examples.
 class MetricGauge final
 {
     friend class Run;
@@ -79,7 +88,14 @@ class MetricGauge final
 public:
     MetricGauge(const MetricMetadata& metadata);
 
+    // Record a measurement for the metric at a particular point in time.
+    // Each entry must have a positive 'seconds' that is greater than the
+    // 'seconds' of the previous entry (i.e. 'seconds' must form a stricly
+    // increasing positive function).
+    // Note however that the system does NOT assume that the 'seconds' of
+    // the first entry equal zero.
     void   RecordEntry(double seconds, double value);
+
     size_t GetEntriesCount() const;
     void   GetEntry(size_t index, double& seconds, double& value) const;
 
@@ -108,6 +124,8 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// A counter metric represents a value that only goes up, e.g. the number
+// of stutters or pipeline cache misses.
 class MetricCounter final
 {
     friend class Run;
