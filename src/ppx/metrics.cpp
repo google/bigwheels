@@ -198,31 +198,19 @@ Manager::~Manager()
     mRuns.clear();
 }
 
-Result Manager::AddRun(const char* name, Run** outRun)
+Run* Manager::AddRun(const char* name)
 {
-    PPX_ASSERT_MSG(outRun != nullptr, "The run pointer must not be null");
     PPX_ASSERT_MSG(name != nullptr, "A run name must not be null");
-
-    *outRun = nullptr;
-    if (GetRun(name) != nullptr) {
-        return ERROR_DUPLICATE_ELEMENT;
-    }
+    PPX_ASSERT_MSG(mRuns.find(name) == mRuns.end(), "Runs must have unique names (duplicate name detected)");
 
     Run* run = new Run(name);
     if (run == nullptr) {
-        return ERROR_OUT_OF_MEMORY;
+        return nullptr;
     }
 
     const auto ret = mRuns.insert({name, run});
     PPX_ASSERT_MSG(ret.second, "An insertion shall always take place when adding a run");
-    *outRun = run;
-    return SUCCESS;
-}
-
-Run* Manager::GetRun(const char* name) const
-{
-    auto it = mRuns.find(name);
-    return it == mRuns.end() ? nullptr : it->second;
+    return run;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

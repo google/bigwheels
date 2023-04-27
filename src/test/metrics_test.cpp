@@ -25,17 +25,12 @@ namespace ppx {
 class MetricsTestFixture : public ::testing::Test
 {
 protected:
-    inline static const char* DEFAULT_RUN_NAME = "default_run";
-
-protected:
     void SetUp() override
     {
         manager = new metrics::Manager();
         ASSERT_NE(manager, nullptr);
-        const Result result = manager->AddRun(DEFAULT_RUN_NAME, &run);
-        ASSERT_EQ(result, SUCCESS);
-        EXPECT_EQ(run, manager->GetRun(DEFAULT_RUN_NAME));
-        EXPECT_EQ(nullptr, manager->GetRun("dummy"));
+        run = manager->AddRun("default_run");
+        ASSERT_NE(run, nullptr);
     }
 
     void TearDown() override
@@ -58,37 +53,26 @@ protected:
 TEST(MetricsTest, ManagerAddSingleRun)
 {
     metrics::Manager      manager;
-    metrics::Run*         run;
-    constexpr const char* RUN_NAME = "run";
-    const Result          result   = manager.AddRun(RUN_NAME, &run);
-    ASSERT_EQ(result, SUCCESS);
-    EXPECT_EQ(run, manager.GetRun(RUN_NAME));
-    EXPECT_EQ(nullptr, manager.GetRun("dummy"));
+    metrics::Run* run = manager.AddRun("run");
+    EXPECT_NE(run, nullptr);
 }
 
 TEST(MetricsTest, ManagerAddMultipleRun)
 {
     metrics::Manager manager;
 
-    constexpr const char* RUN_NAME_0 = "run0";
-    constexpr const char* RUN_NAME_1 = "run1";
-
     metrics::Run* run0;
     metrics::Run* run1;
 
     {
-        const Result result = manager.AddRun(RUN_NAME_0, &run0);
-        ASSERT_EQ(result, SUCCESS);
+        run0 = manager.AddRun("run0");
+        ASSERT_NE(run0, nullptr);
     }
     {
-        const Result result = manager.AddRun(RUN_NAME_1, &run1);
-        ASSERT_EQ(result, SUCCESS);
+        run1 = manager.AddRun("run1");
+        ASSERT_NE(run1, nullptr);
     }
-    {
-        EXPECT_EQ(run0, manager.GetRun(RUN_NAME_0));
-        EXPECT_EQ(run1, manager.GetRun(RUN_NAME_1));
-        EXPECT_EQ(nullptr, manager.GetRun("dummy"));
-    }
+    ASSERT_NE(run0, run1);
 }
 
 TEST(MetricsTest, ManagerAddDuplicateRun)
@@ -96,16 +80,13 @@ TEST(MetricsTest, ManagerAddDuplicateRun)
     metrics::Manager      manager;
     constexpr const char* RUN_NAME = "run";
     {
-        metrics::Run* run;
-        const Result  result = manager.AddRun(RUN_NAME, &run);
-        ASSERT_EQ(result, SUCCESS);
+        metrics::Run* run = manager.AddRun(RUN_NAME);
         EXPECT_NE(run, nullptr);
     }
     {
-        metrics::Run* run;
-        const Result  result = manager.AddRun(RUN_NAME, &run);
-        ASSERT_EQ(result, ERROR_DUPLICATE_ELEMENT);
-        EXPECT_EQ(run, nullptr);
+        EXPECT_DEATH({
+            manager.AddRun(RUN_NAME);
+            }, "");
     }
 }
 
@@ -117,11 +98,8 @@ TEST(MetricsTest, RunAddSingleMetric)
 {
     metrics::Manager manager;
     {
-        Result result;
-
-        metrics::Run* run;
-        result = manager.AddRun("run_gauge", &run);
-        ASSERT_EQ(result, SUCCESS);
+        metrics::Run* run = manager.AddRun("run_gauge");
+        ASSERT_NE(run, nullptr);
 
         metrics::MetricMetadata metadata    = {};
         metadata.name                       = "metric";
@@ -130,11 +108,8 @@ TEST(MetricsTest, RunAddSingleMetric)
     }
 
     {
-        Result result;
-
-        metrics::Run* run;
-        result = manager.AddRun("run_counter", &run);
-        ASSERT_EQ(result, SUCCESS);
+        metrics::Run* run = manager.AddRun("run_counter");
+        ASSERT_NE(run, nullptr);
 
         metrics::MetricMetadata metadata    = {};
         metadata.name                       = "metric";
@@ -145,11 +120,9 @@ TEST(MetricsTest, RunAddSingleMetric)
 
 TEST(MetricsTest, RunAddMultipleMetric)
 {
-    Result           result;
     metrics::Manager manager;
-    metrics::Run*    run;
-    result = manager.AddRun("run", &run);
-    ASSERT_EQ(result, SUCCESS);
+    metrics::Run*    run = manager.AddRun("run");
+    ASSERT_NE(run, nullptr);
 
     {
         metrics::MetricMetadata metadata = {};
@@ -170,11 +143,9 @@ TEST(MetricsTest, RunAddMultipleMetric)
 
 TEST(MetricsTest, RunAddDuplicateMetric)
 {
-    Result           result;
     metrics::Manager manager;
-    metrics::Run*    run;
-    result = manager.AddRun("run", &run);
-    ASSERT_EQ(result, SUCCESS);
+    metrics::Run*    run = manager.AddRun("run");
+    ASSERT_NE(run, nullptr);
 
     metrics::MetricMetadata metadata    = {};
     metadata.name                       = "metric";

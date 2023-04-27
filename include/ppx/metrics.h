@@ -193,8 +193,7 @@ public:
     Manager();
     ~Manager();
 
-    Result AddRun(const char* name, Run** outRun);
-    Run*   GetRun(const char* name) const;
+    Run* AddRun(const char* name);
 
 private:
     METRICS_NO_COPY(Manager)
