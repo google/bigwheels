@@ -63,8 +63,8 @@ const GaugeBasicStatistics MetricGauge::GetBasicStatistics() const
 
 const GaugeComplexStatistics MetricGauge::ComputeComplexStatistics() const
 {
-    GaugeComplexStatistics statistics = {};
-    const size_t    entriesCount = mTimeSeries.size();
+    GaugeComplexStatistics statistics   = {};
+    const size_t           entriesCount = mTimeSeries.size();
     if (entriesCount == 0) {
         return statistics;
     }
@@ -112,10 +112,10 @@ void MetricGauge::UpdateBasicStatistics(double seconds, double value)
     mBasicStatistics.min = std::min(mBasicStatistics.min, value);
     mBasicStatistics.max = std::max(mBasicStatistics.max, value);
 
-    const size_t entriesCount   = mTimeSeries.size();
-    mBasicStatistics.average = mAccumulatedValue / entriesCount;
+    const size_t entriesCount = mTimeSeries.size();
+    mBasicStatistics.average  = mAccumulatedValue / entriesCount;
     if (entriesCount > 1) {
-        const double timeSpan         = mTimeSeries.back().seconds - mTimeSeries.front().seconds;
+        const double timeSpan      = mTimeSeries.back().seconds - mTimeSeries.front().seconds;
         mBasicStatistics.timeRatio = mAccumulatedValue / timeSpan;
     }
     else {

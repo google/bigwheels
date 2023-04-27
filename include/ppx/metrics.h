@@ -94,12 +94,12 @@ public:
     // increasing positive function).
     // Note however that the system does NOT assume that the 'seconds' of
     // the first entry equal zero.
-    void   RecordEntry(double seconds, double value);
+    void RecordEntry(double seconds, double value);
 
     size_t GetEntriesCount() const;
     void   GetEntry(size_t index, double& seconds, double& value) const;
 
-    const GaugeBasicStatistics GetBasicStatistics() const;
+    const GaugeBasicStatistics   GetBasicStatistics() const;
     const GaugeComplexStatistics ComputeComplexStatistics() const;
 
 private:
@@ -116,7 +116,7 @@ private:
     void UpdateBasicStatistics(double seconds, double value);
 
 private:
-    MetricMetadata mMetadata;
+    MetricMetadata               mMetadata;
     std::vector<TimeSeriesEntry> mTimeSeries;
     GaugeBasicStatistics         mBasicStatistics;
     double                       mAccumulatedValue;
@@ -142,7 +142,7 @@ private:
 
 private:
     MetricMetadata mMetadata;
-    uint64_t mCounter;
+    uint64_t       mCounter;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -165,8 +165,8 @@ private:
     bool HasMetric(const char* name) const;
 
 private:
-    std::string                              mName;
-    std::unordered_map<std::string, MetricGauge*> mGauges;
+    std::string                                     mName;
+    std::unordered_map<std::string, MetricGauge*>   mGauges;
     std::unordered_map<std::string, MetricCounter*> mCounters;
 };
 

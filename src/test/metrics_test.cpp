@@ -52,17 +52,18 @@ protected:
 
 TEST(MetricsTest, ManagerAddSingleRun)
 {
-    metrics::Manager      manager;
-    metrics::Run* run = manager.AddRun("run");
+    metrics::Manager manager;
+    metrics::Run*    run = manager.AddRun("run");
     EXPECT_NE(run, nullptr);
 }
 
 TEST(MetricsTest, ManagerAddRunWithNullName)
 {
-    metrics::Manager      manager;
+    metrics::Manager manager;
     EXPECT_DEATH({
         metrics::Run* run = manager.AddRun(nullptr);
-        }, "");
+    },
+                 "");
 }
 
 TEST(MetricsTest, ManagerAddMultipleRun)
@@ -94,7 +95,8 @@ TEST(MetricsTest, ManagerAddDuplicateRun)
     {
         EXPECT_DEATH({
             manager.AddRun(RUN_NAME);
-            }, "");
+        },
+                     "");
     }
 }
 
@@ -109,9 +111,9 @@ TEST(MetricsTest, RunAddSingleMetric)
         metrics::Run* run = manager.AddRun("run_gauge");
         ASSERT_NE(run, nullptr);
 
-        metrics::MetricMetadata metadata    = {};
-        metadata.name                       = "metric";
-        metrics::MetricGauge* metric = run->AddMetric<metrics::MetricGauge>(metadata);
+        metrics::MetricMetadata metadata = {};
+        metadata.name                    = "metric";
+        metrics::MetricGauge* metric     = run->AddMetric<metrics::MetricGauge>(metadata);
         ASSERT_NE(metric, nullptr);
     }
 
@@ -119,9 +121,9 @@ TEST(MetricsTest, RunAddSingleMetric)
         metrics::Run* run = manager.AddRun("run_counter");
         ASSERT_NE(run, nullptr);
 
-        metrics::MetricMetadata metadata    = {};
-        metadata.name                       = "metric";
-        metrics::MetricCounter* metric = run->AddMetric<metrics::MetricCounter>(metadata);
+        metrics::MetricMetadata metadata = {};
+        metadata.name                    = "metric";
+        metrics::MetricCounter* metric   = run->AddMetric<metrics::MetricCounter>(metadata);
         ASSERT_NE(metric, nullptr);
     }
 }
@@ -129,15 +131,15 @@ TEST(MetricsTest, RunAddSingleMetric)
 TEST(MetricsTest, ManagerAddMetricWithNullName)
 {
     metrics::Manager manager;
-        metrics::Run* run = manager.AddRun("run");
-        ASSERT_NE(run, nullptr);
+    metrics::Run*    run = manager.AddRun("run");
+    ASSERT_NE(run, nullptr);
 
-        metrics::MetricMetadata metadata    = {};
+    metrics::MetricMetadata metadata = {};
     EXPECT_DEATH({
         run->AddMetric<metrics::MetricGauge>(metadata);
-        }, "");
+    },
+                 "");
 }
-
 
 TEST(MetricsTest, RunAddMultipleMetric)
 {
@@ -168,19 +170,21 @@ TEST(MetricsTest, RunAddDuplicateMetric)
     metrics::Run*    run = manager.AddRun("run");
     ASSERT_NE(run, nullptr);
 
-    metrics::MetricMetadata metadata    = {};
-    metadata.name                       = "metric";
+    metrics::MetricMetadata metadata = {};
+    metadata.name                    = "metric";
 
     metrics::MetricGauge* metricGauge = run->AddMetric<metrics::MetricGauge>(metadata);
     EXPECT_NE(metricGauge, nullptr);
 
     EXPECT_DEATH({
         metricGauge = run->AddMetric<metrics::MetricGauge>(metadata);
-    }, "");
+    },
+                 "");
 
     EXPECT_DEATH({
         metrics::MetricCounter* metricCounter = run->AddMetric<metrics::MetricCounter>(metadata);
-    }, "");
+    },
+                 "");
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -190,7 +194,7 @@ TEST(MetricsTest, RunAddDuplicateMetric)
 TEST_F(MetricsTestFixture, MetricsCounter)
 {
     metrics::MetricMetadata metadata;
-    metadata.name       = "counter";
+    metadata.name                  = "counter";
     metrics::MetricCounter* metric = run->AddMetric<metrics::MetricCounter>(metadata);
     EXPECT_EQ(metric->Get(), 0U);
 
@@ -203,8 +207,8 @@ TEST_F(MetricsTestFixture, MetricsCounter)
 TEST_F(MetricsTestFixture, MetricsGaugeEntries)
 {
     metrics::MetricMetadata metadata;
-    metadata.name       = "frame_time";
-    metrics::MetricGauge*   metric = run->AddMetric<metrics::MetricGauge>(metadata);
+    metadata.name                = "frame_time";
+    metrics::MetricGauge* metric = run->AddMetric<metrics::MetricGauge>(metadata);
 
     EXPECT_EQ(metric->GetEntriesCount(), 0U);
     metric->RecordEntry(0.0000, 11.0);
@@ -231,45 +235,48 @@ TEST_F(MetricsTestFixture, MetricsGaugeEntries)
 TEST_F(MetricsTestFixture, RecordNegativeSeconds)
 {
     metrics::MetricMetadata metadata;
-    metadata.name       = "frame_time";
-       metrics::MetricGauge*   metric = run->AddMetric<metrics::MetricGauge>(metadata);
+    metadata.name                = "frame_time";
+    metrics::MetricGauge* metric = run->AddMetric<metrics::MetricGauge>(metadata);
 
     EXPECT_DEATH({
         metric->RecordEntry(-1.0, 10.868892007019612);
-        }, "");
+    },
+                 "");
 }
 
 TEST_F(MetricsTestFixture, RecordNonIncreasingSeconds)
 {
     metrics::MetricMetadata metadata;
-    metadata.name       = "frame_time";
-       metrics::MetricGauge*   metric = run->AddMetric<metrics::MetricGauge>(metadata);
+    metadata.name                = "frame_time";
+    metrics::MetricGauge* metric = run->AddMetric<metrics::MetricGauge>(metadata);
 
-        metric->RecordEntry(0.0, 10.868892007019612);
-        metric->RecordEntry(1.0, 10.868892007019612);
+    metric->RecordEntry(0.0, 10.868892007019612);
+    metric->RecordEntry(1.0, 10.868892007019612);
     EXPECT_DEATH({
         metric->RecordEntry(0.9, 10.868892007019612);
-        }, "");
+    },
+                 "");
 }
 
 TEST_F(MetricsTestFixture, RecordNonStrictlyIncreasingSeconds)
 {
     metrics::MetricMetadata metadata;
-    metadata.name       = "frame_time";
-       metrics::MetricGauge*   metric = run->AddMetric<metrics::MetricGauge>(metadata);
+    metadata.name                = "frame_time";
+    metrics::MetricGauge* metric = run->AddMetric<metrics::MetricGauge>(metadata);
 
-        metric->RecordEntry(0.0, 10.868892007019612);
-        metric->RecordEntry(1.0, 10.868892007019612);
+    metric->RecordEntry(0.0, 10.868892007019612);
+    metric->RecordEntry(1.0, 10.868892007019612);
     EXPECT_DEATH({
         metric->RecordEntry(1.0, 10.868892007019612);
-        }, "");
+    },
+                 "");
 }
 
 TEST_F(MetricsTestFixture, Statistics)
 {
     metrics::MetricMetadata metadata;
-    metadata.name       = "frame_time";
-    metrics::MetricGauge*   metric = run->AddMetric<metrics::MetricGauge>(metadata);
+    metadata.name                = "frame_time";
+    metrics::MetricGauge* metric = run->AddMetric<metrics::MetricGauge>(metadata);
 
     metric->RecordEntry(0.0, 10.868892007019612);
     metric->RecordEntry(0.010868892007019612, 11.245153538647925);
