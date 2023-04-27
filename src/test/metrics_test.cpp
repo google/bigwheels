@@ -16,6 +16,10 @@
 
 #include "ppx/metrics.h"
 
+#if !defined(NDEBUG)
+#define PERFORM_DEATH_TESTS
+#endif
+
 namespace ppx {
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -57,6 +61,7 @@ TEST(MetricsTest, ManagerAddSingleRun)
     EXPECT_NE(run, nullptr);
 }
 
+#if defined(PERFORM_DEATH_TESTS)
 TEST(MetricsTest, ManagerAddRunWithNullName)
 {
     metrics::Manager manager;
@@ -65,6 +70,7 @@ TEST(MetricsTest, ManagerAddRunWithNullName)
     },
                  "");
 }
+#endif
 
 TEST(MetricsTest, ManagerAddMultipleRun)
 {
@@ -84,6 +90,7 @@ TEST(MetricsTest, ManagerAddMultipleRun)
     ASSERT_NE(run0, run1);
 }
 
+#if defined(PERFORM_DEATH_TESTS)
 TEST(MetricsTest, ManagerAddDuplicateRun)
 {
     metrics::Manager      manager;
@@ -99,6 +106,7 @@ TEST(MetricsTest, ManagerAddDuplicateRun)
                      "");
     }
 }
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 // Run
@@ -128,6 +136,7 @@ TEST(MetricsTest, RunAddSingleMetric)
     }
 }
 
+#if defined(PERFORM_DEATH_TESTS)
 TEST(MetricsTest, ManagerAddMetricWithNullName)
 {
     metrics::Manager manager;
@@ -140,6 +149,7 @@ TEST(MetricsTest, ManagerAddMetricWithNullName)
     },
                  "");
 }
+#endif
 
 TEST(MetricsTest, RunAddMultipleMetric)
 {
@@ -164,6 +174,7 @@ TEST(MetricsTest, RunAddMultipleMetric)
     }
 }
 
+#if defined(PERFORM_DEATH_TESTS)
 TEST(MetricsTest, RunAddDuplicateMetric)
 {
     metrics::Manager manager;
@@ -186,6 +197,7 @@ TEST(MetricsTest, RunAddDuplicateMetric)
     },
                  "");
 }
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 // Metrics
@@ -232,6 +244,7 @@ TEST_F(MetricsTestFixture, MetricsGaugeEntries)
     EXPECT_EQ(value, 11.1);
 }
 
+#if defined(PERFORM_DEATH_TESTS)
 TEST_F(MetricsTestFixture, RecordNegativeSeconds)
 {
     metrics::MetricMetadata metadata;
@@ -243,7 +256,9 @@ TEST_F(MetricsTestFixture, RecordNegativeSeconds)
     },
                  "");
 }
+#endif
 
+#if defined(PERFORM_DEATH_TESTS)
 TEST_F(MetricsTestFixture, RecordNonIncreasingSeconds)
 {
     metrics::MetricMetadata metadata;
@@ -257,7 +272,9 @@ TEST_F(MetricsTestFixture, RecordNonIncreasingSeconds)
     },
                  "");
 }
+#endif
 
+#if defined(PERFORM_DEATH_TESTS)
 TEST_F(MetricsTestFixture, RecordNonStrictlyIncreasingSeconds)
 {
     metrics::MetricMetadata metadata;
@@ -271,6 +288,7 @@ TEST_F(MetricsTestFixture, RecordNonStrictlyIncreasingSeconds)
     },
                  "");
 }
+#endif
 
 TEST_F(MetricsTestFixture, Statistics)
 {
