@@ -111,6 +111,11 @@ public:
         return standardOptions;
     }
 
+    const std::unordered_map<std::string, Option>& GetExtraOptions() const
+    {
+        return extraOptions;
+    }
+
     bool HasExtraOption(const std::string& option) const
     {
         return extraOptions.find(option) != extraOptions.end();
@@ -161,10 +166,14 @@ public:
     std::optional<ParsingError> Parse(int argc, const char* argv[]);
     const CliOptions&           GetOptions() const { return mOpts; }
     std::string                 GetUsageMsg() const { return mUsageMsg; }
+    void                        AppendUsageMsg(std::string additionalMsg)
+    {
+        mUsageMsg += additionalMsg;
+    }
 
 private:
-    CliOptions        mOpts;
-    const std::string mUsageMsg = R"(
+    CliOptions  mOpts;
+    std::string mUsageMsg = R"(
 --help                        Prints this help message and exits.
 
 --deterministic               Disable non-deterministic behaviors, like clocks.
