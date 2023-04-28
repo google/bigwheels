@@ -72,6 +72,11 @@ TEST(KnobTest, KnobBool)
     EXPECT_FALSE(knobPtr->GetChildren().empty());
     EXPECT_EQ(knobPtr->GetChildren()[0]->GetFlagName(), "flag_name2");
 
+    // Test GetKnob(std::string flagName)
+    knobPtr = km.GetKnob("flag_name1", true);
+    EXPECT_NE(knobPtr, nullptr);
+    EXPECT_EQ(knobPtr->GetDisplayName(), "Knob Name 1");
+
     // Test changing bool knob value
     EXPECT_EQ(km.GetKnobBoolValue(2), false);
     km.SetKnobBoolValue(2, true);
@@ -80,6 +85,14 @@ TEST(KnobTest, KnobBool)
     // Test reset
     km.Reset();
     EXPECT_EQ(km.GetKnobBoolValue(2), false);
+
+    // Usage message
+    std::string usageMsg = R"(
+Application-specific flags
+--flag_name1: description1
+--flag_name2: description2
+)";
+    EXPECT_EQ(km.GetUsageMsg(), usageMsg);
 }
 
 } // namespace ppx

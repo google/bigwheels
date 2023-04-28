@@ -90,6 +90,20 @@ Knob* KnobManager::GetKnob(int id, bool silentFail)
     return knobs.at(id);
 }
 
+Knob* KnobManager::GetKnob(const std::string& name, bool silentFail)
+{
+    for (auto pair : knobs) {
+        if (pair.second->GetFlagName() == name) {
+            return pair.second;
+        }
+    }
+
+    if (!silentFail)
+        PPX_LOG_ERROR("could not find knob with flag name: " << name);
+
+    return nullptr;
+}
+
 void KnobManager::CreateBoolCheckbox(int i, BoolCheckboxConfig config)
 {
     KnobBoolCheckbox* newKnob = new KnobBoolCheckbox(config);
@@ -118,6 +132,32 @@ void KnobManager::DrawAllKnobs(bool inExistingWindow)
     DrawKnobs(drawOrder);
     if (!inExistingWindow)
         ImGui::End();
+}
+
+std::string KnobManager::GetUsageMsg()
+{
+    std::string usageMsg = "\nApplication-specific flags\n";
+    for (auto pair : knobs) {
+        usageMsg += "--" + pair.second->GetFlagName() + ": " + pair.second->GetFlagDesc() + "\n";
+    }
+    return usageMsg;
+}
+
+bool KnobManager::ParseOptions(std::unordered_map<std::string, CliOptions::Option>& optionsMap)
+{
+    for (auto pair : optionsMap) {
+        auto  name    = pair.first;
+        auto  opt     = pair.second;
+        Knob* knobPtr = GetKnob(name, true);
+        if (knobPtr) {
+            switch (knobPtr->GetType()) {
+                case KnobType::Bool_Checkbox:
+                    knobPtr->SetBoolValue(opt.GetValueOrDefault(knobPtr->GetBoolValue()));
+                    break;
+            }
+        }
+    }
+    return true;
 }
 
 void KnobManager::InsertKnob(int id, Knob* knobPtr)

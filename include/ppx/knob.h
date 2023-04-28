@@ -15,11 +15,13 @@
 #ifndef ppx_knob_h
 #define ppx_knob_h
 
+#include "ppx/command_line_parser.h"
 #include "ppx/log.h"
 
 #include <functional>
 #include <iostream>
 #include <map>
+#include <unordered_map>
 #include <vector>
 
 // ---------------------------------------------------------------------------------------------
@@ -83,7 +85,7 @@ public:
         PPX_LOG_ERROR("Flag of type " << type << " does not support GetBoolValue()");
         return false;
     };
-    virtual void SetBoolValue(bool newVal, bool isDefault)
+    virtual void SetBoolValue(bool newVal, bool updateDefault = false)
     {
         PPX_LOG_ERROR("Flag of type " << type << " does not support SetBoolValue()");
     };
@@ -113,7 +115,7 @@ public:
     void Reset() override;
 
     bool GetBoolValue() override;
-    void SetBoolValue(bool newVal, bool updateDefault) override;
+    void SetBoolValue(bool newVal, bool updateDefault = false) override;
 
 private:
     bool                      value;
@@ -133,6 +135,7 @@ public:
     bool  IsEmpty() { return knobs.empty(); }
     void  Reset();
     Knob* GetKnob(int id, bool silentFail = false);
+    Knob* GetKnob(const std::string& name, bool silentFail = false);
 
     // Create knobs
     void CreateBoolCheckbox(int i, BoolCheckboxConfig config);
@@ -143,6 +146,10 @@ public:
 
     // ImGUI
     void DrawAllKnobs(bool inExistingWindow = false);
+
+    // Command-line flags
+    std::string GetUsageMsg();
+    bool        ParseOptions(std::unordered_map<std::string, CliOptions::Option>& optionsMap);
 
 private:
     void InsertKnob(int id, Knob* knobPtr);
