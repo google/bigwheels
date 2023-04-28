@@ -236,10 +236,10 @@ TEST_F(MetricsTestFixture, MetricsGaugeEntries)
 
     double seconds;
     double value;
-    metric->GetEntry(0, seconds, value);
+    metric->GetEntry(0, &seconds, &value);
     EXPECT_EQ(seconds, 0.0000);
     EXPECT_EQ(value, 11.0);
-    metric->GetEntry(4, seconds, value);
+    metric->GetEntry(4, &seconds, &value);
     EXPECT_EQ(seconds, 0.0457);
     EXPECT_EQ(value, 11.1);
 }

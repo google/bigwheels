@@ -49,11 +49,13 @@ size_t MetricGauge::GetEntriesCount() const
     return mTimeSeries.size();
 }
 
-void MetricGauge::GetEntry(size_t index, double& seconds, double& value) const
+void MetricGauge::GetEntry(size_t index, double* seconds, double* value) const
 {
+    PPX_ASSERT_NULL_ARG(seconds);
+    PPX_ASSERT_NULL_ARG(value);
     const TimeSeriesEntry entry = mTimeSeries[index];
-    seconds                     = entry.seconds;
-    value                       = entry.value;
+    *seconds                    = entry.seconds;
+    *value                      = entry.value;
 }
 
 const GaugeBasicStatistics MetricGauge::GetBasicStatistics() const

@@ -59,21 +59,21 @@ struct MetricMetadata
 // They can be retrieved without any significant run-time cost.
 struct GaugeBasicStatistics
 {
-    double min;
-    double max;
-    double average;
-    double timeRatio;
+    double min       = std::numeric_limits<double>::min();
+    double max       = std::numeric_limits<double>::max();
+    double average   = 0.0;
+    double timeRatio = 0.0;
 };
 
 // Complex statistics cannot be computed on the fly.
 // They require significant computation (e.g. sorting).
 struct GaugeComplexStatistics
 {
-    double median;
-    double standardDeviation;
-    double percentile90;
-    double percentile95;
-    double percentile99;
+    double median            = 0.0;
+    double standardDeviation = 0.0;
+    double percentile90      = 0.0;
+    double percentile95      = 0.0;
+    double percentile99      = 0.0;
 };
 
 // A gauge metric represents a value that may increase or decrease over time.
@@ -97,7 +97,7 @@ public:
     void RecordEntry(double seconds, double value);
 
     size_t GetEntriesCount() const;
-    void   GetEntry(size_t index, double& seconds, double& value) const;
+    void   GetEntry(size_t index, double* seconds, double* value) const;
 
     const GaugeBasicStatistics   GetBasicStatistics() const;
     const GaugeComplexStatistics ComputeComplexStatistics() const;
