@@ -378,10 +378,7 @@ public:
     std::vector<char> LoadShader(const std::filesystem::path& baseDir, const std::string& baseName) const;
     Result            CreateShader(const std::filesystem::path& baseDir, const std::string& baseName, grfx::ShaderModule** ppShaderModule) const;
 
-    Window* GetWindow() const
-    {
-        return mWindow.get();
-    }
+    Window*           GetWindow() const { return mWindow.get(); }
     grfx::InstancePtr GetInstance() const { return mInstance; }
     grfx::DevicePtr   GetDevice() const { return mDevice; }
     grfx::QueuePtr    GetGraphicsQueue(uint32_t index = 0) const { return GetDevice()->GetGraphicsQueue(index); }
@@ -390,11 +387,7 @@ public:
 
     // "index" here is for XR applications to fetch the swapchain of different views.
     // For non-XR applications, "index" should be always 0.
-    grfx::SwapchainPtr GetSwapchain(uint32_t index = 0) const
-    {
-        PPX_ASSERT_MSG(index < mSwapchain.size(), "Invalid Swapchain Index!");
-        return mSwapchain[index];
-    }
+    grfx::SwapchainPtr GetSwapchain(uint32_t index = 0) const;
 
     float    GetElapsedSeconds() const;
     float    GetPrevFrameTime() const { return mPreviousFrameTime; }
@@ -408,26 +401,12 @@ public:
     const KeyState& GetKeyState(KeyCode code) const;
     float2          GetNormalizedDeviceCoordinates(int32_t x, int32_t y) const;
 
-    bool IsXrEnabled() const
-    {
-        return mSettings.xr.enable;
-    }
+    bool IsXrEnabled() const { return mSettings.xr.enable; }
 
 #if defined(PPX_BUILD_XR)
-    XrComponent& GetXrComponent()
-    {
-        return mXrComponent;
-    }
-
-    grfx::SwapchainPtr GetDebugCaptureSwapchain() const
-    {
-        return GetSwapchain(mDebugCaptureSwapchainIndex);
-    }
-
-    grfx::SwapchainPtr GetUISwapchain() const
-    {
-        return GetSwapchain(mUISwapchainIndex);
-    }
+    XrComponent&       GetXrComponent() { return mXrComponent; }
+    grfx::SwapchainPtr GetDebugCaptureSwapchain() const { return GetSwapchain(mDebugCaptureSwapchainIndex); }
+    grfx::SwapchainPtr GetUISwapchain() const { return GetSwapchain(mUISwapchainIndex); }
 #endif
 private:
     void   InternalCtor();
@@ -475,7 +454,7 @@ private:
     grfx::InstancePtr               mInstance                   = nullptr;
     grfx::DevicePtr                 mDevice                     = nullptr;
     grfx::SurfacePtr                mSurface                    = nullptr; // Requires enableDisplay
-    std::vector<grfx::SwapchainPtr> mSwapchain;                            // Requires enableDisplay
+    std::vector<grfx::SwapchainPtr> mSwapchains;                           // Requires enableDisplay
     std::unique_ptr<ImGuiImpl>      mImGui;
 
     uint64_t          mFrameCount        = 0;

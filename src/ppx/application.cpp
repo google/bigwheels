@@ -512,7 +512,7 @@ Result Application::InitializeGrfxSwapchain()
             mSettings.window.height = mXrComponent.GetHeight();
         }
 #endif
-        mSwapchain.push_back(swapchain);
+        mSwapchains.push_back(swapchain);
     }
 
     return ppx::SUCCESS;
@@ -569,11 +569,11 @@ void Application::StopGrfx()
 void Application::ShutdownGrfx()
 {
     if (mInstance) {
-        for (auto& sc : mSwapchain) {
+        for (auto& sc : mSwapchains) {
             mDevice->DestroySwapchain(sc);
             sc.Reset();
         }
-        mSwapchain.clear();
+        mSwapchains.clear();
 
         if (mDevice) {
             mInstance->DestroyDevice(mDevice);
@@ -1250,6 +1250,12 @@ Result Application::CreateShader(const std::filesystem::path& baseDir, const std
     }
 
     return ppx::SUCCESS;
+}
+
+grfx::SwapchainPtr Application::GetSwapchain(uint32_t index) const
+{
+    PPX_ASSERT_MSG(index < mSwapchains.size(), "Invalid Swapchain Index!");
+    return mSwapchains[index];
 }
 
 float Application::GetElapsedSeconds() const
