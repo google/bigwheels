@@ -54,13 +54,13 @@ enum struct XrRefSpace
 //!
 struct XrComponentCreateInfo
 {
-    grfx::Api               api                  = grfx::API_UNDEFINED; // Direct3D or Vulkan.
-    std::string             appName              = "";
+    grfx::Api   api     = grfx::API_UNDEFINED; // Direct3D or Vulkan.
+    std::string appName = "";
 #if defined(PPX_ANDROID)
     android_app* androidContext = nullptr;
     grfx::Format colorFormat    = grfx::FORMAT_R8G8B8A8_SRGB;
 #else
-    grfx::Format            colorFormat          = grfx::FORMAT_B8G8R8A8_SRGB;
+    grfx::Format colorFormat = grfx::FORMAT_B8G8R8A8_SRGB;
 #endif
     grfx::Format            depthFormat          = grfx::FORMAT_D32_FLOAT;
     XrRefSpace              refSpaceType         = XrRefSpace::XR_STAGE;
@@ -126,6 +126,10 @@ public:
     bool IsSessionRunning() const { return mIsSessionRunning; }
     bool ShouldRender() const { return mShouldRender; }
 
+    void BeginPassthrough();
+    void EndPassthrough();
+    void TogglePassthrough();
+
 private:
     const XrEventDataBaseHeader* TryReadNextEvent();
     void                         HandleSessionStateChangedEvent(const XrEventDataSessionStateChanged& stateChangedEvent, bool& exitRenderLoop);
@@ -133,6 +137,13 @@ private:
     XrInstance mInstance = XR_NULL_HANDLE;
     XrSystemId mSystemId = XR_NULL_SYSTEM_ID;
     XrSession  mSession  = XR_NULL_HANDLE;
+
+#if defined(PPX_XR_QUEST)
+    XrPassthroughFB      mPassthrough      = XR_NULL_HANDLE;
+    XrPassthroughLayerFB mPassthroughLayer = XR_NULL_HANDLE;
+#endif
+    bool mPassthroughSupported = false;
+    bool mPassthroughEnabled   = false;
 
     std::vector<XrViewConfigurationView> mConfigViews;
     std::vector<XrView>                  mViews;

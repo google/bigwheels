@@ -9,6 +9,7 @@
   <uses-feature android:name="android.hardware.vr.headtracking" android:version="1" android:required="false" />
   <uses-feature android:name="android.hardware.vr.high_performance" android:required="true" />
   <uses-feature android:name="android.software.vr.mode" android:required="true" />
+  <uses-feature android:name="com.oculus.feature.PASSTHROUGH" android:required="true" />
 
   <meta-data android:name="com.oculus.intent.category.VR" android:value="vr_only"/>
   <meta-data android:name="com.oculus.supportedDevices" android:value="quest|quest2|cambria"/>
