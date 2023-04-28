@@ -50,6 +50,11 @@ android {
         it.buildConfigField "String", "sample_library_name", '"vk_' + sample_name + '"'
         it.resValue         "string", "sample_library_name",  'vk_' + sample_name
         it.resValue         "string", "app_label", sample_name
+        externalNativeBuild {
+            cmake {
+                targets "vk_" + sample_name
+            }
+        }
       }
     }
 
