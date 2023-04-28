@@ -688,7 +688,7 @@ Result CreateImageFromCompressedImage(
         ci.size = RoundUp<uint64_t>(ci.size, offsetAlignment);
         levelSizes.emplace_back(std::move(ls));
     }
-    const uint32_t mipmapLevelCount = levelSizes.size();
+    const uint32_t mipmapLevelCount = CountU32(levelSizes);
     PPX_ASSERT_MSG(mipmapLevelCount > 0, "Requested texture size too small for the chosen format.");
 
     ppxres = pQueue->GetDevice()->CreateBuffer(&ci, &stagingBuffer);

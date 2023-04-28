@@ -438,9 +438,9 @@ Result Application::InitializeGrfxSwapchain()
         const size_t swapchainCount = viewCount + 1;
         mStereoscopicSwapchainIndex = 0;
         mUISwapchainIndex           = static_cast<uint32_t>(viewCount);
-        mSwapchain.resize(swapchainCount);
+        mSwapchains.resize(swapchainCount);
         for (size_t k = 0; k < swapchainCount; ++k) {
-            Result ppxres = mDevice->CreateSwapchain(&ci, &mSwapchain[k]);
+            Result ppxres = mDevice->CreateSwapchain(&ci, &mSwapchains[k]);
             if (Failed(ppxres)) {
                 PPX_ASSERT_MSG(false, "grfx::Device::CreateSwapchain failed");
                 return ppxres;
@@ -448,7 +448,7 @@ Result Application::InitializeGrfxSwapchain()
         }
 
         // Image count is from xrEnumerateSwapchainImages
-        mSettings.grfx.swapchain.imageCount = mSwapchain[0]->GetImageCount();
+        mSettings.grfx.swapchain.imageCount = mSwapchains[0]->GetImageCount();
     }
 
     if (!mSettings.xr.enable
@@ -503,7 +503,7 @@ Result Application::InitializeGrfxSwapchain()
         }
 #if defined(PPX_BUILD_XR)
         if (mSettings.xr.enable && mSettings.xr.enableDebugCapture) {
-            mDebugCaptureSwapchainIndex = static_cast<uint32_t>(mSwapchain.size());
+            mDebugCaptureSwapchainIndex = static_cast<uint32_t>(mSwapchains.size());
             // The window size could be smaller than the requested one in glfwCreateWindow
             // So the final swapchain size for window needs to be adjusted
             // In the case of debug capture, we don't care about the window size after creating the dummy window
@@ -512,7 +512,7 @@ Result Application::InitializeGrfxSwapchain()
             mSettings.window.height = mXrComponent.GetHeight();
         }
 #endif
-        mSwapchain.push_back(swapchain);
+        mSwapchains.push_back(swapchain);
     }
 
     return ppx::SUCCESS;
@@ -569,11 +569,11 @@ void Application::StopGrfx()
 void Application::ShutdownGrfx()
 {
     if (mInstance) {
-        for (auto& sc : mSwapchain) {
+        for (auto& sc : mSwapchains) {
             mDevice->DestroySwapchain(sc);
             sc.Reset();
         }
-        mSwapchain.clear();
+        mSwapchains.clear();
 
         if (mDevice) {
             mInstance->DestroyDevice(mDevice);
@@ -1067,7 +1067,7 @@ int Application::Run(int argc, char** argv)
                         }
                     }
                 }
-                mXrComponent.EndFrame(mSwapchain, 0, mUISwapchainIndex);
+                mXrComponent.EndFrame(mSwapchains, 0, mUISwapchainIndex);
             }
         }
         else
@@ -1250,6 +1250,12 @@ Result Application::CreateShader(const std::filesystem::path& baseDir, const std
     }
 
     return ppx::SUCCESS;
+}
+
+grfx::SwapchainPtr Application::GetSwapchain(uint32_t index) const
+{
+    PPX_ASSERT_MSG(index < mSwapchains.size(), "Invalid Swapchain Index!");
+    return mSwapchains[index];
 }
 
 float Application::GetElapsedSeconds() const
