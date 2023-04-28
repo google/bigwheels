@@ -404,9 +404,20 @@ public:
     bool IsXrEnabled() const { return mSettings.xr.enable; }
 
 #if defined(PPX_BUILD_XR)
-    XrComponent&       GetXrComponent() { return mXrComponent; }
-    grfx::SwapchainPtr GetDebugCaptureSwapchain() const { return GetSwapchain(mDebugCaptureSwapchainIndex); }
-    grfx::SwapchainPtr GetUISwapchain() const { return GetSwapchain(mUISwapchainIndex); }
+    XrComponent& GetXrComponent()
+    {
+        return mXrComponent;
+    }
+
+    grfx::SwapchainPtr GetDebugCaptureSwapchain() const
+    {
+        return GetSwapchain(mDebugCaptureSwapchainIndex);
+    }
+
+    grfx::SwapchainPtr GetUISwapchain() const
+    {
+        return GetSwapchain(mUISwapchainIndex);
+    }
 #endif
 private:
     void   InternalCtor();
