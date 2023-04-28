@@ -141,9 +141,13 @@ public:
     bool GetKnobBoolValue(int id);
     void SetKnobBoolValue(int id, bool newVal, bool updateDefault = false);
 
+    // ImGUI
+    void DrawAllKnobs(bool inExistingWindow = false);
+
 private:
     void InsertKnob(int id, Knob* knobPtr);
     void ConfigureParent(Knob* knobPtr, int parentId);
+    void DrawKnobs(const std::vector<Knob*>& knobsToDraw);
 
 private:
     std::map<int, Knob*> knobs;
