@@ -28,7 +28,7 @@
 #endif // defined(PPX_VULKAN)
 
 #if defined(PPX_ANDROID)
-#include <game-activity/native_app_glue/android_native_app_glue.h>
+#include <android_native_app_glue.h>
 #endif // defined(PPX_ANDROID)
 
 #include <openxr/openxr.h>
@@ -137,6 +137,10 @@ public:
     bool IsSessionRunning() const { return mIsSessionRunning; }
     bool ShouldRender() const { return mShouldRender; }
 
+    void BeginPassthrough();
+    void EndPassthrough();
+    void TogglePassthrough();
+
 private:
     const XrEventDataBaseHeader* TryReadNextEvent();
     void                         HandleSessionStateChangedEvent(const XrEventDataSessionStateChanged& stateChangedEvent, bool& exitRenderLoop);
@@ -144,6 +148,13 @@ private:
     XrInstance mInstance = XR_NULL_HANDLE;
     XrSystemId mSystemId = XR_NULL_SYSTEM_ID;
     XrSession  mSession  = XR_NULL_HANDLE;
+
+#if defined(PPX_XR_QUEST)
+    XrPassthroughFB      mPassthrough      = XR_NULL_HANDLE;
+    XrPassthroughLayerFB mPassthroughLayer = XR_NULL_HANDLE;
+#endif
+    bool mPassthroughSupported = false;
+    bool mPassthroughEnabled   = false;
 
     std::vector<XrViewConfigurationView> mConfigViews;
     std::vector<XrView>                  mViews;

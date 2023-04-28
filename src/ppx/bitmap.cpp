@@ -573,7 +573,13 @@ Result Bitmap::LoadFile(const std::filesystem::path& path, Bitmap* pBitmap)
         int channels         = 0;
         int requiredChannels = 4; // Force to 4 chanenls to make things easier for the graphics APIs
 
-        float* pData = stbi_loadf_from_memory((unsigned char*)bitmapBytes.value().data(), bitmapBytes.value().size(), &width, &height, &channels, requiredChannels);
+        float* pData = stbi_loadf_from_memory(
+            reinterpret_cast<const stbi_uc*>(bitmapBytes.value().data()),
+            static_cast<int>(bitmapBytes.value().size()),
+            &width,
+            &height,
+            &channels,
+            requiredChannels);
         if (pData == nullptr) {
             return ppx::ERROR_IMAGE_FILE_LOAD_FAILED;
         }
@@ -598,7 +604,13 @@ Result Bitmap::LoadFile(const std::filesystem::path& path, Bitmap* pBitmap)
         int channels         = 0;
         int requiredChannels = 4; // Force to 4 channels to make things easier for the graphics APIs
 
-        unsigned char* pData = stbi_load_from_memory((unsigned char*)bitmapBytes.value().data(), bitmapBytes.value().size(), &width, &height, &channels, requiredChannels);
+        unsigned char* pData = stbi_load_from_memory(
+            reinterpret_cast<const stbi_uc*>(bitmapBytes.value().data()),
+            static_cast<int>(bitmapBytes.value().size()),
+            &width,
+            &height,
+            &channels,
+            requiredChannels);
         if (IsNull(pData)) {
             return ppx::ERROR_IMAGE_FILE_LOAD_FAILED;
         }

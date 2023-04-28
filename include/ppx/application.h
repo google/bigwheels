@@ -22,6 +22,7 @@
 #include "ppx/timer.h"
 #include "ppx/xr_component.h"
 #include "ppx/fs.h"
+#include "ppx/window.h"
 
 #include <deque>
 #include <filesystem>
@@ -34,24 +35,13 @@
 #include <GLFW/glfw3.h>
 
 #if defined(PPX_ANDROID)
-    #define SETUP_APPLICATION(AppType)                  \
-        AppType app;                                    \
-        bool InitVulkan(android_app* androidContext)    \
-        {                                               \
-            app.SetAndroidContext(androidContext);      \
-            return true;                                \
-        }                                               \
-        void DeleteVulkan(void)                         \
-        {                                               \
-        }                                               \
-        bool IsVulkanReady(void)                        \
-        {                                               \
-            return app.GetAndroidContext() != nullptr;  \
-        }                                               \
-        bool VulkanDrawFrame(int argc, char** argv)     \
-        {                                               \
-            int res = app.Run(argc, argv);              \
-            return res;                                 \
+    #define SETUP_APPLICATION(AppType)                                   \
+        bool RunApp(android_app* pAndroidContext, int argc, char** argv) \
+        {                                                                \
+            AppType app;                                                 \
+            app.SetAndroidContext(pAndroidContext);                      \
+            int res = app.Run(argc, argv);                               \
+            return res;                                                  \
         }
 #else
     #define SETUP_APPLICATION(AppType)                  \
@@ -377,10 +367,7 @@ public:
     std::vector<char> LoadShader(const std::filesystem::path& baseDir, const std::string& baseName) const;
     Result            CreateShader(const std::filesystem::path& baseDir, const std::string& baseName, grfx::ShaderModule** ppShaderModule) const;
 
-    void* GetWindow() const
-    {
-        return mWindow;
-    }
+    Window*           GetWindow() const { return mWindow.get(); }
     grfx::InstancePtr GetInstance() const { return mInstance; }
     grfx::DevicePtr   GetDevice() const { return mDevice; }
     grfx::QueuePtr    GetGraphicsQueue(uint32_t index = 0) const { return GetDevice()->GetGraphicsQueue(index); }
@@ -389,11 +376,7 @@ public:
 
     // "index" here is for XR applications to fetch the swapchain of different views.
     // For non-XR applications, "index" should be always 0.
-    grfx::SwapchainPtr GetSwapchain(uint32_t index = 0) const
-    {
-        PPX_ASSERT_MSG(index < mSwapchain.size(), "Invalid Swapchain Index!");
-        return mSwapchain[index];
-    }
+    grfx::SwapchainPtr GetSwapchain(uint32_t index = 0) const;
 
     float    GetElapsedSeconds() const;
     float    GetPrevFrameTime() const { return mPreviousFrameTime; }
@@ -407,10 +390,7 @@ public:
     const KeyState& GetKeyState(KeyCode code) const;
     float2          GetNormalizedDeviceCoordinates(int32_t x, int32_t y) const;
 
-    bool IsXrEnabled() const
-    {
-        return mSettings.xr.enable;
-    }
+    bool IsXrEnabled() const { return mSettings.xr.enable; }
 
 #if defined(PPX_BUILD_XR)
     XrComponent& GetXrComponent()
@@ -466,16 +446,15 @@ private:
     ApplicationSettings             mSettings = {};
     std::string                     mDecoratedApiName;
     Timer                           mTimer;
-    void*                           mWindow                     = nullptr; // Requires enableDisplay
+    std::unique_ptr<Window>         mWindow                     = nullptr; // Requires enableDisplay
     bool                            mWindowSurfaceInvalid       = false;
     KeyState                        mKeyStates[TOTAL_KEY_COUNT] = {false, 0.0f};
     int32_t                         mPreviousMouseX             = INT32_MAX;
     int32_t                         mPreviousMouseY             = INT32_MAX;
-    bool                            mRunningHeadless            = false;
     grfx::InstancePtr               mInstance                   = nullptr;
     grfx::DevicePtr                 mDevice                     = nullptr;
     grfx::SurfacePtr                mSurface                    = nullptr; // Requires enableDisplay
-    std::vector<grfx::SwapchainPtr> mSwapchain;                            // Requires enableDisplay
+    std::vector<grfx::SwapchainPtr> mSwapchains;                           // Requires enableDisplay
     std::unique_ptr<ImGuiImpl>      mImGui;
 
     uint64_t          mFrameCount        = 0;

@@ -45,9 +45,18 @@ android {
     def defineFlavor = { sample_name ->
       return {
         dimension 'project'
+        // Package names cannot start with a number, adding prefixing.
+        applicationIdSuffix ".project_" + sample_name
+        manifestPlaceholders = [
+            sampleLibraryName : "vk_" + sample_name,
+            appLabel : "vk_" + sample_name
+        ]
         it.buildConfigField "String", "sample_library_name", '"vk_' + sample_name + '"'
-        it.resValue         "string", "sample_library_name",  'vk_' + sample_name
-        it.resValue         "string", "app_label", sample_name
+        externalNativeBuild {
+            cmake {
+                targets "vk_" + sample_name
+            }
+        }
       }
     }
 
@@ -69,11 +78,6 @@ android {
                               '-DBUILD_LOADER=FALSE'
                 }
             }
-            sourceSets {
-                main {
-                    manifest.srcFile 'src/android/AndroidManifest.xml'
-                }
-            }
         }
         openxr {
             dimension 'device'
@@ -86,11 +90,6 @@ android {
                               '-DBUILD_LOADER=TRUE',
                               '-DBUILD_ALL_EXTENSIONS=TRUE'
                     cppFlags '-DXR_USE_PLATFORM_ANDROID'
-                }
-            }
-            sourceSets {
-                main {
-                    manifest.srcFile 'src/android/AndroidManifest.XR.xml'
                 }
             }
         }
@@ -109,11 +108,6 @@ android {
                             '-DBUILD_ALL_EXTENSIONS=FALSE',
                             "-DOCULUS_OPENXR_SDK=${oculusOpenxrSdkLocation}"
                   cppFlags '-DXR_USE_PLATFORM_ANDROID'
-                }
-            }
-            sourceSets {
-                main {
-                    manifest.srcFile 'src/android/AndroidManifest.Quest.xml'
                 }
             }
         }
@@ -152,10 +146,17 @@ android {
     }
     sourceSets {
         main {
+            manifest.srcFile 'src/android/AndroidManifest.xml'
             java.srcDirs = [ 'src/android' ]
             assets {
                 srcDirs 'assets'
             }
+        }
+        openxr {
+            manifest.srcFile 'src/android/AndroidManifest.XR.xml'
+        }
+        quest {
+            manifest.srcFile 'src/android/AndroidManifest.Quest.xml'
         }
     }
 }
@@ -163,7 +164,6 @@ android {
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.5.1'
     implementation 'com.google.android.material:material:1.7.0'
-    implementation 'androidx.games:games-activity:1.0.0'
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.4'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.0'

@@ -26,3 +26,9 @@ lib/
 out/
 tags
 local.properties
+
+# Android Studio
+/.cache
+/.cxx
+/.gradle
+/.idea
