@@ -2,7 +2,6 @@
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-  <uses-sdk android:minSdkVersion="29" android:targetSdkVersion="31"/>
 
   <uses-feature android:name="android.hardware.sensor.accelerometer" android:required="true"/>
   <uses-feature android:name="android.hardware.sensor.gyroscope" android:required="true"/>
@@ -13,7 +12,7 @@
   <application
       android:allowBackup="true"
       android:icon="@android:drawable/ic_info"
-      android:label="@string/app_label"
+      android:label="${appLabel}"
       android:theme="@style/Theme.AppCompat.NoActionBar"
       tools:targetApi="31">
     <activity
@@ -24,7 +23,7 @@
         <category android:name="android.intent.category.LAUNCHER" />
         <category android:name="org.khronos.openxr.intent.category.IMMERSIVE_HMD" />
       </intent-filter>
-      <meta-data android:name="android.app.lib_name" android:value="@string/sample_library_name"/>
+      <meta-data android:name="android.app.lib_name" android:value="${sampleLibraryName}"/>
     </activity>
   </application>
 </manifest>

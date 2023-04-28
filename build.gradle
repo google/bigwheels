@@ -47,9 +47,11 @@ android {
         dimension 'project'
         // Package names cannot start with a number, adding prefixing.
         applicationIdSuffix ".project_" + sample_name
+        manifestPlaceholders = [
+            sampleLibraryName : "vk_" + sample_name,
+            appLabel : "vk_" + sample_name
+        ]
         it.buildConfigField "String", "sample_library_name", '"vk_' + sample_name + '"'
-        it.resValue         "string", "sample_library_name",  'vk_' + sample_name
-        it.resValue         "string", "app_label", sample_name
         externalNativeBuild {
             cmake {
                 targets "vk_" + sample_name
