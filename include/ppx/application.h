@@ -23,6 +23,7 @@
 #include "ppx/xr_component.h"
 #include "ppx/fs.h"
 #include "ppx/window.h"
+#include "ppx/knob.h"
 
 #include <deque>
 #include <filesystem>
@@ -473,6 +474,9 @@ private:
     uint32_t    mUISwapchainIndex           = 0;
     uint32_t    mStereoscopicSwapchainIndex = 0;
 #endif
+
+public:
+    KnobManager knobManager = {};
 };
 
 const char* GetKeyCodeString(KeyCode code);

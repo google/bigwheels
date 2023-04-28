@@ -111,6 +111,15 @@ void KnobManager::SetKnobBoolValue(int id, bool newVal, bool updateDefault)
         knobPtr->SetBoolValue(newVal, updateDefault);
 }
 
+void KnobManager::DrawAllKnobs(bool inExistingWindow)
+{
+    if (!inExistingWindow)
+        ImGui::Begin("Knobs");
+    DrawKnobs(drawOrder);
+    if (!inExistingWindow)
+        ImGui::End();
+}
+
 void KnobManager::InsertKnob(int id, Knob* knobPtr)
 {
     knobs.insert(std::make_pair(id, knobPtr));
@@ -124,6 +133,18 @@ void KnobManager::ConfigureParent(Knob* knobPtr, int parentId)
     }
     else {
         drawOrder.push_back(knobPtr);
+    }
+}
+
+void KnobManager::DrawKnobs(std::vector<Knob*> knobsToDraw)
+{
+    for (auto knobPtr : knobsToDraw) {
+        knobPtr->Draw();
+        if (!(knobPtr->GetChildren().empty())) {
+            ImGui::Indent();
+            KnobManager::DrawKnobs(knobPtr->GetChildren());
+            ImGui::Unindent();
+        }
     }
 }
 
