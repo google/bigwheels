@@ -159,7 +159,7 @@ Result Swapchain::CreateDepthImages()
             dpCreateInfo.DSVClearValue         = {1.0f, 0xFF};
 
             grfx::ImagePtr depthStencilTarget;
-            auto ppxres = GetDevice()->CreateImage(&dpCreateInfo, &depthStencilTarget);
+            auto           ppxres = GetDevice()->CreateImage(&dpCreateInfo, &depthStencilTarget);
             if (Failed(ppxres)) {
                 return ppxres;
             }
@@ -205,7 +205,7 @@ Result Swapchain::CreateRenderPasses()
         rpCreateInfo.ownership                   = grfx::OWNERSHIP_RESTRICTED;
 
         grfx::RenderPassPtr renderPass;
-        auto ppxres = GetDevice()->CreateRenderPass(&rpCreateInfo, &renderPass);
+        auto                ppxres = GetDevice()->CreateRenderPass(&rpCreateInfo, &renderPass);
         if (Failed(ppxres)) {
             PPX_ASSERT_MSG(false, "grfx::Swapchain::CreateRenderPass(CLEAR) failed");
             return ppxres;
@@ -229,7 +229,7 @@ Result Swapchain::CreateRenderPasses()
         rpCreateInfo.ownership                   = grfx::OWNERSHIP_RESTRICTED;
 
         grfx::RenderPassPtr renderPass;
-        auto ppxres = GetDevice()->CreateRenderPass(&rpCreateInfo, &renderPass);
+        auto                ppxres = GetDevice()->CreateRenderPass(&rpCreateInfo, &renderPass);
         if (Failed(ppxres)) {
             PPX_ASSERT_MSG(false, "grfx::Swapchain::CreateRenderPass(LOAD) failed");
             return ppxres;
