@@ -114,15 +114,18 @@ Result Image::CreateApiObjects(const grfx::ImageCreateInfo* pCreateInfo)
 
 void Image::DestroyApiObjects()
 {
-    // Reset if resource isn't external
-    if (IsNull(mCreateInfo.pApiObject)) {
-        if (mResource) {
-            mResource.Reset();
-        }
-    }
-    else {
-        // Deatch if the resource is external
-        mResource.Detach();
+    // This will release the ref to the resource regardless
+    // if it's an internal or external object. This correctly
+    // handles the refs counts for swapchain buffers so an error
+    // doesn't occur during resize events.
+    //
+    // The previous version handled internal and external objects
+    // different because reset/release caused a crash on swapchain
+    // images. This doesn't seem to be the case with this change,
+    // however please report if crashes do occur.
+    //
+    if (mResource) {
+        mResource.Reset();
     }
 
     if (mAllocation) {

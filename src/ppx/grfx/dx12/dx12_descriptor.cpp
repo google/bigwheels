@@ -336,7 +336,7 @@ Result DescriptorSet::UpdateDescriptors(uint32_t writeCount, const grfx::WriteDe
                 desc.Format                           = DXGI_FORMAT_R32_TYPELESS;
                 desc.ViewDimension                    = D3D12_UAV_DIMENSION_BUFFER;
                 desc.Buffer.FirstElement              = srcWrite.bufferOffset / 4;
-                desc.Buffer.NumElements               = sizeInBytes / 4;
+                desc.Buffer.NumElements               = static_cast<UINT>(sizeInBytes / 4);
                 desc.Buffer.StructureByteStride       = 0;
                 desc.Buffer.Flags                     = D3D12_BUFFER_UAV_FLAG_RAW;
 
