@@ -11,6 +11,7 @@ The following tests are run as part of every PR submission:
   * Full build of BigWheels, SPIR-V shaders, and Vulkan samples.
   * Unit tests.
   * Some Vulkan samples are run with a virtual framebuffer (using `xvfb`) and using Mesa's Lavapipe as the software renderer.
+* On Linux, build APKs for mobile.
 * Code formatting check that ensures code is formatted using `clang-format`.
 
 The samples run as part of the runtime tests produce screenshots that are then uploaded as GitHub artifacts. You can retrieve them by navigating to a successful CI run's page and then downloading the `screenshots` artifact.
