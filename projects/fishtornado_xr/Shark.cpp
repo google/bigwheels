@@ -87,7 +87,7 @@ void Shark::Update(uint32_t frameIndex)
     mPos.x         = sin(t * -0.0205f) * 100.0f;
     mPos.z         = sin(t * -0.0205f) * 900.0f; // 800.0f
     mPos.y         = 100.0f;
-    //mPos.y         = 100.0f * 0.675f + (sin(t * 0.00125f) * 0.5f + 0.5f) * 100.0f * 0.25f;
+    // mPos.y         = 100.0f * 0.675f + (sin(t * 0.00125f) * 0.5f + 0.5f) * 100.0f * 0.25f;
 
     // Calculate velocity
     mVel = mPos - prevPos;

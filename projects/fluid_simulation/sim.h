@@ -166,14 +166,14 @@ private:
 
     ppx::Random mRandom;
 
-    void         ApplyBloom(Texture* source, Texture* destination);
-    void         ApplySunrays(Texture* source, Texture* mask, Texture* destination);
-    void         Blur(Texture* target, Texture* temp, uint32_t iterations);
-    float        CorrectRadius(float radius);
-    void         DrawCheckerboard();
-    void         DrawColor(ppx::float4 color);
-    void         DrawDisplay();
-    ppx::float3  GenerateColor();
+    void        ApplyBloom(Texture* source, Texture* destination);
+    void        ApplySunrays(Texture* source, Texture* mask, Texture* destination);
+    void        Blur(Texture* target, Texture* temp, uint32_t iterations);
+    float       CorrectRadius(float radius);
+    void        DrawCheckerboard();
+    void        DrawColor(ppx::float4 color);
+    void        DrawDisplay();
+    ppx::float3 GenerateColor();
 
     /// @brief             Return a vector describing a rectangle with dimensions that can fit "resolution" pixels.
     ///

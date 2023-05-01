@@ -272,7 +272,7 @@ Result PipelineInterface::CreateApiObjects(const grfx::PipelineInterfaceCreateIn
 {
     dx12::Device* pDevice = ToApi(GetDevice());
 
-    //std::vector<std::unique_ptr<std::vector<D3D12_DESCRIPTOR_RANGE1>>> parameterRanges;
+    // std::vector<std::unique_ptr<std::vector<D3D12_DESCRIPTOR_RANGE1>>> parameterRanges;
     std::vector<std::unique_ptr<D3D12_DESCRIPTOR_RANGE1>> parameterRanges;
 
     // Creates a parameter for each binding - this is naive way of

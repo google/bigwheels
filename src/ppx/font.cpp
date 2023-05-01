@@ -190,30 +190,30 @@ void Font::RenderGlyphBitmap(
         static_cast<int>(codepoint));
 }
 
-//void  Font::GetGlyphBitmap(float fontSizeInPixels)
+// void  Font::GetGlyphBitmap(float fontSizeInPixels)
 //{
-//    stbtt_MakeCodepointBitmapSubpixel(
-//        &mObject->fontInfo,
-//        )
-//}
+//     stbtt_MakeCodepointBitmapSubpixel(
+//         &mObject->fontInfo,
+//         )
+// }
 
-//uint2 Font::GetGlyphBounds(float fontSizeInPixels, uint32_t codePoint) const
+// uint2 Font::GetGlyphBounds(float fontSizeInPixels, uint32_t codePoint) const
 //{
-//    int glyphIndex = stbtt_FindGlyphIndex(&mObject->fontInfo, static_cast<int>(codePoint));
-//    if (glyphIndex == 0) {
-//        return uint2(0);
-//    }
+//     int glyphIndex = stbtt_FindGlyphIndex(&mObject->fontInfo, static_cast<int>(codePoint));
+//     if (glyphIndex == 0) {
+//         return uint2(0);
+//     }
 //
-//    int advancedWidth   = 0;
-//    int leftSideBearing = 0;
-//    stbtt_GetGlyphHMetrics(&mObject->fontInfo, glyphIndex, &advancedWidth, &leftSideBearing);
+//     int advancedWidth   = 0;
+//     int leftSideBearing = 0;
+//     stbtt_GetGlyphHMetrics(&mObject->fontInfo, glyphIndex, &advancedWidth, &leftSideBearing);
 //
-//    float scale  = stbtt_ScaleForPixelHeight(&mObject->fontInfo, fontSizeInPixels);
-//    float width  = (advancedWidth * scale) + 0.5f;
-//    float height = static_cast<float>(mObject->ascent + abs(mObject->descent)) * scale + 0.5f;
+//     float scale  = stbtt_ScaleForPixelHeight(&mObject->fontInfo, fontSizeInPixels);
+//     float width  = (advancedWidth * scale) + 0.5f;
+//     float height = static_cast<float>(mObject->ascent + abs(mObject->descent)) * scale + 0.5f;
 //
-//    uint2 bounds = uint2(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
-//    return bounds;
-//}
+//     uint2 bounds = uint2(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+//     return bounds;
+// }
 
 } // namespace ppx

@@ -215,17 +215,17 @@ Result ComputePipeline::Create(const grfx::ComputePipelineCreateInfo* pCreateInf
 Result GraphicsPipeline::Create(const grfx::GraphicsPipelineCreateInfo* pCreateInfo)
 {
     //// Checked binding range
-    //for (uint32_t i = 0; i < pCreateInfo->vertexInputState.attributeCount; ++i) {
-    //    const grfx::VertexAttribute& attribute = pCreateInfo->vertexInputState.attributes[i];
-    //    if (attribute.binding >= PPX_MAX_VERTEX_BINDINGS) {
-    //        PPX_ASSERT_MSG(false, "binding exceeds PPX_MAX_VERTEX_ATTRIBUTES");
-    //        return ppx::ERROR_GRFX_MAX_VERTEX_BINDING_EXCEEDED;
-    //    }
-    //    if (attribute.format == grfx::FORMAT_UNDEFINED) {
-    //        PPX_ASSERT_MSG(false, "vertex attribute format is undefined");
-    //        return ppx::ERROR_GRFX_VERTEX_ATTRIBUTE_FROMAT_UNDEFINED;
-    //    }
-    //}
+    // for (uint32_t i = 0; i < pCreateInfo->vertexInputState.attributeCount; ++i) {
+    //     const grfx::VertexAttribute& attribute = pCreateInfo->vertexInputState.attributes[i];
+    //     if (attribute.binding >= PPX_MAX_VERTEX_BINDINGS) {
+    //         PPX_ASSERT_MSG(false, "binding exceeds PPX_MAX_VERTEX_ATTRIBUTES");
+    //         return ppx::ERROR_GRFX_MAX_VERTEX_BINDING_EXCEEDED;
+    //     }
+    //     if (attribute.format == grfx::FORMAT_UNDEFINED) {
+    //         PPX_ASSERT_MSG(false, "vertex attribute format is undefined");
+    //         return ppx::ERROR_GRFX_VERTEX_ATTRIBUTE_FROMAT_UNDEFINED;
+    //     }
+    // }
     //
     //// Build input bindings
     //{

@@ -241,7 +241,7 @@ struct FormatDesc
     // and will be set to -1.
     int8_t bytesPerComponent;
 
-    //The layout of the format (linear, packed, or compressed).
+    // The layout of the format (linear, packed, or compressed).
     FormatLayout layout;
 
     // The components (channels) represented by the format,

@@ -59,8 +59,8 @@ struct VertexInputState
     uint32_t            bindingCount                      = 0;
     grfx::VertexBinding bindings[PPX_MAX_VERTEX_BINDINGS] = {};
 
-    //uint32_t              attributeCount                     = 0;
-    //grfx::VertexAttribute attributes[PPX_MAX_RENDER_TARGETS] = {{"", 0, grfx::FORMAT_UNDEFINED, 0, PPX_APPEND_OFFSET_ALIGNED, grfx::VERTEX_INPUT_RATE_VERTEX}};
+    // uint32_t              attributeCount                     = 0;
+    // grfx::VertexAttribute attributes[PPX_MAX_RENDER_TARGETS] = {{"", 0, grfx::FORMAT_UNDEFINED, 0, PPX_APPEND_OFFSET_ALIGNED, grfx::VERTEX_INPUT_RATE_VERTEX}};
 };
 
 struct InputAssemblyState
@@ -217,17 +217,17 @@ protected:
     friend class grfx::Device;
 
 protected:
-    //struct VertexInputBinding
+    // struct VertexInputBinding
     //{
-    //    uint32_t                           binding    = PPX_MAX_VERTEX_ATTRIBUTES;
-    //    std::vector<grfx::VertexAttribute> attributes = {};
-    //    uint32_t                           stride     = 0;
-    //    grfx::VertexInputRate              inputRate  = grfx::VERTEX_INPUT_RATE_VERTEX;
+    //     uint32_t                           binding    = PPX_MAX_VERTEX_ATTRIBUTES;
+    //     std::vector<grfx::VertexAttribute> attributes = {};
+    //     uint32_t                           stride     = 0;
+    //     grfx::VertexInputRate              inputRate  = grfx::VERTEX_INPUT_RATE_VERTEX;
     //
-    //    void CalculateOffsetsAndStride();
-    //};
+    //     void CalculateOffsetsAndStride();
+    // };
     //
-    //std::vector<VertexInputBinding> mInputBindings;
+    // std::vector<VertexInputBinding> mInputBindings;
 };
 
 // -------------------------------------------------------------------------------------------------

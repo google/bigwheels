@@ -294,7 +294,7 @@ void Swapchain::DestroyApiObjects()
     mFrameLatencyWaitableObject = nullptr;
 
     if (mSwapchain) {
-        //mSwapchain->Release();
+        // mSwapchain->Release();
         mSwapchain.Reset();
     }
 

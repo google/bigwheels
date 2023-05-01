@@ -172,22 +172,22 @@ Result GraphicsPipeline::InitializeVertexInput(
     }
 
     //// Fill out Vulkan attributes and bindings
-    //for (auto& binding : mInputBindings) {
-    //    for (auto& attribute : binding.attributes) {
-    //        VkVertexInputAttributeDescription vkAttribute = {};
-    //        vkAttribute.location                          = attribute.location;
-    //        vkAttribute.binding                           = attribute.binding;
-    //        vkAttribute.format                            = ToVkFormat(attribute.format);
-    //        vkAttribute.offset                            = attribute.offset;
-    //        vkAttributes.push_back(vkAttribute);
-    //    }
+    // for (auto& binding : mInputBindings) {
+    //     for (auto& attribute : binding.attributes) {
+    //         VkVertexInputAttributeDescription vkAttribute = {};
+    //         vkAttribute.location                          = attribute.location;
+    //         vkAttribute.binding                           = attribute.binding;
+    //         vkAttribute.format                            = ToVkFormat(attribute.format);
+    //         vkAttribute.offset                            = attribute.offset;
+    //         vkAttributes.push_back(vkAttribute);
+    //     }
     //
-    //    VkVertexInputBindingDescription vkBinding = {};
-    //    vkBinding.binding                         = binding.binding;
-    //    vkBinding.stride                          = binding.stride;
-    //    vkBinding.inputRate                       = ToVkVertexInputRate(binding.inputRate);
-    //    vkBindings.push_back(vkBinding);
-    //}
+    //     VkVertexInputBindingDescription vkBinding = {};
+    //     vkBinding.binding                         = binding.binding;
+    //     vkBinding.stride                          = binding.stride;
+    //     vkBinding.inputRate                       = ToVkVertexInputRate(binding.inputRate);
+    //     vkBindings.push_back(vkBinding);
+    // }
 
     stateCreateInfo.flags                           = 0;
     stateCreateInfo.vertexBindingDescriptionCount   = CountU32(vkBindings);
@@ -313,7 +313,7 @@ Result GraphicsPipeline::InitializeColorBlend(
     std::vector<VkPipelineColorBlendAttachmentState>& vkAttachments,
     VkPipelineColorBlendStateCreateInfo&              stateCreateInfo)
 {
-    //auto& attachemnts = m_create_info.color_blend_attachment_states.GetStates();
+    // auto& attachemnts = m_create_info.color_blend_attachment_states.GetStates();
     //// Warn if colorWriteMask is zero
     //{
     //    uint32_t count = CountU32(attachemnts);
@@ -368,7 +368,7 @@ Result GraphicsPipeline::InitializeDynamicState(
     //
     dynamicStates.push_back(VK_DYNAMIC_STATE_VIEWPORT);
     dynamicStates.push_back(VK_DYNAMIC_STATE_SCISSOR);
-    //dynamicStates.push_back(VK_DYNAMIC_STATE_LINE_WIDTH);
+    // dynamicStates.push_back(VK_DYNAMIC_STATE_LINE_WIDTH);
     dynamicStates.push_back(VK_DYNAMIC_STATE_DEPTH_BIAS);
     dynamicStates.push_back(VK_DYNAMIC_STATE_BLEND_CONSTANTS);
     dynamicStates.push_back(VK_DYNAMIC_STATE_DEPTH_BOUNDS);

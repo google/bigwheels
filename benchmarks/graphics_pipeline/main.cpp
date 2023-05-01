@@ -79,10 +79,10 @@ private:
 
     struct Material
     {
-        grfx::PipelineInterfacePtr                                      pInterface;
-        std::array<grfx::GraphicsPipelinePtr, kPipelineCount>           mPipelines;
-        grfx::DescriptorSetPtr                                          pDescriptorSet;
-        std::vector<Texture>                                            textures;
+        grfx::PipelineInterfacePtr                            pInterface;
+        std::array<grfx::GraphicsPipelinePtr, kPipelineCount> mPipelines;
+        grfx::DescriptorSetPtr                                pDescriptorSet;
+        std::vector<Texture>                                  textures;
     };
 
     struct Primitive
@@ -111,14 +111,14 @@ private:
     using RenderList   = std::unordered_map<Material*, std::vector<Object*>>;
     using TextureCache = std::unordered_map<std::string, grfx::ImagePtr>;
 
-    std::vector<PerFrame>                           mPerFrame;
-    grfx::DescriptorPoolPtr                         mDescriptorPool;
-    grfx::DescriptorSetLayoutPtr                    mSetLayout;
+    std::vector<PerFrame>                                         mPerFrame;
+    grfx::DescriptorPoolPtr                                       mDescriptorPool;
+    grfx::DescriptorSetLayoutPtr                                  mSetLayout;
     std::array<grfx::ShaderModulePtr, kAvailableVsShaders.size()> mVsShaders;
     std::array<grfx::ShaderModulePtr, kAvailablePsShaders.size()> mPsShaders;
-    PerspCamera                                     mCamera;
-    float3                                          mLightPosition = float3(10, 100, 10);
-    BenchmarkSettings                               mBenchmarkSettings;
+    PerspCamera                                                   mCamera;
+    float3                                                        mLightPosition = float3(10, 100, 10);
+    BenchmarkSettings                                             mBenchmarkSettings;
 
     std::vector<Material>  mMaterials;
     std::vector<Primitive> mPrimitives;
@@ -625,7 +625,7 @@ void ProjApp::LoadNodes(
 
 void ProjApp::Setup()
 {
-    const auto& cl_options         = GetExtraOptions();
+    const auto& cl_options           = GetExtraOptions();
     mBenchmarkSettings.vsShaderIndex = cl_options.GetExtraOptionValueOrDefault<int32_t>("vs-shader-index", 0);
     PPX_ASSERT_MSG(mBenchmarkSettings.vsShaderIndex >= 0 && static_cast<uint32_t>(mBenchmarkSettings.vsShaderIndex) < kAvailableVsShaders.size(), "vs-shader-index out of range.");
     mBenchmarkSettings.psShaderIndex = cl_options.GetExtraOptionValueOrDefault<int32_t>("ps-shader-index", 0);

@@ -110,9 +110,9 @@ private:
     CpuInfo mCpuInfo;
 };
 
-//PlatformId GetPlatformId();
-//CpuInfo    GetCpuInfo();
-//float      GetCurrentCpuUsage();
+// PlatformId GetPlatformId();
+// CpuInfo    GetCpuInfo();
+// float      GetCurrentCpuUsage();
 
 } // namespace ppx
 

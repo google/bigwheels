@@ -88,38 +88,38 @@ struct VertexBufferView
 
 //// -------------------------------------------------------------------------------------------------
 //
-//struct IndexBufferCreateInfo
+// struct IndexBufferCreateInfo
 //{
 //    grfx::IndexType indexType  = grfx::INDEX_TYPE_UINT16;
 //    uint32_t        indexCount = 0;
 //};
 //
-//class IndexBuffer
+// class IndexBuffer
 //{
-//public:
+// public:
 //    IndexBuffer() {}
 //    virtual ~IndexBuffer() {}
 //
-//private:
+// private:
 //    grfx::BufferPtr       mBuffer;
 //    grfx::IndexBufferView mView = {};
 //};
 //
 //// -------------------------------------------------------------------------------------------------
 //
-//struct VertexBufferCreateInfo
+// struct VertexBufferCreateInfo
 //{
 //    grfx::VertexBinding binding     = {};
 //    uint32_t            vertexCount = 0;
 //};
 //
-//class VertexBuffer
+// class VertexBuffer
 //{
-//public:
+// public:
 //    VertexBuffer() {}
 //    virtual ~VertexBuffer() {}
 //
-//private:
+// private:
 //    grfx::BufferPtr mBuffer;
 //    grfx::VertexBufferView = {};
 //};

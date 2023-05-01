@@ -185,7 +185,7 @@ void ProjApp::Render()
             mDynamicText->Draw(frame.cmd);
 
             // Draw ImGui
-            //DrawDebugInfo();
+            // DrawDebugInfo();
 #if defined(PPX_ENABLE_PROFILE_GRFX_API_FUNCTIONS)
             DrawProfilerGrfxApiFunctions();
 #endif // defined(PPX_ENABLE_PROFILE_GRFX_API_FUNCTIONS) \

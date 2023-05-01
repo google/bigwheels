@@ -206,11 +206,11 @@ public:
 
     ////! @fn const float4x4& GetCameraMatrix() const
     ////!
-    //const float4x4& GetCameraMatrix() const { return mCameraMatrix; }
+    // const float4x4& GetCameraMatrix() const { return mCameraMatrix; }
 
     ////! @fn const float4x4& GetInverseCameraMatrix() const
     ////!
-    //const float4x4& GetInverseCameraMatrix() const { return mInverseCameraMatrix; }
+    // const float4x4& GetInverseCameraMatrix() const { return mInverseCameraMatrix; }
 
 private:
     void UpdateCamera();
@@ -219,8 +219,8 @@ private:
     float4x4 mCenterTranslationMatrix;
     float4x4 mTranslationMatrix;
     quat     mRotationQuat;
-    //float4x4 mCameraMatrix;
-    //float4x4 mInverseCameraMatrix;
+    // float4x4 mCameraMatrix;
+    // float4x4 mInverseCameraMatrix;
 };
 
 } // namespace ppx

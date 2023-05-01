@@ -99,9 +99,9 @@ const float4x4& Transform::GetScaleMatrix() const
 const float4x4& Transform::GetConcatenatedMatrix() const
 {
     if (mDirty.concatenated) {
-        const float4x4& T   = GetTranslationMatrix();
-        const float4x4& R   = GetRotationMatrix();
-        const float4x4& S   = GetScaleMatrix();
+        const float4x4& T = GetTranslationMatrix();
+        const float4x4& R = GetRotationMatrix();
+        const float4x4& S = GetScaleMatrix();
         // Matrices are column-major in GLM, so
         // we do not need to reverse the order.
         mConcatenatedMatrix = T * R * S;

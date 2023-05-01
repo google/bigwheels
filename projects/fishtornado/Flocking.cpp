@@ -37,7 +37,7 @@ Flocking::Flocking()
     mResY       = 128; // Gets rounded up to NUM_THREADS_Y
     mMinThresh  = 0.55f;
     mMaxThresh  = 0.85f;
-    mMinSpeed   = 2.0f; //1.5
+    mMinSpeed   = 2.0f; // 1.5
     mMaxSpeed   = 6.0f;
     mZoneRadius = 35.0f;
 }
