@@ -469,6 +469,11 @@ private:
     std::deque<float> mFrameTimesMs;
 
 #if defined(PPX_MSW)
+    //
+    // D3D12 requires forced invalidation of client area
+    // window is resized to render contents correctly. See
+    // Application::Run() loop for more details.
+    //
     bool mForceInvalidateClientArea = false;
 #endif
 

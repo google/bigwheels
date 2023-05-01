@@ -246,17 +246,10 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
 
     // Create color images
     {
-        colorImages[0]->AddRef();
-        int rc = colorImages[0]->Release();
-
         auto ppxres = CreateColorImages(pCreateInfo->width, pCreateInfo->height, pCreateInfo->colorFormat, colorImages);
         if (Failed(ppxres)) {
             return ppxres;
         }
-
-        colorImages[0]->AddRef();
-        rc         = colorImages[0]->Release();
-        int stopMe = 1;
     }
 
 #if defined(PPX_BUILD_XR)

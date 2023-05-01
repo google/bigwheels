@@ -792,7 +792,7 @@ void Application::ResizeCallback(uint32_t width, uint32_t height)
 
         // Vulkan will return an error if either dimension is 0
         if (!mWindowSurfaceInvalid) {
-            // D3D12 swapchain need needs resizing
+            // D3D12 swapchain needs resizing
             if ((mDevice->GetApi() == grfx::API_DX_12_0) || (mDevice->GetApi() == grfx::API_DX_12_1)) {
                 // Wait for device to idle
                 mDevice->WaitIdle();
@@ -1143,7 +1143,7 @@ int Application::Run(int argc, char** argv)
             //
             // Due to a bug (or feature) in the Windows event loop when interacting
             // with IDXGISwapchain::ResizeBuffers() - the client area is incorrectly
-            // updated. The paint message seems to get missed or is using the and
+            // updated. The paint message seems to get missed or is using the an
             // outdated rect. The result is that the left and bottom of edges of the
             // window's client area is filled with garbage.
             //
@@ -1153,6 +1153,9 @@ int Application::Run(int argc, char** argv)
             // https://stackoverflow.com/questions/72956884/idxgiswapchain-resizebuffers-does-not-work-as-expected-with-wm-sizing
             //
             if (mForceInvalidateClientArea) {
+                bool isD3D12 = (mDevice->GetApi() == grfx::API_DX_12_0) || (mDevice->GetApi() == grfx::API_DX_12_1);
+                PPX_ASSERT_MSG(isD3D12, "Force invalidation of client area should only happen on D3D12");
+
                 grfx::SurfaceCreateInfo ci = {};
                 GetWindow()->FillSurfaceInfo(&ci);
 
