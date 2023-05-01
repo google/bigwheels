@@ -39,21 +39,3 @@ struct VSOutput {
   float3 tangentTS   : TANGENTTS;
   float3 bitangentTS : BITANGENTTS;
 };
-
-VSOutput vsmain(
-    float4 position : POSITION,
-    float2 uv       : TEXCOORD,
-    float3 normal   : NORMAL,
-    float3 tangent   : TANGENT)
-{
-  VSOutput result;
-
-  result.world_position = mul(Scene.ModelMatrix, position);
-  result.position = mul(Scene.CameraViewProjectionMatrix, result.world_position);
-  result.uv = uv;
-  result.normal      = mul(Scene.ITModelMatrix, float4(normal, 0)).xyz;
-  result.normalTS    = mul(Scene.ITModelMatrix, float4(normal, 0)).xyz;
-  result.tangentTS   = mul(Scene.ITModelMatrix, float4(tangent, 0)).xyz;
-  result.bitangentTS = cross(normal, tangent);
-  return result;
-}

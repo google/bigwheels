@@ -15,7 +15,8 @@
 #include "Benchmark.hlsli"
 
 #define PI 3.1415292
-
+#define ROUGHNESS 0.1
+#define METALNESS 0.1
 //
 // GGX/Towbridge-Reitz normal distribution function with
 // Disney's reparametrization of alpha = roughness^2
@@ -61,16 +62,11 @@ float4 psmain(VSOutput input) : SV_TARGET
                             tTS.z, bTS.z, nTS.z);
 
     const float3 V = normalize(Scene.EyePosition.xyz - input.world_position.xyz);
-    const float3 normal = NormalMap.Sample(NormalMapSampler, input.uv).rgb;
+    const float3 normal = float3(0, 0, 1);
     const float3 N = normalize(mul(TBN, normal * 2.0 - 1.0));
+    const float4 albedo = float4(1, 1, 1, 1);
 
-    const float4 albedo = AlbedoTexture.Sample(AlbedoSampler, input.uv).rgba;
-    if (albedo.a < 0.8f) {
-      discard;
-    }
-    const float roughness = MetalRoughness.Sample(MetalRoughnessSampler, input.uv).g;
-    const float metalness = MetalRoughness.Sample(MetalRoughnessSampler, input.uv).b;
-    const float3 F0 = lerp(0.04f, albedo.rgb, metalness);
+    const float3 F0 = lerp(0.04f, albedo.rgb, METALNESS);
     const float Lrad = 4.f;
 
     const float3 Li    = normalize(Scene.LightPosition.xyz - input.world_position.xyz);
@@ -83,10 +79,10 @@ float4 psmain(VSOutput input) : SV_TARGET
     const float  cosLh = saturate(dot(N, Lh));
 
     const float3 F = FresnelSchlick(F0, saturate(dot(Lh, Lo)));
-    const float  D = DistributionGGX(cosLh, roughness);
-    const float  G = GASmithSchlickGGX(cosLi, cosLo, roughness);
+    const float  D = DistributionGGX(cosLh, ROUGHNESS);
+    const float  G = GASmithSchlickGGX(cosLi, cosLo, ROUGHNESS);
 
-    const float3 kD = lerp(float3(1, 1, 1) - F, float3(0, 0, 0), metalness);
+    const float3 kD = lerp(float3(1, 1, 1) - F, float3(0, 0, 0), METALNESS);
     const float3 diffuseBRDF = kD * albedo.rgb;
     const float3 specularBRDF = (F * D * G) / max(0.00001, 4.0 * cosLi * cosLo);
     const float3 Co = (diffuseBRDF + specularBRDF) * Lrad * cosLi + Scene.Ambient.rrr * albedo.rgb;

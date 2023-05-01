@@ -61,12 +61,27 @@ generate_rules_for_shader("shader_benchmarks_texture_load_4_textures"
     INCLUDES ${INCLUDE_FILES}
     STAGES "vs" "ps")
 
-generate_rules_for_shader("shader_benchmark_pbr_metallic_roughness"
-    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_PbrMetallicRoughness.hlsl"
+generate_rules_for_shader("shader_benchmark_vs_simple"
+    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_VsSimple.hlsl"
     INCLUDES ${INCLUDE_FILES}
-    STAGES "vs" "ps")
+    STAGES "vs")
 
-generate_rules_for_shader("shader_benchmark_diffuse"
-    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_Diffuse.hlsl"
+generate_rules_for_shader("shader_benchmark_vs_alu_bound"
+    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_VsAluBound.hlsl"
     INCLUDES ${INCLUDE_FILES}
-    STAGES "vs" "ps")
+    STAGES "vs")
+
+generate_rules_for_shader("shader_benchmark_ps_simple"
+    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_PsSimple.hlsl"
+    INCLUDES ${INCLUDE_FILES}
+    STAGES "ps")
+
+generate_rules_for_shader("shader_benchmark_ps_alu_bound"
+    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_PsAluBound.hlsl"
+    INCLUDES ${INCLUDE_FILES}
+    STAGES "ps")
+
+generate_rules_for_shader("shader_benchmark_ps_mem_bound"
+    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_PsMemBound.hlsl"
+    INCLUDES ${INCLUDE_FILES}
+    STAGES "ps")

@@ -19,5 +19,8 @@ add_samples_for_all_apis(
     NAME ${PROJECT_NAME}
     SOURCES "main.cpp"
     SHADER_DEPENDENCIES
-      "shader_benchmark_pbr_metallic_roughness"
-      "shader_benchmark_diffuse")
+      "shader_benchmark_vs_simple"
+      "shader_benchmark_vs_alu_bound"
+      "shader_benchmark_ps_simple"
+      "shader_benchmark_ps_alu_bound"
+      "shader_benchmark_ps_mem_bound")
