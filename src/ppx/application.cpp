@@ -604,7 +604,7 @@ Result Application::CreatePlatformWindow()
     }
 
     // Update window size to the actual size.
-    {
+    if (!IsXrEnabled()) {
         auto windowSize         = mWindow->Size();
         mSettings.window.width  = windowSize.width;
         mSettings.window.height = windowSize.height;
