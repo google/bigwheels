@@ -408,16 +408,10 @@ Result Swapchain::Resize(uint32_t width, uint32_t height)
         colorImages.push_back(pRes);
     }
 
-    colorImages[0]->AddRef();
-    int rc = colorImages[0]->Release();
-
     // Destroy these to make sure there's no reference before resizing
     DestroyRenderPasses();
     DestroyDepthImages();
     DestroyColorImages();
-
-    colorImages[0]->AddRef();
-    rc = colorImages[0]->Release();
 
     // Resize buffers
     HRESULT hr = mSwapchain->ResizeBuffers(
