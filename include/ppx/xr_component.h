@@ -49,6 +49,12 @@ enum struct XrRefSpace
     XR_STAGE,
 };
 
+struct XrComponentResolution
+{
+    uint32_t width  = 0;
+    uint32_t height = 0;
+};
+
 //! @class XrSettings
 //!
 //!
@@ -70,6 +76,7 @@ struct XrComponentCreateInfo
     bool                    enableDebug          = false;
     bool                    enableQuadLayer      = false;
     bool                    enableDepthSwapchain = false;
+    XrComponentResolution   resolution           = {0, 0};
 };
 
 //! @class XrComponent
@@ -94,12 +101,16 @@ public:
     {
         if (mConfigViews.empty())
             return 0;
+        if (mCreateInfo.resolution.width > 0)
+            return mCreateInfo.resolution.width;
         return mConfigViews[0].recommendedImageRectWidth;
     }
     uint32_t GetHeight() const
     {
         if (mConfigViews.empty())
             return 0;
+        if (mCreateInfo.resolution.height > 0)
+            return mCreateInfo.resolution.height;
         return mConfigViews[0].recommendedImageRectHeight;
     }
     uint32_t GetSampleCount() const
