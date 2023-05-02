@@ -101,7 +101,7 @@ void WindowImplAndroid::ProcessEvent()
 
 WindowSize WindowImplAndroid::Size() const
 {
-    if (mSize.width == 0 || mSize.height == 0) {
+    if (App()->IsXrEnabled() || mSize.width == 0 || mSize.height == 0) {
         // Return a default size if the window has not been initialized.
         return Window::Size();
     }
@@ -118,7 +118,7 @@ void WindowImplAndroid::OnAppCmd(int32_t cmd)
     switch (cmd) {
         case APP_CMD_INIT_WINDOW:
             mWindowReady = true;
-            if (mAndroidApp->window != nullptr) {
+            if (!App()->IsXrEnabled() && mAndroidApp->window != nullptr) {
                 mSize.width  = static_cast<uint32_t>(ANativeWindow_getWidth(mAndroidApp->window));
                 mSize.height = static_cast<uint32_t>(ANativeWindow_getHeight(mAndroidApp->window));
             }
