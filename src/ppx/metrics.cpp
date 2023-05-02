@@ -51,6 +51,7 @@ size_t MetricGauge::GetEntriesCount() const
 
 void MetricGauge::GetEntry(size_t index, double* seconds, double* value) const
 {
+    PPX_ASSERT_MSG(index < mTimeSeries.size(), "The entry index is invalid");
     PPX_ASSERT_NULL_ARG(seconds);
     PPX_ASSERT_NULL_ARG(value);
     const TimeSeriesEntry entry = mTimeSeries[index];
@@ -136,10 +137,9 @@ MetricCounter::~MetricCounter()
 {
 }
 
-uint64_t MetricCounter::Increment(uint64_t add)
+void MetricCounter::Increment(uint64_t add)
 {
     mCounter += add;
-    return mCounter;
 }
 
 uint64_t MetricCounter::Get() const

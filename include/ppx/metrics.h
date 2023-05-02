@@ -96,6 +96,8 @@ public:
     // the first entry equal zero.
     void RecordEntry(double seconds, double value);
 
+    // Entries can be retrieved using these two functions.
+    // 'index' should be between 0 and 'GetEntriesCount() - 1'.
     size_t GetEntriesCount() const;
     void   GetEntry(size_t index, double* seconds, double* value) const;
 
@@ -133,7 +135,7 @@ class MetricCounter final
 public:
     MetricCounter(const MetricMetadata& metadata);
 
-    uint64_t Increment(uint64_t add);
+    void     Increment(uint64_t add);
     uint64_t Get() const;
 
 private:

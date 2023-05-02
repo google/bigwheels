@@ -242,6 +242,13 @@ TEST_F(MetricsTestFixture, MetricsGaugeEntries)
     metric->GetEntry(4, &seconds, &value);
     EXPECT_EQ(seconds, 0.0457);
     EXPECT_EQ(value, 11.1);
+
+#if defined(PERFORM_DEATH_TESTS)
+    EXPECT_DEATH({
+        metric->GetEntry(6, &seconds, &value);
+    },
+                 "");
+#endif
 }
 
 #if defined(PERFORM_DEATH_TESTS)
