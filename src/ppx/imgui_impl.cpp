@@ -16,7 +16,12 @@
 #include "ppx/imgui/font_inconsolata.h"
 #include "ppx/application.h"
 #include "ppx/grfx/grfx_device.h"
+
+#if !defined(PPX_ANDROID)
 #include "backends/imgui_impl_glfw.h"
+#else
+#include "backends/imgui_impl_android.h"
+#endif
 
 #if defined(PPX_D3D12)
 #include "backends/imgui_impl_dx12.h"
@@ -36,10 +41,6 @@
 #include "ppx/grfx/vk/vk_queue.h"
 #include "ppx/grfx/vk/vk_render_pass.h"
 #endif // defined(PPX_VULKAN)
-
-#if defined(PPX_ANDROID)
-#include "backends/imgui_impl_android.h"
-#endif
 
 #if defined(PPX_MSW)
 #include <ShellScalingApi.h>
