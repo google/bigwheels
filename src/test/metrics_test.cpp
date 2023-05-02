@@ -404,7 +404,7 @@ TEST_F(MetricsTestFixture, Statistics)
     EXPECT_DOUBLE_EQ(basicStatistics.timeRatio, 1009.9015482018648);
 
     const metrics::GaugeComplexStatistics complexStatistics = metric->ComputeComplexStatistics();
-    EXPECT_EQ(complexStatistics.median, 11.526757950183075);
+    EXPECT_DOUBLE_EQ(complexStatistics.median, 11.526757950183075);
     EXPECT_DOUBLE_EQ(complexStatistics.standardDeviation, 0.5296000886136008);
     EXPECT_EQ(complexStatistics.percentile90, 12.200557497396941);
     EXPECT_EQ(complexStatistics.percentile95, 12.367583932075869);
