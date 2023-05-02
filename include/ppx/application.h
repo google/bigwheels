@@ -414,7 +414,8 @@ private:
     Result InitializePlatform();
     Result InitializeGrfxDevice();
     Result InitializeGrfxSurface();
-    Result InitializeGrfxSwapchain();
+    Result CreateSwapchains();
+    void   DestroySwapchains();
     Result InitializeImGui();
     void   ShutdownImGui();
     void   StopGrfx();
@@ -466,6 +467,15 @@ private:
     float             mAverageFrameTime  = 0;
     double            mFirstFrameTime    = 0;
     std::deque<float> mFrameTimesMs;
+
+#if defined(PPX_MSW)
+    //
+    // D3D12 requires forced invalidation of client area
+    // window is resized to render contents correctly. See
+    // Application::Run() loop for more details.
+    //
+    bool mForceInvalidateClientArea = false;
+#endif
 
 #if defined(PPX_BUILD_XR)
     XrComponent mXrComponent;

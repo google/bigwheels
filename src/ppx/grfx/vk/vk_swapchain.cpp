@@ -78,16 +78,17 @@ Result Surface::CreateApiObjects(const grfx::SurfaceCreateInfo* pCreateInfo)
     vk::Gpu* pGpu = ToApi(pCreateInfo->pGpu);
 
     // Surface capabilities
-    vkres = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pGpu->GetVkGpu(), mSurface, &mCapabilities);
+    VkSurfaceCapabilitiesKHR surfaceCaps = {};
+    vkres                                = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pGpu->GetVkGpu(), mSurface, &surfaceCaps);
     if (vkres != VK_SUCCESS) {
         PPX_ASSERT_MSG(false, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR failed: " << ToString(vkres));
         return ppx::ERROR_API_FAILURE;
     }
     PPX_LOG_INFO("Vulkan swapchain surface info");
     PPX_LOG_INFO("   "
-                 << "minImageCount : " << mCapabilities.minImageCount);
+                 << "minImageCount : " << surfaceCaps.minImageCount);
     PPX_LOG_INFO("   "
-                 << "maxImageCount : " << mCapabilities.maxImageCount);
+                 << "maxImageCount : " << surfaceCaps.maxImageCount);
 
     // Surface formats
     {
@@ -168,34 +169,53 @@ void Surface::DestroyApiObjects()
     }
 }
 
+VkSurfaceCapabilitiesKHR Surface::GetCapabilities() const
+{
+    VkSurfaceCapabilitiesKHR surfaceCaps = {};
+    VkResult                 vkres       = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+        ToApi(mCreateInfo.pGpu)->GetVkGpu(),
+        mSurface,
+        &surfaceCaps);
+    if (vkres != VK_SUCCESS) {
+        PPX_ASSERT_MSG(false, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR(1) failed: " << ToString(vkres));
+    }
+    return surfaceCaps;
+}
+
 uint32_t Surface::GetMinImageWidth() const
 {
-    return mCapabilities.minImageExtent.width;
+    auto surfaceCaps = GetCapabilities();
+    return surfaceCaps.minImageExtent.width;
 }
 
 uint32_t Surface::GetMinImageHeight() const
 {
-    return mCapabilities.minImageExtent.height;
+    auto surfaceCaps = GetCapabilities();
+    return surfaceCaps.minImageExtent.height;
 }
 
 uint32_t Surface::GetMinImageCount() const
 {
-    return mCapabilities.minImageCount;
+    auto surfaceCaps = GetCapabilities();
+    return surfaceCaps.minImageCount;
 }
 
 uint32_t Surface::GetMaxImageWidth() const
 {
-    return mCapabilities.maxImageExtent.width;
+    auto surfaceCaps = GetCapabilities();
+    return surfaceCaps.maxImageExtent.width;
 }
 
 uint32_t Surface::GetMaxImageHeight() const
 {
-    return mCapabilities.maxImageExtent.height;
+    auto surfaceCaps = GetCapabilities();
+    return surfaceCaps.maxImageExtent.height;
 }
 
 uint32_t Surface::GetMaxImageCount() const
 {
-    return mCapabilities.maxImageCount;
+    auto surfaceCaps = GetCapabilities();
+    return surfaceCaps.maxImageCount;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -543,7 +563,8 @@ Result Swapchain::AcquireNextImageInternal(
         PPX_LOG_WARN("vkAcquireNextImageKHR returned: " << ToString(vkres));
     }
 
-    currentImageIndex = *pImageIndex;
+    mCurrentImageIndex = *pImageIndex;
+
     return ppx::SUCCESS;
 }
 

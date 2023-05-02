@@ -416,7 +416,7 @@ Result Application::InitializeGrfxSurface()
     return ppx::SUCCESS;
 }
 
-Result Application::InitializeGrfxSwapchain()
+Result Application::CreateSwapchains()
 {
 #if defined(PPX_BUILD_XR)
     if (mSettings.xr.enable) {
@@ -518,6 +518,19 @@ Result Application::InitializeGrfxSwapchain()
     return ppx::SUCCESS;
 }
 
+void Application::DestroySwapchains()
+{
+    // Make sure the device is idle so that nothing is accessing the swapchain images
+    mDevice->WaitIdle();
+
+    // Destroy all swapchains
+    for (auto& sc : mSwapchains) {
+        mDevice->DestroySwapchain(sc);
+        sc.Reset();
+    }
+    mSwapchains.clear();
+}
+
 Result Application::InitializeImGui()
 {
     switch (mSettings.grfx.api) {
@@ -569,11 +582,7 @@ void Application::StopGrfx()
 void Application::ShutdownGrfx()
 {
     if (mInstance) {
-        for (auto& sc : mSwapchains) {
-            mDevice->DestroySwapchain(sc);
-            sc.Reset();
-        }
-        mSwapchains.clear();
+        DestroySwapchains();
 
         if (mDevice) {
             mInstance->DestroyDevice(mDevice);
@@ -780,6 +789,47 @@ void Application::ResizeCallback(uint32_t width, uint32_t height)
         mSettings.window.width  = width;
         mSettings.window.height = height;
         mWindowSurfaceInvalid   = ((width == 0) || (height == 0));
+
+        // Vulkan will return an error if either dimension is 0
+        if (!mWindowSurfaceInvalid) {
+            // D3D12 swapchain needs resizing
+            if ((mDevice->GetApi() == grfx::API_DX_12_0) || (mDevice->GetApi() == grfx::API_DX_12_1)) {
+                // Wait for device to idle
+                mDevice->WaitIdle();
+
+                PPX_ASSERT_MSG((mSwapchains.size() == 1), "Invalid number of swapchains for D3D12");
+
+                auto ppxres = mSwapchains[0]->Resize(mSettings.window.width, mSettings.window.height);
+                if (Failed(ppxres)) {
+                    PPX_ASSERT_MSG(false, "D3D12 swapchain resize failed");
+                    // Signal the app to quit if swapchain recreation fails
+                    mWindow->Quit();
+                }
+
+#if defined(PPX_MSW)
+                mForceInvalidateClientArea = true;
+#endif
+
+                PPX_LOG_INFO("Resized application swapchain");
+                PPX_LOG_INFO("   resolution  : " << mSettings.window.width << "x" << mSettings.window.height);
+                PPX_LOG_INFO("   image count : " << mSettings.grfx.swapchain.imageCount);
+            }
+            // Vulkan swapchain needs recreation
+            else {
+                // This function will wait for device to idle
+                DestroySwapchains();
+
+                auto ppxres = CreateSwapchains();
+                if (Failed(ppxres)) {
+                    PPX_ASSERT_MSG(false, "Vulkan swapchain recreate failed");
+                    // Signal the app to quit if swapchain recreation fails
+                    mWindow->Quit();
+                }
+            }
+        }
+
+        // Dispatch resize event
+        DispatchResize(mSettings.window.width, mSettings.window.height);
     }
 }
 
@@ -999,9 +1049,11 @@ int Application::Run(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    // Create swapchain. This will be a "fake", manually-managed swapchain
-    // if headless mode is enabled.
-    ppxres = InitializeGrfxSwapchain();
+    // Create swapchains
+    //
+    // This will be a "fake", manually-managed swapchain if headless mode is enabled.
+    //
+    ppxres = CreateSwapchains();
     if (Failed(ppxres)) {
         return EXIT_FAILURE;
     }
@@ -1087,6 +1139,39 @@ int Application::Run(int argc, char** argv)
 
             // Call render
             DispatchRender();
+
+#if defined(PPX_MSW)
+            //
+            // This is for D3D12 only.
+            //
+            // Why is it necessary to force invalidate the client area?
+            //
+            // Due to a bug (or feature) in the Windows event loop when interacting
+            // with IDXGISwapchain::ResizeBuffers() - the client area is incorrectly
+            // updated. The paint message seems to get missed or is using the an
+            // outdated rect. The result is that the left and bottom of edges of the
+            // window's client area is filled with garbage.
+            //
+            // Moving the window one pixel to the left and back again causes the client
+            // area to be correctly invalidated.
+            //
+            // https://stackoverflow.com/questions/72956884/idxgiswapchain-resizebuffers-does-not-work-as-expected-with-wm-sizing
+            //
+            if (mForceInvalidateClientArea) {
+                bool isD3D12 = (mDevice->GetApi() == grfx::API_DX_12_0) || (mDevice->GetApi() == grfx::API_DX_12_1);
+                PPX_ASSERT_MSG(isD3D12, "Force invalidation of client area should only happen on D3D12");
+
+                grfx::SurfaceCreateInfo ci = {};
+                GetWindow()->FillSurfaceInfo(&ci);
+
+                RECT wr = {};
+                GetWindowRect(ci.hwnd, &wr);
+                MoveWindow(ci.hwnd, wr.left + 1, wr.top, (wr.right - wr.left), (wr.bottom - wr.top), TRUE);
+                MoveWindow(ci.hwnd, wr.left, wr.top, (wr.right - wr.left), (wr.bottom - wr.top), TRUE);
+
+                mForceInvalidateClientArea = false;
+            }
+#endif
         }
 
         // Take screenshot if this is the requested frame.

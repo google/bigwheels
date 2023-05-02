@@ -140,7 +140,10 @@ public:
         uint32_t                      waitSemaphoreCount,
         const grfx::Semaphore* const* ppWaitSemaphores);
 
-    uint32_t GetCurrentImageIndex() const { return currentImageIndex; }
+    uint32_t GetCurrentImageIndex() const { return mCurrentImageIndex; }
+
+    // D3D12 only, will return ERROR_FAILED on Vulkan
+    virtual Result Resize(uint32_t width, uint32_t height) = 0;
 
 #if defined(PPX_BUILD_XR)
     bool ShouldSkipExternalSynchronization() const
@@ -162,6 +165,14 @@ protected:
     virtual void   Destroy() override;
     friend class grfx::Device;
 
+    // Make these protected since D3D12's swapchain resize will need to call them
+    void   DestroyColorImages();
+    Result CreateDepthImages();
+    void   DestroyDepthImages();
+    Result CreateRenderPasses();
+    void   DestroyRenderPasses();
+
+private:
     virtual Result AcquireNextImageInternal(
         uint64_t         timeout,    // Nanoseconds
         grfx::Semaphore* pSemaphore, // Wait sempahore
@@ -173,7 +184,6 @@ protected:
         uint32_t                      waitSemaphoreCount,
         const grfx::Semaphore* const* ppWaitSemaphores) = 0;
 
-private:
     Result AcquireNextImageHeadless(
         uint64_t         timeout,
         grfx::Semaphore* pSemaphore,
@@ -199,9 +209,8 @@ protected:
     XrSwapchain mXrDepthSwapchain = XR_NULL_HANDLE;
 #endif
 
-    // Keeps track of the image index returned by the
-    // last AcquireNextImage call.
-    uint32_t currentImageIndex = 0;
+    // Keeps track of the image index returned by the last AcquireNextImage call.
+    uint32_t mCurrentImageIndex = 0;
 };
 
 } // namespace grfx

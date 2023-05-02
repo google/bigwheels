@@ -34,7 +34,7 @@ public:
 
     VkSurfacePtr GetVkSurface() const { return mSurface; }
 
-    const VkSurfaceCapabilitiesKHR&       GetCapabilities() const { return mCapabilities; }
+    VkSurfaceCapabilitiesKHR              GetCapabilities() const;
     const std::vector<VkSurfaceFormatKHR> GetSurfaceFormats() const { return mSurfaceFormats; }
 
     virtual uint32_t GetMinImageWidth() const override;
@@ -50,7 +50,6 @@ protected:
 
 private:
     VkSurfacePtr                    mSurface;
-    VkSurfaceCapabilitiesKHR        mCapabilities = {};
     std::vector<VkSurfaceFormatKHR> mSurfaceFormats;
     std::vector<uint32_t>           mPresentableQueueFamilies;
     std::vector<VkPresentModeKHR>   mPresentModes;
@@ -70,20 +69,23 @@ public:
 
     VkSwapchainPtr GetVkSwapchain() const { return mSwapchain; }
 
-    virtual Result PresentInternal(
-        uint32_t                      imageIndex,
-        uint32_t                      waitSemaphoreCount,
-        const grfx::Semaphore* const* ppWaitSemaphores) override;
+    virtual Result Resize(uint32_t width, uint32_t height) override { return ppx::ERROR_FAILED; }
 
 protected:
     virtual Result CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo) override;
     virtual void   DestroyApiObjects() override;
 
+private:
     virtual Result AcquireNextImageInternal(
         uint64_t         timeout,
         grfx::Semaphore* pSemaphore,
         grfx::Fence*     pFence,
         uint32_t*        pImageIndex) override;
+
+    virtual Result PresentInternal(
+        uint32_t                      imageIndex,
+        uint32_t                      waitSemaphoreCount,
+        const grfx::Semaphore* const* ppWaitSemaphores) override;
 
 private:
     VkSwapchainPtr mSwapchain;

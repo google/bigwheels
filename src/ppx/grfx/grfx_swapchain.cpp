@@ -44,13 +44,15 @@ Result Swapchain::Create(const grfx::SwapchainCreateInfo* pCreateInfo)
                      << "   requested : " << pCreateInfo->imageCount);
     }
 
-    // NOTE: mCreateInfo.imageCount will be used from this point on.
+    //
+    // NOTE: mCreateInfo will be used from this point on.
+    //
 
     // Create color images if needed. This is only needed if we're creating
     // a headless swapchain.
     if (mColorImages.empty()) {
         for (uint32_t i = 0; i < mCreateInfo.imageCount; ++i) {
-            grfx::ImageCreateInfo rtCreateInfo = ImageCreateInfo::RenderTarget2D(pCreateInfo->width, pCreateInfo->height, pCreateInfo->colorFormat);
+            grfx::ImageCreateInfo rtCreateInfo = ImageCreateInfo::RenderTarget2D(mCreateInfo.width, mCreateInfo.height, mCreateInfo.colorFormat);
             rtCreateInfo.ownership             = grfx::OWNERSHIP_RESTRICTED;
             rtCreateInfo.RTVClearValue         = {0.0f, 0.0f, 0.0f, 0.0f};
             rtCreateInfo.initialState          = grfx::RESOURCE_STATE_PRESENT;
@@ -73,74 +75,21 @@ Result Swapchain::Create(const grfx::SwapchainCreateInfo* pCreateInfo)
     // Create depth images if needed. This is usually needed for both normal swapchains
     // and headless swapchains, but not needed for XR swapchains which create their own
     // depth images.
-    if (pCreateInfo->depthFormat != grfx::FORMAT_UNDEFINED && mDepthImages.empty()) {
-        for (uint32_t i = 0; i < mCreateInfo.imageCount; ++i) {
-            grfx::ImageCreateInfo dpCreateInfo = ImageCreateInfo::DepthStencilTarget(pCreateInfo->width, pCreateInfo->height, pCreateInfo->depthFormat);
-            dpCreateInfo.ownership             = grfx::OWNERSHIP_RESTRICTED;
-            dpCreateInfo.DSVClearValue         = {1.0f, 0xFF};
-
-            grfx::ImagePtr depthStencilTarget;
-            ppxres = GetDevice()->CreateImage(&dpCreateInfo, &depthStencilTarget);
-            if (Failed(ppxres)) {
-                return ppxres;
-            }
-
-            mDepthImages.push_back(depthStencilTarget);
-        }
+    //
+    ppxres = CreateDepthImages();
+    if (Failed(ppxres)) {
+        return ppxres;
     }
 
-    // Create render passes with grfx::ATTACHMENT_LOAD_OP_CLEAR for render target.
-    for (size_t i = 0; i < mCreateInfo.imageCount; ++i) {
-        grfx::RenderPassCreateInfo3 rpCreateInfo = {};
-        rpCreateInfo.width                       = pCreateInfo->width;
-        rpCreateInfo.height                      = pCreateInfo->height;
-        rpCreateInfo.renderTargetCount           = 1;
-        rpCreateInfo.pRenderTargetImages[0]      = mColorImages[i];
-        rpCreateInfo.pDepthStencilImage          = mDepthImages.empty() ? nullptr : mDepthImages[i];
-        rpCreateInfo.renderTargetClearValues[0]  = {{0.0f, 0.0f, 0.0f, 0.0f}};
-        rpCreateInfo.depthStencilClearValue      = {1.0f, 0xFF};
-        rpCreateInfo.renderTargetLoadOps[0]      = grfx::ATTACHMENT_LOAD_OP_CLEAR;
-        rpCreateInfo.depthLoadOp                 = grfx::ATTACHMENT_LOAD_OP_CLEAR;
-        rpCreateInfo.ownership                   = grfx::OWNERSHIP_RESTRICTED;
-
-        grfx::RenderPassPtr renderPass;
-        ppxres = GetDevice()->CreateRenderPass(&rpCreateInfo, &renderPass);
-        if (Failed(ppxres)) {
-            PPX_ASSERT_MSG(false, "grfx::Swapchain::CreateRenderPass(CLEAR) failed");
-            return ppxres;
-        }
-
-        mClearRenderPasses.push_back(renderPass);
-    }
-
-    // Create render passes with grfx::ATTACHMENT_LOAD_OP_LOAD for render target.
-    for (size_t i = 0; i < mCreateInfo.imageCount; ++i) {
-        grfx::RenderPassCreateInfo3 rpCreateInfo = {};
-        rpCreateInfo.width                       = pCreateInfo->width;
-        rpCreateInfo.height                      = pCreateInfo->height;
-        rpCreateInfo.renderTargetCount           = 1;
-        rpCreateInfo.pRenderTargetImages[0]      = mColorImages[i];
-        rpCreateInfo.pDepthStencilImage          = mDepthImages.empty() ? nullptr : mDepthImages[i];
-        rpCreateInfo.renderTargetClearValues[0]  = {{0.0f, 0.0f, 0.0f, 0.0f}};
-        rpCreateInfo.depthStencilClearValue      = {1.0f, 0xFF};
-        rpCreateInfo.renderTargetLoadOps[0]      = grfx::ATTACHMENT_LOAD_OP_LOAD;
-        rpCreateInfo.depthLoadOp                 = grfx::ATTACHMENT_LOAD_OP_CLEAR;
-        rpCreateInfo.ownership                   = grfx::OWNERSHIP_RESTRICTED;
-
-        grfx::RenderPassPtr renderPass;
-        ppxres = GetDevice()->CreateRenderPass(&rpCreateInfo, &renderPass);
-        if (Failed(ppxres)) {
-            PPX_ASSERT_MSG(false, "grfx::Swapchain::CreateRenderPass(LOAD) failed");
-            return ppxres;
-        }
-
-        mLoadRenderPasses.push_back(renderPass);
+    ppxres = CreateRenderPasses();
+    if (Failed(ppxres)) {
+        return ppxres;
     }
 
     if (IsHeadless()) {
-        // Set currentImageIndex to (imageCount - 1) so that the first
+        // Set mCurrentImageIndex to (imageCount - 1) so that the first
         // AcquireNextImage call acquires the first image at index 0.
-        currentImageIndex = mCreateInfo.imageCount - 1;
+        mCurrentImageIndex = mCreateInfo.imageCount - 1;
 
         // Create command buffers to signal and wait semaphores at
         // AcquireNextImage and Present calls.
@@ -153,7 +102,7 @@ Result Swapchain::Create(const grfx::SwapchainCreateInfo* pCreateInfo)
 
     PPX_LOG_INFO("Swapchain created");
     PPX_LOG_INFO("   "
-                 << "resolution  : " << pCreateInfo->width << "x" << pCreateInfo->height);
+                 << "resolution  : " << mCreateInfo.width << "x" << mCreateInfo.height);
     PPX_LOG_INFO("   "
                  << "image count : " << mCreateInfo.imageCount);
 
@@ -162,33 +111,11 @@ Result Swapchain::Create(const grfx::SwapchainCreateInfo* pCreateInfo)
 
 void Swapchain::Destroy()
 {
-    for (auto& elem : mClearRenderPasses) {
-        if (elem) {
-            GetDevice()->DestroyRenderPass(elem);
-        }
-    }
-    mClearRenderPasses.clear();
+    DestroyRenderPasses();
 
-    for (auto& elem : mLoadRenderPasses) {
-        if (elem) {
-            GetDevice()->DestroyRenderPass(elem);
-        }
-    }
-    mLoadRenderPasses.clear();
+    DestroyDepthImages();
 
-    for (auto& elem : mDepthImages) {
-        if (elem) {
-            GetDevice()->DestroyImage(elem);
-        }
-    }
-    mDepthImages.clear();
-
-    for (auto& elem : mColorImages) {
-        if (elem) {
-            GetDevice()->DestroyImage(elem);
-        }
-    }
-    mColorImages.clear();
+    DestroyColorImages();
 
 #if defined(PPX_BUILD_XR)
     if (mXrColorSwapchain != XR_NULL_HANDLE) {
@@ -207,6 +134,132 @@ void Swapchain::Destroy()
     mHeadlessCommandBuffers.clear();
 
     grfx::DeviceObject<grfx::SwapchainCreateInfo>::Destroy();
+}
+
+void Swapchain::DestroyColorImages()
+{
+    for (auto& elem : mColorImages) {
+        if (elem) {
+            GetDevice()->DestroyImage(elem);
+        }
+    }
+    mColorImages.clear();
+}
+
+Result Swapchain::CreateDepthImages()
+{
+#if defined(PPX_BUILD_XR)
+    PPX_ASSERT_MSG(false, "Swapchain::CreateDepthImages() is meant for non-XR applications, was it called by mistake?");
+#endif
+
+    if ((mCreateInfo.depthFormat != grfx::FORMAT_UNDEFINED) && mDepthImages.empty()) {
+        for (uint32_t i = 0; i < mCreateInfo.imageCount; ++i) {
+            grfx::ImageCreateInfo dpCreateInfo = ImageCreateInfo::DepthStencilTarget(mCreateInfo.width, mCreateInfo.height, mCreateInfo.depthFormat);
+            dpCreateInfo.ownership             = grfx::OWNERSHIP_RESTRICTED;
+            dpCreateInfo.DSVClearValue         = {1.0f, 0xFF};
+
+            grfx::ImagePtr depthStencilTarget;
+            auto           ppxres = GetDevice()->CreateImage(&dpCreateInfo, &depthStencilTarget);
+            if (Failed(ppxres)) {
+                return ppxres;
+            }
+
+            mDepthImages.push_back(depthStencilTarget);
+        }
+    }
+
+    return ppx::SUCCESS;
+}
+
+void Swapchain::DestroyDepthImages()
+{
+#if defined(PPX_BUILD_XR)
+    PPX_ASSERT_MSG(false, "Swapchain::DestroyDepthImages() is meant for non-XR applications, was it called by mistake?");
+#endif
+
+    for (auto& elem : mDepthImages) {
+        if (elem) {
+            GetDevice()->DestroyImage(elem);
+        }
+    }
+    mDepthImages.clear();
+}
+
+Result Swapchain::CreateRenderPasses()
+{
+    uint32_t imageCount = CountU32(mColorImages);
+    PPX_ASSERT_MSG((imageCount > 0), "No color images found for swapchain renderpasses");
+
+    // Create render passes with grfx::ATTACHMENT_LOAD_OP_CLEAR for render target.
+    for (size_t i = 0; i < imageCount; ++i) {
+        grfx::RenderPassCreateInfo3 rpCreateInfo = {};
+        rpCreateInfo.width                       = mCreateInfo.width;
+        rpCreateInfo.height                      = mCreateInfo.height;
+        rpCreateInfo.renderTargetCount           = 1;
+        rpCreateInfo.pRenderTargetImages[0]      = mColorImages[i];
+        rpCreateInfo.pDepthStencilImage          = mDepthImages.empty() ? nullptr : mDepthImages[i];
+        rpCreateInfo.renderTargetClearValues[0]  = {{0.0f, 0.0f, 0.0f, 0.0f}};
+        rpCreateInfo.depthStencilClearValue      = {1.0f, 0xFF};
+        rpCreateInfo.renderTargetLoadOps[0]      = grfx::ATTACHMENT_LOAD_OP_CLEAR;
+        rpCreateInfo.depthLoadOp                 = grfx::ATTACHMENT_LOAD_OP_CLEAR;
+        rpCreateInfo.ownership                   = grfx::OWNERSHIP_RESTRICTED;
+
+        grfx::RenderPassPtr renderPass;
+        auto                ppxres = GetDevice()->CreateRenderPass(&rpCreateInfo, &renderPass);
+        if (Failed(ppxres)) {
+            PPX_ASSERT_MSG(false, "grfx::Swapchain::CreateRenderPass(CLEAR) failed");
+            return ppxres;
+        }
+
+        mClearRenderPasses.push_back(renderPass);
+    }
+
+    // Create render passes with grfx::ATTACHMENT_LOAD_OP_LOAD for render target.
+    for (size_t i = 0; i < imageCount; ++i) {
+        grfx::RenderPassCreateInfo3 rpCreateInfo = {};
+        rpCreateInfo.width                       = mCreateInfo.width;
+        rpCreateInfo.height                      = mCreateInfo.height;
+        rpCreateInfo.renderTargetCount           = 1;
+        rpCreateInfo.pRenderTargetImages[0]      = mColorImages[i];
+        rpCreateInfo.pDepthStencilImage          = mDepthImages.empty() ? nullptr : mDepthImages[i];
+        rpCreateInfo.renderTargetClearValues[0]  = {{0.0f, 0.0f, 0.0f, 0.0f}};
+        rpCreateInfo.depthStencilClearValue      = {1.0f, 0xFF};
+        rpCreateInfo.renderTargetLoadOps[0]      = grfx::ATTACHMENT_LOAD_OP_LOAD;
+        rpCreateInfo.depthLoadOp                 = grfx::ATTACHMENT_LOAD_OP_CLEAR;
+        rpCreateInfo.ownership                   = grfx::OWNERSHIP_RESTRICTED;
+
+        grfx::RenderPassPtr renderPass;
+        auto                ppxres = GetDevice()->CreateRenderPass(&rpCreateInfo, &renderPass);
+        if (Failed(ppxres)) {
+            PPX_ASSERT_MSG(false, "grfx::Swapchain::CreateRenderPass(LOAD) failed");
+            return ppxres;
+        }
+
+        mLoadRenderPasses.push_back(renderPass);
+    }
+
+    return ppx::SUCCESS;
+}
+
+void Swapchain::DestroyRenderPasses()
+{
+#if defined(PPX_BUILD_XR)
+    PPX_ASSERT_MSG(false, "Swapchain::DestroyRenderPasses() is meant for non-XR applications, was it called by mistake?");
+#endif
+
+    for (auto& elem : mClearRenderPasses) {
+        if (elem) {
+            GetDevice()->DestroyRenderPass(elem);
+        }
+    }
+    mClearRenderPasses.clear();
+
+    for (auto& elem : mLoadRenderPasses) {
+        if (elem) {
+            GetDevice()->DestroyRenderPass(elem);
+        }
+    }
+    mLoadRenderPasses.clear();
 }
 
 bool Swapchain::IsHeadless() const
@@ -325,10 +378,10 @@ Result Swapchain::Present(
 
 Result Swapchain::AcquireNextImageHeadless(uint64_t timeout, grfx::Semaphore* pSemaphore, grfx::Fence* pFence, uint32_t* pImageIndex)
 {
-    *pImageIndex      = (currentImageIndex + 1u) % CountU32(mColorImages);
-    currentImageIndex = *pImageIndex;
+    *pImageIndex       = (mCurrentImageIndex + 1u) % CountU32(mColorImages);
+    mCurrentImageIndex = *pImageIndex;
 
-    grfx::CommandBufferPtr commandBuffer = mHeadlessCommandBuffers[currentImageIndex];
+    grfx::CommandBufferPtr commandBuffer = mHeadlessCommandBuffers[mCurrentImageIndex];
 
     commandBuffer->Begin();
     commandBuffer->End();
@@ -346,7 +399,7 @@ Result Swapchain::AcquireNextImageHeadless(uint64_t timeout, grfx::Semaphore* pS
 
 Result Swapchain::PresentHeadless(uint32_t imageIndex, uint32_t waitSemaphoreCount, const grfx::Semaphore* const* ppWaitSemaphores)
 {
-    grfx::CommandBufferPtr commandBuffer = mHeadlessCommandBuffers[currentImageIndex];
+    grfx::CommandBufferPtr commandBuffer = mHeadlessCommandBuffers[mCurrentImageIndex];
 
     commandBuffer->Begin();
     commandBuffer->End();
