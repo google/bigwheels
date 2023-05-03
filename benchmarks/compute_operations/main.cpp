@@ -57,8 +57,6 @@ private:
     ppx::grfx::PipelineInterfacePtr mPipelineInterface;
     ppx::grfx::GraphicsPipelinePtr  mPipeline;
     ppx::grfx::BufferPtr            mVertexBuffer;
-    grfx::Viewport                  mViewport;
-    grfx::Rect                      mScissorRect;
     grfx::VertexBinding             mVertexBinding;
     uint2                           mRenderTargetSize;
 
@@ -185,9 +183,6 @@ void ProjApp::Setup()
 
         mPerFrame.push_back(frame);
     }
-
-    mViewport    = {0, 0, float(GetWindowWidth()), float(GetWindowHeight()), 0, 1};
-    mScissorRect = {0, 0, GetWindowWidth(), GetWindowHeight()};
 }
 
 void ProjApp::SetupComputeShaderPass()

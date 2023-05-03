@@ -59,8 +59,6 @@ private:
     grfx::SamplerPtr             mSampler;
     grfx::SampledImageViewPtr    mSampledImageView;
     grfx::StorageImageViewPtr    mStorageImageView;
-    grfx::Viewport               mViewport;
-    grfx::Rect                   mScissorRect;
     grfx::VertexBinding          mVertexBinding;
 };
 
@@ -262,10 +260,6 @@ void ProjApp::Setup()
         memcpy(pAddr, vertexData.data(), dataSize);
         mVertexBuffer->UnmapMemory();
     }
-
-    // Viewport and scissor rect
-    mViewport    = {0, 0, float(GetWindowWidth()), float(GetWindowHeight()), 0, 1};
-    mScissorRect = {0, 0, GetWindowWidth(), GetWindowHeight()};
 }
 
 void ProjApp::Render()
@@ -317,8 +311,8 @@ void ProjApp::Render()
         frame.cmd->BeginRenderPass(&beginInfo);
         {
             // Draw texture
-            frame.cmd->SetScissors(1, &mScissorRect);
-            frame.cmd->SetViewports(1, &mViewport);
+            frame.cmd->SetScissors(GetScissor());
+            frame.cmd->SetViewports(GetViewport());
             frame.cmd->BindGraphicsDescriptorSets(mGraphicsPipelineInterface, 1, &mGraphicsDescriptorSet);
             frame.cmd->BindGraphicsPipeline(mGraphicsPipeline);
             frame.cmd->BindVertexBuffers(1, &mVertexBuffer, &mVertexBinding.GetStride());
