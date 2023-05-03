@@ -526,7 +526,7 @@ void ProjApp::SetupIBL()
     // BRDF LUT
     PPX_CHECKED_CALL(grfx_util::CreateTextureFromFile(
         GetDevice()->GetGraphicsQueue(),
-        GetAssetPath("pbr/textures/brdf_lut.hdr"),
+        GetAssetPath("common/textures/ppx/brdf_lut.hdr"),
         &mBRDFLUTTexture));
 
     // Old Depot - good mix of diffused over head and bright exterior lighting from windows

@@ -41,8 +41,13 @@ endfunction()
 
 function(internal_add_compile_shader_target TARGET_NAME)
     set(oneValueArgs COMPILER_PATH SOURCES OUTPUT_FILE SHADER_STAGE OUTPUT_FORMAT TARGET_FOLDER)
-    set(multiValueArgs COMPILER_FLAGS INCLUDES)
+    set(multiValueArgs COMPILER_FLAGS INCLUDE_DIRS INCLUDES)
     cmake_parse_arguments(PARSE_ARGV 1 "ARG" "" "${oneValueArgs}" "${multiValueArgs}")
+
+	set(INCLUDE_DIRS "")
+	foreach(DIR ${ARG_INCLUDE_DIRS})
+		set(INCLUDE_DIRS "${INCLUDE_DIRS} -I \"${DIR}\"")
+	endforeach()
 
     string(TOUPPER "${ARG_SHADER_STAGE}" ARG_SHADER_STAGE)
 
@@ -54,14 +59,14 @@ function(internal_add_compile_shader_target TARGET_NAME)
         MAIN_DEPENDENCY "${ARG_SOURCE}"
         DEPENDS ${ARG_INCLUDES}
         COMMAND ${CMAKE_COMMAND} -E echo "[${ARG_OUTPUT_FORMAT}] Compiling ${ARG_SHADER_STAGE} ${ARG_SOURCE} to ${ARG_OUTPUT_FILE}"
-        COMMAND "${ARG_COMPILER_PATH}" ${ARG_COMPILER_FLAGS} -Fo "${ARG_OUTPUT_FILE}" "${ARG_SOURCE}"
+        COMMAND "${ARG_COMPILER_PATH}" ${ARG_COMPILER_FLAGS} ${INCLUDE_DIRS} -Fo "${ARG_OUTPUT_FILE}" "${ARG_SOURCE}"
     )
     add_custom_target_in_folder("${TARGET_NAME}" DEPENDS "${ARG_OUTPUT_FILE}" SOURCES "${ARG_SOURCE}" ${ARG_INCLUDES} FOLDER "${ARG_TARGET_FOLDER}")
 endfunction()
 
 function(internal_generate_rules_for_shader TARGET_NAME)
     set(oneValueArgs SOURCE SHADER_STAGE)
-    set(multiValueArgs INCLUDES)
+    set(multiValueArgs INCLUDE_DIRS INCLUDES)
     cmake_parse_arguments(PARSE_ARGV 1 "ARG" "" "${oneValueArgs}" "${multiValueArgs}")
 
     string(REPLACE ".hlsl" "" BASE_NAME "${ARG_SOURCE}")
@@ -75,6 +80,7 @@ function(internal_generate_rules_for_shader TARGET_NAME)
             "dx12_${TARGET_NAME}_${ARG_SHADER_STAGE}"
             COMPILER_PATH "${DXC_PATH}"
             SOURCE "${ARG_SOURCE}"
+			INCLUDE_DIRS ${ARG_INCLUDE_DIRS}
             INCLUDES ${ARG_INCLUDES}
             OUTPUT_FILE "${CMAKE_BINARY_DIR}/${PATH_PREFIX}/dxil/${BASE_NAME}.${ARG_SHADER_STAGE}.dxil"
             SHADER_STAGE "${ARG_SHADER_STAGE}"
@@ -83,7 +89,7 @@ function(internal_generate_rules_for_shader TARGET_NAME)
             COMPILER_FLAGS "-T" "${ARG_SHADER_STAGE}_6_5" "-E" "${ARG_SHADER_STAGE}main" "-DPPX_DX12=1")
         add_dependencies("dx12_${TARGET_NAME}" "dx12_${TARGET_NAME}_${ARG_SHADER_STAGE}")
     endif ()
-    
+
     # Vulkan, spv, sm 6_6.
     if (PPX_VULKAN)
         set(SHADER_OUTPUT_PATH "${CMAKE_BINARY_DIR}/${PATH_PREFIX}/spv/${BASE_NAME}.${ARG_SHADER_STAGE}.spv")
@@ -98,6 +104,7 @@ function(internal_generate_rules_for_shader TARGET_NAME)
             "vk_${TARGET_NAME}_${ARG_SHADER_STAGE}"
             COMPILER_PATH "${DXC_PATH}"
             SOURCE "${ARG_SOURCE}"
+			INCLUDE_DIRS ${ARG_INCLUDE_DIRS}
             INCLUDES ${ARG_INCLUDES}
             OUTPUT_FILE "${SHADER_OUTPUT_PATH}"
             SHADER_STAGE "${ARG_SHADER_STAGE}"
@@ -110,7 +117,7 @@ endfunction()
 
 function(generate_rules_for_shader TARGET_NAME)
     set(oneValueArgs SOURCE)
-    set(multiValueArgs INCLUDES STAGES)
+    set(multiValueArgs INCLUDE_DIRS INCLUDES STAGES)
     cmake_parse_arguments(PARSE_ARGV 1 "ARG" "" "${oneValueArgs}" "${multiValueArgs}")
 
     add_custom_target_in_folder("${TARGET_NAME}" SOURCES "${ARG_SOURCE}" ${ARG_INCLUDES} FOLDER "${TARGET_NAME}")
@@ -127,7 +134,7 @@ function(generate_rules_for_shader TARGET_NAME)
     endif ()
 
     foreach (STAGE ${ARG_STAGES})
-        internal_generate_rules_for_shader("${TARGET_NAME}" SOURCE "${ARG_SOURCE}" INCLUDES ${ARG_INCLUDES} SHADER_STAGE "${STAGE}")
+        internal_generate_rules_for_shader("${TARGET_NAME}" SOURCE "${ARG_SOURCE}" INCLUDE_DIRS ${ARG_INCLUDE_DIRS} INCLUDES ${ARG_INCLUDES} SHADER_STAGE "${STAGE}")
     endforeach ()
 endfunction()
 
