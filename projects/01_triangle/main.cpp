@@ -27,7 +27,6 @@ class ProjApp
 public:
     virtual void Config(ppx::ApplicationSettings& settings) override;
     virtual void Setup() override;
-    virtual void Resize(uint32_t, uint32_t) override;
     virtual void Render() override;
 
 private:
@@ -141,12 +140,6 @@ void ProjApp::Setup()
         memcpy(pAddr, vertexData.data(), dataSize);
         mVertexBuffer->UnmapMemory();
     }
-}
-
-void ProjApp::Resize(uint32_t, uint32_t)
-{
-    mViewport    = {0, 0, float(GetWindowWidth()), float(GetWindowHeight()), 0, 1};
-    mScissorRect = {0, 0, GetWindowWidth(), GetWindowHeight()};
 }
 
 void ProjApp::Render()
