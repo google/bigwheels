@@ -48,6 +48,7 @@ function(internal_add_compile_shader_target TARGET_NAME)
 	foreach(DIR ${ARG_INCLUDE_DIRS})
 		set(INCLUDE_DIRS "${INCLUDE_DIRS} -I \"${DIR}\"")
 	endforeach()
+	string(STRIP "${INCLUDE_DIRS}" INCLUDE_DIRS)
 
     string(TOUPPER "${ARG_SHADER_STAGE}" ARG_SHADER_STAGE)
 
