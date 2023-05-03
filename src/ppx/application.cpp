@@ -1400,6 +1400,8 @@ void Application::DrawDebugInfo(std::function<void(void)> drawAdditionalFn)
     }
     uint32_t minWidth  = std::min(kImGuiMinWidth, GetWindowWidth() / 2);
     uint32_t minHeight = std::min(kImGuiMinHeight, GetWindowHeight() / 2);
+    // This is roughly centered for XR, upper-left corner for non-XR.
+    ImGui::SetNextWindowPos({GetWindowWidth() / 4.f, GetWindowHeight() / 4.f}, 0, {0.5f, 0.5f});
     ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, {static_cast<float>(minWidth), static_cast<float>(minHeight)});
     if (ImGui::Begin("Debug Info")) {
         ImGui::Columns(2);
