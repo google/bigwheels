@@ -161,6 +161,7 @@ list(
     ${INC_DIR}/ppx/graphics_util.h
     ${INC_DIR}/ppx/imgui_impl.h
     ${INC_DIR}/ppx/log.h
+    ${INC_DIR}/ppx/metrics.h
     ${INC_DIR}/ppx/mipmap.h
     ${INC_DIR}/ppx/obj_ptr.h
     ${INC_DIR}/ppx/platform.h
@@ -194,6 +195,7 @@ list(
     ${SRC_DIR}/ppx/imgui_impl.cpp
     ${SRC_DIR}/ppx/log.cpp
     ${SRC_DIR}/ppx/math_config.cpp
+    ${SRC_DIR}/ppx/metrics.cpp
     ${SRC_DIR}/ppx/mipmap.cpp
     ${SRC_DIR}/ppx/platform.cpp
     ${SRC_DIR}/ppx/ppm_export.cpp
@@ -632,3 +634,4 @@ if (NOT ANDROID)
         add_subdirectory(test)
     endif()
 endif()
+
