@@ -29,10 +29,12 @@
 #include <cinttypes>
 
 // clang-format off
+#if !defined(PPX_ANDROID)
 #if ! defined(GLFW_INCLUDE_NONE)
 #   define GLFW_INCLUDE_NONE
 #endif
 #include <GLFW/glfw3.h>
+#endif
 
 #if defined(PPX_ANDROID)
     #define SETUP_APPLICATION(AppType)                                   \
