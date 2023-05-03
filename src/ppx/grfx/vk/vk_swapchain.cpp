@@ -553,6 +553,11 @@ Result Swapchain::AcquireNextImageInternal(
         fence,
         pImageIndex);
 
+    if (vkres == VK_SUBOPTIMAL_KHR) {
+        // Ignore SUBOPTIMAL, on Destkop we will eventually get window resize
+        // event, and on Android swapchain.preTransform might not be identity.
+        return ppx::SUCCESS;
+    }
     // Handle failure cases
     if (vkres < VK_SUCCESS) {
         PPX_ASSERT_MSG(false, "vkAcquireNextImageKHR failed: " << ToString(vkres));
@@ -590,6 +595,11 @@ Result Swapchain::PresentInternal(
     VkResult vkres = vk::QueuePresent(
         mQueue,
         &vkpi);
+    if (vkres == VK_SUBOPTIMAL_KHR) {
+        // Ignore SUBOPTIMAL, on Destkop we will eventually get window resize
+        // event, and on Android swapchain.preTransform might not be identity.
+        return ppx::SUCCESS;
+    }
     if (vkres != VK_SUCCESS) {
         return ppx::ERROR_API_FAILURE;
     }

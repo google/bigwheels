@@ -25,6 +25,18 @@
 namespace ppx {
 
 // -------------------------------------------------------------------------------------------------
+// WindowEvents
+// -------------------------------------------------------------------------------------------------
+
+struct WindowEvents
+{
+    static void ResizeCallback(Application* pApp, int width, int height)
+    {
+        pApp->ResizeCallback(width, height);
+    }
+};
+
+// -------------------------------------------------------------------------------------------------
 // Android Window
 // -------------------------------------------------------------------------------------------------
 
@@ -44,6 +56,8 @@ public:
     // Android callbacks.
     void    OnAppCmd(int32_t cmd);
     int32_t OnInputEvent(AInputEvent*);
+
+    void OnResizeEvent();
 
 private:
     android_app* mAndroidApp  = nullptr;
@@ -101,7 +115,11 @@ void WindowImplAndroid::ProcessEvent()
 
 WindowSize WindowImplAndroid::Size() const
 {
-    if (App()->IsXrEnabled() || mSize.width == 0 || mSize.height == 0) {
+    if (App()->IsXrEnabled()) {
+        // xrComponent is taking care of window size on XR builds.
+        return Window::Size();
+    }
+    if (mSize.width == 0 || mSize.height == 0) {
         // Return a default size if the window has not been initialized.
         return Window::Size();
     }
@@ -118,13 +136,18 @@ void WindowImplAndroid::OnAppCmd(int32_t cmd)
     switch (cmd) {
         case APP_CMD_INIT_WINDOW:
             mWindowReady = true;
-            if (!App()->IsXrEnabled() && mAndroidApp->window != nullptr) {
+            if (mAndroidApp->window != nullptr) {
                 mSize.width  = static_cast<uint32_t>(ANativeWindow_getWidth(mAndroidApp->window));
                 mSize.height = static_cast<uint32_t>(ANativeWindow_getHeight(mAndroidApp->window));
             }
             break;
         case APP_CMD_TERM_WINDOW:
             Quit();
+            break;
+        case APP_CMD_CONTENT_RECT_CHANGED:
+            mSize.width  = static_cast<uint32_t>(mAndroidApp->contentRect.right - mAndroidApp->contentRect.left);
+            mSize.height = static_cast<uint32_t>(mAndroidApp->contentRect.bottom - mAndroidApp->contentRect.top);
+            OnResizeEvent();
             break;
         default:
             break;
@@ -139,6 +162,15 @@ int32_t WindowImplAndroid::OnInputEvent(AInputEvent* pEvent)
     return 0;
 }
 
+void WindowImplAndroid::OnResizeEvent()
+{
+    if (App()->IsXrEnabled()) {
+        // Do not send resize event on XR.
+        return;
+    }
+    WindowSize size = Size();
+    WindowEvents::ResizeCallback(App(), size.width, size.height);
+}
 } // namespace ppx
 
 #endif
