@@ -77,6 +77,13 @@ requested:
 After the PR has been reviewed it is the job of the reviewer to merge the PR.
 Instructions for this are given below.
 
+### Handling PR dependencies
+
+If your PR depends on another, you can mark it as a draft. This way we won't
+accidentally merge it.
+By default, we won't review draft PRs. But if the PR is ready, and just
+marked as draft to manage dependencies, feel free to ping us!
+
 ### Life of a PR
 
 We try to review PRs at least once per 24h window.
