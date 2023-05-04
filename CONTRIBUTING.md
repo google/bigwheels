@@ -91,21 +91,22 @@ If your PR remains untouched for more than 24h, please ping us.
 Anything will do "PTAL", "up".
 Sometimes, we are on holiday, but you cannot guess, so in doubt, ping us 😊.
 
-When a maintainers sees an unassigned PR, they have 2 options:
+When a maintainer sees an unassigned PR, they have 2 options:
 
 - If it's a small & trivial change, they will self-assign, and handle
 the approval/merging.
-- Otherwise, they will chose 2 or more reviewers (can self-assign).
-- If a maintainer wants to review, they can add themselves to the reviewer list.
-- If a maintainer comments without adding a review, they don't block merging.
+- Otherwise, they will choose 2 or more reviewers (can self-assign).
 
-When a change has multiple reviewers, we try to follow the following rule:
+When a change has multiple reviewers, we try to follow the following rules:
+- All reviewers must approve.
 - If you are the first to approve, you delegate merging to the other(s).
 - If you are the last to approve, it's your responsibility to merge.
 - If you request changes without approval, others must wait for your approval
 before merging (and if you are the last to approve, you have to merge).
 
-### Who merges
+Additional cases:
+- If a maintainer wants to review, they can add themselves to the reviewer list.
+- If a maintainer comments without adding a review, they don't block merging.
 
 ## For developers: Contributing assets
 
