@@ -15,6 +15,8 @@
 #ifndef ppx_grfx_swapchain_h
 #define ppx_grfx_swapchain_h
 
+#include <limits>
+
 #include "ppx/grfx/grfx_config.h"
 #if defined(PPX_BUILD_XR)
 #include "ppx/xr_component.h"
@@ -78,6 +80,11 @@ public:
     virtual uint32_t GetMaxImageWidth() const  = 0;
     virtual uint32_t GetMaxImageHeight() const = 0;
     virtual uint32_t GetMaxImageCount() const  = 0;
+
+    static constexpr uint32_t kInvalidExtent = std::numeric_limits<uint32_t>::max();
+
+    virtual uint32_t GetCurrentImageWidth() const { return kInvalidExtent; }
+    virtual uint32_t GetCurrentImageHeight() const { return kInvalidExtent; }
 };
 
 // -------------------------------------------------------------------------------------------------

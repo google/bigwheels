@@ -218,6 +218,22 @@ uint32_t Surface::GetMaxImageCount() const
     return surfaceCaps.maxImageCount;
 }
 
+uint32_t Surface::GetCurrentImageWidth() const
+{
+    auto surfaceCaps = GetCapabilities();
+    // When surface size is determined by swapchain size
+    //   currentExtent.width == kInvalidExtend
+    return surfaceCaps.currentExtent.width;
+}
+
+uint32_t Surface::GetCurrentImageHeight() const
+{
+    auto surfaceCaps = GetCapabilities();
+    // When surface size is determined by swapchain size
+    //   currentExtent.height == kInvalidExtend
+    return surfaceCaps.currentExtent.height;
+}
+
 // -------------------------------------------------------------------------------------------------
 // Swapchain
 // -------------------------------------------------------------------------------------------------
@@ -287,6 +303,15 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
     else
 #endif
     {
+        //
+        // Currently, we're going to assume IDENTITY for all platforms.
+        // On Android we will incur the cost of the compositor doing the
+        // rotation for us. We don't currently have the facilities in
+        // place to inform the application of orientation changes
+        // and supply it with the correct pretransform matrix.
+        //
+        VkSurfaceTransformFlagBitsKHR preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+
         // Surface capabilities check
         {
             bool                            isImageCountValid = false;
@@ -303,12 +328,6 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
                 PPX_ASSERT_MSG(false, "Invalid swapchain image count");
                 return ppx::ERROR_INVALID_CREATE_ARGUMENT;
             }
-
-            // if (
-            // if ((pCreateInfo->imageCount < caps.minImageCount) || (pCreateInfo->imageCount > caps.maxImageCount)) {
-            //      PPX_ASSERT_MSG(false, "Invalid swapchain image count");
-            //      return ppx::ERROR_INVALID_CREATE_ARGUMENT;
-            //}
         }
 
         // Surface format
@@ -406,7 +425,7 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
         vkci.imageSharingMode         = VK_SHARING_MODE_EXCLUSIVE;
         vkci.queueFamilyIndexCount    = 0;
         vkci.pQueueFamilyIndices      = nullptr;
-        vkci.preTransform             = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
+        vkci.preTransform             = preTransform;
         vkci.compositeAlpha           = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
         vkci.presentMode              = presentMode;
         vkci.clipped                  = VK_FALSE;
@@ -560,7 +579,12 @@ Result Swapchain::AcquireNextImageInternal(
     }
     // Handle warning cases
     if (vkres > VK_SUCCESS) {
+#if !defined(PPX_ANDROID)
         PPX_LOG_WARN("vkAcquireNextImageKHR returned: " << ToString(vkres));
+#else
+        // Do not flood Android logcat when we are in landscape.
+        PPX_LOG_WARN_ONCE("vkAcquireNextImageKHR returned: " << ToString(vkres));
+#endif
     }
 
     mCurrentImageIndex = *pImageIndex;
@@ -590,8 +614,19 @@ Result Swapchain::PresentInternal(
     VkResult vkres = vk::QueuePresent(
         mQueue,
         &vkpi);
-    if (vkres != VK_SUCCESS) {
+    // Handle failure cases
+    if (vkres < VK_SUCCESS) {
+        PPX_ASSERT_MSG(false, "vkQueuePresentKHR failed: " << ToString(vkres));
         return ppx::ERROR_API_FAILURE;
+    }
+    // Handle warning cases
+    if (vkres > VK_SUCCESS) {
+#if !defined(PPX_ANDROID)
+        PPX_LOG_WARN("vkQueuePresentKHR returned: " << ToString(vkres));
+#else
+        // Do not flood Android logcat when we are in landscape.
+        PPX_LOG_WARN_ONCE("vkQueuePresentKHR returned: " << ToString(vkres));
+#endif
     }
 
     return ppx::SUCCESS;
