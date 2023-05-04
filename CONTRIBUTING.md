@@ -70,8 +70,9 @@ requested:
 *   Please add new commits to your branch, instead of amending your commit.
     Adding new commits makes it easier for the reviewer to see what has changed
     since the last review.
-*   Once you are ready for another round of reviews, add a comment at the
-    bottom, such as "Ready for review" or "Please take a look" (or "PTAL"). This
+*   Once you are ready for another round of reviews, you can either click
+    the "re-request review" button, or add a comment at the bottom, such as
+    "Ready for review" or "Please take a look" (or "PTAL"). This
     explicit handoff is useful when responding with multiple small commits.
 
 After the PR has been reviewed it is the job of the reviewer to merge the PR.
