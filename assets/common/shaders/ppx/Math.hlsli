@@ -81,10 +81,10 @@ float3 ACESFilm(float3 x)
 }
 
 float3 RemoveGamma(
-    float3 nonlinearColor, // Usually albedo or basecolor bot *NOT* diffuseColor
+    float3 nonlinearColor, // Usually albedo or basecolor but *NOT* diffuseColor
     float  gamma)          // Usually 2.2
 {
-    float3 color = pow(nonlinearColor, 2.2);
+    float3 color = pow(nonlinearColor, gamma);
     return color;
 }
 
@@ -92,7 +92,7 @@ float3 ApplyGamma(
     float3 linearColor, // Usually final output color
     float  gamma)       // Usually 2.2
 {
-    float3 color = pow(linearColor, 1 / 2.2);
+    float3 color = pow(linearColor, 1 / gamma);
     return color;
 }
 

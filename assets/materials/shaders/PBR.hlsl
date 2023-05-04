@@ -131,7 +131,6 @@ float4 psmain(VSOutput input) : SV_TARGET
     // Final color
     float3 finalColor = directLighting + indirectLighting;
 
-    // Reapply gamma
     finalColor = ApplyGamma(finalColor, 2.2);
 
     return float4(finalColor, 1);

@@ -30,9 +30,9 @@ float4 psmain(VSOutput input) : SV_TARGET
     float3 N = normalize(input.normal);
 
     float3 albedo = Material.albedo;
-    if (Material.albedoSelect == 1)
-    {
+    if (Material.albedoSelect == 1) {
         albedo = AlbedoTex.Sample(ClampedSampler, input.texCoord).rgb;
+        albedo = RemoveGamma(albedo, 2.2);		
     }
 
     float3 diffuse = 0;
@@ -42,7 +42,9 @@ float4 psmain(VSOutput input) : SV_TARGET
         diffuse += BRDF_Gouraud(N, L);
     }
 
-    float3 color = (diffuse + Scene.ambient) * albedo;
-
-    return float4(color, 1);
+    float3 finalColor = (diffuse + Scene.ambient) * albedo;
+	
+    finalColor = ApplyGamma(finalColor, 2.2);
+	
+    return float4(finalColor, 1);
 }

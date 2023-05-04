@@ -36,8 +36,7 @@ float4 psmain(VSOutput input) : SV_TARGET
     float3 albedo = Material.albedo;
     if (Material.albedoSelect == 1) {
         albedo = AlbedoTex.Sample(ClampedSampler, input.texCoord).rgb;
-        // Remove gamma
-        albedo = pow(albedo, 2.2);
+        albedo = RemoveGamma(albedo, 2.2);
     }
 
     float roughness = Material.roughness;
@@ -62,10 +61,9 @@ float4 psmain(VSOutput input) : SV_TARGET
         specular += BRDF_BlinnPhong(N, V, L, hardness) * Lights[i].intensity;
     }
 
-    float3 color = (diffuse + Scene.ambient) * albedo + specular;
+    float3 finalColor = (diffuse + Scene.ambient) * albedo + specular;
 
-    // Reapply gamma
-    color = pow(color, 1 / 2.2);
+    finalColor = ApplyGamma(finalColor, 2.2);
 
-    return float4(color, 1);
+    return float4(finalColor, 1);
 }

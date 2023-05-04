@@ -105,7 +105,7 @@ float3 Light_GGX_Direct(
     float3 Lc,                  // Light color, hard code float3(1.0, 1.0, 1.0) if in doubt
     float  Ls,                  // Light intensity, hard code 1.0 if in doubt
     float3 F0,                  // F0 (aka Fresnel reflectance at 0 degrees)
-    float3 diffuseColor,        // Material diffsue color (renamed from base color / albedo)
+    float3 diffuseColor,        // Material diffuse color (renamed from base color / albedo)
     float  roughness,           // Material roughness
     float  metalness,           // Material metalness
     float  dielectricness,      // Dielectricness remapped from metal: dielectricness = (1.0 - metalness)
@@ -143,7 +143,7 @@ float3 Light_GGX_Indirect(
     float3       V,                    // Normalized light direction
     float3       R,                    // Reflection vector: R = reflect(-V, N)
     float3       F0,                   // F0 (aka Fresnel reflectance at 0 degrees)
-    float3       diffuseColor,         // Material diffsue color (renamed from base color / albedo)
+    float3       diffuseColor,         // Material diffuse color (renamed from base color / albedo)
     float        roughness,            // Material roughness
     float        metalness,            // Material metalness
     float        dielectricness,       // Dielectricness remapped from metal: dielectricness = (1.0 - metalness)
@@ -193,7 +193,7 @@ float3 Light_GGX_Indirect_ApproxPolynomial(
     float3       V,                    // Normalized light direction
     float3       R,                    // Reflection vector: R = reflect(-V, N)
     float3       F0,                   // F0 (aka Fresnel reflectance at 0 degrees)
-    float3       diffuseColor,         // Material diffsue color (renamed from base color / albedo)
+    float3       diffuseColor,         // Material diffuse color (renamed from base color / albedo)
     float        roughness,            // Material roughness
     float        metalness,            // Material metalness
     float        dielectricness,       // Dielectricness remapped from metal: dielectricness = (1.0 - metalness)
@@ -241,7 +241,7 @@ float3 Light_GGX_Indirect_ApproxKaris(
     float3       V,                    // Normalized light direction
     float3       R,                    // Reflection vector: R = reflect(-V, N)
     float3       F0,                   // F0 (aka Fresnel reflectance at 0 degrees)
-    float3       diffuseColor,         // Material diffsue color (renamed from base color / albedo)
+    float3       diffuseColor,         // Material diffuse color (renamed from base color / albedo)
     float        roughness,            // Material roughness
     float        metalness,            // Material metalness
     float        dielectricness,       // Dielectricness remapped from metal: dielectricness = (1.0 - metalness)
