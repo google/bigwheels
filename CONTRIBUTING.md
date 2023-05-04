@@ -53,6 +53,8 @@ your changes:
     [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html).
     Running `clang-format -style=file -i [modified-files]` can help.
 *   Create a pull request (PR) with your patch.
+*   1 PR = 1 change. If you want to add 3 features, that's 3 PRs.
+*   If you PR brings a non-trivial performance improvement, do provide proof.
 *   Make sure the PR description clearly identifies the problem, explains the
     solution, and references the issue if applicable.
 *   If your patch completely fixes bug 1234, the commit message should say
@@ -74,6 +76,26 @@ requested:
 
 After the PR has been reviewed it is the job of the reviewer to merge the PR.
 Instructions for this are given below.
+
+### How we review
+
+We try to review PRs at least once per 24h window.
+If your PR remains untouched for more than 24h, please ping us.
+Anything will do "PTAL", "up".
+Sometimes, we are on holiday, but you cannot guess, so in doubt, ping us 😊.
+
+Maintainers don't own specific parts of the project. We try to use our best
+judgment when doing reviews.
+For small PRs (trivial fix, or additions), we consider 1 reviewer is enough,
+and can merge the PR directly after the review.
+
+For larger PRs and non-trivial changes, 2 pair of eyes are always good.
+
+Between maintainers, we try to follow the following convention:
+ - if a maintainer approves a PR, the others are free to merge if they
+approve themselves.
+ - if a maintainer requests changes without approval, they want to look at
+it again once the changes are in.
 
 ## For developers: Contributing assets
 
