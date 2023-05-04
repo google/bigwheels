@@ -149,11 +149,6 @@ void WindowImplAndroid::OnAppCmd(int32_t cmd)
             mSize.height = static_cast<uint32_t>(ANativeWindow_getHeight(mAndroidApp->window));
             OnResizeEvent();
             break;
-        case APP_CMD_CONTENT_RECT_CHANGED:
-            mSize.width  = static_cast<uint32_t>(mAndroidApp->contentRect.right - mAndroidApp->contentRect.left);
-            mSize.height = static_cast<uint32_t>(mAndroidApp->contentRect.bottom - mAndroidApp->contentRect.top);
-            OnResizeEvent();
-            break;
         default:
             break;
     }

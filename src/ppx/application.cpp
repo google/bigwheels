@@ -483,6 +483,17 @@ Result Application::CreateSwapchains()
                 mSettings.window.width  = std::min(mSettings.window.width, surfaceMaxImageWidth);
                 mSettings.window.height = std::min(mSettings.window.height, surfaceMaxImageHeight);
             }
+
+            const uint32_t surfaceCurrentImageWidth  = mSurface->GetCurrentImageWidth();
+            const uint32_t surfaceCurrentImageHeight = mSurface->GetCurrentImageHeight();
+            if ((surfaceCurrentImageWidth != grfx::Surface::kInvalidExtent) &&
+                (surfaceCurrentImageHeight != grfx::Surface::kInvalidExtent)) {
+                if ((mSettings.window.width != surfaceCurrentImageWidth) ||
+                    (mSettings.window.height != surfaceCurrentImageHeight)) {
+                    PPX_LOG_WARN("window size " << mSettings.window.width << "x" << mSettings.window.height << " does not match current surface extent " << surfaceCurrentImageWidth << "x" << surfaceCurrentImageHeight);
+                }
+                PPX_LOG_WARN("surface current extent " << surfaceCurrentImageWidth << "x" << surfaceCurrentImageHeight);
+            }
         }
 
         grfx::SwapchainCreateInfo ci = {};

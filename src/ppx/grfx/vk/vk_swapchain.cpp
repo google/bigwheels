@@ -218,6 +218,22 @@ uint32_t Surface::GetMaxImageCount() const
     return surfaceCaps.maxImageCount;
 }
 
+uint32_t Surface::GetCurrentImageWidth() const
+{
+    auto surfaceCaps = GetCapabilities();
+    // When surface size is determined by swapchain size
+    //   currentExtent.width == kInvalidExtend
+    return surfaceCaps.currentExtent.width;
+}
+
+uint32_t Surface::GetCurrentImageHeight() const
+{
+    auto surfaceCaps = GetCapabilities();
+    // When surface size is determined by swapchain size
+    //   currentExtent.height == kInvalidExtend
+    return surfaceCaps.currentExtent.height;
+}
+
 // -------------------------------------------------------------------------------------------------
 // Swapchain
 // -------------------------------------------------------------------------------------------------
@@ -563,9 +579,11 @@ Result Swapchain::AcquireNextImageInternal(
     }
     // Handle warning cases
     if (vkres > VK_SUCCESS) {
-#if ! defined(PPX_ANDROID)
-        // Desktop only, warning on Android will flood logcat
+#if !defined(PPX_ANDROID)
         PPX_LOG_WARN("vkAcquireNextImageKHR returned: " << ToString(vkres));
+#else
+        // Do not flood Android logcat when we are in landscape.
+        PPX_LOG_WARN_ONCE("vkAcquireNextImageKHR returned: " << ToString(vkres));
 #endif
     }
 
@@ -603,9 +621,11 @@ Result Swapchain::PresentInternal(
     }
     // Handle warning cases
     if (vkres > VK_SUCCESS) {
-#if ! defined(PPX_ANDROID)
-        // Desktop only, warning on Android will flood logcat
+#if !defined(PPX_ANDROID)
         PPX_LOG_WARN("vkQueuePresentKHR returned: " << ToString(vkres));
+#else
+        // Do not flood Android logcat when we are in landscape.
+        PPX_LOG_WARN_ONCE("vkQueuePresentKHR returned: " << ToString(vkres));
 #endif
     }
 
