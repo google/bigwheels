@@ -20,7 +20,13 @@ using namespace ppx;
 
 #include "Buffer.h"
 
+constexpr uint32_t kDefaultFishResX     = 128;
+constexpr uint32_t kDefaultFishResY     = 128;
+constexpr uint32_t kDefaultFishThreadsX = 8;
+constexpr uint32_t kDefaultFishThreadsY = 8;
+
 class FishTornadoApp;
+struct FishTornadoSettings;
 
 class Flocking
 {
@@ -28,7 +34,7 @@ public:
     Flocking();
     ~Flocking();
 
-    void Setup(uint32_t numFramesInFlight);
+    void Setup(uint32_t numFramesInFlight, const FishTornadoSettings& settings);
     void Shutdown();
     void Update(uint32_t frameIndex);
     void CopyConstantsToGpu(uint32_t frameIndex, grfx::CommandBuffer* pCmd);
@@ -64,8 +70,10 @@ private:
         bool renderedWithAsyncCompute = false;
     };
 
-    uint32_t mResX;
-    uint32_t mResY;
+    uint32_t mResX     = kDefaultFishResX;
+    uint32_t mResY     = kDefaultFishResY;
+    uint32_t mThreadsX = kDefaultFishThreadsX;
+    uint32_t mThreadsY = kDefaultFishThreadsY;
     float    mMinThresh;
     float    mMaxThresh;
     float    mMinSpeed;
