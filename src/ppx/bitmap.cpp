@@ -41,6 +41,11 @@ Bitmap::Bitmap(const Bitmap& obj)
     }
 }
 
+Bitmap::~Bitmap()
+{
+    FreeStbiDataIfNeeded();
+}
+
 Bitmap& Bitmap::operator=(const Bitmap& rhs)
 {
     if (&rhs != this) {
@@ -51,6 +56,15 @@ Bitmap& Bitmap::operator=(const Bitmap& rhs)
         }
     }
     return *this;
+}
+
+void Bitmap::FreeStbiDataIfNeeded()
+{
+    if (mDataIsFromStbi && !IsNull(mData)) {
+        stbi_image_free(mData);
+        mData           = nullptr;
+        mDataIsFromStbi = false;
+    }
 }
 
 void Bitmap::InternalCtor()
@@ -70,6 +84,9 @@ Result Bitmap::InternalInitialize(uint32_t width, uint32_t height, Bitmap::Forma
     if (format == Bitmap::FORMAT_UNDEFINED) {
         return ppx::ERROR_IMAGE_INVALID_FORMAT;
     }
+
+    // In case of initialization to a preexisting object.
+    FreeStbiDataIfNeeded();
 
     uint32_t minimumRowStride = (width * Bitmap::FormatSize(format));
     if ((rowStride > 0) && (rowStride < minimumRowStride)) {
@@ -104,6 +121,9 @@ Result Bitmap::InternalInitialize(uint32_t width, uint32_t height, Bitmap::Forma
 
 Result Bitmap::InternalCopy(const Bitmap& obj)
 {
+    // In case of copies into a preexisting object.
+    FreeStbiDataIfNeeded();
+
     // Copy properties
     mWidth        = obj.mWidth;
     mHeight       = obj.mHeight;
@@ -233,6 +253,11 @@ Result Bitmap::Resize(uint32_t width, uint32_t height)
 
 Result Bitmap::ScaleTo(Bitmap* pTargetBitmap) const
 {
+    return ScaleTo(pTargetBitmap, STBIR_FILTER_DEFAULT);
+}
+
+Result Bitmap::ScaleTo(Bitmap* pTargetBitmap, stbir_filter filterType) const
+{
     if (IsNull(pTargetBitmap)) {
         return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
     }
@@ -268,8 +293,8 @@ Result Bitmap::ScaleTo(Bitmap* pTargetBitmap) const
         0,
         STBIR_EDGE_CLAMP,
         STBIR_EDGE_CLAMP,
-        STBIR_FILTER_DEFAULT,
-        STBIR_FILTER_DEFAULT,
+        filterType,
+        filterType,
         STBIR_COLORSPACE_LINEAR,
         nullptr);
 
@@ -502,17 +527,25 @@ static Result IsRadianceFile(const std::filesystem::path& path, bool& isRadiance
     return ppx::SUCCESS;
 }
 
+Result Bitmap::StbiInfo(const std::filesystem::path& path, int* pX, int* pY, int* pComp)
+{
+#if defined(PPX_ANDROID)
+    ppx::fs::File file;
+    if (!file.Open(path)) {
+        return ppx::ERROR_IMAGE_FILE_LOAD_FAILED;
+    }
+    auto stbi_result = stbi_info_from_memory((unsigned char*)file.GetBuffer(), file.GetLength(), pX, pY, pComp);
+    file.Close();
+#else
+    auto stbi_result = stbi_info(path.string().c_str(), pX, pY, pComp);
+#endif
+    return (stbi_result ? ppx::SUCCESS : ppx::ERROR_IMAGE_FILE_LOAD_FAILED);
+}
+
 bool Bitmap::IsBitmapFile(const std::filesystem::path& path)
 {
     int x, y, comp;
-#if defined(PPX_ANDROID)
-    auto bitmapBytes = fs::load_file(path.string().c_str());
-    if (!bitmapBytes.has_value())
-        return stbi__err("can't fopen", "Unable to open file");
-    return stbi_info_from_memory((unsigned char*)bitmapBytes->data(), bitmapBytes->size(), &x, &y, &comp);
-#else
-    return stbi_info(path.string().c_str(), &x, &y, &comp);
-#endif
+    return (StbiInfo(path, &x, &y, &comp) == ppx::SUCCESS);
 }
 
 Result Bitmap::GetFileProperties(const std::filesystem::path& path, uint32_t* pWidth, uint32_t* pHeight, Bitmap::Format* pFormat)
@@ -524,7 +557,7 @@ Result Bitmap::GetFileProperties(const std::filesystem::path& path, uint32_t* pW
     int x    = 0;
     int y    = 0;
     int comp = 0;
-    stbi_info(path.string().c_str(), &x, &y, &comp);
+    StbiInfo(path, &x, &y, &comp);
 
     bool   isRadiance = false;
     Result ppxres     = IsRadianceFile(path, isRadiance);
@@ -540,12 +573,40 @@ Result Bitmap::GetFileProperties(const std::filesystem::path& path, uint32_t* pW
         *pHeight = static_cast<uint32_t>(y);
     }
 
-    // Force to 4 chanenls to make things easier for the graphics APIs
+    // Force to 4 channels to make things easier for the graphics APIs.
     if (!IsNull(pFormat)) {
         *pFormat = isRadiance ? Bitmap::FORMAT_RGBA_FLOAT : Bitmap::FORMAT_RGBA_UINT8;
     }
 
     return ppx::SUCCESS;
+}
+
+char* Bitmap::StbiLoad(const std::filesystem::path& path, Bitmap::Format format, int* pWidth, int* pHeight, int* pChannels, int desiredChannels)
+{
+    char* pResult = nullptr;
+#if defined(PPX_ANDROID)
+    ppx::fs::File file;
+    if (!file.Open(path)) {
+        return pResult;
+    }
+    if (format == Bitmap::FORMAT_RGBA_FLOAT) {
+        pResult = reinterpret_cast<char*>(stbi_loadf_from_memory(
+            reinterpret_cast<const stbi_uc*>(file.GetBuffer()), file.GetLength(), pWidth, pHeight, pChannels, desiredChannels));
+    }
+    else {
+        pResult = reinterpret_cast<char*>(stbi_load_from_memory(
+            reinterpret_cast<const stbi_uc*>(file.GetBuffer()), file.GetLength(), pWidth, pHeight, pChannels, desiredChannels));
+    }
+    file.Close();
+#else
+    if (format == Bitmap::FORMAT_RGBA_FLOAT) {
+        pResult = reinterpret_cast<char*>(stbi_loadf(path.string().c_str(), pWidth, pHeight, pChannels, desiredChannels));
+    }
+    else {
+        pResult = reinterpret_cast<char*>(stbi_load(path.string().c_str(), pWidth, pHeight, pChannels, desiredChannels));
+    }
+#endif
+    return pResult;
 }
 
 Result Bitmap::LoadFile(const std::filesystem::path& path, Bitmap* pBitmap)
@@ -560,75 +621,24 @@ Result Bitmap::LoadFile(const std::filesystem::path& path, Bitmap* pBitmap)
         return ppxres;
     }
 
-    auto bitmapBytes = ppx::fs::load_file(path);
-    if (!bitmapBytes.has_value()) {
+    int            width            = 0;
+    int            height           = 0;
+    int            channels         = 0;
+    int            requiredChannels = 4; // Force to 4 channels to make things easier for the graphics APIs.
+    Bitmap::Format format           = (isRadiance) ? Bitmap::FORMAT_RGBA_FLOAT : Bitmap::FORMAT_RGBA_UINT8;
+    char*          dataPtr          = StbiLoad(path, format, &width, &height, &channels, requiredChannels);
+
+    if (IsNull(dataPtr)) {
         return ppx::ERROR_IMAGE_FILE_LOAD_FAILED;
     }
-
-    // @TODO: Refactor to remove redundancies from both blocks
-    //
-    if (isRadiance) {
-        int width            = 0;
-        int height           = 0;
-        int channels         = 0;
-        int requiredChannels = 4; // Force to 4 chanenls to make things easier for the graphics APIs
-
-        float* pData = stbi_loadf_from_memory(
-            reinterpret_cast<const stbi_uc*>(bitmapBytes.value().data()),
-            static_cast<int>(bitmapBytes.value().size()),
-            &width,
-            &height,
-            &channels,
-            requiredChannels);
-        if (pData == nullptr) {
-            return ppx::ERROR_IMAGE_FILE_LOAD_FAILED;
-        }
-
-        Bitmap::Format format = Bitmap::FORMAT_RGBA_FLOAT;
-
-        ppxres = Bitmap::Create(width, height, format, pBitmap);
-        if (!pBitmap->IsOk()) {
-            // Something has gone really wrong if this happens
-            stbi_image_free(pData);
-            return ppx::ERROR_FAILED;
-        }
-
-        size_t nbytes = Bitmap::StorageFootprint(static_cast<uint32_t>(width), static_cast<uint32_t>(height), format);
-        std::memcpy(pBitmap->GetData(), pData, nbytes);
-
-        stbi_image_free(pData);
+    ppxres = Bitmap::Create(width, height, format, dataPtr, pBitmap);
+    if (!pBitmap->IsOk()) {
+        // Something has gone really wrong if this happens
+        stbi_image_free(dataPtr);
+        return ppx::ERROR_FAILED;
     }
-    else {
-        int width            = 0;
-        int height           = 0;
-        int channels         = 0;
-        int requiredChannels = 4; // Force to 4 channels to make things easier for the graphics APIs
-
-        unsigned char* pData = stbi_load_from_memory(
-            reinterpret_cast<const stbi_uc*>(bitmapBytes.value().data()),
-            static_cast<int>(bitmapBytes.value().size()),
-            &width,
-            &height,
-            &channels,
-            requiredChannels);
-        if (IsNull(pData)) {
-            return ppx::ERROR_IMAGE_FILE_LOAD_FAILED;
-        }
-
-        Bitmap::Format format = Bitmap::FORMAT_RGBA_UINT8;
-
-        ppxres = Bitmap::Create(width, height, format, pBitmap);
-        if (Failed(ppxres)) {
-            // Something has gone really wrong if this happens
-            stbi_image_free(pData);
-            return ppx::ERROR_FAILED;
-        }
-
-        size_t nbytes = Bitmap::StorageFootprint(static_cast<uint32_t>(width), static_cast<uint32_t>(height), format);
-        std::memcpy(pBitmap->GetData(), pData, nbytes);
-
-        stbi_image_free(pData);
-    }
+    // Critical! This marks the memory as needing to be freed later!
+    pBitmap->mDataIsFromStbi = true;
 
     return ppx::SUCCESS;
 }

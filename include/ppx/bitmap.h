@@ -18,6 +18,8 @@
 #include "ppx/config.h"
 #include "ppx/grfx/grfx_format.h"
 
+#include "stb_image_resize.h"
+
 #include <filesystem>
 
 namespace ppx {
@@ -62,7 +64,7 @@ public:
 
     Bitmap();
     Bitmap(const Bitmap& obj);
-    ~Bitmap() {}
+    ~Bitmap();
 
     Bitmap& operator=(const Bitmap& rhs);
 
@@ -93,6 +95,7 @@ public:
 
     Result Resize(uint32_t width, uint32_t height);
     Result ScaleTo(Bitmap* pTargetBitmap) const;
+    Result ScaleTo(Bitmap* pTargetBitmap, stbir_filter filterType) const;
 
     template <typename PixelDataType>
     void Fill(PixelDataType r, PixelDataType g, PixelDataType b, PixelDataType a);
@@ -192,6 +195,14 @@ private:
     void   InternalCtor();
     Result InternalInitialize(uint32_t width, uint32_t height, Bitmap::Format format, uint32_t rowStride, char* pExternalStorage);
     Result InternalCopy(const Bitmap& obj);
+    void   FreeStbiDataIfNeeded();
+
+    // Stbi-specific functions/wrappers.
+    // These arguments generally mirror those for stbi_load, except format which is used to determine whether
+    // the call should be made to stbi_load or stbi_loadf (that is, whether the file to be read is in integer or floating point format).
+    static char* StbiLoad(const std::filesystem::path& path, Bitmap::Format format, int* pWidth, int* pHeight, int* pChannels, int desiredChannels);
+    // These arugments mirror those for stbi_info.
+    static Result StbiInfo(const std::filesystem::path& path, int* pX, int* pY, int* pComp);
 
 private:
     uint32_t          mWidth           = 0;
@@ -201,6 +212,7 @@ private:
     uint32_t          mPixelStride     = 0;
     uint32_t          mRowStride       = 0;
     char*             mData            = nullptr;
+    bool              mDataIsFromStbi  = false;
     std::vector<char> mInternalStorage = {};
 };
 

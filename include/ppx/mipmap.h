@@ -40,7 +40,13 @@ class Mipmap
 {
 public:
     Mipmap() {}
+    // Using the static, shared-memory pool is currently only safe in single-threaded applications!
+    // This should only be used for temporary mipmaps which will be destroyed prior to the creation of any new mipmap.
+    Mipmap(uint32_t width, uint32_t height, Bitmap::Format format, uint32_t levelCount, bool useStaticPool);
     Mipmap(uint32_t width, uint32_t height, Bitmap::Format format, uint32_t levelCount);
+    // Using the static, shared-memory pool is currently only safe in single-threaded applications!
+    // This should only be used for temporary mipmaps which will be destroyed prior to the creation of any new mipmap.
+    Mipmap(const Bitmap& bitmap, uint32_t levelCount, bool useStaticPool);
     Mipmap(const Bitmap& bitmap, uint32_t levelCount);
     ~Mipmap() {}
 
@@ -62,6 +68,12 @@ public:
 private:
     std::vector<char>   mData;
     std::vector<Bitmap> mMips;
+
+    // Static, shared-memory pool for temporary mipmap generation.
+    // NOTE: This is designed for single-threaded use ONLY as it's an unprotected memory block!
+    // This will need locks if the consuming paths ever become multi-threaded.
+    static std::vector<char> mStaticData;
+    bool                     mUseStaticPool = false;
 };
 
 } // namespace ppx
