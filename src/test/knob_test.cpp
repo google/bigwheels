@@ -73,7 +73,7 @@ TEST(KnobTest, KnobBool)
     EXPECT_EQ(knobPtr->GetChildren()[0]->GetFlagName(), "flag_name2");
 
     // Test GetKnob(std::string flagName)
-    knobPtr = km.GetKnob("flag_name1", true);
+    knobPtr = km.GetKnob("flag_name1");
     EXPECT_NE(knobPtr, nullptr);
     EXPECT_EQ(knobPtr->GetDisplayName(), "Knob Name 1");
 
@@ -83,7 +83,7 @@ TEST(KnobTest, KnobBool)
     EXPECT_EQ(km.GetKnobBoolValue(2), true);
 
     // Test reset
-    km.Reset();
+    km.ResetAllToDefault();
     EXPECT_EQ(km.GetKnobBoolValue(2), false);
 
     // Usage message

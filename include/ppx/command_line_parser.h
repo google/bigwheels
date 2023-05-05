@@ -111,11 +111,6 @@ public:
         return standardOptions;
     }
 
-    const std::unordered_map<std::string, Option>& GetExtraOptions() const
-    {
-        return extraOptions;
-    }
-
     bool HasExtraOption(const std::string& option) const
     {
         return extraOptions.find(option) != extraOptions.end();

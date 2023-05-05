@@ -954,8 +954,8 @@ int Application::Run(int argc, char** argv)
 
     // Parse knobs
     if (!knobManager.IsEmpty()) {
-        auto extraOptions = mCommandLineParser.GetOptions().GetExtraOptions();
-        if (!knobManager.ParseOptions(extraOptions)) {
+        auto options = mCommandLineParser.GetOptions();
+        if (!knobManager.UpdateFromFlags(options)) {
             PPX_ASSERT_MSG(false, "Unable to parse command line arguments for knobs");
             return EXIT_FAILURE;
         }

@@ -23,8 +23,20 @@
 
 std::ostream& operator<<(std::ostream& os, KnobType kt)
 {
-    const std::string nameKnobType[] = {"Unknown", "Bool_Checkbox"};
-    return os << nameKnobType[static_cast<int>(kt)];
+    return os << KnobType2Str(kt);
+}
+
+std::string KnobType2Str(KnobType kt)
+{
+    switch(kt) {
+    case KnobType::Unknown:
+        return "Unknown";
+    case KnobType::Bool_Checkbox:
+        return "Bool_Checkbox";
+    default:
+        PPX_LOG_ERROR("invalid KnobType: " << static_cast<int>(kt));
+        return "";
+    }
 }
 
 namespace ppx {
@@ -35,30 +47,28 @@ namespace ppx {
 
 void KnobBoolCheckbox::Draw()
 {
-    bool changed = ImGui::Checkbox(displayName.c_str(), &value);
-    if (changed && callback) {
-        callback(value);
+    bool changed = ImGui::Checkbox(mDisplayName.c_str(), &mValue);
+    if (changed && mCallback) {
+        mCallback(mValue);
     }
 }
 
-void KnobBoolCheckbox::Reset()
+void KnobBoolCheckbox::ResetToDefault()
 {
-    KnobBoolCheckbox::SetBoolValue(defaultValue, false);
+    KnobBoolCheckbox::SetBoolValue(mDefaultValue);
 }
 
-bool KnobBoolCheckbox::GetBoolValue()
+bool KnobBoolCheckbox::GetBoolValue() const
 {
-    return value;
+    return mValue;
 }
 
 // Used for when knob value is altered outside of the GUI
-void KnobBoolCheckbox::SetBoolValue(bool newVal, bool updateDefault)
+void KnobBoolCheckbox::SetBoolValue(bool newVal)
 {
-    value = newVal;
-    if (updateDefault)
-        defaultValue = newVal;
-    if (callback)
-        callback(value);
+    mValue = newVal;
+    if (mCallback)
+        mCallback(mValue);
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -67,47 +77,40 @@ void KnobBoolCheckbox::SetBoolValue(bool newVal, bool updateDefault)
 
 KnobManager::~KnobManager()
 {
-    for (auto pair : knobs) {
+    for (auto pair : mKnobs) {
         delete pair.second;
     }
 }
 
-void KnobManager::Reset()
+void KnobManager::ResetAllToDefault()
 {
-    for (auto pair : knobs) {
-        pair.second->Reset();
+    for (auto pair : mKnobs) {
+        pair.second->ResetToDefault();
     }
 }
 
-Knob* KnobManager::GetKnob(int id, bool silentFail)
+Knob* KnobManager::GetKnob(int id)
 {
-    if (knobs.count(id) == 0) {
-        if (!silentFail) {
-            PPX_LOG_ERROR("could not find knob with id: " << id);
-        }
+    if (mKnobs.count(id) == 0) {
         return nullptr;
     }
-    return knobs.at(id);
+    return mKnobs.at(id);
 }
 
-Knob* KnobManager::GetKnob(const std::string& name, bool silentFail)
+Knob* KnobManager::GetKnob(const std::string& name)
 {
-    for (auto pair : knobs) {
+    for (auto pair : mKnobs) {
         if (pair.second->GetFlagName() == name) {
             return pair.second;
         }
     }
-
-    if (!silentFail)
-        PPX_LOG_ERROR("could not find knob with flag name: " << name);
-
     return nullptr;
 }
 
 void KnobManager::CreateBoolCheckbox(int i, BoolCheckboxConfig config)
 {
     KnobBoolCheckbox* newKnob = new KnobBoolCheckbox(config);
-    newKnob->SetBoolValue(config.defaultValue, true);
+    newKnob->SetBoolValue(config.defaultValue);
     KnobManager::InsertKnob(i, newKnob);
     KnobManager::ConfigureParent(newKnob, config.parentId);
 }
@@ -118,18 +121,18 @@ bool KnobManager::GetKnobBoolValue(int id)
     return knobPtr ? knobPtr->GetBoolValue() : false;
 }
 
-void KnobManager::SetKnobBoolValue(int id, bool newVal, bool updateDefault)
+void KnobManager::SetKnobBoolValue(int id, bool newVal)
 {
     auto knobPtr = GetKnob(id);
     if (knobPtr)
-        knobPtr->SetBoolValue(newVal, updateDefault);
+        knobPtr->SetBoolValue(newVal);
 }
 
 void KnobManager::DrawAllKnobs(bool inExistingWindow)
 {
     if (!inExistingWindow)
         ImGui::Begin("Knobs");
-    DrawKnobs(drawOrder);
+    DrawKnobs(mDrawOrder);
     if (!inExistingWindow)
         ImGui::End();
 }
@@ -137,24 +140,18 @@ void KnobManager::DrawAllKnobs(bool inExistingWindow)
 std::string KnobManager::GetUsageMsg()
 {
     std::string usageMsg = "\nApplication-specific flags\n";
-    for (auto pair : knobs) {
+    for (auto pair : mKnobs) {
         usageMsg += "--" + pair.second->GetFlagName() + ": " + pair.second->GetFlagDesc() + "\n";
     }
     return usageMsg;
 }
 
-bool KnobManager::ParseOptions(std::unordered_map<std::string, CliOptions::Option>& optionsMap)
+bool KnobManager::UpdateFromFlags(const CliOptions& cli)
 {
-    for (auto pair : optionsMap) {
-        auto  name    = pair.first;
-        auto  opt     = pair.second;
-        Knob* knobPtr = GetKnob(name, true);
-        if (knobPtr) {
-            switch (knobPtr->GetType()) {
-                case KnobType::Bool_Checkbox:
-                    knobPtr->SetBoolValue(opt.GetValueOrDefault(knobPtr->GetBoolValue()));
-                    break;
-            }
+    for (auto pair : mKnobs) {
+        auto knobPtr = pair.second;
+        if (knobPtr->GetType() == KnobType::Bool_Checkbox) {
+            knobPtr->SetBoolValue(cli.GetExtraOptionValueOrDefault(knobPtr->GetFlagName(), knobPtr->GetBoolValue()));
         }
     }
     return true;
@@ -162,17 +159,17 @@ bool KnobManager::ParseOptions(std::unordered_map<std::string, CliOptions::Optio
 
 void KnobManager::InsertKnob(int id, Knob* knobPtr)
 {
-    knobs.insert(std::make_pair(id, knobPtr));
+    mKnobs.insert(std::make_pair(id, knobPtr));
 }
 
 void KnobManager::ConfigureParent(Knob* knobPtr, int parentId)
 {
-    auto parentPtr = GetKnob(parentId, true);
+    auto parentPtr = GetKnob(parentId);
     if (parentPtr) {
         parentPtr->AddChild(knobPtr);
     }
     else {
-        drawOrder.push_back(knobPtr);
+        mDrawOrder.push_back(knobPtr);
     }
 }
 
