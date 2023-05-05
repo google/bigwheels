@@ -132,6 +132,18 @@ private:
         ppx::Log::Get()->Unlock();                   \
     }
 
+#define PPX_LOG_WARN_ONCE(MSG)                         \
+    if (ppx::Log::IsActive()) {                        \
+        ppx::Log::Get()->Lock();                       \
+        static bool ppxLogWarnOnce = false;            \
+        if(!ppxLogWarnOnce) {                          \
+            (*ppx::Log::Get()) << MSG << PPX_LOG_ENDL; \
+        }                                              \
+        ppxLogWarnOnce = true;                         \
+        ppx::Log::Get()->Flush(ppx::LOG_LEVEL_WARN);   \
+        ppx::Log::Get()->Unlock();                     \
+    }
+
 #define PPX_LOG_DEBUG(MSG)                            \
     if (ppx::Log::IsActive()) {                       \
         ppx::Log::Get()->Lock();                      \

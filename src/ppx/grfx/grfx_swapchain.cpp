@@ -148,10 +148,6 @@ void Swapchain::DestroyColorImages()
 
 Result Swapchain::CreateDepthImages()
 {
-#if defined(PPX_BUILD_XR)
-    PPX_ASSERT_MSG(false, "Swapchain::CreateDepthImages() is meant for non-XR applications, was it called by mistake?");
-#endif
-
     if ((mCreateInfo.depthFormat != grfx::FORMAT_UNDEFINED) && mDepthImages.empty()) {
         for (uint32_t i = 0; i < mCreateInfo.imageCount; ++i) {
             grfx::ImageCreateInfo dpCreateInfo = ImageCreateInfo::DepthStencilTarget(mCreateInfo.width, mCreateInfo.height, mCreateInfo.depthFormat);
@@ -173,10 +169,6 @@ Result Swapchain::CreateDepthImages()
 
 void Swapchain::DestroyDepthImages()
 {
-#if defined(PPX_BUILD_XR)
-    PPX_ASSERT_MSG(false, "Swapchain::DestroyDepthImages() is meant for non-XR applications, was it called by mistake?");
-#endif
-
     for (auto& elem : mDepthImages) {
         if (elem) {
             GetDevice()->DestroyImage(elem);
@@ -243,10 +235,6 @@ Result Swapchain::CreateRenderPasses()
 
 void Swapchain::DestroyRenderPasses()
 {
-#if defined(PPX_BUILD_XR)
-    PPX_ASSERT_MSG(false, "Swapchain::DestroyRenderPasses() is meant for non-XR applications, was it called by mistake?");
-#endif
-
     for (auto& elem : mClearRenderPasses) {
         if (elem) {
             GetDevice()->DestroyRenderPass(elem);

@@ -162,6 +162,9 @@ public:
     const float3& GetBoundingBoxMin() const { return mBoundingBoxMin; }
     const float3& GetBoundingBoxMax() const { return mBoundingBoxMax; }
 
+    // Preallocates triangle, position, color, normal, texture and tangent data (as desired) based on the provided triangle count.
+    // Using this avoids doing those allocations (potentially multiple times) during the data load.
+    void     PreallocateForTriangleCount(size_t triangleCount, bool enableColors, bool enableNormals, bool enableTexCoords, bool enableTangents);
     uint32_t AppendTriangle(uint32_t v0, uint32_t v1, uint32_t v2);
     uint32_t AppendPosition(const float3& value);
     uint32_t AppendColor(const float3& value);

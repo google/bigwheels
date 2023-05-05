@@ -237,7 +237,8 @@ Result CreateImageFromBitmap(
         SCOPED_DESTROYER.AddObject(targetImage);
     }
 
-    Mipmap mipmap = Mipmap(*pBitmap, mipLevelCount);
+    // Since this mipmap is temporary, it's safe to use the static pool.
+    Mipmap mipmap = Mipmap(*pBitmap, mipLevelCount, /* useStaticPool= */ true);
     if (!mipmap.IsOk()) {
         return ppx::ERROR_FAILED;
     }
@@ -935,7 +936,8 @@ Result CreateTextureFromBitmap(
         SCOPED_DESTROYER.AddObject(targetTexture);
     }
 
-    Mipmap mipmap = Mipmap(*pBitmap, mipLevelCount);
+    // Since this mipmap is temporary, it's safe to use the static pool.
+    Mipmap mipmap = Mipmap(*pBitmap, mipLevelCount, /* useStaticPool= */ true);
     if (!mipmap.IsOk()) {
         return ppx::ERROR_FAILED;
     }
