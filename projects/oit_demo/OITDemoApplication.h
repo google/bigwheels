@@ -233,20 +233,23 @@ private:
 
     struct
     {
-        grfx::TexturePtr  layerTextures[DEPTH_PEELING_LAYERS_COUNT];
-        grfx::TexturePtr  depthTextures[DEPTH_PEELING_DEPTH_TEXTURES_COUNT];
-        grfx::DrawPassPtr layerPasses[DEPTH_PEELING_LAYERS_COUNT];
+        struct
+        {
+            grfx::TexturePtr  layerTextures[DEPTH_PEELING_LAYERS_COUNT];
+            grfx::TexturePtr  depthTextures[DEPTH_PEELING_DEPTH_TEXTURES_COUNT];
+            grfx::DrawPassPtr layerPasses[DEPTH_PEELING_LAYERS_COUNT];
 
-        grfx::DescriptorSetLayoutPtr layerDescriptorSetLayout;
-        grfx::DescriptorSetPtr       layerDescriptorSets[DEPTH_PEELING_DEPTH_TEXTURES_COUNT];
-        grfx::PipelineInterfacePtr   layerPipelineInterface;
-        grfx::GraphicsPipelinePtr    layerPipeline_OtherLayers;
-        grfx::GraphicsPipelinePtr    layerPipeline_FirstLayer;
+            grfx::DescriptorSetLayoutPtr layerDescriptorSetLayout;
+            grfx::DescriptorSetPtr       layerDescriptorSets[DEPTH_PEELING_DEPTH_TEXTURES_COUNT];
+            grfx::PipelineInterfacePtr   layerPipelineInterface;
+            grfx::GraphicsPipelinePtr    layerPipeline_OtherLayers;
+            grfx::GraphicsPipelinePtr    layerPipeline_FirstLayer;
 
-        grfx::DescriptorSetLayoutPtr combineDescriptorSetLayout;
-        grfx::DescriptorSetPtr       combineDescriptorSet;
-        grfx::PipelineInterfacePtr   combinePipelineInterface;
-        grfx::GraphicsPipelinePtr    combinePipeline;
+            grfx::DescriptorSetLayoutPtr combineDescriptorSetLayout;
+            grfx::DescriptorSetPtr       combineDescriptorSet;
+            grfx::PipelineInterfacePtr   combinePipelineInterface;
+            grfx::GraphicsPipelinePtr    combinePipeline;
+        } single;
     } mDepthPeeling;
 
     struct

@@ -33,7 +33,7 @@ void OITDemoApp::SetupDepthPeeling()
         createInfo.initialState                    = grfx::RESOURCE_STATE_SHADER_RESOURCE;
 
         for (uint32_t i = 0; i < DEPTH_PEELING_LAYERS_COUNT; ++i) {
-            PPX_CHECKED_CALL(GetDevice()->CreateTexture(&createInfo, &mDepthPeeling.layerTextures[i]));
+            PPX_CHECKED_CALL(GetDevice()->CreateTexture(&createInfo, &mDepthPeeling.single.layerTextures[i]));
         }
     }
 
@@ -41,8 +41,8 @@ void OITDemoApp::SetupDepthPeeling()
     {
         grfx::TextureCreateInfo createInfo                = {};
         createInfo.imageType                              = grfx::IMAGE_TYPE_2D;
-        createInfo.width                                  = mDepthPeeling.layerTextures[0]->GetWidth();
-        createInfo.height                                 = mDepthPeeling.layerTextures[0]->GetHeight();
+        createInfo.width                                  = mDepthPeeling.single.layerTextures[0]->GetWidth();
+        createInfo.height                                 = mDepthPeeling.single.layerTextures[0]->GetHeight();
         createInfo.depth                                  = 1;
         createInfo.imageFormat                            = mOpaquePass->GetDepthStencilTexture()->GetDepthStencilViewFormat();
         createInfo.sampleCount                            = grfx::SAMPLE_COUNT_1;
@@ -55,24 +55,24 @@ void OITDemoApp::SetupDepthPeeling()
         createInfo.initialState                           = grfx::RESOURCE_STATE_SHADER_RESOURCE;
 
         for (uint32_t i = 0; i < DEPTH_PEELING_DEPTH_TEXTURES_COUNT; ++i) {
-            PPX_CHECKED_CALL(GetDevice()->CreateTexture(&createInfo, &mDepthPeeling.depthTextures[i]));
+            PPX_CHECKED_CALL(GetDevice()->CreateTexture(&createInfo, &mDepthPeeling.single.depthTextures[i]));
         }
     }
 
     // Pass
     {
         grfx::DrawPassCreateInfo2 createInfo  = {};
-        createInfo.width                      = mDepthPeeling.layerTextures[0]->GetWidth();
-        createInfo.height                     = mDepthPeeling.layerTextures[0]->GetHeight();
+        createInfo.width                      = mDepthPeeling.single.layerTextures[0]->GetWidth();
+        createInfo.height                     = mDepthPeeling.single.layerTextures[0]->GetHeight();
         createInfo.renderTargetCount          = 1;
         createInfo.depthStencilState          = grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE;
         createInfo.renderTargetClearValues[0] = {0, 0, 0, 0};
         createInfo.depthStencilClearValue     = {1.0f, 0xFF};
 
         for (uint32_t i = 0; i < DEPTH_PEELING_LAYERS_COUNT; ++i) {
-            createInfo.pRenderTargetImages[0] = mDepthPeeling.layerTextures[i]->GetImage();
-            createInfo.pDepthStencilImage     = mDepthPeeling.depthTextures[i % DEPTH_PEELING_DEPTH_TEXTURES_COUNT]->GetImage();
-            PPX_CHECKED_CALL(GetDevice()->CreateDrawPass(&createInfo, &mDepthPeeling.layerPasses[i]));
+            createInfo.pRenderTargetImages[0] = mDepthPeeling.single.layerTextures[i]->GetImage();
+            createInfo.pDepthStencilImage     = mDepthPeeling.single.depthTextures[i % DEPTH_PEELING_DEPTH_TEXTURES_COUNT]->GetImage();
+            PPX_CHECKED_CALL(GetDevice()->CreateDrawPass(&createInfo, &mDepthPeeling.single.layerPasses[i]));
         }
     }
 
@@ -87,10 +87,10 @@ void OITDemoApp::SetupDepthPeeling()
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_SAMPLER_0_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_TEXTURE_0_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_TEXTURE_1_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
-        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mDepthPeeling.layerDescriptorSetLayout));
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mDepthPeeling.single.layerDescriptorSetLayout));
 
         for (uint32_t i = 0; i < DEPTH_PEELING_DEPTH_TEXTURES_COUNT; ++i) {
-            PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mDepthPeeling.layerDescriptorSetLayout, &mDepthPeeling.layerDescriptorSets[i]));
+            PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mDepthPeeling.single.layerDescriptorSetLayout, &mDepthPeeling.single.layerDescriptorSets[i]));
 
             std::array<grfx::WriteDescriptor, 4> writes = {};
 
@@ -112,9 +112,9 @@ void OITDemoApp::SetupDepthPeeling()
             writes[3].binding    = CUSTOM_TEXTURE_1_REGISTER;
             writes[3].arrayIndex = 0;
             writes[3].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-            writes[3].pImageView = mDepthPeeling.depthTextures[(i + 1) % DEPTH_PEELING_DEPTH_TEXTURES_COUNT]->GetSampledImageView();
+            writes[3].pImageView = mDepthPeeling.single.depthTextures[(i + 1) % DEPTH_PEELING_DEPTH_TEXTURES_COUNT]->GetSampledImageView();
 
-            PPX_CHECKED_CALL(mDepthPeeling.layerDescriptorSets[i]->UpdateDescriptors(static_cast<uint32_t>(writes.size()), writes.data()));
+            PPX_CHECKED_CALL(mDepthPeeling.single.layerDescriptorSets[i]->UpdateDescriptors(static_cast<uint32_t>(writes.size()), writes.data()));
         }
     }
 
@@ -123,8 +123,8 @@ void OITDemoApp::SetupDepthPeeling()
         grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
         piCreateInfo.setCount                          = 1;
         piCreateInfo.sets[0].set                       = 0;
-        piCreateInfo.sets[0].pLayout                   = mDepthPeeling.layerDescriptorSetLayout;
-        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mDepthPeeling.layerPipelineInterface));
+        piCreateInfo.sets[0].pLayout                   = mDepthPeeling.single.layerDescriptorSetLayout;
+        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mDepthPeeling.single.layerPipelineInterface));
 
         grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
         gpCreateInfo.vertexInputState.bindingCount      = 1;
@@ -137,9 +137,9 @@ void OITDemoApp::SetupDepthPeeling()
         gpCreateInfo.depthWriteEnable                   = true;
         gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
         gpCreateInfo.outputState.renderTargetCount      = 1;
-        gpCreateInfo.outputState.renderTargetFormats[0] = mDepthPeeling.layerTextures[0]->GetImageFormat();
-        gpCreateInfo.outputState.depthStencilFormat     = mDepthPeeling.depthTextures[0]->GetImageFormat();
-        gpCreateInfo.pPipelineInterface                 = mDepthPeeling.layerPipelineInterface;
+        gpCreateInfo.outputState.renderTargetFormats[0] = mDepthPeeling.single.layerTextures[0]->GetImageFormat();
+        gpCreateInfo.outputState.depthStencilFormat     = mDepthPeeling.single.depthTextures[0]->GetImageFormat();
+        gpCreateInfo.pPipelineInterface                 = mDepthPeeling.single.layerPipelineInterface;
 
         grfx::ShaderModulePtr VS, PS;
 
@@ -147,7 +147,7 @@ void OITDemoApp::SetupDepthPeeling()
         PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "DepthPeelingLayer_First.ps", &PS));
         gpCreateInfo.VS = {VS, "vsmain"};
         gpCreateInfo.PS = {PS, "psmain"};
-        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mDepthPeeling.layerPipeline_FirstLayer));
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mDepthPeeling.single.layerPipeline_FirstLayer));
         GetDevice()->DestroyShaderModule(VS);
         GetDevice()->DestroyShaderModule(PS);
 
@@ -155,7 +155,7 @@ void OITDemoApp::SetupDepthPeeling()
         PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "DepthPeelingLayer_Others.ps", &PS));
         gpCreateInfo.VS = {VS, "vsmain"};
         gpCreateInfo.PS = {PS, "psmain"};
-        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mDepthPeeling.layerPipeline_OtherLayers));
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mDepthPeeling.single.layerPipeline_OtherLayers));
         GetDevice()->DestroyShaderModule(VS);
         GetDevice()->DestroyShaderModule(PS);
     }
@@ -170,9 +170,9 @@ void OITDemoApp::SetupDepthPeeling()
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{SHADER_GLOBALS_REGISTER, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_SAMPLER_0_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{CUSTOM_TEXTURE_0_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, DEPTH_PEELING_LAYERS_COUNT, grfx::SHADER_STAGE_ALL_GRAPHICS});
-        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mDepthPeeling.combineDescriptorSetLayout));
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mDepthPeeling.single.combineDescriptorSetLayout));
 
-        PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mDepthPeeling.combineDescriptorSetLayout, &mDepthPeeling.combineDescriptorSet));
+        PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mDepthPeeling.single.combineDescriptorSetLayout, &mDepthPeeling.single.combineDescriptorSet));
 
         std::array<grfx::WriteDescriptor, 2 + DEPTH_PEELING_LAYERS_COUNT> writes = {};
 
@@ -190,10 +190,10 @@ void OITDemoApp::SetupDepthPeeling()
             writes[2 + i].binding    = CUSTOM_TEXTURE_0_REGISTER;
             writes[2 + i].arrayIndex = i;
             writes[2 + i].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-            writes[2 + i].pImageView = mDepthPeeling.layerTextures[i]->GetSampledImageView();
+            writes[2 + i].pImageView = mDepthPeeling.single.layerTextures[i]->GetSampledImageView();
         }
 
-        PPX_CHECKED_CALL(mDepthPeeling.combineDescriptorSet->UpdateDescriptors(static_cast<uint32_t>(writes.size()), writes.data()));
+        PPX_CHECKED_CALL(mDepthPeeling.single.combineDescriptorSet->UpdateDescriptors(static_cast<uint32_t>(writes.size()), writes.data()));
     }
 
     // Pipeline
@@ -201,8 +201,8 @@ void OITDemoApp::SetupDepthPeeling()
         grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
         piCreateInfo.setCount                          = 1;
         piCreateInfo.sets[0].set                       = 0;
-        piCreateInfo.sets[0].pLayout                   = mDepthPeeling.combineDescriptorSetLayout;
-        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mDepthPeeling.combinePipelineInterface));
+        piCreateInfo.sets[0].pLayout                   = mDepthPeeling.single.combineDescriptorSetLayout;
+        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mDepthPeeling.single.combinePipelineInterface));
 
         grfx::ShaderModulePtr VS, PS;
         PPX_CHECKED_CALL(CreateShader("oit_demo/shaders", "DepthPeelingCombine.vs", &VS));
@@ -222,8 +222,8 @@ void OITDemoApp::SetupDepthPeeling()
         gpCreateInfo.outputState.renderTargetCount      = 1;
         gpCreateInfo.outputState.renderTargetFormats[0] = mTransparencyTexture->GetImageFormat();
         gpCreateInfo.outputState.depthStencilFormat     = mOpaquePass->GetDepthStencilTexture()->GetImageFormat();
-        gpCreateInfo.pPipelineInterface                 = mDepthPeeling.combinePipelineInterface;
-        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mDepthPeeling.combinePipeline));
+        gpCreateInfo.pPipelineInterface                 = mDepthPeeling.single.combinePipelineInterface;
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mDepthPeeling.single.combinePipeline));
 
         GetDevice()->DestroyShaderModule(VS);
         GetDevice()->DestroyShaderModule(PS);
@@ -234,7 +234,7 @@ void OITDemoApp::RecordDepthPeeling()
 {
     // Layer passes: extract all layers
     for (uint32_t i = 0; i < DEPTH_PEELING_LAYERS_COUNT; ++i) {
-        grfx::DrawPassPtr layerPass = mDepthPeeling.layerPasses[i];
+        grfx::DrawPassPtr layerPass = mDepthPeeling.single.layerPasses[i];
         mCommandBuffer->TransitionImageLayout(
             layerPass,
             grfx::RESOURCE_STATE_SHADER_RESOURCE,
@@ -246,8 +246,8 @@ void OITDemoApp::RecordDepthPeeling()
         mCommandBuffer->SetScissors(layerPass->GetScissor());
         mCommandBuffer->SetViewports(layerPass->GetViewport());
 
-        mCommandBuffer->BindGraphicsDescriptorSets(mDepthPeeling.layerPipelineInterface, 1, &mDepthPeeling.layerDescriptorSets[i % DEPTH_PEELING_DEPTH_TEXTURES_COUNT]);
-        mCommandBuffer->BindGraphicsPipeline(i == 0 ? mDepthPeeling.layerPipeline_FirstLayer : mDepthPeeling.layerPipeline_OtherLayers);
+        mCommandBuffer->BindGraphicsDescriptorSets(mDepthPeeling.single.layerPipelineInterface, 1, &mDepthPeeling.single.layerDescriptorSets[i % DEPTH_PEELING_DEPTH_TEXTURES_COUNT]);
+        mCommandBuffer->BindGraphicsPipeline(i == 0 ? mDepthPeeling.single.layerPipeline_FirstLayer : mDepthPeeling.single.layerPipeline_OtherLayers);
         mCommandBuffer->BindIndexBuffer(GetTransparentMesh());
         mCommandBuffer->BindVertexBuffers(GetTransparentMesh());
         mCommandBuffer->DrawIndexed(GetTransparentMesh()->GetIndexCount());
@@ -274,8 +274,8 @@ void OITDemoApp::RecordDepthPeeling()
         mCommandBuffer->SetScissors(mTransparencyPass->GetScissor());
         mCommandBuffer->SetViewports(mTransparencyPass->GetViewport());
 
-        mCommandBuffer->BindGraphicsDescriptorSets(mDepthPeeling.combinePipelineInterface, 1, &mDepthPeeling.combineDescriptorSet);
-        mCommandBuffer->BindGraphicsPipeline(mDepthPeeling.combinePipeline);
+        mCommandBuffer->BindGraphicsDescriptorSets(mDepthPeeling.single.combinePipelineInterface, 1, &mDepthPeeling.single.combineDescriptorSet);
+        mCommandBuffer->BindGraphicsPipeline(mDepthPeeling.single.combinePipeline);
         mCommandBuffer->Draw(3);
 
         mCommandBuffer->EndRenderPass();
