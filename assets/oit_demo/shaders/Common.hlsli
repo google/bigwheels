@@ -34,7 +34,7 @@
 #define CUSTOM_UAV_2_REGISTER         SHADER_REGISTER(u, 13)
 #define CUSTOM_UAV_3_REGISTER         SHADER_REGISTER(u, 14)
 
-#define EPSILON 0.0001f
+#define FLOAT_EPSILON                           1.192092896e-07f
 
 #define DEPTH_PEELING_LAYERS_COUNT              8
 #define DEPTH_PEELING_DEPTH_TEXTURES_COUNT      2

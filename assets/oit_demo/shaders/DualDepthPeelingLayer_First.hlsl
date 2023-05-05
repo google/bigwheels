@@ -16,28 +16,22 @@
 #include "Common.hlsli"
 #include "TransparencyVS.hlsli"
 
-struct PSOutput
-{
-    float4 color    : SV_TARGET0;
-#if defined(WEIGHTED_AVERAGE_FRAGMENT_COUNT)
-    float  count    : SV_TARGET1;
-#elif defined(WEIGHTED_AVERAGE_EXACT_COVERAGE)
-    float  coverage : SV_TARGET1;
-#else
-#error
-#endif
-};
+SamplerState NearestSampler     : register(CUSTOM_SAMPLER_0_REGISTER);
+Texture2D    OpaqueDepthTexture : register(CUSTOM_TEXTURE_0_REGISTER);
 
-PSOutput psmain(VSOutput input)
+float2 psmain(VSOutput input) : SV_TARGET
 {
-    PSOutput output = (PSOutput)0;
-    output.color    = float4(input.color * g_Globals.meshOpacity, g_Globals.meshOpacity);
-#if defined(WEIGHTED_AVERAGE_FRAGMENT_COUNT)
-    output.count    = 1.0f;
-#elif defined(WEIGHTED_AVERAGE_EXACT_COVERAGE)
-    output.coverage = (1.0f - g_Globals.meshOpacity);
-#else
-#error
-#endif
-    return output;
+    float2 textureDimension = (float2)0;
+    OpaqueDepthTexture.GetDimensions(textureDimension.x, textureDimension.y);
+    const float2 uv = input.position.xy / textureDimension;
+
+    const float fragmentDepth = input.position.z;
+
+    // Test against opaque depth
+    {
+        const float opaqueDepth = OpaqueDepthTexture.Sample(NearestSampler, uv).r;
+        clip(fragmentDepth < opaqueDepth ? 1.0f : -1.0f);
+    }
+
+    return float2(-fragmentDepth, fragmentDepth);
 }

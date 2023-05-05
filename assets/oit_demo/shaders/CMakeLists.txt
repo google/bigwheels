@@ -104,6 +104,24 @@ generate_rules_for_shader(
     STAGES "ps" "vs")
 
 generate_rules_for_shader(
+    "dual_depth_peeling_layer_first"
+	SOURCE "${PPX_DIR}/assets/oit_demo/shaders/DualDepthPeelingLayer_First.hlsl"
+    INCLUDES ${TRANSPARENCY_INCLUDE_FILES}
+    STAGES "ps" "vs")
+
+generate_rules_for_shader(
+    "dual_depth_peeling_layer_others"
+    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/DualDepthPeelingLayer_Others.hlsl"
+    INCLUDES ${TRANSPARENCY_INCLUDE_FILES}
+    STAGES "ps" "vs")
+
+generate_rules_for_shader(
+    "dual_depth_peeling_combine"
+    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/DualDepthPeelingCombine.hlsl"
+    INCLUDES ${FULLSCREEN_INCLUDE_FILES}
+    STAGES "ps" "vs")
+
+generate_rules_for_shader(
     "buffer_buckets_gather"
     SOURCE "${PPX_DIR}/assets/oit_demo/shaders/BufferBucketsGather.hlsl"
     INCLUDES ${TRANSPARENCY_INCLUDE_FILES}
@@ -142,6 +160,9 @@ generate_group_rule_for_shader(
     "depth_peeling_layer_first"
     "depth_peeling_layer_others"
     "depth_peeling_combine"
+    "dual_depth_peeling_layer_first"
+    "dual_depth_peeling_layer_others"
+    "dual_depth_peeling_combine"
     "buffer_buckets_gather"
     "buffer_buckets_combine"
     "buffer_linked_lists_gather"

@@ -28,10 +28,11 @@ Texture2D<float> CoverageTexture : register(CUSTOM_TEXTURE_1_REGISTER);
 
 float4 psmain(VSOutput input) : SV_TARGET
 {
-    const float4 colorInfo    = ColorTexture.Sample(NearestSampler, input.uv);
-    const float3 colorSum     = colorInfo.rgb;
-    const float  alphaSum     = max(colorInfo.a, EPSILON);
-    const float3 averageColor = colorSum / alphaSum;
+    const float4 colorInfo     = ColorTexture.Sample(NearestSampler, input.uv);
+    const float3 colorSum      = colorInfo.rgb;
+	const float  ALPHA_SUM_MIN = 0.0001f;
+    const float  alphaSum      = max(colorInfo.a, ALPHA_SUM_MIN);
+    const float3 averageColor  = colorSum / alphaSum;
 
 #if defined(WEIGHTED_AVERAGE_FRAGMENT_COUNT)
     const uint count     = max(1, (uint)CountTexture.Sample(NearestSampler, input.uv));
