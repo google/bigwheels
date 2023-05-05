@@ -1079,7 +1079,7 @@ int Application::Run(int argc, char** argv)
         DispatchSetup();
 
         double setupEndTime = timer.SecondsSinceStart();
-        float  fnElapsed = static_cast<float>(setupEndTime - setupStartTime);
+        float  fnElapsed    = static_cast<float>(setupEndTime - setupStartTime);
         PPX_LOG_INFO("Setup() took " << FloatString(fnElapsed) << " seconds to complete");
     }
 
