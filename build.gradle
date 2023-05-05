@@ -65,6 +65,7 @@ android {
         triangle      defineFlavor('01_triangle')
         cube          defineFlavor('04_cube')
         cubexr        defineFlavor('04_cube_xr')
+        basicmaterial defineFlavor('15_basic_material')
         gbuffer       defineFlavor('16_gbuffer')
         fishtornado   defineFlavor('fishtornado')
         fishtornadoxr defineFlavor('fishtornado_xr')
@@ -149,7 +150,7 @@ android {
             manifest.srcFile 'src/android/AndroidManifest.xml'
             java.srcDirs = [ 'src/android' ]
             assets {
-                srcDirs 'assets'
+                srcDirs 'assets', "third_party/assets"
             }
         }
         openxr {
