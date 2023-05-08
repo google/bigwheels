@@ -19,9 +19,6 @@
 #include "ppx/graphics_util.h"
 #include "ppx/random.h"
 
-#define NUM_THREADS_X 8
-#define NUM_THREADS_Y 8
-
 static uint32_t PreviousFrameIndex(uint32_t frameIndex, uint32_t numFrameInFlights)
 {
     uint32_t previousFrameIndex = (frameIndex == 0) ? (numFrameInFlights - 1) : (frameIndex)-1;
@@ -33,8 +30,6 @@ static uint32_t PreviousFrameIndex(uint32_t frameIndex, uint32_t numFrameInFligh
 // -------------------------------------------------------------------------------------------------
 Flocking::Flocking()
 {
-    mResX       = 128; // Gets rounded up to NUM_THREADS_X
-    mResY       = 128; // Gets rounded up to NUM_THREADS_Y
     mMinThresh  = 0.55f;
     mMaxThresh  = 0.85f;
     mMinSpeed   = 2.0f; //1.5
@@ -245,16 +240,19 @@ void Flocking::SetupPipelines()
     mShadowPipeline = pApp->CreateShadowPipeline(pApp->GetAssetPath("fishtornado/shaders"), "FlockingShadow.vs", mForwardPipelineInterface);
 }
 
-void Flocking::Setup(uint32_t numFramesInFlight)
+void Flocking::Setup(uint32_t numFramesInFlight, const FishTornadoSettings& settings)
 {
     FishTornadoApp*         pApp   = FishTornadoApp::GetThisApp();
     grfx::DevicePtr         device = pApp->GetDevice();
     grfx::QueuePtr          queue  = pApp->GetGraphicsQueue();
     grfx::DescriptorPoolPtr pool   = pApp->GetDescriptorPool();
 
-    // Round up resolution to nearest NUM_THREADS_X and NUM_THREADS_Y
-    mResX = RoundUp<uint32_t>(mResX, NUM_THREADS_X);
-    mResY = RoundUp<uint32_t>(mResX, NUM_THREADS_Y);
+    mThreadsX = settings.fishThreadsX;
+    mThreadsY = settings.fishThreadsY;
+
+    // Round up resolution to nearest mThreadsX and mThreadsY.
+    mResX = RoundUp<uint32_t>(settings.fishResX, mThreadsX);
+    mResY = RoundUp<uint32_t>(settings.fishResY, mThreadsY);
 
     // Fill initial data for velocity texture
     Bitmap velocityData = Bitmap::Create(mResX, mResY, ppx::Bitmap::FORMAT_RGBA_FLOAT);
@@ -397,8 +395,8 @@ void Flocking::BeginCompute(uint32_t frameIndex, grfx::CommandBuffer* pCmd, bool
 
 void Flocking::Compute(uint32_t frameIndex, grfx::CommandBuffer* pCmd)
 {
-    uint32_t groupCountX = mResX / NUM_THREADS_X;
-    uint32_t groupCountY = mResY / NUM_THREADS_Y;
+    uint32_t groupCountX = mResX / mThreadsX;
+    uint32_t groupCountY = mResY / mThreadsY;
     uint32_t groupCountZ = 1;
 
     PerFrame& frame = mPerFrame[frameIndex];
