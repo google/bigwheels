@@ -1097,7 +1097,17 @@ int Application::Run(int argc, char** argv)
     }
 
     // Call setup
-    DispatchSetup();
+    {
+        Timer timer;
+        PPX_ASSERT_MSG(timer.Start() == ppx::TIMER_RESULT_SUCCESS, "timer start failed");
+        double setupStartTime = timer.SecondsSinceStart();
+
+        DispatchSetup();
+
+        double setupEndTime = timer.SecondsSinceStart();
+        float  fnElapsed    = static_cast<float>(setupEndTime - setupStartTime);
+        PPX_LOG_INFO("Setup() took " << FloatString(fnElapsed) << " seconds to complete");
+    }
 
     // ---------------------------------------------------------------------------------------------
     // Main loop [BEGIN]

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "ppx/mipmap.h"
+#include "ppx/fs.h"
 #include "ppx/timer.h"
 
 #include "stb_image.h"
@@ -247,6 +248,12 @@ Result Mipmap::LoadFile(const std::filesystem::path& path, uint32_t baseWidth, u
         return ppx::ERROR_BITMAP_FOOTPRINT_MISMATCH;
     }
 
+    // Load file
+    auto fileBytes = ppx::fs::load_file(path);
+    if (!fileBytes.has_value()) {
+        return ppx::ERROR_IMAGE_FILE_LOAD_FAILED;
+    }
+
     // Load bitmap
     void* pStbiData            = nullptr;
     int   stbiWidth            = 0;
@@ -254,10 +261,22 @@ Result Mipmap::LoadFile(const std::filesystem::path& path, uint32_t baseWidth, u
     int   stbiChannels         = 0;
     int   stbiRequiredChannels = 4; // Force to 4 chanenls to make things easier for the graphics APIs
     if (Bitmap::ChannelDataType(format) == Bitmap::DATA_TYPE_UINT8) {
-        pStbiData = stbi_load(path.string().c_str(), &stbiWidth, &stbiHeight, &stbiChannels, stbiRequiredChannels);
+        pStbiData = stbi_load_from_memory(
+            reinterpret_cast<const stbi_uc*>(fileBytes.value().data()),
+            static_cast<int>(fileBytes.value().size()),
+            &stbiWidth,
+            &stbiHeight,
+            &stbiChannels,
+            stbiRequiredChannels);
     }
     else if (Bitmap::ChannelDataType(format) == Bitmap::DATA_TYPE_FLOAT) {
-        pStbiData = stbi_loadf(path.string().c_str(), &stbiWidth, &stbiHeight, &stbiChannels, stbiRequiredChannels);
+        pStbiData = stbi_loadf_from_memory(
+            reinterpret_cast<const stbi_uc*>(fileBytes.value().data()),
+            static_cast<int>(fileBytes.value().size()),
+            &stbiWidth,
+            &stbiHeight,
+            &stbiChannels,
+            stbiRequiredChannels);
     }
 
     if (IsNull(pStbiData)) {

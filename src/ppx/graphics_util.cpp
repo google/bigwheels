@@ -16,6 +16,7 @@
 #include "ppx/generate_mip_shader_DX.h"
 #include "ppx/graphics_util.h"
 #include "ppx/bitmap.h"
+#include "ppx/fs.h"
 #include "ppx/mipmap.h"
 #include "ppx/timer.h"
 #include "ppx/grfx/grfx_buffer.h"
@@ -1157,8 +1158,13 @@ Result CreateIBLTexturesFromFile(
     PPX_ASSERT_NULL_ARG(ppIrradianceTexture);
     PPX_ASSERT_NULL_ARG(ppEnvironmentTexture);
 
-    std::ifstream is = std::ifstream(path.string().c_str());
-    if (!is.is_open()) {
+    auto fileBytes = ppx::fs::load_file(path);
+    if (!fileBytes.has_value()) {
+        return ppx::ERROR_IMAGE_FILE_LOAD_FAILED;
+    }
+
+    auto is = std::istringstream(std::string(fileBytes.value().data(), fileBytes.value().size()));
+    if (!is.good()) {
         return ppx::ERROR_IMAGE_FILE_LOAD_FAILED;
     }
 
@@ -1188,6 +1194,10 @@ Result CreateIBLTexturesFromFile(
         return ppxres;
     }
 
+    Timer timer;
+    PPX_ASSERT_MSG(timer.Start() == ppx::TIMER_RESULT_SUCCESS, "timer start failed");
+    double fnStartTime = timer.SecondsSinceStart();
+
     // Load IBL environment map - this is stored as a bitmap on disk
     std::filesystem::path envFilePath = path.parent_path() / envFile;
     Mipmap                mipmap      = {};
@@ -1201,6 +1211,10 @@ Result CreateIBLTexturesFromFile(
     if (Failed(ppxres)) {
         return ppxres;
     }
+
+    double fnEndTime = timer.SecondsSinceStart();
+    float  fnElapsed = static_cast<float>(fnEndTime - fnStartTime);
+    PPX_LOG_INFO("Created texture from mipmap file: " << envFilePath << " (" << FloatString(fnElapsed) << " seconds)");
 
     return ppx::SUCCESS;
 }
