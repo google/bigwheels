@@ -3,10 +3,6 @@ plugins {
     id 'com.android.library' version '7.3.1' apply false
 }
 
-ext {
-  oculusOpenxrSdkLocation = System.getenv('OCULUS_OPENXR_SDK')
-}
-
 android {
     namespace 'com.google.bigwheels'
     compileSdk 32
@@ -105,9 +101,8 @@ android {
                 cmake {
                   arguments '-DPPX_BUILD_XR=TRUE',
                             '-DPPX_XR_QUEST=TRUE',
-                            '-DBUILD_LOADER=FALSE',
-                            '-DBUILD_ALL_EXTENSIONS=FALSE',
-                            "-DOCULUS_OPENXR_SDK=${oculusOpenxrSdkLocation}"
+                            '-DBUILD_LOADER=TRUE',
+                            '-DBUILD_ALL_EXTENSIONS=FALSE'
                   cppFlags '-DXR_USE_PLATFORM_ANDROID'
                 }
             }
