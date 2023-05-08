@@ -137,6 +137,8 @@ void FishTornadoApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.swapchain.imageCount  = 3;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
 
+    settings.grfx.enableDebug = true;
+
     settings.grfx.device.computeQueueCount = 1;
 }
 

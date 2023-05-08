@@ -79,7 +79,7 @@ function(internal_generate_rules_for_shader TARGET_NAME)
     if (PPX_D3D12)
         internal_add_compile_shader_target(
             "dx12_${TARGET_NAME}_${ARG_SHADER_STAGE}"
-            COMPILER_PATH "${DXC_PATH}"
+            COMPILER_PATH "${D3D12_DXC_PATH}"
             SOURCE "${ARG_SOURCE}"
 			INCLUDE_DIRS ${ARG_INCLUDE_DIRS}
             INCLUDES ${ARG_INCLUDES}
@@ -103,7 +103,7 @@ function(internal_generate_rules_for_shader TARGET_NAME)
 
         internal_add_compile_shader_target(
             "vk_${TARGET_NAME}_${ARG_SHADER_STAGE}"
-            COMPILER_PATH "${DXC_PATH}"
+            COMPILER_PATH "${VULKAN_DXC_PATH}"
             SOURCE "${ARG_SOURCE}"
 			INCLUDE_DIRS ${ARG_INCLUDE_DIRS}
             INCLUDES ${ARG_INCLUDES}

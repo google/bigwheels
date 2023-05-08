@@ -27,31 +27,6 @@ option(PPX_BUILD_PROJECTS "Build sample projets" ON)
 option(PPX_BUILD_BENCHMARKS "Build benchmarks projects" ON)
 
 # ------------------------------------------------------------------------------
-# Detect DXC presence. This is REQUIRED to compile DXIL and SPIR-V shaders.
-# ------------------------------------------------------------------------------
-
-message(CHECK_START "Looking for DXC")
-if (NOT DXC_PATH)
-    message(STATUS "DXC_PATH not set. Looking for Vulkan SDK path in ENV")
-    if (DEFINED ENV{VULKAN_SDK})
-        if (CMAKE_HOST_WIN32)
-            set(DXC_PATH "$ENV{VULKAN_SDK}\\Bin\\dxc.exe")
-        else ()
-            set(DXC_PATH "$ENV{VULKAN_SDK}/bin/dxc")
-        endif ()
-    endif ()
-endif ()
-
-if ((NOT DXC_PATH) OR (NOT EXISTS "${DXC_PATH}"))
-    message(CHECK_FAIL "Cannot open DXC at ${DXC_PATH}")
-    message(FATAL_ERROR "DXC is required.")
-else ()
-    message(CHECK_PASS "found")
-endif ()
-
-message(STATUS "DXC_PATH: ${DXC_PATH}")
-
-# ------------------------------------------------------------------------------
 # Configure target platform.
 # ------------------------------------------------------------------------------
 
@@ -93,6 +68,60 @@ endif ()
 message("Graphics API D3D12    : ${PPX_D3D12}")
 message("Graphics API Vulkan   : ${PPX_VULKAN}")
 
+# ------------------------------------------------------------------------------
+# Detect DXC presence. This is REQUIRED to compile DXIL and SPIR-V shaders.
+# ------------------------------------------------------------------------------
+
+message(CHECK_START "Looking for DXC")
+
+if (DEFINED DXC_PATH)
+    set(D3D12_DXC_PATH "${DXC_PATH}")
+    set(VULKAN_DXC_PATH "${DXC_PATH}")
+endif ()
+
+if (DEFINED ENV{VULKAN_SDK})
+    if (CMAKE_HOST_WIN32)
+        set(VULKAN_SDK_DXC_PATH "$ENV{VULKAN_SDK}\\Bin\\dxc.exe")
+    else ()
+        set(VULKAN_SDK_DXC_PATH "$ENV{VULKAN_SDK}/bin/dxc")
+    endif ()
+endif ()
+
+set(D3D12_DXC_PATH "${VULKAN_SDK_DXC_PATH}")
+if (PPX_D3D12 AND NOT D3D12_DXC_PATH)
+    if (EXISTS "$ENV{WindowsSdkDir}bin\\$ENV{WindowsSDKVersion}x64\\dxc.exe")
+        message(STATUS "Found DXC in Windows SDK")
+        set(D3D12_DXC_PATH "$ENV{WindowsSdkDir}bin\\$ENV{WindowsSDKVersion}x64\\dxc.exe")
+    elseif (VULKAN_SDK_DXC_PATH)
+        message(WARNING "Use VulkanSDK's DXC for DXIL")
+        set(D3D12_DXC_PATH "${VULKAN_SDK_DXC_PATH}")
+    endif ()
+endif ()
+
+if (PPX_VULKAN AND NOT VULKAN_DXC_PATH)
+    if (VULKAN_SDK_DXC_PATH)
+        message(STATUS "Found DXC in Vulkan SDK")
+        set(VULKAN_DXC_PATH "${VULKAN_SDK_DXC_PATH}")
+    endif ()
+endif ()
+
+if (PPX_D3D12 AND ((NOT D3D12_DXC_PATH) OR (NOT EXISTS "${D3D12_DXC_PATH}")))
+    message(CHECK_FAIL "Cannot open DXC at ${D3D12_DXC_PATH}")
+    message(FATAL_ERROR "DXC is required.")
+elseif (PPX_VULKAN AND ((NOT VULKAN_DXC_PATH) OR (NOT EXISTS "${VULKAN_DXC_PATH}")))
+    message(CHECK_FAIL "Cannot open DXC for Vulkan at ${VULKAN_DXC_PATH}")
+    message(FATAL_ERROR "DXC is required.")
+else ()
+    message(CHECK_PASS "found")
+endif ()
+
+if (PPX_D3D12)
+    message(STATUS "D3D12_DXC_PATH: ${D3D12_DXC_PATH}")
+endif ()
+
+if (PPX_VULKAN)
+    message(STATUS "VULKAN_DXC_PATH: ${VULKAN_DXC_PATH}")
+endif ()
 # ------------------------------------------------------------------------------
 # Add CMake modules for shader compilation and sample creation.
 # Needs to come after platform and API config.
