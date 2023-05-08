@@ -33,6 +33,20 @@ const grfx::Api kApi = grfx::API_DX_12_0;
 const grfx::Api kApi = grfx::API_VK_1_1;
 #endif
 
+struct FishTornadoSettings
+{
+    bool     usePCF                   = true;
+    bool     forceSingleCommandBuffer = false;
+    bool     useAsyncCompute          = false;
+    bool     renderFish               = true;
+    bool     renderOcean              = true;
+    bool     renderShark              = true;
+    uint32_t fishResX                 = kDefaultFishResX;
+    uint32_t fishResY                 = kDefaultFishResY;
+    uint32_t fishThreadsX             = kDefaultFishThreadsX;
+    uint32_t fishThreadsY             = kDefaultFishThreadsY;
+};
+
 class FishTornadoApp
     : public ppx::Application
 {
@@ -122,12 +136,10 @@ private:
     Flocking                     mFlocking;
     Ocean                        mOcean;
     Shark                        mShark;
-    bool                         mUsePCF                   = true;
     uint64_t                     mTotalGpuFrameTime        = 0;
     grfx::PipelineStatistics     mPipelineStatistics       = {};
-    bool                         mForceSingleCommandBuffer = false;
-    bool                         mUseAsyncCompute          = false;
     bool                         mLastFrameWasAsyncCompute = false;
+    FishTornadoSettings          mSettings;
 
 private:
     void SetupDescriptorPool();

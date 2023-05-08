@@ -407,6 +407,31 @@ void FishTornadoApp::SetupScene()
 
 void FishTornadoApp::Setup()
 {
+    // For boolean options: if the option is present with no value, default to true. Otherwise obey the value.
+    const auto& clOptions         = GetExtraOptions();
+    mSettings.usePCF              = !(clOptions.HasExtraOption("ft-disable-pcf-shadows") && clOptions.GetExtraOptionValueOrDefault<bool>("ft-disable-pcf-shadows", true));
+    bool forceSingleCommandBuffer = (clOptions.HasExtraOption("ft-use-single-command-buffer") && clOptions.GetExtraOptionValueOrDefault<bool>("ft-use-single-command-buffer", true));
+    bool useAsyncCompute          = (clOptions.HasExtraOption("ft-use-async-compute") && clOptions.GetExtraOptionValueOrDefault<bool>("ft-use-async-compute", true));
+    if (forceSingleCommandBuffer && useAsyncCompute) {
+        PPX_LOG_WARN("Single command buffer selected WITH async compute! Disabling async compute!");
+        useAsyncCompute = false;
+    }
+    mSettings.forceSingleCommandBuffer = forceSingleCommandBuffer;
+    mSettings.useAsyncCompute          = useAsyncCompute;
+    mSettings.renderFish               = !(clOptions.HasExtraOption("ft-disable-fish") && clOptions.GetExtraOptionValueOrDefault<bool>("ft-disable-fish", true));
+    mSettings.renderOcean              = !(clOptions.HasExtraOption("ft-disable-ocean") && clOptions.GetExtraOptionValueOrDefault<bool>("ft-disable-ocean", true));
+    mSettings.renderShark              = !(clOptions.HasExtraOption("ft-disable-shark") && clOptions.GetExtraOptionValueOrDefault<bool>("ft-disable-shark", true));
+    mSettings.useTracking              = !(clOptions.HasExtraOption("ft-disable-tracking") && clOptions.GetExtraOptionValueOrDefault<bool>("ft-disable-tracking", true));
+
+    mSettings.fishResX = clOptions.GetExtraOptionValueOrDefault<uint32_t>("ft-fish-res-x", kDefaultFishResX);
+    PPX_ASSERT_MSG(mSettings.fishResX < 65536, "Fish X resolution out-of-range.");
+    mSettings.fishResY = clOptions.GetExtraOptionValueOrDefault<uint32_t>("ft-fish-res-y", kDefaultFishResY);
+    PPX_ASSERT_MSG(mSettings.fishResY < 65536, "Fish Y resolution out-of-range.");
+    mSettings.fishThreadsX = clOptions.GetExtraOptionValueOrDefault<uint32_t>("ft-fish-threads-x", kDefaultFishThreadsX);
+    PPX_ASSERT_MSG(mSettings.fishThreadsX < 65536, "Fish X threads out-of-range.");
+    mSettings.fishThreadsY = clOptions.GetExtraOptionValueOrDefault<uint32_t>("ft-fish-threads-y", kDefaultFishThreadsY);
+    PPX_ASSERT_MSG(mSettings.fishThreadsY < 65536, "Fish Y threads out of range.");
+
     SetupDescriptorPool();
     SetupSetLayouts();
     SetupPipelineInterfaces();
@@ -417,7 +442,8 @@ void FishTornadoApp::Setup()
     SetupDebug();
 
     const uint32_t numFramesInFlight = GetNumFramesInFlight();
-    mFlocking.Setup(numFramesInFlight);
+    // Always setup all elements of the scene, even if they're not in use.
+    mFlocking.Setup(numFramesInFlight, mSettings);
     mOcean.Setup(numFramesInFlight);
     mShark.Setup(numFramesInFlight);
 
@@ -431,6 +457,7 @@ void FishTornadoApp::Setup()
 
 void FishTornadoApp::Shutdown()
 {
+    // Always shutdown all elements of the scene, even if they're not in use.
     mFlocking.Shutdown();
     mOcean.Shutdown();
     mShark.Shutdown();
@@ -475,9 +502,9 @@ void FishTornadoApp::UpdateScene(uint32_t frameIndex)
     pSceneData->ambient                    = float3(0.45f, 0.45f, 0.5f) * 0.25f;
     pSceneData->shadowViewProjectionMatrix = mShadowCamera.GetViewProjectionMatrix();
     pSceneData->shadowTextureDim           = float2(kShadowRes);
-    pSceneData->usePCF                     = static_cast<uint32_t>(mUsePCF);
+    pSceneData->usePCF                     = static_cast<uint32_t>(mSettings.usePCF);
 
-    if (IsXrEnabled()) {
+    if (IsXrEnabled() && mSettings.useTracking) {
         const XrVector3f& pos            = GetXrComponent().GetPoseForCurrentView().position;
         pSceneData->eyePosition          = {pos.x, pos.y, pos.z};
         const glm::mat4 v                = GetXrComponent().GetViewMatrixForCurrentView();
@@ -510,9 +537,15 @@ void FishTornadoApp::RenderSceneUsingSingleCommandBuffer(
         frame.cmd->WriteTimestamp(frame.startTimestampQuery, grfx::PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0);
 #endif
 
-        mShark.CopyConstantsToGpu(frameIndex, frame.cmd);
-        mFlocking.CopyConstantsToGpu(frameIndex, frame.cmd);
-        mOcean.CopyConstantsToGpu(frameIndex, frame.cmd);
+        if (mSettings.renderShark) {
+            mShark.CopyConstantsToGpu(frameIndex, frame.cmd);
+        }
+        if (mSettings.renderFish) {
+            mFlocking.CopyConstantsToGpu(frameIndex, frame.cmd);
+        }
+        if (mSettings.renderOcean) {
+            mOcean.CopyConstantsToGpu(frameIndex, frame.cmd);
+        }
 
         // Scene constants
         {
@@ -533,11 +566,11 @@ void FishTornadoApp::RenderSceneUsingSingleCommandBuffer(
         bool updateFlocking = true;
         // only need to update flocking once per frame
         if (IsXrEnabled()) {
-            if (GetXrComponent().GetCurrentViewIndex() == 1) {
+            if (GetXrComponent().GetCurrentViewIndex() != 0) {
                 updateFlocking = false;
             }
         }
-        if (updateFlocking) {
+        if (mSettings.renderFish && updateFlocking) {
             // Compute flocking
             mFlocking.BeginCompute(frameIndex, frame.cmd, false);
             mFlocking.Compute(frameIndex, frame.cmd);
@@ -545,7 +578,9 @@ void FishTornadoApp::RenderSceneUsingSingleCommandBuffer(
         }
 
         // -----------------------------------------------------------------------------------------
-        mFlocking.BeginGraphics(frameIndex, frame.cmd, false);
+        if (mSettings.renderFish) {
+            mFlocking.BeginGraphics(frameIndex, frame.cmd, false);
+        }
 
         // Shadow mapping
         frame.cmd->TransitionImageLayout(frame.shadowDrawPass, grfx::RESOURCE_STATE_UNDEFINED, grfx::RESOURCE_STATE_UNDEFINED, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE);
@@ -554,8 +589,12 @@ void FishTornadoApp::RenderSceneUsingSingleCommandBuffer(
             frame.cmd->SetScissors(frame.shadowDrawPass->GetScissor());
             frame.cmd->SetViewports(frame.shadowDrawPass->GetViewport());
 
-            mShark.DrawShadow(frameIndex, frame.cmd);
-            mFlocking.DrawShadow(frameIndex, frame.cmd);
+            if (mSettings.renderShark) {
+                mShark.DrawShadow(frameIndex, frame.cmd);
+            }
+            if (mSettings.renderFish) {
+                mFlocking.DrawShadow(frameIndex, frame.cmd);
+            }
         }
         frame.cmd->EndRenderPass();
         frame.cmd->TransitionImageLayout(frame.shadowDrawPass, grfx::RESOURCE_STATE_UNDEFINED, grfx::RESOURCE_STATE_UNDEFINED, grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE, grfx::RESOURCE_STATE_SHADER_RESOURCE);
@@ -579,20 +618,26 @@ void FishTornadoApp::RenderSceneUsingSingleCommandBuffer(
             frame.cmd->SetScissors(renderPass->GetScissor());
             frame.cmd->SetViewports(renderPass->GetViewport());
 
-            mShark.DrawForward(frameIndex, frame.cmd);
+            if (mSettings.renderShark) {
+                mShark.DrawForward(frameIndex, frame.cmd);
+            }
 #if defined(ENABLE_GPU_QUERIES)
             if (GetDevice()->PipelineStatsAvailable()) {
                 frame.cmd->BeginQuery(frame.pipelineStatsQuery, 0);
             }
 #endif
-            mFlocking.DrawForward(frameIndex, frame.cmd);
+            if (mSettings.renderFish) {
+                mFlocking.DrawForward(frameIndex, frame.cmd);
+            }
 #if defined(ENABLE_GPU_QUERIES)
             if (GetDevice()->PipelineStatsAvailable()) {
                 frame.cmd->EndQuery(frame.pipelineStatsQuery, 0);
             }
 #endif
 
-            mOcean.DrawForward(frameIndex, frame.cmd);
+            if (mSettings.renderOcean) {
+                mOcean.DrawForward(frameIndex, frame.cmd);
+            }
 
             if (!IsXrEnabled()) {
                 // Draw ImGui
@@ -623,7 +668,9 @@ void FishTornadoApp::RenderSceneUsingSingleCommandBuffer(
     }
 #endif
 
-    mFlocking.EndGraphics(frameIndex, frame.cmd, false);
+    if (mSettings.renderFish) {
+        mFlocking.EndGraphics(frameIndex, frame.cmd, false);
+    }
 
     PPX_CHECKED_CALL(frame.cmd->End());
 
@@ -685,9 +732,15 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
     // Copy constants
     PPX_CHECKED_CALL(frame.copyConstantsCmd->Begin());
     {
-        mShark.CopyConstantsToGpu(frameIndex, frame.copyConstantsCmd);
-        mFlocking.CopyConstantsToGpu(frameIndex, frame.copyConstantsCmd);
-        mOcean.CopyConstantsToGpu(frameIndex, frame.copyConstantsCmd);
+        if (mSettings.renderShark) {
+            mShark.CopyConstantsToGpu(frameIndex, frame.copyConstantsCmd);
+        }
+        if (mSettings.renderFish) {
+            mFlocking.CopyConstantsToGpu(frameIndex, frame.copyConstantsCmd);
+        }
+        if (mSettings.renderOcean) {
+            mOcean.CopyConstantsToGpu(frameIndex, frame.copyConstantsCmd);
+        }
 
         // Scene constants
         {
@@ -725,22 +778,22 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
     bool updateFlocking = true;
     // only need to update flocking once per frame
     if (IsXrEnabled()) {
-        if (GetXrComponent().GetCurrentViewIndex() == 1) {
+        if (GetXrComponent().GetCurrentViewIndex() != 0) {
             updateFlocking = false;
         }
     }
-    if (updateFlocking) {
+    if (mSettings.renderFish && updateFlocking) {
         grfx::CommandBuffer* pFlockingCmd = frame.grfxFlockingCmd;
-        if (mUseAsyncCompute) {
+        if (mSettings.useAsyncCompute) {
             pFlockingCmd = frame.asyncFlockingCmd;
         }
 
         // Compute flocking
         PPX_CHECKED_CALL(pFlockingCmd->Begin());
         {
-            mFlocking.BeginCompute(frameIndex, pFlockingCmd, mUseAsyncCompute);
+            mFlocking.BeginCompute(frameIndex, pFlockingCmd, mSettings.useAsyncCompute);
             mFlocking.Compute(frameIndex, pFlockingCmd);
-            mFlocking.EndCompute(frameIndex, pFlockingCmd, mUseAsyncCompute);
+            mFlocking.EndCompute(frameIndex, pFlockingCmd, mSettings.useAsyncCompute);
         }
         PPX_CHECKED_CALL(pFlockingCmd->End());
 
@@ -754,7 +807,7 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
             submitInfo.signalSemaphoreCount = 1;
             submitInfo.ppSignalSemaphores   = &frame.flockingCompleteSemaphore;
 
-            if (mUseAsyncCompute) {
+            if (mSettings.useAsyncCompute) {
                 PPX_CHECKED_CALL(GetComputeQueue()->Submit(&submitInfo));
             }
             else {
@@ -768,15 +821,21 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
     // Shadow mapping
     PPX_CHECKED_CALL(frame.shadowCmd->Begin());
     {
-        mFlocking.BeginGraphics(frameIndex, frame.shadowCmd, mUseAsyncCompute);
+        if (mSettings.renderFish) {
+            mFlocking.BeginGraphics(frameIndex, frame.shadowCmd, mSettings.useAsyncCompute);
+        }
         frame.shadowCmd->TransitionImageLayout(frame.shadowDrawPass, grfx::RESOURCE_STATE_UNDEFINED, grfx::RESOURCE_STATE_UNDEFINED, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE);
         frame.shadowCmd->BeginRenderPass(frame.shadowDrawPass);
         {
             frame.shadowCmd->SetScissors(frame.shadowDrawPass->GetScissor());
             frame.shadowCmd->SetViewports(frame.shadowDrawPass->GetViewport());
 
-            mShark.DrawShadow(frameIndex, frame.shadowCmd);
-            mFlocking.DrawShadow(frameIndex, frame.shadowCmd);
+            if (mSettings.renderShark) {
+                mShark.DrawShadow(frameIndex, frame.shadowCmd);
+            }
+            if (mSettings.renderFish) {
+                mFlocking.DrawShadow(frameIndex, frame.shadowCmd);
+            }
         }
         frame.shadowCmd->EndRenderPass();
         frame.shadowCmd->TransitionImageLayout(frame.shadowDrawPass, grfx::RESOURCE_STATE_UNDEFINED, grfx::RESOURCE_STATE_UNDEFINED, grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE, grfx::RESOURCE_STATE_SHADER_RESOURCE);
@@ -793,7 +852,7 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.ppSignalSemaphores   = &frame.shadowCompleteSemaphore;
 
-        if (!updateFlocking) {
+        if (!mSettings.renderFish || !updateFlocking) {
             submitInfo.ppWaitSemaphores = &frame.copyConstantsSemaphore;
         }
         PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
@@ -821,20 +880,26 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
             frame.cmd->SetScissors(renderPass->GetScissor());
             frame.cmd->SetViewports(renderPass->GetViewport());
 
-            mShark.DrawForward(frameIndex, frame.cmd);
+            if (mSettings.renderShark) {
+                mShark.DrawForward(frameIndex, frame.cmd);
+            }
 #if defined(ENABLE_GPU_QUERIES)
             if (GetDevice()->PipelineStatsAvailable()) {
                 frame.cmd->BeginQuery(frame.pipelineStatsQuery, 0);
             }
 #endif
-            mFlocking.DrawForward(frameIndex, frame.cmd);
+            if (mSettings.renderFish) {
+                mFlocking.DrawForward(frameIndex, frame.cmd);
+            }
 #if defined(ENABLE_GPU_QUERIES)
             if (GetDevice()->PipelineStatsAvailable()) {
                 frame.cmd->EndQuery(frame.pipelineStatsQuery, 0);
             }
 #endif
 
-            mOcean.DrawForward(frameIndex, frame.cmd);
+            if (mSettings.renderOcean) {
+                mOcean.DrawForward(frameIndex, frame.cmd);
+            }
 
             if (!IsXrEnabled()) {
                 // Draw ImGui
@@ -850,7 +915,9 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
             frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
         }
 
-        mFlocking.EndGraphics(frameIndex, frame.cmd, mUseAsyncCompute);
+        if (mSettings.renderFish) {
+            mFlocking.EndGraphics(frameIndex, frame.cmd, mSettings.useAsyncCompute);
+        }
     }
     PPX_CHECKED_CALL(frame.cmd->End());
 
@@ -1015,9 +1082,15 @@ void FishTornadoApp::Render()
 
     // Move this after waiting for frameCompleteFence to make sure the previous view is done.
     UpdateScene(frameIndex);
-    mShark.Update(frameIndex);
-    mFlocking.Update(frameIndex);
-    mOcean.Update(frameIndex);
+    if (mSettings.renderShark) {
+        mShark.Update(frameIndex);
+    }
+    if (mSettings.renderFish) {
+        mFlocking.Update(frameIndex);
+    }
+    if (mSettings.renderOcean) {
+        mOcean.Update(frameIndex);
+    }
 
     // Read query results.
     if (GetFrameCount() > 0) {
@@ -1032,14 +1105,14 @@ void FishTornadoApp::Render()
 #endif
     }
 
-    if (mForceSingleCommandBuffer) {
+    if (mSettings.forceSingleCommandBuffer) {
         RenderSceneUsingSingleCommandBuffer(frameIndex, frame, prevFrameIndex, prevFrame, swapchain, imageIndex);
     }
     else {
         RenderSceneUsingMultipleCommandBuffers(frameIndex, frame, prevFrameIndex, prevFrame, swapchain, imageIndex);
     }
 
-    mLastFrameWasAsyncCompute = mUseAsyncCompute;
+    mLastFrameWasAsyncCompute = mSettings.useAsyncCompute;
 
     // No need to present when XR is enabled.
     if (!IsXrEnabled()) {
@@ -1113,21 +1186,27 @@ void FishTornadoApp::DrawGui()
 
     ImGui::Separator();
 
-    ImGui::Checkbox("Use PCF Shadows", &mUsePCF);
+    ImGui::Checkbox("Render Shark", &mSettings.renderShark);
+    ImGui::Checkbox("Render Fish", &mSettings.renderFish);
+    ImGui::Checkbox("Render Ocean", &mSettings.renderOcean);
 
-    if (mUseAsyncCompute) {
+    ImGui::Checkbox("Use Head Tracking", &mSettings.useTracking);
+
+    ImGui::Checkbox("Use PCF Shadows", &mSettings.usePCF);
+
+    if (mSettings.useAsyncCompute) {
         ImGui::BeginDisabled();
     }
-    ImGui::Checkbox("Use Single CommandBuffer", &mForceSingleCommandBuffer);
-    if (mUseAsyncCompute) {
+    ImGui::Checkbox("Use Single CommandBuffer", &mSettings.forceSingleCommandBuffer);
+    if (mSettings.useAsyncCompute) {
         ImGui::EndDisabled();
     }
 
-    if (mForceSingleCommandBuffer) {
+    if (mSettings.forceSingleCommandBuffer) {
         ImGui::BeginDisabled();
     }
-    ImGui::Checkbox("Use Async Compute", &mUseAsyncCompute);
-    if (mForceSingleCommandBuffer) {
+    ImGui::Checkbox("Use Async Compute", &mSettings.useAsyncCompute);
+    if (mSettings.forceSingleCommandBuffer) {
         ImGui::EndDisabled();
     }
 }
