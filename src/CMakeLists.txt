@@ -499,14 +499,14 @@ elseif (PPX_MSW)
 endif()
 
 if (PPX_BUILD_XR)
-	target_compile_definitions(
+    target_compile_definitions(
         ${PROJECT_NAME}
         PUBLIC PPX_BUILD_XR
     )
 endif()
 
 if (PPX_XR_QUEST)
-	target_compile_definitions(
+    target_compile_definitions(
         ${PROJECT_NAME}
         PUBLIC PPX_XR_QUEST
     )
