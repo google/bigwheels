@@ -19,6 +19,9 @@
       android:label="${appLabel}"
       android:theme="@style/Theme.AppCompat.NoActionBar"
       tools:targetApi="31">
+    <uses-native-library
+        android:name="libopenxr_forwardloader.oculus.so"
+        android:required="true"/>
     <activity
         android:name="com.google.bigwheels.MainActivity"
         android:exported="true">
