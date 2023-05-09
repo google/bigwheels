@@ -47,10 +47,8 @@ static constexpr std::array<const char*, 3> kAvailablePsShaders = {
 
 static constexpr uint32_t kPipelineCount = kAvailablePsShaders.size() * kAvailableVsShaders.size();
 
-enum class AppKnobs
-{
-    alpha_blend = 1,
-};
+// Knobs
+KnobBoolCheckbox* knob_alpha_blend;
 
 struct BenchmarkSettings
 {
@@ -195,12 +193,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
 
     // Knob definitions
-    BoolCheckboxConfig boolCheckboxConfig = {};
-    boolCheckboxConfig.flagName           = "alpha_blend";
-    boolCheckboxConfig.flagDesc           = "placeholder";
-    boolCheckboxConfig.displayName        = "Alpha Blend";
-    boolCheckboxConfig.defaultValue       = false;
-    knobManager.CreateBoolCheckbox(static_cast<int>(AppKnobs::alpha_blend), boolCheckboxConfig);
+    knob_alpha_blend = knobManager.CreateKnob<ppx::KnobBoolCheckbox>(nullptr, "Alpha Blend", "alpha_blend", "placeholder", false);
 }
 
 void ProjApp::LoadTexture(
