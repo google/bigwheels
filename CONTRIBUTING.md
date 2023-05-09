@@ -53,6 +53,8 @@ your changes:
     [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html).
     Running `clang-format -style=file -i [modified-files]` can help.
 *   Create a pull request (PR) with your patch.
+*   1 PR = 1 change. If you want to add 3 features, that's 3 PRs.
+*   If your PR brings a non-trivial performance improvement, do provide proof.
 *   Make sure the PR description clearly identifies the problem, explains the
     solution, and references the issue if applicable.
 *   If your patch completely fixes bug 1234, the commit message should say
@@ -68,12 +70,44 @@ requested:
 *   Please add new commits to your branch, instead of amending your commit.
     Adding new commits makes it easier for the reviewer to see what has changed
     since the last review.
-*   Once you are ready for another round of reviews, add a comment at the
-    bottom, such as "Ready for review" or "Please take a look" (or "PTAL"). This
+*   Once you are ready for another round of reviews, you can either click
+    the "re-request review" button, or add a comment at the bottom, such as
+    "Ready for review" or "Please take a look" (or "PTAL"). This
     explicit handoff is useful when responding with multiple small commits.
 
 After the PR has been reviewed it is the job of the reviewer to merge the PR.
 Instructions for this are given below.
+
+### Handling PR dependencies
+
+If your PR depends on another, you can mark it as a draft. This way we won't
+accidentally merge it.
+By default, we won't review draft PRs. But if the PR is ready, and just
+marked as draft to manage dependencies, feel free to ping us!
+
+### Life of a PR
+
+We try to review PRs at least once per 24h window.
+If your PR remains untouched for more than 24h, please ping us.
+Anything will do "PTAL", "up".
+Sometimes, we are on holiday, but you cannot guess, so in doubt, ping us 😊.
+
+When a maintainer sees an unassigned PR, they have 2 options:
+
+- If it's a small & trivial change, they will self-assign, and handle
+the approval/merging.
+- Otherwise, they will choose 2 or more reviewers (can self-assign).
+
+When a change has multiple reviewers, we try to follow the following rules:
+- All reviewers must approve.
+- If you are the first to approve, you delegate merging to the other(s).
+- If you are the last to approve, it's your responsibility to merge.
+- If you request changes without approval, others must wait for your approval
+before merging (and if you are the last to approve, you have to merge).
+
+Additional cases:
+- If a maintainer wants to review, they can add themselves to the reviewer list.
+- If a maintainer comments without adding a review, they don't block merging.
 
 ## For developers: Contributing assets
 

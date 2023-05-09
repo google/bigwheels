@@ -68,3 +68,7 @@ If you don't have a compatible GPU, you can use a software renderer to run BigWh
 
 # CI and testing
 We run automated workflows for testing as part of PR submissions. See the [documentation](docs/ci_testing.md) for information on what is tested and common maintenance tasks.
+
+# Contributing & Reviews
+
+See [this document](CONTRIBUTING.md)
