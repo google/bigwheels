@@ -33,8 +33,12 @@ std::string KnobType2Str(KnobType kt)
         return "Unknown";
     case KnobType::Bool_Checkbox:
         return "Bool_Checkbox";
+    case KnobType::Int_Slider:
+        return "Int_Slider";
+    case KnobType::Str_Dropdown:
+        return "Str_Dropdown";
     default:
-        PPX_LOG_ERROR("invalid KnobType: " << static_cast<int>(kt));
+        PPX_LOG_FATAL("invalid KnobType: " << static_cast<int>(kt));
         return "";
     }
 }
@@ -53,22 +57,129 @@ void KnobBoolCheckbox::Draw()
     }
 }
 
-void KnobBoolCheckbox::ResetToDefault()
+std::string KnobBoolCheckbox::FlagText() const
 {
-    KnobBoolCheckbox::SetBoolValue(mDefaultValue);
-}
-
-bool KnobBoolCheckbox::GetBoolValue() const
-{
-    return mValue;
+    return "--" + mFlagName + " <true/false> : " + mFlagDesc + "\n";
 }
 
 // Used for when knob value is altered outside of the GUI
-void KnobBoolCheckbox::SetBoolValue(bool newVal)
+void KnobBoolCheckbox::SetBoolValue(bool newVal, bool updateDefault)
 {
-    mValue = newVal;
-    if (mCallback)
+    // update mDefaultValue
+    if (updateDefault) mDefaultValue = newVal;
+
+    // update mValue and trigger mCallback
+    if (newVal != mValue) {
+        mValue = newVal;
+        if (mCallback) mCallback(mValue);
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
+// KnobIntSlider
+// -------------------------------------------------------------------------------------------------
+
+void KnobIntSlider::Draw()
+{
+    int oldValue = mValue;
+    ImGui::SliderInt(mDisplayName.c_str(), &mValue, mMinValue, mMaxValue, NULL, ImGuiSliderFlags_AlwaysClamp);
+
+    if (ImGui::IsItemDeactivatedAfterEdit() && mCallback && oldValue != mValue) {
         mCallback(mValue);
+    }
+}
+
+std::string KnobIntSlider::FlagText() const
+{
+    return "--" + mFlagName + " <" + std::to_string(mMinValue) + "~" + std::to_string(mMaxValue) + "> : " + mFlagDesc + "\n";
+}
+
+Result KnobIntSlider::SetIntValue(int newVal, bool updateDefault)
+{
+    if (newVal < mMinValue || newVal > mMaxValue) {
+        PPX_LOG_ERROR(mFlagName << " cannot be set to " << newVal << " because it's out of range " << mMinValue << "~" << mMaxValue);
+        return ERROR_OUT_OF_RANGE;
+    }
+
+    // update mDefaultValue
+    if (updateDefault) mDefaultValue = newVal;
+
+    // update mValue and trigger mCallback
+    if (newVal != mValue) {
+        mValue = newVal;
+        if (mCallback) mCallback(mValue);
+    }
+    
+    return SUCCESS;
+}
+
+// -------------------------------------------------------------------------------------------------
+// KnobStrDropdown
+// -------------------------------------------------------------------------------------------------
+
+void KnobStrDropdown::Draw()
+{
+    if (ImGui::BeginCombo(mDisplayName.c_str(), mChoices.at(mIndex).c_str())) {
+        for (int i = 0; i < mChoices.size(); ++i) {
+            bool isSelected = (i == mIndex);
+            if (ImGui::Selectable(mChoices.at(i).c_str(), isSelected)) {
+                if (i != mIndex) { // A new choice is selected
+                    mIndex = i;
+                    if (mCallback)
+                        mCallback(mIndex);
+                }
+            }
+            if (isSelected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+}
+
+std::string KnobStrDropdown::FlagText() const
+{
+    std::string choiceStr = "";
+    for (auto choice : mChoices) {
+        choiceStr += '\"' + choice + '\"' + "|";
+    }
+    if (!choiceStr.empty()) choiceStr.erase(choiceStr.size() - 1);
+    return "--" + mFlagName + " <" + choiceStr + "> : " + mFlagDesc + "\n";
+}
+
+Result KnobStrDropdown::SetIndex(int newI, bool updateDefault)
+{
+    if (newI < 0 || newI >= mChoices.size()) {
+        PPX_LOG_ERROR(mFlagName << " does not have this index in allowed choices: " << newI);
+        return ERROR_ELEMENT_NOT_FOUND;
+    }
+
+    // update mDefaultIndex
+    if (updateDefault) mDefaultIndex = newI;
+
+    // update mIndex and trigger mCallback
+    if (newI != mIndex) {
+        mIndex = newI;
+        if (mCallback) mCallback(mIndex);
+    }
+
+    return SUCCESS;
+}
+
+Result KnobStrDropdown::SetIndex(std::string newVal, bool updateDefault)
+{
+    auto temp = std::find(mChoices.begin(), mChoices.end(), newVal);
+    if (temp == mChoices.end()) {
+        PPX_LOG_ERROR(mFlagName << " does not have this value in allowed range: " << newVal);
+        return ERROR_ELEMENT_NOT_FOUND;
+    }
+
+    mIndex = static_cast<int>(temp - mChoices.begin());
+    if (updateDefault)
+        mDefaultIndex = mIndex;
+    if (mCallback)
+        mCallback(mIndex);
+    return SUCCESS;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -77,62 +188,31 @@ void KnobBoolCheckbox::SetBoolValue(bool newVal)
 
 KnobManager::~KnobManager()
 {
-    for (auto pair : mKnobs) {
-        delete pair.second;
+    auto knobPtrs = FlattenDepthFirst(mRoots);
+    for (auto knobPtr : knobPtrs) {
+        delete knobPtr;
     }
 }
 
 void KnobManager::ResetAllToDefault()
 {
-    for (auto pair : mKnobs) {
-        pair.second->ResetToDefault();
+    auto knobPtrs = FlattenDepthFirst(mRoots);
+    for (auto knobPtr : knobPtrs) {
+        knobPtr->ResetToDefault();
     }
-}
-
-Knob* KnobManager::GetKnob(int id)
-{
-    if (mKnobs.count(id) == 0) {
-        return nullptr;
-    }
-    return mKnobs.at(id);
-}
-
-Knob* KnobManager::GetKnob(const std::string& name)
-{
-    for (auto pair : mKnobs) {
-        if (pair.second->GetFlagName() == name) {
-            return pair.second;
-        }
-    }
-    return nullptr;
-}
-
-void KnobManager::CreateBoolCheckbox(int i, BoolCheckboxConfig config)
-{
-    KnobBoolCheckbox* newKnob = new KnobBoolCheckbox(config);
-    newKnob->SetBoolValue(config.defaultValue);
-    KnobManager::InsertKnob(i, newKnob);
-    KnobManager::ConfigureParent(newKnob, config.parentId);
-}
-
-bool KnobManager::GetKnobBoolValue(int id)
-{
-    auto knobPtr = GetKnob(id);
-    return knobPtr ? knobPtr->GetBoolValue() : false;
-}
-
-void KnobManager::SetKnobBoolValue(int id, bool newVal)
-{
-    auto knobPtr = GetKnob(id);
-    if (knobPtr)
-        knobPtr->SetBoolValue(newVal);
 }
 
 void KnobManager::DrawAllKnobs(bool inExistingWindow)
 {
     if (!inExistingWindow)
         ImGui::Begin("Knobs");
-    DrawKnobs(mDrawOrder);
+    
+    DrawKnobs(mRoots);
+
+    if (ImGui::Button("Reset to Default Values")){
+        ResetAllToDefault();
+    }
+
     if (!inExistingWindow)
         ImGui::End();
 }
@@ -140,46 +220,94 @@ void KnobManager::DrawAllKnobs(bool inExistingWindow)
 std::string KnobManager::GetUsageMsg()
 {
     std::string usageMsg = "\nApplication-specific flags\n";
-    for (auto pair : mKnobs) {
-        usageMsg += "--" + pair.second->GetFlagName() + ": " + pair.second->GetFlagDesc() + "\n";
+    auto knobPtrs = FlattenDepthFirst(mRoots);
+    for (auto knobPtr : knobPtrs) {
+        usageMsg += knobPtr->FlagText();
     }
     return usageMsg;
 }
 
-bool KnobManager::UpdateFromFlags(const CliOptions& cli)
+bool KnobManager::UpdateFromFlags(const CliOptions& opts)
 {
-    for (auto pair : mKnobs) {
-        auto knobPtr = pair.second;
-        if (knobPtr->GetType() == KnobType::Bool_Checkbox) {
-            knobPtr->SetBoolValue(cli.GetExtraOptionValueOrDefault(knobPtr->GetFlagName(), knobPtr->GetBoolValue()));
+    auto knobPtrs = FlattenDepthFirst(mRoots);
+    for (auto knobPtr : knobPtrs) {
+        switch (knobPtr->GetType()) {
+        case (KnobType::Bool_Checkbox):
+        {
+            KnobBoolCheckbox *boolPtr = dynamic_cast<KnobBoolCheckbox*>(knobPtr);
+            if (boolPtr) {
+                boolPtr->SetBoolValue(opts.GetExtraOptionValueOrDefault(boolPtr->GetFlagName(), boolPtr->GetBoolValue()), true);
+            } else {
+                PPX_LOG_ERROR("could not cast as Bool_Checkbox: " << knobPtr->GetFlagName());
+                return false;
+            }
+            break;
+        }
+        case (KnobType::Int_Slider):
+        {
+            KnobIntSlider *intPtr = dynamic_cast<KnobIntSlider*>(knobPtr);
+            if (intPtr) {
+                int  newVal = opts.GetExtraOptionValueOrDefault(intPtr->GetFlagName(), intPtr->GetIntValue());
+                bool wasValid = intPtr->SetIntValue(newVal, true);
+                if (!wasValid) {
+                    PPX_LOG_ERROR(intPtr->GetFlagName() << " invalid value: " << newVal);
+                    return false;
+                }
+            } else {
+                PPX_LOG_ERROR("could not cast as Int_Slider: " << knobPtr->GetFlagName());
+                return false;
+            }
+            break;
+        }
+        case (KnobType::Str_Dropdown):
+        {
+            KnobStrDropdown *strPtr = dynamic_cast<KnobStrDropdown*>(knobPtr);
+            if (strPtr) {
+                std::string newVal = opts.GetExtraOptionValueOrDefault(strPtr->GetFlagName(), strPtr->GetStr());
+                bool wasValid = strPtr->SetIndex(newVal, true);
+                if (!wasValid) {
+                    PPX_LOG_ERROR(strPtr->GetFlagName() << " invalid value: " << newVal);
+                    return false;
+                }
+            } else {
+                PPX_LOG_ERROR("could not cast as Str_Dropdown: " << knobPtr->GetFlagName());
+                return false;
+            }
+            break;
+        }
+        default:
+            PPX_LOG_ERROR("invalid knob: " << knobPtr->GetFlagName() << ", type: " << knobPtr->GetType());
+            return false;
         }
     }
     return true;
 }
 
-void KnobManager::InsertKnob(int id, Knob* knobPtr)
+// -------------------------------------------------------------------------------------------------
+// Helper functions
+// -------------------------------------------------------------------------------------------------
+
+std::vector<Knob*> FlattenDepthFirst(const std::vector<Knob*>& rootPtrs)
 {
-    mKnobs.insert(std::make_pair(id, knobPtr));
+    if (rootPtrs.empty())
+        return {};
+
+    std::vector<Knob*> knobPtrs;
+    for (auto knobPtr : rootPtrs) {
+        knobPtrs.push_back(knobPtr);
+        auto flatChildren = FlattenDepthFirst(knobPtr->GetChildren());
+        if (!flatChildren.empty()) knobPtrs.insert(knobPtrs.end(), flatChildren.begin(), flatChildren.end());
+    }
+    return knobPtrs;
 }
 
-void KnobManager::ConfigureParent(Knob* knobPtr, int parentId)
+void DrawKnobs(const std::vector<Knob*>& knobPtrs)
 {
-    auto parentPtr = GetKnob(parentId);
-    if (parentPtr) {
-        parentPtr->AddChild(knobPtr);
-    }
-    else {
-        mDrawOrder.push_back(knobPtr);
-    }
-}
-
-void KnobManager::DrawKnobs(const std::vector<Knob*>& knobsToDraw)
-{
-    for (auto knobPtr : knobsToDraw) {
+    for (auto knobPtr : knobPtrs) {
         knobPtr->Draw();
         if (!(knobPtr->GetChildren().empty())) {
             ImGui::Indent();
-            KnobManager::DrawKnobs(knobPtr->GetChildren());
+            DrawKnobs(knobPtr->GetChildren());
             ImGui::Unindent();
         }
     }
