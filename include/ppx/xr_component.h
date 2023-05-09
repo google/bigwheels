@@ -49,6 +49,13 @@ enum struct XrRefSpace
     XR_STAGE,
 };
 
+enum XrPassthroughSupport
+{
+    XR_PASSTHROUGH_NONE,
+    XR_PASSTHROUGH_BLEND_MODE,
+    XR_PASSTHROUGH_OCULUS,
+};
+
 struct XrComponentResolution
 {
     uint32_t width  = 0;
@@ -149,12 +156,8 @@ private:
     XrSystemId mSystemId = XR_NULL_SYSTEM_ID;
     XrSession  mSession  = XR_NULL_HANDLE;
 
-#if defined(PPX_XR_QUEST)
-    XrPassthroughFB      mPassthrough      = XR_NULL_HANDLE;
-    XrPassthroughLayerFB mPassthroughLayer = XR_NULL_HANDLE;
-#endif
-    bool mPassthroughSupported = false;
-    bool mPassthroughEnabled   = false;
+    XrPassthroughSupport mPassthroughSupported = XR_PASSTHROUGH_NONE;
+    bool                 mPassthroughEnabled   = false;
 
     std::vector<XrViewConfigurationView> mConfigViews;
     std::vector<XrView>                  mViews;
@@ -180,6 +183,10 @@ private:
     XrEventDataBuffer mEventDataBuffer;
 
     XrComponentCreateInfo mCreateInfo = {};
+
+    // Oculus only
+    XrPassthroughFB      mPassthrough      = XR_NULL_HANDLE;
+    XrPassthroughLayerFB mPassthroughLayer = XR_NULL_HANDLE;
 };
 
 } // namespace ppx
