@@ -38,7 +38,7 @@ std::string KnobType2Str(KnobType kt)
     case KnobType::Str_Dropdown:
         return "Str_Dropdown";
     default:
-        PPX_LOG_FATAL("invalid KnobType: " << static_cast<int>(kt));
+        PPX_LOG_ERROR("invalid KnobType: " << static_cast<int>(kt));
         return "";
     }
 }
@@ -227,7 +227,7 @@ std::string KnobManager::GetUsageMsg()
     return usageMsg;
 }
 
-bool KnobManager::UpdateFromFlags(const CliOptions& opts)
+Result KnobManager::UpdateFromFlags(const CliOptions& opts)
 {
     auto knobPtrs = FlattenDepthFirst(mRoots);
     for (auto knobPtr : knobPtrs) {
@@ -239,7 +239,7 @@ bool KnobManager::UpdateFromFlags(const CliOptions& opts)
                 boolPtr->SetBoolValue(opts.GetExtraOptionValueOrDefault(boolPtr->GetFlagName(), boolPtr->GetBoolValue()), true);
             } else {
                 PPX_LOG_ERROR("could not cast as Bool_Checkbox: " << knobPtr->GetFlagName());
-                return false;
+                return ERROR_FAILED;
             }
             break;
         }
@@ -251,11 +251,11 @@ bool KnobManager::UpdateFromFlags(const CliOptions& opts)
                 bool wasValid = intPtr->SetIntValue(newVal, true);
                 if (!wasValid) {
                     PPX_LOG_ERROR(intPtr->GetFlagName() << " invalid value: " << newVal);
-                    return false;
+                    return ERROR_OUT_OF_RANGE;
                 }
             } else {
                 PPX_LOG_ERROR("could not cast as Int_Slider: " << knobPtr->GetFlagName());
-                return false;
+                return ERROR_FAILED;
             }
             break;
         }
@@ -267,20 +267,20 @@ bool KnobManager::UpdateFromFlags(const CliOptions& opts)
                 bool wasValid = strPtr->SetIndex(newVal, true);
                 if (!wasValid) {
                     PPX_LOG_ERROR(strPtr->GetFlagName() << " invalid value: " << newVal);
-                    return false;
+                    return ERROR_OUT_OF_RANGE;
                 }
             } else {
                 PPX_LOG_ERROR("could not cast as Str_Dropdown: " << knobPtr->GetFlagName());
-                return false;
+                return ERROR_FAILED;
             }
             break;
         }
         default:
             PPX_LOG_ERROR("invalid knob: " << knobPtr->GetFlagName() << ", type: " << knobPtr->GetType());
-            return false;
+            return ERROR_FAILED;
         }
     }
-    return true;
+    return SUCCESS;
 }
 
 // -------------------------------------------------------------------------------------------------

@@ -48,6 +48,7 @@ namespace ppx {
 // Knob Classes
 // ---------------------------------------------------------------------------------------------
 
+// Knob is an abstract class which contains common features for all knobs and knob hierarchy
 class Knob
 {
 public:
@@ -81,6 +82,7 @@ protected:
     std::vector<Knob*> mChildren;
 };
 
+// KnobBoolCheckbox is a boolean knob that will be displayed as a checkbox in the UI
 class KnobBoolCheckbox
     : public Knob
 {
@@ -117,6 +119,8 @@ private:
     std::function<void(bool)> mCallback;
 };
 
+// KnobIntSlider is an int knob that will be displayed as a slider in the UI
+// ImGui sliders can also become input boxes with ctrl + right click
 class KnobIntSlider
     : public Knob
 {
@@ -163,6 +167,8 @@ private:
     std::function<void(int)> mCallback;
 };
 
+// KnobStrDropdown is an int knob that will be displayed as a dropdown in the UI
+// The knob stores the index of a selected choice from a list of allowed strings
 class KnobStrDropdown
     : public Knob
 {
@@ -213,6 +219,7 @@ private:
     std::function<void(int)> mCallback;
 };
 
+// KnobManager owns the knobs in an application
 class KnobManager
 {
 public:
@@ -242,7 +249,7 @@ public:
 
     // Command-line flags
     std::string GetUsageMsg();
-    bool        UpdateFromFlags(const CliOptions& opts);
+    Result        UpdateFromFlags(const CliOptions& opts);
 
 private:
     std::vector<Knob*>   mRoots;
