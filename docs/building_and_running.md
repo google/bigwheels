@@ -44,6 +44,8 @@ Built binaries are written to `build\bin`.
 Use Android Studio to open the BigWheels folder and build it.
 A custom DXC_PATH can be set through the env of a `.properties` file.
 
+You can select the sample and target device by navigating to `Build -> Select Build Variant` within Android Studio.
+
 ## Android (on Linux)
 
 Install the Android SDK and NDK with CMake support.
@@ -92,6 +94,7 @@ The target names are composed using this pattern:
 <buildType><device><sampleName>[xr]<flavor>
 
 buildType:
+  - assemble: build and package the APK without installing
   - build: only build the artefacts
   - install: build and package the APK and install with ADB.
 
