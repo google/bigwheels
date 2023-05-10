@@ -47,15 +47,6 @@ static constexpr std::array<const char*, 3> kAvailablePsShaders = {
 
 static constexpr uint32_t kPipelineCount = kAvailablePsShaders.size() * kAvailableVsShaders.size();
 
-// Knobs
-KnobBoolCheckbox* knob_alpha_blend;
-
-struct BenchmarkSettings
-{
-    int32_t vsShaderIndex = 0;
-    int32_t psShaderIndex = 0;
-};
-
 class ProjApp
     : public ppx::Application
 {
@@ -122,12 +113,26 @@ private:
     std::array<grfx::ShaderModulePtr, kAvailablePsShaders.size()> mPsShaders;
     PerspCamera                                                   mCamera;
     float3                                                        mLightPosition = float3(10, 100, 10);
-    BenchmarkSettings                                             mBenchmarkSettings;
 
     std::vector<Material>  mMaterials;
     std::vector<Primitive> mPrimitives;
     std::vector<Object>    mObjects;
     TextureCache           mTextureCache;
+
+private:
+    // Knobs
+    KnobStrDropdown *knobVs = nullptr;
+    std::vector<std::string> knobVsChoices;
+
+    KnobStrDropdown *knobPs = nullptr;
+    std::vector<std::string> knobPsChoices;
+
+    KnobIntSlider *knobNDrawcalls = nullptr; // placeholder
+
+    KnobStrDropdown *knobPerDrawcallVbRange = nullptr; // placeholder
+    std::vector<std::string> perDrawcallVbRangeChoices = {"Single Mesh", "All Meshes"};
+
+    KnobBoolCheckbox *knobAlphaBlend = nullptr; // placeholder
 
 private:
     void LoadScene(
@@ -193,7 +198,33 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
 
     // Knob definitions
-    knob_alpha_blend = knobManager.CreateKnob<ppx::KnobBoolCheckbox>(nullptr, "Alpha Blend", "alpha_blend", "placeholder", false);
+    for (auto vs : kAvailableVsShaders) {
+        knobVsChoices.push_back(std::string(vs));
+    }
+    knobVs = knobManager.CreateKnob<ppx::KnobStrDropdown>(nullptr, "Vertex Shader", "vs", "placeholder", 0, knobVsChoices);
+
+    for (auto ps : kAvailablePsShaders) {
+        knobPsChoices.push_back(std::string(ps));
+    }
+    knobPs = knobManager.CreateKnob<ppx::KnobStrDropdown>(nullptr, "Pixel Shader", "ps", "placeholder", 0, knobPsChoices);
+
+    knobNDrawcalls = knobManager.CreateKnob<ppx::KnobIntSlider>(nullptr, "Drawcall Count (TODO)", "n_drawcalls", "placeholder", 10, 1, 3000, [this] (int n) {
+        if (this->knobPerDrawcallVbRange != nullptr) {
+            if (n == 1 && this->knobPerDrawcallVbRange->GetIndex() == 1) { // if invalid combo (1 drawcall and "All Meshes")
+                this->knobPerDrawcallVbRange->SetIndex(0); // Set other knob to "Single Mesh"
+            }
+        }
+    });
+
+    knobPerDrawcallVbRange = knobManager.CreateKnob<ppx::KnobStrDropdown>(nullptr, "Per-Drawcall Vertex Buffer Range (TODO)", "per_drawcall_vb_range", "placeholder", 0, perDrawcallVbRangeChoices, [this] (int n) {
+        if (this->knobNDrawcalls != nullptr) {
+            if (n == 1 && this->knobNDrawcalls->GetIntValue() == 1) { // if invalid combo ("All Meshes" and 1 drawcall)
+                this->knobNDrawcalls->SetIntValue(2); // Set other knob to 2 drawcalls
+            }
+        }
+    });
+
+    knobAlphaBlend = knobManager.CreateKnob<ppx::KnobBoolCheckbox>(nullptr, "Alpha Blend", "alpha_blend", "placeholder", false);
 }
 
 void ProjApp::LoadTexture(
@@ -633,10 +664,6 @@ void ProjApp::LoadNodes(
 void ProjApp::Setup()
 {
     const auto& cl_options           = GetExtraOptions();
-    mBenchmarkSettings.vsShaderIndex = cl_options.GetExtraOptionValueOrDefault<int32_t>("vs-shader-index", 0);
-    PPX_ASSERT_MSG(mBenchmarkSettings.vsShaderIndex >= 0 && static_cast<uint32_t>(mBenchmarkSettings.vsShaderIndex) < kAvailableVsShaders.size(), "vs-shader-index out of range.");
-    mBenchmarkSettings.psShaderIndex = cl_options.GetExtraOptionValueOrDefault<int32_t>("ps-shader-index", 0);
-    PPX_ASSERT_MSG(mBenchmarkSettings.psShaderIndex >= 0 && static_cast<uint32_t>(mBenchmarkSettings.psShaderIndex) < kAvailablePsShaders.size(), "ps-shader-index out of range.");
 
     // Cameras
     {
@@ -838,7 +865,7 @@ void ProjApp::Render()
             frame.cmd->SetScissors(GetScissor());
             frame.cmd->SetViewports(GetViewport());
 
-            uint32_t pipeline_index = mBenchmarkSettings.vsShaderIndex * kAvailablePsShaders.size() + mBenchmarkSettings.psShaderIndex;
+            uint32_t pipeline_index = knobVs->GetIndex() * kAvailablePsShaders.size() + knobPs->GetIndex();
             // Draw entities
             for (auto& object : mObjects) {
                 for (auto& renderable : object.renderables) {
@@ -879,12 +906,7 @@ void ProjApp::UpdateGUI()
     }
 
     // GUI
-    if (ImGui::Begin("Parameters")) {
-        ImGui::Combo("Vertex Shader", &mBenchmarkSettings.vsShaderIndex, kAvailableVsShaders.data(), static_cast<int>(kAvailableVsShaders.size()));
-        ImGui::Combo("Pixel Shader", &mBenchmarkSettings.psShaderIndex, kAvailablePsShaders.data(), static_cast<int>(kAvailablePsShaders.size()));
-        knobManager.DrawAllKnobs(true);
-    }
-    ImGui::End();
+    knobManager.DrawAllKnobs();
 }
 
 SETUP_APPLICATION(ProjApp)

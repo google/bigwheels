@@ -53,34 +53,6 @@ protected:
     ppx::KnobManager km;
 };
 
-// ---------------------------------------------------------------------------------------------
-// KnobType
-// ---------------------------------------------------------------------------------------------
-
-TEST(KnobTest, KnobTypeStream)
-{
-    std::stringstream out;
-    KnobType          testkt = KnobType::Unknown;
-    out << testkt;
-    EXPECT_EQ(out.str(), "Unknown");
-    out.str("");
-
-    testkt = KnobType::Bool_Checkbox;
-    out << testkt;
-    EXPECT_EQ(out.str(), "Bool_Checkbox");
-    out.str("");
-
-    testkt = KnobType::Int_Slider;
-    out << testkt;
-    EXPECT_EQ(out.str(), "Int_Slider");
-    out.str("");
-
-    testkt = KnobType::Str_Dropdown;
-    out << testkt;
-    EXPECT_EQ(out.str(), "Str_Dropdown");
-    out.str("");
-}
-
 namespace ppx {
 
 // -------------------------------------------------------------------------------------------------
@@ -107,9 +79,8 @@ TEST_F(KnobTestFixture, KnobBoolCheckbox_CreateNoCallback)
     EXPECT_EQ(boolKnob.GetDisplayName(), "Knob Name 1");
     EXPECT_EQ(boolKnob.GetFlagName(), "flag_name1");
     EXPECT_EQ(boolKnob.GetFlagDesc(), "description1");
-    EXPECT_EQ(boolKnob.GetType(), KnobType::Bool_Checkbox);
     EXPECT_EQ(boolKnob.GetBoolValue(), true);
-    EXPECT_EQ(boolKnob.FlagText(), "--flag_name1 <true/false> : description1\n");
+    EXPECT_EQ(boolKnob.FlagText(), "--flag_name1 <true|false> : description1\n");
 }
 
 TEST_F(KnobTestFixture, KnobBoolCheckbox_SetBoolValue)
@@ -148,7 +119,6 @@ TEST_F(KnobTestFixture, KnobIntSlider_CreateNoCallback)
     EXPECT_EQ(intKnob.GetDisplayName(), "Knob Name 1");
     EXPECT_EQ(intKnob.GetFlagName(), "flag_name1");
     EXPECT_EQ(intKnob.GetFlagDesc(), "description1");
-    EXPECT_EQ(intKnob.GetType(), KnobType::Int_Slider);
     EXPECT_EQ(intKnob.GetIntValue(), 5);
     EXPECT_EQ(intKnob.FlagText(), "--flag_name1 <0~10> : description1\n");
 }
@@ -203,7 +173,6 @@ TEST_F(KnobTestFixture, KnobStrDropdown_CreateNoCallback)
     EXPECT_EQ(strKnob.GetDisplayName(), "Knob Name 1");
     EXPECT_EQ(strKnob.GetFlagName(), "flag_name1");
     EXPECT_EQ(strKnob.GetFlagDesc(), "description1");
-    EXPECT_EQ(strKnob.GetType(), KnobType::Str_Dropdown);
     EXPECT_EQ(strKnob.GetIndex(), 1);
     EXPECT_EQ(strKnob.GetStr(), "c2");
     EXPECT_EQ(strKnob.FlagText(), "--flag_name1 <\"c1\"|\"c2\"> : description1\n");
@@ -306,8 +275,8 @@ TEST_F(KnobManagerTestFixture, KnobManager_GetUsageMsg)
     
     std::string usageMsg = R"(
 Application-specific flags
---flag_name1 <true/false> : description1
---flag_name2 <true/false> : description2
+--flag_name1 <true|false> : description1
+--flag_name2 <true|false> : description2
 --flag_name3 <0~10> : description3
 --flag_name4 <"c1"|"c2"|"c3"> : description4
 )";

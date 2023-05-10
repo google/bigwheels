@@ -17,32 +17,6 @@
 
 #include <cstring>
 
-// -------------------------------------------------------------------------------------------------
-// KnobType
-// -------------------------------------------------------------------------------------------------
-
-std::ostream& operator<<(std::ostream& os, KnobType kt)
-{
-    return os << KnobType2Str(kt);
-}
-
-std::string KnobType2Str(KnobType kt)
-{
-    switch(kt) {
-    case KnobType::Unknown:
-        return "Unknown";
-    case KnobType::Bool_Checkbox:
-        return "Bool_Checkbox";
-    case KnobType::Int_Slider:
-        return "Int_Slider";
-    case KnobType::Str_Dropdown:
-        return "Str_Dropdown";
-    default:
-        PPX_LOG_ERROR("invalid KnobType: " << static_cast<int>(kt));
-        return "";
-    }
-}
-
 namespace ppx {
 
 // -------------------------------------------------------------------------------------------------
@@ -59,10 +33,15 @@ void KnobBoolCheckbox::Draw()
 
 std::string KnobBoolCheckbox::FlagText() const
 {
-    return "--" + mFlagName + " <true/false> : " + mFlagDesc + "\n";
+    return "--" + mFlagName + " <true|false> : " + mFlagDesc + "\n";
 }
 
-// Used for when knob value is altered outside of the GUI
+Result KnobBoolCheckbox::UpdateFromFlag(const CliOptions& opts)
+{
+    SetBoolValue(opts.GetExtraOptionValueOrDefault(mFlagName, mValue), true);
+    return SUCCESS;
+}
+
 void KnobBoolCheckbox::SetBoolValue(bool newVal, bool updateDefault)
 {
     // update mDefaultValue
@@ -81,10 +60,9 @@ void KnobBoolCheckbox::SetBoolValue(bool newVal, bool updateDefault)
 
 void KnobIntSlider::Draw()
 {
-    int oldValue = mValue;
     ImGui::SliderInt(mDisplayName.c_str(), &mValue, mMinValue, mMaxValue, NULL, ImGuiSliderFlags_AlwaysClamp);
 
-    if (ImGui::IsItemDeactivatedAfterEdit() && mCallback && oldValue != mValue) {
+    if (ImGui::IsItemDeactivatedAfterEdit() && mCallback) {
         mCallback(mValue);
     }
 }
@@ -92,6 +70,17 @@ void KnobIntSlider::Draw()
 std::string KnobIntSlider::FlagText() const
 {
     return "--" + mFlagName + " <" + std::to_string(mMinValue) + "~" + std::to_string(mMaxValue) + "> : " + mFlagDesc + "\n";
+}
+
+Result KnobIntSlider::UpdateFromFlag(const CliOptions& opts)
+{
+    int  newVal = opts.GetExtraOptionValueOrDefault(mFlagName, mValue);
+    Result res = SetIntValue(newVal, true);
+    if (res != SUCCESS) {
+        PPX_LOG_ERROR(mFlagName << " invalid commandline flag value: " << newVal);
+        return ERROR_OUT_OF_RANGE;
+    }
+    return SUCCESS;
 }
 
 Result KnobIntSlider::SetIntValue(int newVal, bool updateDefault)
@@ -145,6 +134,17 @@ std::string KnobStrDropdown::FlagText() const
     }
     if (!choiceStr.empty()) choiceStr.erase(choiceStr.size() - 1);
     return "--" + mFlagName + " <" + choiceStr + "> : " + mFlagDesc + "\n";
+}
+
+Result KnobStrDropdown::UpdateFromFlag(const CliOptions& opts)
+{
+    std::string newVal = opts.GetExtraOptionValueOrDefault(mFlagName, GetStr());
+    Result res = SetIndex(newVal, true);
+    if (res != SUCCESS) {
+        PPX_LOG_ERROR(mFlagName << " invalid commandline flag value: " << newVal);
+        return ERROR_OUT_OF_RANGE;
+    }
+    return SUCCESS;
 }
 
 Result KnobStrDropdown::SetIndex(int newI, bool updateDefault)
@@ -231,54 +231,8 @@ Result KnobManager::UpdateFromFlags(const CliOptions& opts)
 {
     auto knobPtrs = FlattenDepthFirst(mRoots);
     for (auto knobPtr : knobPtrs) {
-        switch (knobPtr->GetType()) {
-        case (KnobType::Bool_Checkbox):
-        {
-            KnobBoolCheckbox *boolPtr = dynamic_cast<KnobBoolCheckbox*>(knobPtr);
-            if (boolPtr) {
-                boolPtr->SetBoolValue(opts.GetExtraOptionValueOrDefault(boolPtr->GetFlagName(), boolPtr->GetBoolValue()), true);
-            } else {
-                PPX_LOG_ERROR("could not cast as Bool_Checkbox: " << knobPtr->GetFlagName());
-                return ERROR_FAILED;
-            }
-            break;
-        }
-        case (KnobType::Int_Slider):
-        {
-            KnobIntSlider *intPtr = dynamic_cast<KnobIntSlider*>(knobPtr);
-            if (intPtr) {
-                int  newVal = opts.GetExtraOptionValueOrDefault(intPtr->GetFlagName(), intPtr->GetIntValue());
-                bool wasValid = intPtr->SetIntValue(newVal, true);
-                if (!wasValid) {
-                    PPX_LOG_ERROR(intPtr->GetFlagName() << " invalid value: " << newVal);
-                    return ERROR_OUT_OF_RANGE;
-                }
-            } else {
-                PPX_LOG_ERROR("could not cast as Int_Slider: " << knobPtr->GetFlagName());
-                return ERROR_FAILED;
-            }
-            break;
-        }
-        case (KnobType::Str_Dropdown):
-        {
-            KnobStrDropdown *strPtr = dynamic_cast<KnobStrDropdown*>(knobPtr);
-            if (strPtr) {
-                std::string newVal = opts.GetExtraOptionValueOrDefault(strPtr->GetFlagName(), strPtr->GetStr());
-                bool wasValid = strPtr->SetIndex(newVal, true);
-                if (!wasValid) {
-                    PPX_LOG_ERROR(strPtr->GetFlagName() << " invalid value: " << newVal);
-                    return ERROR_OUT_OF_RANGE;
-                }
-            } else {
-                PPX_LOG_ERROR("could not cast as Str_Dropdown: " << knobPtr->GetFlagName());
-                return ERROR_FAILED;
-            }
-            break;
-        }
-        default:
-            PPX_LOG_ERROR("invalid knob: " << knobPtr->GetFlagName() << ", type: " << knobPtr->GetType());
-            return ERROR_FAILED;
-        }
+        Result res = knobPtr->UpdateFromFlag(opts);
+        if (res != SUCCESS) return res;
     }
     return SUCCESS;
 }

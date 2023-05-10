@@ -25,23 +25,6 @@
 #include <unordered_map>
 #include <vector>
 
-// ---------------------------------------------------------------------------------------------
-// KnobType
-// ---------------------------------------------------------------------------------------------
-
-// KnobType indicates the data type and the display type of the knob
-enum class KnobType
-{
-    Unknown,
-    Bool_Checkbox,
-    Int_Slider,
-    Str_Dropdown
-};
-
-std::ostream& operator<<(std::ostream& strm, KnobType kt);
-
-std::string KnobType2Str(KnobType kt);
-
 namespace ppx {
 
 // ---------------------------------------------------------------------------------------------
@@ -53,14 +36,13 @@ class Knob
 {
 public:
     Knob() {}
-    Knob(KnobType type, const std::string& displayName, const std::string& flagName, const std::string& flagDesc)
-        : mType(type), mDisplayName(displayName), mFlagName(flagName), mFlagDesc(flagDesc) {}
+    Knob(const std::string& displayName, const std::string& flagName, const std::string& flagDesc)
+        : mDisplayName(displayName), mFlagName(flagName), mFlagDesc(flagDesc) {}
     virtual ~Knob() {}
 
     std::string        GetDisplayName() const { return mDisplayName; }
     std::string        GetFlagName() const { return mFlagName; }
     std::string        GetFlagDesc() const { return mFlagDesc; }
-    KnobType           GetType() const { return mType; }
     
     // Child knobs are displayed in the UI below their parent and slightly indented
     void               AddChild(Knob* pChild) { mChildren.push_back(pChild); }
@@ -71,6 +53,9 @@ public:
     // Flag description in usage message
     virtual std::string FlagText() const = 0;
 
+    // Updates knob value from commandline flag
+    virtual Result UpdateFromFlag(const CliOptions& opts) = 0;
+
     // Default values are the values when the application starts. The knobs can be reset to default by a button in the UI
     virtual void ResetToDefault() = 0;
 
@@ -78,7 +63,6 @@ protected:
     std::string        mDisplayName;
     std::string        mFlagName;
     std::string        mFlagDesc;
-    KnobType           mType;
     std::vector<Knob*> mChildren;
 };
 
@@ -89,7 +73,7 @@ class KnobBoolCheckbox
 public:
     KnobBoolCheckbox() {}
     KnobBoolCheckbox(const std::string& displayName, const std::string& flagName, const std::string& flagDesc, bool defaultValue, std::function<void(bool)> callback = NULL)
-        : Knob(KnobType::Bool_Checkbox, displayName, flagName, flagDesc)
+        : Knob(displayName, flagName, flagDesc)
     {
         mCallback     = callback;
         SetBoolValue(defaultValue, true);
@@ -100,10 +84,16 @@ public:
     void ResetToDefault() override { SetBoolValue(mDefaultValue); }
 
     // FlagText format:
-    // --flag_name <true/false> : flag description
+    // --flag_name <true|false> : flag description
     std::string FlagText() const override;
+
+    // Updates mValue and mDefaultValue, expected flag format:
+    // --flag_name <true|false>
+    Result UpdateFromFlag(const CliOptions& opts) override;
+    
     bool GetBoolValue() const { return mValue; }
 
+    // Used for when mValue needs to be updated outside of UI
     // If newVal is valid:
     // - If updateDefault, mDefaultValue is updated
     // - If newVal is different from mValue:
@@ -127,7 +117,7 @@ class KnobIntSlider
 public:
     KnobIntSlider() {}
     KnobIntSlider(const std::string& displayName, const std::string& flagName, const std::string& flagDesc, int defaultValue, int minValue, int maxValue, std::function<void(int)> callback = NULL) 
-        : Knob(KnobType::Int_Slider, displayName, flagName, flagDesc) 
+        : Knob(displayName, flagName, flagDesc) 
     {
         if (minValue >= maxValue) {
             PPX_LOG_FATAL(flagName << " KnobIntSlider: slider invalid range " << minValue << "~" << maxValue);
@@ -145,8 +135,14 @@ public:
     // FlagText format:
     // --flag_name <mMinValue~mMaxValue> : flag description
     std::string FlagText() const override;
+
+    // Updates mValue and mDefaultValue, expected flag format:
+    // --flag_name <int>
+    Result UpdateFromFlag(const CliOptions& opts) override;
+
     int GetIntValue() const { return mValue; }
 
+    // Used for when mValue needs to be updated outside of UI
     // Returns success if newVal is valid, fails otherwise
     // If newVal is valid:
     // - If updateDefault, mDefaultValue is updated
@@ -175,7 +171,7 @@ class KnobStrDropdown
 public:
     KnobStrDropdown() {}
     KnobStrDropdown(const std::string& displayName, const std::string& flagName, const std::string& flagDesc, int defaultIndex, const std::vector<std::string>& choices, std::function<void(int)> callback = NULL) 
-        : Knob(KnobType::Str_Dropdown, displayName, flagName, flagDesc)
+        : Knob(displayName, flagName, flagDesc)
         {
         if (choices.size() < 1) {
             PPX_LOG_FATAL(flagName << " KnobStrDropdown: too few allowed choices");
@@ -194,9 +190,15 @@ public:
     // FlagText format:
     // --flag_name <"choice1"|"choice2"|...> : flag description
     std::string FlagText() const override;
+
+    // Updates mIndex and mDefaultIndex, expected flag format:
+    // --flag_name <str>
+    Result UpdateFromFlag(const CliOptions& opts) override;
+
     int GetIndex() const { return mIndex; }
     std::string GetStr() const { return mChoices[mIndex]; }
 
+    // Used for when mIndex needs to be updated outside of UI
     // Returns success if newI is valid, fails otherwise
     // If newI is valid:
     // - If updateDefault, mDefaultIndex is updated
@@ -205,7 +207,7 @@ public:
     //   - mCallback is triggered
     Result SetIndex(int newI, bool updateDefault = false);
 
-    // Used for setting from flags, will set mIndex to appropriate value if newVal matches a choice
+    // Used for setting from flags, will set mIndex to appropriate value if newVal matches a choice exactly
     // Updates mDefaultIndex, mIndex, and calls mCallback with the same logic as above
     Result SetIndex(std::string newVal, bool updateDefault = false);
 
@@ -249,7 +251,7 @@ public:
 
     // Command-line flags
     std::string GetUsageMsg();
-    Result        UpdateFromFlags(const CliOptions& opts);
+    Result UpdateFromFlags(const CliOptions& opts);
 
 private:
     std::vector<Knob*>   mRoots;
