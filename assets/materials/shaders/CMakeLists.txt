@@ -14,9 +14,9 @@
 set(INCLUDE_FILES "${PPX_DIR}/assets/materials/shaders/Config.hlsli")
 
 list(APPEND BRDF_INCLUDE_FILES
-	"${PPX_DIR}/assets/common/shaders/ppx/BRDF.hlsli"
-	"${PPX_DIR}/assets/common/shaders/ppx/Math.hlsli")
-	
+    "${PPX_DIR}/assets/common/shaders/ppx/BRDF.hlsli"
+    "${PPX_DIR}/assets/common/shaders/ppx/Math.hlsli")
+
 generate_rules_for_shader("shader_mtl_vertex_shader"
     SOURCE "${PPX_DIR}/assets/materials/shaders/VertexShader.hlsl"
     INCLUDES ${INCLUDE_FILES}
@@ -24,32 +24,32 @@ generate_rules_for_shader("shader_mtl_vertex_shader"
 
 generate_rules_for_shader("shader_mtl_gouraud"
     SOURCE "${PPX_DIR}/assets/materials/shaders/Gouraud.hlsl"
-	INCLUDE_DIRS "${PPX_DIR}/assets/common/shaders"
+    INCLUDE_DIRS "${PPX_DIR}/assets/common/shaders"
     INCLUDES ${INCLUDE_FILES}
-	         ${BRDF_INCLUDE_FILES}
+             ${BRDF_INCLUDE_FILES}
     STAGES "ps")
 
 generate_rules_for_shader("shader_mtl_phong"
     SOURCE "${PPX_DIR}/assets/materials/shaders/Phong.hlsl"
-	INCLUDE_DIRS "${PPX_DIR}/assets/common/shaders"
+    INCLUDE_DIRS "${PPX_DIR}/assets/common/shaders"
     INCLUDES ${INCLUDE_FILES}
-	         ${BRDF_INCLUDE_FILES}
+             ${BRDF_INCLUDE_FILES}
     STAGES "ps")
 
 generate_rules_for_shader("shader_mtl_blinn_phong"
     SOURCE "${PPX_DIR}/assets/materials/shaders/BlinnPhong.hlsl"
     INCLUDES ${INCLUDE_FILES}
-	INCLUDE_DIRS "${PPX_DIR}/assets/common/shaders"
+    INCLUDE_DIRS "${PPX_DIR}/assets/common/shaders"
     INCLUDES ${INCLUDE_FILES}
-	         ${BRDF_INCLUDE_FILES}
+             ${BRDF_INCLUDE_FILES}
     STAGES "ps")
 
 generate_rules_for_shader("shader_mtl_pbr"
     SOURCE "${PPX_DIR}/assets/materials/shaders/PBR.hlsl"
-	INCLUDE_DIRS "${PPX_DIR}/assets/common/shaders"
+    INCLUDE_DIRS "${PPX_DIR}/assets/common/shaders"
     INCLUDES ${INCLUDE_FILES}
-	         ${BRDF_INCLUDE_FILES}
-	         "${PPX_DIR}/assets/common/shaders/ppx/PBR.hlsli"
+             ${BRDF_INCLUDE_FILES}
+             "${PPX_DIR}/assets/common/shaders/ppx/PBR.hlsli"
     STAGES "ps")
 
 generate_rules_for_shader("shader_mtl_env_draw_shader"

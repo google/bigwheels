@@ -44,11 +44,11 @@ function(internal_add_compile_shader_target TARGET_NAME)
     set(multiValueArgs COMPILER_FLAGS INCLUDE_DIRS INCLUDES)
     cmake_parse_arguments(PARSE_ARGV 1 "ARG" "" "${oneValueArgs}" "${multiValueArgs}")
 
-	set(INCLUDE_DIRS "")
-	foreach(DIR ${ARG_INCLUDE_DIRS})
-		set(INCLUDE_DIRS "${INCLUDE_DIRS} -I \"${DIR}\"")
-	endforeach()
-	string(STRIP "${INCLUDE_DIRS}" INCLUDE_DIRS)
+    set(INCLUDE_DIRS "")
+    foreach(DIR ${ARG_INCLUDE_DIRS})
+        set(INCLUDE_DIRS "${INCLUDE_DIRS} -I \"${DIR}\"")
+    endforeach()
+    string(STRIP "${INCLUDE_DIRS}" INCLUDE_DIRS)
 
     string(TOUPPER "${ARG_SHADER_STAGE}" ARG_SHADER_STAGE)
 
@@ -81,7 +81,7 @@ function(internal_generate_rules_for_shader TARGET_NAME)
             "dx12_${TARGET_NAME}_${ARG_SHADER_STAGE}"
             COMPILER_PATH "${DXC_PATH}"
             SOURCE "${ARG_SOURCE}"
-			INCLUDE_DIRS ${ARG_INCLUDE_DIRS}
+            INCLUDE_DIRS ${ARG_INCLUDE_DIRS}
             INCLUDES ${ARG_INCLUDES}
             OUTPUT_FILE "${CMAKE_BINARY_DIR}/${PATH_PREFIX}/dxil/${BASE_NAME}.${ARG_SHADER_STAGE}.dxil"
             SHADER_STAGE "${ARG_SHADER_STAGE}"
@@ -105,7 +105,7 @@ function(internal_generate_rules_for_shader TARGET_NAME)
             "vk_${TARGET_NAME}_${ARG_SHADER_STAGE}"
             COMPILER_PATH "${DXC_PATH}"
             SOURCE "${ARG_SOURCE}"
-			INCLUDE_DIRS ${ARG_INCLUDE_DIRS}
+            INCLUDE_DIRS ${ARG_INCLUDE_DIRS}
             INCLUDES ${ARG_INCLUDES}
             OUTPUT_FILE "${SHADER_OUTPUT_PATH}"
             SHADER_STAGE "${ARG_SHADER_STAGE}"
