@@ -39,7 +39,7 @@ generate_rules_for_shader(
 
 generate_rules_for_shader(
     "weighted_sum"
-	SOURCE "${PPX_DIR}/assets/oit_demo/shaders/WeightedSum.hlsl"
+    SOURCE "${PPX_DIR}/assets/oit_demo/shaders/WeightedSum.hlsl"
     INCLUDES ${TRANSPARENCY_INCLUDE_FILES}
     STAGES "ps" "vs")
 
