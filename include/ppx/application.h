@@ -316,10 +316,12 @@ public:
     virtual void MouseDown(int32_t x, int32_t y, uint32_t buttons) {}                         // Mouse down event
     virtual void MouseUp(int32_t x, int32_t y, uint32_t buttons) {}                           // Mouse up event
     virtual void Scroll(float dx, float dy) {}                                                // Mouse wheel or touchpad scroll event
+    virtual void Knobs() {}
     virtual void Render() {}
 
 protected:
     virtual void DispatchConfig();
+    virtual void DispatchKnobs();
     virtual void DispatchSetup();
     virtual void DispatchShutdown();
     virtual void DispatchMove(int32_t x, int32_t y);
@@ -487,8 +489,8 @@ private:
     uint32_t    mStereoscopicSwapchainIndex = 0;
 #endif
 
-public:
-    KnobManager knobManager = {};
+protected:
+    KnobManager mKnobManager = {};
 };
 
 const char* GetKeyCodeString(KeyCode code);

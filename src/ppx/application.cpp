@@ -659,6 +659,11 @@ void Application::DispatchConfig()
     }
 }
 
+void Application::DispatchKnobs()
+{
+    Knobs();
+}
+
 void Application::DispatchSetup()
 {
     Setup();
@@ -937,14 +942,12 @@ int Application::Run(int argc, char** argv)
     }
     mStandardOptions = mCommandLineParser.GetOptions().GetStandardOptions();
 
-    // Call config.
-    // Put this early because it might disable the display.
-    // Also has knob setup which can affect usage message
-    DispatchConfig();
+    // Knobs need to be set up before commandline parsing.
+    DispatchKnobs();
 
     // Append Knob flags to usage message
-    if (!knobManager.IsEmpty()) {
-        mCommandLineParser.AppendUsageMsg(knobManager.GetUsageMsg());
+    if (!mKnobManager.IsEmpty()) {
+        mCommandLineParser.AppendUsageMsg(mKnobManager.GetUsageMsg());
     }
 
     if (mStandardOptions.help) {
@@ -953,14 +956,18 @@ int Application::Run(int argc, char** argv)
     }
 
     // Parse knobs
-    if (!knobManager.IsEmpty()) {
+    if (!mKnobManager.IsEmpty()) {
         auto options = mCommandLineParser.GetOptions();
-        auto res     = knobManager.UpdateFromFlags(options);
+        auto res     = mKnobManager.UpdateFromFlags(options);
         if (res != SUCCESS) {
-            PPX_ASSERT_MSG(false, "Unable to parse command line arguments for knobs: " << res);        
+            PPX_ASSERT_MSG(false, "Unable to parse command line arguments for knobs: " << res);
             return EXIT_FAILURE;
         }
     }
+
+    // Call config.
+    // Put this early because it might disable the display.
+    DispatchConfig();
 
     // If command line argument specified headless.
     if (mStandardOptions.headless) {

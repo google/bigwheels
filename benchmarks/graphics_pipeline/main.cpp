@@ -53,6 +53,7 @@ class ProjApp
 public:
     virtual void Config(ppx::ApplicationSettings& settings) override;
     virtual void Setup() override;
+    virtual void Knobs() override;
     virtual void Render() override;
 
 private:
@@ -121,18 +122,14 @@ private:
 
 private:
     // Knobs
-    KnobStrDropdown *knobVs = nullptr;
-    std::vector<std::string> knobVsChoices;
-
-    KnobStrDropdown *knobPs = nullptr;
-    std::vector<std::string> knobPsChoices;
-
-    KnobIntSlider *knobNDrawcalls = nullptr; // placeholder
-
-    KnobStrDropdown *knobPerDrawcallVbRange = nullptr; // placeholder
-    std::vector<std::string> perDrawcallVbRangeChoices = {"Single Mesh", "All Meshes"};
-
-    KnobBoolCheckbox *knobAlphaBlend = nullptr; // placeholder
+    KnobStrDropdown*         pKnobVs = nullptr;
+    std::vector<std::string> knobChoicesVs;
+    KnobStrDropdown*         pKnobPs = nullptr;
+    std::vector<std::string> knobChoicesPs;
+    KnobIntSlider*           pKnobDrawcalls     = nullptr; // unimplemented
+    KnobStrDropdown*         pKnobVbRange       = nullptr; // unimplemented
+    std::vector<std::string> knobChoicesVbRange = {"Single Mesh", "All Meshes"};
+    KnobBoolCheckbox*        pKnobAlphaBlend    = nullptr; // unimplemented
 
 private:
     void LoadScene(
@@ -196,35 +193,38 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.api                   = kApi;
     settings.grfx.enableDebug           = false;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
+}
 
+void ProjApp::Knobs()
+{
     // Knob definitions
     for (auto vs : kAvailableVsShaders) {
-        knobVsChoices.push_back(std::string(vs));
+        knobChoicesVs.push_back(std::string(vs));
     }
-    knobVs = knobManager.CreateKnob<ppx::KnobStrDropdown>(nullptr, "Vertex Shader", "vs", "placeholder", 0, knobVsChoices);
+    pKnobVs = mKnobManager.CreateKnob<ppx::KnobStrDropdown>(nullptr, "Vertex Shader", "vs", "placeholder", 0, knobChoicesVs);
 
     for (auto ps : kAvailablePsShaders) {
-        knobPsChoices.push_back(std::string(ps));
+        knobChoicesPs.push_back(std::string(ps));
     }
-    knobPs = knobManager.CreateKnob<ppx::KnobStrDropdown>(nullptr, "Pixel Shader", "ps", "placeholder", 0, knobPsChoices);
+    pKnobPs = mKnobManager.CreateKnob<ppx::KnobStrDropdown>(nullptr, "Pixel Shader", "ps", "placeholder", 0, knobChoicesPs);
 
-    knobNDrawcalls = knobManager.CreateKnob<ppx::KnobIntSlider>(nullptr, "Drawcall Count (TODO)", "n_drawcalls", "placeholder", 10, 1, 3000, [this] (int n) {
-        if (this->knobPerDrawcallVbRange != nullptr) {
-            if (n == 1 && this->knobPerDrawcallVbRange->GetIndex() == 1) { // if invalid combo (1 drawcall and "All Meshes")
-                this->knobPerDrawcallVbRange->SetIndex(0); // Set other knob to "Single Mesh"
+    pKnobDrawcalls = mKnobManager.CreateKnob<ppx::KnobIntSlider>(nullptr, "Drawcall Count (TODO)", "n_drawcalls", "placeholder", 10, 1, 3000, [this](int n) {
+        if (this->pKnobVbRange != nullptr) {
+            if (n == 1 && this->pKnobVbRange->GetIndex() == 1) { // if invalid combo (1 drawcall and "All Meshes")
+                this->pKnobVbRange->SetIndex(0);                 // Set other knob to "Single Mesh"
             }
         }
     });
 
-    knobPerDrawcallVbRange = knobManager.CreateKnob<ppx::KnobStrDropdown>(nullptr, "Per-Drawcall Vertex Buffer Range (TODO)", "per_drawcall_vb_range", "placeholder", 0, perDrawcallVbRangeChoices, [this] (int n) {
-        if (this->knobNDrawcalls != nullptr) {
-            if (n == 1 && this->knobNDrawcalls->GetIntValue() == 1) { // if invalid combo ("All Meshes" and 1 drawcall)
-                this->knobNDrawcalls->SetIntValue(2); // Set other knob to 2 drawcalls
+    pKnobVbRange = mKnobManager.CreateKnob<ppx::KnobStrDropdown>(nullptr, "Per-Drawcall Vertex Buffer Range (TODO)", "per_drawcall_vb_range", "placeholder", 0, knobChoicesVbRange, [this](int n) {
+        if (this->pKnobDrawcalls != nullptr) {
+            if (n == 1 && this->pKnobDrawcalls->GetValue() == 1) { // if invalid combo ("All Meshes" and 1 drawcall)
+                this->pKnobDrawcalls->SetValue(2);                 // Set other knob to 2 drawcalls
             }
         }
     });
 
-    knobAlphaBlend = knobManager.CreateKnob<ppx::KnobBoolCheckbox>(nullptr, "Alpha Blend", "alpha_blend", "placeholder", false);
+    pKnobAlphaBlend = mKnobManager.CreateKnob<ppx::KnobBoolCheckbox>(nullptr, "Alpha Blend", "alpha_blend", "placeholder", false);
 }
 
 void ProjApp::LoadTexture(
@@ -663,7 +663,7 @@ void ProjApp::LoadNodes(
 
 void ProjApp::Setup()
 {
-    const auto& cl_options           = GetExtraOptions();
+    const auto& cl_options = GetExtraOptions();
 
     // Cameras
     {
@@ -865,7 +865,7 @@ void ProjApp::Render()
             frame.cmd->SetScissors(GetScissor());
             frame.cmd->SetViewports(GetViewport());
 
-            uint32_t pipeline_index = knobVs->GetIndex() * kAvailablePsShaders.size() + knobPs->GetIndex();
+            uint32_t pipeline_index = pKnobVs->GetIndex() * kAvailablePsShaders.size() + pKnobPs->GetIndex();
             // Draw entities
             for (auto& object : mObjects) {
                 for (auto& renderable : object.renderables) {
@@ -906,7 +906,7 @@ void ProjApp::UpdateGUI()
     }
 
     // GUI
-    knobManager.DrawAllKnobs();
+    mKnobManager.DrawAllKnobs();
 }
 
 SETUP_APPLICATION(ProjApp)

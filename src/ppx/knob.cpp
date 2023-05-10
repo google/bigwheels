@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "backends/imgui_impl_glfw.h"
+#include "ppx/imgui_impl.h"
 #include "ppx/knob.h"
 
 #include <cstring>
@@ -38,19 +38,21 @@ std::string KnobBoolCheckbox::FlagText() const
 
 Result KnobBoolCheckbox::UpdateFromFlag(const CliOptions& opts)
 {
-    SetBoolValue(opts.GetExtraOptionValueOrDefault(mFlagName, mValue), true);
+    SetValue(opts.GetExtraOptionValueOrDefault(mFlagName, mValue), true);
     return SUCCESS;
 }
 
-void KnobBoolCheckbox::SetBoolValue(bool newVal, bool updateDefault)
+void KnobBoolCheckbox::SetValue(bool newVal, bool updateDefault)
 {
     // update mDefaultValue
-    if (updateDefault) mDefaultValue = newVal;
+    if (updateDefault)
+        mDefaultValue = newVal;
 
     // update mValue and trigger mCallback
     if (newVal != mValue) {
         mValue = newVal;
-        if (mCallback) mCallback(mValue);
+        if (mCallback)
+            mCallback(mValue);
     }
 }
 
@@ -74,8 +76,8 @@ std::string KnobIntSlider::FlagText() const
 
 Result KnobIntSlider::UpdateFromFlag(const CliOptions& opts)
 {
-    int  newVal = opts.GetExtraOptionValueOrDefault(mFlagName, mValue);
-    Result res = SetIntValue(newVal, true);
+    int    newVal = opts.GetExtraOptionValueOrDefault(mFlagName, mValue);
+    Result res    = SetValue(newVal, true);
     if (res != SUCCESS) {
         PPX_LOG_ERROR(mFlagName << " invalid commandline flag value: " << newVal);
         return ERROR_OUT_OF_RANGE;
@@ -83,7 +85,7 @@ Result KnobIntSlider::UpdateFromFlag(const CliOptions& opts)
     return SUCCESS;
 }
 
-Result KnobIntSlider::SetIntValue(int newVal, bool updateDefault)
+Result KnobIntSlider::SetValue(int newVal, bool updateDefault)
 {
     if (newVal < mMinValue || newVal > mMaxValue) {
         PPX_LOG_ERROR(mFlagName << " cannot be set to " << newVal << " because it's out of range " << mMinValue << "~" << mMaxValue);
@@ -91,14 +93,16 @@ Result KnobIntSlider::SetIntValue(int newVal, bool updateDefault)
     }
 
     // update mDefaultValue
-    if (updateDefault) mDefaultValue = newVal;
+    if (updateDefault)
+        mDefaultValue = newVal;
 
     // update mValue and trigger mCallback
     if (newVal != mValue) {
         mValue = newVal;
-        if (mCallback) mCallback(mValue);
+        if (mCallback)
+            mCallback(mValue);
     }
-    
+
     return SUCCESS;
 }
 
@@ -132,14 +136,15 @@ std::string KnobStrDropdown::FlagText() const
     for (auto choice : mChoices) {
         choiceStr += '\"' + choice + '\"' + "|";
     }
-    if (!choiceStr.empty()) choiceStr.erase(choiceStr.size() - 1);
+    if (!choiceStr.empty())
+        choiceStr.erase(choiceStr.size() - 1);
     return "--" + mFlagName + " <" + choiceStr + "> : " + mFlagDesc + "\n";
 }
 
 Result KnobStrDropdown::UpdateFromFlag(const CliOptions& opts)
 {
     std::string newVal = opts.GetExtraOptionValueOrDefault(mFlagName, GetStr());
-    Result res = SetIndex(newVal, true);
+    Result      res    = SetIndex(newVal, true);
     if (res != SUCCESS) {
         PPX_LOG_ERROR(mFlagName << " invalid commandline flag value: " << newVal);
         return ERROR_OUT_OF_RANGE;
@@ -155,12 +160,14 @@ Result KnobStrDropdown::SetIndex(int newI, bool updateDefault)
     }
 
     // update mDefaultIndex
-    if (updateDefault) mDefaultIndex = newI;
+    if (updateDefault)
+        mDefaultIndex = newI;
 
     // update mIndex and trigger mCallback
     if (newI != mIndex) {
         mIndex = newI;
-        if (mCallback) mCallback(mIndex);
+        if (mCallback)
+            mCallback(mIndex);
     }
 
     return SUCCESS;
@@ -188,16 +195,14 @@ Result KnobStrDropdown::SetIndex(std::string newVal, bool updateDefault)
 
 KnobManager::~KnobManager()
 {
-    auto knobPtrs = FlattenDepthFirst(mRoots);
-    for (auto knobPtr : knobPtrs) {
+    for (auto knobPtr : mKnobs) {
         delete knobPtr;
     }
 }
 
 void KnobManager::ResetAllToDefault()
 {
-    auto knobPtrs = FlattenDepthFirst(mRoots);
-    for (auto knobPtr : knobPtrs) {
+    for (auto knobPtr : mKnobs) {
         knobPtr->ResetToDefault();
     }
 }
@@ -206,10 +211,10 @@ void KnobManager::DrawAllKnobs(bool inExistingWindow)
 {
     if (!inExistingWindow)
         ImGui::Begin("Knobs");
-    
+
     DrawKnobs(mRoots);
 
-    if (ImGui::Button("Reset to Default Values")){
+    if (ImGui::Button("Reset to Default Values")) {
         ResetAllToDefault();
     }
 
@@ -220,8 +225,7 @@ void KnobManager::DrawAllKnobs(bool inExistingWindow)
 std::string KnobManager::GetUsageMsg()
 {
     std::string usageMsg = "\nApplication-specific flags\n";
-    auto knobPtrs = FlattenDepthFirst(mRoots);
-    for (auto knobPtr : knobPtrs) {
+    for (auto knobPtr : mKnobs) {
         usageMsg += knobPtr->FlagText();
     }
     return usageMsg;
@@ -229,10 +233,10 @@ std::string KnobManager::GetUsageMsg()
 
 Result KnobManager::UpdateFromFlags(const CliOptions& opts)
 {
-    auto knobPtrs = FlattenDepthFirst(mRoots);
-    for (auto knobPtr : knobPtrs) {
+    for (auto knobPtr : mKnobs) {
         Result res = knobPtr->UpdateFromFlag(opts);
-        if (res != SUCCESS) return res;
+        if (res != SUCCESS)
+            return res;
     }
     return SUCCESS;
 }
@@ -240,20 +244,6 @@ Result KnobManager::UpdateFromFlags(const CliOptions& opts)
 // -------------------------------------------------------------------------------------------------
 // Helper functions
 // -------------------------------------------------------------------------------------------------
-
-std::vector<Knob*> FlattenDepthFirst(const std::vector<Knob*>& rootPtrs)
-{
-    if (rootPtrs.empty())
-        return {};
-
-    std::vector<Knob*> knobPtrs;
-    for (auto knobPtr : rootPtrs) {
-        knobPtrs.push_back(knobPtr);
-        auto flatChildren = FlattenDepthFirst(knobPtr->GetChildren());
-        if (!flatChildren.empty()) knobPtrs.insert(knobPtrs.end(), flatChildren.begin(), flatChildren.end());
-    }
-    return knobPtrs;
-}
 
 void DrawKnobs(const std::vector<Knob*>& knobPtrs)
 {
