@@ -100,8 +100,7 @@ buildType:
 
 device:
   - Mobile : an Android phone
-  - Openxr : an openXR device
-  - Quest  : Oculus Quest
+  - Xr : an XR device
 
 sampleName:
   - Triangle    : 01_triangle
@@ -116,10 +115,10 @@ flavor:
 
 Example:
 
-To build Fishtornado, XR, for OpenXR:
+To build Fishtornado, XR:
 
 ```
-./gradlew buildOpenxrFishtornadoxrDebug
+./gradlew buildXrFishtornadoxrDebug
 ```
 
 ## OpenXR

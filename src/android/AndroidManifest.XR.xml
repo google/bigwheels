@@ -9,12 +9,24 @@
   <uses-feature android:name="android.hardware.vr.high_performance" android:required="true" />
   <uses-feature android:name="android.software.vr.mode" android:required="true" />
 
+  <!-- Needed for Oculus devices -->
+    <uses-feature android:name="com.oculus.feature.PASSTHROUGH" android:required="false" />
+    <meta-data android:name="com.oculus.intent.category.VR" android:value="vr_only"/>
+    <meta-data android:name="com.oculus.supportedDevices" android:value="quest|quest2|cambria"/>
+  <!-- -->
+
   <application
       android:allowBackup="true"
       android:icon="@android:drawable/ic_info"
       android:label="${appLabel}"
       android:theme="@style/Theme.AppCompat.NoActionBar"
       tools:targetApi="31">
+    <!-- Needed for Oculus devices -->
+      <uses-native-library
+          android:name="libopenxr_forwardloader.oculus.so"
+          android:required="false"/>
+    <!-- -->
+
     <activity
         android:name="com.google.bigwheels.MainActivity"
         android:exported="true">
@@ -22,6 +34,10 @@
         <action android:name="android.intent.action.MAIN" />
         <category android:name="android.intent.category.LAUNCHER" />
         <category android:name="org.khronos.openxr.intent.category.IMMERSIVE_HMD" />
+
+        <!-- Needed for Oculus devices -->
+          <category android:name="com.oculus.intent.category.VR" />
+        <!-- -->
       </intent-filter>
       <meta-data android:name="android.app.lib_name" android:value="${sampleLibraryName}"/>
     </activity>

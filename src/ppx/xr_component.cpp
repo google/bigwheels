@@ -108,12 +108,10 @@ void XrComponent::InitializeBeforeGrfxDeviceInit(const XrComponentCreateInfo& cr
         }
     }
 
-#if defined(PPX_XR_QUEST)
     if (IsXrExtensionSupported(xrExts, XR_FB_PASSTHROUGH_EXTENSION_NAME)) {
         xrInstanceExtensions.push_back(XR_FB_PASSTHROUGH_EXTENSION_NAME);
-        mPassthroughSupported = true;
+        mPassthroughSupported = XR_PASSTHROUGH_OCULUS;
     }
-#endif
 
     // Layers (Optional)
     std::vector<const char*> xrRequestedInstanceLayers;
@@ -171,15 +169,13 @@ void XrComponent::InitializeBeforeGrfxDeviceInit(const XrComponentCreateInfo& cr
     mBlendModes.resize(blendCount, XR_ENVIRONMENT_BLEND_MODE_MAX_ENUM);
     CHECK_XR_CALL(xrEnumerateEnvironmentBlendModes(mInstance, mSystemId, mCreateInfo.viewConfigType, blendCount, &blendCount, mBlendModes.data()));
 
-#if !defined(PPX_XR_QUEST)
-    // Check to see if OpenXR passthrough is supported.
+    // Check to see if passthrough is supported through OpenXR blend modes.
     for (XrEnvironmentBlendMode blendMode : mBlendModes) {
         if (blendMode == XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND) {
-            mPassthroughSupported = true;
+            mPassthroughSupported = XR_PASSTHROUGH_BLEND_MODE;
             break;
         }
     }
-#endif // !defined(PPX_XR_QUEST)
 
     // Create Debug Utils Messenger
     if (mCreateInfo.enableDebug) {
@@ -243,8 +239,7 @@ void XrComponent::InitializeAfterGrfxDeviceInit(const grfx::InstancePtr pGrfxIns
 
     mViews.resize(viewCount, {XR_TYPE_VIEW});
 
-#if defined(PPX_XR_QUEST)
-    if (mPassthroughSupported) {
+    if (mPassthroughSupported == XR_PASSTHROUGH_OCULUS) {
         XrPassthroughFlagsFB      flags                    = {};
         XrPassthroughCreateInfoFB passthroughInfo          = {XR_TYPE_PASSTHROUGH_CREATE_INFO_FB};
         passthroughInfo.next                               = nullptr;
@@ -255,12 +250,10 @@ void XrComponent::InitializeAfterGrfxDeviceInit(const grfx::InstancePtr pGrfxIns
         CHECK_XR_CALL(pfnXrCreatePassthroughFB(mSession, &passthroughInfo, &mPassthrough));
         PPX_ASSERT_MSG(mPassthrough != XR_NULL_HANDLE, "XrPassthroughFB creation failed!");
     }
-#endif // defined(PPX_XR_QUEST)
 }
 
 void XrComponent::Destroy()
 {
-#if defined(PPX_XR_QUEST)
     if (mPassthroughLayer != XR_NULL_HANDLE) {
         PFN_xrDestroyPassthroughLayerFB pfnXrDestroyPassthroughLayerFB = nullptr;
         CHECK_XR_CALL(xrGetInstanceProcAddr(mInstance, "xrDestroyPassthroughLayerFB", (PFN_xrVoidFunction*)(&pfnXrDestroyPassthroughLayerFB)));
@@ -274,7 +267,6 @@ void XrComponent::Destroy()
         PPX_ASSERT_MSG(pfnXrDestroyPassthroughFB != nullptr, "Cannot get xrDestroyPassthroughFB function pointer!");
         CHECK_XR_CALL(pfnXrDestroyPassthroughFB(mPassthrough));
     }
-#endif // defined(PPX_XR_QUEST)
 
     if (mDebugUtilMessenger != XR_NULL_HANDLE) {
         PFN_xrDestroyDebugUtilsMessengerEXT pfnDestroyDebugUtilsMessengerEXTPtr = nullptr;
@@ -302,63 +294,73 @@ void XrComponent::Destroy()
 
 void XrComponent::BeginPassthrough()
 {
-    if (!mPassthroughSupported) {
-        return;
+    switch (mPassthroughSupported) {
+        case XR_PASSTHROUGH_OCULUS: {
+            PFN_xrPassthroughStartFB pfnXrPassthroughStartFB = nullptr;
+            CHECK_XR_CALL(xrGetInstanceProcAddr(mInstance, "xrPassthroughStartFB", (PFN_xrVoidFunction*)(&pfnXrPassthroughStartFB)));
+            PPX_ASSERT_MSG(pfnXrPassthroughStartFB != nullptr, "Cannot get xrPassthroughStartFB function pointer!");
+            CHECK_XR_CALL(pfnXrPassthroughStartFB(mPassthrough));
+
+            if (!mPassthroughLayer) {
+                XrPassthroughFlagsFB           layerFlags                    = {};
+                XrPassthroughLayerCreateInfoFB passthroughLayerInfo          = {XR_TYPE_PASSTHROUGH_LAYER_CREATE_INFO_FB};
+                passthroughLayerInfo.next                                    = nullptr;
+                passthroughLayerInfo.passthrough                             = mPassthrough;
+                passthroughLayerInfo.flags                                   = layerFlags;
+                passthroughLayerInfo.purpose                                 = XR_PASSTHROUGH_LAYER_PURPOSE_RECONSTRUCTION_FB;
+                PFN_xrCreatePassthroughLayerFB pfnXrCreatePassthroughLayerFB = nullptr;
+                CHECK_XR_CALL(xrGetInstanceProcAddr(mInstance, "xrCreatePassthroughLayerFB", (PFN_xrVoidFunction*)(&pfnXrCreatePassthroughLayerFB)));
+                PPX_ASSERT_MSG(pfnXrCreatePassthroughLayerFB != nullptr, "Cannot get xrCreatePassthroughLayerFB function pointer!");
+                CHECK_XR_CALL(pfnXrCreatePassthroughLayerFB(mSession, &passthroughLayerInfo, &mPassthroughLayer));
+                PPX_ASSERT_MSG(mPassthroughLayer != XR_NULL_HANDLE, "XrPassthroughLayerFB creation failed!");
+            }
+
+            PFN_xrPassthroughLayerResumeFB pfnXrPassthroughLayerResumeFB = nullptr;
+            CHECK_XR_CALL(xrGetInstanceProcAddr(mInstance, "xrPassthroughLayerResumeFB", (PFN_xrVoidFunction*)(&pfnXrPassthroughLayerResumeFB)));
+            PPX_ASSERT_MSG(pfnXrPassthroughLayerResumeFB != nullptr, "Cannot get xrPassthroughLayerResumeFB function pointer!");
+            CHECK_XR_CALL(pfnXrPassthroughLayerResumeFB(mPassthroughLayer));
+            mPassthroughEnabled = true;
+            return;
+        }
+        case XR_PASSTHROUGH_BLEND_MODE: {
+            mPassthroughEnabled = true;
+            return;
+        }
+        case XR_PASSTHROUGH_NONE:
+        default:
+            return;
     }
-
-#if defined(PPX_XR_QUEST)
-    PFN_xrPassthroughStartFB pfnXrPassthroughStartFB = nullptr;
-    CHECK_XR_CALL(xrGetInstanceProcAddr(mInstance, "xrPassthroughStartFB", (PFN_xrVoidFunction*)(&pfnXrPassthroughStartFB)));
-    PPX_ASSERT_MSG(pfnXrPassthroughStartFB != nullptr, "Cannot get xrPassthroughStartFB function pointer!");
-    CHECK_XR_CALL(pfnXrPassthroughStartFB(mPassthrough));
-
-    if (!mPassthroughLayer) {
-        XrPassthroughFlagsFB           layerFlags                    = {};
-        XrPassthroughLayerCreateInfoFB passthroughLayerInfo          = {XR_TYPE_PASSTHROUGH_LAYER_CREATE_INFO_FB};
-        passthroughLayerInfo.next                                    = nullptr;
-        passthroughLayerInfo.passthrough                             = mPassthrough;
-        passthroughLayerInfo.flags                                   = layerFlags;
-        passthroughLayerInfo.purpose                                 = XR_PASSTHROUGH_LAYER_PURPOSE_RECONSTRUCTION_FB;
-        PFN_xrCreatePassthroughLayerFB pfnXrCreatePassthroughLayerFB = nullptr;
-        CHECK_XR_CALL(xrGetInstanceProcAddr(mInstance, "xrCreatePassthroughLayerFB", (PFN_xrVoidFunction*)(&pfnXrCreatePassthroughLayerFB)));
-        PPX_ASSERT_MSG(pfnXrCreatePassthroughLayerFB != nullptr, "Cannot get xrCreatePassthroughLayerFB function pointer!");
-        CHECK_XR_CALL(pfnXrCreatePassthroughLayerFB(mSession, &passthroughLayerInfo, &mPassthroughLayer));
-        PPX_ASSERT_MSG(mPassthroughLayer != XR_NULL_HANDLE, "XrPassthroughLayerFB creation failed!");
-    }
-
-    PFN_xrPassthroughLayerResumeFB pfnXrPassthroughLayerResumeFB = nullptr;
-    CHECK_XR_CALL(xrGetInstanceProcAddr(mInstance, "xrPassthroughLayerResumeFB", (PFN_xrVoidFunction*)(&pfnXrPassthroughLayerResumeFB)));
-    PPX_ASSERT_MSG(pfnXrPassthroughLayerResumeFB != nullptr, "Cannot get xrPassthroughLayerResumeFB function pointer!");
-    CHECK_XR_CALL(pfnXrPassthroughLayerResumeFB(mPassthroughLayer));
-#endif // defined(PPX_XR_QUEST)
-
-    mPassthroughEnabled = true;
 }
 
 void XrComponent::EndPassthrough()
 {
-    if (!mPassthroughSupported) {
-        return;
+    switch (mPassthroughSupported) {
+        case XR_PASSTHROUGH_OCULUS: {
+            PFN_xrPassthroughLayerPauseFB pfnXrPassthroughLayerPauseFB = nullptr;
+            CHECK_XR_CALL(xrGetInstanceProcAddr(mInstance, "xrPassthroughLayerPauseFB", (PFN_xrVoidFunction*)(&pfnXrPassthroughLayerPauseFB)));
+            PPX_ASSERT_MSG(pfnXrPassthroughLayerPauseFB != nullptr, "Cannot get xrPassthroughLayerPauseFB function pointer!");
+            CHECK_XR_CALL(pfnXrPassthroughLayerPauseFB(mPassthroughLayer));
+
+            PFN_xrPassthroughPauseFB pfnXrPassthroughPauseFB = nullptr;
+            CHECK_XR_CALL(xrGetInstanceProcAddr(mInstance, "xrPassthroughPauseFB", (PFN_xrVoidFunction*)(&pfnXrPassthroughPauseFB)));
+            PPX_ASSERT_MSG(pfnXrPassthroughPauseFB != nullptr, "Cannot get xrPassthroughPauseFB function pointer!");
+            CHECK_XR_CALL(pfnXrPassthroughPauseFB(mPassthrough));
+            mPassthroughEnabled = false;
+            return;
+        }
+        case XR_PASSTHROUGH_BLEND_MODE: {
+            mPassthroughEnabled = false;
+            return;
+        }
+        case XR_PASSTHROUGH_NONE:
+        default:
+            return;
     }
-
-#if defined(PPX_XR_QUEST)
-    PFN_xrPassthroughLayerPauseFB pfnXrPassthroughLayerPauseFB = nullptr;
-    CHECK_XR_CALL(xrGetInstanceProcAddr(mInstance, "xrPassthroughLayerPauseFB", (PFN_xrVoidFunction*)(&pfnXrPassthroughLayerPauseFB)));
-    PPX_ASSERT_MSG(pfnXrPassthroughLayerPauseFB != nullptr, "Cannot get xrPassthroughLayerPauseFB function pointer!");
-    CHECK_XR_CALL(pfnXrPassthroughLayerPauseFB(mPassthroughLayer));
-
-    PFN_xrPassthroughPauseFB pfnXrPassthroughPauseFB = nullptr;
-    CHECK_XR_CALL(xrGetInstanceProcAddr(mInstance, "xrPassthroughPauseFB", (PFN_xrVoidFunction*)(&pfnXrPassthroughPauseFB)));
-    PPX_ASSERT_MSG(pfnXrPassthroughPauseFB != nullptr, "Cannot get xrPassthroughPauseFB function pointer!");
-    CHECK_XR_CALL(pfnXrPassthroughPauseFB(mPassthrough));
-#endif // defined(PPX_XR_QUEST)
-
-    mPassthroughEnabled = false;
 }
 
 void XrComponent::TogglePassthrough()
 {
-    if (!mPassthroughSupported) {
+    if (mPassthroughSupported == XR_PASSTHROUGH_NONE) {
         return;
     }
     if (!mPassthroughEnabled) {
@@ -507,10 +509,9 @@ void XrComponent::EndFrame(const std::vector<grfx::SwapchainPtr>& swapchains, ui
     std::vector<XrCompositionLayerProjectionView> compositionLayerProjectionViews(viewCount);
     std::vector<XrCompositionLayerDepthInfoKHR>   compositionLayerDepthInfos(viewCount);
     XrCompositionLayerQuad                        compositionLayerQuad = {XR_TYPE_COMPOSITION_LAYER_QUAD};
-#if defined(PPX_XR_QUEST)
+    // Used when mPassthroughSupported == XR_PASSTHROUGH_OCULUS
     XrCompositionLayerFlags         compositionLayerPassthroughFbFlags = {};
     XrCompositionLayerPassthroughFB compositionLayerPassthroughFb      = {XR_TYPE_COMPOSITION_LAYER_PASSTHROUGH_FB};
-#endif
     if (mShouldRender) {
         // Projection and (optional) depth info layer from color+depth swapchains.
         for (size_t i = 0; i < viewCount; ++i) {
@@ -558,18 +559,26 @@ void XrComponent::EndFrame(const std::vector<grfx::SwapchainPtr>& swapchains, ui
     compositionLayerProjection.viewCount                                  = static_cast<uint32_t>(GetViewCount());
     compositionLayerProjection.views                                      = compositionLayerProjectionViews.data();
     if (mShouldRender) {
-        if (mPassthroughSupported && mPassthroughEnabled) {
-#if defined(PPX_XR_QUEST)
-            if (mPassthroughLayer != XR_NULL_HANDLE) {
-                compositionLayerPassthroughFb.next        = nullptr;
-                compositionLayerPassthroughFb.flags       = compositionLayerPassthroughFbFlags;
-                compositionLayerPassthroughFb.space       = XR_NULL_HANDLE;
-                compositionLayerPassthroughFb.layerHandle = mPassthroughLayer;
-                layers.push_back(reinterpret_cast<XrCompositionLayerBaseHeader*>(&compositionLayerPassthroughFb));
+        if (mPassthroughEnabled) {
+            switch (mPassthroughSupported) {
+                case XR_PASSTHROUGH_OCULUS: {
+                    if (mPassthroughLayer != XR_NULL_HANDLE) {
+                        compositionLayerPassthroughFb.next        = nullptr;
+                        compositionLayerPassthroughFb.flags       = compositionLayerPassthroughFbFlags;
+                        compositionLayerPassthroughFb.space       = XR_NULL_HANDLE;
+                        compositionLayerPassthroughFb.layerHandle = mPassthroughLayer;
+                        layers.push_back(reinterpret_cast<XrCompositionLayerBaseHeader*>(&compositionLayerPassthroughFb));
+                    }
+                    break;
+                }
+                case XR_PASSTHROUGH_BLEND_MODE: {
+                    blendMode = XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND;
+                    break;
+                }
+                case XR_PASSTHROUGH_NONE:
+                default:
+                    break;
             }
-#else
-            blendMode = XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND;
-#endif // defined(PPX_XR_QUEST)
         }
         layers.push_back(reinterpret_cast<XrCompositionLayerBaseHeader*>(&compositionLayerProjection));
         if (mCreateInfo.enableQuadLayer) {
