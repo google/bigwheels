@@ -69,6 +69,13 @@ private:
         BUFFER_ALGORITHMS_COUNT,
     };
 
+    enum DepthPeelingAlgorithmType : int32_t
+    {
+        DEPTH_PEELING_ALGORITHM_SINGLE,
+        DEPTH_PEELING_ALGORITHM_DUAL,
+        DEPTH_PEELING_ALGORITHMS_COUNT,
+    };
+
     struct GuiParameters
     {
         int32_t algorithmDataIndex;
@@ -99,8 +106,9 @@ private:
 
         struct
         {
-            int32_t startLayer;
-            int32_t layersCount;
+            DepthPeelingAlgorithmType type;
+            int32_t                   startLayer;
+            int32_t                   layersCount;
         } depthPeeling;
 
         struct
@@ -121,6 +129,8 @@ private:
     void SetupWeightedSum();
     void SetupWeightedAverage();
     void SetupDepthPeeling();
+    void SetupDepthPeelingSingle();
+    void SetupDepthPeelingDual();
     void SetupBuffer();
     void SetupBufferBuckets();
     void SetupBufferLinkedLists();
@@ -142,6 +152,8 @@ private:
     void RecordWeightedSum();
     void RecordWeightedAverage();
     void RecordDepthPeeling();
+    void RecordDepthPeelingSingle();
+    void RecordDepthPeelingDual();
     void RecordBuffer();
     void RecordBufferBuckets();
     void RecordBufferLinkedLists();
@@ -235,12 +247,12 @@ private:
     {
         struct
         {
-            grfx::TexturePtr  layerTextures[DEPTH_PEELING_LAYERS_COUNT];
-            grfx::TexturePtr  depthTextures[DEPTH_PEELING_DEPTH_TEXTURES_COUNT];
-            grfx::DrawPassPtr layerPasses[DEPTH_PEELING_LAYERS_COUNT];
+            grfx::TexturePtr  layerTextures[DEPTH_PEELING_SINGLE_LAYERS_COUNT];
+            grfx::TexturePtr  depthTextures[DEPTH_PEELING_SINGLE_DEPTH_TEXTURES_COUNT];
+            grfx::DrawPassPtr layerPasses[DEPTH_PEELING_SINGLE_LAYERS_COUNT];
 
             grfx::DescriptorSetLayoutPtr layerDescriptorSetLayout;
-            grfx::DescriptorSetPtr       layerDescriptorSets[DEPTH_PEELING_DEPTH_TEXTURES_COUNT];
+            grfx::DescriptorSetPtr       layerDescriptorSets[DEPTH_PEELING_SINGLE_DEPTH_TEXTURES_COUNT];
             grfx::PipelineInterfacePtr   layerPipelineInterface;
             grfx::GraphicsPipelinePtr    layerPipeline_OtherLayers;
             grfx::GraphicsPipelinePtr    layerPipeline_FirstLayer;
@@ -250,6 +262,24 @@ private:
             grfx::PipelineInterfacePtr   combinePipelineInterface;
             grfx::GraphicsPipelinePtr    combinePipeline;
         } single;
+
+        struct
+        {
+            grfx::TexturePtr frontLayerTexture;
+            grfx::TexturePtr backLayerTexture;
+            grfx::TexturePtr depthBoundsTextures[DEPTH_PEELING_DUAL_DEPTH_TEXTURES_COUNT];
+
+            grfx::DescriptorSetLayoutPtr layerDescriptorSetLayout;
+            grfx::DescriptorSetPtr       layerDescriptorSets[DEPTH_PEELING_DUAL_DEPTH_TEXTURES_COUNT];
+            grfx::PipelineInterfacePtr   layerPipelineInterface;
+            grfx::GraphicsPipelinePtr    layerPipeline_OtherLayers;
+            grfx::GraphicsPipelinePtr    layerPipeline_FirstLayer;
+
+            grfx::DescriptorSetLayoutPtr combineDescriptorSetLayout;
+            grfx::DescriptorSetPtr       combineDescriptorSet;
+            grfx::PipelineInterfacePtr   combinePipelineInterface;
+            grfx::GraphicsPipelinePtr    combinePipeline;
+        } dual;
     } mDepthPeeling;
 
     struct

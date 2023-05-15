@@ -345,8 +345,9 @@ void OITDemoApp::ParseCommandLineOptions()
 
     mGuiParameters.weightedAverage.type = static_cast<WeightAverageType>(std::clamp(cliOptions.GetExtraOptionValueOrDefault("wa_type", 0), 0, WEIGHTED_AVERAGE_TYPES_COUNT - 1));
 
-    mGuiParameters.depthPeeling.startLayer  = std::clamp(cliOptions.GetExtraOptionValueOrDefault("dp_start_layer", 0), 0, DEPTH_PEELING_LAYERS_COUNT - 1);
-    mGuiParameters.depthPeeling.layersCount = std::clamp(cliOptions.GetExtraOptionValueOrDefault("dp_layers_count", DEPTH_PEELING_LAYERS_COUNT), 1, DEPTH_PEELING_LAYERS_COUNT);
+    mGuiParameters.depthPeeling.type        = static_cast<DepthPeelingAlgorithmType>(std::clamp(cliOptions.GetExtraOptionValueOrDefault("dp_type", 0), 0, DEPTH_PEELING_ALGORITHMS_COUNT - 1));
+    mGuiParameters.depthPeeling.startLayer  = std::clamp(cliOptions.GetExtraOptionValueOrDefault("dp_start_layer", 0), 0, DEPTH_PEELING_SINGLE_LAYERS_COUNT - 1);
+    mGuiParameters.depthPeeling.layersCount = std::clamp(cliOptions.GetExtraOptionValueOrDefault("dp_layers_count", DEPTH_PEELING_SINGLE_LAYERS_COUNT), 1, DEPTH_PEELING_SINGLE_LAYERS_COUNT);
 
     mGuiParameters.buffer.type                        = static_cast<BufferAlgorithmType>(std::clamp(cliOptions.GetExtraOptionValueOrDefault("bu_type", 0), 0, BUFFER_ALGORITHMS_COUNT - 1));
     mGuiParameters.buffer.bucketsFragmentsMaxCount    = std::clamp(cliOptions.GetExtraOptionValueOrDefault("bu_buckets_fragments_max_count", BUFFER_BUCKETS_SIZE_PER_PIXEL), 1, BUFFER_BUCKETS_SIZE_PER_PIXEL);
@@ -412,7 +413,7 @@ void OITDemoApp::Update()
         shaderGlobals.meshOpacity = mGuiParameters.mesh.opacity;
 
         shaderGlobals.depthPeelingFrontLayerIndex = std::max(0, mGuiParameters.depthPeeling.startLayer);
-        shaderGlobals.depthPeelingBackLayerIndex  = std::min(DEPTH_PEELING_LAYERS_COUNT - 1, mGuiParameters.depthPeeling.startLayer + mGuiParameters.depthPeeling.layersCount - 1);
+        shaderGlobals.depthPeelingBackLayerIndex  = std::min(DEPTH_PEELING_SINGLE_LAYERS_COUNT - 1, mGuiParameters.depthPeeling.startLayer + mGuiParameters.depthPeeling.layersCount - 1);
 
         shaderGlobals.bufferBucketsFragmentsMaxCount    = std::min(BUFFER_BUCKETS_SIZE_PER_PIXEL, mGuiParameters.buffer.bucketsFragmentsMaxCount);
         shaderGlobals.bufferListsFragmentBufferScale    = std::min(BUFFER_LISTS_FRAGMENT_BUFFER_MAX_SCALE, mGuiParameters.buffer.listsFragmentBufferScale);
@@ -486,8 +487,26 @@ void OITDemoApp::UpdateGUI()
             }
             case ALGORITHM_DEPTH_PEELING: {
                 ImGui::Text("%s", mSupportedAlgorithmNames[mGuiParameters.algorithmDataIndex]);
-                ImGui::SliderInt("DP first layer", &mGuiParameters.depthPeeling.startLayer, 0, DEPTH_PEELING_LAYERS_COUNT - 1);
-                ImGui::SliderInt("DP layers count", &mGuiParameters.depthPeeling.layersCount, 1, DEPTH_PEELING_LAYERS_COUNT);
+                const char* typeChoices[] =
+                    {
+                        "Single",
+                        "Dual",
+                    };
+                static_assert(IM_ARRAYSIZE(typeChoices) == BUFFER_ALGORITHMS_COUNT, "Buffer algorithm types count mismatch");
+                ImGui::Combo("DP type", reinterpret_cast<int32_t*>(&mGuiParameters.buffer.type), typeChoices, IM_ARRAYSIZE(typeChoices));
+                switch (mGuiParameters.buffer.type) {
+                    case DEPTH_PEELING_ALGORITHM_SINGLE: {
+                        ImGui::SliderInt("DP first layer", &mGuiParameters.depthPeeling.startLayer, 0, DEPTH_PEELING_SINGLE_LAYERS_COUNT - 1);
+                        ImGui::SliderInt("DP layers count", &mGuiParameters.depthPeeling.layersCount, 1, DEPTH_PEELING_SINGLE_LAYERS_COUNT);
+                        break;
+                    }
+                    case DEPTH_PEELING_ALGORITHM_DUAL: {
+                        break;
+                    }
+                    default: {
+                        break;
+                    }
+                }
                 break;
             }
             case ALGORITHM_BUFFER: {

@@ -16,8 +16,8 @@
 #include "Common.hlsli"
 #include "FullscreenVS.hlsli"
 
-SamplerState NearestSampler                            : register(CUSTOM_SAMPLER_0_REGISTER);
-Texture2D    LayerTextures[DEPTH_PEELING_LAYERS_COUNT] : register(CUSTOM_TEXTURE_0_REGISTER);
+SamplerState NearestSampler                                   : register(CUSTOM_SAMPLER_0_REGISTER);
+Texture2D    LayerTextures[DEPTH_PEELING_SINGLE_LAYERS_COUNT] : register(CUSTOM_TEXTURE_0_REGISTER);
 
 float4 psmain(VSOutput input) : SV_TARGET
 {
