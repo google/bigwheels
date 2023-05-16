@@ -99,7 +99,7 @@ public:
     // Entries can be retrieved using these two functions.
     // 'index' should be between 0 and 'GetEntriesCount() - 1'.
     size_t GetEntriesCount() const;
-    void   GetEntry(size_t index, double* seconds, double* value) const;
+    void   GetEntry(size_t index, double* pSeconds, double* pValue) const;
 
     const GaugeBasicStatistics   GetBasicStatistics() const;
     const GaugeComplexStatistics ComputeComplexStatistics() const;
@@ -161,13 +161,13 @@ public:
     T* AddMetric(MetricMetadata metadata);
 
 private:
-    Run(const char* name);
+    Run(const char* pName);
     ~Run();
     METRICS_NO_COPY(Run)
 
-    void AddMetric(MetricGauge* metric);
-    void AddMetric(MetricCounter* metric);
-    bool HasMetric(const char* name) const;
+    void AddMetric(MetricGauge* pMetric);
+    void AddMetric(MetricCounter* pMetric);
+    bool HasMetric(const char* pName) const;
 
 private:
     std::string                                     mName;
@@ -181,13 +181,13 @@ T* Run::AddMetric(MetricMetadata metadata)
     PPX_ASSERT_MSG(!metadata.name.empty(), "The metric name must not be empty");
     PPX_ASSERT_MSG(!HasMetric(metadata.name.c_str()), "Metrics must have unique names (duplicate name detected)");
 
-    T* metric = new T(metadata);
-    if (metric == nullptr) {
+    T* pMetric = new T(metadata);
+    if (pMetric == nullptr) {
         return nullptr;
     }
 
-    AddMetric(metric);
-    return metric;
+    AddMetric(pMetric);
+    return pMetric;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -198,7 +198,7 @@ public:
     Manager();
     ~Manager();
 
-    Run* AddRun(const char* name);
+    Run* AddRun(const char* pName);
 
 private:
     METRICS_NO_COPY(Manager)

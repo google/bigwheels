@@ -507,13 +507,6 @@ if (PPX_BUILD_XR)
     )
 endif()
 
-if (PPX_XR_QUEST)
-    target_compile_definitions(
-        ${PROJECT_NAME}
-        PUBLIC PPX_XR_QUEST
-    )
-endif()
-
 # ------------------------------------------------------------------------------
 # Link libraries
 # ------------------------------------------------------------------------------

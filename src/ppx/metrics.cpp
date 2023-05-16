@@ -49,14 +49,14 @@ size_t MetricGauge::GetEntriesCount() const
     return mTimeSeries.size();
 }
 
-void MetricGauge::GetEntry(size_t index, double* seconds, double* value) const
+void MetricGauge::GetEntry(size_t index, double* pSeconds, double* pValue) const
 {
     PPX_ASSERT_MSG(index < mTimeSeries.size(), "The entry index is invalid");
-    PPX_ASSERT_NULL_ARG(seconds);
-    PPX_ASSERT_NULL_ARG(value);
+    PPX_ASSERT_NULL_ARG(pSeconds);
+    PPX_ASSERT_NULL_ARG(pValue);
     const TimeSeriesEntry entry = mTimeSeries[index];
-    *seconds                    = entry.seconds;
-    *value                      = entry.value;
+    *pSeconds                   = entry.seconds;
+    *pValue                     = entry.value;
 }
 
 const GaugeBasicStatistics MetricGauge::GetBasicStatistics() const
@@ -149,10 +149,10 @@ uint64_t MetricCounter::Get() const
 
 ////////////////////////////////////////////////////////////////////////////////
 
-Run::Run(const char* name)
-    : mName(name)
+Run::Run(const char* pName)
+    : mName(pName)
 {
-    PPX_ASSERT_MSG(name != nullptr, "A run name cannot be null");
+    PPX_ASSERT_MSG(pName != nullptr, "A run name cannot be null");
 }
 
 Run::~Run()
@@ -167,23 +167,23 @@ Run::~Run()
     mCounters.clear();
 }
 
-void Run::AddMetric(MetricGauge* metric)
+void Run::AddMetric(MetricGauge* pMetric)
 {
-    PPX_ASSERT_NULL_ARG(metric);
-    const auto ret = mGauges.insert({metric->mMetadata.name, metric});
+    PPX_ASSERT_NULL_ARG(pMetric);
+    const auto ret = mGauges.insert({pMetric->mMetadata.name, pMetric});
     PPX_ASSERT_MSG(ret.second, "An insertion shall always take place when adding a metric");
 }
 
-void Run::AddMetric(MetricCounter* metric)
+void Run::AddMetric(MetricCounter* pMetric)
 {
-    PPX_ASSERT_NULL_ARG(metric);
-    const auto ret = mCounters.insert({metric->mMetadata.name, metric});
+    PPX_ASSERT_NULL_ARG(pMetric);
+    const auto ret = mCounters.insert({pMetric->mMetadata.name, pMetric});
     PPX_ASSERT_MSG(ret.second, "An insertion shall always take place when adding a metric");
 }
 
-bool Run::HasMetric(const char* name) const
+bool Run::HasMetric(const char* pName) const
 {
-    return mGauges.find(name) != mGauges.end() || mCounters.find(name) != mCounters.end();
+    return mGauges.find(pName) != mGauges.end() || mCounters.find(pName) != mCounters.end();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -200,19 +200,19 @@ Manager::~Manager()
     mRuns.clear();
 }
 
-Run* Manager::AddRun(const char* name)
+Run* Manager::AddRun(const char* pName)
 {
-    PPX_ASSERT_MSG(name != nullptr, "A run name must not be null");
-    PPX_ASSERT_MSG(mRuns.find(name) == mRuns.end(), "Runs must have unique names (duplicate name detected)");
+    PPX_ASSERT_MSG(pName != nullptr, "A run name must not be null");
+    PPX_ASSERT_MSG(mRuns.find(pName) == mRuns.end(), "Runs must have unique names (duplicate name detected)");
 
-    Run* run = new Run(name);
-    if (run == nullptr) {
+    Run* pRun = new Run(pName);
+    if (pRun == nullptr) {
         return nullptr;
     }
 
-    const auto ret = mRuns.insert({name, run});
+    const auto ret = mRuns.insert({pName, pRun});
     PPX_ASSERT_MSG(ret.second, "An insertion shall always take place when adding a run");
-    return run;
+    return pRun;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

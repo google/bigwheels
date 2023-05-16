@@ -71,39 +71,20 @@ android {
             externalNativeBuild {
                 cmake {
                     arguments '-DPPX_BUILD_XR=FALSE',
-                              '-DPPX_XR_QUEST=FALSE',
                               '-DBUILD_LOADER=FALSE'
                 }
             }
         }
-        openxr {
+        xr {
             dimension 'device'
             applicationIdSuffix '.xr'
             versionNameSuffix '-xr'
             externalNativeBuild {
                 cmake {
                     arguments '-DPPX_BUILD_XR=TRUE',
-                              '-DPPX_XR_QUEST=FALSE',
                               '-DBUILD_LOADER=TRUE',
                               '-DBUILD_ALL_EXTENSIONS=TRUE'
                     cppFlags '-DXR_USE_PLATFORM_ANDROID'
-                }
-            }
-        }
-        quest {
-            dimension 'device'
-            applicationIdSuffix '.quest'
-            versionNameSuffix '-quest'
-            externalNativeBuild {
-                ndk {
-                    abiFilters 'arm64-v8a', 'armeabi-v7a'
-                }
-                cmake {
-                  arguments '-DPPX_BUILD_XR=TRUE',
-                            '-DPPX_XR_QUEST=TRUE',
-                            '-DBUILD_LOADER=TRUE',
-                            '-DBUILD_ALL_EXTENSIONS=FALSE'
-                  cppFlags '-DXR_USE_PLATFORM_ANDROID'
                 }
             }
         }
@@ -121,8 +102,8 @@ android {
             // Ignore XR projects for mobile devices.
             setIgnore(true)
         }
-        if ((device == 'openxr' || device == 'quest') && !xrProjects.contains(project)) {
-            // Ignore non-XR projects for OpenXR and Quest devices.
+        if ((device == 'xr') && !xrProjects.contains(project)) {
+            // Ignore non-XR projects for XR devices.
             setIgnore(true)
         }
     }
@@ -148,11 +129,8 @@ android {
                 srcDirs 'assets', "third_party/assets"
             }
         }
-        openxr {
+        xr {
             manifest.srcFile 'src/android/AndroidManifest.XR.xml'
-        }
-        quest {
-            manifest.srcFile 'src/android/AndroidManifest.Quest.xml'
         }
     }
 }
