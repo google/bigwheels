@@ -637,6 +637,11 @@ void Application::DestroyPlatformWindow()
     mWindow->Destroy();
 }
 
+void Application::DispatchInitKnobs()
+{
+    InitKnobs();
+}
+
 void Application::DispatchConfig()
 {
     Config(mSettings);
@@ -657,11 +662,6 @@ void Application::DispatchConfig()
         path /= RELATIVE_PATH_TO_PROJECT_ROOT;
         AddAssetDir(path / "third_party/assets");
     }
-}
-
-void Application::DispatchKnobs()
-{
-    Knobs();
 }
 
 void Application::DispatchSetup()
@@ -943,7 +943,7 @@ int Application::Run(int argc, char** argv)
     mStandardOptions = mCommandLineParser.GetOptions().GetStandardOptions();
 
     // Knobs need to be set up before commandline parsing.
-    DispatchKnobs();
+    DispatchInitKnobs();
 
     // Append Knob flags to usage message
     if (!mKnobManager.IsEmpty()) {
@@ -958,11 +958,7 @@ int Application::Run(int argc, char** argv)
     // Parse knobs
     if (!mKnobManager.IsEmpty()) {
         auto options = mCommandLineParser.GetOptions();
-        auto res     = mKnobManager.UpdateFromFlags(options);
-        if (res != SUCCESS) {
-            PPX_ASSERT_MSG(false, "Unable to parse command line arguments for knobs: " << res);
-            return EXIT_FAILURE;
-        }
+        mKnobManager.UpdateFromFlags(options);
     }
 
     // Call config.
