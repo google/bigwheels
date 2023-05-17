@@ -18,6 +18,10 @@
 
 #include <sstream>
 
+#if !defined(NDEBUG)
+#define PERFORM_DEATH_TESTS
+#endif
+
 // ---------------------------------------------------------------------------------------------
 // Fixture
 // ---------------------------------------------------------------------------------------------
@@ -119,6 +123,7 @@ TEST_F(KnobTestFixture, KnobIntSlider_CreateNoCallback)
     EXPECT_EQ(intKnob.GetFlagHelpText(), "--flag_name1 <0~10> : description1\n");
 }
 
+#if defined(PERFORM_DEATH_TESTS)
 TEST_F(KnobTestFixture, KnobIntSlider_CreateInvalid)
 {
     EXPECT_DEATH(
@@ -137,6 +142,7 @@ TEST_F(KnobTestFixture, KnobIntSlider_CreateInvalid)
         },
         "");
 }
+#endif
 
 TEST_F(KnobTestFixture, KnobIntSlider_SetIntValue)
 {
@@ -193,6 +199,7 @@ TEST_F(KnobTestFixture, KnobStrDropdown_CreateNoCallback)
     EXPECT_EQ(strKnob.GetFlagHelpText(), "--flag_name1 <\"c1\"|\"c2\"> : description1\n");
 }
 
+#if defined(PERFORM_DEATH_TESTS)
 TEST_F(KnobTestFixture, KnobStrDropdown_CreateInvalid)
 {
     std::vector<std::string> choices = {};
@@ -214,6 +221,7 @@ TEST_F(KnobTestFixture, KnobStrDropdown_CreateInvalid)
         },
         "");
 }
+#endif
 
 TEST_F(KnobTestFixture, KnobStrDropdown_SetIndexInt)
 {
@@ -294,6 +302,7 @@ TEST_F(KnobManagerTestFixture, KnobManager_CreateStrDropdown)
     EXPECT_EQ(strKnobPtr->GetIndex(), 1);
 }
 
+#if defined(PERFORM_DEATH_TESTS)
 TEST_F(KnobManagerTestFixture, KnobManager_CreateNoWhitespace)
 {
     EXPECT_DEATH(
@@ -312,6 +321,7 @@ TEST_F(KnobManagerTestFixture, KnobManager_CreateUniqueName)
         },
         "");
 }
+#endif
 
 TEST_F(KnobManagerTestFixture, KnobManager_ParentChild)
 {

@@ -317,7 +317,7 @@ public:
     virtual void MouseUp(int32_t x, int32_t y, uint32_t buttons) {}                           // Mouse up event
     virtual void Scroll(float dx, float dy) {}                                                // Mouse wheel or touchpad scroll event
     virtual void Render() {}
-    virtual void InitKnobs() {}                                                               // Init knobs (adjustable parameters in the GUI that can be set at startup with commandline flags)
+    virtual void InitKnobs() {} // Init knobs (adjustable parameters in the GUI that can be set at startup with commandline flags)
 
 protected:
     virtual void DispatchConfig();

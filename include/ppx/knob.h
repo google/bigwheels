@@ -45,7 +45,7 @@ class KnobManager
 public:
     KnobManager() {}
     virtual ~KnobManager();
-    KnobManager(const KnobManager&)            = delete;
+    KnobManager(const KnobManager&) = delete;
     KnobManager& operator=(const KnobManager&) = delete;
 
 private:
@@ -98,6 +98,7 @@ class Knob
 public:
     Knob(const std::string& flagName)
         : mFlagName(flagName), mDisplayName(flagName) {}
+    virtual ~Knob() = default;
 
     std::string        GetDisplayName() const { return mDisplayName; }
     std::string        GetFlagName() const { return mFlagName; }
