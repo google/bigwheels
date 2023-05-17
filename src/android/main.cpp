@@ -43,7 +43,7 @@ enum ApplicationState
 {
     // The JNI code is loaded and running, but the activity is not started.
     READY,
-    // The activity is started, the Applicaiton/Window code should handle events.
+    // The activity is started, the Application/Window code should handle events.
     RUNNING,
     // The activity is being destroyed. This is a transient state until we return.
     DESTROYED
@@ -57,23 +57,25 @@ static ApplicationState gApplicationState = READY;
 // handle those states here, and restart the application once we are back live.
 static void defaultCommandHandler(struct android_app* app, int32_t cmd)
 {
-    if (cmd == APP_CMD_INIT_WINDOW || cmd == APP_CMD_TERM_WINDOW || cmd == APP_CMD_WINDOW_RESIZED || cmd == APP_CMD_WINDOW_REDRAW_NEEDED || cmd == APP_CMD_CONTENT_RECT_CHANGED) {
-        PPX_ASSERT_MSG(false, "Handled in the default-handler a message we shouldn't. This is a bug.");
-    }
-
-    if (cmd == APP_CMD_START) {
-        gApplicationState = RUNNING;
-        return;
-    }
-
-    if (cmd == APP_CMD_STOP) {
-        gApplicationState = READY;
-        return;
-    }
-
-    if (cmd == APP_CMD_DESTROY) {
-        gApplicationState = DESTROYED;
-        return;
+    switch (cmd) {
+        case APP_CMD_START:
+            gApplicationState = RUNNING;
+            break;
+        case APP_CMD_STOP:
+            gApplicationState = READY;
+            break;
+        case APP_CMD_DESTROY:
+            gApplicationState = DESTROYED;
+            break;
+        case APP_CMD_INIT_WINDOW:
+        case APP_CMD_TERM_WINDOW:
+        case APP_CMD_WINDOW_RESIZED:
+        case APP_CMD_WINDOW_REDRAW_NEEDED:
+        case APP_CMD_CONTENT_RECT_CHANGED:
+            PPX_ASSERT_MSG(false, "Handled in the default-handler a message we shouldn't. This is a bug.");
+            break;
+        default:
+            break;
     }
 }
 
