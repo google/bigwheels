@@ -1011,8 +1011,6 @@ int Application::Run(int argc, char** argv)
         createInfo.enableDebug          = mSettings.grfx.enableDebug;
         createInfo.enableQuadLayer      = mSettings.enableImGui;
         createInfo.enableDepthSwapchain = mSettings.xr.enableDepthSwapchain;
-        createInfo.quadLayerPos         = XrVector3f{mSettings.xr.ui.pos.x, mSettings.xr.ui.pos.y, mSettings.xr.ui.pos.z};
-        createInfo.quadLayerSize        = XrExtent2Df{mSettings.xr.ui.size.x, mSettings.xr.ui.size.y};
         if (resolutionFlag) {
             createInfo.resolution.width  = mSettings.window.width;
             createInfo.resolution.height = mSettings.window.height;
@@ -1400,8 +1398,16 @@ void Application::DrawDebugInfo(std::function<void(void)> drawAdditionalFn)
     }
     uint32_t minWidth  = std::min(kImGuiMinWidth, GetWindowWidth() / 2);
     uint32_t minHeight = std::min(kImGuiMinHeight, GetWindowHeight() / 2);
-    // This is roughly centered for XR, upper-left corner for non-XR.
-    ImGui::SetNextWindowPos({GetWindowWidth() / 4.f, GetWindowHeight() / 4.f}, 0, {0.5f, 0.5f});
+#if defined(PPX_BUILD_XR)
+    // For XR, force the diagnostic window to the center with automatic sizing for legibility and since control is limited.
+    static ImVec2 lastWindowSize(0.f, 0.f);
+    ImGui::SetNextWindowPos({(GetWindowWidth() - lastWindowSize.x) / 2, (GetWindowHeight() - lastWindowSize.y) / 2}, 0, {0.0f, 0.0f});
+    ImGui::SetNextWindowSize({0, 0});
+#else
+    // For Non-XR, spawn the window in the upper left region, but allow it to be resized and repositioned.
+    // Note that the FirstUseEver conditional means any value from previous runs (stored in imgui.ini) will be used if available.
+    ImGui::SetNextWindowPos({10.f, 10.f}, ImGuiCond_FirstUseEver, {0.0f, 0.0f});
+#endif
     ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, {static_cast<float>(minWidth), static_cast<float>(minHeight)});
     if (ImGui::Begin("Debug Info")) {
         ImGui::Columns(2);
@@ -1523,6 +1529,9 @@ void Application::DrawDebugInfo(std::function<void(void)> drawAdditionalFn)
             drawAdditionalFn();
         }
     }
+#if defined(PPX_BUILD_XR)
+    lastWindowSize = ImGui::GetWindowSize();
+#endif
     ImGui::End();
     ImGui::PopStyleVar();
 }

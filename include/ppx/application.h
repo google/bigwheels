@@ -240,16 +240,6 @@ struct ApplicationSettings
         // Whether to create depth swapchains in addition to color swapchains,
         // and submit the depth info to the runtime as an additional layer.
         bool enableDepthSwapchain = false;
-
-        // OpenXR uses a right-handed system.
-        // The `pos` here is the center position in view space.
-        // A detailed description can be found here:
-        // https://registry.khronos.org/OpenXR/specs/1.0/man/html/XrCompositionLayerQuad.html
-        struct
-        {
-            float3 pos;
-            float2 size;
-        } ui;
     } xr;
 
     struct

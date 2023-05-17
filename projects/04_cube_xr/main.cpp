@@ -69,8 +69,6 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.pacedFrameRate        = 0;
     settings.xr.enable                  = true;
     settings.xr.enableDebugCapture      = false;
-    settings.xr.ui.pos                  = {0.1f, -0.2f, -0.5f};
-    settings.xr.ui.size                 = {1.f, 1.f};
 }
 
 void ProjApp::Setup()
