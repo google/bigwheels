@@ -630,3 +630,30 @@ if (NOT ANDROID)
     endif()
 endif()
 
+# ------------------------------------------------------------------------------
+# Proto generation
+# ------------------------------------------------------------------------------
+set(PROTO_FILENAME metrics_report)
+set(PROTO_OUTPUT_DIR ${SRC_DIR}/ppx)
+set(PROTO_SRC_DIR ${SRC_DIR}/proto)
+
+list(APPEND PROTO_SRC_FILES ${PROTO_SRC_DIR}/${PROTO_FILENAME}.proto)
+list(
+    APPEND PROTO_OUTPUT_FILES
+    ${PROTO_OUTPUT_DIR}/${PROTO_FILENAME}.pb.h
+    ${PROTO_OUTPUT_DIR}/${PROTO_FILENAME}.pb.cpp)
+
+add_custom_command(
+    OUTPUT ${PROTO_OUTPUT_FILES}
+    DEPENDS ${PROTO_SRC_FILES}
+    COMMAND protoc --proto_path=${PROTO_SRC_DIR} ${PROTO_SRC_FILES} --cpp_out=${PROTO_OUTPUT_DIR})
+
+add_custom_target(
+    convert_proto
+    DEPENDS ${PROTO_OUTPUT_FILES})
+target_sources(
+    convert_proto
+    PRIVATE ${PROTO_SRC_FILES})
+
+add_dependencies(${PROJECT_NAME} convert_proto)
+

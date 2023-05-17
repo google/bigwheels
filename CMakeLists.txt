@@ -227,6 +227,19 @@ if (PPX_BUILD_XR)
 endif()
 
 # ------------------------------------------------------------------------------
+# Add protobuf
+# ------------------------------------------------------------------------------
+set(protobuf_INSTALL OFF)
+set(protobuf_BUILD_TESTS OFF)
+set(protobuf_BUILD_CONFORMANCE OFF)
+set(protobuf_BUILD_EXAMPLES OFF)
+set(protobuf_BUILD_PROTOBUF_BINARIES ON)
+set(protobuf_BUILD_PROTOC_BINARIES OFF)
+set(protobuf_BUILD_LIBPROTOC OFF)
+set(ABSL_PROPAGATE_CXX_STD ON)
+add_subdirectory(${PPX_THIRD_PARTY_DIR}/protobuf)
+
+# ------------------------------------------------------------------------------
 # Add PPX library.
 # ------------------------------------------------------------------------------
 add_subdirectory(src)
