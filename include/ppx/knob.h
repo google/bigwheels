@@ -235,7 +235,7 @@ class KnobStrDropdown
     : public Knob
 {
 public:
-    KnobStrDropdown(const std::string& flagName, size_t defaultIndex, std::vector<std::string>::iterator choicesBegin, std::vector<std::string>::iterator choicesEnd, OnChangeCallback<size_t> callback = NULL)
+    KnobStrDropdown(const std::string& flagName, size_t defaultIndex, std::vector<std::string>::iterator choicesBegin, std::vector<std::string>::iterator choicesEnd, OnChangeCallback<size_t> callback = nullptr)
         : Knob(flagName)
     {
         PPX_ASSERT_MSG(choicesBegin != choicesEnd, "too few allowed choices");
