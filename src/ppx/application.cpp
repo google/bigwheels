@@ -1399,14 +1399,11 @@ void Application::DrawDebugInfo(std::function<void(void)> drawAdditionalFn)
     uint32_t minWidth  = std::min(kImGuiMinWidth, GetWindowWidth() / 2);
     uint32_t minHeight = std::min(kImGuiMinHeight, GetWindowHeight() / 2);
 #if defined(PPX_BUILD_XR)
-    // For XR, force the diagnostic window to the center with automatic sizing for legibility and since control is limited.
-    static ImVec2 lastWindowSize(0.f, 0.f);
-    ImGui::SetNextWindowPos({(GetWindowWidth() - lastWindowSize.x) / 2, (GetWindowHeight() - lastWindowSize.y) / 2}, 0, {0.0f, 0.0f});
-    ImGui::SetNextWindowSize({0, 0});
-#else
-    // For Non-XR, spawn the window in the upper left region, but allow it to be resized and repositioned.
-    // Note that the FirstUseEver conditional means any value from previous runs (stored in imgui.ini) will be used if available.
-    ImGui::SetNextWindowPos({10.f, 10.f}, ImGuiCond_FirstUseEver, {0.0f, 0.0f});
+    if (mSettings.xr.enable) {
+        // For XR, force the diagnostic window to the center with automatic sizing for legibility and since control is limited.
+        ImGui::SetNextWindowPos({(GetWindowWidth() - lastImGuiWindowSize.x) / 2, (GetWindowHeight() - lastImGuiWindowSize.y) / 2}, 0, {0.0f, 0.0f});
+        ImGui::SetNextWindowSize({0, 0});
+    }
 #endif
     ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, {static_cast<float>(minWidth), static_cast<float>(minHeight)});
     if (ImGui::Begin("Debug Info")) {
@@ -1530,7 +1527,7 @@ void Application::DrawDebugInfo(std::function<void(void)> drawAdditionalFn)
         }
     }
 #if defined(PPX_BUILD_XR)
-    lastWindowSize = ImGui::GetWindowSize();
+    lastImGuiWindowSize = ImGui::GetWindowSize();
 #endif
     ImGui::End();
     ImGui::PopStyleVar();
