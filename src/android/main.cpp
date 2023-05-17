@@ -1,4 +1,3 @@
-#include "ppx/log.h"
 #include "ppx/profiler.h"
 
 #include <android_native_app_glue.h>
@@ -58,7 +57,9 @@ static ApplicationState gApplicationState = READY;
 // handle those states here, and restart the application once we are back live.
 static void defaultCommandHandler(struct android_app* app, int32_t cmd)
 {
-    PPX_ASSERT_MSG(cmd == APP_CMD_START || cmd == APP_CMD_STOP || cmd == APP_CMD_DESTROY || cmd == APP_CMD_SAVE_STATE || cmd == APP_CMD_LOST_FOCUS || cmd == APP_CMD_GAINED_FOCUS, "Handled in the default-handler a message we shouldn't. This is a bug.");
+    if (cmd == APP_CMD_INIT_WINDOW || cmd == APP_CMD_TERM_WINDOW || cmd == APP_CMD_WINDOW_RESIZED || cmd == APP_CMD_WINDOW_REDRAW_NEEDED || cmd == APP_CMD_CONTENT_RECT_CHANGED) {
+        PPX_ASSERT_MSG(false, "Handled in the default-handler a message we shouldn't. This is a bug.");
+    }
 
     if (cmd == APP_CMD_START) {
         gApplicationState = RUNNING;
