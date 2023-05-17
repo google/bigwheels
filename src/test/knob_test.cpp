@@ -63,17 +63,19 @@ namespace ppx {
 // KnobBoolCheckbox
 // -------------------------------------------------------------------------------------------------
 
-TEST_F(KnobTestFixture, KnobBoolCheckbox_CreateNoCallback)
+TEST_F(KnobTestFixture, KnobBoolCheckbox_Create)
 {
     KnobBoolCheckbox boolKnob = KnobBoolCheckbox("flag_name1", true);
     EXPECT_EQ(boolKnob.GetFlagHelpText(), "--flag_name1 <true|false>\n");
 
     boolKnob.SetDisplayName("Knob Name 1");
     boolKnob.SetFlagDesc("description1");
+    boolKnob.SetIndent(3);
 
     EXPECT_EQ(boolKnob.GetDisplayName(), "Knob Name 1");
     EXPECT_EQ(boolKnob.GetFlagName(), "flag_name1");
     EXPECT_EQ(boolKnob.GetFlagHelp(), "description1");
+    EXPECT_EQ(boolKnob.GetIndent(), 3);
     EXPECT_EQ(boolKnob.GetValue(), true);
     EXPECT_EQ(boolKnob.GetFlagHelpText(), "--flag_name1 <true|false> : description1\n");
 }
@@ -95,30 +97,23 @@ TEST_F(KnobTestFixture, KnobBoolCheckbox_ResetToDefault)
     EXPECT_EQ(boolKnob.GetValue(), true);
 }
 
-TEST_F(KnobTestFixture, KnobBoolCheckbox_CreateCallback)
-{
-    bool             tester   = false;
-    bool*            pTester  = &tester;
-    KnobBoolCheckbox boolKnob = KnobBoolCheckbox("flag_name1", false, [pTester](bool b) { *pTester = b; });
-    boolKnob.SetValue(true); // trigger callback
-    EXPECT_EQ(tester, true);
-}
-
 // -------------------------------------------------------------------------------------------------
 // KnobIntSlider
 // -------------------------------------------------------------------------------------------------
 
-TEST_F(KnobTestFixture, KnobIntSlider_CreateNoCallback)
+TEST_F(KnobTestFixture, KnobIntSlider_Create)
 {
     KnobIntSlider intKnob = KnobIntSlider("flag_name1", 5, 0, 10);
     EXPECT_EQ(intKnob.GetFlagHelpText(), "--flag_name1 <0~10>\n");
 
     intKnob.SetDisplayName("Knob Name 1");
     intKnob.SetFlagDesc("description1");
+    intKnob.SetIndent(3);
 
     EXPECT_EQ(intKnob.GetDisplayName(), "Knob Name 1");
     EXPECT_EQ(intKnob.GetFlagName(), "flag_name1");
     EXPECT_EQ(intKnob.GetFlagHelp(), "description1");
+    EXPECT_EQ(intKnob.GetIndent(), 3);
     EXPECT_EQ(intKnob.GetValue(), 5);
     EXPECT_EQ(intKnob.GetFlagHelpText(), "--flag_name1 <0~10> : description1\n");
 }
@@ -169,20 +164,11 @@ TEST_F(KnobTestFixture, KnobIntSlider_ResetToDefault)
     EXPECT_EQ(intKnob.GetValue(), 5);
 }
 
-TEST_F(KnobTestFixture, KnobIntSlider_CreateCallback)
-{
-    int           tester  = 0;
-    int*          pTester = &tester;
-    KnobIntSlider intKnob = KnobIntSlider("flag_name1", 5, 0, 10, [pTester](int i) { *pTester = i; });
-    intKnob.SetValue(8); // trigger callback
-    EXPECT_EQ(tester, 8);
-}
-
 // -------------------------------------------------------------------------------------------------
 // KnobStrDropdown
 // -------------------------------------------------------------------------------------------------
 
-TEST_F(KnobTestFixture, KnobStrDropdown_CreateNoCallback)
+TEST_F(KnobTestFixture, KnobStrDropdown_Create)
 {
     std::vector<std::string> choices = {"c1", "c2"};
     KnobStrDropdown          strKnob = KnobStrDropdown("flag_name1", 1, choices.begin(), choices.end());
@@ -190,10 +176,12 @@ TEST_F(KnobTestFixture, KnobStrDropdown_CreateNoCallback)
 
     strKnob.SetDisplayName("Knob Name 1");
     strKnob.SetFlagDesc("description1");
+    strKnob.SetIndent(3);
 
     EXPECT_EQ(strKnob.GetDisplayName(), "Knob Name 1");
     EXPECT_EQ(strKnob.GetFlagName(), "flag_name1");
     EXPECT_EQ(strKnob.GetFlagHelp(), "description1");
+    EXPECT_EQ(strKnob.GetIndent(), 3);
     EXPECT_EQ(strKnob.GetIndex(), 1);
     EXPECT_EQ(strKnob.GetStr(), "c2");
     EXPECT_EQ(strKnob.GetFlagHelpText(), "--flag_name1 <\"c1\"|\"c2\"> : description1\n");
@@ -264,16 +252,6 @@ TEST_F(KnobTestFixture, KnobStrDropdown_ResetToDefault)
     EXPECT_EQ(strKnob.GetIndex(), 1);
 }
 
-TEST_F(KnobTestFixture, KnobStrDropdown_CreateCallback)
-{
-    size_t                   tester  = 1;
-    size_t*                  pTester = &tester;
-    std::vector<std::string> choices = {"c1", "c2"};
-    KnobStrDropdown          strKnob = KnobStrDropdown("flag_name1", 1, choices.begin(), choices.end(), [pTester](size_t i) { *pTester = i; });
-    strKnob.SetIndex(0); // trigger callback
-    EXPECT_EQ(tester, 0);
-}
-
 // -------------------------------------------------------------------------------------------------
 // KnobManager
 // -------------------------------------------------------------------------------------------------
@@ -285,58 +263,42 @@ TEST_F(KnobManagerTestFixture, KnobManager_Create)
 
 TEST_F(KnobManagerTestFixture, KnobManager_CreateBoolCheckbox)
 {
-    KnobBoolCheckbox* boolKnobPtr = km.CreateKnob<KnobBoolCheckbox>("flag_name1", nullptr, true);
+    KnobBoolCheckbox* boolKnobPtr = km.CreateKnob<KnobBoolCheckbox>("flag_name1", true);
     EXPECT_EQ(boolKnobPtr->GetValue(), true);
 }
 
 TEST_F(KnobManagerTestFixture, KnobManager_CreateIntSlider)
 {
-    KnobIntSlider* intKnobPtr = km.CreateKnob<KnobIntSlider>("flag_name1", nullptr, 5, 0, 10);
+    KnobIntSlider* intKnobPtr = km.CreateKnob<KnobIntSlider>("flag_name1", 5, 0, 10);
     EXPECT_EQ(intKnobPtr->GetValue(), 5);
 }
 
 TEST_F(KnobManagerTestFixture, KnobManager_CreateStrDropdown)
 {
     std::vector<std::string> choices    = {"c1", "c2", "c3"};
-    KnobStrDropdown*         strKnobPtr = km.CreateKnob<KnobStrDropdown>("flag_name1", nullptr, 1, choices.begin(), choices.end());
+    KnobStrDropdown*         strKnobPtr = km.CreateKnob<KnobStrDropdown>("flag_name1", 1, choices.begin(), choices.end());
     EXPECT_EQ(strKnobPtr->GetIndex(), 1);
 }
 
 #if defined(PERFORM_DEATH_TESTS)
-TEST_F(KnobManagerTestFixture, KnobManager_CreateNoWhitespace)
-{
-    EXPECT_DEATH(
-        {
-            KnobBoolCheckbox* boolKnobPtr = km.CreateKnob<KnobBoolCheckbox>("flag name1", nullptr, true);
-        },
-        "");
-}
-
 TEST_F(KnobManagerTestFixture, KnobManager_CreateUniqueName)
 {
-    KnobBoolCheckbox* boolKnobPtr1 = km.CreateKnob<KnobBoolCheckbox>("flag_name1", nullptr, true);
+    KnobBoolCheckbox* boolKnobPtr1 = km.CreateKnob<KnobBoolCheckbox>("flag_name1", true);
     EXPECT_DEATH(
         {
-            KnobBoolCheckbox* boolKnobPtr2 = km.CreateKnob<KnobBoolCheckbox>("flag_name1", nullptr, true);
+            KnobBoolCheckbox* boolKnobPtr2 = km.CreateKnob<KnobBoolCheckbox>("flag_name1", true);
         },
         "");
 }
 #endif
 
-TEST_F(KnobManagerTestFixture, KnobManager_ParentChild)
-{
-    KnobBoolCheckbox* boolKnobPtr1 = km.CreateKnob<KnobBoolCheckbox>("flag_name1", nullptr, true);
-    KnobBoolCheckbox* boolKnobPtr2 = km.CreateKnob<KnobBoolCheckbox>("flag_name2", boolKnobPtr1, true);
-    EXPECT_EQ(boolKnobPtr1->GetChildren().front(), boolKnobPtr2);
-}
-
 TEST_F(KnobManagerTestFixture, KnobManager_GetUsageMsg)
 {
-    KnobBoolCheckbox*        boolKnobPtr1 = km.CreateKnob<KnobBoolCheckbox>("flag_name1", nullptr, true);
-    KnobBoolCheckbox*        boolKnobPtr2 = km.CreateKnob<KnobBoolCheckbox>("flag_name2", boolKnobPtr1, true);
-    KnobIntSlider*           intKnobPtr1  = km.CreateKnob<KnobIntSlider>("flag_name3", nullptr, 5, 0, 10);
+    KnobBoolCheckbox*        boolKnobPtr1 = km.CreateKnob<KnobBoolCheckbox>("flag_name1", true);
+    KnobBoolCheckbox*        boolKnobPtr2 = km.CreateKnob<KnobBoolCheckbox>("flag_name2", true);
+    KnobIntSlider*           intKnobPtr1  = km.CreateKnob<KnobIntSlider>("flag_name3", 5, 0, 10);
     std::vector<std::string> choices1     = {"c1", "c2", "c3"};
-    KnobStrDropdown*         strKnobPtr1  = km.CreateKnob<KnobStrDropdown>("flag_name4", nullptr, 1, choices1.begin(), choices1.end());
+    KnobStrDropdown*         strKnobPtr1  = km.CreateKnob<KnobStrDropdown>("flag_name4", 1, choices1.begin(), choices1.end());
 
     std::string usageMsg = R"(
 Application-specific flags
@@ -350,11 +312,11 @@ Application-specific flags
 
 TEST_F(KnobManagerTestFixture, KnobManager_ResetAllToDefault)
 {
-    KnobBoolCheckbox*        boolKnobPtr1 = km.CreateKnob<KnobBoolCheckbox>("flag_name1", nullptr, true);
-    KnobBoolCheckbox*        boolKnobPtr2 = km.CreateKnob<KnobBoolCheckbox>("flag_name2", boolKnobPtr1, true);
-    KnobIntSlider*           intKnobPtr1  = km.CreateKnob<KnobIntSlider>("flag_name3", nullptr, 5, 0, 10);
+    KnobBoolCheckbox*        boolKnobPtr1 = km.CreateKnob<KnobBoolCheckbox>("flag_name1", true);
+    KnobBoolCheckbox*        boolKnobPtr2 = km.CreateKnob<KnobBoolCheckbox>("flag_name2", true);
+    KnobIntSlider*           intKnobPtr1  = km.CreateKnob<KnobIntSlider>("flag_name3", 5, 0, 10);
     std::vector<std::string> choices1     = {"c1", "c2", "c3"};
-    KnobStrDropdown*         strKnobPtr1  = km.CreateKnob<KnobStrDropdown>("flag_name4", nullptr, 1, choices1.begin(), choices1.end());
+    KnobStrDropdown*         strKnobPtr1  = km.CreateKnob<KnobStrDropdown>("flag_name4", 1, choices1.begin(), choices1.end());
 
     // Change from default
     boolKnobPtr1->SetValue(false);

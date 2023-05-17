@@ -196,8 +196,9 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
 
 void ProjApp::InitKnobs()
 {
-    pKnobAlphaBlend = mKnobManager.CreateKnob<ppx::KnobBoolCheckbox>("alpha_blend", nullptr, false);
+    pKnobAlphaBlend = mKnobManager.CreateKnob<ppx::KnobBoolCheckbox>("alpha_blend", false);
     pKnobAlphaBlend->SetDisplayName("Placeholder1");
+    pKnobAlphaBlend->SetIndent(1);
 }
 
 void ProjApp::LoadTexture(

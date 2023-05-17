@@ -42,7 +42,15 @@ void KnobManager::DrawAllKnobs(bool inExistingWindow)
     if (!inExistingWindow)
         ImGui::Begin("Knobs");
 
-    DrawKnobs(mRoots);
+    for (auto knobPtr : mKnobs) {
+        for (size_t i = 0; i < knobPtr->GetIndent(); i++) {
+            ImGui::Indent();
+        }
+        knobPtr->Draw();
+        for (size_t i = 0; i < knobPtr->GetIndent(); i++) {
+            ImGui::Unindent();
+        }
+    }
 
     if (ImGui::Button("Reset to Default Values")) {
         ResetAllToDefault();
@@ -68,18 +76,11 @@ void KnobManager::UpdateFromFlags(const CliOptions& opts)
     }
 }
 
-void KnobManager::RegisterKnob(std::string flagName, Knob* newKnob, Knob* parent)
+void KnobManager::RegisterKnob(std::string flagName, Knob* newKnob)
 {
     // Store knob in members
     mFlagNames.insert(flagName);
     mKnobs.push_back(newKnob);
-    if (parent != nullptr) {
-        parent->AddChild(newKnob);
-    }
-    else {
-        mRoots.push_back(newKnob);
-    }
-
     PPX_LOG_INFO("Created knob " << flagName);
 }
 
@@ -89,10 +90,7 @@ void KnobManager::RegisterKnob(std::string flagName, Knob* newKnob, Knob* parent
 
 void KnobBoolCheckbox::Draw()
 {
-    bool changed = ImGui::Checkbox(mDisplayName.c_str(), &mValue);
-    if (changed && mCallback) {
-        mCallback(mValue);
-    }
+    ImGui::Checkbox(mDisplayName.c_str(), &mValue);
 }
 
 std::string KnobBoolCheckbox::GetFlagHelpText() const
@@ -111,11 +109,7 @@ void KnobBoolCheckbox::UpdateFromFlag(const CliOptions& opts)
 
 void KnobBoolCheckbox::SetValue(bool newVal)
 {
-    if (newVal != mValue) {
-        mValue = newVal;
-        if (mCallback)
-            mCallback(mValue);
-    }
+    mValue = newVal;
 }
 
 void KnobBoolCheckbox::SetDefault(bool newVal)
@@ -131,10 +125,6 @@ void KnobBoolCheckbox::SetDefault(bool newVal)
 void KnobIntSlider::Draw()
 {
     ImGui::SliderInt(mDisplayName.c_str(), &mValue, mMinValue, mMaxValue, NULL, ImGuiSliderFlags_AlwaysClamp);
-
-    if (ImGui::IsItemDeactivatedAfterEdit() && mCallback) {
-        mCallback(mValue);
-    }
 }
 
 std::string KnobIntSlider::GetFlagHelpText() const
@@ -158,12 +148,7 @@ void KnobIntSlider::SetValue(int newVal)
         return;
     }
 
-    // update mValue and trigger mCallback
-    if (newVal != mValue) {
-        mValue = newVal;
-        if (mCallback)
-            mCallback(mValue);
-    }
+    mValue = newVal;
 }
 
 bool KnobIntSlider::IsValidValue(int val)
@@ -192,8 +177,6 @@ void KnobStrDropdown::Draw()
             if (ImGui::Selectable(mChoices.at(i).c_str(), isSelected)) {
                 if (i != mIndex) { // A new choice is selected
                     mIndex = i;
-                    if (mCallback)
-                        mCallback(mIndex);
                 }
             }
             if (isSelected) {
@@ -233,12 +216,7 @@ void KnobStrDropdown::SetIndex(size_t newI)
         return;
     }
 
-    // update mIndex and trigger mCallback
-    if (newI != mIndex) {
-        mIndex = newI;
-        if (mCallback)
-            mCallback(mIndex);
-    }
+    mIndex = newI;
 }
 
 void KnobStrDropdown::SetIndex(std::string newVal)
@@ -249,13 +227,7 @@ void KnobStrDropdown::SetIndex(std::string newVal)
         return;
     }
 
-    // update mIndex and trigger mCallback
-    size_t newI = static_cast<size_t>(temp - mChoices.begin());
-    if (newI != mIndex) {
-        mIndex = newI;
-        if (mCallback)
-            mCallback(mIndex);
-    }
+    mIndex = static_cast<size_t>(temp - mChoices.begin());
 }
 
 bool KnobStrDropdown::IsValidIndex(size_t i)
@@ -279,22 +251,6 @@ void KnobStrDropdown::SetDefault(std::string newVal)
 
     mDefaultIndex = static_cast<size_t>(temp - mChoices.begin());
     ResetToDefault();
-}
-
-// -------------------------------------------------------------------------------------------------
-// Helper functions
-// -------------------------------------------------------------------------------------------------
-
-void DrawKnobs(const std::vector<Knob*>& knobPtrs)
-{
-    for (auto knobPtr : knobPtrs) {
-        knobPtr->Draw();
-        if (!(knobPtr->GetChildren().empty())) {
-            ImGui::Indent();
-            DrawKnobs(knobPtr->GetChildren());
-            ImGui::Unindent();
-        }
-    }
 }
 
 } // namespace ppx
