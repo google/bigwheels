@@ -96,6 +96,13 @@ Profiler::~Profiler()
 {
 }
 
+void Profiler::ReinitializeGlobalVariables()
+{
+    for (auto& profiler : sPerThreadProfilers) {
+        profiler.RemoveAllEvents();
+    }
+}
+
 Profiler* Profiler::GetProfilerForThread()
 {
     unsigned int threadIndex = GetThreadIndex();
@@ -104,6 +111,12 @@ Profiler* Profiler::GetProfilerForThread()
         pProfiler = &sPerThreadProfilers[threadIndex];
     }
     return pProfiler;
+}
+
+void Profiler::RemoveAllEvents()
+{
+    std::lock_guard<std::mutex> lock(sThreadIndexMutex);
+    mEvents.clear();
 }
 
 Result Profiler::RegisterEvent(ProfilerEventType type, const std::string& name, ProfileEventRecordAction recordAction, ProfilerEventToken* pToken)

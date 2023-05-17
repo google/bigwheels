@@ -99,12 +99,17 @@ public:
     Profiler();
     virtual ~Profiler();
 
+    static void      ReinitializeGlobalVariables();
     static Profiler* GetProfilerForThread();
 
     static Result RegisterEvent(ProfilerEventType type, const std::string& name, ProfileEventRecordAction recordAction, ProfilerEventToken* pToken);
     static Result RegisterGrfxApiFnEvent(const std::string& name, ProfilerEventToken* pToken);
 
     void RecordSample(const ProfilerEventToken& token, const ProfilerEventSample& sample);
+
+    // Removed all previously registered events. It is not safe to call this function while
+    // running code recording samples.
+    void RemoveAllEvents();
 
     const std::vector<ProfilerEvent>& GetEvents() const { return mEvents; }
 
