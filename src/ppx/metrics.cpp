@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include "ppx/metrics.h"
+#include "metrics_report.pb.h"
+#include "metrics_report.pb.cc"
 
 namespace ppx {
 namespace metrics {

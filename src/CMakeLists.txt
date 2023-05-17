@@ -437,6 +437,8 @@ target_include_directories(
             ${PPX_THIRD_PARTY_DIR}/cgltf
             ${PPX_THIRD_PARTY_DIR}/xxHash
             ${PPX_THIRD_PARTY_DIR}/utfcpp/source
+            ${PPX_THIRD_PARTY_DIR}/protobuf/src
+            ${PPX_THIRD_PARTY_DIR}/protobuf/third_party/abseil-cpp
 )
 
 # Include D3D12 directories if D3D12 is enabled
@@ -633,15 +635,16 @@ endif()
 # ------------------------------------------------------------------------------
 # Proto generation
 # ------------------------------------------------------------------------------
-set(PROTO_FILENAME metrics_report)
 set(PROTO_OUTPUT_DIR ${SRC_DIR}/ppx)
 set(PROTO_SRC_DIR ${SRC_DIR}/proto)
 
-list(APPEND PROTO_SRC_FILES ${PROTO_SRC_DIR}/${PROTO_FILENAME}.proto)
+set(PROTO_METRICS_FILENAME metrics_report)
+
+list(APPEND PROTO_SRC_FILES ${PROTO_SRC_DIR}/${PROTO_METRICS_FILENAME}.proto)
 list(
     APPEND PROTO_OUTPUT_FILES
-    ${PROTO_OUTPUT_DIR}/${PROTO_FILENAME}.pb.h
-    ${PROTO_OUTPUT_DIR}/${PROTO_FILENAME}.pb.cpp)
+    ${PROTO_OUTPUT_DIR}/${PROTO_METRICS_FILENAME}.pb.h
+    ${PROTO_OUTPUT_DIR}/${PROTO_METRICS_FILENAME}.pb.cc)
 
 add_custom_command(
     OUTPUT ${PROTO_OUTPUT_FILES}
