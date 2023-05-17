@@ -89,6 +89,9 @@ void ProjApp::Render()
     // Wait for and reset the render-complete fence.
     PPX_CHECKED_CALL(frame.renderCompleteFence->WaitAndReset());
 
+    // Update the simulation state.  This schedules new compute shaders to draw the next frame.
+    mSim->Update();
+
     // Build the command buffer.
     PPX_CHECKED_CALL(frame.cmd->Begin());
     {
@@ -103,7 +106,7 @@ void ProjApp::Render()
         frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, ppx::grfx::RESOURCE_STATE_PRESENT, ppx::grfx::RESOURCE_STATE_RENDER_TARGET);
         frame.cmd->BeginRenderPass(renderPass);
         {
-            mSim->Render(frame);
+            mSim->DispatchGraphicsShaders(frame);
 
             // Draw ImGui.
             DrawDebugInfo();
@@ -130,9 +133,6 @@ void ProjApp::Render()
 
     mSim->FreeComputeShaderResources();
     mSim->FreeGraphicsShaderResources();
-
-    // Update the simulation state.  This schedules new compute shaders to draw the next frame.
-    mSim->Update();
 }
 
 } // namespace FluidSim

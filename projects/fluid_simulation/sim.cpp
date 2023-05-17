@@ -142,10 +142,13 @@ void FluidSimulation::FreeComputeShaderResources()
 {
     // Wait for any command buffers in-flight before freeing up resources.
     GetApp()->GetDevice()->WaitIdle();
+    for (auto& shader : mComputeDispatchQueue) {
+        shader->FreeResources();
+    }
     mComputeDispatchQueue.clear();
 }
 
-void FluidSimulation::Render(const PerFrame& frame)
+void FluidSimulation::DispatchGraphicsShaders(const PerFrame& frame)
 {
     for (auto& dr : mGraphicsDispatchQueue) {
         dr->mShader->Dispatch(frame, dr);
@@ -156,6 +159,9 @@ void FluidSimulation::FreeGraphicsShaderResources()
 {
     // Wait for any command buffers in-flight before freeing up resources.
     GetApp()->GetDevice()->WaitIdle();
+    for (auto& shader : mGraphicsDispatchQueue) {
+        shader->FreeResources();
+    }
     mGraphicsDispatchQueue.clear();
 }
 
@@ -170,35 +176,10 @@ void FluidSimulation::InitGraphicsShaders()
     mGraphics.mVertexBinding.AppendAttribute({"POSITION", 0, ppx::grfx::FORMAT_R32G32B32_FLOAT, 0, PPX_APPEND_OFFSET_ALIGNED, ppx::grfx::VERTEX_INPUT_RATE_VERTEX});
     mGraphics.mVertexBinding.AppendAttribute({"TEXCOORD", 1, ppx::grfx::FORMAT_R32G32_FLOAT, 0, PPX_APPEND_OFFSET_ALIGNED, ppx::grfx::VERTEX_INPUT_RATE_VERTEX});
 
-    // Initialize vertex and geometry data.
-    // clang-format off
-    std::vector<float> vertexData = {
-        // Texture position   // Texture coordinates
-        -1.0f,  1.0f, 0.0f,   0.0f, 0.0f,
-        -1.0f, -1.0f, 0.0f,   0.0f, 1.0f,
-         1.0f, -1.0f, 0.0f,   1.0f, 1.0f,
-
-        -1.0f,  1.0f, 0.0f,   0.0f, 0.0f,
-         1.0f, -1.0f, 0.0f,   1.0f, 1.0f,
-         1.0f,  1.0f, 0.0f,   1.0f, 0.0f,
-    };
-    // clang-format on
-
     ppx::grfx::SamplerCreateInfo sci = {};
     sci.magFilter                    = ppx::grfx::FILTER_LINEAR;
     sci.minFilter                    = ppx::grfx::FILTER_LINEAR;
     PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateSampler(&sci, &mGraphics.mSampler));
-
-    ppx::grfx::BufferCreateInfo bci  = {};
-    bci.size                         = ppx::SizeInBytesU32(vertexData);
-    bci.usageFlags.bits.vertexBuffer = true;
-    bci.memoryUsage                  = ppx::grfx::MEMORY_USAGE_CPU_TO_GPU;
-    PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateBuffer(&bci, &mGraphics.mVertexBuffer));
-
-    void* pAddr = nullptr;
-    PPX_CHECKED_CALL(mGraphics.mVertexBuffer->MapMemory(0, &pAddr));
-    memcpy(pAddr, vertexData.data(), ppx::SizeInBytesU32(vertexData));
-    mGraphics.mVertexBuffer->UnmapMemory();
 
     ppx::grfx::PipelineInterfaceCreateInfo pici = {};
     pici.setCount                               = 1;
@@ -276,12 +257,14 @@ void FluidSimulation::AddTextureToInitialize(Texture* texture)
 void FluidSimulation::GenerateInitialSplat()
 {
     for (const auto& texture : mTexturesToInitialize) {
-        ScheduleDR(mColor->GetDR(texture, ppx::float4(0.0f, 0.0f, 0.0f, 1.0f)));
+        ScheduleDR(mColor->GetDR(texture, ppx::float4(0.0f, 0.0f, 0.0f, 0.0f)));
     }
     mTexturesToInitialize.clear();
 
-    MultipleSplats(1); //Random().UInt32() % 20 + 5);
-    Render();
+    MultipleSplats(1);
+#if 0
+    Random().UInt32() % 20 + 5);
+#endif
 }
 
 ppx::float3 FluidSimulation::HSVtoRGB(ppx::float3 hsv)
@@ -340,15 +323,19 @@ void FluidSimulation::MultipleSplats(uint32_t amount)
 {
     PPX_LOG_DEBUG("Emitting " << amount << " splashes of color\n");
     for (uint32_t i = 0; i < amount; i++) {
-        //ppx::float3 color = GenerateColor();
-        //color.r *= 10.0f;
-        //color.g *= 10.0f;
-        //color.b *= 10.0f;
+#if 0
+         ppx::float3 color = GenerateColor();
+         color.r *= 10.0f;
+         color.g *= 10.0f;
+         color.b *= 10.0f;
+#endif
         ppx::float3 color = ppx::float3(0.485268f, 1.5f, 0.0f);
-        //ppx::float2 point(Random().Float(), Random().Float());
-        //ppx::float2 delta(1000.0f * (Random().Float() - 0.5f), 1000.0f * (Random().Float() - 0.5f));
+#if 0
+         ppx::float2 point(Random().Float(), Random().Float());
+         ppx::float2 delta(1000.0f * (Random().Float() - 0.5f), 1000.0f * (Random().Float() - 0.5f));
+#endif
         ppx::float2 point(0.5f, 0.5f);
-        ppx::float2 delta(250.0f, -250.0f);
+        ppx::float2 delta(250.0f, 250.0f);
         PPX_LOG_DEBUG("Splash #" << i << " at " << point << " with color " << color << "\n");
         Splat(point, delta, color);
     }
@@ -371,7 +358,11 @@ void FluidSimulation::Render()
     else {
         DrawCheckerboard();
     }
+#if 0
     DrawDisplay();
+#else
+    DrawTextures();
+#endif
 }
 
 void FluidSimulation::ApplyBloom(Texture* source, Texture* destination)
@@ -423,13 +414,13 @@ ppx::float4 FluidSimulation::NormalizeColor(ppx::float4 input)
 void FluidSimulation::DrawColor(ppx::float4 color)
 {
     ScheduleDR(mColor->GetDR(mDrawColorTexture.get(), color));
-    ScheduleDR(mDraw->GetDR(mDrawColorTexture.get()));
+    ScheduleDR(mDraw->GetDR(mDrawColorTexture.get(), ppx::float2(-1.0f, 1.0f)));
 }
 
 void FluidSimulation::DrawCheckerboard()
 {
     ScheduleDR(mCheckerboard->GetDR(mCheckerboardTexture.get(), GetApp()->GetWindowAspect()));
-    ScheduleDR(mDraw->GetDR(mCheckerboardTexture.get()));
+    ScheduleDR(mDraw->GetDR(mCheckerboardTexture.get(), ppx::float2(-1.0f, 1.0f)));
 }
 
 void FluidSimulation::DrawDisplay()
@@ -439,7 +430,37 @@ void FluidSimulation::DrawDisplay()
     ppx::float2 texelSize   = ppx::float2(1.0f / width, 1.0f / height);
     ppx::float2 ditherScale = mDitheringTexture->GetDitherScale(width, height);
     ScheduleDR(mDisplay->GetDR(mDyeTexture[0].get(), mBloomTexture.get(), mSunraysTexture.get(), mDitheringTexture.get(), mDisplayTexture.get(), texelSize, ditherScale));
-    ScheduleDR(mDraw->GetDR(mDisplayTexture.get()));
+    ScheduleDR(mDraw->GetDR(mDisplayTexture.get(), ppx::float2(-1.0f, 1.0f)));
+}
+
+void FluidSimulation::DrawTextures()
+{
+    DrawColor(ppx::float4(1.0f, 1.0f, 0.8f, 1.0f));
+    std::vector<Texture*> v = {
+        mBloomTexture.get(),
+        mCurlTexture.get(),
+        mDivergenceTexture.get(),
+        mPressureTexture[0].get(),
+        mPressureTexture[1].get(),
+        mVelocityTexture[0].get(),
+        mVelocityTexture[1].get(),
+    };
+    auto  coord   = ppx::float2(-1.0f, 1.0f);
+    float maxDimY = 0.0f;
+    for (const auto& t : v) {
+        auto dim = t->GetNormalizedSize();
+        if (coord.x + dim.x >= 1.0) {
+            coord.x = -1.0;
+            coord.y -= maxDimY;
+            maxDimY = 0.0f;
+        }
+        PPX_LOG_DEBUG("Scheduling texture draw for " << t->GetName() << " with normalized dimensions " << t->GetNormalizedSize() << " at coordinate " << coord << "\n");
+        ScheduleDR(mDraw->GetDR(t, coord));
+        coord.x += dim.x + 0.005f;
+        if (dim.y > maxDimY) {
+            maxDimY = dim.y + 0.005f;
+        }
+    }
 }
 
 void FluidSimulation::Update()
@@ -449,6 +470,7 @@ void FluidSimulation::Update()
         mSplatQ.push(Random().UInt32() % 3 + 1);
     }
 
+    // ppx::Timer::SleepMillis(500);
     float delta = CalcDeltaTime();
     UpdateColors(delta);
     MoveObjects();
@@ -521,18 +543,18 @@ void FluidSimulation::Step(float delta)
     ScheduleDR(mVorticity->GetDR(mVelocityTexture[0].get(), mCurlTexture.get(), mVelocityTexture[1].get(), texelSize, mConfig.curl, delta));
     std::swap(mVelocityTexture[0], mVelocityTexture[1]);
 
-    //ScheduleDR(mDivergence->GetDR(mVelocityTexture[0].get(), mDivergenceTexture.get(), texelSize));
+    ScheduleDR(mDivergence->GetDR(mVelocityTexture[0].get(), mDivergenceTexture.get(), texelSize));
 
-    //ScheduleDR(mClear->GetDR(mPressureTexture[0].get(), mPressureTexture[1].get(), mConfig.pressure));
-    //std::swap(mPressureTexture[0], mPressureTexture[1]);
+    ScheduleDR(mClear->GetDR(mPressureTexture[0].get(), mPressureTexture[1].get(), mConfig.pressure));
+    std::swap(mPressureTexture[0], mPressureTexture[1]);
 
-    //for (int i = 0; i < mConfig.pressureIterations; ++i) {
-    //    ScheduleDR(mPressure->GetDR(mPressureTexture[0].get(), mDivergenceTexture.get(), mPressureTexture[1].get(), texelSize));
-    //    std::swap(mPressureTexture[0], mPressureTexture[1]);
-    //}
+    for (int i = 0; i < mConfig.pressureIterations; ++i) {
+        ScheduleDR(mPressure->GetDR(mPressureTexture[0].get(), mDivergenceTexture.get(), mPressureTexture[1].get(), texelSize));
+        std::swap(mPressureTexture[0], mPressureTexture[1]);
+    }
 
-    //ScheduleDR(mGradientSubtract->GetDR(mPressureTexture[0].get(), mVelocityTexture[0].get(), mVelocityTexture[1].get(), texelSize));
-    //std::swap(mVelocityTexture[0], mVelocityTexture[1]);
+    ScheduleDR(mGradientSubtract->GetDR(mPressureTexture[0].get(), mVelocityTexture[0].get(), mVelocityTexture[1].get(), texelSize));
+    std::swap(mVelocityTexture[0], mVelocityTexture[1]);
 
     ScheduleDR(mAdvection->GetDR(mVelocityTexture[0].get(), mVelocityTexture[0].get(), mVelocityTexture[1].get(), delta, mConfig.velocityDissipation, texelSize, texelSize));
     std::swap(mVelocityTexture[0], mVelocityTexture[1]);

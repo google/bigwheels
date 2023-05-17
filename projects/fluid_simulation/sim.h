@@ -35,7 +35,7 @@ struct SimulationConfig
     bool        colorful            = true;
     float       colorUpdateSpeed    = 10.0f;
     bool        paused              = false;
-    ppx::float4 backColor           = {0, 0, 0, 1};
+    ppx::float4 backColor           = {0.0f, 0.0f, 0.0f, 1.0f};
     bool        transparent         = false;
     bool        bloom               = true;
     int         bloomIterations     = 8;
@@ -83,7 +83,7 @@ public:
     void FreeComputeShaderResources();
 
     /// @brief Execute all the scheduled graphics shaders in sequence.
-    void Render(const PerFrame& frame);
+    void DispatchGraphicsShaders(const PerFrame& frame);
 
     /// @brief Free descriptor sets used by graphics shaders. This also clears
     /// the execution schedule.
@@ -125,9 +125,9 @@ private:
     std::vector<std::unique_ptr<Texture>> mBloomTextures;
     std::unique_ptr<Texture>              mCheckerboardTexture;
     std::unique_ptr<Texture>              mCurlTexture;
-    std::unique_ptr<Texture>              mDivergenceTexture;
     std::unique_ptr<Texture>              mDisplayTexture;
     std::unique_ptr<Texture>              mDitheringTexture;
+    std::unique_ptr<Texture>              mDivergenceTexture;
     std::unique_ptr<Texture>              mDrawColorTexture;
     std::unique_ptr<Texture>              mDyeTexture[2];
     std::unique_ptr<Texture>              mPressureTexture[2];
@@ -191,6 +191,7 @@ private:
     void        DrawCheckerboard();
     void        DrawColor(ppx::float4 color);
     void        DrawDisplay();
+    void        DrawTextures();
     ppx::float3 GenerateColor();
     float       CalcDeltaTime();
     void        UpdateColors(float deltaTime);

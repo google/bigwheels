@@ -38,7 +38,6 @@ struct GraphicsResources
     ppx::grfx::VertexBinding          mVertexBinding;
     ppx::grfx::DescriptorSetLayoutPtr mDescriptorSetLayout;
     ppx::grfx::SamplerPtr             mSampler;
-    ppx::grfx::BufferPtr              mVertexBuffer;
 };
 
 // Frame synchronization data.
@@ -73,6 +72,7 @@ public:
 
     uint32_t                       GetWidth() const { return mTexture->GetWidth(); }
     uint32_t                       GetHeight() const { return mTexture->GetHeight(); }
+    ppx::float2                    GetNormalizedSize() const;
     const std::string&             GetName() const { return mName; }
     ppx::grfx::ImagePtr            GetImagePtr() { return mTexture; }
     ppx::grfx::SampledImageViewPtr GetSampledView() { return mSampledView; }
@@ -175,7 +175,6 @@ class ComputeShader;
 struct ComputeDispatchRecord
 {
     ComputeDispatchRecord(ComputeShader* cs, Texture* output, const ScalarInput& si);
-    ~ComputeDispatchRecord() { FreeResources(); }
     void FreeResources();
 
     /// @brief Add a texture to sample from to the given descriptor set.
@@ -547,7 +546,7 @@ public:
     /// @return The dispatch record to schedule.
     std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* uTexture, Texture* output)
     {
-        ScalarInput           si(output);
+        ScalarInput si(output);
 
         auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
         dr->BindInputTexture(uTexture, 2);
@@ -606,13 +605,13 @@ public:
 class GraphicsShader;
 struct GraphicsDispatchRecord
 {
-    GraphicsDispatchRecord(GraphicsShader* gs, Texture* image);
-    ~GraphicsDispatchRecord() { FreeResources(); }
+    GraphicsDispatchRecord(GraphicsShader* gs, Texture* image, ppx::float2 coord);
     void FreeResources();
 
     GraphicsShader*             mShader;
     ppx::grfx::DescriptorSetPtr mDescriptorSet;
     Texture*                    mImage;
+    ppx::grfx::BufferPtr        mVertexBuffer;
 };
 
 class GraphicsShader : public Shader
@@ -627,10 +626,12 @@ public:
 
     /// @brief Create a dispatch record to execute this shader instance.
     /// @param image    Texture to draw.
+    /// @param coord    Normalized coordinate where to draw the texture.
     /// @return The dispatch record to schedule.
-    std::unique_ptr<GraphicsDispatchRecord> GetDR(Texture* image)
+    std::unique_ptr<GraphicsDispatchRecord> GetDR(Texture* image, ppx::float2 coord)
     {
-        return std::move(std::make_unique<GraphicsDispatchRecord>(this, image));
+        auto dr = std::make_unique<GraphicsDispatchRecord>(this, image, coord);
+        return std::move(dr);
     }
 
 private:
