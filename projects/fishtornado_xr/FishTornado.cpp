@@ -139,8 +139,6 @@ void FishTornadoApp::Config(ppx::ApplicationSettings& settings)
     settings.xr.enableDebugCapture      = false;
     settings.grfx.swapchain.imageCount  = 3;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
-    settings.xr.ui.pos                  = {0.2f, -0.3f, -0.5f};
-    settings.xr.ui.size                 = {1.f, 1.f};
 
     settings.grfx.device.computeQueueCount = 1;
 }
@@ -393,6 +391,9 @@ void FishTornadoApp::SetupDebug()
         mDebugDrawPipeline = CreateForwardPipeline(GetAssetPath("fishtornado/shaders"), "DebugDraw.vs", "DebugDraw.ps");
     }
 #endif
+    mViewCount = IsXrEnabled() ? GetXrComponent().GetViewCount() : 1;
+    mViewGpuFrameTime.resize(mViewCount);
+    mViewPipelineStatistics.resize(mViewCount);
 }
 
 void FishTornadoApp::SetupScene()
@@ -1040,7 +1041,7 @@ void FishTornadoApp::Render()
 
             frame.uiCmd->BeginRenderPass(&beginInfo);
             // Draw ImGui
-            DrawDebugInfo();
+            DrawDebugInfo([this]() { this->DrawGui(); });
             DrawImGui(frame.uiCmd);
             frame.uiCmd->EndRenderPass();
         }
@@ -1098,9 +1099,9 @@ void FishTornadoApp::Render()
         uint64_t data[2] = {0, 0};
         PPX_CHECKED_CALL(prevFrame.startTimestampQuery->GetData(&data[0], 1 * sizeof(uint64_t)));
         PPX_CHECKED_CALL(prevFrame.endTimestampQuery->GetData(&data[1], 1 * sizeof(uint64_t)));
-        mTotalGpuFrameTime = (data[1] - data[0]);
+        mViewGpuFrameTime[currentViewIndex] = (data[1] - data[0]);
         if (GetDevice()->PipelineStatsAvailable()) {
-            PPX_CHECKED_CALL(prevFrame.pipelineStatsQuery->GetData(&mPipelineStatistics, sizeof(grfx::PipelineStatistics)));
+            PPX_CHECKED_CALL(prevFrame.pipelineStatsQuery->GetData(&(mViewPipelineStatistics[currentViewIndex]), sizeof(grfx::PipelineStatistics)));
         }
 #endif
     }
@@ -1137,6 +1138,24 @@ void FishTornadoApp::DrawGui()
     ImGui::Separator();
 
     {
+        uint64_t totalGpuFrameTime  = 0;
+        uint64_t totalIAVertices    = 0;
+        uint64_t totalIAPrimitives  = 0;
+        uint64_t totalVSInvocations = 0;
+        uint64_t totalCInvocations  = 0;
+        uint64_t totalCPrimitives   = 0;
+        uint64_t totalPSInvocations = 0;
+
+        for (int i = 0; i < mViewCount; i++) {
+            totalGpuFrameTime += mViewGpuFrameTime[i];
+            totalIAVertices += mViewPipelineStatistics[i].IAVertices;
+            totalIAPrimitives += mViewPipelineStatistics[i].IAPrimitives;
+            totalVSInvocations += mViewPipelineStatistics[i].VSInvocations;
+            totalCInvocations += mViewPipelineStatistics[i].CInvocations;
+            totalCPrimitives += mViewPipelineStatistics[i].CPrimitives;
+            totalPSInvocations += mViewPipelineStatistics[i].PSInvocations;
+        }
+
         uint64_t frequency = 0;
         GetGraphicsQueue()->GetTimestampFrequency(&frequency);
 
@@ -1146,39 +1165,39 @@ void FishTornadoApp::DrawGui()
 
         ImGui::Text("Previous GPU Frame Time");
         ImGui::NextColumn();
-        ImGui::Text("%f ms ", static_cast<float>(mTotalGpuFrameTime / static_cast<double>(frequency)) * 1000.0f);
+        ImGui::Text("%f ms ", static_cast<float>(totalGpuFrameTime / static_cast<double>(frequency)) * 1000.0f);
         ImGui::NextColumn();
 
         ImGui::Separator();
 
         ImGui::Text("Fish IAVertices");
         ImGui::NextColumn();
-        ImGui::Text("%" PRIu64, mPipelineStatistics.IAVertices);
+        ImGui::Text("%" PRIu64, totalIAVertices);
         ImGui::NextColumn();
 
         ImGui::Text("Fish IAPrimitives");
         ImGui::NextColumn();
-        ImGui::Text("%" PRIu64, mPipelineStatistics.IAPrimitives);
+        ImGui::Text("%" PRIu64, totalIAPrimitives);
         ImGui::NextColumn();
 
         ImGui::Text("Fish VSInvocations");
         ImGui::NextColumn();
-        ImGui::Text("%" PRIu64, mPipelineStatistics.VSInvocations);
+        ImGui::Text("%" PRIu64, totalVSInvocations);
         ImGui::NextColumn();
 
         ImGui::Text("Fish CInvocations");
         ImGui::NextColumn();
-        ImGui::Text("%" PRIu64, mPipelineStatistics.CInvocations);
+        ImGui::Text("%" PRIu64, totalCInvocations);
         ImGui::NextColumn();
 
         ImGui::Text("Fish CPrimitives");
         ImGui::NextColumn();
-        ImGui::Text("%" PRIu64, mPipelineStatistics.CPrimitives);
+        ImGui::Text("%" PRIu64, totalCPrimitives);
         ImGui::NextColumn();
 
         ImGui::Text("Fish PSInvocations");
         ImGui::NextColumn();
-        ImGui::Text("%" PRIu64, mPipelineStatistics.PSInvocations);
+        ImGui::Text("%" PRIu64, totalPSInvocations);
         ImGui::NextColumn();
 
         ImGui::Columns(1);
