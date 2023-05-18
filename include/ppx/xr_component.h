@@ -78,8 +78,6 @@ struct XrComponentCreateInfo
     grfx::Format            depthFormat          = grfx::FORMAT_D32_FLOAT;
     XrRefSpace              refSpaceType         = XrRefSpace::XR_STAGE;
     XrViewConfigurationType viewConfigType       = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
-    XrVector3f              quadLayerPos         = {0, 0, 0};
-    XrExtent2Df             quadLayerSize        = {1.f, 1.f};
     bool                    enableDebug          = false;
     bool                    enableQuadLayer      = false;
     bool                    enableDepthSwapchain = false;

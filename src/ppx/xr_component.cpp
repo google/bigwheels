@@ -18,6 +18,9 @@
 #include <glm/gtc/type_ptr.hpp>
 
 namespace {
+
+constexpr XrPosef kIdentityPose = {{0, 0, 0, 1}, {0, 0, 0}};
+
 bool IsXrExtensionSupported(const std::vector<XrExtensionProperties>& supportedExts, const std::string& extName)
 {
     auto it = std::find_if(supportedExts.begin(), supportedExts.end(), [&](const XrExtensionProperties& e) { return extName == e.extensionName; });
@@ -223,14 +226,13 @@ void XrComponent::InitializeAfterGrfxDeviceInit(const grfx::InstancePtr pGrfxIns
     }
     PPX_ASSERT_MSG(refSpaceType != XR_REFERENCE_SPACE_TYPE_MAX_ENUM, "Unknown XrReferenceSpaceType!");
 
-    XrReferenceSpaceCreateInfo refSpaceCreatInfo = {XR_TYPE_REFERENCE_SPACE_CREATE_INFO};
-    const XrPosef              poseIdentity      = {{0, 0, 0, 1}, {0, 0, 0}};
-    refSpaceCreatInfo.poseInReferenceSpace       = poseIdentity;
-    refSpaceCreatInfo.referenceSpaceType         = refSpaceType;
-    xrCreateReferenceSpace(mSession, &refSpaceCreatInfo, &mRefSpace);
+    XrReferenceSpaceCreateInfo refSpaceCreateInfo = {XR_TYPE_REFERENCE_SPACE_CREATE_INFO};
+    refSpaceCreateInfo.poseInReferenceSpace       = kIdentityPose;
+    refSpaceCreateInfo.referenceSpaceType         = refSpaceType;
+    xrCreateReferenceSpace(mSession, &refSpaceCreateInfo, &mRefSpace);
 
-    refSpaceCreatInfo.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_VIEW;
-    xrCreateReferenceSpace(mSession, &refSpaceCreatInfo, &mUISpace);
+    refSpaceCreateInfo.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_VIEW;
+    xrCreateReferenceSpace(mSession, &refSpaceCreateInfo, &mUISpace);
 
     uint32_t viewCount = 0;
     xrEnumerateViewConfigurationViews(mInstance, mSystemId, mCreateInfo.viewConfigType, 0, &viewCount, nullptr);
@@ -546,8 +548,8 @@ void XrComponent::EndFrame(const std::vector<grfx::SwapchainPtr>& swapchains, ui
             compositionLayerQuad.subImage.swapchain        = swapchains[layerQuadStartIndex]->GetXrColorSwapchain();
             compositionLayerQuad.subImage.imageRect.offset = {0, 0};
             compositionLayerQuad.subImage.imageRect.extent = {static_cast<int>(GetWidth()), static_cast<int>(GetHeight())};
-            compositionLayerQuad.pose                      = {{0, 0, 0, 1}, mCreateInfo.quadLayerPos};
-            compositionLayerQuad.size                      = mCreateInfo.quadLayerSize;
+            compositionLayerQuad.pose                      = {{0, 0, 0, 1}, {0, 0, -0.5f}};
+            compositionLayerQuad.size                      = {1, 1};
         }
     }
 

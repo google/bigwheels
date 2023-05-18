@@ -1030,8 +1030,6 @@ int Application::Run(int argc, char** argv)
         createInfo.enableDebug          = mSettings.grfx.enableDebug;
         createInfo.enableQuadLayer      = mSettings.enableImGui;
         createInfo.enableDepthSwapchain = mSettings.xr.enableDepthSwapchain;
-        createInfo.quadLayerPos         = XrVector3f{mSettings.xr.ui.pos.x, mSettings.xr.ui.pos.y, mSettings.xr.ui.pos.z};
-        createInfo.quadLayerSize        = XrExtent2Df{mSettings.xr.ui.size.x, mSettings.xr.ui.size.y};
         if (resolutionFlag) {
             createInfo.resolution.width  = mSettings.window.width;
             createInfo.resolution.height = mSettings.window.height;
@@ -1419,6 +1417,13 @@ void Application::DrawDebugInfo(std::function<void(void)> drawAdditionalFn)
     }
     uint32_t minWidth  = std::min(kImGuiMinWidth, GetWindowWidth() / 2);
     uint32_t minHeight = std::min(kImGuiMinHeight, GetWindowHeight() / 2);
+#if defined(PPX_BUILD_XR)
+    if (mSettings.xr.enable) {
+        // For XR, force the diagnostic window to the center with automatic sizing for legibility and since control is limited.
+        ImGui::SetNextWindowPos({(GetWindowWidth() - lastImGuiWindowSize.x) / 2, (GetWindowHeight() - lastImGuiWindowSize.y) / 2}, 0, {0.0f, 0.0f});
+        ImGui::SetNextWindowSize({0, 0});
+    }
+#endif
     ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, {static_cast<float>(minWidth), static_cast<float>(minHeight)});
     if (ImGui::Begin("Debug Info")) {
         ImGui::Columns(2);
@@ -1540,6 +1545,9 @@ void Application::DrawDebugInfo(std::function<void(void)> drawAdditionalFn)
             drawAdditionalFn();
         }
     }
+#if defined(PPX_BUILD_XR)
+    lastImGuiWindowSize = ImGui::GetWindowSize();
+#endif
     ImGui::End();
     ImGui::PopStyleVar();
 }
