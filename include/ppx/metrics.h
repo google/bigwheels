@@ -16,6 +16,7 @@
 #define ppx_metrics_h
 
 #include "ppx/config.h"
+#include "ppx/metrics_report.pb.h"
 
 #include <limits>
 #include <string>
@@ -38,6 +39,11 @@ enum class MetricInterpretation
     HIGHER_IS_BETTER,
     LOWER_IS_BETTER,
 };
+
+// Make sure the runtime and reporting enumerations are in sync
+static_assert(static_cast<uint32_t>(MetricInterpretation::NONE) == static_cast<uint32_t>(reporting::Interpretation::NONE));
+static_assert(static_cast<uint32_t>(MetricInterpretation::HIGHER_IS_BETTER) == static_cast<uint32_t>(reporting::Interpretation::HIGHER_IS_BETTER));
+static_assert(static_cast<uint32_t>(MetricInterpretation::LOWER_IS_BETTER) == static_cast<uint32_t>(reporting::Interpretation::LOWER_IS_BETTER));
 
 struct Range
 {
@@ -110,6 +116,8 @@ public:
     const GaugeBasicStatistics   GetBasicStatistics() const;
     const GaugeComplexStatistics ComputeComplexStatistics() const;
 
+    void Export(reporting::MetricGauge* pReportMetric) const;
+
 private:
     struct TimeSeriesEntry
     {
@@ -150,6 +158,8 @@ public:
         return mMetadata.name;
     };
 
+    void Export(reporting::MetricCounter* pReportMetric) const;
+
 private:
     ~MetricCounter();
     METRICS_NO_COPY(MetricCounter)
@@ -181,6 +191,8 @@ private:
     void AddMetric(MetricCounter* pMetric);
     bool HasMetric(const char* pName) const;
 
+    void Export(reporting::Run* pReportRun) const;
+
 private:
     std::string                                     mName;
     std::unordered_map<std::string, MetricGauge*>   mGauges;
@@ -211,6 +223,7 @@ public:
     ~Manager();
 
     Run* AddRun(const char* pName);
+    void Export(const char* pName, reporting::Report* pOutReport) const;
 
 private:
     METRICS_NO_COPY(Manager)

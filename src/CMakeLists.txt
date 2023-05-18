@@ -163,6 +163,7 @@ list(
     ${INC_DIR}/ppx/knob.h
     ${INC_DIR}/ppx/log.h
     ${INC_DIR}/ppx/metrics.h
+    ${SRC_DIR}/ppx/metrics_report.pb.h
     ${INC_DIR}/ppx/mipmap.h
     ${INC_DIR}/ppx/obj_ptr.h
     ${INC_DIR}/ppx/platform.h
@@ -198,6 +199,7 @@ list(
     ${SRC_DIR}/ppx/log.cpp
     ${SRC_DIR}/ppx/math_config.cpp
     ${SRC_DIR}/ppx/metrics.cpp
+    ${SRC_DIR}/ppx/metrics_report.pb.cc
     ${SRC_DIR}/ppx/mipmap.cpp
     ${SRC_DIR}/ppx/platform.cpp
     ${SRC_DIR}/ppx/ppm_export.cpp

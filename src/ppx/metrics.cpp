@@ -14,10 +14,21 @@
 
 #include "ppx/metrics.h"
 #include "metrics_report.pb.h"
-#include "metrics_report.pb.cc"
 
 namespace ppx {
 namespace metrics {
+
+////////////////////////////////////////////////////////////////////////////////
+
+static void ExportMetadata(const MetricMetadata& metadata, reporting::MetricMetadata* pOutMetadata)
+{
+    pOutMetadata->set_name(metadata.name);
+    pOutMetadata->set_unit(metadata.unit);
+    pOutMetadata->set_interpretation(static_cast<reporting::Interpretation>(metadata.interpretation));
+    auto pExpectedRange = pOutMetadata->mutable_expected_range();
+    pExpectedRange->set_lower_bound(metadata.expectedRange.lowerBound);
+    pExpectedRange->set_upper_bound(metadata.expectedRange.upperBound);
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -128,6 +139,32 @@ void MetricGauge::UpdateBasicStatistics(double seconds, double value)
     }
 }
 
+void MetricGauge::Export(reporting::MetricGauge* pReportMetric) const
+{
+    ExportMetadata(mMetadata, pReportMetric->mutable_metadata());
+
+    reporting::GaugeStatistics* pReportStatistics = pReportMetric->mutable_statistics();
+
+    const GaugeBasicStatistics basicStatistics = GetBasicStatistics();
+    pReportStatistics->set_min(basicStatistics.min);
+    pReportStatistics->set_max(basicStatistics.max);
+    pReportStatistics->set_average(basicStatistics.average);
+    pReportStatistics->set_time_ratio(basicStatistics.timeRatio);
+
+    const GaugeComplexStatistics complexStatistics = ComputeComplexStatistics();
+    pReportStatistics->set_median(complexStatistics.median);
+    pReportStatistics->set_standard_deviation(complexStatistics.standardDeviation);
+    pReportStatistics->set_percentile_90(complexStatistics.percentile90);
+    pReportStatistics->set_percentile_95(complexStatistics.percentile95);
+    pReportStatistics->set_percentile_99(complexStatistics.percentile99);
+
+    for (const TimeSeriesEntry& entry : mTimeSeries) {
+        reporting::TimeSeriesEntry* pReportEntry = pReportMetric->add_time_series();
+        pReportEntry->set_seconds(entry.seconds);
+        pReportEntry->set_value(entry.value);
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 MetricCounter::MetricCounter(const MetricMetadata& metadata)
@@ -149,6 +186,12 @@ uint64_t MetricCounter::Get() const
     return mCounter;
 }
 
+void MetricCounter::Export(reporting::MetricCounter* pReportMetric) const
+{
+    ExportMetadata(mMetadata, pReportMetric->mutable_metadata());
+    pReportMetric->set_value(mCounter);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 Run::Run(const char* pName)
@@ -159,12 +202,12 @@ Run::Run(const char* pName)
 
 Run::~Run()
 {
-    for (auto [name, metric] : mGauges) {
-        delete metric;
+    for (auto [name, pMetric] : mGauges) {
+        delete pMetric;
     }
     mGauges.clear();
-    for (auto [name, metric] : mCounters) {
-        delete metric;
+    for (auto [name, pMetric] : mCounters) {
+        delete pMetric;
     }
     mCounters.clear();
 }
@@ -188,6 +231,19 @@ bool Run::HasMetric(const char* pName) const
     return mGauges.find(pName) != mGauges.end() || mCounters.find(pName) != mCounters.end();
 }
 
+void Run::Export(reporting::Run* pReportRun) const
+{
+    pReportRun->set_name(mName);
+    for (auto [name, pMetric] : mGauges) {
+        reporting::MetricGauge* pReportGauge = pReportRun->add_gauges();
+        pMetric->Export(pReportGauge);
+    }
+    for (auto [name, pMetric] : mCounters) {
+        reporting::MetricCounter* pReportCounter = pReportRun->add_counters();
+        pMetric->Export(pReportCounter);
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 Manager::Manager()
@@ -196,8 +252,8 @@ Manager::Manager()
 
 Manager::~Manager()
 {
-    for (auto [name, run] : mRuns) {
-        delete run;
+    for (auto [name, pRun] : mRuns) {
+        delete pRun;
     }
     mRuns.clear();
 }
@@ -215,6 +271,15 @@ Run* Manager::AddRun(const char* pName)
     const auto ret = mRuns.insert({pName, pRun});
     PPX_ASSERT_MSG(ret.second, "An insertion shall always take place when adding a run");
     return pRun;
+}
+
+void Manager::Export(const char* name, reporting::Report* pOutReport) const
+{
+    pOutReport->set_name(name);
+    for (auto [name, pRun] : mRuns) {
+        reporting::Run* pReportRun = pOutReport->add_runs();
+        pRun->Export(pReportRun);
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
