@@ -363,4 +363,3 @@ void CubeXrApp::Render()
         }
     }
 }
-

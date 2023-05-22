@@ -16,7 +16,7 @@
 #include "ppx/ppx.h"
 using namespace ppx;
 
-class CubeXrApp 
+class CubeXrApp
     : public ppx::Application
 {
 public:
