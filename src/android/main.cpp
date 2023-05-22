@@ -85,7 +85,16 @@ int32_t defaultInputHandler(struct android_app*, AInputEvent*)
     return 0;
 }
 
-void RunAndroidEventLoop(struct android_app* pApp)
+// On Android, the app can go through multiple states, which we simplify in 3 categories:
+//  - idle state:
+//      onCreate/onStart/onPause/onStop: application should mostly be waiting.
+//  - running state:
+//      onResume: the app is in the foreground, running -> give control to the BigWheels' app.
+//  - destroyed state:
+//      onDestroy: the app is getting destroyed, we should return.
+//
+// This function will process android events and not return until the state either 'destroyed' or 'running'.
+void WaitForNonIdleState(struct android_app* pApp)
 {
     pApp->onAppCmd     = defaultCommandHandler;
     pApp->onInputEvent = defaultInputHandler;
@@ -134,7 +143,7 @@ extern "C"
                 gApplicationState = READY;
             }
             else {
-                RunAndroidEventLoop(pApp);
+                WaitForNonIdleState(pApp);
             }
         }
     }
