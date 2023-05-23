@@ -17,13 +17,14 @@
 
 #include "ppx/base_application.h"
 #include "ppx/command_line_parser.h"
-#include "ppx/math_config.h"
-#include "ppx/imgui_impl.h"
-#include "ppx/timer.h"
-#include "ppx/xr_component.h"
 #include "ppx/fs.h"
-#include "ppx/window.h"
+#include "ppx/imgui_impl.h"
 #include "ppx/knob.h"
+#include "ppx/math_config.h"
+#include "ppx/metrics.h"
+#include "ppx/timer.h"
+#include "ppx/window.h"
+#include "ppx/xr_component.h"
 
 #include <deque>
 #include <filesystem>
@@ -232,6 +233,7 @@ struct ApplicationSettings
     bool        headless              = false;
     bool        enableImGui           = false;
     bool        allowThirdPartyAssets = false;
+    bool        useMetrics            = false;
 
     struct
     {
@@ -409,6 +411,8 @@ public:
 
     bool IsXrEnabled() const { return mSettings.xr.enable; }
 
+    metrics::Manager* GetMetricsManager();
+
 #if defined(PPX_BUILD_XR)
     XrComponent& GetXrComponent()
     {
@@ -482,6 +486,7 @@ private:
     std::vector<grfx::SwapchainPtr> mSwapchains;                           // Requires enableDisplay
     std::unique_ptr<ImGuiImpl>      mImGui;
     KnobManager                     mKnobManager;
+    metrics::Manager                mMetricsManager;
 
     uint64_t          mFrameCount        = 0;
     uint32_t          mSwapchainIndex    = 0;

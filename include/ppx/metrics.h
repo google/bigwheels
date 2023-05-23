@@ -16,7 +16,7 @@
 #define ppx_metrics_h
 
 #include "ppx/config.h"
-#include "ppx/metrics_report.pb.h"
+#include "../src/ppx/metrics_report.pb.h"
 
 #include <limits>
 #include <string>

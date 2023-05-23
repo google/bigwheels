@@ -635,7 +635,7 @@ if (NOT ANDROID)
 endif()
 
 # ------------------------------------------------------------------------------
-# Proto generation
+# Protobuf library + proto generation
 # ------------------------------------------------------------------------------
 set(PROTO_OUTPUT_DIR ${SRC_DIR}/ppx)
 set(PROTO_SRC_DIR ${SRC_DIR}/proto)
@@ -661,4 +661,5 @@ target_sources(
     PRIVATE ${PROTO_SRC_FILES})
 
 add_dependencies(${PROJECT_NAME} convert_proto)
+target_link_libraries(${PROJECT_NAME} PUBLIC libprotobuf)
 

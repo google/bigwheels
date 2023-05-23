@@ -17,12 +17,15 @@
 #include "ppx/ppm_export.h"
 #include "ppx/fs.h"
 
+#include <chrono>
+#include <filesystem>
+#include <fstream>
+#include <limits>
 #include <map>
 #include <numeric>
-#include <unordered_map>
 #include <optional>
-#include <filesystem>
-#include <limits>
+#include <sstream>
+#include <unordered_map>
 
 namespace ppx {
 
@@ -680,6 +683,27 @@ void Application::DispatchSetup()
 void Application::DispatchShutdown()
 {
     Shutdown();
+
+    if(mSettings.useMetrics) {
+        using namespace std;
+
+        // Build a unique name for the report
+        std::stringstream reportFilename;
+        const chrono::time_point<chrono::system_clock> now = chrono::system_clock::now();
+        const time_t current_time = chrono::system_clock::to_time_t(now);
+        reportFilename << "report_" << current_time << ".bin";
+
+		// Export the report from the metrics manager
+        metrics::reporting::Report report;
+        mMetricsManager.Export(reportFilename.str().c_str(), &report);
+
+		// Serialize the report to disk
+        std::ofstream outputFile(reportFilename.str(), std::ofstream::out);
+        if(!report.SerializeToOstream(&outputFile)) {
+            PPX_LOG_ERROR("Failed to export report [" << reportFilename.str() << "]");
+        }
+        outputFile.close();
+    }
 
     PPX_LOG_INFO("Number of frames drawn: " << GetFrameCount());
     PPX_LOG_INFO("Average frame time:     " << GetAverageFrameTime() << " ms");
