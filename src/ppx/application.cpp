@@ -13,9 +13,10 @@
 // limitations under the License.
 
 #include "ppx/application.h"
-#include "ppx/profiler.h"
-#include "ppx/ppm_export.h"
 #include "ppx/fs.h"
+#include "ppx/metrics_report.pb.h"
+#include "ppx/ppm_export.h"
+#include "ppx/profiler.h"
 
 #include <chrono>
 #include <filesystem>

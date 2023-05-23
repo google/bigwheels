@@ -16,7 +16,6 @@
 #define ppx_metrics_h
 
 #include "ppx/config.h"
-#include "../src/ppx/metrics_report.pb.h"
 
 #include <limits>
 #include <string>
@@ -33,17 +32,22 @@ namespace metrics {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// Forward declaration for protos
+namespace reporting {
+class MetricGauge;
+class MetricCounter;
+class Run;
+class Report;
+} // namespace reporting
+
+////////////////////////////////////////////////////////////////////////////////
+
 enum class MetricInterpretation
 {
     NONE,
     HIGHER_IS_BETTER,
     LOWER_IS_BETTER,
 };
-
-// Make sure the runtime and reporting enumerations are in sync
-static_assert(static_cast<uint32_t>(MetricInterpretation::NONE) == static_cast<uint32_t>(reporting::Interpretation::NONE));
-static_assert(static_cast<uint32_t>(MetricInterpretation::HIGHER_IS_BETTER) == static_cast<uint32_t>(reporting::Interpretation::HIGHER_IS_BETTER));
-static_assert(static_cast<uint32_t>(MetricInterpretation::LOWER_IS_BETTER) == static_cast<uint32_t>(reporting::Interpretation::LOWER_IS_BETTER));
 
 struct Range
 {

@@ -22,6 +22,11 @@ namespace metrics {
 
 static void ExportMetadata(const MetricMetadata& metadata, reporting::MetricMetadata* pOutMetadata)
 {
+    // Make sure the runtime and reporting enumerations are in sync as that's what the code currently assumes
+    static_assert(static_cast<uint32_t>(MetricInterpretation::NONE) == static_cast<uint32_t>(reporting::Interpretation::NONE));
+    static_assert(static_cast<uint32_t>(MetricInterpretation::HIGHER_IS_BETTER) == static_cast<uint32_t>(reporting::Interpretation::HIGHER_IS_BETTER));
+    static_assert(static_cast<uint32_t>(MetricInterpretation::LOWER_IS_BETTER) == static_cast<uint32_t>(reporting::Interpretation::LOWER_IS_BETTER));
+
     pOutMetadata->set_name(metadata.name);
     pOutMetadata->set_unit(metadata.unit);
     pOutMetadata->set_interpretation(static_cast<reporting::Interpretation>(metadata.interpretation));
