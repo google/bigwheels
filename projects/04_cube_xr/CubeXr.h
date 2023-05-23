@@ -17,38 +17,38 @@
 using namespace ppx;
 
 class CubeXrApp
-    : public ppx::Application
+    : public Application
 {
 public:
-    virtual void Config(ppx::ApplicationSettings& settings) override;
+    virtual void Config(ApplicationSettings& settings) override;
     virtual void Setup() override;
     virtual void Render() override;
 
 private:
     struct PerFrame
     {
-        ppx::grfx::CommandBufferPtr cmd;
-        ppx::grfx::SemaphorePtr     imageAcquiredSemaphore;
-        ppx::grfx::FencePtr         imageAcquiredFence;
-        ppx::grfx::SemaphorePtr     renderCompleteSemaphore;
-        ppx::grfx::FencePtr         renderCompleteFence;
+        grfx::CommandBufferPtr cmd;
+        grfx::SemaphorePtr     imageAcquiredSemaphore;
+        grfx::FencePtr         imageAcquiredFence;
+        grfx::SemaphorePtr     renderCompleteSemaphore;
+        grfx::FencePtr         renderCompleteFence;
 
         // XR UI per frame elements.
-        ppx::grfx::CommandBufferPtr uiCmd;
-        ppx::grfx::FencePtr         uiRenderCompleteFence;
+        grfx::CommandBufferPtr uiCmd;
+        grfx::FencePtr         uiRenderCompleteFence;
     };
 
-    std::vector<PerFrame>             mPerFrame;
-    ppx::grfx::ShaderModulePtr        mVS;
-    ppx::grfx::ShaderModulePtr        mPS;
-    ppx::grfx::PipelineInterfacePtr   mPipelineInterface;
-    ppx::grfx::GraphicsPipelinePtr    mPipeline;
-    ppx::grfx::BufferPtr              mVertexBuffer;
-    ppx::grfx::DescriptorPoolPtr      mDescriptorPool;
-    ppx::grfx::DescriptorSetLayoutPtr mDescriptorSetLayout;
-    ppx::grfx::DescriptorSetPtr       mDescriptorSet;
-    ppx::grfx::BufferPtr              mUniformBuffer;
-    grfx::Viewport                    mViewport;
-    grfx::Rect                        mScissorRect;
-    grfx::VertexBinding               mVertexBinding;
+    std::vector<PerFrame>        mPerFrame;
+    grfx::ShaderModulePtr        mVS;
+    grfx::ShaderModulePtr        mPS;
+    grfx::PipelineInterfacePtr   mPipelineInterface;
+    grfx::GraphicsPipelinePtr    mPipeline;
+    grfx::BufferPtr              mVertexBuffer;
+    grfx::DescriptorPoolPtr      mDescriptorPool;
+    grfx::DescriptorSetLayoutPtr mDescriptorSetLayout;
+    grfx::DescriptorSetPtr       mDescriptorSet;
+    grfx::BufferPtr              mUniformBuffer;
+    grfx::Viewport               mViewport;
+    grfx::Rect                   mScissorRect;
+    grfx::VertexBinding          mVertexBinding;
 };
