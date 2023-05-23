@@ -107,8 +107,9 @@ include(GraphicsSample)
 
 if(MSVC)
     # Disable the following warnings:
+    # 4624:  this warning is emitted by protobuf-generated classes.
     # 26812: unscoped enums are widely used by the project and dependencies.
-    set(MSVC_DISABLED_WARNINGS "/wd26812")
+    set(MSVC_DISABLED_WARNINGS "/wd4624 /wd26812")
     set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} ${MSVC_DISABLED_WARNINGS} /MP")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MSVC_DISABLED_WARNINGS} /MP /Zc:__cplusplus /std:c++20")
 else()
