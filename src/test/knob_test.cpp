@@ -65,7 +65,7 @@ namespace ppx {
 
 TEST_F(KnobTestFixture, KnobCheckbox_Create)
 {
-    KnobCheckbox boolKnob = KnobCheckbox<bool>("flag_name1", true);
+    KnobCheckbox boolKnob = KnobCheckbox("flag_name1", true);
     EXPECT_EQ(boolKnob.GetFlagHelpText(), "--flag_name1 <true|false>\n");
 
     boolKnob.SetDisplayName("Knob Name 1");
@@ -82,14 +82,14 @@ TEST_F(KnobTestFixture, KnobCheckbox_Create)
 
 TEST_F(KnobTestFixture, KnobCheckbox_SetBoolValue)
 {
-    KnobCheckbox boolKnob = KnobCheckbox<bool>("flag_name1", false);
+    KnobCheckbox boolKnob = KnobCheckbox("flag_name1", false);
     boolKnob.SetValue(true);
     EXPECT_EQ(boolKnob.GetValue(), true);
 }
 
 TEST_F(KnobTestFixture, KnobCheckbox_ResetToDefault)
 {
-    KnobCheckbox boolKnob = KnobCheckbox<bool>("flag_name1", true);
+    KnobCheckbox boolKnob = KnobCheckbox("flag_name1", true);
     EXPECT_EQ(boolKnob.GetValue(), true);
     boolKnob.SetValue(false);
     EXPECT_EQ(boolKnob.GetValue(), false);
@@ -263,7 +263,7 @@ TEST_F(KnobManagerTestFixture, KnobManager_Create)
 
 TEST_F(KnobManagerTestFixture, KnobManager_CreateBoolCheckbox)
 {
-    KnobCheckbox<bool>* boolKnobPtr = km.CreateKnob<KnobCheckbox<bool>>("flag_name1", true);
+    KnobCheckbox* boolKnobPtr = km.CreateKnob<KnobCheckbox>("flag_name1", true);
     EXPECT_EQ(boolKnobPtr->GetValue(), true);
 }
 
@@ -283,10 +283,10 @@ TEST_F(KnobManagerTestFixture, KnobManager_CreateStrDropdown)
 #if defined(PERFORM_DEATH_TESTS)
 TEST_F(KnobManagerTestFixture, KnobManager_CreateUniqueName)
 {
-    KnobCheckbox<bool>* boolKnobPtr1 = km.CreateKnob<KnobCheckbox<bool>>("flag_name1", true);
+    KnobCheckbox* boolKnobPtr1 = km.CreateKnob<KnobCheckbox>("flag_name1", true);
     EXPECT_DEATH(
         {
-            KnobCheckbox<bool>* boolKnobPtr2 = km.CreateKnob<KnobCheckbox<bool>>("flag_name1", true);
+            KnobCheckbox* boolKnobPtr2 = km.CreateKnob<KnobCheckbox>("flag_name1", true);
         },
         "");
 }
@@ -294,8 +294,8 @@ TEST_F(KnobManagerTestFixture, KnobManager_CreateUniqueName)
 
 TEST_F(KnobManagerTestFixture, KnobManager_GetUsageMsg)
 {
-    KnobCheckbox<bool>*        boolKnobPtr1 = km.CreateKnob<KnobCheckbox<bool>>("flag_name1", true);
-    KnobCheckbox<bool>*        boolKnobPtr2 = km.CreateKnob<KnobCheckbox<bool>>("flag_name2", true);
+    KnobCheckbox*              boolKnobPtr1 = km.CreateKnob<KnobCheckbox>("flag_name1", true);
+    KnobCheckbox*              boolKnobPtr2 = km.CreateKnob<KnobCheckbox>("flag_name2", true);
     KnobSlider<int>*           intKnobPtr1  = km.CreateKnob<KnobSlider<int>>("flag_name3", 5, 0, 10);
     std::vector<std::string>   choices1     = {"c1", "c2", "c3"};
     KnobDropdown<std::string>* strKnobPtr1  = km.CreateKnob<KnobDropdown<std::string>>("flag_name4", 1, choices1.begin(), choices1.end());
@@ -312,8 +312,8 @@ Application-specific flags
 
 TEST_F(KnobManagerTestFixture, KnobManager_ResetAllToDefault)
 {
-    KnobCheckbox<bool>*        boolKnobPtr1 = km.CreateKnob<KnobCheckbox<bool>>("flag_name1", true);
-    KnobCheckbox<bool>*        boolKnobPtr2 = km.CreateKnob<KnobCheckbox<bool>>("flag_name2", true);
+    KnobCheckbox*              boolKnobPtr1 = km.CreateKnob<KnobCheckbox>("flag_name1", true);
+    KnobCheckbox*              boolKnobPtr2 = km.CreateKnob<KnobCheckbox>("flag_name2", true);
     KnobSlider<int>*           intKnobPtr1  = km.CreateKnob<KnobSlider<int>>("flag_name3", 5, 0, 10);
     std::vector<std::string>   choices1     = {"c1", "c2", "c3"};
     KnobDropdown<std::string>* strKnobPtr1  = km.CreateKnob<KnobDropdown<std::string>>("flag_name4", 1, choices1.begin(), choices1.end());

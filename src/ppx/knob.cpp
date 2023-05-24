@@ -24,14 +24,14 @@ namespace ppx {
 
 KnobManager::~KnobManager()
 {
-    for (auto knobPtr : mKnobs) {
+    for (auto& knobPtr : mKnobs) {
         delete knobPtr;
     }
 }
 
 void KnobManager::ResetAllToDefault()
 {
-    for (auto knobPtr : mKnobs) {
+    for (auto& knobPtr : mKnobs) {
         knobPtr->ResetToDefault();
     }
 }
@@ -41,7 +41,7 @@ void KnobManager::DrawAllKnobs(bool inExistingWindow)
     if (!inExistingWindow)
         ImGui::Begin("Knobs");
 
-    for (auto knobPtr : mKnobs) {
+    for (const auto& knobPtr : mKnobs) {
         for (size_t i = 0; i < knobPtr->GetIndent(); i++) {
             ImGui::Indent();
         }
@@ -62,7 +62,7 @@ void KnobManager::DrawAllKnobs(bool inExistingWindow)
 std::string KnobManager::GetUsageMsg()
 {
     std::string usageMsg = "\nApplication-specific flags\n";
-    for (auto knobPtr : mKnobs) {
+    for (const auto& knobPtr : mKnobs) {
         usageMsg += knobPtr->GetFlagHelpText();
     }
     return usageMsg;
@@ -70,12 +70,12 @@ std::string KnobManager::GetUsageMsg()
 
 void KnobManager::UpdateFromFlags(const CliOptions& opts)
 {
-    for (auto knobPtr : mKnobs) {
-        knobPtr->UpdateFromFlag(opts);
+    for (auto& knobPtr : mKnobs) {
+        knobPtr->UpdateFromFlags(opts);
     }
 }
 
-void KnobManager::RegisterKnob(std::string flagName, Knob* newKnob)
+void KnobManager::RegisterKnob(const std::string& flagName, Knob* newKnob)
 {
     // Store knob in members
     mFlagNames.insert(flagName);
