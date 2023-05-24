@@ -685,22 +685,22 @@ void Application::DispatchShutdown()
 {
     Shutdown();
 
-    if(mSettings.useMetrics) {
+    if (mSettings.useMetrics) {
         using namespace std;
 
         // Build a unique name for the report
-        std::stringstream reportFilename;
-        const chrono::time_point<chrono::system_clock> now = chrono::system_clock::now();
-        const time_t current_time = chrono::system_clock::to_time_t(now);
+        std::stringstream                              reportFilename;
+        const chrono::time_point<chrono::system_clock> now          = chrono::system_clock::now();
+        const time_t                                   current_time = chrono::system_clock::to_time_t(now);
         reportFilename << "report_" << current_time << ".bin";
 
-		// Export the report from the metrics manager
+        // Export the report from the metrics manager
         metrics::reporting::Report report;
         mMetricsManager.Export(reportFilename.str().c_str(), &report);
 
-		// Serialize the report to disk
+        // Serialize the report to disk
         std::ofstream outputFile(reportFilename.str(), std::ofstream::out);
-        if(!report.SerializeToOstream(&outputFile)) {
+        if (!report.SerializeToOstream(&outputFile)) {
             PPX_LOG_ERROR("Failed to export report [" << reportFilename.str() << "]");
         }
         outputFile.close();
