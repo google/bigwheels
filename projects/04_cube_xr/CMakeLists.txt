@@ -17,5 +17,8 @@ project(04_cube_xr)
 
 add_samples_for_all_apis(
     NAME ${PROJECT_NAME}
-    SOURCES "main.cpp"
+    SOURCES
+    "CubeXr.h"
+    "CubeXr.cpp"
+    "main.cpp"
     SHADER_DEPENDENCIES "shader_vertex_colors")
