@@ -17,201 +17,241 @@
 // Must be included last.
 #include "google/protobuf/port_def.inc"
 PROTOBUF_PRAGMA_INIT_SEG
-namespace _pb = ::google::protobuf;
+namespace _pb  = ::google::protobuf;
 namespace _pbi = ::google::protobuf::internal;
-namespace _fl = ::google::protobuf::internal::field_layout;
+namespace _fl  = ::google::protobuf::internal::field_layout;
 namespace ppx {
 namespace metrics {
 namespace reporting {
-        template <typename>
+template <typename>
 PROTOBUF_CONSTEXPR Range::Range(::_pbi::ConstantInitialized)
     : _impl_{
-      /*decltype(_impl_.lower_bound_)*/ 0,
-      /*decltype(_impl_.upper_bound_)*/ 0,
-      /*decltype(_impl_._cached_size_)*/ {},
-    } {}
-struct RangeDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR RangeDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~RangeDefaultTypeInternal() {}
-  union {
-    Range _instance;
-  };
+          /*decltype(_impl_.lower_bound_)*/ 0,
+          /*decltype(_impl_.upper_bound_)*/ 0,
+          /*decltype(_impl_._cached_size_)*/ {},
+      }
+{
+}
+struct RangeDefaultTypeInternal
+{
+    PROTOBUF_CONSTEXPR RangeDefaultTypeInternal()
+        : _instance(::_pbi::ConstantInitialized{}) {}
+    ~RangeDefaultTypeInternal() {}
+    union
+    {
+        Range _instance;
+    };
 };
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RangeDefaultTypeInternal _Range_default_instance_;
-        template <typename>
+template <typename>
 PROTOBUF_CONSTEXPR MetricMetadata::MetricMetadata(::_pbi::ConstantInitialized)
     : _impl_{
-      /*decltype(_impl_._has_bits_)*/ {},
-      /*decltype(_impl_._cached_size_)*/ {},
-      /*decltype(_impl_.name_)*/ {
-          &::_pbi::fixed_address_empty_string,
-          ::_pbi::ConstantInitialized{},
-      },
-      /*decltype(_impl_.unit_)*/ {
-          &::_pbi::fixed_address_empty_string,
-          ::_pbi::ConstantInitialized{},
-      },
-      /*decltype(_impl_.expected_range_)*/ nullptr,
-      /*decltype(_impl_.interpretation_)*/ 0,
-    } {}
-struct MetricMetadataDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR MetricMetadataDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~MetricMetadataDefaultTypeInternal() {}
-  union {
-    MetricMetadata _instance;
-  };
+          /*decltype(_impl_._has_bits_)*/ {},
+          /*decltype(_impl_._cached_size_)*/ {},
+          /*decltype(_impl_.name_)*/ {
+              &::_pbi::fixed_address_empty_string,
+              ::_pbi::ConstantInitialized{},
+          },
+          /*decltype(_impl_.unit_)*/ {
+              &::_pbi::fixed_address_empty_string,
+              ::_pbi::ConstantInitialized{},
+          },
+          /*decltype(_impl_.expected_range_)*/ nullptr,
+          /*decltype(_impl_.interpretation_)*/ 0,
+      }
+{
+}
+struct MetricMetadataDefaultTypeInternal
+{
+    PROTOBUF_CONSTEXPR MetricMetadataDefaultTypeInternal()
+        : _instance(::_pbi::ConstantInitialized{}) {}
+    ~MetricMetadataDefaultTypeInternal() {}
+    union
+    {
+        MetricMetadata _instance;
+    };
 };
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 MetricMetadataDefaultTypeInternal _MetricMetadata_default_instance_;
-        template <typename>
+template <typename>
 PROTOBUF_CONSTEXPR MetricCounter::MetricCounter(::_pbi::ConstantInitialized)
     : _impl_{
-      /*decltype(_impl_._has_bits_)*/ {},
-      /*decltype(_impl_._cached_size_)*/ {},
-      /*decltype(_impl_.metadata_)*/ nullptr,
-      /*decltype(_impl_.value_)*/ ::int64_t{0},
-    } {}
-struct MetricCounterDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR MetricCounterDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~MetricCounterDefaultTypeInternal() {}
-  union {
-    MetricCounter _instance;
-  };
+          /*decltype(_impl_._has_bits_)*/ {},
+          /*decltype(_impl_._cached_size_)*/ {},
+          /*decltype(_impl_.metadata_)*/ nullptr,
+          /*decltype(_impl_.value_)*/ ::int64_t{0},
+      }
+{
+}
+struct MetricCounterDefaultTypeInternal
+{
+    PROTOBUF_CONSTEXPR MetricCounterDefaultTypeInternal()
+        : _instance(::_pbi::ConstantInitialized{}) {}
+    ~MetricCounterDefaultTypeInternal() {}
+    union
+    {
+        MetricCounter _instance;
+    };
 };
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 MetricCounterDefaultTypeInternal _MetricCounter_default_instance_;
-        template <typename>
+template <typename>
 PROTOBUF_CONSTEXPR GaugeStatistics::GaugeStatistics(::_pbi::ConstantInitialized)
     : _impl_{
-      /*decltype(_impl_.min_)*/ 0,
-      /*decltype(_impl_.max_)*/ 0,
-      /*decltype(_impl_.average_)*/ 0,
-      /*decltype(_impl_.time_ratio_)*/ 0,
-      /*decltype(_impl_.median_)*/ 0,
-      /*decltype(_impl_.standard_deviation_)*/ 0,
-      /*decltype(_impl_.percentile_90_)*/ 0,
-      /*decltype(_impl_.percentile_95_)*/ 0,
-      /*decltype(_impl_.percentile_99_)*/ 0,
-      /*decltype(_impl_._cached_size_)*/ {},
-    } {}
-struct GaugeStatisticsDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR GaugeStatisticsDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~GaugeStatisticsDefaultTypeInternal() {}
-  union {
-    GaugeStatistics _instance;
-  };
+          /*decltype(_impl_.min_)*/ 0,
+          /*decltype(_impl_.max_)*/ 0,
+          /*decltype(_impl_.average_)*/ 0,
+          /*decltype(_impl_.time_ratio_)*/ 0,
+          /*decltype(_impl_.median_)*/ 0,
+          /*decltype(_impl_.standard_deviation_)*/ 0,
+          /*decltype(_impl_.percentile_90_)*/ 0,
+          /*decltype(_impl_.percentile_95_)*/ 0,
+          /*decltype(_impl_.percentile_99_)*/ 0,
+          /*decltype(_impl_._cached_size_)*/ {},
+      }
+{
+}
+struct GaugeStatisticsDefaultTypeInternal
+{
+    PROTOBUF_CONSTEXPR GaugeStatisticsDefaultTypeInternal()
+        : _instance(::_pbi::ConstantInitialized{}) {}
+    ~GaugeStatisticsDefaultTypeInternal() {}
+    union
+    {
+        GaugeStatistics _instance;
+    };
 };
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GaugeStatisticsDefaultTypeInternal _GaugeStatistics_default_instance_;
-        template <typename>
+template <typename>
 PROTOBUF_CONSTEXPR TimeSeriesEntry::TimeSeriesEntry(::_pbi::ConstantInitialized)
     : _impl_{
-      /*decltype(_impl_.seconds_)*/ 0,
-      /*decltype(_impl_.value_)*/ 0,
-      /*decltype(_impl_._cached_size_)*/ {},
-    } {}
-struct TimeSeriesEntryDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR TimeSeriesEntryDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~TimeSeriesEntryDefaultTypeInternal() {}
-  union {
-    TimeSeriesEntry _instance;
-  };
+          /*decltype(_impl_.seconds_)*/ 0,
+          /*decltype(_impl_.value_)*/ 0,
+          /*decltype(_impl_._cached_size_)*/ {},
+      }
+{
+}
+struct TimeSeriesEntryDefaultTypeInternal
+{
+    PROTOBUF_CONSTEXPR TimeSeriesEntryDefaultTypeInternal()
+        : _instance(::_pbi::ConstantInitialized{}) {}
+    ~TimeSeriesEntryDefaultTypeInternal() {}
+    union
+    {
+        TimeSeriesEntry _instance;
+    };
 };
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TimeSeriesEntryDefaultTypeInternal _TimeSeriesEntry_default_instance_;
-        template <typename>
+template <typename>
 PROTOBUF_CONSTEXPR MetricGauge::MetricGauge(::_pbi::ConstantInitialized)
     : _impl_{
-      /*decltype(_impl_._has_bits_)*/ {},
-      /*decltype(_impl_._cached_size_)*/ {},
-      /*decltype(_impl_.time_series_)*/ {},
-      /*decltype(_impl_.metadata_)*/ nullptr,
-      /*decltype(_impl_.statistics_)*/ nullptr,
-    } {}
-struct MetricGaugeDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR MetricGaugeDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~MetricGaugeDefaultTypeInternal() {}
-  union {
-    MetricGauge _instance;
-  };
+          /*decltype(_impl_._has_bits_)*/ {},
+          /*decltype(_impl_._cached_size_)*/ {},
+          /*decltype(_impl_.time_series_)*/ {},
+          /*decltype(_impl_.metadata_)*/ nullptr,
+          /*decltype(_impl_.statistics_)*/ nullptr,
+      }
+{
+}
+struct MetricGaugeDefaultTypeInternal
+{
+    PROTOBUF_CONSTEXPR MetricGaugeDefaultTypeInternal()
+        : _instance(::_pbi::ConstantInitialized{}) {}
+    ~MetricGaugeDefaultTypeInternal() {}
+    union
+    {
+        MetricGauge _instance;
+    };
 };
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 MetricGaugeDefaultTypeInternal _MetricGauge_default_instance_;
-        template <typename>
+template <typename>
 PROTOBUF_CONSTEXPR Run::Run(::_pbi::ConstantInitialized)
     : _impl_{
-      /*decltype(_impl_.counters_)*/ {},
-      /*decltype(_impl_.gauges_)*/ {},
-      /*decltype(_impl_.name_)*/ {
-          &::_pbi::fixed_address_empty_string,
-          ::_pbi::ConstantInitialized{},
-      },
-      /*decltype(_impl_._cached_size_)*/ {},
-    } {}
-struct RunDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR RunDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~RunDefaultTypeInternal() {}
-  union {
-    Run _instance;
-  };
+          /*decltype(_impl_.counters_)*/ {},
+          /*decltype(_impl_.gauges_)*/ {},
+          /*decltype(_impl_.name_)*/ {
+              &::_pbi::fixed_address_empty_string,
+              ::_pbi::ConstantInitialized{},
+          },
+          /*decltype(_impl_._cached_size_)*/ {},
+      }
+{
+}
+struct RunDefaultTypeInternal
+{
+    PROTOBUF_CONSTEXPR RunDefaultTypeInternal()
+        : _instance(::_pbi::ConstantInitialized{}) {}
+    ~RunDefaultTypeInternal() {}
+    union
+    {
+        Run _instance;
+    };
 };
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RunDefaultTypeInternal _Run_default_instance_;
-        template <typename>
+template <typename>
 PROTOBUF_CONSTEXPR Report::Report(::_pbi::ConstantInitialized)
     : _impl_{
-      /*decltype(_impl_.runs_)*/ {},
-      /*decltype(_impl_.name_)*/ {
-          &::_pbi::fixed_address_empty_string,
-          ::_pbi::ConstantInitialized{},
-      },
-      /*decltype(_impl_._cached_size_)*/ {},
-    } {}
-struct ReportDefaultTypeInternal {
-  PROTOBUF_CONSTEXPR ReportDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
-  ~ReportDefaultTypeInternal() {}
-  union {
-    Report _instance;
-  };
+          /*decltype(_impl_.runs_)*/ {},
+          /*decltype(_impl_.name_)*/ {
+              &::_pbi::fixed_address_empty_string,
+              ::_pbi::ConstantInitialized{},
+          },
+          /*decltype(_impl_._cached_size_)*/ {},
+      }
+{
+}
+struct ReportDefaultTypeInternal
+{
+    PROTOBUF_CONSTEXPR ReportDefaultTypeInternal()
+        : _instance(::_pbi::ConstantInitialized{}) {}
+    ~ReportDefaultTypeInternal() {}
+    union
+    {
+        Report _instance;
+    };
 };
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ReportDefaultTypeInternal _Report_default_instance_;
-}  // namespace reporting
-}  // namespace metrics
-}  // namespace ppx
-static ::_pb::Metadata file_level_metadata_metrics_5freport_2eproto[8];
+} // namespace reporting
+} // namespace metrics
+} // namespace ppx
+static ::_pb::Metadata              file_level_metadata_metrics_5freport_2eproto[8];
 static const ::_pb::EnumDescriptor* file_level_enum_descriptors_metrics_5freport_2eproto[1];
 static constexpr const ::_pb::ServiceDescriptor**
-    file_level_service_descriptors_metrics_5freport_2eproto = nullptr;
+                 file_level_service_descriptors_metrics_5freport_2eproto = nullptr;
 const ::uint32_t TableStruct_metrics_5freport_2eproto::offsets[] PROTOBUF_SECTION_VARIABLE(
     protodesc_cold) = {
-    ~0u,  // no _has_bits_
+    ~0u, // no _has_bits_
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::Range, _internal_metadata_),
-    ~0u,  // no _extensions_
-    ~0u,  // no _oneof_case_
-    ~0u,  // no _weak_field_map_
-    ~0u,  // no _inlined_string_donated_
-    ~0u,  // no _split_
-    ~0u,  // no sizeof(Split)
+    ~0u, // no _extensions_
+    ~0u, // no _oneof_case_
+    ~0u, // no _weak_field_map_
+    ~0u, // no _inlined_string_donated_
+    ~0u, // no _split_
+    ~0u, // no sizeof(Split)
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::Range, _impl_.lower_bound_),
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::Range, _impl_.upper_bound_),
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::MetricMetadata, _impl_._has_bits_),
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::MetricMetadata, _internal_metadata_),
-    ~0u,  // no _extensions_
-    ~0u,  // no _oneof_case_
-    ~0u,  // no _weak_field_map_
-    ~0u,  // no _inlined_string_donated_
-    ~0u,  // no _split_
-    ~0u,  // no sizeof(Split)
+    ~0u, // no _extensions_
+    ~0u, // no _oneof_case_
+    ~0u, // no _weak_field_map_
+    ~0u, // no _inlined_string_donated_
+    ~0u, // no _split_
+    ~0u, // no sizeof(Split)
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::MetricMetadata, _impl_.name_),
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::MetricMetadata, _impl_.unit_),
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::MetricMetadata, _impl_.interpretation_),
@@ -222,24 +262,24 @@ const ::uint32_t TableStruct_metrics_5freport_2eproto::offsets[] PROTOBUF_SECTIO
     0,
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::MetricCounter, _impl_._has_bits_),
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::MetricCounter, _internal_metadata_),
-    ~0u,  // no _extensions_
-    ~0u,  // no _oneof_case_
-    ~0u,  // no _weak_field_map_
-    ~0u,  // no _inlined_string_donated_
-    ~0u,  // no _split_
-    ~0u,  // no sizeof(Split)
+    ~0u, // no _extensions_
+    ~0u, // no _oneof_case_
+    ~0u, // no _weak_field_map_
+    ~0u, // no _inlined_string_donated_
+    ~0u, // no _split_
+    ~0u, // no sizeof(Split)
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::MetricCounter, _impl_.metadata_),
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::MetricCounter, _impl_.value_),
     0,
     ~0u,
-    ~0u,  // no _has_bits_
+    ~0u, // no _has_bits_
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::GaugeStatistics, _internal_metadata_),
-    ~0u,  // no _extensions_
-    ~0u,  // no _oneof_case_
-    ~0u,  // no _weak_field_map_
-    ~0u,  // no _inlined_string_donated_
-    ~0u,  // no _split_
-    ~0u,  // no sizeof(Split)
+    ~0u, // no _extensions_
+    ~0u, // no _oneof_case_
+    ~0u, // no _weak_field_map_
+    ~0u, // no _inlined_string_donated_
+    ~0u, // no _split_
+    ~0u, // no sizeof(Split)
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::GaugeStatistics, _impl_.min_),
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::GaugeStatistics, _impl_.max_),
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::GaugeStatistics, _impl_.average_),
@@ -249,49 +289,49 @@ const ::uint32_t TableStruct_metrics_5freport_2eproto::offsets[] PROTOBUF_SECTIO
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::GaugeStatistics, _impl_.percentile_90_),
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::GaugeStatistics, _impl_.percentile_95_),
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::GaugeStatistics, _impl_.percentile_99_),
-    ~0u,  // no _has_bits_
+    ~0u, // no _has_bits_
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::TimeSeriesEntry, _internal_metadata_),
-    ~0u,  // no _extensions_
-    ~0u,  // no _oneof_case_
-    ~0u,  // no _weak_field_map_
-    ~0u,  // no _inlined_string_donated_
-    ~0u,  // no _split_
-    ~0u,  // no sizeof(Split)
+    ~0u, // no _extensions_
+    ~0u, // no _oneof_case_
+    ~0u, // no _weak_field_map_
+    ~0u, // no _inlined_string_donated_
+    ~0u, // no _split_
+    ~0u, // no sizeof(Split)
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::TimeSeriesEntry, _impl_.seconds_),
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::TimeSeriesEntry, _impl_.value_),
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::MetricGauge, _impl_._has_bits_),
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::MetricGauge, _internal_metadata_),
-    ~0u,  // no _extensions_
-    ~0u,  // no _oneof_case_
-    ~0u,  // no _weak_field_map_
-    ~0u,  // no _inlined_string_donated_
-    ~0u,  // no _split_
-    ~0u,  // no sizeof(Split)
+    ~0u, // no _extensions_
+    ~0u, // no _oneof_case_
+    ~0u, // no _weak_field_map_
+    ~0u, // no _inlined_string_donated_
+    ~0u, // no _split_
+    ~0u, // no sizeof(Split)
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::MetricGauge, _impl_.metadata_),
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::MetricGauge, _impl_.statistics_),
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::MetricGauge, _impl_.time_series_),
     0,
     1,
     ~0u,
-    ~0u,  // no _has_bits_
+    ~0u, // no _has_bits_
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::Run, _internal_metadata_),
-    ~0u,  // no _extensions_
-    ~0u,  // no _oneof_case_
-    ~0u,  // no _weak_field_map_
-    ~0u,  // no _inlined_string_donated_
-    ~0u,  // no _split_
-    ~0u,  // no sizeof(Split)
+    ~0u, // no _extensions_
+    ~0u, // no _oneof_case_
+    ~0u, // no _weak_field_map_
+    ~0u, // no _inlined_string_donated_
+    ~0u, // no _split_
+    ~0u, // no sizeof(Split)
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::Run, _impl_.name_),
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::Run, _impl_.counters_),
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::Run, _impl_.gauges_),
-    ~0u,  // no _has_bits_
+    ~0u, // no _has_bits_
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::Report, _internal_metadata_),
-    ~0u,  // no _extensions_
-    ~0u,  // no _oneof_case_
-    ~0u,  // no _weak_field_map_
-    ~0u,  // no _inlined_string_donated_
-    ~0u,  // no _split_
-    ~0u,  // no sizeof(Split)
+    ~0u, // no _extensions_
+    ~0u, // no _oneof_case_
+    ~0u, // no _weak_field_map_
+    ~0u, // no _inlined_string_donated_
+    ~0u, // no _split_
+    ~0u, // no sizeof(Split)
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::Report, _impl_.name_),
     PROTOBUF_FIELD_OFFSET(::ppx::metrics::reporting::Report, _impl_.runs_),
 };
@@ -345,9 +385,8 @@ const char descriptor_table_protodef_metrics_5freport_2eproto[] PROTOBUF_SECTION
     "@\n\006Report\022\014\n\004name\030\001 \001(\t\022(\n\004runs\030\002 \003(\0132\032."
     "ppx.metrics.reporting.Run*E\n\016Interpretat"
     "ion\022\010\n\004NONE\020\000\022\024\n\020HIGHER_IS_BETTER\020\001\022\023\n\017L"
-    "OWER_IS_BETTER\020\002b\006proto3"
-};
-static ::absl::once_flag descriptor_table_metrics_5freport_2eproto_once;
+    "OWER_IS_BETTER\020\002b\006proto3"};
+static ::absl::once_flag      descriptor_table_metrics_5freport_2eproto_once;
 const ::_pbi::DescriptorTable descriptor_table_metrics_5freport_2eproto = {
     false,
     false,
@@ -377,8 +416,9 @@ const ::_pbi::DescriptorTable descriptor_table_metrics_5freport_2eproto = {
 //   vtables -> GetMetadata
 // By adding a weak function here we break the connection from the
 // individual vtables back into the descriptor table.
-PROTOBUF_ATTRIBUTE_WEAK const ::_pbi::DescriptorTable* descriptor_table_metrics_5freport_2eproto_getter() {
-  return &descriptor_table_metrics_5freport_2eproto;
+PROTOBUF_ATTRIBUTE_WEAK const ::_pbi::DescriptorTable* descriptor_table_metrics_5freport_2eproto_getter()
+{
+    return &descriptor_table_metrics_5freport_2eproto;
 }
 // Force running AddDescriptors() at dynamic initialization time.
 PROTOBUF_ATTRIBUTE_INIT_PRIORITY2
@@ -386,2275 +426,2360 @@ static ::_pbi::AddDescriptorsRunner dynamic_init_dummy_metrics_5freport_2eproto(
 namespace ppx {
 namespace metrics {
 namespace reporting {
-const ::google::protobuf::EnumDescriptor* Interpretation_descriptor() {
-  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_metrics_5freport_2eproto);
-  return file_level_enum_descriptors_metrics_5freport_2eproto[0];
+const ::google::protobuf::EnumDescriptor* Interpretation_descriptor()
+{
+    ::google::protobuf::internal::AssignDescriptors(&descriptor_table_metrics_5freport_2eproto);
+    return file_level_enum_descriptors_metrics_5freport_2eproto[0];
 }
-bool Interpretation_IsValid(int value) {
-  switch (value) {
-    case 0:
-    case 1:
-    case 2:
-      return true;
-    default:
-      return false;
-  }
+bool Interpretation_IsValid(int value)
+{
+    switch (value) {
+        case 0:
+        case 1:
+        case 2:
+            return true;
+        default:
+            return false;
+    }
 }
 // ===================================================================
 
-class Range::_Internal {
- public:
+class Range::_Internal
+{
+public:
 };
 
 Range::Range(::google::protobuf::Arena* arena)
-    : ::google::protobuf::Message(arena) {
-  SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:ppx.metrics.reporting.Range)
+    : ::google::protobuf::Message(arena)
+{
+    SharedCtor(arena);
+    // @@protoc_insertion_point(arena_constructor:ppx.metrics.reporting.Range)
 }
 Range::Range(const Range& from)
-    : ::google::protobuf::Message(), _impl_(from._impl_) {
-  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-  // @@protoc_insertion_point(copy_constructor:ppx.metrics.reporting.Range)
+    : ::google::protobuf::Message(), _impl_(from._impl_)
+{
+    _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+        from._internal_metadata_);
+    // @@protoc_insertion_point(copy_constructor:ppx.metrics.reporting.Range)
 }
-inline void Range::SharedCtor(::_pb::Arena* arena) {
-  (void)arena;
-  new (&_impl_) Impl_{
-      decltype(_impl_.lower_bound_){0},
-      decltype(_impl_.upper_bound_){0},
-      /*decltype(_impl_._cached_size_)*/ {},
-  };
+inline void Range::SharedCtor(::_pb::Arena* arena)
+{
+    (void)arena;
+    new (&_impl_) Impl_{
+        decltype(_impl_.lower_bound_){0},
+        decltype(_impl_.upper_bound_){0},
+        /*decltype(_impl_._cached_size_)*/ {},
+    };
 }
-Range::~Range() {
-  // @@protoc_insertion_point(destructor:ppx.metrics.reporting.Range)
-  _internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
-  SharedDtor();
+Range::~Range()
+{
+    // @@protoc_insertion_point(destructor:ppx.metrics.reporting.Range)
+    _internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+    SharedDtor();
 }
-inline void Range::SharedDtor() {
-  ABSL_DCHECK(GetArenaForAllocation() == nullptr);
+inline void Range::SharedDtor()
+{
+    ABSL_DCHECK(GetArenaForAllocation() == nullptr);
 }
-void Range::SetCachedSize(int size) const {
-  _impl_._cached_size_.Set(size);
+void Range::SetCachedSize(int size) const
+{
+    _impl_._cached_size_.Set(size);
 }
 
-PROTOBUF_NOINLINE void Range::Clear() {
-// @@protoc_insertion_point(message_clear_start:ppx.metrics.reporting.Range)
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
+PROTOBUF_NOINLINE void Range::Clear()
+{
+    // @@protoc_insertion_point(message_clear_start:ppx.metrics.reporting.Range)
+    ::uint32_t cached_has_bits = 0;
+    // Prevent compiler warnings about cached_has_bits being unused
+    (void)cached_has_bits;
 
-  ::memset(&_impl_.lower_bound_, 0, static_cast<::size_t>(
-      reinterpret_cast<char*>(&_impl_.upper_bound_) -
-      reinterpret_cast<char*>(&_impl_.lower_bound_)) + sizeof(_impl_.upper_bound_));
-  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+    ::memset(&_impl_.lower_bound_, 0, static_cast<::size_t>(reinterpret_cast<char*>(&_impl_.upper_bound_) - reinterpret_cast<char*>(&_impl_.lower_bound_)) + sizeof(_impl_.upper_bound_));
+    _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
 
 const char* Range::_InternalParse(
-    const char* ptr, ::_pbi::ParseContext* ctx) {
-  ptr = ::_pbi::TcParser::ParseLoop(this, ptr, ctx, &_table_.header);
-  return ptr;
+    const char* ptr, ::_pbi::ParseContext* ctx)
+{
+    ptr = ::_pbi::TcParser::ParseLoop(this, ptr, ctx, &_table_.header);
+    return ptr;
 }
 
-
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 0, 0, 2> Range::_table_ = {
-  {
-    0,  // no _has_bits_
-    0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
-    offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
-    offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
-    0,  // num_aux_entries
-    offsetof(decltype(_table_), field_names),  // no aux_entries
-    &_Range_default_instance_._instance,
-    ::_pbi::TcParser::GenericFallback,  // fallback
-  }, {{
-    // double upper_bound = 2;
-    {::_pbi::TcParser::FastF64S1,
-     {17, 63, 0, PROTOBUF_FIELD_OFFSET(Range, _impl_.upper_bound_)}},
-    // double lower_bound = 1;
-    {::_pbi::TcParser::FastF64S1,
-     {9, 63, 0, PROTOBUF_FIELD_OFFSET(Range, _impl_.lower_bound_)}},
-  }}, {{
-    65535, 65535
-  }}, {{
-    // double lower_bound = 1;
-    {PROTOBUF_FIELD_OFFSET(Range, _impl_.lower_bound_), 0, 0,
-    (0 | ::_fl::kFcSingular | ::_fl::kDouble)},
-    // double upper_bound = 2;
-    {PROTOBUF_FIELD_OFFSET(Range, _impl_.upper_bound_), 0, 0,
-    (0 | ::_fl::kFcSingular | ::_fl::kDouble)},
-  }},
-  // no aux_entries
-  {{
-  }},
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const ::_pbi::TcParseTable<1, 2, 0, 0, 2> Range::_table_ = {
+    {
+        0, // no _has_bits_
+        0, // no _extensions_
+        2,
+        8, // max_field_number, fast_idx_mask
+        offsetof(decltype(_table_), field_lookup_table),
+        4294967292, // skipmap
+        offsetof(decltype(_table_), field_entries),
+        2,                                        // num_field_entries
+        0,                                        // num_aux_entries
+        offsetof(decltype(_table_), field_names), // no aux_entries
+        &_Range_default_instance_._instance,
+        ::_pbi::TcParser::GenericFallback, // fallback
+    },
+    {{
+        // double upper_bound = 2;
+        {::_pbi::TcParser::FastF64S1,
+         {17, 63, 0, PROTOBUF_FIELD_OFFSET(Range, _impl_.upper_bound_)}},
+        // double lower_bound = 1;
+        {::_pbi::TcParser::FastF64S1,
+         {9, 63, 0, PROTOBUF_FIELD_OFFSET(Range, _impl_.lower_bound_)}},
+    }},
+    {{65535, 65535}},
+    {{
+        // double lower_bound = 1;
+        {PROTOBUF_FIELD_OFFSET(Range, _impl_.lower_bound_), 0, 0, (0 | ::_fl::kFcSingular | ::_fl::kDouble)},
+        // double upper_bound = 2;
+        {PROTOBUF_FIELD_OFFSET(Range, _impl_.upper_bound_), 0, 0, (0 | ::_fl::kFcSingular | ::_fl::kDouble)},
+    }},
+    // no aux_entries
+    {{}},
 };
 
 ::uint8_t* Range::_InternalSerialize(
-    ::uint8_t* target, ::google::protobuf::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:ppx.metrics.reporting.Range)
-  ::uint32_t cached_has_bits = 0;
-  (void)cached_has_bits;
+    ::uint8_t* target, ::google::protobuf::io::EpsCopyOutputStream* stream) const
+{
+    // @@protoc_insertion_point(serialize_to_array_start:ppx.metrics.reporting.Range)
+    ::uint32_t cached_has_bits = 0;
+    (void)cached_has_bits;
 
-  // double lower_bound = 1;
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_lower_bound = this->_internal_lower_bound();
-  ::uint64_t raw_lower_bound;
-  memcpy(&raw_lower_bound, &tmp_lower_bound, sizeof(tmp_lower_bound));
-  if (raw_lower_bound != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteDoubleToArray(
-        1, this->_internal_lower_bound(), target);
-  }
+    // double lower_bound = 1;
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_lower_bound = this->_internal_lower_bound();
+    ::uint64_t raw_lower_bound;
+    memcpy(&raw_lower_bound, &tmp_lower_bound, sizeof(tmp_lower_bound));
+    if (raw_lower_bound != 0) {
+        target = stream->EnsureSpace(target);
+        target = ::_pbi::WireFormatLite::WriteDoubleToArray(
+            1, this->_internal_lower_bound(), target);
+    }
 
-  // double upper_bound = 2;
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_upper_bound = this->_internal_upper_bound();
-  ::uint64_t raw_upper_bound;
-  memcpy(&raw_upper_bound, &tmp_upper_bound, sizeof(tmp_upper_bound));
-  if (raw_upper_bound != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteDoubleToArray(
-        2, this->_internal_upper_bound(), target);
-  }
+    // double upper_bound = 2;
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_upper_bound = this->_internal_upper_bound();
+    ::uint64_t raw_upper_bound;
+    memcpy(&raw_upper_bound, &tmp_upper_bound, sizeof(tmp_upper_bound));
+    if (raw_upper_bound != 0) {
+        target = stream->EnsureSpace(target);
+        target = ::_pbi::WireFormatLite::WriteDoubleToArray(
+            2, this->_internal_upper_bound(), target);
+    }
 
-  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    target =
-        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
-            _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
-  }
-  // @@protoc_insertion_point(serialize_to_array_end:ppx.metrics.reporting.Range)
-  return target;
+    if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+        target =
+            ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+                _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+    }
+    // @@protoc_insertion_point(serialize_to_array_end:ppx.metrics.reporting.Range)
+    return target;
 }
 
-::size_t Range::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:ppx.metrics.reporting.Range)
-  ::size_t total_size = 0;
+::size_t Range::ByteSizeLong() const
+{
+    // @@protoc_insertion_point(message_byte_size_start:ppx.metrics.reporting.Range)
+    ::size_t total_size = 0;
 
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
+    ::uint32_t cached_has_bits = 0;
+    // Prevent compiler warnings about cached_has_bits being unused
+    (void)cached_has_bits;
 
-  // double lower_bound = 1;
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_lower_bound = this->_internal_lower_bound();
-  ::uint64_t raw_lower_bound;
-  memcpy(&raw_lower_bound, &tmp_lower_bound, sizeof(tmp_lower_bound));
-  if (raw_lower_bound != 0) {
-    total_size += 9;
-  }
+    // double lower_bound = 1;
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_lower_bound = this->_internal_lower_bound();
+    ::uint64_t raw_lower_bound;
+    memcpy(&raw_lower_bound, &tmp_lower_bound, sizeof(tmp_lower_bound));
+    if (raw_lower_bound != 0) {
+        total_size += 9;
+    }
 
-  // double upper_bound = 2;
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_upper_bound = this->_internal_upper_bound();
-  ::uint64_t raw_upper_bound;
-  memcpy(&raw_upper_bound, &tmp_upper_bound, sizeof(tmp_upper_bound));
-  if (raw_upper_bound != 0) {
-    total_size += 9;
-  }
+    // double upper_bound = 2;
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_upper_bound = this->_internal_upper_bound();
+    ::uint64_t raw_upper_bound;
+    memcpy(&raw_upper_bound, &tmp_upper_bound, sizeof(tmp_upper_bound));
+    if (raw_upper_bound != 0) {
+        total_size += 9;
+    }
 
-  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+    return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
 const ::google::protobuf::Message::ClassData Range::_class_data_ = {
     ::google::protobuf::Message::CopyWithSourceCheck,
-    Range::MergeImpl
-};
-const ::google::protobuf::Message::ClassData*Range::GetClassData() const { return &_class_data_; }
-
-
-void Range::MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg) {
-  auto* const _this = static_cast<Range*>(&to_msg);
-  auto& from = static_cast<const Range&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:ppx.metrics.reporting.Range)
-  ABSL_DCHECK_NE(&from, _this);
-  ::uint32_t cached_has_bits = 0;
-  (void) cached_has_bits;
-
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_lower_bound = from._internal_lower_bound();
-  ::uint64_t raw_lower_bound;
-  memcpy(&raw_lower_bound, &tmp_lower_bound, sizeof(tmp_lower_bound));
-  if (raw_lower_bound != 0) {
-    _this->_internal_set_lower_bound(from._internal_lower_bound());
-  }
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_upper_bound = from._internal_upper_bound();
-  ::uint64_t raw_upper_bound;
-  memcpy(&raw_upper_bound, &tmp_upper_bound, sizeof(tmp_upper_bound));
-  if (raw_upper_bound != 0) {
-    _this->_internal_set_upper_bound(from._internal_upper_bound());
-  }
-  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+    Range::MergeImpl};
+const ::google::protobuf::Message::ClassData* Range::GetClassData() const
+{
+    return &_class_data_;
 }
 
-void Range::CopyFrom(const Range& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:ppx.metrics.reporting.Range)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
+void Range::MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg)
+{
+    auto* const _this = static_cast<Range*>(&to_msg);
+    auto&       from  = static_cast<const Range&>(from_msg);
+    // @@protoc_insertion_point(class_specific_merge_from_start:ppx.metrics.reporting.Range)
+    ABSL_DCHECK_NE(&from, _this);
+    ::uint32_t cached_has_bits = 0;
+    (void)cached_has_bits;
+
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_lower_bound = from._internal_lower_bound();
+    ::uint64_t raw_lower_bound;
+    memcpy(&raw_lower_bound, &tmp_lower_bound, sizeof(tmp_lower_bound));
+    if (raw_lower_bound != 0) {
+        _this->_internal_set_lower_bound(from._internal_lower_bound());
+    }
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_upper_bound = from._internal_upper_bound();
+    ::uint64_t raw_upper_bound;
+    memcpy(&raw_upper_bound, &tmp_upper_bound, sizeof(tmp_upper_bound));
+    if (raw_upper_bound != 0) {
+        _this->_internal_set_upper_bound(from._internal_upper_bound());
+    }
+    _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
 }
 
-PROTOBUF_NOINLINE bool Range::IsInitialized() const {
-  return true;
+void Range::CopyFrom(const Range& from)
+{
+    // @@protoc_insertion_point(class_specific_copy_from_start:ppx.metrics.reporting.Range)
+    if (&from == this)
+        return;
+    Clear();
+    MergeFrom(from);
 }
 
-void Range::InternalSwap(Range* other) {
-  using std::swap;
-  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(Range, _impl_.upper_bound_)
-      + sizeof(Range::_impl_.upper_bound_)
-      - PROTOBUF_FIELD_OFFSET(Range, _impl_.lower_bound_)>(
-          reinterpret_cast<char*>(&_impl_.lower_bound_),
-          reinterpret_cast<char*>(&other->_impl_.lower_bound_));
+PROTOBUF_NOINLINE bool Range::IsInitialized() const
+{
+    return true;
 }
 
-::google::protobuf::Metadata Range::GetMetadata() const {
-  return ::_pbi::AssignDescriptors(
-      &descriptor_table_metrics_5freport_2eproto_getter, &descriptor_table_metrics_5freport_2eproto_once,
-      file_level_metadata_metrics_5freport_2eproto[0]);
+void Range::InternalSwap(Range* other)
+{
+    using std::swap;
+    _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+    ::google::protobuf::internal::memswap<
+        PROTOBUF_FIELD_OFFSET(Range, _impl_.upper_bound_) + sizeof(Range::_impl_.upper_bound_) - PROTOBUF_FIELD_OFFSET(Range, _impl_.lower_bound_)>(
+        reinterpret_cast<char*>(&_impl_.lower_bound_),
+        reinterpret_cast<char*>(&other->_impl_.lower_bound_));
+}
+
+::google::protobuf::Metadata Range::GetMetadata() const
+{
+    return ::_pbi::AssignDescriptors(
+        &descriptor_table_metrics_5freport_2eproto_getter, &descriptor_table_metrics_5freport_2eproto_once, file_level_metadata_metrics_5freport_2eproto[0]);
 }
 // ===================================================================
 
-class MetricMetadata::_Internal {
- public:
-  using HasBits = decltype(std::declval<MetricMetadata>()._impl_._has_bits_);
-  static constexpr ::int32_t kHasBitsOffset =
-    8 * PROTOBUF_FIELD_OFFSET(MetricMetadata, _impl_._has_bits_);
-  static const ::ppx::metrics::reporting::Range& expected_range(const MetricMetadata* msg);
-  static void set_has_expected_range(HasBits* has_bits) {
-    (*has_bits)[0] |= 1u;
-  }
+class MetricMetadata::_Internal
+{
+public:
+    using HasBits = decltype(std::declval<MetricMetadata>()._impl_._has_bits_);
+    static constexpr ::int32_t kHasBitsOffset =
+        8 * PROTOBUF_FIELD_OFFSET(MetricMetadata, _impl_._has_bits_);
+    static const ::ppx::metrics::reporting::Range& expected_range(const MetricMetadata* msg);
+    static void                                    set_has_expected_range(HasBits* has_bits)
+    {
+        (*has_bits)[0] |= 1u;
+    }
 };
 
-const ::ppx::metrics::reporting::Range& MetricMetadata::_Internal::expected_range(const MetricMetadata* msg) {
-  return *msg->_impl_.expected_range_;
+const ::ppx::metrics::reporting::Range& MetricMetadata::_Internal::expected_range(const MetricMetadata* msg)
+{
+    return *msg->_impl_.expected_range_;
 }
 MetricMetadata::MetricMetadata(::google::protobuf::Arena* arena)
-    : ::google::protobuf::Message(arena) {
-  SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:ppx.metrics.reporting.MetricMetadata)
+    : ::google::protobuf::Message(arena)
+{
+    SharedCtor(arena);
+    // @@protoc_insertion_point(arena_constructor:ppx.metrics.reporting.MetricMetadata)
 }
-MetricMetadata::MetricMetadata(const MetricMetadata& from) : ::google::protobuf::Message() {
-  MetricMetadata* const _this = this;
-  (void)_this;
-  new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){from._impl_._has_bits_},
-      /*decltype(_impl_._cached_size_)*/ {},
-      decltype(_impl_.name_){},
-      decltype(_impl_.unit_){},
-      decltype(_impl_.expected_range_){nullptr},
-      decltype(_impl_.interpretation_){},
-  };
-  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-  _impl_.name_.InitDefault();
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-        _impl_.name_.Set("", GetArenaForAllocation());
-  #endif  // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (!from._internal_name().empty()) {
-    _this->_impl_.name_.Set(from._internal_name(), _this->GetArenaForAllocation());
-  }
-  _impl_.unit_.InitDefault();
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-        _impl_.unit_.Set("", GetArenaForAllocation());
-  #endif  // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (!from._internal_unit().empty()) {
-    _this->_impl_.unit_.Set(from._internal_unit(), _this->GetArenaForAllocation());
-  }
-  if ((from._impl_._has_bits_[0] & 0x00000001u) != 0) {
-    _this->_impl_.expected_range_ = new ::ppx::metrics::reporting::Range(*from._impl_.expected_range_);
-  }
-  _this->_impl_.interpretation_ = from._impl_.interpretation_;
+MetricMetadata::MetricMetadata(const MetricMetadata& from)
+    : ::google::protobuf::Message()
+{
+    MetricMetadata* const _this = this;
+    (void)_this;
+    new (&_impl_) Impl_{
+        decltype(_impl_._has_bits_){from._impl_._has_bits_},
+        /*decltype(_impl_._cached_size_)*/ {},
+        decltype(_impl_.name_){},
+        decltype(_impl_.unit_){},
+        decltype(_impl_.expected_range_){nullptr},
+        decltype(_impl_.interpretation_){},
+    };
+    _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+        from._internal_metadata_);
+    _impl_.name_.InitDefault();
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.name_.Set("", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    if (!from._internal_name().empty()) {
+        _this->_impl_.name_.Set(from._internal_name(), _this->GetArenaForAllocation());
+    }
+    _impl_.unit_.InitDefault();
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.unit_.Set("", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    if (!from._internal_unit().empty()) {
+        _this->_impl_.unit_.Set(from._internal_unit(), _this->GetArenaForAllocation());
+    }
+    if ((from._impl_._has_bits_[0] & 0x00000001u) != 0) {
+        _this->_impl_.expected_range_ = new ::ppx::metrics::reporting::Range(*from._impl_.expected_range_);
+    }
+    _this->_impl_.interpretation_ = from._impl_.interpretation_;
 
-  // @@protoc_insertion_point(copy_constructor:ppx.metrics.reporting.MetricMetadata)
+    // @@protoc_insertion_point(copy_constructor:ppx.metrics.reporting.MetricMetadata)
 }
-inline void MetricMetadata::SharedCtor(::_pb::Arena* arena) {
-  (void)arena;
-  new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){},
-      /*decltype(_impl_._cached_size_)*/ {},
-      decltype(_impl_.name_){},
-      decltype(_impl_.unit_){},
-      decltype(_impl_.expected_range_){nullptr},
-      decltype(_impl_.interpretation_){0},
-  };
-  _impl_.name_.InitDefault();
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-        _impl_.name_.Set("", GetArenaForAllocation());
-  #endif  // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  _impl_.unit_.InitDefault();
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-        _impl_.unit_.Set("", GetArenaForAllocation());
-  #endif  // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+inline void MetricMetadata::SharedCtor(::_pb::Arena* arena)
+{
+    (void)arena;
+    new (&_impl_) Impl_{
+        decltype(_impl_._has_bits_){},
+        /*decltype(_impl_._cached_size_)*/ {},
+        decltype(_impl_.name_){},
+        decltype(_impl_.unit_){},
+        decltype(_impl_.expected_range_){nullptr},
+        decltype(_impl_.interpretation_){0},
+    };
+    _impl_.name_.InitDefault();
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.name_.Set("", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.unit_.InitDefault();
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.unit_.Set("", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 }
-MetricMetadata::~MetricMetadata() {
-  // @@protoc_insertion_point(destructor:ppx.metrics.reporting.MetricMetadata)
-  _internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
-  SharedDtor();
+MetricMetadata::~MetricMetadata()
+{
+    // @@protoc_insertion_point(destructor:ppx.metrics.reporting.MetricMetadata)
+    _internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+    SharedDtor();
 }
-inline void MetricMetadata::SharedDtor() {
-  ABSL_DCHECK(GetArenaForAllocation() == nullptr);
-  _impl_.name_.Destroy();
-  _impl_.unit_.Destroy();
-  if (this != internal_default_instance()) delete _impl_.expected_range_;
+inline void MetricMetadata::SharedDtor()
+{
+    ABSL_DCHECK(GetArenaForAllocation() == nullptr);
+    _impl_.name_.Destroy();
+    _impl_.unit_.Destroy();
+    if (this != internal_default_instance())
+        delete _impl_.expected_range_;
 }
-void MetricMetadata::SetCachedSize(int size) const {
-  _impl_._cached_size_.Set(size);
+void MetricMetadata::SetCachedSize(int size) const
+{
+    _impl_._cached_size_.Set(size);
 }
 
-PROTOBUF_NOINLINE void MetricMetadata::Clear() {
-// @@protoc_insertion_point(message_clear_start:ppx.metrics.reporting.MetricMetadata)
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
+PROTOBUF_NOINLINE void MetricMetadata::Clear()
+{
+    // @@protoc_insertion_point(message_clear_start:ppx.metrics.reporting.MetricMetadata)
+    ::uint32_t cached_has_bits = 0;
+    // Prevent compiler warnings about cached_has_bits being unused
+    (void)cached_has_bits;
 
-  _impl_.name_.ClearToEmpty();
-  _impl_.unit_.ClearToEmpty();
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
-    ABSL_DCHECK(_impl_.expected_range_ != nullptr);
-    _impl_.expected_range_->Clear();
-  }
-  _impl_.interpretation_ = 0;
-  _impl_._has_bits_.Clear();
-  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+    _impl_.name_.ClearToEmpty();
+    _impl_.unit_.ClearToEmpty();
+    cached_has_bits = _impl_._has_bits_[0];
+    if (cached_has_bits & 0x00000001u) {
+        ABSL_DCHECK(_impl_.expected_range_ != nullptr);
+        _impl_.expected_range_->Clear();
+    }
+    _impl_.interpretation_ = 0;
+    _impl_._has_bits_.Clear();
+    _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
 
 const char* MetricMetadata::_InternalParse(
-    const char* ptr, ::_pbi::ParseContext* ctx) {
-  ptr = ::_pbi::TcParser::ParseLoop(this, ptr, ctx, &_table_.header);
-  return ptr;
+    const char* ptr, ::_pbi::ParseContext* ctx)
+{
+    ptr = ::_pbi::TcParser::ParseLoop(this, ptr, ctx, &_table_.header);
+    return ptr;
 }
 
-
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 4, 1, 53, 2> MetricMetadata::_table_ = {
-  {
-    PROTOBUF_FIELD_OFFSET(MetricMetadata, _impl_._has_bits_),
-    0, // no _extensions_
-    4, 24,  // max_field_number, fast_idx_mask
-    offsetof(decltype(_table_), field_lookup_table),
-    4294967280,  // skipmap
-    offsetof(decltype(_table_), field_entries),
-    4,  // num_field_entries
-    1,  // num_aux_entries
-    offsetof(decltype(_table_), aux_entries),
-    &_MetricMetadata_default_instance_._instance,
-    ::_pbi::TcParser::GenericFallback,  // fallback
-  }, {{
-    // .ppx.metrics.reporting.Range expected_range = 4;
-    {::_pbi::TcParser::FastMtS1,
-     {34, 0, 0, PROTOBUF_FIELD_OFFSET(MetricMetadata, _impl_.expected_range_)}},
-    // string name = 1;
-    {::_pbi::TcParser::FastUS1,
-     {10, 63, 0, PROTOBUF_FIELD_OFFSET(MetricMetadata, _impl_.name_)}},
-    // string unit = 2;
-    {::_pbi::TcParser::FastUS1,
-     {18, 63, 0, PROTOBUF_FIELD_OFFSET(MetricMetadata, _impl_.unit_)}},
-    // .ppx.metrics.reporting.Interpretation interpretation = 3;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(MetricMetadata, _impl_.interpretation_), 63>(),
-     {24, 63, 0, PROTOBUF_FIELD_OFFSET(MetricMetadata, _impl_.interpretation_)}},
-  }}, {{
-    65535, 65535
-  }}, {{
-    // string name = 1;
-    {PROTOBUF_FIELD_OFFSET(MetricMetadata, _impl_.name_), -1, 0,
-    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // string unit = 2;
-    {PROTOBUF_FIELD_OFFSET(MetricMetadata, _impl_.unit_), -1, 0,
-    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // .ppx.metrics.reporting.Interpretation interpretation = 3;
-    {PROTOBUF_FIELD_OFFSET(MetricMetadata, _impl_.interpretation_), -1, 0,
-    (0 | ::_fl::kFcSingular | ::_fl::kOpenEnum)},
-    // .ppx.metrics.reporting.Range expected_range = 4;
-    {PROTOBUF_FIELD_OFFSET(MetricMetadata, _impl_.expected_range_), _Internal::kHasBitsOffset + 0, 0,
-    (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
-  }}, {{
-    {::_pbi::TcParser::GetTable<::ppx::metrics::reporting::Range>()},
-  }}, {{
-    "\44\4\4\0\0\0\0\0"
-    "ppx.metrics.reporting.MetricMetadata"
-    "name"
-    "unit"
-  }},
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const ::_pbi::TcParseTable<2, 4, 1, 53, 2> MetricMetadata::_table_ = {
+    {
+        PROTOBUF_FIELD_OFFSET(MetricMetadata, _impl_._has_bits_),
+        0, // no _extensions_
+        4,
+        24, // max_field_number, fast_idx_mask
+        offsetof(decltype(_table_), field_lookup_table),
+        4294967280, // skipmap
+        offsetof(decltype(_table_), field_entries),
+        4, // num_field_entries
+        1, // num_aux_entries
+        offsetof(decltype(_table_), aux_entries),
+        &_MetricMetadata_default_instance_._instance,
+        ::_pbi::TcParser::GenericFallback, // fallback
+    },
+    {{
+        // .ppx.metrics.reporting.Range expected_range = 4;
+        {::_pbi::TcParser::FastMtS1,
+         {34, 0, 0, PROTOBUF_FIELD_OFFSET(MetricMetadata, _impl_.expected_range_)}},
+        // string name = 1;
+        {::_pbi::TcParser::FastUS1,
+         {10, 63, 0, PROTOBUF_FIELD_OFFSET(MetricMetadata, _impl_.name_)}},
+        // string unit = 2;
+        {::_pbi::TcParser::FastUS1,
+         {18, 63, 0, PROTOBUF_FIELD_OFFSET(MetricMetadata, _impl_.unit_)}},
+        // .ppx.metrics.reporting.Interpretation interpretation = 3;
+        {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(MetricMetadata, _impl_.interpretation_), 63>(),
+         {24, 63, 0, PROTOBUF_FIELD_OFFSET(MetricMetadata, _impl_.interpretation_)}},
+    }},
+    {{65535, 65535}},
+    {{
+        // string name = 1;
+        {PROTOBUF_FIELD_OFFSET(MetricMetadata, _impl_.name_), -1, 0, (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+        // string unit = 2;
+        {PROTOBUF_FIELD_OFFSET(MetricMetadata, _impl_.unit_), -1, 0, (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+        // .ppx.metrics.reporting.Interpretation interpretation = 3;
+        {PROTOBUF_FIELD_OFFSET(MetricMetadata, _impl_.interpretation_), -1, 0, (0 | ::_fl::kFcSingular | ::_fl::kOpenEnum)},
+        // .ppx.metrics.reporting.Range expected_range = 4;
+        {PROTOBUF_FIELD_OFFSET(MetricMetadata, _impl_.expected_range_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    }},
+    {{
+        {::_pbi::TcParser::GetTable<::ppx::metrics::reporting::Range>()},
+    }},
+    {{"\44\4\4\0\0\0\0\0"
+      "ppx.metrics.reporting.MetricMetadata"
+      "name"
+      "unit"}},
 };
 
 ::uint8_t* MetricMetadata::_InternalSerialize(
-    ::uint8_t* target, ::google::protobuf::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:ppx.metrics.reporting.MetricMetadata)
-  ::uint32_t cached_has_bits = 0;
-  (void)cached_has_bits;
+    ::uint8_t* target, ::google::protobuf::io::EpsCopyOutputStream* stream) const
+{
+    // @@protoc_insertion_point(serialize_to_array_start:ppx.metrics.reporting.MetricMetadata)
+    ::uint32_t cached_has_bits = 0;
+    (void)cached_has_bits;
 
-  // string name = 1;
-  if (!this->_internal_name().empty()) {
-    const std::string& _s = this->_internal_name();
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-        _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "ppx.metrics.reporting.MetricMetadata.name");
-    target = stream->WriteStringMaybeAliased(1, _s, target);
-  }
+    // string name = 1;
+    if (!this->_internal_name().empty()) {
+        const std::string& _s = this->_internal_name();
+        ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+            _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "ppx.metrics.reporting.MetricMetadata.name");
+        target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
 
-  // string unit = 2;
-  if (!this->_internal_unit().empty()) {
-    const std::string& _s = this->_internal_unit();
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-        _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "ppx.metrics.reporting.MetricMetadata.unit");
-    target = stream->WriteStringMaybeAliased(2, _s, target);
-  }
+    // string unit = 2;
+    if (!this->_internal_unit().empty()) {
+        const std::string& _s = this->_internal_unit();
+        ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+            _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "ppx.metrics.reporting.MetricMetadata.unit");
+        target = stream->WriteStringMaybeAliased(2, _s, target);
+    }
 
-  // .ppx.metrics.reporting.Interpretation interpretation = 3;
-  if (this->_internal_interpretation() != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteEnumToArray(
-        3, this->_internal_interpretation(), target);
-  }
+    // .ppx.metrics.reporting.Interpretation interpretation = 3;
+    if (this->_internal_interpretation() != 0) {
+        target = stream->EnsureSpace(target);
+        target = ::_pbi::WireFormatLite::WriteEnumToArray(
+            3, this->_internal_interpretation(), target);
+    }
 
-  cached_has_bits = _impl_._has_bits_[0];
-  // .ppx.metrics.reporting.Range expected_range = 4;
-  if (cached_has_bits & 0x00000001u) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      InternalWriteMessage(4, _Internal::expected_range(this),
-        _Internal::expected_range(this).GetCachedSize(), target, stream);
-  }
+    cached_has_bits = _impl_._has_bits_[0];
+    // .ppx.metrics.reporting.Range expected_range = 4;
+    if (cached_has_bits & 0x00000001u) {
+        target = ::google::protobuf::internal::WireFormatLite::
+            InternalWriteMessage(4, _Internal::expected_range(this), _Internal::expected_range(this).GetCachedSize(), target, stream);
+    }
 
-  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    target =
-        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
-            _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
-  }
-  // @@protoc_insertion_point(serialize_to_array_end:ppx.metrics.reporting.MetricMetadata)
-  return target;
+    if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+        target =
+            ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+                _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+    }
+    // @@protoc_insertion_point(serialize_to_array_end:ppx.metrics.reporting.MetricMetadata)
+    return target;
 }
 
-::size_t MetricMetadata::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:ppx.metrics.reporting.MetricMetadata)
-  ::size_t total_size = 0;
+::size_t MetricMetadata::ByteSizeLong() const
+{
+    // @@protoc_insertion_point(message_byte_size_start:ppx.metrics.reporting.MetricMetadata)
+    ::size_t total_size = 0;
 
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
+    ::uint32_t cached_has_bits = 0;
+    // Prevent compiler warnings about cached_has_bits being unused
+    (void)cached_has_bits;
 
-  // string name = 1;
-  if (!this->_internal_name().empty()) {
-    total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                    this->_internal_name());
-  }
+    // string name = 1;
+    if (!this->_internal_name().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                              this->_internal_name());
+    }
 
-  // string unit = 2;
-  if (!this->_internal_unit().empty()) {
-    total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                    this->_internal_unit());
-  }
+    // string unit = 2;
+    if (!this->_internal_unit().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                              this->_internal_unit());
+    }
 
-  // .ppx.metrics.reporting.Range expected_range = 4;
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::MessageSize(
-        *_impl_.expected_range_);
-  }
+    // .ppx.metrics.reporting.Range expected_range = 4;
+    cached_has_bits = _impl_._has_bits_[0];
+    if (cached_has_bits & 0x00000001u) {
+        total_size += 1 +
+                      ::google::protobuf::internal::WireFormatLite::MessageSize(
+                          *_impl_.expected_range_);
+    }
 
-  // .ppx.metrics.reporting.Interpretation interpretation = 3;
-  if (this->_internal_interpretation() != 0) {
-    total_size += 1 +
-                  ::_pbi::WireFormatLite::EnumSize(this->_internal_interpretation());
-  }
+    // .ppx.metrics.reporting.Interpretation interpretation = 3;
+    if (this->_internal_interpretation() != 0) {
+        total_size += 1 +
+                      ::_pbi::WireFormatLite::EnumSize(this->_internal_interpretation());
+    }
 
-  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+    return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
 const ::google::protobuf::Message::ClassData MetricMetadata::_class_data_ = {
     ::google::protobuf::Message::CopyWithSourceCheck,
-    MetricMetadata::MergeImpl
-};
-const ::google::protobuf::Message::ClassData*MetricMetadata::GetClassData() const { return &_class_data_; }
-
-
-void MetricMetadata::MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg) {
-  auto* const _this = static_cast<MetricMetadata*>(&to_msg);
-  auto& from = static_cast<const MetricMetadata&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:ppx.metrics.reporting.MetricMetadata)
-  ABSL_DCHECK_NE(&from, _this);
-  ::uint32_t cached_has_bits = 0;
-  (void) cached_has_bits;
-
-  if (!from._internal_name().empty()) {
-    _this->_internal_set_name(from._internal_name());
-  }
-  if (!from._internal_unit().empty()) {
-    _this->_internal_set_unit(from._internal_unit());
-  }
-  if ((from._impl_._has_bits_[0] & 0x00000001u) != 0) {
-    _this->_internal_mutable_expected_range()->::ppx::metrics::reporting::Range::MergeFrom(
-        from._internal_expected_range());
-  }
-  if (from._internal_interpretation() != 0) {
-    _this->_internal_set_interpretation(from._internal_interpretation());
-  }
-  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+    MetricMetadata::MergeImpl};
+const ::google::protobuf::Message::ClassData* MetricMetadata::GetClassData() const
+{
+    return &_class_data_;
 }
 
-void MetricMetadata::CopyFrom(const MetricMetadata& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:ppx.metrics.reporting.MetricMetadata)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
+void MetricMetadata::MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg)
+{
+    auto* const _this = static_cast<MetricMetadata*>(&to_msg);
+    auto&       from  = static_cast<const MetricMetadata&>(from_msg);
+    // @@protoc_insertion_point(class_specific_merge_from_start:ppx.metrics.reporting.MetricMetadata)
+    ABSL_DCHECK_NE(&from, _this);
+    ::uint32_t cached_has_bits = 0;
+    (void)cached_has_bits;
+
+    if (!from._internal_name().empty()) {
+        _this->_internal_set_name(from._internal_name());
+    }
+    if (!from._internal_unit().empty()) {
+        _this->_internal_set_unit(from._internal_unit());
+    }
+    if ((from._impl_._has_bits_[0] & 0x00000001u) != 0) {
+        _this->_internal_mutable_expected_range()->::ppx::metrics::reporting::Range::MergeFrom(
+            from._internal_expected_range());
+    }
+    if (from._internal_interpretation() != 0) {
+        _this->_internal_set_interpretation(from._internal_interpretation());
+    }
+    _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
 }
 
-PROTOBUF_NOINLINE bool MetricMetadata::IsInitialized() const {
-  return true;
+void MetricMetadata::CopyFrom(const MetricMetadata& from)
+{
+    // @@protoc_insertion_point(class_specific_copy_from_start:ppx.metrics.reporting.MetricMetadata)
+    if (&from == this)
+        return;
+    Clear();
+    MergeFrom(from);
 }
 
-void MetricMetadata::InternalSwap(MetricMetadata* other) {
-  using std::swap;
-  auto* lhs_arena = GetArenaForAllocation();
-  auto* rhs_arena = other->GetArenaForAllocation();
-  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.name_, lhs_arena,
-                                       &other->_impl_.name_, rhs_arena);
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.unit_, lhs_arena,
-                                       &other->_impl_.unit_, rhs_arena);
-  ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(MetricMetadata, _impl_.interpretation_)
-      + sizeof(MetricMetadata::_impl_.interpretation_)
-      - PROTOBUF_FIELD_OFFSET(MetricMetadata, _impl_.expected_range_)>(
-          reinterpret_cast<char*>(&_impl_.expected_range_),
-          reinterpret_cast<char*>(&other->_impl_.expected_range_));
+PROTOBUF_NOINLINE bool MetricMetadata::IsInitialized() const
+{
+    return true;
 }
 
-::google::protobuf::Metadata MetricMetadata::GetMetadata() const {
-  return ::_pbi::AssignDescriptors(
-      &descriptor_table_metrics_5freport_2eproto_getter, &descriptor_table_metrics_5freport_2eproto_once,
-      file_level_metadata_metrics_5freport_2eproto[1]);
+void MetricMetadata::InternalSwap(MetricMetadata* other)
+{
+    using std::swap;
+    auto* lhs_arena = GetArenaForAllocation();
+    auto* rhs_arena = other->GetArenaForAllocation();
+    _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+    swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+    ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.name_, lhs_arena, &other->_impl_.name_, rhs_arena);
+    ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.unit_, lhs_arena, &other->_impl_.unit_, rhs_arena);
+    ::google::protobuf::internal::memswap<
+        PROTOBUF_FIELD_OFFSET(MetricMetadata, _impl_.interpretation_) + sizeof(MetricMetadata::_impl_.interpretation_) - PROTOBUF_FIELD_OFFSET(MetricMetadata, _impl_.expected_range_)>(
+        reinterpret_cast<char*>(&_impl_.expected_range_),
+        reinterpret_cast<char*>(&other->_impl_.expected_range_));
+}
+
+::google::protobuf::Metadata MetricMetadata::GetMetadata() const
+{
+    return ::_pbi::AssignDescriptors(
+        &descriptor_table_metrics_5freport_2eproto_getter, &descriptor_table_metrics_5freport_2eproto_once, file_level_metadata_metrics_5freport_2eproto[1]);
 }
 // ===================================================================
 
-class MetricCounter::_Internal {
- public:
-  using HasBits = decltype(std::declval<MetricCounter>()._impl_._has_bits_);
-  static constexpr ::int32_t kHasBitsOffset =
-    8 * PROTOBUF_FIELD_OFFSET(MetricCounter, _impl_._has_bits_);
-  static const ::ppx::metrics::reporting::MetricMetadata& metadata(const MetricCounter* msg);
-  static void set_has_metadata(HasBits* has_bits) {
-    (*has_bits)[0] |= 1u;
-  }
+class MetricCounter::_Internal
+{
+public:
+    using HasBits = decltype(std::declval<MetricCounter>()._impl_._has_bits_);
+    static constexpr ::int32_t kHasBitsOffset =
+        8 * PROTOBUF_FIELD_OFFSET(MetricCounter, _impl_._has_bits_);
+    static const ::ppx::metrics::reporting::MetricMetadata& metadata(const MetricCounter* msg);
+    static void                                             set_has_metadata(HasBits* has_bits)
+    {
+        (*has_bits)[0] |= 1u;
+    }
 };
 
-const ::ppx::metrics::reporting::MetricMetadata& MetricCounter::_Internal::metadata(const MetricCounter* msg) {
-  return *msg->_impl_.metadata_;
+const ::ppx::metrics::reporting::MetricMetadata& MetricCounter::_Internal::metadata(const MetricCounter* msg)
+{
+    return *msg->_impl_.metadata_;
 }
 MetricCounter::MetricCounter(::google::protobuf::Arena* arena)
-    : ::google::protobuf::Message(arena) {
-  SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:ppx.metrics.reporting.MetricCounter)
+    : ::google::protobuf::Message(arena)
+{
+    SharedCtor(arena);
+    // @@protoc_insertion_point(arena_constructor:ppx.metrics.reporting.MetricCounter)
 }
-MetricCounter::MetricCounter(const MetricCounter& from) : ::google::protobuf::Message() {
-  MetricCounter* const _this = this;
-  (void)_this;
-  new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){from._impl_._has_bits_},
-      /*decltype(_impl_._cached_size_)*/ {},
-      decltype(_impl_.metadata_){nullptr},
-      decltype(_impl_.value_){},
-  };
-  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-  if ((from._impl_._has_bits_[0] & 0x00000001u) != 0) {
-    _this->_impl_.metadata_ = new ::ppx::metrics::reporting::MetricMetadata(*from._impl_.metadata_);
-  }
-  _this->_impl_.value_ = from._impl_.value_;
+MetricCounter::MetricCounter(const MetricCounter& from)
+    : ::google::protobuf::Message()
+{
+    MetricCounter* const _this = this;
+    (void)_this;
+    new (&_impl_) Impl_{
+        decltype(_impl_._has_bits_){from._impl_._has_bits_},
+        /*decltype(_impl_._cached_size_)*/ {},
+        decltype(_impl_.metadata_){nullptr},
+        decltype(_impl_.value_){},
+    };
+    _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+        from._internal_metadata_);
+    if ((from._impl_._has_bits_[0] & 0x00000001u) != 0) {
+        _this->_impl_.metadata_ = new ::ppx::metrics::reporting::MetricMetadata(*from._impl_.metadata_);
+    }
+    _this->_impl_.value_ = from._impl_.value_;
 
-  // @@protoc_insertion_point(copy_constructor:ppx.metrics.reporting.MetricCounter)
+    // @@protoc_insertion_point(copy_constructor:ppx.metrics.reporting.MetricCounter)
 }
-inline void MetricCounter::SharedCtor(::_pb::Arena* arena) {
-  (void)arena;
-  new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){},
-      /*decltype(_impl_._cached_size_)*/ {},
-      decltype(_impl_.metadata_){nullptr},
-      decltype(_impl_.value_){::int64_t{0}},
-  };
+inline void MetricCounter::SharedCtor(::_pb::Arena* arena)
+{
+    (void)arena;
+    new (&_impl_) Impl_{
+        decltype(_impl_._has_bits_){},
+        /*decltype(_impl_._cached_size_)*/ {},
+        decltype(_impl_.metadata_){nullptr},
+        decltype(_impl_.value_){::int64_t{0}},
+    };
 }
-MetricCounter::~MetricCounter() {
-  // @@protoc_insertion_point(destructor:ppx.metrics.reporting.MetricCounter)
-  _internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
-  SharedDtor();
+MetricCounter::~MetricCounter()
+{
+    // @@protoc_insertion_point(destructor:ppx.metrics.reporting.MetricCounter)
+    _internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+    SharedDtor();
 }
-inline void MetricCounter::SharedDtor() {
-  ABSL_DCHECK(GetArenaForAllocation() == nullptr);
-  if (this != internal_default_instance()) delete _impl_.metadata_;
+inline void MetricCounter::SharedDtor()
+{
+    ABSL_DCHECK(GetArenaForAllocation() == nullptr);
+    if (this != internal_default_instance())
+        delete _impl_.metadata_;
 }
-void MetricCounter::SetCachedSize(int size) const {
-  _impl_._cached_size_.Set(size);
+void MetricCounter::SetCachedSize(int size) const
+{
+    _impl_._cached_size_.Set(size);
 }
 
-PROTOBUF_NOINLINE void MetricCounter::Clear() {
-// @@protoc_insertion_point(message_clear_start:ppx.metrics.reporting.MetricCounter)
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
+PROTOBUF_NOINLINE void MetricCounter::Clear()
+{
+    // @@protoc_insertion_point(message_clear_start:ppx.metrics.reporting.MetricCounter)
+    ::uint32_t cached_has_bits = 0;
+    // Prevent compiler warnings about cached_has_bits being unused
+    (void)cached_has_bits;
 
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
-    ABSL_DCHECK(_impl_.metadata_ != nullptr);
-    _impl_.metadata_->Clear();
-  }
-  _impl_.value_ = ::int64_t{0};
-  _impl_._has_bits_.Clear();
-  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+    cached_has_bits = _impl_._has_bits_[0];
+    if (cached_has_bits & 0x00000001u) {
+        ABSL_DCHECK(_impl_.metadata_ != nullptr);
+        _impl_.metadata_->Clear();
+    }
+    _impl_.value_ = ::int64_t{0};
+    _impl_._has_bits_.Clear();
+    _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
 
 const char* MetricCounter::_InternalParse(
-    const char* ptr, ::_pbi::ParseContext* ctx) {
-  ptr = ::_pbi::TcParser::ParseLoop(this, ptr, ctx, &_table_.header);
-  return ptr;
+    const char* ptr, ::_pbi::ParseContext* ctx)
+{
+    ptr = ::_pbi::TcParser::ParseLoop(this, ptr, ctx, &_table_.header);
+    return ptr;
 }
 
-
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 1, 0, 2> MetricCounter::_table_ = {
-  {
-    PROTOBUF_FIELD_OFFSET(MetricCounter, _impl_._has_bits_),
-    0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
-    offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
-    offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
-    1,  // num_aux_entries
-    offsetof(decltype(_table_), aux_entries),
-    &_MetricCounter_default_instance_._instance,
-    ::_pbi::TcParser::GenericFallback,  // fallback
-  }, {{
-    // int64 value = 2;
-    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(MetricCounter, _impl_.value_), 63>(),
-     {16, 63, 0, PROTOBUF_FIELD_OFFSET(MetricCounter, _impl_.value_)}},
-    // .ppx.metrics.reporting.MetricMetadata metadata = 1;
-    {::_pbi::TcParser::FastMtS1,
-     {10, 0, 0, PROTOBUF_FIELD_OFFSET(MetricCounter, _impl_.metadata_)}},
-  }}, {{
-    65535, 65535
-  }}, {{
-    // .ppx.metrics.reporting.MetricMetadata metadata = 1;
-    {PROTOBUF_FIELD_OFFSET(MetricCounter, _impl_.metadata_), _Internal::kHasBitsOffset + 0, 0,
-    (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
-    // int64 value = 2;
-    {PROTOBUF_FIELD_OFFSET(MetricCounter, _impl_.value_), -1, 0,
-    (0 | ::_fl::kFcSingular | ::_fl::kInt64)},
-  }}, {{
-    {::_pbi::TcParser::GetTable<::ppx::metrics::reporting::MetricMetadata>()},
-  }}, {{
-  }},
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const ::_pbi::TcParseTable<1, 2, 1, 0, 2> MetricCounter::_table_ = {
+    {
+        PROTOBUF_FIELD_OFFSET(MetricCounter, _impl_._has_bits_),
+        0, // no _extensions_
+        2,
+        8, // max_field_number, fast_idx_mask
+        offsetof(decltype(_table_), field_lookup_table),
+        4294967292, // skipmap
+        offsetof(decltype(_table_), field_entries),
+        2, // num_field_entries
+        1, // num_aux_entries
+        offsetof(decltype(_table_), aux_entries),
+        &_MetricCounter_default_instance_._instance,
+        ::_pbi::TcParser::GenericFallback, // fallback
+    },
+    {{
+        // int64 value = 2;
+        {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(MetricCounter, _impl_.value_), 63>(),
+         {16, 63, 0, PROTOBUF_FIELD_OFFSET(MetricCounter, _impl_.value_)}},
+        // .ppx.metrics.reporting.MetricMetadata metadata = 1;
+        {::_pbi::TcParser::FastMtS1,
+         {10, 0, 0, PROTOBUF_FIELD_OFFSET(MetricCounter, _impl_.metadata_)}},
+    }},
+    {{65535, 65535}},
+    {{
+        // .ppx.metrics.reporting.MetricMetadata metadata = 1;
+        {PROTOBUF_FIELD_OFFSET(MetricCounter, _impl_.metadata_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+        // int64 value = 2;
+        {PROTOBUF_FIELD_OFFSET(MetricCounter, _impl_.value_), -1, 0, (0 | ::_fl::kFcSingular | ::_fl::kInt64)},
+    }},
+    {{
+        {::_pbi::TcParser::GetTable<::ppx::metrics::reporting::MetricMetadata>()},
+    }},
+    {{}},
 };
 
 ::uint8_t* MetricCounter::_InternalSerialize(
-    ::uint8_t* target, ::google::protobuf::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:ppx.metrics.reporting.MetricCounter)
-  ::uint32_t cached_has_bits = 0;
-  (void)cached_has_bits;
+    ::uint8_t* target, ::google::protobuf::io::EpsCopyOutputStream* stream) const
+{
+    // @@protoc_insertion_point(serialize_to_array_start:ppx.metrics.reporting.MetricCounter)
+    ::uint32_t cached_has_bits = 0;
+    (void)cached_has_bits;
 
-  cached_has_bits = _impl_._has_bits_[0];
-  // .ppx.metrics.reporting.MetricMetadata metadata = 1;
-  if (cached_has_bits & 0x00000001u) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      InternalWriteMessage(1, _Internal::metadata(this),
-        _Internal::metadata(this).GetCachedSize(), target, stream);
-  }
+    cached_has_bits = _impl_._has_bits_[0];
+    // .ppx.metrics.reporting.MetricMetadata metadata = 1;
+    if (cached_has_bits & 0x00000001u) {
+        target = ::google::protobuf::internal::WireFormatLite::
+            InternalWriteMessage(1, _Internal::metadata(this), _Internal::metadata(this).GetCachedSize(), target, stream);
+    }
 
-  // int64 value = 2;
-  if (this->_internal_value() != 0) {
-    target = ::google::protobuf::internal::WireFormatLite::
-        WriteInt64ToArrayWithField<2>(
-            stream, this->_internal_value(), target);
-  }
+    // int64 value = 2;
+    if (this->_internal_value() != 0) {
+        target = ::google::protobuf::internal::WireFormatLite::
+            WriteInt64ToArrayWithField<2>(
+                stream, this->_internal_value(), target);
+    }
 
-  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    target =
-        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
-            _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
-  }
-  // @@protoc_insertion_point(serialize_to_array_end:ppx.metrics.reporting.MetricCounter)
-  return target;
+    if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+        target =
+            ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+                _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+    }
+    // @@protoc_insertion_point(serialize_to_array_end:ppx.metrics.reporting.MetricCounter)
+    return target;
 }
 
-::size_t MetricCounter::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:ppx.metrics.reporting.MetricCounter)
-  ::size_t total_size = 0;
+::size_t MetricCounter::ByteSizeLong() const
+{
+    // @@protoc_insertion_point(message_byte_size_start:ppx.metrics.reporting.MetricCounter)
+    ::size_t total_size = 0;
 
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
+    ::uint32_t cached_has_bits = 0;
+    // Prevent compiler warnings about cached_has_bits being unused
+    (void)cached_has_bits;
 
-  // .ppx.metrics.reporting.MetricMetadata metadata = 1;
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000001u) {
-    total_size += 1 +
-      ::google::protobuf::internal::WireFormatLite::MessageSize(
-        *_impl_.metadata_);
-  }
+    // .ppx.metrics.reporting.MetricMetadata metadata = 1;
+    cached_has_bits = _impl_._has_bits_[0];
+    if (cached_has_bits & 0x00000001u) {
+        total_size += 1 +
+                      ::google::protobuf::internal::WireFormatLite::MessageSize(
+                          *_impl_.metadata_);
+    }
 
-  // int64 value = 2;
-  if (this->_internal_value() != 0) {
-    total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(
-        this->_internal_value());
-  }
+    // int64 value = 2;
+    if (this->_internal_value() != 0) {
+        total_size += ::_pbi::WireFormatLite::Int64SizePlusOne(
+            this->_internal_value());
+    }
 
-  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+    return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
 const ::google::protobuf::Message::ClassData MetricCounter::_class_data_ = {
     ::google::protobuf::Message::CopyWithSourceCheck,
-    MetricCounter::MergeImpl
-};
-const ::google::protobuf::Message::ClassData*MetricCounter::GetClassData() const { return &_class_data_; }
-
-
-void MetricCounter::MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg) {
-  auto* const _this = static_cast<MetricCounter*>(&to_msg);
-  auto& from = static_cast<const MetricCounter&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:ppx.metrics.reporting.MetricCounter)
-  ABSL_DCHECK_NE(&from, _this);
-  ::uint32_t cached_has_bits = 0;
-  (void) cached_has_bits;
-
-  if ((from._impl_._has_bits_[0] & 0x00000001u) != 0) {
-    _this->_internal_mutable_metadata()->::ppx::metrics::reporting::MetricMetadata::MergeFrom(
-        from._internal_metadata());
-  }
-  if (from._internal_value() != 0) {
-    _this->_internal_set_value(from._internal_value());
-  }
-  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+    MetricCounter::MergeImpl};
+const ::google::protobuf::Message::ClassData* MetricCounter::GetClassData() const
+{
+    return &_class_data_;
 }
 
-void MetricCounter::CopyFrom(const MetricCounter& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:ppx.metrics.reporting.MetricCounter)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
+void MetricCounter::MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg)
+{
+    auto* const _this = static_cast<MetricCounter*>(&to_msg);
+    auto&       from  = static_cast<const MetricCounter&>(from_msg);
+    // @@protoc_insertion_point(class_specific_merge_from_start:ppx.metrics.reporting.MetricCounter)
+    ABSL_DCHECK_NE(&from, _this);
+    ::uint32_t cached_has_bits = 0;
+    (void)cached_has_bits;
+
+    if ((from._impl_._has_bits_[0] & 0x00000001u) != 0) {
+        _this->_internal_mutable_metadata()->::ppx::metrics::reporting::MetricMetadata::MergeFrom(
+            from._internal_metadata());
+    }
+    if (from._internal_value() != 0) {
+        _this->_internal_set_value(from._internal_value());
+    }
+    _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
 }
 
-PROTOBUF_NOINLINE bool MetricCounter::IsInitialized() const {
-  return true;
+void MetricCounter::CopyFrom(const MetricCounter& from)
+{
+    // @@protoc_insertion_point(class_specific_copy_from_start:ppx.metrics.reporting.MetricCounter)
+    if (&from == this)
+        return;
+    Clear();
+    MergeFrom(from);
 }
 
-void MetricCounter::InternalSwap(MetricCounter* other) {
-  using std::swap;
-  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
-  ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(MetricCounter, _impl_.value_)
-      + sizeof(MetricCounter::_impl_.value_)
-      - PROTOBUF_FIELD_OFFSET(MetricCounter, _impl_.metadata_)>(
-          reinterpret_cast<char*>(&_impl_.metadata_),
-          reinterpret_cast<char*>(&other->_impl_.metadata_));
+PROTOBUF_NOINLINE bool MetricCounter::IsInitialized() const
+{
+    return true;
 }
 
-::google::protobuf::Metadata MetricCounter::GetMetadata() const {
-  return ::_pbi::AssignDescriptors(
-      &descriptor_table_metrics_5freport_2eproto_getter, &descriptor_table_metrics_5freport_2eproto_once,
-      file_level_metadata_metrics_5freport_2eproto[2]);
+void MetricCounter::InternalSwap(MetricCounter* other)
+{
+    using std::swap;
+    _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+    swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+    ::google::protobuf::internal::memswap<
+        PROTOBUF_FIELD_OFFSET(MetricCounter, _impl_.value_) + sizeof(MetricCounter::_impl_.value_) - PROTOBUF_FIELD_OFFSET(MetricCounter, _impl_.metadata_)>(
+        reinterpret_cast<char*>(&_impl_.metadata_),
+        reinterpret_cast<char*>(&other->_impl_.metadata_));
+}
+
+::google::protobuf::Metadata MetricCounter::GetMetadata() const
+{
+    return ::_pbi::AssignDescriptors(
+        &descriptor_table_metrics_5freport_2eproto_getter, &descriptor_table_metrics_5freport_2eproto_once, file_level_metadata_metrics_5freport_2eproto[2]);
 }
 // ===================================================================
 
-class GaugeStatistics::_Internal {
- public:
+class GaugeStatistics::_Internal
+{
+public:
 };
 
 GaugeStatistics::GaugeStatistics(::google::protobuf::Arena* arena)
-    : ::google::protobuf::Message(arena) {
-  SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:ppx.metrics.reporting.GaugeStatistics)
+    : ::google::protobuf::Message(arena)
+{
+    SharedCtor(arena);
+    // @@protoc_insertion_point(arena_constructor:ppx.metrics.reporting.GaugeStatistics)
 }
 GaugeStatistics::GaugeStatistics(const GaugeStatistics& from)
-    : ::google::protobuf::Message(), _impl_(from._impl_) {
-  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-  // @@protoc_insertion_point(copy_constructor:ppx.metrics.reporting.GaugeStatistics)
+    : ::google::protobuf::Message(), _impl_(from._impl_)
+{
+    _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+        from._internal_metadata_);
+    // @@protoc_insertion_point(copy_constructor:ppx.metrics.reporting.GaugeStatistics)
 }
-inline void GaugeStatistics::SharedCtor(::_pb::Arena* arena) {
-  (void)arena;
-  new (&_impl_) Impl_{
-      decltype(_impl_.min_){0},
-      decltype(_impl_.max_){0},
-      decltype(_impl_.average_){0},
-      decltype(_impl_.time_ratio_){0},
-      decltype(_impl_.median_){0},
-      decltype(_impl_.standard_deviation_){0},
-      decltype(_impl_.percentile_90_){0},
-      decltype(_impl_.percentile_95_){0},
-      decltype(_impl_.percentile_99_){0},
-      /*decltype(_impl_._cached_size_)*/ {},
-  };
+inline void GaugeStatistics::SharedCtor(::_pb::Arena* arena)
+{
+    (void)arena;
+    new (&_impl_) Impl_{
+        decltype(_impl_.min_){0},
+        decltype(_impl_.max_){0},
+        decltype(_impl_.average_){0},
+        decltype(_impl_.time_ratio_){0},
+        decltype(_impl_.median_){0},
+        decltype(_impl_.standard_deviation_){0},
+        decltype(_impl_.percentile_90_){0},
+        decltype(_impl_.percentile_95_){0},
+        decltype(_impl_.percentile_99_){0},
+        /*decltype(_impl_._cached_size_)*/ {},
+    };
 }
-GaugeStatistics::~GaugeStatistics() {
-  // @@protoc_insertion_point(destructor:ppx.metrics.reporting.GaugeStatistics)
-  _internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
-  SharedDtor();
+GaugeStatistics::~GaugeStatistics()
+{
+    // @@protoc_insertion_point(destructor:ppx.metrics.reporting.GaugeStatistics)
+    _internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+    SharedDtor();
 }
-inline void GaugeStatistics::SharedDtor() {
-  ABSL_DCHECK(GetArenaForAllocation() == nullptr);
+inline void GaugeStatistics::SharedDtor()
+{
+    ABSL_DCHECK(GetArenaForAllocation() == nullptr);
 }
-void GaugeStatistics::SetCachedSize(int size) const {
-  _impl_._cached_size_.Set(size);
+void GaugeStatistics::SetCachedSize(int size) const
+{
+    _impl_._cached_size_.Set(size);
 }
 
-PROTOBUF_NOINLINE void GaugeStatistics::Clear() {
-// @@protoc_insertion_point(message_clear_start:ppx.metrics.reporting.GaugeStatistics)
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
+PROTOBUF_NOINLINE void GaugeStatistics::Clear()
+{
+    // @@protoc_insertion_point(message_clear_start:ppx.metrics.reporting.GaugeStatistics)
+    ::uint32_t cached_has_bits = 0;
+    // Prevent compiler warnings about cached_has_bits being unused
+    (void)cached_has_bits;
 
-  ::memset(&_impl_.min_, 0, static_cast<::size_t>(
-      reinterpret_cast<char*>(&_impl_.percentile_99_) -
-      reinterpret_cast<char*>(&_impl_.min_)) + sizeof(_impl_.percentile_99_));
-  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+    ::memset(&_impl_.min_, 0, static_cast<::size_t>(reinterpret_cast<char*>(&_impl_.percentile_99_) - reinterpret_cast<char*>(&_impl_.min_)) + sizeof(_impl_.percentile_99_));
+    _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
 
 const char* GaugeStatistics::_InternalParse(
-    const char* ptr, ::_pbi::ParseContext* ctx) {
-  ptr = ::_pbi::TcParser::ParseLoop(this, ptr, ctx, &_table_.header);
-  return ptr;
+    const char* ptr, ::_pbi::ParseContext* ctx)
+{
+    ptr = ::_pbi::TcParser::ParseLoop(this, ptr, ctx, &_table_.header);
+    return ptr;
 }
 
-
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 9, 0, 0, 2> GaugeStatistics::_table_ = {
-  {
-    0,  // no _has_bits_
-    0, // no _extensions_
-    9, 120,  // max_field_number, fast_idx_mask
-    offsetof(decltype(_table_), field_lookup_table),
-    4294966784,  // skipmap
-    offsetof(decltype(_table_), field_entries),
-    9,  // num_field_entries
-    0,  // num_aux_entries
-    offsetof(decltype(_table_), field_names),  // no aux_entries
-    &_GaugeStatistics_default_instance_._instance,
-    ::_pbi::TcParser::GenericFallback,  // fallback
-  }, {{
-    {::_pbi::TcParser::MiniParse, {}},
-    // double min = 1;
-    {::_pbi::TcParser::FastF64S1,
-     {9, 63, 0, PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.min_)}},
-    // double max = 2;
-    {::_pbi::TcParser::FastF64S1,
-     {17, 63, 0, PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.max_)}},
-    // double average = 3;
-    {::_pbi::TcParser::FastF64S1,
-     {25, 63, 0, PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.average_)}},
-    // double time_ratio = 4;
-    {::_pbi::TcParser::FastF64S1,
-     {33, 63, 0, PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.time_ratio_)}},
-    // double median = 5;
-    {::_pbi::TcParser::FastF64S1,
-     {41, 63, 0, PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.median_)}},
-    // double standard_deviation = 6;
-    {::_pbi::TcParser::FastF64S1,
-     {49, 63, 0, PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.standard_deviation_)}},
-    // double percentile_90 = 7;
-    {::_pbi::TcParser::FastF64S1,
-     {57, 63, 0, PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.percentile_90_)}},
-    // double percentile_95 = 8;
-    {::_pbi::TcParser::FastF64S1,
-     {65, 63, 0, PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.percentile_95_)}},
-    // double percentile_99 = 9;
-    {::_pbi::TcParser::FastF64S1,
-     {73, 63, 0, PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.percentile_99_)}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
-    {::_pbi::TcParser::MiniParse, {}},
-  }}, {{
-    65535, 65535
-  }}, {{
-    // double min = 1;
-    {PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.min_), 0, 0,
-    (0 | ::_fl::kFcSingular | ::_fl::kDouble)},
-    // double max = 2;
-    {PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.max_), 0, 0,
-    (0 | ::_fl::kFcSingular | ::_fl::kDouble)},
-    // double average = 3;
-    {PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.average_), 0, 0,
-    (0 | ::_fl::kFcSingular | ::_fl::kDouble)},
-    // double time_ratio = 4;
-    {PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.time_ratio_), 0, 0,
-    (0 | ::_fl::kFcSingular | ::_fl::kDouble)},
-    // double median = 5;
-    {PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.median_), 0, 0,
-    (0 | ::_fl::kFcSingular | ::_fl::kDouble)},
-    // double standard_deviation = 6;
-    {PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.standard_deviation_), 0, 0,
-    (0 | ::_fl::kFcSingular | ::_fl::kDouble)},
-    // double percentile_90 = 7;
-    {PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.percentile_90_), 0, 0,
-    (0 | ::_fl::kFcSingular | ::_fl::kDouble)},
-    // double percentile_95 = 8;
-    {PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.percentile_95_), 0, 0,
-    (0 | ::_fl::kFcSingular | ::_fl::kDouble)},
-    // double percentile_99 = 9;
-    {PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.percentile_99_), 0, 0,
-    (0 | ::_fl::kFcSingular | ::_fl::kDouble)},
-  }},
-  // no aux_entries
-  {{
-  }},
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const ::_pbi::TcParseTable<4, 9, 0, 0, 2> GaugeStatistics::_table_ = {
+    {
+        0, // no _has_bits_
+        0, // no _extensions_
+        9,
+        120, // max_field_number, fast_idx_mask
+        offsetof(decltype(_table_), field_lookup_table),
+        4294966784, // skipmap
+        offsetof(decltype(_table_), field_entries),
+        9,                                        // num_field_entries
+        0,                                        // num_aux_entries
+        offsetof(decltype(_table_), field_names), // no aux_entries
+        &_GaugeStatistics_default_instance_._instance,
+        ::_pbi::TcParser::GenericFallback, // fallback
+    },
+    {{
+        {::_pbi::TcParser::MiniParse, {}},
+        // double min = 1;
+        {::_pbi::TcParser::FastF64S1,
+         {9, 63, 0, PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.min_)}},
+        // double max = 2;
+        {::_pbi::TcParser::FastF64S1,
+         {17, 63, 0, PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.max_)}},
+        // double average = 3;
+        {::_pbi::TcParser::FastF64S1,
+         {25, 63, 0, PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.average_)}},
+        // double time_ratio = 4;
+        {::_pbi::TcParser::FastF64S1,
+         {33, 63, 0, PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.time_ratio_)}},
+        // double median = 5;
+        {::_pbi::TcParser::FastF64S1,
+         {41, 63, 0, PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.median_)}},
+        // double standard_deviation = 6;
+        {::_pbi::TcParser::FastF64S1,
+         {49, 63, 0, PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.standard_deviation_)}},
+        // double percentile_90 = 7;
+        {::_pbi::TcParser::FastF64S1,
+         {57, 63, 0, PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.percentile_90_)}},
+        // double percentile_95 = 8;
+        {::_pbi::TcParser::FastF64S1,
+         {65, 63, 0, PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.percentile_95_)}},
+        // double percentile_99 = 9;
+        {::_pbi::TcParser::FastF64S1,
+         {73, 63, 0, PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.percentile_99_)}},
+        {::_pbi::TcParser::MiniParse, {}},
+        {::_pbi::TcParser::MiniParse, {}},
+        {::_pbi::TcParser::MiniParse, {}},
+        {::_pbi::TcParser::MiniParse, {}},
+        {::_pbi::TcParser::MiniParse, {}},
+        {::_pbi::TcParser::MiniParse, {}},
+    }},
+    {{65535, 65535}},
+    {{
+        // double min = 1;
+        {PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.min_), 0, 0, (0 | ::_fl::kFcSingular | ::_fl::kDouble)},
+        // double max = 2;
+        {PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.max_), 0, 0, (0 | ::_fl::kFcSingular | ::_fl::kDouble)},
+        // double average = 3;
+        {PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.average_), 0, 0, (0 | ::_fl::kFcSingular | ::_fl::kDouble)},
+        // double time_ratio = 4;
+        {PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.time_ratio_), 0, 0, (0 | ::_fl::kFcSingular | ::_fl::kDouble)},
+        // double median = 5;
+        {PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.median_), 0, 0, (0 | ::_fl::kFcSingular | ::_fl::kDouble)},
+        // double standard_deviation = 6;
+        {PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.standard_deviation_), 0, 0, (0 | ::_fl::kFcSingular | ::_fl::kDouble)},
+        // double percentile_90 = 7;
+        {PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.percentile_90_), 0, 0, (0 | ::_fl::kFcSingular | ::_fl::kDouble)},
+        // double percentile_95 = 8;
+        {PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.percentile_95_), 0, 0, (0 | ::_fl::kFcSingular | ::_fl::kDouble)},
+        // double percentile_99 = 9;
+        {PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.percentile_99_), 0, 0, (0 | ::_fl::kFcSingular | ::_fl::kDouble)},
+    }},
+    // no aux_entries
+    {{}},
 };
 
 ::uint8_t* GaugeStatistics::_InternalSerialize(
-    ::uint8_t* target, ::google::protobuf::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:ppx.metrics.reporting.GaugeStatistics)
-  ::uint32_t cached_has_bits = 0;
-  (void)cached_has_bits;
+    ::uint8_t* target, ::google::protobuf::io::EpsCopyOutputStream* stream) const
+{
+    // @@protoc_insertion_point(serialize_to_array_start:ppx.metrics.reporting.GaugeStatistics)
+    ::uint32_t cached_has_bits = 0;
+    (void)cached_has_bits;
 
-  // double min = 1;
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_min = this->_internal_min();
-  ::uint64_t raw_min;
-  memcpy(&raw_min, &tmp_min, sizeof(tmp_min));
-  if (raw_min != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteDoubleToArray(
-        1, this->_internal_min(), target);
-  }
+    // double min = 1;
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_min = this->_internal_min();
+    ::uint64_t raw_min;
+    memcpy(&raw_min, &tmp_min, sizeof(tmp_min));
+    if (raw_min != 0) {
+        target = stream->EnsureSpace(target);
+        target = ::_pbi::WireFormatLite::WriteDoubleToArray(
+            1, this->_internal_min(), target);
+    }
 
-  // double max = 2;
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_max = this->_internal_max();
-  ::uint64_t raw_max;
-  memcpy(&raw_max, &tmp_max, sizeof(tmp_max));
-  if (raw_max != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteDoubleToArray(
-        2, this->_internal_max(), target);
-  }
+    // double max = 2;
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_max = this->_internal_max();
+    ::uint64_t raw_max;
+    memcpy(&raw_max, &tmp_max, sizeof(tmp_max));
+    if (raw_max != 0) {
+        target = stream->EnsureSpace(target);
+        target = ::_pbi::WireFormatLite::WriteDoubleToArray(
+            2, this->_internal_max(), target);
+    }
 
-  // double average = 3;
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_average = this->_internal_average();
-  ::uint64_t raw_average;
-  memcpy(&raw_average, &tmp_average, sizeof(tmp_average));
-  if (raw_average != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteDoubleToArray(
-        3, this->_internal_average(), target);
-  }
+    // double average = 3;
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_average = this->_internal_average();
+    ::uint64_t raw_average;
+    memcpy(&raw_average, &tmp_average, sizeof(tmp_average));
+    if (raw_average != 0) {
+        target = stream->EnsureSpace(target);
+        target = ::_pbi::WireFormatLite::WriteDoubleToArray(
+            3, this->_internal_average(), target);
+    }
 
-  // double time_ratio = 4;
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_time_ratio = this->_internal_time_ratio();
-  ::uint64_t raw_time_ratio;
-  memcpy(&raw_time_ratio, &tmp_time_ratio, sizeof(tmp_time_ratio));
-  if (raw_time_ratio != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteDoubleToArray(
-        4, this->_internal_time_ratio(), target);
-  }
+    // double time_ratio = 4;
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_time_ratio = this->_internal_time_ratio();
+    ::uint64_t raw_time_ratio;
+    memcpy(&raw_time_ratio, &tmp_time_ratio, sizeof(tmp_time_ratio));
+    if (raw_time_ratio != 0) {
+        target = stream->EnsureSpace(target);
+        target = ::_pbi::WireFormatLite::WriteDoubleToArray(
+            4, this->_internal_time_ratio(), target);
+    }
 
-  // double median = 5;
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_median = this->_internal_median();
-  ::uint64_t raw_median;
-  memcpy(&raw_median, &tmp_median, sizeof(tmp_median));
-  if (raw_median != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteDoubleToArray(
-        5, this->_internal_median(), target);
-  }
+    // double median = 5;
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_median = this->_internal_median();
+    ::uint64_t raw_median;
+    memcpy(&raw_median, &tmp_median, sizeof(tmp_median));
+    if (raw_median != 0) {
+        target = stream->EnsureSpace(target);
+        target = ::_pbi::WireFormatLite::WriteDoubleToArray(
+            5, this->_internal_median(), target);
+    }
 
-  // double standard_deviation = 6;
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_standard_deviation = this->_internal_standard_deviation();
-  ::uint64_t raw_standard_deviation;
-  memcpy(&raw_standard_deviation, &tmp_standard_deviation, sizeof(tmp_standard_deviation));
-  if (raw_standard_deviation != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteDoubleToArray(
-        6, this->_internal_standard_deviation(), target);
-  }
+    // double standard_deviation = 6;
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_standard_deviation = this->_internal_standard_deviation();
+    ::uint64_t raw_standard_deviation;
+    memcpy(&raw_standard_deviation, &tmp_standard_deviation, sizeof(tmp_standard_deviation));
+    if (raw_standard_deviation != 0) {
+        target = stream->EnsureSpace(target);
+        target = ::_pbi::WireFormatLite::WriteDoubleToArray(
+            6, this->_internal_standard_deviation(), target);
+    }
 
-  // double percentile_90 = 7;
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_percentile_90 = this->_internal_percentile_90();
-  ::uint64_t raw_percentile_90;
-  memcpy(&raw_percentile_90, &tmp_percentile_90, sizeof(tmp_percentile_90));
-  if (raw_percentile_90 != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteDoubleToArray(
-        7, this->_internal_percentile_90(), target);
-  }
+    // double percentile_90 = 7;
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_percentile_90 = this->_internal_percentile_90();
+    ::uint64_t raw_percentile_90;
+    memcpy(&raw_percentile_90, &tmp_percentile_90, sizeof(tmp_percentile_90));
+    if (raw_percentile_90 != 0) {
+        target = stream->EnsureSpace(target);
+        target = ::_pbi::WireFormatLite::WriteDoubleToArray(
+            7, this->_internal_percentile_90(), target);
+    }
 
-  // double percentile_95 = 8;
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_percentile_95 = this->_internal_percentile_95();
-  ::uint64_t raw_percentile_95;
-  memcpy(&raw_percentile_95, &tmp_percentile_95, sizeof(tmp_percentile_95));
-  if (raw_percentile_95 != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteDoubleToArray(
-        8, this->_internal_percentile_95(), target);
-  }
+    // double percentile_95 = 8;
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_percentile_95 = this->_internal_percentile_95();
+    ::uint64_t raw_percentile_95;
+    memcpy(&raw_percentile_95, &tmp_percentile_95, sizeof(tmp_percentile_95));
+    if (raw_percentile_95 != 0) {
+        target = stream->EnsureSpace(target);
+        target = ::_pbi::WireFormatLite::WriteDoubleToArray(
+            8, this->_internal_percentile_95(), target);
+    }
 
-  // double percentile_99 = 9;
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_percentile_99 = this->_internal_percentile_99();
-  ::uint64_t raw_percentile_99;
-  memcpy(&raw_percentile_99, &tmp_percentile_99, sizeof(tmp_percentile_99));
-  if (raw_percentile_99 != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteDoubleToArray(
-        9, this->_internal_percentile_99(), target);
-  }
+    // double percentile_99 = 9;
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_percentile_99 = this->_internal_percentile_99();
+    ::uint64_t raw_percentile_99;
+    memcpy(&raw_percentile_99, &tmp_percentile_99, sizeof(tmp_percentile_99));
+    if (raw_percentile_99 != 0) {
+        target = stream->EnsureSpace(target);
+        target = ::_pbi::WireFormatLite::WriteDoubleToArray(
+            9, this->_internal_percentile_99(), target);
+    }
 
-  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    target =
-        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
-            _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
-  }
-  // @@protoc_insertion_point(serialize_to_array_end:ppx.metrics.reporting.GaugeStatistics)
-  return target;
+    if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+        target =
+            ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+                _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+    }
+    // @@protoc_insertion_point(serialize_to_array_end:ppx.metrics.reporting.GaugeStatistics)
+    return target;
 }
 
-::size_t GaugeStatistics::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:ppx.metrics.reporting.GaugeStatistics)
-  ::size_t total_size = 0;
+::size_t GaugeStatistics::ByteSizeLong() const
+{
+    // @@protoc_insertion_point(message_byte_size_start:ppx.metrics.reporting.GaugeStatistics)
+    ::size_t total_size = 0;
 
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
+    ::uint32_t cached_has_bits = 0;
+    // Prevent compiler warnings about cached_has_bits being unused
+    (void)cached_has_bits;
 
-  // double min = 1;
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_min = this->_internal_min();
-  ::uint64_t raw_min;
-  memcpy(&raw_min, &tmp_min, sizeof(tmp_min));
-  if (raw_min != 0) {
-    total_size += 9;
-  }
+    // double min = 1;
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_min = this->_internal_min();
+    ::uint64_t raw_min;
+    memcpy(&raw_min, &tmp_min, sizeof(tmp_min));
+    if (raw_min != 0) {
+        total_size += 9;
+    }
 
-  // double max = 2;
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_max = this->_internal_max();
-  ::uint64_t raw_max;
-  memcpy(&raw_max, &tmp_max, sizeof(tmp_max));
-  if (raw_max != 0) {
-    total_size += 9;
-  }
+    // double max = 2;
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_max = this->_internal_max();
+    ::uint64_t raw_max;
+    memcpy(&raw_max, &tmp_max, sizeof(tmp_max));
+    if (raw_max != 0) {
+        total_size += 9;
+    }
 
-  // double average = 3;
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_average = this->_internal_average();
-  ::uint64_t raw_average;
-  memcpy(&raw_average, &tmp_average, sizeof(tmp_average));
-  if (raw_average != 0) {
-    total_size += 9;
-  }
+    // double average = 3;
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_average = this->_internal_average();
+    ::uint64_t raw_average;
+    memcpy(&raw_average, &tmp_average, sizeof(tmp_average));
+    if (raw_average != 0) {
+        total_size += 9;
+    }
 
-  // double time_ratio = 4;
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_time_ratio = this->_internal_time_ratio();
-  ::uint64_t raw_time_ratio;
-  memcpy(&raw_time_ratio, &tmp_time_ratio, sizeof(tmp_time_ratio));
-  if (raw_time_ratio != 0) {
-    total_size += 9;
-  }
+    // double time_ratio = 4;
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_time_ratio = this->_internal_time_ratio();
+    ::uint64_t raw_time_ratio;
+    memcpy(&raw_time_ratio, &tmp_time_ratio, sizeof(tmp_time_ratio));
+    if (raw_time_ratio != 0) {
+        total_size += 9;
+    }
 
-  // double median = 5;
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_median = this->_internal_median();
-  ::uint64_t raw_median;
-  memcpy(&raw_median, &tmp_median, sizeof(tmp_median));
-  if (raw_median != 0) {
-    total_size += 9;
-  }
+    // double median = 5;
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_median = this->_internal_median();
+    ::uint64_t raw_median;
+    memcpy(&raw_median, &tmp_median, sizeof(tmp_median));
+    if (raw_median != 0) {
+        total_size += 9;
+    }
 
-  // double standard_deviation = 6;
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_standard_deviation = this->_internal_standard_deviation();
-  ::uint64_t raw_standard_deviation;
-  memcpy(&raw_standard_deviation, &tmp_standard_deviation, sizeof(tmp_standard_deviation));
-  if (raw_standard_deviation != 0) {
-    total_size += 9;
-  }
+    // double standard_deviation = 6;
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_standard_deviation = this->_internal_standard_deviation();
+    ::uint64_t raw_standard_deviation;
+    memcpy(&raw_standard_deviation, &tmp_standard_deviation, sizeof(tmp_standard_deviation));
+    if (raw_standard_deviation != 0) {
+        total_size += 9;
+    }
 
-  // double percentile_90 = 7;
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_percentile_90 = this->_internal_percentile_90();
-  ::uint64_t raw_percentile_90;
-  memcpy(&raw_percentile_90, &tmp_percentile_90, sizeof(tmp_percentile_90));
-  if (raw_percentile_90 != 0) {
-    total_size += 9;
-  }
+    // double percentile_90 = 7;
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_percentile_90 = this->_internal_percentile_90();
+    ::uint64_t raw_percentile_90;
+    memcpy(&raw_percentile_90, &tmp_percentile_90, sizeof(tmp_percentile_90));
+    if (raw_percentile_90 != 0) {
+        total_size += 9;
+    }
 
-  // double percentile_95 = 8;
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_percentile_95 = this->_internal_percentile_95();
-  ::uint64_t raw_percentile_95;
-  memcpy(&raw_percentile_95, &tmp_percentile_95, sizeof(tmp_percentile_95));
-  if (raw_percentile_95 != 0) {
-    total_size += 9;
-  }
+    // double percentile_95 = 8;
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_percentile_95 = this->_internal_percentile_95();
+    ::uint64_t raw_percentile_95;
+    memcpy(&raw_percentile_95, &tmp_percentile_95, sizeof(tmp_percentile_95));
+    if (raw_percentile_95 != 0) {
+        total_size += 9;
+    }
 
-  // double percentile_99 = 9;
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_percentile_99 = this->_internal_percentile_99();
-  ::uint64_t raw_percentile_99;
-  memcpy(&raw_percentile_99, &tmp_percentile_99, sizeof(tmp_percentile_99));
-  if (raw_percentile_99 != 0) {
-    total_size += 9;
-  }
+    // double percentile_99 = 9;
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_percentile_99 = this->_internal_percentile_99();
+    ::uint64_t raw_percentile_99;
+    memcpy(&raw_percentile_99, &tmp_percentile_99, sizeof(tmp_percentile_99));
+    if (raw_percentile_99 != 0) {
+        total_size += 9;
+    }
 
-  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+    return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
 const ::google::protobuf::Message::ClassData GaugeStatistics::_class_data_ = {
     ::google::protobuf::Message::CopyWithSourceCheck,
-    GaugeStatistics::MergeImpl
-};
-const ::google::protobuf::Message::ClassData*GaugeStatistics::GetClassData() const { return &_class_data_; }
-
-
-void GaugeStatistics::MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg) {
-  auto* const _this = static_cast<GaugeStatistics*>(&to_msg);
-  auto& from = static_cast<const GaugeStatistics&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:ppx.metrics.reporting.GaugeStatistics)
-  ABSL_DCHECK_NE(&from, _this);
-  ::uint32_t cached_has_bits = 0;
-  (void) cached_has_bits;
-
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_min = from._internal_min();
-  ::uint64_t raw_min;
-  memcpy(&raw_min, &tmp_min, sizeof(tmp_min));
-  if (raw_min != 0) {
-    _this->_internal_set_min(from._internal_min());
-  }
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_max = from._internal_max();
-  ::uint64_t raw_max;
-  memcpy(&raw_max, &tmp_max, sizeof(tmp_max));
-  if (raw_max != 0) {
-    _this->_internal_set_max(from._internal_max());
-  }
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_average = from._internal_average();
-  ::uint64_t raw_average;
-  memcpy(&raw_average, &tmp_average, sizeof(tmp_average));
-  if (raw_average != 0) {
-    _this->_internal_set_average(from._internal_average());
-  }
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_time_ratio = from._internal_time_ratio();
-  ::uint64_t raw_time_ratio;
-  memcpy(&raw_time_ratio, &tmp_time_ratio, sizeof(tmp_time_ratio));
-  if (raw_time_ratio != 0) {
-    _this->_internal_set_time_ratio(from._internal_time_ratio());
-  }
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_median = from._internal_median();
-  ::uint64_t raw_median;
-  memcpy(&raw_median, &tmp_median, sizeof(tmp_median));
-  if (raw_median != 0) {
-    _this->_internal_set_median(from._internal_median());
-  }
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_standard_deviation = from._internal_standard_deviation();
-  ::uint64_t raw_standard_deviation;
-  memcpy(&raw_standard_deviation, &tmp_standard_deviation, sizeof(tmp_standard_deviation));
-  if (raw_standard_deviation != 0) {
-    _this->_internal_set_standard_deviation(from._internal_standard_deviation());
-  }
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_percentile_90 = from._internal_percentile_90();
-  ::uint64_t raw_percentile_90;
-  memcpy(&raw_percentile_90, &tmp_percentile_90, sizeof(tmp_percentile_90));
-  if (raw_percentile_90 != 0) {
-    _this->_internal_set_percentile_90(from._internal_percentile_90());
-  }
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_percentile_95 = from._internal_percentile_95();
-  ::uint64_t raw_percentile_95;
-  memcpy(&raw_percentile_95, &tmp_percentile_95, sizeof(tmp_percentile_95));
-  if (raw_percentile_95 != 0) {
-    _this->_internal_set_percentile_95(from._internal_percentile_95());
-  }
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_percentile_99 = from._internal_percentile_99();
-  ::uint64_t raw_percentile_99;
-  memcpy(&raw_percentile_99, &tmp_percentile_99, sizeof(tmp_percentile_99));
-  if (raw_percentile_99 != 0) {
-    _this->_internal_set_percentile_99(from._internal_percentile_99());
-  }
-  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+    GaugeStatistics::MergeImpl};
+const ::google::protobuf::Message::ClassData* GaugeStatistics::GetClassData() const
+{
+    return &_class_data_;
 }
 
-void GaugeStatistics::CopyFrom(const GaugeStatistics& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:ppx.metrics.reporting.GaugeStatistics)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
+void GaugeStatistics::MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg)
+{
+    auto* const _this = static_cast<GaugeStatistics*>(&to_msg);
+    auto&       from  = static_cast<const GaugeStatistics&>(from_msg);
+    // @@protoc_insertion_point(class_specific_merge_from_start:ppx.metrics.reporting.GaugeStatistics)
+    ABSL_DCHECK_NE(&from, _this);
+    ::uint32_t cached_has_bits = 0;
+    (void)cached_has_bits;
+
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_min = from._internal_min();
+    ::uint64_t raw_min;
+    memcpy(&raw_min, &tmp_min, sizeof(tmp_min));
+    if (raw_min != 0) {
+        _this->_internal_set_min(from._internal_min());
+    }
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_max = from._internal_max();
+    ::uint64_t raw_max;
+    memcpy(&raw_max, &tmp_max, sizeof(tmp_max));
+    if (raw_max != 0) {
+        _this->_internal_set_max(from._internal_max());
+    }
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_average = from._internal_average();
+    ::uint64_t raw_average;
+    memcpy(&raw_average, &tmp_average, sizeof(tmp_average));
+    if (raw_average != 0) {
+        _this->_internal_set_average(from._internal_average());
+    }
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_time_ratio = from._internal_time_ratio();
+    ::uint64_t raw_time_ratio;
+    memcpy(&raw_time_ratio, &tmp_time_ratio, sizeof(tmp_time_ratio));
+    if (raw_time_ratio != 0) {
+        _this->_internal_set_time_ratio(from._internal_time_ratio());
+    }
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_median = from._internal_median();
+    ::uint64_t raw_median;
+    memcpy(&raw_median, &tmp_median, sizeof(tmp_median));
+    if (raw_median != 0) {
+        _this->_internal_set_median(from._internal_median());
+    }
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_standard_deviation = from._internal_standard_deviation();
+    ::uint64_t raw_standard_deviation;
+    memcpy(&raw_standard_deviation, &tmp_standard_deviation, sizeof(tmp_standard_deviation));
+    if (raw_standard_deviation != 0) {
+        _this->_internal_set_standard_deviation(from._internal_standard_deviation());
+    }
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_percentile_90 = from._internal_percentile_90();
+    ::uint64_t raw_percentile_90;
+    memcpy(&raw_percentile_90, &tmp_percentile_90, sizeof(tmp_percentile_90));
+    if (raw_percentile_90 != 0) {
+        _this->_internal_set_percentile_90(from._internal_percentile_90());
+    }
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_percentile_95 = from._internal_percentile_95();
+    ::uint64_t raw_percentile_95;
+    memcpy(&raw_percentile_95, &tmp_percentile_95, sizeof(tmp_percentile_95));
+    if (raw_percentile_95 != 0) {
+        _this->_internal_set_percentile_95(from._internal_percentile_95());
+    }
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_percentile_99 = from._internal_percentile_99();
+    ::uint64_t raw_percentile_99;
+    memcpy(&raw_percentile_99, &tmp_percentile_99, sizeof(tmp_percentile_99));
+    if (raw_percentile_99 != 0) {
+        _this->_internal_set_percentile_99(from._internal_percentile_99());
+    }
+    _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
 }
 
-PROTOBUF_NOINLINE bool GaugeStatistics::IsInitialized() const {
-  return true;
+void GaugeStatistics::CopyFrom(const GaugeStatistics& from)
+{
+    // @@protoc_insertion_point(class_specific_copy_from_start:ppx.metrics.reporting.GaugeStatistics)
+    if (&from == this)
+        return;
+    Clear();
+    MergeFrom(from);
 }
 
-void GaugeStatistics::InternalSwap(GaugeStatistics* other) {
-  using std::swap;
-  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.percentile_99_)
-      + sizeof(GaugeStatistics::_impl_.percentile_99_)
-      - PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.min_)>(
-          reinterpret_cast<char*>(&_impl_.min_),
-          reinterpret_cast<char*>(&other->_impl_.min_));
+PROTOBUF_NOINLINE bool GaugeStatistics::IsInitialized() const
+{
+    return true;
 }
 
-::google::protobuf::Metadata GaugeStatistics::GetMetadata() const {
-  return ::_pbi::AssignDescriptors(
-      &descriptor_table_metrics_5freport_2eproto_getter, &descriptor_table_metrics_5freport_2eproto_once,
-      file_level_metadata_metrics_5freport_2eproto[3]);
+void GaugeStatistics::InternalSwap(GaugeStatistics* other)
+{
+    using std::swap;
+    _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+    ::google::protobuf::internal::memswap<
+        PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.percentile_99_) + sizeof(GaugeStatistics::_impl_.percentile_99_) - PROTOBUF_FIELD_OFFSET(GaugeStatistics, _impl_.min_)>(
+        reinterpret_cast<char*>(&_impl_.min_),
+        reinterpret_cast<char*>(&other->_impl_.min_));
+}
+
+::google::protobuf::Metadata GaugeStatistics::GetMetadata() const
+{
+    return ::_pbi::AssignDescriptors(
+        &descriptor_table_metrics_5freport_2eproto_getter, &descriptor_table_metrics_5freport_2eproto_once, file_level_metadata_metrics_5freport_2eproto[3]);
 }
 // ===================================================================
 
-class TimeSeriesEntry::_Internal {
- public:
+class TimeSeriesEntry::_Internal
+{
+public:
 };
 
 TimeSeriesEntry::TimeSeriesEntry(::google::protobuf::Arena* arena)
-    : ::google::protobuf::Message(arena) {
-  SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:ppx.metrics.reporting.TimeSeriesEntry)
+    : ::google::protobuf::Message(arena)
+{
+    SharedCtor(arena);
+    // @@protoc_insertion_point(arena_constructor:ppx.metrics.reporting.TimeSeriesEntry)
 }
 TimeSeriesEntry::TimeSeriesEntry(const TimeSeriesEntry& from)
-    : ::google::protobuf::Message(), _impl_(from._impl_) {
-  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-  // @@protoc_insertion_point(copy_constructor:ppx.metrics.reporting.TimeSeriesEntry)
+    : ::google::protobuf::Message(), _impl_(from._impl_)
+{
+    _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+        from._internal_metadata_);
+    // @@protoc_insertion_point(copy_constructor:ppx.metrics.reporting.TimeSeriesEntry)
 }
-inline void TimeSeriesEntry::SharedCtor(::_pb::Arena* arena) {
-  (void)arena;
-  new (&_impl_) Impl_{
-      decltype(_impl_.seconds_){0},
-      decltype(_impl_.value_){0},
-      /*decltype(_impl_._cached_size_)*/ {},
-  };
+inline void TimeSeriesEntry::SharedCtor(::_pb::Arena* arena)
+{
+    (void)arena;
+    new (&_impl_) Impl_{
+        decltype(_impl_.seconds_){0},
+        decltype(_impl_.value_){0},
+        /*decltype(_impl_._cached_size_)*/ {},
+    };
 }
-TimeSeriesEntry::~TimeSeriesEntry() {
-  // @@protoc_insertion_point(destructor:ppx.metrics.reporting.TimeSeriesEntry)
-  _internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
-  SharedDtor();
+TimeSeriesEntry::~TimeSeriesEntry()
+{
+    // @@protoc_insertion_point(destructor:ppx.metrics.reporting.TimeSeriesEntry)
+    _internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+    SharedDtor();
 }
-inline void TimeSeriesEntry::SharedDtor() {
-  ABSL_DCHECK(GetArenaForAllocation() == nullptr);
+inline void TimeSeriesEntry::SharedDtor()
+{
+    ABSL_DCHECK(GetArenaForAllocation() == nullptr);
 }
-void TimeSeriesEntry::SetCachedSize(int size) const {
-  _impl_._cached_size_.Set(size);
+void TimeSeriesEntry::SetCachedSize(int size) const
+{
+    _impl_._cached_size_.Set(size);
 }
 
-PROTOBUF_NOINLINE void TimeSeriesEntry::Clear() {
-// @@protoc_insertion_point(message_clear_start:ppx.metrics.reporting.TimeSeriesEntry)
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
+PROTOBUF_NOINLINE void TimeSeriesEntry::Clear()
+{
+    // @@protoc_insertion_point(message_clear_start:ppx.metrics.reporting.TimeSeriesEntry)
+    ::uint32_t cached_has_bits = 0;
+    // Prevent compiler warnings about cached_has_bits being unused
+    (void)cached_has_bits;
 
-  ::memset(&_impl_.seconds_, 0, static_cast<::size_t>(
-      reinterpret_cast<char*>(&_impl_.value_) -
-      reinterpret_cast<char*>(&_impl_.seconds_)) + sizeof(_impl_.value_));
-  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+    ::memset(&_impl_.seconds_, 0, static_cast<::size_t>(reinterpret_cast<char*>(&_impl_.value_) - reinterpret_cast<char*>(&_impl_.seconds_)) + sizeof(_impl_.value_));
+    _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
 
 const char* TimeSeriesEntry::_InternalParse(
-    const char* ptr, ::_pbi::ParseContext* ctx) {
-  ptr = ::_pbi::TcParser::ParseLoop(this, ptr, ctx, &_table_.header);
-  return ptr;
+    const char* ptr, ::_pbi::ParseContext* ctx)
+{
+    ptr = ::_pbi::TcParser::ParseLoop(this, ptr, ctx, &_table_.header);
+    return ptr;
 }
 
-
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 0, 0, 2> TimeSeriesEntry::_table_ = {
-  {
-    0,  // no _has_bits_
-    0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
-    offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
-    offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
-    0,  // num_aux_entries
-    offsetof(decltype(_table_), field_names),  // no aux_entries
-    &_TimeSeriesEntry_default_instance_._instance,
-    ::_pbi::TcParser::GenericFallback,  // fallback
-  }, {{
-    // double value = 2;
-    {::_pbi::TcParser::FastF64S1,
-     {17, 63, 0, PROTOBUF_FIELD_OFFSET(TimeSeriesEntry, _impl_.value_)}},
-    // double seconds = 1;
-    {::_pbi::TcParser::FastF64S1,
-     {9, 63, 0, PROTOBUF_FIELD_OFFSET(TimeSeriesEntry, _impl_.seconds_)}},
-  }}, {{
-    65535, 65535
-  }}, {{
-    // double seconds = 1;
-    {PROTOBUF_FIELD_OFFSET(TimeSeriesEntry, _impl_.seconds_), 0, 0,
-    (0 | ::_fl::kFcSingular | ::_fl::kDouble)},
-    // double value = 2;
-    {PROTOBUF_FIELD_OFFSET(TimeSeriesEntry, _impl_.value_), 0, 0,
-    (0 | ::_fl::kFcSingular | ::_fl::kDouble)},
-  }},
-  // no aux_entries
-  {{
-  }},
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const ::_pbi::TcParseTable<1, 2, 0, 0, 2> TimeSeriesEntry::_table_ = {
+    {
+        0, // no _has_bits_
+        0, // no _extensions_
+        2,
+        8, // max_field_number, fast_idx_mask
+        offsetof(decltype(_table_), field_lookup_table),
+        4294967292, // skipmap
+        offsetof(decltype(_table_), field_entries),
+        2,                                        // num_field_entries
+        0,                                        // num_aux_entries
+        offsetof(decltype(_table_), field_names), // no aux_entries
+        &_TimeSeriesEntry_default_instance_._instance,
+        ::_pbi::TcParser::GenericFallback, // fallback
+    },
+    {{
+        // double value = 2;
+        {::_pbi::TcParser::FastF64S1,
+         {17, 63, 0, PROTOBUF_FIELD_OFFSET(TimeSeriesEntry, _impl_.value_)}},
+        // double seconds = 1;
+        {::_pbi::TcParser::FastF64S1,
+         {9, 63, 0, PROTOBUF_FIELD_OFFSET(TimeSeriesEntry, _impl_.seconds_)}},
+    }},
+    {{65535, 65535}},
+    {{
+        // double seconds = 1;
+        {PROTOBUF_FIELD_OFFSET(TimeSeriesEntry, _impl_.seconds_), 0, 0, (0 | ::_fl::kFcSingular | ::_fl::kDouble)},
+        // double value = 2;
+        {PROTOBUF_FIELD_OFFSET(TimeSeriesEntry, _impl_.value_), 0, 0, (0 | ::_fl::kFcSingular | ::_fl::kDouble)},
+    }},
+    // no aux_entries
+    {{}},
 };
 
 ::uint8_t* TimeSeriesEntry::_InternalSerialize(
-    ::uint8_t* target, ::google::protobuf::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:ppx.metrics.reporting.TimeSeriesEntry)
-  ::uint32_t cached_has_bits = 0;
-  (void)cached_has_bits;
+    ::uint8_t* target, ::google::protobuf::io::EpsCopyOutputStream* stream) const
+{
+    // @@protoc_insertion_point(serialize_to_array_start:ppx.metrics.reporting.TimeSeriesEntry)
+    ::uint32_t cached_has_bits = 0;
+    (void)cached_has_bits;
 
-  // double seconds = 1;
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_seconds = this->_internal_seconds();
-  ::uint64_t raw_seconds;
-  memcpy(&raw_seconds, &tmp_seconds, sizeof(tmp_seconds));
-  if (raw_seconds != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteDoubleToArray(
-        1, this->_internal_seconds(), target);
-  }
+    // double seconds = 1;
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_seconds = this->_internal_seconds();
+    ::uint64_t raw_seconds;
+    memcpy(&raw_seconds, &tmp_seconds, sizeof(tmp_seconds));
+    if (raw_seconds != 0) {
+        target = stream->EnsureSpace(target);
+        target = ::_pbi::WireFormatLite::WriteDoubleToArray(
+            1, this->_internal_seconds(), target);
+    }
 
-  // double value = 2;
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_value = this->_internal_value();
-  ::uint64_t raw_value;
-  memcpy(&raw_value, &tmp_value, sizeof(tmp_value));
-  if (raw_value != 0) {
-    target = stream->EnsureSpace(target);
-    target = ::_pbi::WireFormatLite::WriteDoubleToArray(
-        2, this->_internal_value(), target);
-  }
+    // double value = 2;
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_value = this->_internal_value();
+    ::uint64_t raw_value;
+    memcpy(&raw_value, &tmp_value, sizeof(tmp_value));
+    if (raw_value != 0) {
+        target = stream->EnsureSpace(target);
+        target = ::_pbi::WireFormatLite::WriteDoubleToArray(
+            2, this->_internal_value(), target);
+    }
 
-  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    target =
-        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
-            _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
-  }
-  // @@protoc_insertion_point(serialize_to_array_end:ppx.metrics.reporting.TimeSeriesEntry)
-  return target;
+    if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+        target =
+            ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+                _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+    }
+    // @@protoc_insertion_point(serialize_to_array_end:ppx.metrics.reporting.TimeSeriesEntry)
+    return target;
 }
 
-::size_t TimeSeriesEntry::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:ppx.metrics.reporting.TimeSeriesEntry)
-  ::size_t total_size = 0;
+::size_t TimeSeriesEntry::ByteSizeLong() const
+{
+    // @@protoc_insertion_point(message_byte_size_start:ppx.metrics.reporting.TimeSeriesEntry)
+    ::size_t total_size = 0;
 
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
+    ::uint32_t cached_has_bits = 0;
+    // Prevent compiler warnings about cached_has_bits being unused
+    (void)cached_has_bits;
 
-  // double seconds = 1;
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_seconds = this->_internal_seconds();
-  ::uint64_t raw_seconds;
-  memcpy(&raw_seconds, &tmp_seconds, sizeof(tmp_seconds));
-  if (raw_seconds != 0) {
-    total_size += 9;
-  }
+    // double seconds = 1;
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_seconds = this->_internal_seconds();
+    ::uint64_t raw_seconds;
+    memcpy(&raw_seconds, &tmp_seconds, sizeof(tmp_seconds));
+    if (raw_seconds != 0) {
+        total_size += 9;
+    }
 
-  // double value = 2;
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_value = this->_internal_value();
-  ::uint64_t raw_value;
-  memcpy(&raw_value, &tmp_value, sizeof(tmp_value));
-  if (raw_value != 0) {
-    total_size += 9;
-  }
+    // double value = 2;
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_value = this->_internal_value();
+    ::uint64_t raw_value;
+    memcpy(&raw_value, &tmp_value, sizeof(tmp_value));
+    if (raw_value != 0) {
+        total_size += 9;
+    }
 
-  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+    return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
 const ::google::protobuf::Message::ClassData TimeSeriesEntry::_class_data_ = {
     ::google::protobuf::Message::CopyWithSourceCheck,
-    TimeSeriesEntry::MergeImpl
-};
-const ::google::protobuf::Message::ClassData*TimeSeriesEntry::GetClassData() const { return &_class_data_; }
-
-
-void TimeSeriesEntry::MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg) {
-  auto* const _this = static_cast<TimeSeriesEntry*>(&to_msg);
-  auto& from = static_cast<const TimeSeriesEntry&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:ppx.metrics.reporting.TimeSeriesEntry)
-  ABSL_DCHECK_NE(&from, _this);
-  ::uint32_t cached_has_bits = 0;
-  (void) cached_has_bits;
-
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_seconds = from._internal_seconds();
-  ::uint64_t raw_seconds;
-  memcpy(&raw_seconds, &tmp_seconds, sizeof(tmp_seconds));
-  if (raw_seconds != 0) {
-    _this->_internal_set_seconds(from._internal_seconds());
-  }
-  static_assert(sizeof(::uint64_t) == sizeof(double),
-                "Code assumes ::uint64_t and double are the same size.");
-  double tmp_value = from._internal_value();
-  ::uint64_t raw_value;
-  memcpy(&raw_value, &tmp_value, sizeof(tmp_value));
-  if (raw_value != 0) {
-    _this->_internal_set_value(from._internal_value());
-  }
-  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+    TimeSeriesEntry::MergeImpl};
+const ::google::protobuf::Message::ClassData* TimeSeriesEntry::GetClassData() const
+{
+    return &_class_data_;
 }
 
-void TimeSeriesEntry::CopyFrom(const TimeSeriesEntry& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:ppx.metrics.reporting.TimeSeriesEntry)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
+void TimeSeriesEntry::MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg)
+{
+    auto* const _this = static_cast<TimeSeriesEntry*>(&to_msg);
+    auto&       from  = static_cast<const TimeSeriesEntry&>(from_msg);
+    // @@protoc_insertion_point(class_specific_merge_from_start:ppx.metrics.reporting.TimeSeriesEntry)
+    ABSL_DCHECK_NE(&from, _this);
+    ::uint32_t cached_has_bits = 0;
+    (void)cached_has_bits;
+
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_seconds = from._internal_seconds();
+    ::uint64_t raw_seconds;
+    memcpy(&raw_seconds, &tmp_seconds, sizeof(tmp_seconds));
+    if (raw_seconds != 0) {
+        _this->_internal_set_seconds(from._internal_seconds());
+    }
+    static_assert(sizeof(::uint64_t) == sizeof(double), "Code assumes ::uint64_t and double are the same size.");
+    double     tmp_value = from._internal_value();
+    ::uint64_t raw_value;
+    memcpy(&raw_value, &tmp_value, sizeof(tmp_value));
+    if (raw_value != 0) {
+        _this->_internal_set_value(from._internal_value());
+    }
+    _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
 }
 
-PROTOBUF_NOINLINE bool TimeSeriesEntry::IsInitialized() const {
-  return true;
+void TimeSeriesEntry::CopyFrom(const TimeSeriesEntry& from)
+{
+    // @@protoc_insertion_point(class_specific_copy_from_start:ppx.metrics.reporting.TimeSeriesEntry)
+    if (&from == this)
+        return;
+    Clear();
+    MergeFrom(from);
 }
 
-void TimeSeriesEntry::InternalSwap(TimeSeriesEntry* other) {
-  using std::swap;
-  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(TimeSeriesEntry, _impl_.value_)
-      + sizeof(TimeSeriesEntry::_impl_.value_)
-      - PROTOBUF_FIELD_OFFSET(TimeSeriesEntry, _impl_.seconds_)>(
-          reinterpret_cast<char*>(&_impl_.seconds_),
-          reinterpret_cast<char*>(&other->_impl_.seconds_));
+PROTOBUF_NOINLINE bool TimeSeriesEntry::IsInitialized() const
+{
+    return true;
 }
 
-::google::protobuf::Metadata TimeSeriesEntry::GetMetadata() const {
-  return ::_pbi::AssignDescriptors(
-      &descriptor_table_metrics_5freport_2eproto_getter, &descriptor_table_metrics_5freport_2eproto_once,
-      file_level_metadata_metrics_5freport_2eproto[4]);
+void TimeSeriesEntry::InternalSwap(TimeSeriesEntry* other)
+{
+    using std::swap;
+    _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+    ::google::protobuf::internal::memswap<
+        PROTOBUF_FIELD_OFFSET(TimeSeriesEntry, _impl_.value_) + sizeof(TimeSeriesEntry::_impl_.value_) - PROTOBUF_FIELD_OFFSET(TimeSeriesEntry, _impl_.seconds_)>(
+        reinterpret_cast<char*>(&_impl_.seconds_),
+        reinterpret_cast<char*>(&other->_impl_.seconds_));
+}
+
+::google::protobuf::Metadata TimeSeriesEntry::GetMetadata() const
+{
+    return ::_pbi::AssignDescriptors(
+        &descriptor_table_metrics_5freport_2eproto_getter, &descriptor_table_metrics_5freport_2eproto_once, file_level_metadata_metrics_5freport_2eproto[4]);
 }
 // ===================================================================
 
-class MetricGauge::_Internal {
- public:
-  using HasBits = decltype(std::declval<MetricGauge>()._impl_._has_bits_);
-  static constexpr ::int32_t kHasBitsOffset =
-    8 * PROTOBUF_FIELD_OFFSET(MetricGauge, _impl_._has_bits_);
-  static const ::ppx::metrics::reporting::MetricMetadata& metadata(const MetricGauge* msg);
-  static void set_has_metadata(HasBits* has_bits) {
-    (*has_bits)[0] |= 1u;
-  }
-  static const ::ppx::metrics::reporting::GaugeStatistics& statistics(const MetricGauge* msg);
-  static void set_has_statistics(HasBits* has_bits) {
-    (*has_bits)[0] |= 2u;
-  }
+class MetricGauge::_Internal
+{
+public:
+    using HasBits = decltype(std::declval<MetricGauge>()._impl_._has_bits_);
+    static constexpr ::int32_t kHasBitsOffset =
+        8 * PROTOBUF_FIELD_OFFSET(MetricGauge, _impl_._has_bits_);
+    static const ::ppx::metrics::reporting::MetricMetadata& metadata(const MetricGauge* msg);
+    static void                                             set_has_metadata(HasBits* has_bits)
+    {
+        (*has_bits)[0] |= 1u;
+    }
+    static const ::ppx::metrics::reporting::GaugeStatistics& statistics(const MetricGauge* msg);
+    static void                                              set_has_statistics(HasBits* has_bits)
+    {
+        (*has_bits)[0] |= 2u;
+    }
 };
 
-const ::ppx::metrics::reporting::MetricMetadata& MetricGauge::_Internal::metadata(const MetricGauge* msg) {
-  return *msg->_impl_.metadata_;
+const ::ppx::metrics::reporting::MetricMetadata& MetricGauge::_Internal::metadata(const MetricGauge* msg)
+{
+    return *msg->_impl_.metadata_;
 }
-const ::ppx::metrics::reporting::GaugeStatistics& MetricGauge::_Internal::statistics(const MetricGauge* msg) {
-  return *msg->_impl_.statistics_;
+const ::ppx::metrics::reporting::GaugeStatistics& MetricGauge::_Internal::statistics(const MetricGauge* msg)
+{
+    return *msg->_impl_.statistics_;
 }
 MetricGauge::MetricGauge(::google::protobuf::Arena* arena)
-    : ::google::protobuf::Message(arena) {
-  SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:ppx.metrics.reporting.MetricGauge)
+    : ::google::protobuf::Message(arena)
+{
+    SharedCtor(arena);
+    // @@protoc_insertion_point(arena_constructor:ppx.metrics.reporting.MetricGauge)
 }
-MetricGauge::MetricGauge(const MetricGauge& from) : ::google::protobuf::Message() {
-  MetricGauge* const _this = this;
-  (void)_this;
-  new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){from._impl_._has_bits_},
-      /*decltype(_impl_._cached_size_)*/ {},
-      decltype(_impl_.time_series_){from._impl_.time_series_},
-      decltype(_impl_.metadata_){nullptr},
-      decltype(_impl_.statistics_){nullptr},
-  };
-  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-  if ((from._impl_._has_bits_[0] & 0x00000001u) != 0) {
-    _this->_impl_.metadata_ = new ::ppx::metrics::reporting::MetricMetadata(*from._impl_.metadata_);
-  }
-  if ((from._impl_._has_bits_[0] & 0x00000002u) != 0) {
-    _this->_impl_.statistics_ = new ::ppx::metrics::reporting::GaugeStatistics(*from._impl_.statistics_);
-  }
-
-  // @@protoc_insertion_point(copy_constructor:ppx.metrics.reporting.MetricGauge)
-}
-inline void MetricGauge::SharedCtor(::_pb::Arena* arena) {
-  (void)arena;
-  new (&_impl_) Impl_{
-      decltype(_impl_._has_bits_){},
-      /*decltype(_impl_._cached_size_)*/ {},
-      decltype(_impl_.time_series_){arena},
-      decltype(_impl_.metadata_){nullptr},
-      decltype(_impl_.statistics_){nullptr},
-  };
-}
-MetricGauge::~MetricGauge() {
-  // @@protoc_insertion_point(destructor:ppx.metrics.reporting.MetricGauge)
-  _internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
-  SharedDtor();
-}
-inline void MetricGauge::SharedDtor() {
-  ABSL_DCHECK(GetArenaForAllocation() == nullptr);
-  _impl_.time_series_.~RepeatedPtrField();
-  if (this != internal_default_instance()) delete _impl_.metadata_;
-  if (this != internal_default_instance()) delete _impl_.statistics_;
-}
-void MetricGauge::SetCachedSize(int size) const {
-  _impl_._cached_size_.Set(size);
-}
-
-PROTOBUF_NOINLINE void MetricGauge::Clear() {
-// @@protoc_insertion_point(message_clear_start:ppx.metrics.reporting.MetricGauge)
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
-
-  _internal_mutable_time_series()->Clear();
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000003u) {
-    if (cached_has_bits & 0x00000001u) {
-      ABSL_DCHECK(_impl_.metadata_ != nullptr);
-      _impl_.metadata_->Clear();
+MetricGauge::MetricGauge(const MetricGauge& from)
+    : ::google::protobuf::Message()
+{
+    MetricGauge* const _this = this;
+    (void)_this;
+    new (&_impl_) Impl_{
+        decltype(_impl_._has_bits_){from._impl_._has_bits_},
+        /*decltype(_impl_._cached_size_)*/ {},
+        decltype(_impl_.time_series_){from._impl_.time_series_},
+        decltype(_impl_.metadata_){nullptr},
+        decltype(_impl_.statistics_){nullptr},
+    };
+    _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+        from._internal_metadata_);
+    if ((from._impl_._has_bits_[0] & 0x00000001u) != 0) {
+        _this->_impl_.metadata_ = new ::ppx::metrics::reporting::MetricMetadata(*from._impl_.metadata_);
     }
-    if (cached_has_bits & 0x00000002u) {
-      ABSL_DCHECK(_impl_.statistics_ != nullptr);
-      _impl_.statistics_->Clear();
+    if ((from._impl_._has_bits_[0] & 0x00000002u) != 0) {
+        _this->_impl_.statistics_ = new ::ppx::metrics::reporting::GaugeStatistics(*from._impl_.statistics_);
     }
-  }
-  _impl_._has_bits_.Clear();
-  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+
+    // @@protoc_insertion_point(copy_constructor:ppx.metrics.reporting.MetricGauge)
+}
+inline void MetricGauge::SharedCtor(::_pb::Arena* arena)
+{
+    (void)arena;
+    new (&_impl_) Impl_{
+        decltype(_impl_._has_bits_){},
+        /*decltype(_impl_._cached_size_)*/ {},
+        decltype(_impl_.time_series_){arena},
+        decltype(_impl_.metadata_){nullptr},
+        decltype(_impl_.statistics_){nullptr},
+    };
+}
+MetricGauge::~MetricGauge()
+{
+    // @@protoc_insertion_point(destructor:ppx.metrics.reporting.MetricGauge)
+    _internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+    SharedDtor();
+}
+inline void MetricGauge::SharedDtor()
+{
+    ABSL_DCHECK(GetArenaForAllocation() == nullptr);
+    _impl_.time_series_.~RepeatedPtrField();
+    if (this != internal_default_instance())
+        delete _impl_.metadata_;
+    if (this != internal_default_instance())
+        delete _impl_.statistics_;
+}
+void MetricGauge::SetCachedSize(int size) const
+{
+    _impl_._cached_size_.Set(size);
+}
+
+PROTOBUF_NOINLINE void MetricGauge::Clear()
+{
+    // @@protoc_insertion_point(message_clear_start:ppx.metrics.reporting.MetricGauge)
+    ::uint32_t cached_has_bits = 0;
+    // Prevent compiler warnings about cached_has_bits being unused
+    (void)cached_has_bits;
+
+    _internal_mutable_time_series()->Clear();
+    cached_has_bits = _impl_._has_bits_[0];
+    if (cached_has_bits & 0x00000003u) {
+        if (cached_has_bits & 0x00000001u) {
+            ABSL_DCHECK(_impl_.metadata_ != nullptr);
+            _impl_.metadata_->Clear();
+        }
+        if (cached_has_bits & 0x00000002u) {
+            ABSL_DCHECK(_impl_.statistics_ != nullptr);
+            _impl_.statistics_->Clear();
+        }
+    }
+    _impl_._has_bits_.Clear();
+    _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
 
 const char* MetricGauge::_InternalParse(
-    const char* ptr, ::_pbi::ParseContext* ctx) {
-  ptr = ::_pbi::TcParser::ParseLoop(this, ptr, ctx, &_table_.header);
-  return ptr;
+    const char* ptr, ::_pbi::ParseContext* ctx)
+{
+    ptr = ::_pbi::TcParser::ParseLoop(this, ptr, ctx, &_table_.header);
+    return ptr;
 }
 
-
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 3, 3, 0, 2> MetricGauge::_table_ = {
-  {
-    PROTOBUF_FIELD_OFFSET(MetricGauge, _impl_._has_bits_),
-    0, // no _extensions_
-    3, 24,  // max_field_number, fast_idx_mask
-    offsetof(decltype(_table_), field_lookup_table),
-    4294967288,  // skipmap
-    offsetof(decltype(_table_), field_entries),
-    3,  // num_field_entries
-    3,  // num_aux_entries
-    offsetof(decltype(_table_), aux_entries),
-    &_MetricGauge_default_instance_._instance,
-    ::_pbi::TcParser::GenericFallback,  // fallback
-  }, {{
-    {::_pbi::TcParser::MiniParse, {}},
-    // .ppx.metrics.reporting.MetricMetadata metadata = 1;
-    {::_pbi::TcParser::FastMtS1,
-     {10, 0, 0, PROTOBUF_FIELD_OFFSET(MetricGauge, _impl_.metadata_)}},
-    // .ppx.metrics.reporting.GaugeStatistics statistics = 2;
-    {::_pbi::TcParser::FastMtS1,
-     {18, 1, 1, PROTOBUF_FIELD_OFFSET(MetricGauge, _impl_.statistics_)}},
-    // repeated .ppx.metrics.reporting.TimeSeriesEntry time_series = 3;
-    {::_pbi::TcParser::FastMtR1,
-     {26, 63, 2, PROTOBUF_FIELD_OFFSET(MetricGauge, _impl_.time_series_)}},
-  }}, {{
-    65535, 65535
-  }}, {{
-    // .ppx.metrics.reporting.MetricMetadata metadata = 1;
-    {PROTOBUF_FIELD_OFFSET(MetricGauge, _impl_.metadata_), _Internal::kHasBitsOffset + 0, 0,
-    (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
-    // .ppx.metrics.reporting.GaugeStatistics statistics = 2;
-    {PROTOBUF_FIELD_OFFSET(MetricGauge, _impl_.statistics_), _Internal::kHasBitsOffset + 1, 1,
-    (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
-    // repeated .ppx.metrics.reporting.TimeSeriesEntry time_series = 3;
-    {PROTOBUF_FIELD_OFFSET(MetricGauge, _impl_.time_series_), -1, 2,
-    (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
-  }}, {{
-    {::_pbi::TcParser::GetTable<::ppx::metrics::reporting::MetricMetadata>()},
-    {::_pbi::TcParser::GetTable<::ppx::metrics::reporting::GaugeStatistics>()},
-    {::_pbi::TcParser::GetTable<::ppx::metrics::reporting::TimeSeriesEntry>()},
-  }}, {{
-  }},
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const ::_pbi::TcParseTable<2, 3, 3, 0, 2> MetricGauge::_table_ = {
+    {
+        PROTOBUF_FIELD_OFFSET(MetricGauge, _impl_._has_bits_),
+        0, // no _extensions_
+        3,
+        24, // max_field_number, fast_idx_mask
+        offsetof(decltype(_table_), field_lookup_table),
+        4294967288, // skipmap
+        offsetof(decltype(_table_), field_entries),
+        3, // num_field_entries
+        3, // num_aux_entries
+        offsetof(decltype(_table_), aux_entries),
+        &_MetricGauge_default_instance_._instance,
+        ::_pbi::TcParser::GenericFallback, // fallback
+    },
+    {{
+        {::_pbi::TcParser::MiniParse, {}},
+        // .ppx.metrics.reporting.MetricMetadata metadata = 1;
+        {::_pbi::TcParser::FastMtS1,
+         {10, 0, 0, PROTOBUF_FIELD_OFFSET(MetricGauge, _impl_.metadata_)}},
+        // .ppx.metrics.reporting.GaugeStatistics statistics = 2;
+        {::_pbi::TcParser::FastMtS1,
+         {18, 1, 1, PROTOBUF_FIELD_OFFSET(MetricGauge, _impl_.statistics_)}},
+        // repeated .ppx.metrics.reporting.TimeSeriesEntry time_series = 3;
+        {::_pbi::TcParser::FastMtR1,
+         {26, 63, 2, PROTOBUF_FIELD_OFFSET(MetricGauge, _impl_.time_series_)}},
+    }},
+    {{65535, 65535}},
+    {{
+        // .ppx.metrics.reporting.MetricMetadata metadata = 1;
+        {PROTOBUF_FIELD_OFFSET(MetricGauge, _impl_.metadata_), _Internal::kHasBitsOffset + 0, 0, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+        // .ppx.metrics.reporting.GaugeStatistics statistics = 2;
+        {PROTOBUF_FIELD_OFFSET(MetricGauge, _impl_.statistics_), _Internal::kHasBitsOffset + 1, 1, (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+        // repeated .ppx.metrics.reporting.TimeSeriesEntry time_series = 3;
+        {PROTOBUF_FIELD_OFFSET(MetricGauge, _impl_.time_series_), -1, 2, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    }},
+    {{
+        {::_pbi::TcParser::GetTable<::ppx::metrics::reporting::MetricMetadata>()},
+        {::_pbi::TcParser::GetTable<::ppx::metrics::reporting::GaugeStatistics>()},
+        {::_pbi::TcParser::GetTable<::ppx::metrics::reporting::TimeSeriesEntry>()},
+    }},
+    {{}},
 };
 
 ::uint8_t* MetricGauge::_InternalSerialize(
-    ::uint8_t* target, ::google::protobuf::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:ppx.metrics.reporting.MetricGauge)
-  ::uint32_t cached_has_bits = 0;
-  (void)cached_has_bits;
+    ::uint8_t* target, ::google::protobuf::io::EpsCopyOutputStream* stream) const
+{
+    // @@protoc_insertion_point(serialize_to_array_start:ppx.metrics.reporting.MetricGauge)
+    ::uint32_t cached_has_bits = 0;
+    (void)cached_has_bits;
 
-  cached_has_bits = _impl_._has_bits_[0];
-  // .ppx.metrics.reporting.MetricMetadata metadata = 1;
-  if (cached_has_bits & 0x00000001u) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      InternalWriteMessage(1, _Internal::metadata(this),
-        _Internal::metadata(this).GetCachedSize(), target, stream);
-  }
-
-  // .ppx.metrics.reporting.GaugeStatistics statistics = 2;
-  if (cached_has_bits & 0x00000002u) {
-    target = ::google::protobuf::internal::WireFormatLite::
-      InternalWriteMessage(2, _Internal::statistics(this),
-        _Internal::statistics(this).GetCachedSize(), target, stream);
-  }
-
-  // repeated .ppx.metrics.reporting.TimeSeriesEntry time_series = 3;
-  for (unsigned i = 0,
-      n = static_cast<unsigned>(this->_internal_time_series_size()); i < n; i++) {
-    const auto& repfield = this->_internal_time_series().Get(i);
-    target = ::google::protobuf::internal::WireFormatLite::
-        InternalWriteMessage(3, repfield, repfield.GetCachedSize(), target, stream);
-  }
-
-  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    target =
-        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
-            _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
-  }
-  // @@protoc_insertion_point(serialize_to_array_end:ppx.metrics.reporting.MetricGauge)
-  return target;
-}
-
-::size_t MetricGauge::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:ppx.metrics.reporting.MetricGauge)
-  ::size_t total_size = 0;
-
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
-
-  // repeated .ppx.metrics.reporting.TimeSeriesEntry time_series = 3;
-  total_size += 1UL * this->_internal_time_series_size();
-  for (const auto& msg : this->_internal_time_series()) {
-    total_size +=
-      ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
-  }
-  cached_has_bits = _impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000003u) {
+    cached_has_bits = _impl_._has_bits_[0];
     // .ppx.metrics.reporting.MetricMetadata metadata = 1;
     if (cached_has_bits & 0x00000001u) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::MessageSize(
-          *_impl_.metadata_);
+        target = ::google::protobuf::internal::WireFormatLite::
+            InternalWriteMessage(1, _Internal::metadata(this), _Internal::metadata(this).GetCachedSize(), target, stream);
     }
 
     // .ppx.metrics.reporting.GaugeStatistics statistics = 2;
     if (cached_has_bits & 0x00000002u) {
-      total_size += 1 +
-        ::google::protobuf::internal::WireFormatLite::MessageSize(
-          *_impl_.statistics_);
+        target = ::google::protobuf::internal::WireFormatLite::
+            InternalWriteMessage(2, _Internal::statistics(this), _Internal::statistics(this).GetCachedSize(), target, stream);
     }
 
-  }
-  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+    // repeated .ppx.metrics.reporting.TimeSeriesEntry time_series = 3;
+    for (unsigned i = 0,
+                  n = static_cast<unsigned>(this->_internal_time_series_size());
+         i < n;
+         i++) {
+        const auto& repfield = this->_internal_time_series().Get(i);
+        target               = ::google::protobuf::internal::WireFormatLite::
+            InternalWriteMessage(3, repfield, repfield.GetCachedSize(), target, stream);
+    }
+
+    if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+        target =
+            ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+                _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+    }
+    // @@protoc_insertion_point(serialize_to_array_end:ppx.metrics.reporting.MetricGauge)
+    return target;
+}
+
+::size_t MetricGauge::ByteSizeLong() const
+{
+    // @@protoc_insertion_point(message_byte_size_start:ppx.metrics.reporting.MetricGauge)
+    ::size_t total_size = 0;
+
+    ::uint32_t cached_has_bits = 0;
+    // Prevent compiler warnings about cached_has_bits being unused
+    (void)cached_has_bits;
+
+    // repeated .ppx.metrics.reporting.TimeSeriesEntry time_series = 3;
+    total_size += 1UL * this->_internal_time_series_size();
+    for (const auto& msg : this->_internal_time_series()) {
+        total_size +=
+            ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+    }
+    cached_has_bits = _impl_._has_bits_[0];
+    if (cached_has_bits & 0x00000003u) {
+        // .ppx.metrics.reporting.MetricMetadata metadata = 1;
+        if (cached_has_bits & 0x00000001u) {
+            total_size += 1 +
+                          ::google::protobuf::internal::WireFormatLite::MessageSize(
+                              *_impl_.metadata_);
+        }
+
+        // .ppx.metrics.reporting.GaugeStatistics statistics = 2;
+        if (cached_has_bits & 0x00000002u) {
+            total_size += 1 +
+                          ::google::protobuf::internal::WireFormatLite::MessageSize(
+                              *_impl_.statistics_);
+        }
+    }
+    return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
 const ::google::protobuf::Message::ClassData MetricGauge::_class_data_ = {
     ::google::protobuf::Message::CopyWithSourceCheck,
-    MetricGauge::MergeImpl
-};
-const ::google::protobuf::Message::ClassData*MetricGauge::GetClassData() const { return &_class_data_; }
+    MetricGauge::MergeImpl};
+const ::google::protobuf::Message::ClassData* MetricGauge::GetClassData() const
+{
+    return &_class_data_;
+}
 
+void MetricGauge::MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg)
+{
+    auto* const _this = static_cast<MetricGauge*>(&to_msg);
+    auto&       from  = static_cast<const MetricGauge&>(from_msg);
+    // @@protoc_insertion_point(class_specific_merge_from_start:ppx.metrics.reporting.MetricGauge)
+    ABSL_DCHECK_NE(&from, _this);
+    ::uint32_t cached_has_bits = 0;
+    (void)cached_has_bits;
 
-void MetricGauge::MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg) {
-  auto* const _this = static_cast<MetricGauge*>(&to_msg);
-  auto& from = static_cast<const MetricGauge&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:ppx.metrics.reporting.MetricGauge)
-  ABSL_DCHECK_NE(&from, _this);
-  ::uint32_t cached_has_bits = 0;
-  (void) cached_has_bits;
-
-  _this->_internal_mutable_time_series()->MergeFrom(from._internal_time_series());
-  cached_has_bits = from._impl_._has_bits_[0];
-  if (cached_has_bits & 0x00000003u) {
-    if (cached_has_bits & 0x00000001u) {
-      _this->_internal_mutable_metadata()->::ppx::metrics::reporting::MetricMetadata::MergeFrom(
-          from._internal_metadata());
+    _this->_internal_mutable_time_series()->MergeFrom(from._internal_time_series());
+    cached_has_bits = from._impl_._has_bits_[0];
+    if (cached_has_bits & 0x00000003u) {
+        if (cached_has_bits & 0x00000001u) {
+            _this->_internal_mutable_metadata()->::ppx::metrics::reporting::MetricMetadata::MergeFrom(
+                from._internal_metadata());
+        }
+        if (cached_has_bits & 0x00000002u) {
+            _this->_internal_mutable_statistics()->::ppx::metrics::reporting::GaugeStatistics::MergeFrom(
+                from._internal_statistics());
+        }
     }
-    if (cached_has_bits & 0x00000002u) {
-      _this->_internal_mutable_statistics()->::ppx::metrics::reporting::GaugeStatistics::MergeFrom(
-          from._internal_statistics());
-    }
-  }
-  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+    _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
 }
 
-void MetricGauge::CopyFrom(const MetricGauge& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:ppx.metrics.reporting.MetricGauge)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
+void MetricGauge::CopyFrom(const MetricGauge& from)
+{
+    // @@protoc_insertion_point(class_specific_copy_from_start:ppx.metrics.reporting.MetricGauge)
+    if (&from == this)
+        return;
+    Clear();
+    MergeFrom(from);
 }
 
-PROTOBUF_NOINLINE bool MetricGauge::IsInitialized() const {
-  return true;
+PROTOBUF_NOINLINE bool MetricGauge::IsInitialized() const
+{
+    return true;
 }
 
-void MetricGauge::InternalSwap(MetricGauge* other) {
-  using std::swap;
-  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
-  _internal_mutable_time_series()->InternalSwap(other->_internal_mutable_time_series());
-  ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(MetricGauge, _impl_.statistics_)
-      + sizeof(MetricGauge::_impl_.statistics_)
-      - PROTOBUF_FIELD_OFFSET(MetricGauge, _impl_.metadata_)>(
-          reinterpret_cast<char*>(&_impl_.metadata_),
-          reinterpret_cast<char*>(&other->_impl_.metadata_));
+void MetricGauge::InternalSwap(MetricGauge* other)
+{
+    using std::swap;
+    _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+    swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+    _internal_mutable_time_series()->InternalSwap(other->_internal_mutable_time_series());
+    ::google::protobuf::internal::memswap<
+        PROTOBUF_FIELD_OFFSET(MetricGauge, _impl_.statistics_) + sizeof(MetricGauge::_impl_.statistics_) - PROTOBUF_FIELD_OFFSET(MetricGauge, _impl_.metadata_)>(
+        reinterpret_cast<char*>(&_impl_.metadata_),
+        reinterpret_cast<char*>(&other->_impl_.metadata_));
 }
 
-::google::protobuf::Metadata MetricGauge::GetMetadata() const {
-  return ::_pbi::AssignDescriptors(
-      &descriptor_table_metrics_5freport_2eproto_getter, &descriptor_table_metrics_5freport_2eproto_once,
-      file_level_metadata_metrics_5freport_2eproto[5]);
+::google::protobuf::Metadata MetricGauge::GetMetadata() const
+{
+    return ::_pbi::AssignDescriptors(
+        &descriptor_table_metrics_5freport_2eproto_getter, &descriptor_table_metrics_5freport_2eproto_once, file_level_metadata_metrics_5freport_2eproto[5]);
 }
 // ===================================================================
 
-class Run::_Internal {
- public:
+class Run::_Internal
+{
+public:
 };
 
 Run::Run(::google::protobuf::Arena* arena)
-    : ::google::protobuf::Message(arena) {
-  SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:ppx.metrics.reporting.Run)
+    : ::google::protobuf::Message(arena)
+{
+    SharedCtor(arena);
+    // @@protoc_insertion_point(arena_constructor:ppx.metrics.reporting.Run)
 }
-Run::Run(const Run& from) : ::google::protobuf::Message() {
-  Run* const _this = this;
-  (void)_this;
-  new (&_impl_) Impl_{
-      decltype(_impl_.counters_){from._impl_.counters_},
-      decltype(_impl_.gauges_){from._impl_.gauges_},
-      decltype(_impl_.name_){},
-      /*decltype(_impl_._cached_size_)*/ {},
-  };
-  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-  _impl_.name_.InitDefault();
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-        _impl_.name_.Set("", GetArenaForAllocation());
-  #endif  // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (!from._internal_name().empty()) {
-    _this->_impl_.name_.Set(from._internal_name(), _this->GetArenaForAllocation());
-  }
+Run::Run(const Run& from)
+    : ::google::protobuf::Message()
+{
+    Run* const _this = this;
+    (void)_this;
+    new (&_impl_) Impl_{
+        decltype(_impl_.counters_){from._impl_.counters_},
+        decltype(_impl_.gauges_){from._impl_.gauges_},
+        decltype(_impl_.name_){},
+        /*decltype(_impl_._cached_size_)*/ {},
+    };
+    _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+        from._internal_metadata_);
+    _impl_.name_.InitDefault();
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.name_.Set("", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    if (!from._internal_name().empty()) {
+        _this->_impl_.name_.Set(from._internal_name(), _this->GetArenaForAllocation());
+    }
 
-  // @@protoc_insertion_point(copy_constructor:ppx.metrics.reporting.Run)
+    // @@protoc_insertion_point(copy_constructor:ppx.metrics.reporting.Run)
 }
-inline void Run::SharedCtor(::_pb::Arena* arena) {
-  (void)arena;
-  new (&_impl_) Impl_{
-      decltype(_impl_.counters_){arena},
-      decltype(_impl_.gauges_){arena},
-      decltype(_impl_.name_){},
-      /*decltype(_impl_._cached_size_)*/ {},
-  };
-  _impl_.name_.InitDefault();
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-        _impl_.name_.Set("", GetArenaForAllocation());
-  #endif  // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+inline void Run::SharedCtor(::_pb::Arena* arena)
+{
+    (void)arena;
+    new (&_impl_) Impl_{
+        decltype(_impl_.counters_){arena},
+        decltype(_impl_.gauges_){arena},
+        decltype(_impl_.name_){},
+        /*decltype(_impl_._cached_size_)*/ {},
+    };
+    _impl_.name_.InitDefault();
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.name_.Set("", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 }
-Run::~Run() {
-  // @@protoc_insertion_point(destructor:ppx.metrics.reporting.Run)
-  _internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
-  SharedDtor();
+Run::~Run()
+{
+    // @@protoc_insertion_point(destructor:ppx.metrics.reporting.Run)
+    _internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+    SharedDtor();
 }
-inline void Run::SharedDtor() {
-  ABSL_DCHECK(GetArenaForAllocation() == nullptr);
-  _impl_.counters_.~RepeatedPtrField();
-  _impl_.gauges_.~RepeatedPtrField();
-  _impl_.name_.Destroy();
+inline void Run::SharedDtor()
+{
+    ABSL_DCHECK(GetArenaForAllocation() == nullptr);
+    _impl_.counters_.~RepeatedPtrField();
+    _impl_.gauges_.~RepeatedPtrField();
+    _impl_.name_.Destroy();
 }
-void Run::SetCachedSize(int size) const {
-  _impl_._cached_size_.Set(size);
+void Run::SetCachedSize(int size) const
+{
+    _impl_._cached_size_.Set(size);
 }
 
-PROTOBUF_NOINLINE void Run::Clear() {
-// @@protoc_insertion_point(message_clear_start:ppx.metrics.reporting.Run)
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
+PROTOBUF_NOINLINE void Run::Clear()
+{
+    // @@protoc_insertion_point(message_clear_start:ppx.metrics.reporting.Run)
+    ::uint32_t cached_has_bits = 0;
+    // Prevent compiler warnings about cached_has_bits being unused
+    (void)cached_has_bits;
 
-  _internal_mutable_counters()->Clear();
-  _internal_mutable_gauges()->Clear();
-  _impl_.name_.ClearToEmpty();
-  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+    _internal_mutable_counters()->Clear();
+    _internal_mutable_gauges()->Clear();
+    _impl_.name_.ClearToEmpty();
+    _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
 
 const char* Run::_InternalParse(
-    const char* ptr, ::_pbi::ParseContext* ctx) {
-  ptr = ::_pbi::TcParser::ParseLoop(this, ptr, ctx, &_table_.header);
-  return ptr;
+    const char* ptr, ::_pbi::ParseContext* ctx)
+{
+    ptr = ::_pbi::TcParser::ParseLoop(this, ptr, ctx, &_table_.header);
+    return ptr;
 }
 
-
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<2, 3, 2, 38, 2> Run::_table_ = {
-  {
-    0,  // no _has_bits_
-    0, // no _extensions_
-    3, 24,  // max_field_number, fast_idx_mask
-    offsetof(decltype(_table_), field_lookup_table),
-    4294967288,  // skipmap
-    offsetof(decltype(_table_), field_entries),
-    3,  // num_field_entries
-    2,  // num_aux_entries
-    offsetof(decltype(_table_), aux_entries),
-    &_Run_default_instance_._instance,
-    ::_pbi::TcParser::GenericFallback,  // fallback
-  }, {{
-    {::_pbi::TcParser::MiniParse, {}},
-    // string name = 1;
-    {::_pbi::TcParser::FastUS1,
-     {10, 63, 0, PROTOBUF_FIELD_OFFSET(Run, _impl_.name_)}},
-    // repeated .ppx.metrics.reporting.MetricCounter counters = 2;
-    {::_pbi::TcParser::FastMtR1,
-     {18, 63, 0, PROTOBUF_FIELD_OFFSET(Run, _impl_.counters_)}},
-    // repeated .ppx.metrics.reporting.MetricGauge gauges = 3;
-    {::_pbi::TcParser::FastMtR1,
-     {26, 63, 1, PROTOBUF_FIELD_OFFSET(Run, _impl_.gauges_)}},
-  }}, {{
-    65535, 65535
-  }}, {{
-    // string name = 1;
-    {PROTOBUF_FIELD_OFFSET(Run, _impl_.name_), 0, 0,
-    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // repeated .ppx.metrics.reporting.MetricCounter counters = 2;
-    {PROTOBUF_FIELD_OFFSET(Run, _impl_.counters_), 0, 0,
-    (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
-    // repeated .ppx.metrics.reporting.MetricGauge gauges = 3;
-    {PROTOBUF_FIELD_OFFSET(Run, _impl_.gauges_), 0, 1,
-    (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
-  }}, {{
-    {::_pbi::TcParser::GetTable<::ppx::metrics::reporting::MetricCounter>()},
-    {::_pbi::TcParser::GetTable<::ppx::metrics::reporting::MetricGauge>()},
-  }}, {{
-    "\31\4\0\0\0\0\0\0"
-    "ppx.metrics.reporting.Run"
-    "name"
-  }},
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const ::_pbi::TcParseTable<2, 3, 2, 38, 2> Run::_table_ = {
+    {
+        0, // no _has_bits_
+        0, // no _extensions_
+        3,
+        24, // max_field_number, fast_idx_mask
+        offsetof(decltype(_table_), field_lookup_table),
+        4294967288, // skipmap
+        offsetof(decltype(_table_), field_entries),
+        3, // num_field_entries
+        2, // num_aux_entries
+        offsetof(decltype(_table_), aux_entries),
+        &_Run_default_instance_._instance,
+        ::_pbi::TcParser::GenericFallback, // fallback
+    },
+    {{
+        {::_pbi::TcParser::MiniParse, {}},
+        // string name = 1;
+        {::_pbi::TcParser::FastUS1,
+         {10, 63, 0, PROTOBUF_FIELD_OFFSET(Run, _impl_.name_)}},
+        // repeated .ppx.metrics.reporting.MetricCounter counters = 2;
+        {::_pbi::TcParser::FastMtR1,
+         {18, 63, 0, PROTOBUF_FIELD_OFFSET(Run, _impl_.counters_)}},
+        // repeated .ppx.metrics.reporting.MetricGauge gauges = 3;
+        {::_pbi::TcParser::FastMtR1,
+         {26, 63, 1, PROTOBUF_FIELD_OFFSET(Run, _impl_.gauges_)}},
+    }},
+    {{65535, 65535}},
+    {{
+        // string name = 1;
+        {PROTOBUF_FIELD_OFFSET(Run, _impl_.name_), 0, 0, (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+        // repeated .ppx.metrics.reporting.MetricCounter counters = 2;
+        {PROTOBUF_FIELD_OFFSET(Run, _impl_.counters_), 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+        // repeated .ppx.metrics.reporting.MetricGauge gauges = 3;
+        {PROTOBUF_FIELD_OFFSET(Run, _impl_.gauges_), 0, 1, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    }},
+    {{
+        {::_pbi::TcParser::GetTable<::ppx::metrics::reporting::MetricCounter>()},
+        {::_pbi::TcParser::GetTable<::ppx::metrics::reporting::MetricGauge>()},
+    }},
+    {{"\31\4\0\0\0\0\0\0"
+      "ppx.metrics.reporting.Run"
+      "name"}},
 };
 
 ::uint8_t* Run::_InternalSerialize(
-    ::uint8_t* target, ::google::protobuf::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:ppx.metrics.reporting.Run)
-  ::uint32_t cached_has_bits = 0;
-  (void)cached_has_bits;
+    ::uint8_t* target, ::google::protobuf::io::EpsCopyOutputStream* stream) const
+{
+    // @@protoc_insertion_point(serialize_to_array_start:ppx.metrics.reporting.Run)
+    ::uint32_t cached_has_bits = 0;
+    (void)cached_has_bits;
 
-  // string name = 1;
-  if (!this->_internal_name().empty()) {
-    const std::string& _s = this->_internal_name();
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-        _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "ppx.metrics.reporting.Run.name");
-    target = stream->WriteStringMaybeAliased(1, _s, target);
-  }
+    // string name = 1;
+    if (!this->_internal_name().empty()) {
+        const std::string& _s = this->_internal_name();
+        ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+            _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "ppx.metrics.reporting.Run.name");
+        target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
 
-  // repeated .ppx.metrics.reporting.MetricCounter counters = 2;
-  for (unsigned i = 0,
-      n = static_cast<unsigned>(this->_internal_counters_size()); i < n; i++) {
-    const auto& repfield = this->_internal_counters().Get(i);
-    target = ::google::protobuf::internal::WireFormatLite::
-        InternalWriteMessage(2, repfield, repfield.GetCachedSize(), target, stream);
-  }
+    // repeated .ppx.metrics.reporting.MetricCounter counters = 2;
+    for (unsigned i = 0,
+                  n = static_cast<unsigned>(this->_internal_counters_size());
+         i < n;
+         i++) {
+        const auto& repfield = this->_internal_counters().Get(i);
+        target               = ::google::protobuf::internal::WireFormatLite::
+            InternalWriteMessage(2, repfield, repfield.GetCachedSize(), target, stream);
+    }
 
-  // repeated .ppx.metrics.reporting.MetricGauge gauges = 3;
-  for (unsigned i = 0,
-      n = static_cast<unsigned>(this->_internal_gauges_size()); i < n; i++) {
-    const auto& repfield = this->_internal_gauges().Get(i);
-    target = ::google::protobuf::internal::WireFormatLite::
-        InternalWriteMessage(3, repfield, repfield.GetCachedSize(), target, stream);
-  }
+    // repeated .ppx.metrics.reporting.MetricGauge gauges = 3;
+    for (unsigned i = 0,
+                  n = static_cast<unsigned>(this->_internal_gauges_size());
+         i < n;
+         i++) {
+        const auto& repfield = this->_internal_gauges().Get(i);
+        target               = ::google::protobuf::internal::WireFormatLite::
+            InternalWriteMessage(3, repfield, repfield.GetCachedSize(), target, stream);
+    }
 
-  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    target =
-        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
-            _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
-  }
-  // @@protoc_insertion_point(serialize_to_array_end:ppx.metrics.reporting.Run)
-  return target;
+    if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+        target =
+            ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+                _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+    }
+    // @@protoc_insertion_point(serialize_to_array_end:ppx.metrics.reporting.Run)
+    return target;
 }
 
-::size_t Run::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:ppx.metrics.reporting.Run)
-  ::size_t total_size = 0;
+::size_t Run::ByteSizeLong() const
+{
+    // @@protoc_insertion_point(message_byte_size_start:ppx.metrics.reporting.Run)
+    ::size_t total_size = 0;
 
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
+    ::uint32_t cached_has_bits = 0;
+    // Prevent compiler warnings about cached_has_bits being unused
+    (void)cached_has_bits;
 
-  // repeated .ppx.metrics.reporting.MetricCounter counters = 2;
-  total_size += 1UL * this->_internal_counters_size();
-  for (const auto& msg : this->_internal_counters()) {
-    total_size +=
-      ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
-  }
-  // repeated .ppx.metrics.reporting.MetricGauge gauges = 3;
-  total_size += 1UL * this->_internal_gauges_size();
-  for (const auto& msg : this->_internal_gauges()) {
-    total_size +=
-      ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
-  }
-  // string name = 1;
-  if (!this->_internal_name().empty()) {
-    total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                    this->_internal_name());
-  }
+    // repeated .ppx.metrics.reporting.MetricCounter counters = 2;
+    total_size += 1UL * this->_internal_counters_size();
+    for (const auto& msg : this->_internal_counters()) {
+        total_size +=
+            ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+    }
+    // repeated .ppx.metrics.reporting.MetricGauge gauges = 3;
+    total_size += 1UL * this->_internal_gauges_size();
+    for (const auto& msg : this->_internal_gauges()) {
+        total_size +=
+            ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+    }
+    // string name = 1;
+    if (!this->_internal_name().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                              this->_internal_name());
+    }
 
-  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+    return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
 const ::google::protobuf::Message::ClassData Run::_class_data_ = {
     ::google::protobuf::Message::CopyWithSourceCheck,
-    Run::MergeImpl
-};
-const ::google::protobuf::Message::ClassData*Run::GetClassData() const { return &_class_data_; }
-
-
-void Run::MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg) {
-  auto* const _this = static_cast<Run*>(&to_msg);
-  auto& from = static_cast<const Run&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:ppx.metrics.reporting.Run)
-  ABSL_DCHECK_NE(&from, _this);
-  ::uint32_t cached_has_bits = 0;
-  (void) cached_has_bits;
-
-  _this->_internal_mutable_counters()->MergeFrom(from._internal_counters());
-  _this->_internal_mutable_gauges()->MergeFrom(from._internal_gauges());
-  if (!from._internal_name().empty()) {
-    _this->_internal_set_name(from._internal_name());
-  }
-  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+    Run::MergeImpl};
+const ::google::protobuf::Message::ClassData* Run::GetClassData() const
+{
+    return &_class_data_;
 }
 
-void Run::CopyFrom(const Run& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:ppx.metrics.reporting.Run)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
+void Run::MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg)
+{
+    auto* const _this = static_cast<Run*>(&to_msg);
+    auto&       from  = static_cast<const Run&>(from_msg);
+    // @@protoc_insertion_point(class_specific_merge_from_start:ppx.metrics.reporting.Run)
+    ABSL_DCHECK_NE(&from, _this);
+    ::uint32_t cached_has_bits = 0;
+    (void)cached_has_bits;
+
+    _this->_internal_mutable_counters()->MergeFrom(from._internal_counters());
+    _this->_internal_mutable_gauges()->MergeFrom(from._internal_gauges());
+    if (!from._internal_name().empty()) {
+        _this->_internal_set_name(from._internal_name());
+    }
+    _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
 }
 
-PROTOBUF_NOINLINE bool Run::IsInitialized() const {
-  return true;
+void Run::CopyFrom(const Run& from)
+{
+    // @@protoc_insertion_point(class_specific_copy_from_start:ppx.metrics.reporting.Run)
+    if (&from == this)
+        return;
+    Clear();
+    MergeFrom(from);
 }
 
-void Run::InternalSwap(Run* other) {
-  using std::swap;
-  auto* lhs_arena = GetArenaForAllocation();
-  auto* rhs_arena = other->GetArenaForAllocation();
-  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  _internal_mutable_counters()->InternalSwap(other->_internal_mutable_counters());
-  _internal_mutable_gauges()->InternalSwap(other->_internal_mutable_gauges());
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.name_, lhs_arena,
-                                       &other->_impl_.name_, rhs_arena);
+PROTOBUF_NOINLINE bool Run::IsInitialized() const
+{
+    return true;
 }
 
-::google::protobuf::Metadata Run::GetMetadata() const {
-  return ::_pbi::AssignDescriptors(
-      &descriptor_table_metrics_5freport_2eproto_getter, &descriptor_table_metrics_5freport_2eproto_once,
-      file_level_metadata_metrics_5freport_2eproto[6]);
+void Run::InternalSwap(Run* other)
+{
+    using std::swap;
+    auto* lhs_arena = GetArenaForAllocation();
+    auto* rhs_arena = other->GetArenaForAllocation();
+    _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+    _internal_mutable_counters()->InternalSwap(other->_internal_mutable_counters());
+    _internal_mutable_gauges()->InternalSwap(other->_internal_mutable_gauges());
+    ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.name_, lhs_arena, &other->_impl_.name_, rhs_arena);
+}
+
+::google::protobuf::Metadata Run::GetMetadata() const
+{
+    return ::_pbi::AssignDescriptors(
+        &descriptor_table_metrics_5freport_2eproto_getter, &descriptor_table_metrics_5freport_2eproto_once, file_level_metadata_metrics_5freport_2eproto[6]);
 }
 // ===================================================================
 
-class Report::_Internal {
- public:
+class Report::_Internal
+{
+public:
 };
 
 Report::Report(::google::protobuf::Arena* arena)
-    : ::google::protobuf::Message(arena) {
-  SharedCtor(arena);
-  // @@protoc_insertion_point(arena_constructor:ppx.metrics.reporting.Report)
+    : ::google::protobuf::Message(arena)
+{
+    SharedCtor(arena);
+    // @@protoc_insertion_point(arena_constructor:ppx.metrics.reporting.Report)
 }
-Report::Report(const Report& from) : ::google::protobuf::Message() {
-  Report* const _this = this;
-  (void)_this;
-  new (&_impl_) Impl_{
-      decltype(_impl_.runs_){from._impl_.runs_},
-      decltype(_impl_.name_){},
-      /*decltype(_impl_._cached_size_)*/ {},
-  };
-  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
-      from._internal_metadata_);
-  _impl_.name_.InitDefault();
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-        _impl_.name_.Set("", GetArenaForAllocation());
-  #endif  // PROTOBUF_FORCE_COPY_DEFAULT_STRING
-  if (!from._internal_name().empty()) {
-    _this->_impl_.name_.Set(from._internal_name(), _this->GetArenaForAllocation());
-  }
+Report::Report(const Report& from)
+    : ::google::protobuf::Message()
+{
+    Report* const _this = this;
+    (void)_this;
+    new (&_impl_) Impl_{
+        decltype(_impl_.runs_){from._impl_.runs_},
+        decltype(_impl_.name_){},
+        /*decltype(_impl_._cached_size_)*/ {},
+    };
+    _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+        from._internal_metadata_);
+    _impl_.name_.InitDefault();
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.name_.Set("", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    if (!from._internal_name().empty()) {
+        _this->_impl_.name_.Set(from._internal_name(), _this->GetArenaForAllocation());
+    }
 
-  // @@protoc_insertion_point(copy_constructor:ppx.metrics.reporting.Report)
+    // @@protoc_insertion_point(copy_constructor:ppx.metrics.reporting.Report)
 }
-inline void Report::SharedCtor(::_pb::Arena* arena) {
-  (void)arena;
-  new (&_impl_) Impl_{
-      decltype(_impl_.runs_){arena},
-      decltype(_impl_.name_){},
-      /*decltype(_impl_._cached_size_)*/ {},
-  };
-  _impl_.name_.InitDefault();
-  #ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
-        _impl_.name_.Set("", GetArenaForAllocation());
-  #endif  // PROTOBUF_FORCE_COPY_DEFAULT_STRING
+inline void Report::SharedCtor(::_pb::Arena* arena)
+{
+    (void)arena;
+    new (&_impl_) Impl_{
+        decltype(_impl_.runs_){arena},
+        decltype(_impl_.name_){},
+        /*decltype(_impl_._cached_size_)*/ {},
+    };
+    _impl_.name_.InitDefault();
+#ifdef PROTOBUF_FORCE_COPY_DEFAULT_STRING
+    _impl_.name_.Set("", GetArenaForAllocation());
+#endif // PROTOBUF_FORCE_COPY_DEFAULT_STRING
 }
-Report::~Report() {
-  // @@protoc_insertion_point(destructor:ppx.metrics.reporting.Report)
-  _internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
-  SharedDtor();
+Report::~Report()
+{
+    // @@protoc_insertion_point(destructor:ppx.metrics.reporting.Report)
+    _internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+    SharedDtor();
 }
-inline void Report::SharedDtor() {
-  ABSL_DCHECK(GetArenaForAllocation() == nullptr);
-  _impl_.runs_.~RepeatedPtrField();
-  _impl_.name_.Destroy();
+inline void Report::SharedDtor()
+{
+    ABSL_DCHECK(GetArenaForAllocation() == nullptr);
+    _impl_.runs_.~RepeatedPtrField();
+    _impl_.name_.Destroy();
 }
-void Report::SetCachedSize(int size) const {
-  _impl_._cached_size_.Set(size);
+void Report::SetCachedSize(int size) const
+{
+    _impl_._cached_size_.Set(size);
 }
 
-PROTOBUF_NOINLINE void Report::Clear() {
-// @@protoc_insertion_point(message_clear_start:ppx.metrics.reporting.Report)
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
+PROTOBUF_NOINLINE void Report::Clear()
+{
+    // @@protoc_insertion_point(message_clear_start:ppx.metrics.reporting.Report)
+    ::uint32_t cached_has_bits = 0;
+    // Prevent compiler warnings about cached_has_bits being unused
+    (void)cached_has_bits;
 
-  _internal_mutable_runs()->Clear();
-  _impl_.name_.ClearToEmpty();
-  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+    _internal_mutable_runs()->Clear();
+    _impl_.name_.ClearToEmpty();
+    _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
 
 const char* Report::_InternalParse(
-    const char* ptr, ::_pbi::ParseContext* ctx) {
-  ptr = ::_pbi::TcParser::ParseLoop(this, ptr, ctx, &_table_.header);
-  return ptr;
+    const char* ptr, ::_pbi::ParseContext* ctx)
+{
+    ptr = ::_pbi::TcParser::ParseLoop(this, ptr, ctx, &_table_.header);
+    return ptr;
 }
 
-
-PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 1, 41, 2> Report::_table_ = {
-  {
-    0,  // no _has_bits_
-    0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
-    offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
-    offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
-    1,  // num_aux_entries
-    offsetof(decltype(_table_), aux_entries),
-    &_Report_default_instance_._instance,
-    ::_pbi::TcParser::GenericFallback,  // fallback
-  }, {{
-    // repeated .ppx.metrics.reporting.Run runs = 2;
-    {::_pbi::TcParser::FastMtR1,
-     {18, 63, 0, PROTOBUF_FIELD_OFFSET(Report, _impl_.runs_)}},
-    // string name = 1;
-    {::_pbi::TcParser::FastUS1,
-     {10, 63, 0, PROTOBUF_FIELD_OFFSET(Report, _impl_.name_)}},
-  }}, {{
-    65535, 65535
-  }}, {{
-    // string name = 1;
-    {PROTOBUF_FIELD_OFFSET(Report, _impl_.name_), 0, 0,
-    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
-    // repeated .ppx.metrics.reporting.Run runs = 2;
-    {PROTOBUF_FIELD_OFFSET(Report, _impl_.runs_), 0, 0,
-    (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
-  }}, {{
-    {::_pbi::TcParser::GetTable<::ppx::metrics::reporting::Run>()},
-  }}, {{
-    "\34\4\0\0\0\0\0\0"
-    "ppx.metrics.reporting.Report"
-    "name"
-  }},
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 const ::_pbi::TcParseTable<1, 2, 1, 41, 2> Report::_table_ = {
+    {
+        0, // no _has_bits_
+        0, // no _extensions_
+        2,
+        8, // max_field_number, fast_idx_mask
+        offsetof(decltype(_table_), field_lookup_table),
+        4294967292, // skipmap
+        offsetof(decltype(_table_), field_entries),
+        2, // num_field_entries
+        1, // num_aux_entries
+        offsetof(decltype(_table_), aux_entries),
+        &_Report_default_instance_._instance,
+        ::_pbi::TcParser::GenericFallback, // fallback
+    },
+    {{
+        // repeated .ppx.metrics.reporting.Run runs = 2;
+        {::_pbi::TcParser::FastMtR1,
+         {18, 63, 0, PROTOBUF_FIELD_OFFSET(Report, _impl_.runs_)}},
+        // string name = 1;
+        {::_pbi::TcParser::FastUS1,
+         {10, 63, 0, PROTOBUF_FIELD_OFFSET(Report, _impl_.name_)}},
+    }},
+    {{65535, 65535}},
+    {{
+        // string name = 1;
+        {PROTOBUF_FIELD_OFFSET(Report, _impl_.name_), 0, 0, (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+        // repeated .ppx.metrics.reporting.Run runs = 2;
+        {PROTOBUF_FIELD_OFFSET(Report, _impl_.runs_), 0, 0, (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    }},
+    {{
+        {::_pbi::TcParser::GetTable<::ppx::metrics::reporting::Run>()},
+    }},
+    {{"\34\4\0\0\0\0\0\0"
+      "ppx.metrics.reporting.Report"
+      "name"}},
 };
 
 ::uint8_t* Report::_InternalSerialize(
-    ::uint8_t* target, ::google::protobuf::io::EpsCopyOutputStream* stream) const {
-  // @@protoc_insertion_point(serialize_to_array_start:ppx.metrics.reporting.Report)
-  ::uint32_t cached_has_bits = 0;
-  (void)cached_has_bits;
+    ::uint8_t* target, ::google::protobuf::io::EpsCopyOutputStream* stream) const
+{
+    // @@protoc_insertion_point(serialize_to_array_start:ppx.metrics.reporting.Report)
+    ::uint32_t cached_has_bits = 0;
+    (void)cached_has_bits;
 
-  // string name = 1;
-  if (!this->_internal_name().empty()) {
-    const std::string& _s = this->_internal_name();
-    ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
-        _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "ppx.metrics.reporting.Report.name");
-    target = stream->WriteStringMaybeAliased(1, _s, target);
-  }
+    // string name = 1;
+    if (!this->_internal_name().empty()) {
+        const std::string& _s = this->_internal_name();
+        ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+            _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "ppx.metrics.reporting.Report.name");
+        target = stream->WriteStringMaybeAliased(1, _s, target);
+    }
 
-  // repeated .ppx.metrics.reporting.Run runs = 2;
-  for (unsigned i = 0,
-      n = static_cast<unsigned>(this->_internal_runs_size()); i < n; i++) {
-    const auto& repfield = this->_internal_runs().Get(i);
-    target = ::google::protobuf::internal::WireFormatLite::
-        InternalWriteMessage(2, repfield, repfield.GetCachedSize(), target, stream);
-  }
+    // repeated .ppx.metrics.reporting.Run runs = 2;
+    for (unsigned i = 0,
+                  n = static_cast<unsigned>(this->_internal_runs_size());
+         i < n;
+         i++) {
+        const auto& repfield = this->_internal_runs().Get(i);
+        target               = ::google::protobuf::internal::WireFormatLite::
+            InternalWriteMessage(2, repfield, repfield.GetCachedSize(), target, stream);
+    }
 
-  if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
-    target =
-        ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
-            _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
-  }
-  // @@protoc_insertion_point(serialize_to_array_end:ppx.metrics.reporting.Report)
-  return target;
+    if (PROTOBUF_PREDICT_FALSE(_internal_metadata_.have_unknown_fields())) {
+        target =
+            ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+                _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+    }
+    // @@protoc_insertion_point(serialize_to_array_end:ppx.metrics.reporting.Report)
+    return target;
 }
 
-::size_t Report::ByteSizeLong() const {
-// @@protoc_insertion_point(message_byte_size_start:ppx.metrics.reporting.Report)
-  ::size_t total_size = 0;
+::size_t Report::ByteSizeLong() const
+{
+    // @@protoc_insertion_point(message_byte_size_start:ppx.metrics.reporting.Report)
+    ::size_t total_size = 0;
 
-  ::uint32_t cached_has_bits = 0;
-  // Prevent compiler warnings about cached_has_bits being unused
-  (void) cached_has_bits;
+    ::uint32_t cached_has_bits = 0;
+    // Prevent compiler warnings about cached_has_bits being unused
+    (void)cached_has_bits;
 
-  // repeated .ppx.metrics.reporting.Run runs = 2;
-  total_size += 1UL * this->_internal_runs_size();
-  for (const auto& msg : this->_internal_runs()) {
-    total_size +=
-      ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
-  }
-  // string name = 1;
-  if (!this->_internal_name().empty()) {
-    total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
-                                    this->_internal_name());
-  }
+    // repeated .ppx.metrics.reporting.Run runs = 2;
+    total_size += 1UL * this->_internal_runs_size();
+    for (const auto& msg : this->_internal_runs()) {
+        total_size +=
+            ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+    }
+    // string name = 1;
+    if (!this->_internal_name().empty()) {
+        total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                              this->_internal_name());
+    }
 
-  return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
+    return MaybeComputeUnknownFieldsSize(total_size, &_impl_._cached_size_);
 }
 
 const ::google::protobuf::Message::ClassData Report::_class_data_ = {
     ::google::protobuf::Message::CopyWithSourceCheck,
-    Report::MergeImpl
-};
-const ::google::protobuf::Message::ClassData*Report::GetClassData() const { return &_class_data_; }
-
-
-void Report::MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg) {
-  auto* const _this = static_cast<Report*>(&to_msg);
-  auto& from = static_cast<const Report&>(from_msg);
-  // @@protoc_insertion_point(class_specific_merge_from_start:ppx.metrics.reporting.Report)
-  ABSL_DCHECK_NE(&from, _this);
-  ::uint32_t cached_has_bits = 0;
-  (void) cached_has_bits;
-
-  _this->_internal_mutable_runs()->MergeFrom(from._internal_runs());
-  if (!from._internal_name().empty()) {
-    _this->_internal_set_name(from._internal_name());
-  }
-  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+    Report::MergeImpl};
+const ::google::protobuf::Message::ClassData* Report::GetClassData() const
+{
+    return &_class_data_;
 }
 
-void Report::CopyFrom(const Report& from) {
-// @@protoc_insertion_point(class_specific_copy_from_start:ppx.metrics.reporting.Report)
-  if (&from == this) return;
-  Clear();
-  MergeFrom(from);
+void Report::MergeImpl(::google::protobuf::Message& to_msg, const ::google::protobuf::Message& from_msg)
+{
+    auto* const _this = static_cast<Report*>(&to_msg);
+    auto&       from  = static_cast<const Report&>(from_msg);
+    // @@protoc_insertion_point(class_specific_merge_from_start:ppx.metrics.reporting.Report)
+    ABSL_DCHECK_NE(&from, _this);
+    ::uint32_t cached_has_bits = 0;
+    (void)cached_has_bits;
+
+    _this->_internal_mutable_runs()->MergeFrom(from._internal_runs());
+    if (!from._internal_name().empty()) {
+        _this->_internal_set_name(from._internal_name());
+    }
+    _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
 }
 
-PROTOBUF_NOINLINE bool Report::IsInitialized() const {
-  return true;
+void Report::CopyFrom(const Report& from)
+{
+    // @@protoc_insertion_point(class_specific_copy_from_start:ppx.metrics.reporting.Report)
+    if (&from == this)
+        return;
+    Clear();
+    MergeFrom(from);
 }
 
-void Report::InternalSwap(Report* other) {
-  using std::swap;
-  auto* lhs_arena = GetArenaForAllocation();
-  auto* rhs_arena = other->GetArenaForAllocation();
-  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
-  _internal_mutable_runs()->InternalSwap(other->_internal_mutable_runs());
-  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.name_, lhs_arena,
-                                       &other->_impl_.name_, rhs_arena);
+PROTOBUF_NOINLINE bool Report::IsInitialized() const
+{
+    return true;
 }
 
-::google::protobuf::Metadata Report::GetMetadata() const {
-  return ::_pbi::AssignDescriptors(
-      &descriptor_table_metrics_5freport_2eproto_getter, &descriptor_table_metrics_5freport_2eproto_once,
-      file_level_metadata_metrics_5freport_2eproto[7]);
+void Report::InternalSwap(Report* other)
+{
+    using std::swap;
+    auto* lhs_arena = GetArenaForAllocation();
+    auto* rhs_arena = other->GetArenaForAllocation();
+    _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+    _internal_mutable_runs()->InternalSwap(other->_internal_mutable_runs());
+    ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.name_, lhs_arena, &other->_impl_.name_, rhs_arena);
+}
+
+::google::protobuf::Metadata Report::GetMetadata() const
+{
+    return ::_pbi::AssignDescriptors(
+        &descriptor_table_metrics_5freport_2eproto_getter, &descriptor_table_metrics_5freport_2eproto_once, file_level_metadata_metrics_5freport_2eproto[7]);
 }
 // @@protoc_insertion_point(namespace_scope)
-}  // namespace reporting
-}  // namespace metrics
-}  // namespace ppx
+} // namespace reporting
+} // namespace metrics
+} // namespace ppx
 namespace google {
 namespace protobuf {
-template<> PROTOBUF_NOINLINE ::ppx::metrics::reporting::Range*
-Arena::CreateMaybeMessage< ::ppx::metrics::reporting::Range >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::ppx::metrics::reporting::Range >(arena);
+template <>
+PROTOBUF_NOINLINE ::ppx::metrics::reporting::Range*
+Arena::CreateMaybeMessage<::ppx::metrics::reporting::Range>(Arena* arena)
+{
+    return Arena::CreateMessageInternal<::ppx::metrics::reporting::Range>(arena);
 }
-template<> PROTOBUF_NOINLINE ::ppx::metrics::reporting::MetricMetadata*
-Arena::CreateMaybeMessage< ::ppx::metrics::reporting::MetricMetadata >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::ppx::metrics::reporting::MetricMetadata >(arena);
+template <>
+PROTOBUF_NOINLINE ::ppx::metrics::reporting::MetricMetadata*
+Arena::CreateMaybeMessage<::ppx::metrics::reporting::MetricMetadata>(Arena* arena)
+{
+    return Arena::CreateMessageInternal<::ppx::metrics::reporting::MetricMetadata>(arena);
 }
-template<> PROTOBUF_NOINLINE ::ppx::metrics::reporting::MetricCounter*
-Arena::CreateMaybeMessage< ::ppx::metrics::reporting::MetricCounter >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::ppx::metrics::reporting::MetricCounter >(arena);
+template <>
+PROTOBUF_NOINLINE ::ppx::metrics::reporting::MetricCounter*
+Arena::CreateMaybeMessage<::ppx::metrics::reporting::MetricCounter>(Arena* arena)
+{
+    return Arena::CreateMessageInternal<::ppx::metrics::reporting::MetricCounter>(arena);
 }
-template<> PROTOBUF_NOINLINE ::ppx::metrics::reporting::GaugeStatistics*
-Arena::CreateMaybeMessage< ::ppx::metrics::reporting::GaugeStatistics >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::ppx::metrics::reporting::GaugeStatistics >(arena);
+template <>
+PROTOBUF_NOINLINE ::ppx::metrics::reporting::GaugeStatistics*
+Arena::CreateMaybeMessage<::ppx::metrics::reporting::GaugeStatistics>(Arena* arena)
+{
+    return Arena::CreateMessageInternal<::ppx::metrics::reporting::GaugeStatistics>(arena);
 }
-template<> PROTOBUF_NOINLINE ::ppx::metrics::reporting::TimeSeriesEntry*
-Arena::CreateMaybeMessage< ::ppx::metrics::reporting::TimeSeriesEntry >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::ppx::metrics::reporting::TimeSeriesEntry >(arena);
+template <>
+PROTOBUF_NOINLINE ::ppx::metrics::reporting::TimeSeriesEntry*
+Arena::CreateMaybeMessage<::ppx::metrics::reporting::TimeSeriesEntry>(Arena* arena)
+{
+    return Arena::CreateMessageInternal<::ppx::metrics::reporting::TimeSeriesEntry>(arena);
 }
-template<> PROTOBUF_NOINLINE ::ppx::metrics::reporting::MetricGauge*
-Arena::CreateMaybeMessage< ::ppx::metrics::reporting::MetricGauge >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::ppx::metrics::reporting::MetricGauge >(arena);
+template <>
+PROTOBUF_NOINLINE ::ppx::metrics::reporting::MetricGauge*
+Arena::CreateMaybeMessage<::ppx::metrics::reporting::MetricGauge>(Arena* arena)
+{
+    return Arena::CreateMessageInternal<::ppx::metrics::reporting::MetricGauge>(arena);
 }
-template<> PROTOBUF_NOINLINE ::ppx::metrics::reporting::Run*
-Arena::CreateMaybeMessage< ::ppx::metrics::reporting::Run >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::ppx::metrics::reporting::Run >(arena);
+template <>
+PROTOBUF_NOINLINE ::ppx::metrics::reporting::Run*
+Arena::CreateMaybeMessage<::ppx::metrics::reporting::Run>(Arena* arena)
+{
+    return Arena::CreateMessageInternal<::ppx::metrics::reporting::Run>(arena);
 }
-template<> PROTOBUF_NOINLINE ::ppx::metrics::reporting::Report*
-Arena::CreateMaybeMessage< ::ppx::metrics::reporting::Report >(Arena* arena) {
-  return Arena::CreateMessageInternal< ::ppx::metrics::reporting::Report >(arena);
+template <>
+PROTOBUF_NOINLINE ::ppx::metrics::reporting::Report*
+Arena::CreateMaybeMessage<::ppx::metrics::reporting::Report>(Arena* arena)
+{
+    return Arena::CreateMessageInternal<::ppx::metrics::reporting::Report>(arena);
 }
-}  // namespace protobuf
-}  // namespace google
+} // namespace protobuf
+} // namespace google
 // @@protoc_insertion_point(global_scope)
 #include "google/protobuf/port_undef.inc"
