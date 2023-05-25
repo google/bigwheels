@@ -12,5 +12,19 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "bigwheels"
-include ':app'
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:7.3.0'
+    }
+}
+
+file('projects').eachDir { sub ->
+    if (file("projects/$sub.name/build.gradle").exists()) {
+        include ":$sub.name"
+        project(":$sub.name").projectDir = new File("projects/$sub.name")
+    }
+}

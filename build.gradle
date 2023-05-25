@@ -1,159 +1,114 @@
-plugins {
-    id 'com.android.application' version '7.3.1'
-    id 'com.android.library' version '7.3.1' apply false
+ext {
+    assetsPath = '../../assets'
+    thirdPartyAssetsPath = '../../third_party/assets'
 }
 
-android {
-    namespace 'com.google.bigwheels'
-    compileSdk 32
+subprojects {
+    repositories {
+        mavenCentral()
+        google()
+    }
 
-    defaultConfig {
-        applicationId "com.google.bigwheels"
-        minSdk 29
-        targetSdk 32
-        versionCode 1
-        versionName "1.0"
+    apply plugin: "com.android.application"
 
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    dependencies {
+        implementation 'androidx.appcompat:appcompat:1.5.1'
+        implementation 'com.google.android.material:material:1.7.0'
+        testImplementation 'junit:junit:4.13.2'
+        androidTestImplementation 'androidx.test.ext:junit:1.1.4'
+        androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.0'
+    }
+
+    buildDir = "../../build/android/${project.name}"
+
+    android {
+        namespace 'com.google.bigwheels'
+        compileSdkVersion 32
+
+        compileOptions {
+            sourceCompatibility JavaVersion.VERSION_1_8
+            targetCompatibility JavaVersion.VERSION_1_8
+        }
+        buildFeatures {
+            prefab true
+        }
         externalNativeBuild {
             cmake {
-                arguments '-DPPX_ANDROID=TRUE',
-                          '-DPPX_BUILD_TESTS=FALSE',
-                          '-DBUILD_TESTS=FALSE' // Required for OpenXR
-                cppFlags '-std=c++20'
-                if (project.hasProperty('DXC_PATH')) {
-                  arguments "-DDXC_PATH=$DXC_PATH"
-                }
+                path file('../../CMakeLists.txt')
+                version '3.22.1+'
+                buildStagingDirectory "../../.cxx/${project.name}"
             }
         }
-        multiDexEnabled true
-    }
 
-    buildTypes {
-        release {
-            minifyEnabled false
-        }
-        debug {
-          applicationIdSuffix '.debug'
-          debuggable true
-        }
-    }
-    def defineFlavor = { sample_name ->
-      return {
-        dimension 'project'
-        // Package names cannot start with a number, adding prefixing.
-        applicationIdSuffix ".project_" + sample_name
-        manifestPlaceholders = [
-            sampleLibraryName : "vk_" + sample_name,
-            appLabel : "vk_" + sample_name
-        ]
-        it.buildConfigField "String", "sample_library_name", '"vk_' + sample_name + '"'
-        externalNativeBuild {
-            cmake {
-                targets "vk_" + sample_name
+        buildTypes {
+            release {
+                minifyEnabled false
+            }
+            debug {
+              applicationIdSuffix '.debug'
+              debuggable true
             }
         }
-      }
-    }
 
-    flavorDimensions 'device', 'project'
-    productFlavors {
-        triangle      defineFlavor('01_triangle')
-        cube          defineFlavor('04_cube')
-        cubexr        defineFlavor('04_cube_xr')
-        basicmaterial defineFlavor('15_basic_material')
-        gbuffer       defineFlavor('16_gbuffer')
-        fishtornado   defineFlavor('fishtornado')
-        fishtornadoxr defineFlavor('fishtornado_xr')
+        defaultConfig {
+            applicationId "com.google.bigwheels.project_${project.name}"
+            minSdk 29
+            targetSdk 32
+            versionCode 1
+            versionName "1.0"
 
-        mobile {
-            dimension 'device'
+            manifestPlaceholders = [
+                sampleLibraryName : "vk_${project.name}",
+                appLabel : "vk_${project.name}"
+            ]
+
+            ndk.abiFilters = ['arm64-v8a']
+
+            testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
             externalNativeBuild {
                 cmake {
-                    arguments '-DPPX_BUILD_XR=FALSE',
-                              '-DBUILD_LOADER=FALSE'
+                    if (project.name.contains("_xr")) {
+                        arguments '-DPPX_ANDROID=TRUE',
+                                  '-DPPX_BUILD_TESTS=FALSE',
+                                  '-DBUILD_TESTS=FALSE', // Required for OpenXR
+                                  '-DPPX_BUILD_XR=TRUE',
+                                  '-DBUILD_LOADER=TRUE',
+                                  '-DBUILD_ALL_EXTENSIONS=TRUE'
+                    }
+                    else {
+                        arguments '-DPPX_ANDROID=TRUE',
+                                  '-DPPX_BUILD_TESTS=FALSE',
+                                  '-DBUILD_TESTS=FALSE' // Required for OpenXR
+                    }
+                    if (project.name.contains("_xr")) {
+                        cppFlags '-std=c++20',
+                                 '-DXR_USE_PLATFORM_ANDROID'
+                    }
+                    else {
+                        cppFlags '-std=c++20'
+                    }
+                   
+                    if (project.hasProperty('DXC_PATH')) {
+                      arguments "-DDXC_PATH=$DXC_PATH"
+                    }
+                    targets "vk_${project.name}"
+                }
+            }
+            multiDexEnabled true
+            it.buildConfigField "String", "sample_library_name", '"vk_' + project.name + '"'
+            sourceSets.main {
+                java.srcDirs = [ '../../src/android' ]
+                assets.srcDirs = ['assets']
+                if (project.name.contains("_xr")) {
+                    manifest.srcFile '../../src/android/AndroidManifest.XR.xml'
+                } else {
+                    manifest.srcFile '../../src/android/AndroidManifest.xml'
                 }
             }
         }
-        xr {
-            dimension 'device'
-            applicationIdSuffix '.xr'
-            versionNameSuffix '-xr'
-            externalNativeBuild {
-                cmake {
-                    arguments '-DPPX_BUILD_XR=TRUE',
-                              '-DBUILD_LOADER=TRUE',
-                              '-DBUILD_ALL_EXTENSIONS=TRUE'
-                    cppFlags '-DXR_USE_PLATFORM_ANDROID'
-                }
-            }
-        }
     }
 
-    variantFilter { variant ->
-        def deviceFlavors = variant.flavors.findAll { it.dimension == 'device' }
-        def projectFlavors = variant.flavors.findAll { it.dimension == 'project'}
-        def device = deviceFlavors[0].name
-        def project = projectFlavors[0].name
-
-        def xrProjects = ['cubexr', 'fishtornadoxr']
-
-        if (device == 'mobile' && xrProjects.contains(project)) {
-            // Ignore XR projects for mobile devices.
-            setIgnore(true)
-        }
-        if ((device == 'xr') && !xrProjects.contains(project)) {
-            // Ignore non-XR projects for XR devices.
-            setIgnore(true)
-        }
-    }
-
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-    buildFeatures {
-        prefab true
-    }
-    externalNativeBuild {
-        cmake {
-            path file('CMakeLists.txt')
-            version '3.22.1+'
-        }
-    }
-    sourceSets {
-        main {
-            manifest.srcFile 'src/android/AndroidManifest.xml'
-            java.srcDirs = [ 'src/android' ]
-            assets {
-                srcDirs 'assets', "third_party/assets"
-            }
-        }
-        xr {
-            manifest.srcFile 'src/android/AndroidManifest.XR.xml'
-        }
-    }
-
-    splits {
-        // Configures multiple APKs based on ABI.
-        abi {
-          enable true
-          // Resets the list of ABIs for Gradle to create APKs for to none.
-          reset()
-
-          // Specifies a list of ABIs for Gradle to create APKs for.
-          include "arm64-v8a"
-
-          // Do not generate a universal APK that includes all ABIs.
-          universalApk false
-        }
-    }
-}
-
-dependencies {
-    implementation 'androidx.appcompat:appcompat:1.5.1'
-    implementation 'com.google.android.material:material:1.7.0'
-    testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.4'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.0'
+    // Each sample project must define copyTask for copying assets
+    // that are used in the project.
+    preBuild.dependsOn ":" + project.name + ":copyTask"
 }
