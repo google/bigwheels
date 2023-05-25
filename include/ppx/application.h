@@ -411,7 +411,8 @@ public:
 
     bool IsXrEnabled() const { return mSettings.xr.enable; }
 
-    metrics::Manager* GetMetricsManager();
+    metrics::Run* StartMetricsRun(const char* pName);
+    void          StopMetricsRun();
 
 #if defined(PPX_BUILD_XR)
     XrComponent& GetXrComponent()
@@ -486,7 +487,6 @@ private:
     std::vector<grfx::SwapchainPtr> mSwapchains;                           // Requires enableDisplay
     std::unique_ptr<ImGuiImpl>      mImGui;
     KnobManager                     mKnobManager;
-    metrics::Manager                mMetricsManager;
 
     uint64_t          mFrameCount        = 0;
     uint32_t          mSwapchainIndex    = 0;
@@ -497,6 +497,18 @@ private:
     float             mAverageFrameTime  = 0;
     double            mFirstFrameTime    = 0;
     std::deque<float> mFrameTimesMs;
+
+    struct
+    {
+        metrics::Manager        manager;
+        metrics::Run*           pCurrentRun   = nullptr;
+        metrics::MetricGauge*   pCpuFrameTime = nullptr;
+        metrics::MetricGauge*   pFramerate    = nullptr;
+        metrics::MetricCounter* pFrameCount   = nullptr;
+
+        double   framerateRecordTimer = 0.0;
+        uint64_t framerateFrameCount  = 0;
+    } mMetrics;
 
 #if defined(PPX_MSW)
     //

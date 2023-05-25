@@ -696,7 +696,7 @@ void Application::DispatchShutdown()
 
         // Export the report from the metrics manager
         metrics::reporting::Report report;
-        mMetricsManager.Export(reportFilename.str().c_str(), &report);
+        mMetrics.manager.Export(reportFilename.str().c_str(), &report);
 
         // Serialize the report to disk
         std::ofstream outputFile(reportFilename.str(), std::ofstream::out);
@@ -1284,6 +1284,27 @@ int Application::Run(int argc, char** argv)
             mAverageFrameTime = static_cast<float>(nowMs / mFrameCount);
         }
 
+        if (mSettings.useMetrics && mMetrics.pCurrentRun != nullptr) {
+            PPX_ASSERT_NULL_ARG(mMetrics.pCpuFrameTime);
+            PPX_ASSERT_NULL_ARG(mMetrics.pFramerate);
+            PPX_ASSERT_NULL_ARG(mMetrics.pFrameCount);
+
+            const double seconds = GetElapsedSeconds();
+
+            mMetrics.pCpuFrameTime->RecordEntry(seconds, mPreviousFrameTime);
+            mMetrics.pFrameCount->Increment(1);
+
+            // Record the average framerate roughly every second.
+            mMetrics.framerateRecordTimer += mPreviousFrameTime;
+            ++mMetrics.framerateFrameCount;
+            if (mMetrics.framerateRecordTimer == 1000.0) {
+                const double framerate = mMetrics.framerateFrameCount / (mMetrics.framerateRecordTimer * 0.001);
+                mMetrics.pFramerate->RecordEntry(seconds, framerate);
+                mMetrics.framerateRecordTimer = 0.0;
+                mMetrics.framerateFrameCount  = 0;
+            }
+        }
+
         // Pace frames - if needed
         if (mSettings.grfx.pacedFrameRate > 0) {
             if (mFrameCount > 0) {
@@ -1454,6 +1475,53 @@ float2 Application::GetNormalizedDeviceCoordinates(int32_t x, int32_t y) const
     float  fy  = y / static_cast<float>(GetWindowHeight());
     float2 ndc = float2(2.0f, -2.0f) * (float2(fx, fy) - float2(0.5f));
     return ndc;
+}
+
+metrics::Run* Application::StartMetricsRun(const char* pName)
+{
+    PPX_ASSERT_MSG(mSettings.useMetrics, "Application::Settings::useMetrics must be set to true before using the metrics capabilities");
+    if (!mSettings.useMetrics) {
+        return nullptr;
+    }
+
+    using namespace metrics;
+
+    mMetrics.pCurrentRun = mMetrics.manager.AddRun(pName);
+
+    // Add default metrics to every single run
+    {
+        MetricMetadata metadata = {};
+        metadata.name           = "cpu_frame_time";
+        metadata.unit           = "ms";
+        metadata.interpretation = MetricInterpretation::LOWER_IS_BETTER;
+        mMetrics.pCpuFrameTime  = mMetrics.pCurrentRun->AddMetric<MetricGauge>(metadata);
+    }
+    {
+        MetricMetadata metadata = {};
+        metadata.name           = "framerate";
+        metadata.unit           = "";
+        metadata.interpretation = MetricInterpretation::HIGHER_IS_BETTER;
+        mMetrics.pFramerate     = mMetrics.pCurrentRun->AddMetric<MetricGauge>(metadata);
+    }
+    {
+        MetricMetadata metadata = {};
+        metadata.name           = "frame_count";
+        metadata.unit           = "";
+        metadata.interpretation = MetricInterpretation::NONE;
+        mMetrics.pFrameCount    = mMetrics.pCurrentRun->AddMetric<MetricCounter>(metadata);
+    }
+
+    mMetrics.framerateRecordTimer = 0.0;
+    mMetrics.framerateFrameCount  = 0;
+    return mMetrics.pCurrentRun;
+}
+
+void Application::StopMetricsRun()
+{
+    mMetrics.pCurrentRun   = nullptr;
+    mMetrics.pCpuFrameTime = nullptr;
+    mMetrics.pFramerate    = nullptr;
+    mMetrics.pFrameCount   = nullptr;
 }
 
 void Application::DrawDebugInfo()
