@@ -1287,14 +1287,22 @@ int Application::Run(int argc, char** argv)
             mMetrics.pCpuFrameTime->RecordEntry(seconds, mPreviousFrameTime);
             mMetrics.pFrameCount->Increment(1);
 
-            // Record the average framerate roughly every second.
-            mMetrics.framerateRecordTimer += mPreviousFrameTime;
-            ++mMetrics.framerateFrameCount;
-            if (mMetrics.framerateRecordTimer == 1000.0) {
-                const double framerate = mMetrics.framerateFrameCount / (mMetrics.framerateRecordTimer * 0.001);
-                mMetrics.pFramerate->RecordEntry(seconds, framerate);
-                mMetrics.framerateRecordTimer = 0.0;
+            // Check whether framerate tracking must started.
+            // The record timer is based on elapsed time which should never be zero.
+            if (mMetrics.framerateRecordTimer == 0.0) {
+                mMetrics.framerateRecordTimer = seconds;
                 mMetrics.framerateFrameCount  = 0;
+            }
+            else {
+                // Record the average framerate roughly every second.
+                ++mMetrics.framerateFrameCount;
+                const double framerateSecondsDiff = seconds - mMetrics.framerateRecordTimer;
+                if (framerateSecondsDiff >= 1.0) {
+                    const double framerate = mMetrics.framerateFrameCount / framerateSecondsDiff;
+                    mMetrics.pFramerate->RecordEntry(seconds, framerate);
+                    mMetrics.framerateRecordTimer = seconds;
+                    mMetrics.framerateFrameCount  = 0;
+                }
             }
         }
 
