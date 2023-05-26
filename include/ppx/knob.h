@@ -21,6 +21,7 @@
 #include "ppx/log.h"
 
 #include <iostream>
+#include <memory>
 #include <unordered_set>
 #include <vector>
 
@@ -43,20 +44,18 @@ public:
     const std::string& GetFlagHelp() const { return mFlagDesc; }
     size_t             GetIndent() const { return mIndent; }
 
-    // Populate flag members
     void SetDisplayName(const std::string& displayName) { mDisplayName = displayName; }
     void SetFlagDesc(const std::string& flagDesc) { mFlagDesc = flagDesc; }
     void SetIndent(size_t indent) { mIndent = indent; }
 
     virtual void Draw() = 0;
 
-    // Flag description in usage message
+    // Returns the flag description used in usage message
     virtual std::string GetFlagHelpText() const = 0;
 
     // Updates knob value from commandline flag
     virtual void UpdateFromFlags(const CliOptions& opts) = 0;
 
-    // Default values are the values when the application starts. The knobs can be reset to default by a button in the UI
     virtual void ResetToDefault() = 0;
 
 protected:
@@ -84,8 +83,6 @@ public:
 
     void ResetToDefault() override { SetValue(mDefaultValue); }
 
-    // GetFlagHelpText format:
-    // --flag_name <true|false> : flag description
     std::string GetFlagHelpText() const override
     {
         std::string flagHelpText = "--" + mFlagName + " <true|false>";
@@ -95,7 +92,7 @@ public:
         return flagHelpText + "\n";
     }
 
-    // Updates mValue and mDefaultValue, expected flag format:
+    // Expected commandline flag format:
     // --flag_name <true|false>
     void UpdateFromFlags(const CliOptions& opts) override
     {
@@ -105,7 +102,6 @@ public:
     bool GetValue() const { return mValue; }
 
     // Used for when mValue needs to be updated outside of UI
-    // Updates mValue
     void SetValue(bool newVal)
     {
         mValue = newVal;
@@ -130,11 +126,11 @@ class KnobSlider final
     : public Knob
 {
 public:
+    static_assert(std::is_same_v<T, int>, "KnobSlider must be created with type: int");
+
     KnobSlider(const std::string& flagName, T defaultValue, T minValue, T maxValue)
         : Knob(flagName)
     {
-        static_assert(std::is_same_v<T, int>, "KnobSlider must be created with type: int");
-
         PPX_ASSERT_MSG(minValue < maxValue, "invalid range to initialize slider");
         PPX_ASSERT_MSG(minValue <= defaultValue && defaultValue <= maxValue, "defaultValue is out of range");
 
@@ -150,8 +146,6 @@ public:
 
     void ResetToDefault() override { SetValue(mDefaultValue); }
 
-    // GetFlagHelpText format:
-    // --flag_name <mMinValue~mMaxValue> : flag description
     std::string GetFlagHelpText() const override
     {
         std::string flagHelpText = "--" + mFlagName + " <" + std::to_string(mMinValue) + "~" + std::to_string(mMaxValue) + ">";
@@ -161,7 +155,7 @@ public:
         return flagHelpText + "\n";
     }
 
-    // Updates mValue and mDefaultValue, expected flag format:
+    // Expected commandline flag format:
     // --flag_name <int>
     void UpdateFromFlags(const CliOptions& opts) override
     {
@@ -171,7 +165,6 @@ public:
     T GetValue() const { return mValue; }
 
     // Used for when mValue needs to be updated outside of UI
-    // Updates mValue
     void SetValue(T newVal)
     {
         if (!IsValidValue(newVal)) {
@@ -183,7 +176,6 @@ public:
     }
 
 private:
-    // IsValidValue returns true if val is within allowed range
     bool IsValidValue(T val)
     {
         if (val < mMinValue || val > mMaxValue)
@@ -214,17 +206,19 @@ class KnobDropdown final
     : public Knob
 {
 public:
+    static_assert(std::is_same_v<T, std::string>, "KnobDropdown must be created with type: std::string");
+
+    template <std::input_iterator Iter>
     KnobDropdown(
-        const std::string&                flagName,
-        size_t                            defaultIndex,
-        typename std::vector<T>::iterator choicesBegin,
-        typename std::vector<T>::iterator choicesEnd)
+        const std::string& flagName,
+        size_t             defaultIndex,
+        Iter               choicesBegin,
+        Iter               choicesEnd)
         : Knob(flagName)
     {
-        static_assert(std::is_same_v<T, std::string>, "KnobDropdown must be created with type: std::string");
-
         PPX_ASSERT_MSG(static_cast<int>(defaultIndex) >= 0, "defaultIndex must be non-negative");
         PPX_ASSERT_MSG(static_cast<int>(defaultIndex) < std::distance(choicesBegin, choicesEnd), "defaultIndex is out of range");
+        static_assert(std::is_assignable_v<T, typename std::iterator_traits<Iter>::value_type>, "KnobDropdown choices does not match KnobDropdown type");
 
         mChoices = std::vector<T>(choicesBegin, choicesEnd);
         SetDefaultAndIndex(defaultIndex);
@@ -250,8 +244,6 @@ public:
 
     void ResetToDefault() override { SetIndex(mDefaultIndex); }
 
-    // GetFlagHelpText format:
-    // --flag_name <"choice1"|"choice2"|...> : flag description
     std::string GetFlagHelpText() const override
     {
         std::string choiceStr = "";
@@ -268,7 +260,7 @@ public:
         return flagHelpText + "\n";
     }
 
-    // Updates mIndex and mDefaultIndex, expected flag format:
+    // Expected commandline flag format:
     // --flag_name <str>
     void UpdateFromFlags(const CliOptions& opts) override
     {
@@ -279,7 +271,6 @@ public:
     const std::string& GetStr() const { return mChoices[mIndex]; }
 
     // Used for when mIndex needs to be updated outside of UI
-    // Updates mIndex
     void SetIndex(size_t newI)
     {
         if (!IsValidIndex(newI)) {
@@ -291,7 +282,6 @@ public:
     }
 
     // Used for setting from flags
-    // Updates mIndex
     void SetIndex(const std::string& newVal)
     {
         auto temp = std::find(mChoices.cbegin(), mChoices.cend(), newVal);
@@ -304,7 +294,6 @@ public:
     }
 
 private:
-    // IsValidIndex returns true if i is within allowed range
     bool IsValidIndex(size_t i)
     {
         if (i >= mChoices.size())
@@ -335,53 +324,45 @@ private:
     std::vector<T> mChoices;
 };
 
-// KnobManager owns the knobs in an application
+// KnobManager holds the knobs in an application
 class KnobManager
 {
 public:
     KnobManager() {}
-    virtual ~KnobManager();
     KnobManager(const KnobManager&) = delete;
     KnobManager& operator=(const KnobManager&) = delete;
 
 private:
-    // mKnobs holds all knobs
-    // Knobs are added on creation and never deleted until knobManager is destroyed
-    std::vector<Knob*> mKnobs;
+    // Knobs are added on creation and never removed
+    std::vector<std::shared_ptr<Knob>> mKnobs;
 
     // mFlagNames is kept to prevent multiple knobs having the same mFlagName
     std::unordered_set<std::string> mFlagNames;
 
 public:
-    // Utilities
     bool IsEmpty() { return mKnobs.empty(); }
-    void ResetAllToDefault();
+    void ResetAllToDefault(); // The knobs can be reset to default by a button in the UI
 
-    // Create knobs
-    // Examples:
+    // Examples of available knobs:
     //   CreateKnob<KnobCheckbox>("flag_name", bool defaultValue);
-    //   CreateKnob<KnobSlider>("flag_name", int defaultValue, minValue, maxValue);
-    //   CreateKnob<KnobDropdown>("flag_name", size_t defaultIndex, std::vector<std::string>::iterator choicesBegin, choicesEnd);
+    //   CreateKnob<KnobSlider<int>>("flag_name", int defaultValue, minValue, maxValue);
+    //   CreateKnob<KnobDropdown<std::string>>("flag_name", size_t defaultIndex, std::input_iterator choicesBegin, choicesEnd);
     template <typename T, typename... ArgsT>
-    T* CreateKnob(const std::string& flagName, ArgsT... args)
+    std::shared_ptr<T> CreateKnob(const std::string& flagName, ArgsT... args)
     {
         PPX_ASSERT_MSG(mFlagNames.count(flagName) == 0, "knob with this name already exists");
 
-        T* knobPtr = new T(flagName, std::forward<ArgsT>(args)...);
-
+        std::shared_ptr<T> knobPtr(new T(flagName, std::forward<ArgsT>(args)...));
         RegisterKnob(flagName, knobPtr);
         return knobPtr;
     }
 
-    // ImGui
-    void DrawAllKnobs(bool inExistingWindow = false);
-
-    // Command-line flags
+    void        DrawAllKnobs(bool inExistingWindow = false);
     std::string GetUsageMsg();
     void        UpdateFromFlags(const CliOptions& opts);
 
-    // RegisterKnob will store newly created knob
-    void RegisterKnob(const std::string& flagName, Knob* newKnob);
+private:
+    void RegisterKnob(const std::string& flagName, std::shared_ptr<Knob> newKnob);
 };
 
 } // namespace ppx

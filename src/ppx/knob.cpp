@@ -22,13 +22,6 @@ namespace ppx {
 // KnobManager
 // -------------------------------------------------------------------------------------------------
 
-KnobManager::~KnobManager()
-{
-    for (auto& knobPtr : mKnobs) {
-        delete knobPtr;
-    }
-}
-
 void KnobManager::ResetAllToDefault()
 {
     for (auto& knobPtr : mKnobs) {
@@ -75,11 +68,10 @@ void KnobManager::UpdateFromFlags(const CliOptions& opts)
     }
 }
 
-void KnobManager::RegisterKnob(const std::string& flagName, Knob* newKnob)
+void KnobManager::RegisterKnob(const std::string& flagName, std::shared_ptr<Knob> newKnob)
 {
-    // Store knob in members
     mFlagNames.insert(flagName);
-    mKnobs.push_back(newKnob);
+    mKnobs.push_back(std::move(newKnob));
     PPX_LOG_INFO("Created knob " << flagName);
 }
 

@@ -128,7 +128,7 @@ private:
     TextureCache           mTextureCache;
 
 private:
-    KnobCheckbox* pKnobAlphaBlend = nullptr; // unimplemented
+    std::shared_ptr<KnobCheckbox> pKnobAlphaBlend = nullptr; // unimplemented
 
 private:
     void LoadScene(
@@ -196,7 +196,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
 
 void ProjApp::InitKnobs()
 {
-    pKnobAlphaBlend = mKnobManager.CreateKnob<ppx::KnobCheckbox>("alpha_blend", false);
+    pKnobAlphaBlend = std::move(mKnobManager.CreateKnob<ppx::KnobCheckbox>("alpha_blend", false));
     pKnobAlphaBlend->SetDisplayName("Placeholder1");
     pKnobAlphaBlend->SetIndent(1);
 }

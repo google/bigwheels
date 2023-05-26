@@ -171,7 +171,7 @@ TEST_F(KnobTestFixture, KnobSlider_ResetToDefault)
 TEST_F(KnobTestFixture, KnobDropdown_Create)
 {
     std::vector<std::string> choices = {"c1", "c2"};
-    KnobDropdown             strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.begin(), choices.end());
+    KnobDropdown             strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.cbegin(), choices.cend());
     EXPECT_EQ(strKnob.GetFlagHelpText(), "--flag_name1 <\"c1\"|\"c2\">\n");
 
     strKnob.SetDisplayName("Knob Name 1");
@@ -193,19 +193,19 @@ TEST_F(KnobTestFixture, KnobDropdown_CreateInvalid)
     std::vector<std::string> choices = {};
     EXPECT_DEATH(
         {
-            KnobDropdown strKnob = KnobDropdown<std::string>("flag_name1", 0, choices.begin(), choices.end());
+            KnobDropdown strKnob = KnobDropdown<std::string>("flag_name1", 0, choices.cbegin(), choices.cend());
         },
         "");
 
     choices = {"c1", "c2"};
     EXPECT_DEATH(
         {
-            KnobDropdown strKnob = KnobDropdown<std::string>("flag_name2", -1, choices.begin(), choices.end());
+            KnobDropdown strKnob = KnobDropdown<std::string>("flag_name2", -1, choices.cbegin(), choices.cend());
         },
         "");
     EXPECT_DEATH(
         {
-            KnobDropdown strKnob = KnobDropdown<std::string>("flag_name3", 2, choices.begin(), choices.end());
+            KnobDropdown strKnob = KnobDropdown<std::string>("flag_name3", 2, choices.cbegin(), choices.cend());
         },
         "");
 }
@@ -214,7 +214,7 @@ TEST_F(KnobTestFixture, KnobDropdown_CreateInvalid)
 TEST_F(KnobTestFixture, KnobDropdown_SetIndexInt)
 {
     std::vector<std::string> choices = {"c1", "c2"};
-    KnobDropdown             strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.begin(), choices.end());
+    KnobDropdown             strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.cbegin(), choices.cend());
     strKnob.SetIndex(0);
     EXPECT_EQ(strKnob.GetIndex(), 0);
 
@@ -230,7 +230,7 @@ TEST_F(KnobTestFixture, KnobDropdown_SetIndexInt)
 TEST_F(KnobTestFixture, KnobDropdown_SetIndexStr)
 {
     std::vector<std::string> choices = {"c1", "c2"};
-    KnobDropdown             strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.begin(), choices.end());
+    KnobDropdown             strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.cbegin(), choices.cend());
     strKnob.SetIndex("c1");
     EXPECT_EQ(strKnob.GetIndex(), 0);
     EXPECT_EQ(strKnob.GetStr(), "c1");
@@ -244,7 +244,7 @@ TEST_F(KnobTestFixture, KnobDropdown_SetIndexStr)
 TEST_F(KnobTestFixture, KnobDropdown_ResetToDefault)
 {
     std::vector<std::string> choices = {"c1", "c2"};
-    KnobDropdown             strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.begin(), choices.end());
+    KnobDropdown             strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.cbegin(), choices.cend());
     EXPECT_EQ(strKnob.GetIndex(), 1);
     strKnob.SetIndex(0);
     EXPECT_EQ(strKnob.GetIndex(), 0);
@@ -263,30 +263,30 @@ TEST_F(KnobManagerTestFixture, KnobManager_Create)
 
 TEST_F(KnobManagerTestFixture, KnobManager_CreateBoolCheckbox)
 {
-    KnobCheckbox* boolKnobPtr = km.CreateKnob<KnobCheckbox>("flag_name1", true);
+    std::shared_ptr<KnobCheckbox> boolKnobPtr(km.CreateKnob<KnobCheckbox>("flag_name1", true));
     EXPECT_EQ(boolKnobPtr->GetValue(), true);
 }
 
 TEST_F(KnobManagerTestFixture, KnobManager_CreateIntSlider)
 {
-    KnobSlider<int>* intKnobPtr = km.CreateKnob<KnobSlider<int>>("flag_name1", 5, 0, 10);
+    std::shared_ptr<KnobSlider<int>> intKnobPtr(km.CreateKnob<KnobSlider<int>>("flag_name1", 5, 0, 10));
     EXPECT_EQ(intKnobPtr->GetValue(), 5);
 }
 
 TEST_F(KnobManagerTestFixture, KnobManager_CreateStrDropdown)
 {
-    std::vector<std::string>   choices    = {"c1", "c2", "c3"};
-    KnobDropdown<std::string>* strKnobPtr = km.CreateKnob<KnobDropdown<std::string>>("flag_name1", 1, choices.begin(), choices.end());
+    std::vector<std::string>                   choices = {"c1", "c2", "c3"};
+    std::shared_ptr<KnobDropdown<std::string>> strKnobPtr(km.CreateKnob<KnobDropdown<std::string>>("flag_name1", 1, choices.cbegin(), choices.cend()));
     EXPECT_EQ(strKnobPtr->GetIndex(), 1);
 }
 
 #if defined(PERFORM_DEATH_TESTS)
 TEST_F(KnobManagerTestFixture, KnobManager_CreateUniqueName)
 {
-    KnobCheckbox* boolKnobPtr1 = km.CreateKnob<KnobCheckbox>("flag_name1", true);
+    std::shared_ptr<KnobCheckbox> boolKnobPtr1(km.CreateKnob<KnobCheckbox>("flag_name1", true));
     EXPECT_DEATH(
         {
-            KnobCheckbox* boolKnobPtr2 = km.CreateKnob<KnobCheckbox>("flag_name1", true);
+            std::shared_ptr<KnobCheckbox> boolKnobPtr2(km.CreateKnob<KnobCheckbox>("flag_name1", true));
         },
         "");
 }
@@ -294,11 +294,11 @@ TEST_F(KnobManagerTestFixture, KnobManager_CreateUniqueName)
 
 TEST_F(KnobManagerTestFixture, KnobManager_GetUsageMsg)
 {
-    KnobCheckbox*              boolKnobPtr1 = km.CreateKnob<KnobCheckbox>("flag_name1", true);
-    KnobCheckbox*              boolKnobPtr2 = km.CreateKnob<KnobCheckbox>("flag_name2", true);
-    KnobSlider<int>*           intKnobPtr1  = km.CreateKnob<KnobSlider<int>>("flag_name3", 5, 0, 10);
-    std::vector<std::string>   choices1     = {"c1", "c2", "c3"};
-    KnobDropdown<std::string>* strKnobPtr1  = km.CreateKnob<KnobDropdown<std::string>>("flag_name4", 1, choices1.begin(), choices1.end());
+    std::shared_ptr<KnobCheckbox>              boolKnobPtr1(km.CreateKnob<KnobCheckbox>("flag_name1", true));
+    std::shared_ptr<KnobCheckbox>              boolKnobPtr2(km.CreateKnob<KnobCheckbox>("flag_name2", true));
+    std::shared_ptr<KnobSlider<int>>           intKnobPtr1(km.CreateKnob<KnobSlider<int>>("flag_name3", 5, 0, 10));
+    std::vector<std::string>                   choices1 = {"c1", "c2", "c3"};
+    std::shared_ptr<KnobDropdown<std::string>> strKnobPtr1(km.CreateKnob<KnobDropdown<std::string>>("flag_name4", 1, choices1.cbegin(), choices1.cend()));
 
     std::string usageMsg = R"(
 Application-specific flags
@@ -312,11 +312,11 @@ Application-specific flags
 
 TEST_F(KnobManagerTestFixture, KnobManager_ResetAllToDefault)
 {
-    KnobCheckbox*              boolKnobPtr1 = km.CreateKnob<KnobCheckbox>("flag_name1", true);
-    KnobCheckbox*              boolKnobPtr2 = km.CreateKnob<KnobCheckbox>("flag_name2", true);
-    KnobSlider<int>*           intKnobPtr1  = km.CreateKnob<KnobSlider<int>>("flag_name3", 5, 0, 10);
-    std::vector<std::string>   choices1     = {"c1", "c2", "c3"};
-    KnobDropdown<std::string>* strKnobPtr1  = km.CreateKnob<KnobDropdown<std::string>>("flag_name4", 1, choices1.begin(), choices1.end());
+    std::shared_ptr<KnobCheckbox>              boolKnobPtr1(km.CreateKnob<KnobCheckbox>("flag_name1", true));
+    std::shared_ptr<KnobCheckbox>              boolKnobPtr2(km.CreateKnob<KnobCheckbox>("flag_name2", true));
+    std::shared_ptr<KnobSlider<int>>           intKnobPtr1(km.CreateKnob<KnobSlider<int>>("flag_name3", 5, 0, 10));
+    std::vector<std::string>                   choices1 = {"c1", "c2", "c3"};
+    std::shared_ptr<KnobDropdown<std::string>> strKnobPtr1(km.CreateKnob<KnobDropdown<std::string>>("flag_name4", 1, choices1.cbegin(), choices1.cend()));
 
     // Change from default
     boolKnobPtr1->SetValue(false);

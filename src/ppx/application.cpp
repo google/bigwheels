@@ -945,7 +945,6 @@ int Application::Run(int argc, char** argv)
     // Knobs need to be set up before commandline parsing.
     DispatchInitKnobs();
 
-    // Append Knob flags to usage message
     if (!mKnobManager.IsEmpty()) {
         mCommandLineParser.AppendUsageMsg(mKnobManager.GetUsageMsg());
     }
@@ -955,7 +954,6 @@ int Application::Run(int argc, char** argv)
         return EXIT_SUCCESS;
     }
 
-    // Parse knobs
     if (!mKnobManager.IsEmpty()) {
         auto options = mCommandLineParser.GetOptions();
         mKnobManager.UpdateFromFlags(options);
