@@ -178,4 +178,3 @@ void TriangleApp::Render()
 
     PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.renderCompleteSemaphore));
 }
-

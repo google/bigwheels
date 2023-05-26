@@ -36,7 +36,7 @@ private:
         grfx::FencePtr         renderCompleteFence;
     };
 
-    std::vector<PerFrame>             mPerFrame;
+    std::vector<PerFrame>        mPerFrame;
     grfx::ShaderModulePtr        mVS;
     grfx::ShaderModulePtr        mPS;
     grfx::PipelineInterfacePtr   mPipelineInterface;
@@ -46,7 +46,7 @@ private:
     grfx::DescriptorSetLayoutPtr mDescriptorSetLayout;
     grfx::DescriptorSetPtr       mDescriptorSet;
     grfx::BufferPtr              mUniformBuffer;
-    grfx::VertexBinding               mVertexBinding;
+    grfx::VertexBinding          mVertexBinding;
 };
 
 #endif // CUBE_H

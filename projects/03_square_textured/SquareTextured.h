@@ -37,7 +37,7 @@ private:
         grfx::FencePtr         renderCompleteFence;
     };
 
-    std::vector<PerFrame>             mPerFrame;
+    std::vector<PerFrame>        mPerFrame;
     grfx::ShaderModulePtr        mVS;
     grfx::ShaderModulePtr        mPS;
     grfx::PipelineInterfacePtr   mPipelineInterface;
@@ -50,7 +50,7 @@ private:
     grfx::ImagePtr               mImage;
     grfx::SamplerPtr             mSampler;
     grfx::SampledImageViewPtr    mSampledImageView;
-    grfx::VertexBinding               mVertexBinding;
+    grfx::VertexBinding          mVertexBinding;
 };
 
 #endif // SQUARETEXTURED_H
