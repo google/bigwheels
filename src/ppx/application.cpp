@@ -684,6 +684,7 @@ void Application::DispatchShutdown()
 {
     Shutdown();
 
+    // Save the metrics report to disk
     if (mSettings.useMetrics) {
         // Build a unique name for the report
         std::stringstream                                        reportFilename;
@@ -1277,6 +1278,7 @@ int Application::Run(int argc, char** argv)
             mAverageFrameTime = static_cast<float>(nowMs / mFrameCount);
         }
 
+        // Update default metrics in the current metrics run.
         if (mSettings.useMetrics && mMetrics.pCurrentRun != nullptr) {
             PPX_ASSERT_NULL_ARG(mMetrics.pCpuFrameTime);
             PPX_ASSERT_NULL_ARG(mMetrics.pFramerate);
@@ -1287,14 +1289,13 @@ int Application::Run(int argc, char** argv)
             mMetrics.pCpuFrameTime->RecordEntry(seconds, mPreviousFrameTime);
             mMetrics.pFrameCount->Increment(1);
 
-            // Check whether framerate tracking must started.
-            // The record timer is based on elapsed time which should never be zero.
-            if (mMetrics.framerateRecordTimer == 0.0) {
-                mMetrics.framerateRecordTimer = seconds;
-                mMetrics.framerateFrameCount  = 0;
+            // Record the average framerate roughly every second.
+            if (mMetrics.resetFramerateTracking) {
+                mMetrics.framerateRecordTimer   = seconds;
+                mMetrics.framerateFrameCount    = 0;
+                mMetrics.resetFramerateTracking = false;
             }
             else {
-                // Record the average framerate roughly every second.
                 ++mMetrics.framerateFrameCount;
                 const double framerateSecondsDiff = seconds - mMetrics.framerateRecordTimer;
                 if (framerateSecondsDiff >= 1.0) {
@@ -1510,8 +1511,7 @@ metrics::Run* Application::StartMetricsRun(const char* pName)
         mMetrics.pFrameCount             = mMetrics.pCurrentRun->AddMetric<metrics::MetricCounter>(metadata);
     }
 
-    mMetrics.framerateRecordTimer = 0.0;
-    mMetrics.framerateFrameCount  = 0;
+    mMetrics.resetFramerateTracking = true;
     return mMetrics.pCurrentRun;
 }
 

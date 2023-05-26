@@ -56,6 +56,8 @@ struct MetricMetadata
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// A report contains runs and metrics information.
+// It is meant to be saved to disk.
 class Report final
 {
     friend class Manager;
@@ -236,6 +238,10 @@ public:
     ~Manager();
 
     Run* AddRun(const char* pName);
+
+    // Export all the runs and metrics information into a report.
+    // The report is cleared first and contains only the information from
+    // the manager once the function returns.
     void Export(const char* pName, Report* pOutReport) const;
 
 private:

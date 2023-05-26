@@ -233,7 +233,7 @@ struct ApplicationSettings
     bool        headless              = false;
     bool        enableImGui           = false;
     bool        allowThirdPartyAssets = false;
-    bool        useMetrics            = false;
+    bool        useMetrics            = false; // Set to true to opt-in for metrics
 
     struct
     {
@@ -411,6 +411,10 @@ public:
 
     bool IsXrEnabled() const { return mSettings.xr.enable; }
 
+    // Start/stop a new metric run.
+    // Only one run is ever active at the same time.
+    // All runs are automatically exported and saved to disk when the application shuts down.
+    // The application must have opted-in for metrics in the application settings.
     metrics::Run* StartMetricsRun(const char* pName);
     void          StopMetricsRun();
 
@@ -506,8 +510,9 @@ private:
         metrics::MetricGauge*   pFramerate    = nullptr;
         metrics::MetricCounter* pFrameCount   = nullptr;
 
-        double   framerateRecordTimer = 0.0;
-        uint64_t framerateFrameCount  = 0;
+        double   framerateRecordTimer   = 0.0;
+        uint64_t framerateFrameCount    = 0;
+        bool     resetFramerateTracking = true;
     } mMetrics;
 
 #if defined(PPX_MSW)
