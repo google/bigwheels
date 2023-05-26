@@ -41,10 +41,10 @@ bool Report::WriteToFile(const char* pFilepath) const
 static void ExportMetadata(const MetricMetadata& metadata, nlohmann::json* pOutMetadataObject)
 {
     PPX_ASSERT_NULL_ARG(pOutMetadataObject);
-    nlohmann::json& object = *pOutMetadataObject;
-    object["name"] = metadata.name;
-    object["unit"] = metadata.unit;
-    object["interpretation"] = metadata.interpretation;
+    nlohmann::json& object         = *pOutMetadataObject;
+    object["name"]                 = metadata.name;
+    object["unit"]                 = metadata.unit;
+    object["interpretation"]       = metadata.interpretation;
     object["expected_lower_bound"] = metadata.expectedRange.lowerBound;
     object["expected_upper_bound"] = metadata.expectedRange.upperBound;
 }
@@ -171,25 +171,25 @@ void MetricGauge::Export(nlohmann::json* pOutMetricObject) const
     }
 
     {
-        nlohmann::json statisticsObject;
+        nlohmann::json             statisticsObject;
         const GaugeBasicStatistics basicStatistics = GetBasicStatistics();
-        statisticsObject["min"] = basicStatistics.min;
-        statisticsObject["max"] = basicStatistics.max;
-        statisticsObject["average"] = basicStatistics.average;
-        statisticsObject["time_ratio"] = basicStatistics.timeRatio;
+        statisticsObject["min"]                    = basicStatistics.min;
+        statisticsObject["max"]                    = basicStatistics.max;
+        statisticsObject["average"]                = basicStatistics.average;
+        statisticsObject["time_ratio"]             = basicStatistics.timeRatio;
 
         const GaugeComplexStatistics complexStatistics = ComputeComplexStatistics();
-        statisticsObject["median"] = complexStatistics.median;
-        statisticsObject["standard_deviation"] = complexStatistics.standardDeviation;
-        statisticsObject["percentile_90"] = complexStatistics.percentile90;
-        statisticsObject["percentile_95"] = complexStatistics.percentile95;
-        statisticsObject["percentile_99"] = complexStatistics.percentile99;
+        statisticsObject["median"]                     = complexStatistics.median;
+        statisticsObject["standard_deviation"]         = complexStatistics.standardDeviation;
+        statisticsObject["percentile_90"]              = complexStatistics.percentile90;
+        statisticsObject["percentile_95"]              = complexStatistics.percentile95;
+        statisticsObject["percentile_99"]              = complexStatistics.percentile99;
 
         metricObject["statistics"] = statisticsObject;
     }
 
     for (const TimeSeriesEntry& entry : mTimeSeries) {
-        metricObject["time_series"] += nlohmann::json::array({ entry.seconds, entry.value });
+        metricObject["time_series"] += nlohmann::json::array({entry.seconds, entry.value});
     }
 }
 
@@ -220,8 +220,8 @@ void MetricCounter::Export(nlohmann::json* pOutMetricObject) const
     nlohmann::json metadataObject;
     ExportMetadata(mMetadata, &metadataObject);
     nlohmann::json& metricObject = *pOutMetricObject;
-    metricObject["metadata"] = metadataObject;
-    metricObject["value"] = mCounter;
+    metricObject["metadata"]     = metadataObject;
+    metricObject["value"]        = mCounter;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -267,7 +267,7 @@ void Run::Export(nlohmann::json* pOutRunObject) const
 {
     PPX_ASSERT_NULL_ARG(pOutRunObject);
     nlohmann::json& object = *pOutRunObject;
-    object["name"] = mName;
+    object["name"]         = mName;
     for (auto [name, pMetric] : mGauges) {
         nlohmann::json metricObject;
         pMetric->Export(&metricObject);
