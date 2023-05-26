@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "ppx/metrics.h"
+#include "nlohmann/json.hpp"
 
 namespace ppx {
 namespace metrics {

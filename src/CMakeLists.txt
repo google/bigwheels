@@ -96,6 +96,7 @@ endif()
 set(INC_DIR    ${PPX_DIR}/include)
 set(SRC_DIR    ${PPX_DIR}/src)
 set(IMGUI_DIR  ${PPX_DIR}/third_party/imgui)
+set(JSON_DIR   ${PPX_DIR}/third_party/json/single_include)
 
 list(APPEND IMGUI_HEADER_FILES
     ${IMGUI_DIR}/imgui.h
@@ -108,6 +109,9 @@ list(APPEND IMGUI_SOURCE_FILES
     ${IMGUI_DIR}/imgui_tables.cpp
     ${IMGUI_DIR}/imgui_widgets.cpp
 )
+
+list(APPEND JSON_HEADER_FILES
+    ${JSON_DIR}/nlohmann/json.hpp)
 
 if (NOT PPX_ANDROID)
     list(APPEND IMGUI_SOURCE_FILES
@@ -389,6 +393,7 @@ source_group("ppx-grfx-dx12\\source"  FILES ${PPX_GRFX_DX12_SOURCE_FILES})
 source_group("ppx-grfx-vk\\header"    FILES ${PPX_GRFX_VK_HEADER_FILES})
 source_group("ppx-grfx-vk\\source"    FILES ${PPX_GRFX_VK_SOURCE_FILES})
 source_group("third_party\\imgui"     FILES ${IMGUI_HEADER_FILES} ${IMGUI_SOURCE_FILES})
+source_group("third_party\\json"      FILES ${JSON_HEADER_FILES})
 source_group("third_party\\xxHash"    FILES ${XXHASH_FILES})
 
 # ------------------------------------------------------------------------------
@@ -411,6 +416,7 @@ add_library(
     ${IMGUI_HEADER_FILES}
     ${IMGUI_SOURCE_FILES}
     ${XXHASH_FILES}
+    ${JSON_HEADER_FILES}
 )
 
 if (PPX_LINUX)
@@ -437,6 +443,7 @@ target_include_directories(
             ${PPX_THIRD_PARTY_DIR}/cgltf
             ${PPX_THIRD_PARTY_DIR}/xxHash
             ${PPX_THIRD_PARTY_DIR}/utfcpp/source
+            ${JSON_DIR}
 )
 
 # Include D3D12 directories if D3D12 is enabled
