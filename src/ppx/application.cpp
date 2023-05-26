@@ -1485,31 +1485,29 @@ metrics::Run* Application::StartMetricsRun(const char* pName)
         return nullptr;
     }
 
-    using namespace metrics;
-
     mMetrics.pCurrentRun = mMetrics.manager.AddRun(pName);
 
     // Add default metrics to every single run
     {
-        MetricMetadata metadata = {};
-        metadata.name           = "cpu_frame_time";
-        metadata.unit           = "ms";
-        metadata.interpretation = MetricInterpretation::LOWER_IS_BETTER;
-        mMetrics.pCpuFrameTime  = mMetrics.pCurrentRun->AddMetric<MetricGauge>(metadata);
+        metrics::MetricMetadata metadata = {};
+        metadata.name                    = "cpu_frame_time";
+        metadata.unit                    = "ms";
+        metadata.interpretation          = metrics::MetricInterpretation::LOWER_IS_BETTER;
+        mMetrics.pCpuFrameTime           = mMetrics.pCurrentRun->AddMetric<metrics::MetricGauge>(metadata);
     }
     {
-        MetricMetadata metadata = {};
-        metadata.name           = "framerate";
-        metadata.unit           = "";
-        metadata.interpretation = MetricInterpretation::HIGHER_IS_BETTER;
-        mMetrics.pFramerate     = mMetrics.pCurrentRun->AddMetric<MetricGauge>(metadata);
+        metrics::MetricMetadata metadata = {};
+        metadata.name                    = "framerate";
+        metadata.unit                    = "";
+        metadata.interpretation          = metrics::MetricInterpretation::HIGHER_IS_BETTER;
+        mMetrics.pFramerate              = mMetrics.pCurrentRun->AddMetric<metrics::MetricGauge>(metadata);
     }
     {
-        MetricMetadata metadata = {};
-        metadata.name           = "frame_count";
-        metadata.unit           = "";
-        metadata.interpretation = MetricInterpretation::NONE;
-        mMetrics.pFrameCount    = mMetrics.pCurrentRun->AddMetric<MetricCounter>(metadata);
+        metrics::MetricMetadata metadata = {};
+        metadata.name                    = "frame_count";
+        metadata.unit                    = "";
+        metadata.interpretation          = metrics::MetricInterpretation::NONE;
+        mMetrics.pFrameCount             = mMetrics.pCurrentRun->AddMetric<metrics::MetricCounter>(metadata);
     }
 
     mMetrics.framerateRecordTimer = 0.0;
