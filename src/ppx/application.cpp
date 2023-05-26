@@ -684,28 +684,20 @@ void Application::DispatchShutdown()
 {
     Shutdown();
 
-#if defined(TODO_MAX)
     if (mSettings.useMetrics) {
-        using namespace std;
-
         // Build a unique name for the report
-        std::stringstream                              reportFilename;
-        const chrono::time_point<chrono::system_clock> now          = chrono::system_clock::now();
-        const time_t                                   current_time = chrono::system_clock::to_time_t(now);
-        reportFilename << "report_" << current_time << ".bin";
+        std::stringstream                                        reportFilename;
+        const std::chrono::time_point<std::chrono::system_clock> now          = std::chrono::system_clock::now();
+        const time_t                                             current_time = std::chrono::system_clock::to_time_t(now);
+        reportFilename << "report_" << current_time << metrics::Report::FILE_EXTENSION;
 
         // Export the report from the metrics manager
-        metrics::reporting::Report report;
+        metrics::Report report;
         mMetrics.manager.Export(reportFilename.str().c_str(), &report);
 
         // Serialize the report to disk
-        std::ofstream outputFile(reportFilename.str(), std::ofstream::out);
-        if (!report.SerializeToOstream(&outputFile)) {
-            PPX_LOG_ERROR("Failed to export report [" << reportFilename.str() << "]");
-        }
-        outputFile.close();
+        report.WriteToFile(reportFilename.str().c_str());
     }
-#endif
 
     PPX_LOG_INFO("Number of frames drawn: " << GetFrameCount());
     PPX_LOG_INFO("Average frame time:     " << GetAverageFrameTime() << " ms");

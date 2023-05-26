@@ -13,28 +13,41 @@
 // limitations under the License.
 
 #include "ppx/metrics.h"
-#include "nlohmann/json.hpp"
 
 namespace ppx {
 namespace metrics {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-#if defined(TODO_MAX)
-static void ExportMetadata(const MetricMetadata& metadata, reporting::MetricMetadata* pOutMetadata)
+Report::Report()
 {
-    // Make sure the runtime and reporting enumerations are in sync as that's what the code currently assumes
-    static_assert(static_cast<uint32_t>(MetricInterpretation::NONE) == static_cast<uint32_t>(reporting::Interpretation::NONE));
-    static_assert(static_cast<uint32_t>(MetricInterpretation::HIGHER_IS_BETTER) == static_cast<uint32_t>(reporting::Interpretation::HIGHER_IS_BETTER));
-    static_assert(static_cast<uint32_t>(MetricInterpretation::LOWER_IS_BETTER) == static_cast<uint32_t>(reporting::Interpretation::LOWER_IS_BETTER));
-    pOutMetadata->set_name(metadata.name);
-    pOutMetadata->set_unit(metadata.unit);
-    pOutMetadata->set_interpretation(static_cast<reporting::Interpretation>(metadata.interpretation));
-    auto pExpectedRange = pOutMetadata->mutable_expected_range();
-    pExpectedRange->set_lower_bound(metadata.expectedRange.lowerBound);
-    pExpectedRange->set_upper_bound(metadata.expectedRange.upperBound);
 }
-#endif
+
+Report::~Report()
+{
+}
+
+bool Report::WriteToFile(const char* pFilepath) const
+{
+    PPX_ASSERT_NULL_ARG(pFilepath);
+    std::ofstream outputFile(pFilepath, std::ofstream::out);
+    outputFile << mContent.dump(4) << std::endl;
+    outputFile.close();
+    return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+static void ExportMetadata(const MetricMetadata& metadata, nlohmann::json* pOutMetadataObject)
+{
+    PPX_ASSERT_NULL_ARG(pOutMetadataObject);
+    nlohmann::json& object = *pOutMetadataObject;
+    object["name"] = metadata.name;
+    object["unit"] = metadata.unit;
+    object["interpretation"] = metadata.interpretation;
+    object["expected_lower_bound"] = metadata.expectedRange.lowerBound;
+    object["expected_upper_bound"] = metadata.expectedRange.upperBound;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -145,33 +158,40 @@ void MetricGauge::UpdateBasicStatistics(double seconds, double value)
     }
 }
 
-#if defined(TODO_MAX)
-void MetricGauge::Export(reporting::MetricGauge* pReportMetric) const
+void MetricGauge::Export(nlohmann::json* pOutMetricObject) const
 {
-    ExportMetadata(mMetadata, pReportMetric->mutable_metadata());
+    PPX_ASSERT_NULL_ARG(pOutMetricObject);
 
-    reporting::GaugeStatistics* pReportStatistics = pReportMetric->mutable_statistics();
+    nlohmann::json& metricObject = *pOutMetricObject;
 
-    const GaugeBasicStatistics basicStatistics = GetBasicStatistics();
-    pReportStatistics->set_min(basicStatistics.min);
-    pReportStatistics->set_max(basicStatistics.max);
-    pReportStatistics->set_average(basicStatistics.average);
-    pReportStatistics->set_time_ratio(basicStatistics.timeRatio);
+    {
+        nlohmann::json metadataObject;
+        ExportMetadata(mMetadata, &metadataObject);
+        metricObject["metadata"] = metadataObject;
+    }
 
-    const GaugeComplexStatistics complexStatistics = ComputeComplexStatistics();
-    pReportStatistics->set_median(complexStatistics.median);
-    pReportStatistics->set_standard_deviation(complexStatistics.standardDeviation);
-    pReportStatistics->set_percentile_90(complexStatistics.percentile90);
-    pReportStatistics->set_percentile_95(complexStatistics.percentile95);
-    pReportStatistics->set_percentile_99(complexStatistics.percentile99);
+    {
+        nlohmann::json statisticsObject;
+        const GaugeBasicStatistics basicStatistics = GetBasicStatistics();
+        statisticsObject["min"] = basicStatistics.min;
+        statisticsObject["max"] = basicStatistics.max;
+        statisticsObject["average"] = basicStatistics.average;
+        statisticsObject["time_ratio"] = basicStatistics.timeRatio;
+
+        const GaugeComplexStatistics complexStatistics = ComputeComplexStatistics();
+        statisticsObject["median"] = complexStatistics.median;
+        statisticsObject["standard_deviation"] = complexStatistics.standardDeviation;
+        statisticsObject["percentile_90"] = complexStatistics.percentile90;
+        statisticsObject["percentile_95"] = complexStatistics.percentile95;
+        statisticsObject["percentile_99"] = complexStatistics.percentile99;
+
+        metricObject["statistics"] = statisticsObject;
+    }
 
     for (const TimeSeriesEntry& entry : mTimeSeries) {
-        reporting::TimeSeriesEntry* pReportEntry = pReportMetric->add_time_series();
-        pReportEntry->set_seconds(entry.seconds);
-        pReportEntry->set_value(entry.value);
+        metricObject["time_series"] += nlohmann::json::array({ entry.seconds, entry.value });
     }
 }
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -194,13 +214,15 @@ uint64_t MetricCounter::Get() const
     return mCounter;
 }
 
-#if defined(TODO_MAX)
-void MetricCounter::Export(reporting::MetricCounter* pReportMetric) const
+void MetricCounter::Export(nlohmann::json* pOutMetricObject) const
 {
-    ExportMetadata(mMetadata, pReportMetric->mutable_metadata());
-    pReportMetric->set_value(mCounter);
+    PPX_ASSERT_NULL_ARG(pOutMetricObject);
+    nlohmann::json metadataObject;
+    ExportMetadata(mMetadata, &metadataObject);
+    nlohmann::json& metricObject = *pOutMetricObject;
+    metricObject["metadata"] = metadataObject;
+    metricObject["value"] = mCounter;
 }
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -241,20 +263,22 @@ bool Run::HasMetric(const char* pName) const
     return mGauges.find(pName) != mGauges.end() || mCounters.find(pName) != mCounters.end();
 }
 
-#if defined(TODO_MAX)
-void Run::Export(reporting::Run* pReportRun) const
+void Run::Export(nlohmann::json* pOutRunObject) const
 {
-    pReportRun->set_name(mName);
+    PPX_ASSERT_NULL_ARG(pOutRunObject);
+    nlohmann::json& object = *pOutRunObject;
+    object["name"] = mName;
     for (auto [name, pMetric] : mGauges) {
-        reporting::MetricGauge* pReportGauge = pReportRun->add_gauges();
-        pMetric->Export(pReportGauge);
+        nlohmann::json metricObject;
+        pMetric->Export(&metricObject);
+        object["gauges"] += metricObject;
     }
     for (auto [name, pMetric] : mCounters) {
-        reporting::MetricCounter* pReportCounter = pReportRun->add_counters();
-        pMetric->Export(pReportCounter);
+        nlohmann::json metricObject;
+        pMetric->Export(&metricObject);
+        object["counters"] += metricObject;
     }
 }
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -285,16 +309,21 @@ Run* Manager::AddRun(const char* pName)
     return pRun;
 }
 
-#if defined(TODO_MAX)
-void Manager::Export(const char* name, reporting::Report* pOutReport) const
+void Manager::Export(const char* pName, Report* pOutReport) const
 {
-    pOutReport->set_name(name);
+    PPX_ASSERT_NULL_ARG(pName);
+    PPX_ASSERT_NULL_ARG(pOutReport);
+
+    nlohmann::json& content = pOutReport->mContent;
+    content.clear();
+
+    content["name"] = pName;
     for (auto [name, pRun] : mRuns) {
-        reporting::Run* pReportRun = pOutReport->add_runs();
-        pRun->Export(pReportRun);
+        nlohmann::json runObject;
+        pRun->Export(&runObject);
+        content["runs"] += runObject;
     }
 }
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 

@@ -15,6 +15,7 @@
 #ifndef ppx_metrics_h
 #define ppx_metrics_h
 
+#include "nlohmann/json.hpp"
 #include "ppx/config.h"
 
 #include <limits>
@@ -29,16 +30,6 @@ namespace metrics {
     type(type&)       = delete; \
     type(const type&) = delete; \
     type& operator=(const type&) = delete;
-
-////////////////////////////////////////////////////////////////////////////////
-
-// Forward declaration for protos
-namespace reporting {
-class MetricGauge;
-class MetricCounter;
-class Run;
-class Report;
-} // namespace reporting
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -61,6 +52,24 @@ struct MetricMetadata
     std::string          unit;
     MetricInterpretation interpretation = MetricInterpretation::NONE;
     Range                expectedRange;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+
+class Report final
+{
+    friend class Manager;
+
+public:
+    static constexpr const char* FILE_EXTENSION = ".json";
+
+public:
+    Report();
+    ~Report();
+    bool WriteToFile(const char* filename) const;
+
+private:
+    nlohmann::json mContent;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -120,7 +129,7 @@ public:
     const GaugeBasicStatistics   GetBasicStatistics() const;
     const GaugeComplexStatistics ComputeComplexStatistics() const;
 
-    void Export(reporting::MetricGauge* pReportMetric) const;
+    void Export(nlohmann::json* pOutRunObject) const;
 
 private:
     struct TimeSeriesEntry
@@ -162,7 +171,7 @@ public:
         return mMetadata.name;
     };
 
-    void Export(reporting::MetricCounter* pReportMetric) const;
+    void Export(nlohmann::json* pOutRunObject) const;
 
 private:
     ~MetricCounter();
@@ -195,7 +204,7 @@ private:
     void AddMetric(MetricCounter* pMetric);
     bool HasMetric(const char* pName) const;
 
-    void Export(reporting::Run* pReportRun) const;
+    void Export(nlohmann::json* pRunObject) const;
 
 private:
     std::string                                     mName;
@@ -227,7 +236,7 @@ public:
     ~Manager();
 
     Run* AddRun(const char* pName);
-    void Export(const char* pName, reporting::Report* pOutReport) const;
+    void Export(const char* pName, Report* pOutReport) const;
 
 private:
     METRICS_NO_COPY(Manager)
