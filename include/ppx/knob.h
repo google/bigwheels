@@ -224,6 +224,13 @@ public:
         SetDefaultAndIndex(defaultIndex);
     }
 
+    template <typename Container>
+    KnobDropdown(
+        const std::string& flagName,
+        size_t             defaultIndex,
+        const Container&   container)
+        : KnobDropdown(flagName, defaultIndex, std::begin(container), std::end(container)) {}
+
     void Draw() override
     {
         if (ImGui::BeginCombo(mDisplayName.c_str(), mChoices.at(mIndex).c_str())) {

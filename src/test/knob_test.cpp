@@ -187,6 +187,17 @@ TEST_F(KnobTestFixture, KnobDropdown_Create)
     EXPECT_EQ(strKnob.GetFlagHelpText(), "--flag_name1 <\"c1\"|\"c2\"> : description1\n");
 }
 
+TEST_F(KnobTestFixture, KnobDropdown_CreateVaried)
+{
+    std::vector<std::string> choices1 = {"c1", "c2"};
+    KnobDropdown             strKnob  = KnobDropdown<std::string>("flag_name1", 1, choices1);
+    EXPECT_EQ(strKnob.GetIndex(), 1);
+
+    std::vector<const char*> choices2 = {"c1", "c2"};
+    strKnob                           = KnobDropdown<std::string>("flag_name2", 0, choices2);
+    EXPECT_EQ(strKnob.GetIndex(), 0);
+}
+
 #if defined(PERFORM_DEATH_TESTS)
 TEST_F(KnobTestFixture, KnobDropdown_CreateInvalid)
 {
