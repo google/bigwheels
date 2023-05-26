@@ -163,7 +163,6 @@ list(
     ${INC_DIR}/ppx/knob.h
     ${INC_DIR}/ppx/log.h
     ${INC_DIR}/ppx/metrics.h
-    ${SRC_DIR}/ppx/metrics_report.pb.h
     ${INC_DIR}/ppx/mipmap.h
     ${INC_DIR}/ppx/obj_ptr.h
     ${INC_DIR}/ppx/platform.h
@@ -199,7 +198,6 @@ list(
     ${SRC_DIR}/ppx/log.cpp
     ${SRC_DIR}/ppx/math_config.cpp
     ${SRC_DIR}/ppx/metrics.cpp
-    ${SRC_DIR}/ppx/metrics_report.pb.cc
     ${SRC_DIR}/ppx/mipmap.cpp
     ${SRC_DIR}/ppx/platform.cpp
     ${SRC_DIR}/ppx/ppm_export.cpp
@@ -439,8 +437,6 @@ target_include_directories(
             ${PPX_THIRD_PARTY_DIR}/cgltf
             ${PPX_THIRD_PARTY_DIR}/xxHash
             ${PPX_THIRD_PARTY_DIR}/utfcpp/source
-            ${PPX_THIRD_PARTY_DIR}/protobuf/src
-            ${PPX_THIRD_PARTY_DIR}/protobuf/third_party/abseil-cpp
 )
 
 # Include D3D12 directories if D3D12 is enabled
@@ -633,35 +629,4 @@ if (NOT ANDROID)
         add_subdirectory(test)
     endif()
 endif()
-
-# ------------------------------------------------------------------------------
-# Protobuf library + proto generation
-# ------------------------------------------------------------------------------
-if (NOT ANDROID)
-    set(PROTO_OUTPUT_DIR ${SRC_DIR}/ppx)
-    set(PROTO_SRC_DIR ${SRC_DIR}/proto)
-
-    set(PROTO_METRICS_FILENAME metrics_report)
-
-    list(APPEND PROTO_SRC_FILES ${PROTO_SRC_DIR}/${PROTO_METRICS_FILENAME}.proto)
-    list(
-        APPEND PROTO_OUTPUT_FILES
-        ${PROTO_OUTPUT_DIR}/${PROTO_METRICS_FILENAME}.pb.h
-        ${PROTO_OUTPUT_DIR}/${PROTO_METRICS_FILENAME}.pb.cc)
-
-    add_custom_command(
-        OUTPUT ${PROTO_OUTPUT_FILES}
-        DEPENDS ${PROTO_SRC_FILES}
-        COMMAND protoc --proto_path=${PROTO_SRC_DIR} ${PROTO_SRC_FILES} --cpp_out=${PROTO_OUTPUT_DIR})
-
-    add_custom_target(
-        convert_proto
-        DEPENDS ${PROTO_OUTPUT_FILES})
-    target_sources(
-        convert_proto
-        PRIVATE ${PROTO_SRC_FILES})
-
-    add_dependencies(${PROJECT_NAME} convert_proto)
-endif()
-target_link_libraries(${PROJECT_NAME} PUBLIC libprotobuf)
 

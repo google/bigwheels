@@ -14,7 +14,6 @@
 
 #include "ppx/application.h"
 #include "ppx/fs.h"
-#include "ppx/metrics_report.pb.h"
 #include "ppx/ppm_export.h"
 #include "ppx/profiler.h"
 
@@ -685,6 +684,7 @@ void Application::DispatchShutdown()
 {
     Shutdown();
 
+#if defined(TODO_MAX)
     if (mSettings.useMetrics) {
         using namespace std;
 
@@ -705,6 +705,7 @@ void Application::DispatchShutdown()
         }
         outputFile.close();
     }
+#endif
 
     PPX_LOG_INFO("Number of frames drawn: " << GetFrameCount());
     PPX_LOG_INFO("Average frame time:     " << GetAverageFrameTime() << " ms");

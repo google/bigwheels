@@ -13,20 +13,19 @@
 // limitations under the License.
 
 #include "ppx/metrics.h"
-#include "metrics_report.pb.h"
 
 namespace ppx {
 namespace metrics {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+#if defined(TODO_MAX)
 static void ExportMetadata(const MetricMetadata& metadata, reporting::MetricMetadata* pOutMetadata)
 {
     // Make sure the runtime and reporting enumerations are in sync as that's what the code currently assumes
     static_assert(static_cast<uint32_t>(MetricInterpretation::NONE) == static_cast<uint32_t>(reporting::Interpretation::NONE));
     static_assert(static_cast<uint32_t>(MetricInterpretation::HIGHER_IS_BETTER) == static_cast<uint32_t>(reporting::Interpretation::HIGHER_IS_BETTER));
     static_assert(static_cast<uint32_t>(MetricInterpretation::LOWER_IS_BETTER) == static_cast<uint32_t>(reporting::Interpretation::LOWER_IS_BETTER));
-
     pOutMetadata->set_name(metadata.name);
     pOutMetadata->set_unit(metadata.unit);
     pOutMetadata->set_interpretation(static_cast<reporting::Interpretation>(metadata.interpretation));
@@ -34,6 +33,7 @@ static void ExportMetadata(const MetricMetadata& metadata, reporting::MetricMeta
     pExpectedRange->set_lower_bound(metadata.expectedRange.lowerBound);
     pExpectedRange->set_upper_bound(metadata.expectedRange.upperBound);
 }
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -144,6 +144,7 @@ void MetricGauge::UpdateBasicStatistics(double seconds, double value)
     }
 }
 
+#if defined(TODO_MAX)
 void MetricGauge::Export(reporting::MetricGauge* pReportMetric) const
 {
     ExportMetadata(mMetadata, pReportMetric->mutable_metadata());
@@ -169,6 +170,7 @@ void MetricGauge::Export(reporting::MetricGauge* pReportMetric) const
         pReportEntry->set_value(entry.value);
     }
 }
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -191,11 +193,13 @@ uint64_t MetricCounter::Get() const
     return mCounter;
 }
 
+#if defined(TODO_MAX)
 void MetricCounter::Export(reporting::MetricCounter* pReportMetric) const
 {
     ExportMetadata(mMetadata, pReportMetric->mutable_metadata());
     pReportMetric->set_value(mCounter);
 }
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -236,6 +240,7 @@ bool Run::HasMetric(const char* pName) const
     return mGauges.find(pName) != mGauges.end() || mCounters.find(pName) != mCounters.end();
 }
 
+#if defined(TODO_MAX)
 void Run::Export(reporting::Run* pReportRun) const
 {
     pReportRun->set_name(mName);
@@ -248,6 +253,7 @@ void Run::Export(reporting::Run* pReportRun) const
         pMetric->Export(pReportCounter);
     }
 }
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -278,6 +284,7 @@ Run* Manager::AddRun(const char* pName)
     return pRun;
 }
 
+#if defined(TODO_MAX)
 void Manager::Export(const char* name, reporting::Report* pOutReport) const
 {
     pOutReport->set_name(name);
@@ -286,6 +293,7 @@ void Manager::Export(const char* name, reporting::Report* pOutReport) const
         pRun->Export(pReportRun);
     }
 }
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 

@@ -107,9 +107,7 @@ include(GraphicsSample)
 
 if(MSVC)
     # Disable the following warnings:
-    # 4018 4141 4624 4805: these warnings are emitted by protobuf.
     # 26812: unscoped enums are widely used by the project and dependencies.
-    set(MSVC_DISABLED_WARNINGS "/wd4018 /wd4141 /wd4624 /wd4805 /wd26812")
     set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} ${MSVC_DISABLED_WARNINGS} /MP")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MSVC_DISABLED_WARNINGS} /MP /Zc:__cplusplus /std:c++20")
 else()
@@ -226,19 +224,6 @@ if (PPX_BUILD_XR)
     message("Building OpenXR support")
     add_subdirectory(third_party/OpenXR-SDK-Source)
 endif()
-
-# ------------------------------------------------------------------------------
-# Add protobuf
-# ------------------------------------------------------------------------------
-set(protobuf_INSTALL OFF)
-set(protobuf_BUILD_TESTS OFF)
-set(protobuf_BUILD_CONFORMANCE OFF)
-set(protobuf_BUILD_EXAMPLES OFF)
-set(protobuf_BUILD_PROTOBUF_BINARIES ON)
-set(protobuf_BUILD_PROTOC_BINARIES ON)
-set(protobuf_BUILD_LIBPROTOC ON)
-set(ABSL_PROPAGATE_CXX_STD ON)
-add_subdirectory(${PPX_THIRD_PARTY_DIR}/protobuf)
 
 # ------------------------------------------------------------------------------
 # Add PPX library.
