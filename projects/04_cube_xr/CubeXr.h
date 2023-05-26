@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef CUBEXR_H
+#define CUBEXR_H
+
 #include "ppx/math_config.h"
 #include "ppx/ppx.h"
 using namespace ppx;
@@ -52,3 +55,5 @@ private:
     grfx::Rect                   mScissorRect;
     grfx::VertexBinding          mVertexBinding;
 };
+
+#endif // CUBEXR_H
