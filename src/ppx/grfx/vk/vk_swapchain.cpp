@@ -251,15 +251,15 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
     if (isXREnabled) {
         const XrComponent& xrComponent = *mCreateInfo.pXrComponent;
 
-        PPX_ASSERT_MSG(xrComponent.GetColorFormat() == pCreateInfo->colorFormat, "XR color format differs from requested swapchain format");
+        PPX_ASSERT_MSG(pCreateInfo->colorFormat == xrComponent.GetColorFormat(), "XR color format differs from requested swapchain format");
 
         XrSwapchainCreateInfo info = {XR_TYPE_SWAPCHAIN_CREATE_INFO};
         info.arraySize             = 1;
         info.mipCount              = 1;
         info.faceCount             = 1;
-        info.format                = ToVkFormat(xrComponent.GetColorFormat());
-        info.width                 = xrComponent.GetWidth();
-        info.height                = xrComponent.GetHeight();
+        info.format                = ToVkFormat(pCreateInfo->colorFormat);
+        info.width                 = pCreateInfo->width;
+        info.height                = pCreateInfo->height;
         info.sampleCount           = xrComponent.GetSampleCount();
         info.usageFlags            = XR_SWAPCHAIN_USAGE_SAMPLED_BIT | XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT;
         CHECK_XR_CALL(xrCreateSwapchain(xrComponent.GetSession(), &info, &mXrColorSwapchain));
@@ -275,15 +275,15 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
         }
 
         if (xrComponent.GetDepthFormat() != grfx::FORMAT_UNDEFINED && xrComponent.UsesDepthSwapchains()) {
-            PPX_ASSERT_MSG(xrComponent.GetDepthFormat() == pCreateInfo->depthFormat, "XR depth format differs from requested swapchain format");
+            PPX_ASSERT_MSG(pCreateInfo->depthFormat == xrComponent.GetDepthFormat(), "XR depth format differs from requested swapchain format");
 
             XrSwapchainCreateInfo info = {XR_TYPE_SWAPCHAIN_CREATE_INFO};
             info.arraySize             = 1;
             info.mipCount              = 1;
             info.faceCount             = 1;
-            info.format                = ToVkFormat(xrComponent.GetDepthFormat());
-            info.width                 = xrComponent.GetWidth();
-            info.height                = xrComponent.GetHeight();
+            info.format                = ToVkFormat(pCreateInfo->depthFormat);
+            info.width                 = pCreateInfo->width;
+            info.height                = pCreateInfo->height;
             info.sampleCount           = xrComponent.GetSampleCount();
             info.usageFlags            = XR_SWAPCHAIN_USAGE_SAMPLED_BIT | XR_SWAPCHAIN_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
             CHECK_XR_CALL(xrCreateSwapchain(xrComponent.GetSession(), &info, &mXrDepthSwapchain));

@@ -41,6 +41,9 @@ struct StandardOptions
     std::pair<int, int> resolution         = {-1, -1};
     int                 frame_count        = -1;
     uint32_t            stats_frame_window = 300;
+#if defined(PPX_BUILD_XR)
+    std::pair<int, int> xrUIResolution = {-1, -1};
+#endif
 
     int         screenshot_frame_number                  = -1;
     std::string screenshot_path                          = "";
@@ -164,6 +167,26 @@ public:
 
 private:
     CliOptions        mOpts;
+#if defined(PPX_BUILD_XR)
+    const std::string mUsageMsg = R"(
+--help                        Prints this help message and exits.
+
+--deterministic               Disable non-deterministic behaviors, like clocks.
+--frame-count <N>             Shutdown the application after successfully rendering N frames.
+--gpu <index>                 Select the gpu with the given index. To determine the set of valid indices use --list-gpus.
+--headless                    Run the sample without creating windows.
+--list-gpus                   Prints a list of the available GPUs on the current system with their index and exits (see --gpu).
+--resolution <Width>x<Height> Specify the per-eye resolution in pixels. Width and Height must be two positive integers greater or equal to 1.
+--xr-ui-resolution <Width>x<Height> Specify the UI quad resolution in pixels. Width and Height must be two positive integers greater or equal to 1.
+--screenshot-frame-number <N> Take a screenshot of frame number N and save it in PPM format.
+                              See also `--screenshot-path`.
+--screenshot-path             Save the screenshot to this path. If not specified, BigWheels will create a
+                              "screenshot_frameN" file in the current working directory.
+--stats-frame-window <N>      Calculate frame statistics over the last N frames only.
+                              Set to 0 to use all frames since the beginning of the application.
+--use-software-renderer       Use a software renderer instead of a hardware device, if available.
+)";
+#else
     const std::string mUsageMsg = R"(
 --help                        Prints this help message and exits.
 
@@ -181,6 +204,7 @@ private:
                               Set to 0 to use all frames since the beginning of the application.
 --use-software-renderer       Use a software renderer instead of a hardware device, if available.
 )";
+#endif
 };
 } // namespace ppx
 

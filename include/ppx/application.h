@@ -240,6 +240,8 @@ struct ApplicationSettings
         // Whether to create depth swapchains in addition to color swapchains,
         // and submit the depth info to the runtime as an additional layer.
         bool enableDepthSwapchain = false;
+        uint32_t uiWidth              = 0;
+        uint32_t uiHeight             = 0;
     } xr;
 
     struct
@@ -338,6 +340,22 @@ public:
     const ApplicationSettings* GetSettings() const { return &mSettings; }
     uint32_t                   GetWindowWidth() const { return mSettings.window.width; }
     uint32_t                   GetWindowHeight() const { return mSettings.window.height; }
+    uint32_t                   GetUIWidth() const
+    {
+#if defined(PPX_BUILD_XR)
+        return (mSettings.xr.enable && mSettings.xr.uiWidth > 0) ? mSettings.xr.uiWidth : mSettings.window.width;
+#else
+        return mSettings.window.width;
+#endif
+    }
+    uint32_t GetUIHeight() const
+    {
+#if defined(PPX_BUILD_XR)
+        return (mSettings.xr.enable && mSettings.xr.uiHeight > 0) ? mSettings.xr.uiHeight : mSettings.window.height;
+#else
+        return mSettings.window.height;
+#endif
+    }
     float                      GetWindowAspect() const { return static_cast<float>(mSettings.window.width) / static_cast<float>(mSettings.window.height); }
     grfx::Rect                 GetScissor() const;
     grfx::Viewport             GetViewport(float minDepth = 0.0f, float maxDepth = 1.0f) const;
