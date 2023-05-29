@@ -58,7 +58,7 @@ public:
 
     virtual void ResetToDefault() = 0;
 
-protected:
+private:
     std::string mDisplayName;
     std::string mFlagName;
     std::string mFlagDesc;
@@ -78,16 +78,16 @@ public:
 
     void Draw() override
     {
-        ImGui::Checkbox(mDisplayName.c_str(), &mValue);
+        ImGui::Checkbox(GetDisplayName().c_str(), &mValue);
     }
 
     void ResetToDefault() override { SetValue(mDefaultValue); }
 
     std::string GetFlagHelpText() const override
     {
-        std::string flagHelpText = "--" + mFlagName + " <true|false>";
-        if (!mFlagDesc.empty()) {
-            flagHelpText += " : " + mFlagDesc;
+        std::string flagHelpText = "--" + GetFlagName() + " <true|false>";
+        if (!GetFlagHelp().empty()) {
+            flagHelpText += " : " + GetFlagHelp();
         }
         return flagHelpText + "\n";
     }
@@ -96,7 +96,7 @@ public:
     // --flag_name <true|false>
     void UpdateFromFlags(const CliOptions& opts) override
     {
-        SetDefaultAndValue(opts.GetExtraOptionValueOrDefault(mFlagName, mValue));
+        SetDefaultAndValue(opts.GetExtraOptionValueOrDefault(GetFlagName(), mValue));
     }
 
     bool GetValue() const { return mValue; }
@@ -141,16 +141,16 @@ public:
 
     void Draw() override
     {
-        ImGui::SliderInt(mDisplayName.c_str(), &mValue, mMinValue, mMaxValue, NULL, ImGuiSliderFlags_AlwaysClamp);
+        ImGui::SliderInt(GetDisplayName().c_str(), &mValue, mMinValue, mMaxValue, NULL, ImGuiSliderFlags_AlwaysClamp);
     }
 
     void ResetToDefault() override { SetValue(mDefaultValue); }
 
     std::string GetFlagHelpText() const override
     {
-        std::string flagHelpText = "--" + mFlagName + " <" + std::to_string(mMinValue) + "~" + std::to_string(mMaxValue) + ">";
-        if (!mFlagDesc.empty()) {
-            flagHelpText += " : " + mFlagDesc;
+        std::string flagHelpText = "--" + GetFlagName() + " <" + std::to_string(mMinValue) + "~" + std::to_string(mMaxValue) + ">";
+        if (!GetFlagHelp().empty()) {
+            flagHelpText += " : " + GetFlagHelp();
         }
         return flagHelpText + "\n";
     }
@@ -159,7 +159,7 @@ public:
     // --flag_name <int>
     void UpdateFromFlags(const CliOptions& opts) override
     {
-        SetDefaultAndValue(opts.GetExtraOptionValueOrDefault(mFlagName, mValue));
+        SetDefaultAndValue(opts.GetExtraOptionValueOrDefault(GetFlagName(), mValue));
     }
 
     T GetValue() const { return mValue; }
@@ -168,7 +168,7 @@ public:
     void SetValue(T newVal)
     {
         if (!IsValidValue(newVal)) {
-            PPX_LOG_ERROR(mFlagName << " cannot be set to " << newVal << " because it's out of range " << mMinValue << "~" << mMaxValue);
+            PPX_LOG_ERROR(GetFlagName() << " cannot be set to " << newVal << " because it's out of range " << mMinValue << "~" << mMaxValue);
             return;
         }
 
@@ -214,13 +214,10 @@ public:
         size_t             defaultIndex,
         Iter               choicesBegin,
         Iter               choicesEnd)
-        : Knob(flagName)
+        : Knob(flagName), mChoices(choicesBegin, choicesEnd)
     {
-        PPX_ASSERT_MSG(static_cast<int>(defaultIndex) >= 0, "defaultIndex must be non-negative");
-        PPX_ASSERT_MSG(static_cast<int>(defaultIndex) < std::distance(choicesBegin, choicesEnd), "defaultIndex is out of range");
-        static_assert(std::is_assignable_v<T, typename std::iterator_traits<Iter>::value_type>, "KnobDropdown choices does not match KnobDropdown type");
+        PPX_ASSERT_MSG(static_cast<int>(defaultIndex) < mChoices.size(), "defaultIndex is out of range");
 
-        mChoices = std::vector<T>(choicesBegin, choicesEnd);
         SetDefaultAndIndex(defaultIndex);
     }
 
@@ -233,7 +230,7 @@ public:
 
     void Draw() override
     {
-        if (ImGui::BeginCombo(mDisplayName.c_str(), mChoices.at(mIndex).c_str())) {
+        if (ImGui::BeginCombo(GetDisplayName().c_str(), mChoices.at(mIndex).c_str())) {
             for (size_t i = 0; i < mChoices.size(); ++i) {
                 bool isSelected = (i == mIndex);
                 if (ImGui::Selectable(mChoices.at(i).c_str(), isSelected)) {
@@ -260,9 +257,9 @@ public:
         if (!choiceStr.empty())
             choiceStr.pop_back();
 
-        std::string flagHelpText = "--" + mFlagName + " <" + choiceStr + ">";
-        if (!mFlagDesc.empty()) {
-            flagHelpText += " : " + mFlagDesc;
+        std::string flagHelpText = "--" + GetFlagName() + " <" + choiceStr + ">";
+        if (!GetFlagHelp().empty()) {
+            flagHelpText += " : " + GetFlagHelp();
         }
         return flagHelpText + "\n";
     }
@@ -271,7 +268,7 @@ public:
     // --flag_name <str>
     void UpdateFromFlags(const CliOptions& opts) override
     {
-        SetDefaultAndIndex(opts.GetExtraOptionValueOrDefault(mFlagName, GetStr()));
+        SetDefaultAndIndex(opts.GetExtraOptionValueOrDefault(GetFlagName(), GetStr()));
     }
 
     size_t             GetIndex() const { return mIndex; }
@@ -281,7 +278,7 @@ public:
     void SetIndex(size_t newI)
     {
         if (!IsValidIndex(newI)) {
-            PPX_LOG_ERROR(mFlagName << " does not have this index in allowed choices: " << newI);
+            PPX_LOG_ERROR(GetFlagName() << " does not have this index in allowed choices: " << newI);
             return;
         }
 
@@ -293,7 +290,7 @@ public:
     {
         auto temp = std::find(mChoices.cbegin(), mChoices.cend(), newVal);
         if (temp == mChoices.cend()) {
-            PPX_LOG_ERROR(mFlagName << " does not have this value in allowed range: " << newVal);
+            PPX_LOG_ERROR(GetFlagName() << " does not have this value in allowed range: " << newVal);
             return;
         }
 
@@ -335,7 +332,7 @@ private:
 class KnobManager
 {
 public:
-    KnobManager() {}
+    KnobManager()                   = default;
     KnobManager(const KnobManager&) = delete;
     KnobManager& operator=(const KnobManager&) = delete;
 

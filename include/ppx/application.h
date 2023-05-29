@@ -481,7 +481,7 @@ private:
 #endif
 
 protected:
-    KnobManager mKnobManager = {};
+    KnobManager mKnobManager;
 };
 
 const char* GetKeyCodeString(KeyCode code);
