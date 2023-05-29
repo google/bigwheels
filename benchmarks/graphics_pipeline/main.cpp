@@ -196,7 +196,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
 
 void ProjApp::InitKnobs()
 {
-    pKnobAlphaBlend = mKnobManager.CreateKnob<ppx::KnobCheckbox>("alpha_blend", false);
+    pKnobAlphaBlend = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("alpha_blend", false);
     pKnobAlphaBlend->SetDisplayName("Placeholder1");
     pKnobAlphaBlend->SetIndent(1);
 }
@@ -887,7 +887,7 @@ void ProjApp::UpdateGUI()
     if (ImGui::Begin("Parameters")) {
         ImGui::Combo("Vertex Shader", &mBenchmarkSettings.vsShaderIndex, kAvailableVsShaders.data(), static_cast<int>(kAvailableVsShaders.size()));
         ImGui::Combo("Pixel Shader", &mBenchmarkSettings.psShaderIndex, kAvailablePsShaders.data(), static_cast<int>(kAvailablePsShaders.size()));
-        mKnobManager.DrawAllKnobs(true);
+        GetKnobManager().DrawAllKnobs(true);
     }
     ImGui::End();
 }

@@ -480,8 +480,11 @@ private:
     ImVec2      lastImGuiWindowSize         = {};
 #endif
 
-protected:
+private:
     KnobManager mKnobManager;
+
+protected:
+    KnobManager& GetKnobManager() { return mKnobManager; }
 };
 
 const char* GetKeyCodeString(KeyCode code);

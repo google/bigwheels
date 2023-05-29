@@ -208,7 +208,7 @@ class KnobDropdown final
 public:
     static_assert(std::is_same_v<T, std::string>, "KnobDropdown must be created with type: std::string");
 
-    template <std::input_iterator Iter>
+    template <std::forward_iterator Iter>
     KnobDropdown(
         const std::string& flagName,
         size_t             defaultIndex,
@@ -216,7 +216,7 @@ public:
         Iter               choicesEnd)
         : Knob(flagName), mChoices(choicesBegin, choicesEnd)
     {
-        PPX_ASSERT_MSG(static_cast<int>(defaultIndex) < mChoices.size(), "defaultIndex is out of range");
+        PPX_ASSERT_MSG(defaultIndex < mChoices.size(), "defaultIndex is out of range");
 
         SetDefaultAndIndex(defaultIndex);
     }
@@ -350,7 +350,7 @@ public:
     // Examples of available knobs:
     //   CreateKnob<KnobCheckbox>("flag_name", bool defaultValue);
     //   CreateKnob<KnobSlider<int>>("flag_name", int defaultValue, minValue, maxValue);
-    //   CreateKnob<KnobDropdown<std::string>>("flag_name", size_t defaultIndex, std::input_iterator choicesBegin, choicesEnd);
+    //   CreateKnob<KnobDropdown<std::string>>("flag_name", size_t defaultIndex, std::forward_iterator choicesBegin, choicesEnd);
     template <typename T, typename... ArgsT>
     std::shared_ptr<T> CreateKnob(const std::string& flagName, ArgsT... args)
     {

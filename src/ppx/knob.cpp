@@ -71,7 +71,7 @@ void KnobManager::UpdateFromFlags(const CliOptions& opts)
 void KnobManager::RegisterKnob(const std::string& flagName, std::shared_ptr<Knob> newKnob)
 {
     mFlagNames.insert(flagName);
-    mKnobs.push_back(std::move(newKnob));
+    mKnobs.emplace_back(std::move(newKnob));
     PPX_LOG_INFO("Created knob " << flagName);
 }
 
