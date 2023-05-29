@@ -1289,16 +1289,19 @@ int Application::Run(int argc, char** argv)
             mMetrics.pCpuFrameTime->RecordEntry(seconds, mPreviousFrameTime);
             mMetrics.pFrameCount->Increment(1);
 
-            // Record the average framerate roughly every second.
+            // Record the average framerate over a given period of time
             if (mMetrics.resetFramerateTracking) {
+                // Start tracking time
                 mMetrics.framerateRecordTimer   = seconds;
                 mMetrics.framerateFrameCount    = 0;
                 mMetrics.resetFramerateTracking = false;
             }
             else {
+                // compute the framerate and record the result
                 ++mMetrics.framerateFrameCount;
-                const double framerateSecondsDiff = seconds - mMetrics.framerateRecordTimer;
-                if (framerateSecondsDiff >= 1.0) {
+                const double     framerateSecondsDiff    = seconds - mMetrics.framerateRecordTimer;
+                constexpr double FRAMERATE_RECORD_PERIOD = 1.0;
+                if (framerateSecondsDiff >= FRAMERATE_RECORD_PERIOD) {
                     const double framerate = mMetrics.framerateFrameCount / framerateSecondsDiff;
                     mMetrics.pFramerate->RecordEntry(seconds, framerate);
                     mMetrics.framerateRecordTimer = seconds;
@@ -1486,6 +1489,7 @@ metrics::Run* Application::StartMetricsRun(const char* pName)
         return nullptr;
     }
 
+    PPX_ASSERT_MSG(mMetrics.pCurrentRun == nullptr, "a run is already active; stop it before starting another one");
     mMetrics.pCurrentRun = mMetrics.manager.AddRun(pName);
 
     // Add default metrics to every single run
@@ -1517,6 +1521,12 @@ metrics::Run* Application::StartMetricsRun(const char* pName)
 
 void Application::StopMetricsRun()
 {
+    PPX_ASSERT_MSG(mSettings.useMetrics, "Application::Settings::useMetrics must be set to true before using the metrics capabilities");
+    if (!mSettings.useMetrics) {
+        return;
+    }
+
+    PPX_ASSERT_MSG(mMetrics.pCurrentRun != nullptr, "there are no active runs");
     mMetrics.pCurrentRun   = nullptr;
     mMetrics.pCpuFrameTime = nullptr;
     mMetrics.pFramerate    = nullptr;

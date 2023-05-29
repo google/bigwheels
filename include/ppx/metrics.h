@@ -240,8 +240,6 @@ public:
     Run* AddRun(const char* pName);
 
     // Export all the runs and metrics information into a report.
-    // The report is cleared first and contains only the information from
-    // the manager once the function returns.
     void Export(const char* pName, Report* pOutReport) const;
 
 private:

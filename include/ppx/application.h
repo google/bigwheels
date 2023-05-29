@@ -233,7 +233,8 @@ struct ApplicationSettings
     bool        headless              = false;
     bool        enableImGui           = false;
     bool        allowThirdPartyAssets = false;
-    bool        useMetrics            = false; // Set to true to opt-in for metrics
+    // Set to true to opt-in for metrics
+    bool useMetrics = false;
 
     struct
     {
@@ -411,12 +412,16 @@ public:
 
     bool IsXrEnabled() const { return mSettings.xr.enable; }
 
-    // Start/stop a new metric run.
+    // Start a new metric run and returns it.
     // Only one run is ever active at the same time.
-    // All runs are automatically exported and saved to disk when the application shuts down.
-    // The application must have opted-in for metrics in the application settings.
+    // Default metrics are automatically added to the run: framerate, cpu_frame_time and frame_count.
+    // Additional ones may be added by the caller.
+    // The run is automatically exported and saved to disk when the application shuts down.
     metrics::Run* StartMetricsRun(const char* pName);
-    void          StopMetricsRun();
+
+    // Stop the currently active run.
+    // The caller must not use the run, or any associated metrics, after calling this function.
+    void StopMetricsRun();
 
 #if defined(PPX_BUILD_XR)
     XrComponent& GetXrComponent()
@@ -502,6 +507,7 @@ private:
     double            mFirstFrameTime    = 0;
     std::deque<float> mFrameTimesMs;
 
+    // Metrics
     struct
     {
         metrics::Manager        manager;
