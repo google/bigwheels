@@ -208,7 +208,7 @@ class KnobDropdown final
 public:
     static_assert(std::is_same_v<T, std::string>, "KnobDropdown must be created with type: std::string");
 
-    template <std::forward_iterator Iter>
+    template <std::input_iterator Iter>
     KnobDropdown(
         const std::string& flagName,
         size_t             defaultIndex,
