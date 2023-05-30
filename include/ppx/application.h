@@ -417,6 +417,12 @@ public:
     {
         return GetSwapchain(mUISwapchainIndex);
     }
+#else
+    // Alias for UI component in non-XR contexts.
+    grfx::SwapchainPtr GetUISwapchain() const
+    {
+        return GetSwapchain();
+    }
 #endif
 private:
     void   InternalCtor();
