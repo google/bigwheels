@@ -31,8 +31,9 @@ void KnobManager::ResetAllToDefault()
 
 void KnobManager::DrawAllKnobs(bool inExistingWindow)
 {
-    if (!inExistingWindow)
+    if (!inExistingWindow) {
         ImGui::Begin("Knobs");
+    }
 
     for (const auto& knobPtr : mKnobs) {
         for (size_t i = 0; i < knobPtr->GetIndent(); i++) {
@@ -48,8 +49,9 @@ void KnobManager::DrawAllKnobs(bool inExistingWindow)
         ResetAllToDefault();
     }
 
-    if (!inExistingWindow)
+    if (!inExistingWindow) {
         ImGui::End();
+    }
 }
 
 std::string KnobManager::GetUsageMsg()

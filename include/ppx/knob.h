@@ -21,11 +21,23 @@
 #include "ppx/log.h"
 
 #include <iostream>
+#include <iterator>
 #include <memory>
 #include <unordered_set>
 #include <vector>
 
 namespace ppx {
+
+// Knobs represent parameters that can be adjusted during the application runtime.
+//
+// Defining and registering a knob with the application's KnobManager will create a parameter
+// whose starting value is determined by (from high priority -> low):
+// - A specified command-line flag
+// - The default value provided when the knob is created
+//
+// While the application is running:
+// - Users can manually adjust the knob through the UI
+// - The application can access the knob's values through the knob getters and setters
 
 // ---------------------------------------------------------------------------------------------
 // Knob Classes
@@ -178,8 +190,9 @@ public:
 private:
     bool IsValidValue(T val)
     {
-        if (val < mMinValue || val > mMaxValue)
+        if (val < mMinValue || val > mMaxValue) {
             return false;
+        }
         return true;
     }
 
@@ -254,8 +267,9 @@ public:
         for (const auto& choice : mChoices) {
             choiceStr += '\"' + choice + '\"' + "|";
         }
-        if (!choiceStr.empty())
+        if (!choiceStr.empty()) {
             choiceStr.pop_back();
+        }
 
         std::string flagHelpText = "--" + GetFlagName() + " <" + choiceStr + ">";
         if (!GetFlagHelp().empty()) {
@@ -268,11 +282,11 @@ public:
     // --flag_name <str>
     void UpdateFromFlags(const CliOptions& opts) override
     {
-        SetDefaultAndIndex(opts.GetExtraOptionValueOrDefault(GetFlagName(), GetStr()));
+        SetDefaultAndIndex(opts.GetExtraOptionValueOrDefault(GetFlagName(), GetValue()));
     }
 
-    size_t             GetIndex() const { return mIndex; }
-    const std::string& GetStr() const { return mChoices[mIndex]; }
+    size_t   GetIndex() const { return mIndex; }
+    const T& GetValue() const { return mChoices[mIndex]; }
 
     // Used for when mIndex needs to be updated outside of UI
     void SetIndex(size_t newI)
@@ -300,8 +314,9 @@ public:
 private:
     bool IsValidIndex(size_t i)
     {
-        if (i >= mChoices.size())
+        if (i >= mChoices.size()) {
             return false;
+        }
         return true;
     }
 
@@ -350,7 +365,7 @@ public:
     // Examples of available knobs:
     //   CreateKnob<KnobCheckbox>("flag_name", bool defaultValue);
     //   CreateKnob<KnobSlider<int>>("flag_name", int defaultValue, minValue, maxValue);
-    //   CreateKnob<KnobDropdown<std::string>>("flag_name", size_t defaultIndex, std::forward_iterator choicesBegin, choicesEnd);
+    //   CreateKnob<KnobDropdown<std::string>>("flag_name", size_t defaultIndex, std::vector<std::string> choices);
     template <typename T, typename... ArgsT>
     std::shared_ptr<T> CreateKnob(const std::string& flagName, ArgsT... args)
     {

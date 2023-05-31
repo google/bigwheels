@@ -128,7 +128,7 @@ private:
     TextureCache           mTextureCache;
 
 private:
-    std::shared_ptr<KnobCheckbox> pKnobAlphaBlend; // unimplemented
+    std::shared_ptr<KnobCheckbox> pKnobAlphaBlend; // alpha blend functionality unimplemented
 
 private:
     void LoadScene(

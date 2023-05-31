@@ -40,19 +40,8 @@ protected:
     }
 };
 
-class KnobManagerTestFixture : public ::testing::Test
+class KnobManagerTestFixture : public KnobTestFixture
 {
-protected:
-    void SetUp() override
-    {
-        ppx::Log::Initialize(ppx::LOG_MODE_CONSOLE, nullptr);
-    }
-
-    void TearDown() override
-    {
-        ppx::Log::Shutdown();
-    }
-
 protected:
     ppx::KnobManager km;
 };
@@ -183,7 +172,7 @@ TEST_F(KnobTestFixture, KnobDropdown_Create)
     EXPECT_EQ(strKnob.GetFlagHelp(), "description1");
     EXPECT_EQ(strKnob.GetIndent(), 3);
     EXPECT_EQ(strKnob.GetIndex(), 1);
-    EXPECT_EQ(strKnob.GetStr(), "c2");
+    EXPECT_EQ(strKnob.GetValue(), "c2");
     EXPECT_EQ(strKnob.GetFlagHelpText(), "--flag_name1 <\"c1\"|\"c2\"> : description1\n");
 }
 
@@ -244,12 +233,12 @@ TEST_F(KnobTestFixture, KnobDropdown_SetIndexStr)
     KnobDropdown             strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.cbegin(), choices.cend());
     strKnob.SetIndex("c1");
     EXPECT_EQ(strKnob.GetIndex(), 0);
-    EXPECT_EQ(strKnob.GetStr(), "c1");
+    EXPECT_EQ(strKnob.GetValue(), "c1");
 
     // Not in choices, should not be set
     strKnob.SetIndex("c3");
     EXPECT_EQ(strKnob.GetIndex(), 0);
-    EXPECT_EQ(strKnob.GetStr(), "c1");
+    EXPECT_EQ(strKnob.GetValue(), "c1");
 }
 
 TEST_F(KnobTestFixture, KnobDropdown_ResetToDefault)
