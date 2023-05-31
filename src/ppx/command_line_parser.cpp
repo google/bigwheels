@@ -136,6 +136,28 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
             }
             mOpts.standardOptions.screenshot_path = opt.GetValueOrDefault<std::string>("");
         }
+#if defined(PPX_BUILD_XR)
+        else if (opt.GetName() == "xr-ui-resolution") {
+            if (!opt.HasValue()) {
+                return std::string("Command-line option --xr-ui-resolution requires a parameter");
+            }
+
+            // Resolution is passed as <Width>x<Height>.
+            std::string       val = opt.GetValueOrDefault<std::string>("");
+            std::stringstream ss{val};
+            int               width = -1, height = -1;
+            char              x;
+            ss >> width >> x >> height;
+            if (ss.fail() || x != 'x') {
+                return std::string("Parameter for command-line option --xr-ui-resolution must be in <Width>x<Height> format, got " + val + " instead");
+            }
+            if (width < 1 || height < 1) {
+                return std::string("Parameter for command-line option --xr-ui-resolution must be in <Width>x<Height> format where Width and Height are integers greater or equal to 1");
+            }
+
+            mOpts.standardOptions.xrUIResolution = {width, height};
+        }
+#endif
         else {
             // Non-standard option.
             mOpts.AddExtraOption(opt);

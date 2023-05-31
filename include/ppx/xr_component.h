@@ -37,8 +37,11 @@
 
 #include <optional>
 
-#define CHECK_XR_CALL(cmd) \
-    PPX_ASSERT_MSG(cmd == XR_SUCCESS, "XR call failed!");
+#define CHECK_XR_CALL(CMD__)                                                                       \
+    {                                                                                              \
+        auto RESULT__ = CMD__;                                                                     \
+        PPX_ASSERT_MSG(RESULT__ == XR_SUCCESS, "XR call failed with result: " << RESULT__ << "!"); \
+    }
 
 namespace ppx {
 
@@ -82,6 +85,7 @@ struct XrComponentCreateInfo
     bool                    enableQuadLayer      = false;
     bool                    enableDepthSwapchain = false;
     XrComponentResolution   resolution           = {0, 0};
+    XrComponentResolution   uiResolution         = {0, 0};
 };
 
 //! @class XrComponent
@@ -117,6 +121,14 @@ public:
         if (mCreateInfo.resolution.height > 0)
             return mCreateInfo.resolution.height;
         return mConfigViews[0].recommendedImageRectHeight;
+    }
+    uint32_t GetUIWidth() const
+    {
+        return (mCreateInfo.uiResolution.width > 0) ? mCreateInfo.uiResolution.width : GetWidth();
+    }
+    uint32_t GetUIHeight() const
+    {
+        return (mCreateInfo.uiResolution.height > 0) ? mCreateInfo.uiResolution.height : GetHeight();
     }
     uint32_t GetSampleCount() const
     {
