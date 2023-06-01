@@ -145,8 +145,8 @@ void ImGuiImpl::NewFrame()
     Application* pApp = Application::Get();
 
     ImGuiIO& io      = ImGui::GetIO();
-    io.DisplaySize.x = static_cast<float>(pApp->GetWindowWidth());
-    io.DisplaySize.y = static_cast<float>(pApp->GetWindowHeight());
+    io.DisplaySize.x = static_cast<float>(pApp->GetUIWidth());
+    io.DisplaySize.y = static_cast<float>(pApp->GetUIHeight());
     NewFrameApi();
 }
 
@@ -187,7 +187,7 @@ Result ImGuiImplDx12::InitApiObjects(ppx::Application* pApp)
     bool result = ImGui_ImplDX12_Init(
         grfx::dx12::ToApi(pApp->GetDevice())->GetDxDevice(),
         static_cast<int>(pApp->GetNumFramesInFlight()),
-        grfx::dx::ToDxgiFormat(pApp->GetSwapchain()->GetColorFormat()),
+        grfx::dx::ToDxgiFormat(pApp->GetUISwapchain()->GetColorFormat()),
         mHeapCBVSRVUAV,
         mHeapCBVSRVUAV->GetCPUDescriptorHandleForHeapStart(),
         mHeapCBVSRVUAV->GetGPUDescriptorHandleForHeapStart());
@@ -267,12 +267,12 @@ Result ImGuiImplVk::InitApiObjects(ppx::Application* pApp)
         init_info.Queue                     = grfx::vk::ToApi(pApp->GetGraphicsQueue())->GetVkQueue();
         init_info.PipelineCache             = VK_NULL_HANDLE;
         init_info.DescriptorPool            = grfx::vk::ToApi(mPool)->GetVkDescriptorPool();
-        init_info.MinImageCount             = pApp->GetSwapchain()->GetImageCount();
-        init_info.ImageCount                = pApp->GetSwapchain()->GetImageCount();
+        init_info.MinImageCount             = pApp->GetUISwapchain()->GetImageCount();
+        init_info.ImageCount                = pApp->GetUISwapchain()->GetImageCount();
         init_info.Allocator                 = VK_NULL_HANDLE;
         init_info.CheckVkResultFn           = nullptr;
 
-        grfx::RenderPassPtr renderPass = pApp->GetSwapchain()->GetRenderPass(0, grfx::ATTACHMENT_LOAD_OP_LOAD);
+        grfx::RenderPassPtr renderPass = pApp->GetUISwapchain()->GetRenderPass(0, grfx::ATTACHMENT_LOAD_OP_LOAD);
         PPX_ASSERT_MSG(!renderPass.IsNull(), "[imgui:vk] failed to get swapchain renderpass");
 
         bool result = ImGui_ImplVulkan_Init(&init_info, grfx::vk::ToApi(renderPass)->GetVkRenderPass());

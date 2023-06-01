@@ -435,16 +435,23 @@ Result Application::CreateSwapchains()
         ci.pXrComponent              = &mXrComponent;
 
         // We have one swapchain for each view, and one swapchain for the UI.
-        const size_t swapchainCount = viewCount + 1;
+        mSwapchains.resize(viewCount + 1);
         mStereoscopicSwapchainIndex = 0;
-        mUISwapchainIndex           = static_cast<uint32_t>(viewCount);
-        mSwapchains.resize(swapchainCount);
-        for (size_t k = 0; k < swapchainCount; ++k) {
+        for (size_t k = 0; k < viewCount; ++k) {
             Result ppxres = mDevice->CreateSwapchain(&ci, &mSwapchains[k]);
             if (Failed(ppxres)) {
                 PPX_ASSERT_MSG(false, "grfx::Device::CreateSwapchain failed");
                 return ppxres;
             }
+        }
+
+        mUISwapchainIndex = static_cast<uint32_t>(viewCount);
+        ci.width          = GetUIWidth();
+        ci.height         = GetUIHeight();
+        Result ppxres     = mDevice->CreateSwapchain(&ci, &mSwapchains[mUISwapchainIndex]);
+        if (Failed(ppxres)) {
+            PPX_ASSERT_MSG(false, "grfx::Device::CreateSwapchain failed");
+            return ppxres;
         }
 
         // Image count is from xrEnumerateSwapchainImages
@@ -987,11 +994,18 @@ int Application::Run(int argc, char** argv)
     }
 
     // If command line argument provided width and height
-    bool resolutionFlag = (mStandardOptions.resolution.first != -1) && (mStandardOptions.resolution.second != -1);
-    if (resolutionFlag) {
+    bool hasResolutionFlag = (mStandardOptions.resolution.first > 0 && mStandardOptions.resolution.second > 0);
+    if (hasResolutionFlag) {
         mSettings.window.width  = mStandardOptions.resolution.first;
         mSettings.window.height = mStandardOptions.resolution.second;
     }
+
+#if defined(PPX_BUILD_XR)
+    if (mStandardOptions.xrUIResolution.first > 0 && mStandardOptions.xrUIResolution.second > 0) {
+        mSettings.xr.uiWidth  = mStandardOptions.xrUIResolution.first;
+        mSettings.xr.uiHeight = mStandardOptions.xrUIResolution.second;
+    }
+#endif
 
     mMaxFrame = UINT64_MAX;
     // If command line provided a maximum number of frames to draw
@@ -1028,10 +1042,12 @@ int Application::Run(int argc, char** argv)
         createInfo.enableDebug          = mSettings.grfx.enableDebug;
         createInfo.enableQuadLayer      = mSettings.enableImGui;
         createInfo.enableDepthSwapchain = mSettings.xr.enableDepthSwapchain;
-        if (resolutionFlag) {
+        if (hasResolutionFlag) {
             createInfo.resolution.width  = mSettings.window.width;
             createInfo.resolution.height = mSettings.window.height;
         }
+        createInfo.uiResolution.width  = mSettings.xr.uiWidth;
+        createInfo.uiResolution.height = mSettings.xr.uiHeight;
 
         mXrComponent.InitializeBeforeGrfxDeviceInit(createInfo);
     }
@@ -1413,12 +1429,12 @@ void Application::DrawDebugInfo(std::function<void(void)> drawAdditionalFn)
     if (!mImGui) {
         return;
     }
-    uint32_t minWidth  = std::min(kImGuiMinWidth, GetWindowWidth() / 2);
-    uint32_t minHeight = std::min(kImGuiMinHeight, GetWindowHeight() / 2);
+    uint32_t minWidth  = std::min(kImGuiMinWidth, GetUIWidth() / 2);
+    uint32_t minHeight = std::min(kImGuiMinHeight, GetUIHeight() / 2);
 #if defined(PPX_BUILD_XR)
     if (mSettings.xr.enable) {
         // For XR, force the diagnostic window to the center with automatic sizing for legibility and since control is limited.
-        ImGui::SetNextWindowPos({(GetWindowWidth() - lastImGuiWindowSize.x) / 2, (GetWindowHeight() - lastImGuiWindowSize.y) / 2}, 0, {0.0f, 0.0f});
+        ImGui::SetNextWindowPos({(GetUIWidth() - lastImGuiWindowSize.x) / 2, (GetUIHeight() - lastImGuiWindowSize.y) / 2}, 0, {0.0f, 0.0f});
         ImGui::SetNextWindowSize({0, 0});
     }
 #endif

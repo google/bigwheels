@@ -547,7 +547,7 @@ void XrComponent::EndFrame(const std::vector<grfx::SwapchainPtr>& swapchains, ui
             compositionLayerQuad.eyeVisibility             = XR_EYE_VISIBILITY_BOTH;
             compositionLayerQuad.subImage.swapchain        = swapchains[layerQuadStartIndex]->GetXrColorSwapchain();
             compositionLayerQuad.subImage.imageRect.offset = {0, 0};
-            compositionLayerQuad.subImage.imageRect.extent = {static_cast<int>(GetWidth()), static_cast<int>(GetHeight())};
+            compositionLayerQuad.subImage.imageRect.extent = {static_cast<int>(GetUIWidth()), static_cast<int>(GetUIHeight())};
             compositionLayerQuad.pose                      = {{0, 0, 0, 1}, {0, 0, -0.5f}};
             compositionLayerQuad.size                      = {1, 1};
         }
