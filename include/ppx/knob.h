@@ -311,10 +311,7 @@ public:
 private:
     bool IsValidIndex(size_t index)
     {
-        if (index >= mChoices.size()) {
-            return false;
-        }
-        return true;
+        return index < mChoices.size();
     }
 
     void SetDefaultAndIndex(size_t newIndex)
