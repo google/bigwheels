@@ -66,12 +66,29 @@ int     y       = 720;
 float   depth   = 1.0f;
 float   scale   = 2.0f;
 int     mode    = 0;
-Device* pDevice = nuullptr;
+Device* pDevice = nullptr;
 
 // Block two
 double        time         = 0;
 int           mode         = 1;
 ResourceState initialState = SOME_RESOURCE_STATE;
+
+// Block three
+VkDevice deviceHandle = VK_NULL_HANDLE;
+VkResult vkres        = vkCreateDevice(..., &deviceHandle);
+```
+
+If the type name or variable causes the initial assignment to be visually jarring, a `//` can be used in between to maintain reasier readability.
+
+```c++
+// This might look jarring
+VkPhysicalDeviceDescriptorIndexingFeatures descriptorIndexingFeatures = {}; 
+auto                                       res                        = GetFeatures(descriptorIndexingFeatures);
+
+// Use empty comment break assignment alignment for easier readabiilty
+VkPhysicalDeviceDescriptorIndexingFeatures descriptorIndexingFeatures = {}; 
+//
+auto res = GetFeatures(descriptorIndexingFeatures);
 ```
 
 ## Naming Conventions
@@ -382,3 +399,11 @@ float3x3 MyMat(
 Avoid using  `// clang-format off` and `// clang-format on` to circumvent coding guidelines. 
 
 If someone has put `// clang-format off` and `// clang-format on` tags around a block of code, please do not remove it without consulting them. There is a reason that they placed it there in the first place and that should be respected.
+
+## Usage of C++ features
+
+BigWheels permits the use of C++ features up to the version of C++ that is specified in the top level `CMakeList.txt` file. The only C++ feature that that must not be used directly is exceptions. While the STL and possibly some of the depdencies might make use of exceptions, BigWheels does not.
+
+Please take caution when using an esoteric C++ feature. This can create difficult debugging scenarios later.
+
+Please take caution when using the STL. Common data structures like `std::vector` can be used freely. However, algorithms that make heavy use of C++ templates can be very difficult to debug. If the use of theses algorithms are unavoidable - incude a comment expressing the intent of the code.
