@@ -21,7 +21,6 @@
 #include "ppx/log.h"
 
 #include <iostream>
-#include <iterator>
 #include <memory>
 #include <unordered_set>
 #include <vector>
@@ -114,15 +113,15 @@ public:
     bool GetValue() const { return mValue; }
 
     // Used for when mValue needs to be updated outside of UI
-    void SetValue(bool newVal)
+    void SetValue(bool newValue)
     {
-        mValue = newVal;
+        mValue = newValue;
     }
 
 private:
-    void SetDefaultAndValue(bool newVal)
+    void SetDefaultAndValue(bool newValue)
     {
-        mDefaultValue = newVal;
+        mDefaultValue = newValue;
         ResetToDefault();
     }
 
@@ -177,29 +176,26 @@ public:
     T GetValue() const { return mValue; }
 
     // Used for when mValue needs to be updated outside of UI
-    void SetValue(T newVal)
+    void SetValue(T newValue)
     {
-        if (!IsValidValue(newVal)) {
-            PPX_LOG_ERROR(GetFlagName() << " cannot be set to " << newVal << " because it's out of range " << mMinValue << "~" << mMaxValue);
+        if (!IsValidValue(newValue)) {
+            PPX_LOG_ERROR(GetFlagName() << " cannot be set to " << newValue << " because it's out of range " << mMinValue << "~" << mMaxValue);
             return;
         }
 
-        mValue = newVal;
+        mValue = newValue;
     }
 
 private:
     bool IsValidValue(T val)
     {
-        if (val < mMinValue || val > mMaxValue) {
-            return false;
-        }
-        return true;
+        return mMinValue <= val && val <= mMaxValue;
     }
 
-    void SetDefaultAndValue(T newVal)
+    void SetDefaultAndValue(T newValue)
     {
-        PPX_ASSERT_MSG(IsValidValue(newVal), "invalid default value");
-        mDefaultValue = newVal;
+        PPX_ASSERT_MSG(IsValidValue(newValue), "invalid default value");
+        mDefaultValue = newValue;
         ResetToDefault();
     }
 
@@ -221,7 +217,7 @@ class KnobDropdown final
 public:
     static_assert(std::is_same_v<T, std::string>, "KnobDropdown must be created with type: std::string");
 
-    template <std::input_iterator Iter>
+    template <typename Iter>
     KnobDropdown(
         const std::string& flagName,
         size_t             defaultIndex,
@@ -243,20 +239,21 @@ public:
 
     void Draw() override
     {
-        if (ImGui::BeginCombo(GetDisplayName().c_str(), mChoices.at(mIndex).c_str())) {
-            for (size_t i = 0; i < mChoices.size(); ++i) {
-                bool isSelected = (i == mIndex);
-                if (ImGui::Selectable(mChoices.at(i).c_str(), isSelected)) {
-                    if (i != mIndex) { // A new choice is selected
-                        mIndex = i;
-                    }
-                }
-                if (isSelected) {
-                    ImGui::SetItemDefaultFocus();
+        if (!ImGui::BeginCombo(GetDisplayName().c_str(), mChoices.at(mIndex).c_str())) {
+            return;
+        }
+        for (size_t i = 0; i < mChoices.size(); ++i) {
+            bool isSelected = (i == mIndex);
+            if (ImGui::Selectable(mChoices.at(i).c_str(), isSelected)) {
+                if (i != mIndex) { // A new choice is selected
+                    mIndex = i;
                 }
             }
-            ImGui::EndCombo();
+            if (isSelected) {
+                ImGui::SetItemDefaultFocus();
+            }
         }
+        ImGui::EndCombo();
     }
 
     void ResetToDefault() override { SetIndex(mDefaultIndex); }
@@ -289,22 +286,22 @@ public:
     const T& GetValue() const { return mChoices[mIndex]; }
 
     // Used for when mIndex needs to be updated outside of UI
-    void SetIndex(size_t newI)
+    void SetIndex(size_t newIndex)
     {
-        if (!IsValidIndex(newI)) {
-            PPX_LOG_ERROR(GetFlagName() << " does not have this index in allowed choices: " << newI);
+        if (!IsValidIndex(newIndex)) {
+            PPX_LOG_ERROR(GetFlagName() << " does not have this index in allowed choices: " << newIndex);
             return;
         }
 
-        mIndex = newI;
+        mIndex = newIndex;
     }
 
     // Used for setting from flags
-    void SetIndex(const std::string& newVal)
+    void SetIndex(const std::string& newValue)
     {
-        auto temp = std::find(mChoices.cbegin(), mChoices.cend(), newVal);
+        auto temp = std::find(mChoices.cbegin(), mChoices.cend(), newValue);
         if (temp == mChoices.cend()) {
-            PPX_LOG_ERROR(GetFlagName() << " does not have this value in allowed range: " << newVal);
+            PPX_LOG_ERROR(GetFlagName() << " does not have this value in allowed range: " << newValue);
             return;
         }
 
@@ -312,24 +309,24 @@ public:
     }
 
 private:
-    bool IsValidIndex(size_t i)
+    bool IsValidIndex(size_t index)
     {
-        if (i >= mChoices.size()) {
+        if (index >= mChoices.size()) {
             return false;
         }
         return true;
     }
 
-    void SetDefaultAndIndex(size_t newI)
+    void SetDefaultAndIndex(size_t newIndex)
     {
-        PPX_ASSERT_MSG(IsValidIndex(newI), "invalid default index");
-        mDefaultIndex = newI;
+        PPX_ASSERT_MSG(IsValidIndex(newIndex), "invalid default index");
+        mDefaultIndex = newIndex;
         ResetToDefault();
     }
 
-    void SetDefaultAndIndex(std::string newVal)
+    void SetDefaultAndIndex(std::string newValue)
     {
-        auto temp = std::find(mChoices.cbegin(), mChoices.cend(), newVal);
+        auto temp = std::find(mChoices.cbegin(), mChoices.cend(), newValue);
         PPX_ASSERT_MSG(temp != mChoices.cend(), "invalid default value");
 
         mDefaultIndex = std::distance(mChoices.cbegin(), temp);
