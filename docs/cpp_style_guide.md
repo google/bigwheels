@@ -7,7 +7,7 @@
 - [Variable initialization](#variable-initialization)
 - [Variable declaration](#variable-declaration)
 - [Use clang-format whenever possible](#use-clang-format-whenever-possible)
-  - [clang-format off/on](#clang-format-offon)
+  - [Using `clang-format off` and `clang-format on` tags](#using-clang-format-off-and-clang-format-on-tags)
 - [Spacing and alignment](#spacing-and-alignment)
   - [Function parameter and argument spacing](#function-parameter-and-argument-spacing)
   - [Flow control statements](#flow-control-statements)
@@ -35,9 +35,12 @@
   - [Functions](#functions-1)
   - [Classes and structs](#classes-and-structs)
   - [Flow control statements](#flow-control-statements-1)
-    - [Do not use Java style if/else](#do-not-use-java-style-ifelse)
+    - [Do not use Java style `if/else`](#do-not-use-java-style-ifelse)
 - [Comments](#comments)
 - [Usage of C++ features](#usage-of-c-features)
+- [C++ `templates`](#c-templates)
+  - [Template function declaration](#template-function-declaration)
+  - [Template class/struction declaration](#template-classstruction-declaration)
 
 <!-- /code_chunk_output -->
 
@@ -94,7 +97,7 @@ float depth = 1.0f, scale = 2.0f;
 
 BigWheels has a `.clang-format` file in the root of the project. It's recommended that all code contributions use it. The resulting formatted code should cover the majority of spacing, alignment and argument handling styles mentioned in this doc.
 
-### clang-format off/on
+### Using `clang-format off` and `clang-format on` tags
 
 `clang-format off` and `clang-format on` should be use wherever makes sense. For instance specifying geometry data.
 
@@ -560,7 +563,7 @@ else {
 switch (x) {
 }
 ```
-#### Do not use Java style if/else
+#### Do not use Java style `if/else`
 ```c++
 // Avoid this
 if (cond) {
@@ -581,8 +584,69 @@ Both C and C++ style comments can be used freely.
 
 ## Usage of C++ features
 
-BigWheels permits the use of C++ features up to the version of C++ that is specified in the top level `CMakeList.txt` file. The only C++ feature that that must not be used directly is exceptions. While the STL and possibly some of the dependencies might make use of exceptions, BigWheels does not.
+C++ features up to the version of C++ that is specified in the top level `CMakeList.txt` file can be used. The only C++ feature that that must not be used directly is exceptions. While the STL and possibly some of the dependencies might make use of exceptions, BigWheels does not.
 
 Please take caution when using an esoteric C++ feature. This can create difficult debugging scenarios later.
 
 Please take caution with extensive use the STL. Common data structures like `std::vector` can be used freely. However, algorithms that make heavy use of C++ templates can be very difficult to debug. If the use of theses algorithms are unavoidable - incude a comment expressing the intent of the code.
+
+## Usage C++ `templates`
+
+C++ template features up to the version of C++ that is specified in the top level `CMakeList.txt` file can be used. Please take caution when designing complex C++ templated code as it can be difficult to debug later.
+
+### Template function declaration
+Templated functions can use short or long declarations. The function's return type can be on the same line or the line that precedes the function.
+
+```c++
+// Short single
+template <typename VarType> void Func(VarType x);
+
+// Long
+template <typename VarType>
+void Func(VarType x);
+
+// Long with lots of parameters
+template <
+    typename VarType0,
+    typename VarType1,
+    typename VarType2,
+    typename VarType3>
+void Func(VarType0 x, VarType1 y, VarType2 z, VarType3 w);
+```
+
+### Template class/struction declaration
+Templated classes and structs should have the template declaration come before the class declaration.
+```c++
+// Class
+template <typename VarType>
+class MyClass
+{    
+};
+
+// Class with lots of parameters
+template <
+    typename VarType0,
+    typename VarType1,
+    typename VarType2,
+    typename VarType3>
+class MyClass
+{
+};
+
+// Struct
+template <typename VarType>
+class MyClass
+{    
+};
+
+// Struct with lots of parameters
+template <
+    typename VarType0,
+    typename VarType1,
+    typename VarType2,
+    typename VarType3>
+class MyClass
+{
+};
+
+```
