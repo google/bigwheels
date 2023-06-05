@@ -63,7 +63,7 @@ class Report final
     friend class Manager;
 
 public:
-    static constexpr const char* FILE_EXTENSION = ".json";
+    static constexpr const char* kFileExtension = ".json";
 
 public:
     Report();
@@ -239,7 +239,7 @@ public:
 
     Run* AddRun(const char* pName);
 
-    // Export all the runs and metrics information into a report.
+    // Exports all the runs and metrics information into a report.
     void Export(const char* pName, Report* pOutReport) const;
 
 private:

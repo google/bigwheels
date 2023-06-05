@@ -690,7 +690,7 @@ void Application::DispatchShutdown()
         std::stringstream                                        reportFilename;
         const std::chrono::time_point<std::chrono::system_clock> now          = std::chrono::system_clock::now();
         const time_t                                             current_time = std::chrono::system_clock::to_time_t(now);
-        reportFilename << "report_" << current_time << metrics::Report::FILE_EXTENSION;
+        reportFilename << "report_" << current_time << metrics::Report::kFileExtension;
 
         // Export the report from the metrics manager
         metrics::Report report;
@@ -1278,37 +1278,8 @@ int Application::Run(int argc, char** argv)
             mAverageFrameTime = static_cast<float>(nowMs / mFrameCount);
         }
 
-        // Update default metrics in the current metrics run.
-        if (mSettings.useMetrics && mMetrics.pCurrentRun != nullptr) {
-            PPX_ASSERT_NULL_ARG(mMetrics.pCpuFrameTime);
-            PPX_ASSERT_NULL_ARG(mMetrics.pFramerate);
-            PPX_ASSERT_NULL_ARG(mMetrics.pFrameCount);
-
-            const double seconds = GetElapsedSeconds();
-
-            mMetrics.pCpuFrameTime->RecordEntry(seconds, mPreviousFrameTime);
-            mMetrics.pFrameCount->Increment(1);
-
-            // Record the average framerate over a given period of time
-            if (mMetrics.resetFramerateTracking) {
-                // Start tracking time
-                mMetrics.framerateRecordTimer   = seconds;
-                mMetrics.framerateFrameCount    = 0;
-                mMetrics.resetFramerateTracking = false;
-            }
-            else {
-                // compute the framerate and record the result
-                ++mMetrics.framerateFrameCount;
-                const double     framerateSecondsDiff    = seconds - mMetrics.framerateRecordTimer;
-                constexpr double FRAMERATE_RECORD_PERIOD = 1.0;
-                if (framerateSecondsDiff >= FRAMERATE_RECORD_PERIOD) {
-                    const double framerate = mMetrics.framerateFrameCount / framerateSecondsDiff;
-                    mMetrics.pFramerate->RecordEntry(seconds, framerate);
-                    mMetrics.framerateRecordTimer = seconds;
-                    mMetrics.framerateFrameCount  = 0;
-                }
-            }
-        }
+        // Update the metrics.
+        UpdateMetrics();
 
         // Pace frames - if needed
         if (mSettings.grfx.pacedFrameRate > 0) {
@@ -1531,6 +1502,43 @@ void Application::StopMetricsRun()
     mMetrics.pCpuFrameTime = nullptr;
     mMetrics.pFramerate    = nullptr;
     mMetrics.pFrameCount   = nullptr;
+}
+
+void Application::UpdateMetrics()
+{
+    if (!mSettings.useMetrics || mMetrics.pCurrentRun == nullptr) {
+        return;
+    }
+
+    PPX_ASSERT_NULL_ARG(mMetrics.pCpuFrameTime);
+    PPX_ASSERT_NULL_ARG(mMetrics.pFramerate);
+    PPX_ASSERT_NULL_ARG(mMetrics.pFrameCount);
+
+    const double seconds = GetElapsedSeconds();
+
+    // Record default metrics
+    mMetrics.pCpuFrameTime->RecordEntry(seconds, mPreviousFrameTime);
+    mMetrics.pFrameCount->Increment(1);
+
+    // Record the average framerate over a given period of time
+    if (mMetrics.resetFramerateTracking) {
+        // Start tracking time
+        mMetrics.framerateRecordTimer   = seconds;
+        mMetrics.framerateFrameCount    = 0;
+        mMetrics.resetFramerateTracking = false;
+    }
+    else {
+        // compute the framerate and record the result
+        ++mMetrics.framerateFrameCount;
+        const double     framerateSecondsDiff    = seconds - mMetrics.framerateRecordTimer;
+        constexpr double FRAMERATE_RECORD_PERIOD = 1.0;
+        if (framerateSecondsDiff >= FRAMERATE_RECORD_PERIOD) {
+            const double framerate = mMetrics.framerateFrameCount / framerateSecondsDiff;
+            mMetrics.pFramerate->RecordEntry(seconds, framerate);
+            mMetrics.framerateRecordTimer = seconds;
+            mMetrics.framerateFrameCount  = 0;
+        }
+    }
 }
 
 void Application::DrawDebugInfo()

@@ -412,14 +412,14 @@ public:
 
     bool IsXrEnabled() const { return mSettings.xr.enable; }
 
-    // Start a new metric run and returns it.
+    // Starts a new metric run and returns it.
     // Only one run is ever active at the same time.
     // Default metrics are automatically added to the run: framerate, cpu_frame_time and frame_count.
     // Additional ones may be added by the caller.
     // The run is automatically exported and saved to disk when the application shuts down.
     metrics::Run* StartMetricsRun(const char* pName);
 
-    // Stop the currently active run.
+    // Stops the currently active run.
     // The caller must not use the run, or any associated metrics, after calling this function.
     void StopMetricsRun();
 
@@ -460,6 +460,9 @@ private:
     Result CreatePlatformWindow();
     void   DestroyPlatformWindow();
     bool   IsRunning() const;
+
+    // Updates the metrics.
+    void UpdateMetrics();
 
 private:
     friend struct WindowEvents;
