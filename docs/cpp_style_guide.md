@@ -1,7 +1,48 @@
 # C++ Style Guide
 
+<!-- @import "[TOC]" {cmd="toc" depthFrom=2 depthTo=6 orderedList=false} -->
+
+<!-- code_chunk_output -->
+
+- [Variable initialization](#variable-initialization)
+- [Variable declaration](#variable-declaration)
+- [Use clang-format whenever possible](#use-clang-format-whenever-possible)
+  - [clang-format off/on](#clang-format-offon)
+- [Spacing and alignment](#spacing-and-alignment)
+  - [Function parameter and argument spacing](#function-parameter-and-argument-spacing)
+  - [Flow control statements](#flow-control-statements)
+- [Naming Conventions](#naming-conventions)
+  - [Macros](#macros)
+  - [Enums](#enums)
+  - [Constants](#constants)
+  - [Type Names](#type-names)
+    - [Exceptions to type names](#exceptions-to-type-names)
+  - [Parameter and variable names](#parameter-and-variable-names)
+    - [Exceptions to parameter and variable names](#exceptions-to-parameter-and-variable-names)
+  - [Global and static variables](#global-and-static-variables)
+  - [Pointer variable names](#pointer-variable-names)
+    - [Exceptions to pointer variable names](#exceptions-to-pointer-variable-names)
+  - [Class member variable names](#class-member-variable-names)
+  - [Struct member variable names](#struct-member-variable-names)
+  - [Functions](#functions)
+- [Parameters and arguments](#parameters-and-arguments)
+  - [Single line function declarations and calls](#single-line-function-declarations-and-calls)
+  - [Multiple line function declarations and calls](#multiple-line-function-declarations-and-calls)
+  - [Do not use bin/paragraph argument packing](#do-not-use-binparagraph-argument-packing)
+    - [Exception to not using bin/paragraph argument packing](#exception-to-not-using-binparagraph-argument-packing)
+- [Braces](#braces)
+  - [Enums](#enums-1)
+  - [Functions](#functions-1)
+  - [Classes and structs](#classes-and-structs)
+  - [Flow control statements](#flow-control-statements-1)
+    - [Do not use Java style if/else](#do-not-use-java-style-ifelse)
+- [Comments](#comments)
+- [Usage of C++ features](#usage-of-c-features)
+
+<!-- /code_chunk_output -->
+
 ## Variable initialization
-All variables must be initialized at declaration unless this is a particular reason not to do so. This includes class and struct members. Objects that have a default constructor that initializes to a well defined state do not need initialization.
+All variables must be explicitly initialized at declaration unless there is a particular reason not to do so. This includes class and struct member variables. Objects that have a default constructor that initializes the object to a well defined state do not need explicit initialization.
 
 ```c++
 // Local variables
@@ -53,11 +94,19 @@ float depth = 1.0f, scale = 2.0f;
 
 BigWheels has a `.clang-format` file in the root of the project. It's recommended that all code contributions use it. The resulting formatted code should cover the majority of spacing, alignment and argument handling styles mentioned in this doc.
 
-## Spacing alignment
+### clang-format off/on
+
+`clang-format off` and `clang-format on` should be use wherever makes sense. For instance specifying geometry data.
+
+Avoid using  `clang-format off` and `clang-format on` to circumvent coding guidelines. 
+
+If someone has put `clang-format off` and `clang-format on` tags around a block of code, please do not remove it without consulting them. There is a reason that they placed it there in the first place and that should be respected.
+
+## Spacing and alignment
 
 Use 4 space indentions. No tabs.
 
-Both variable declaration and assignment should be aligned to the block they're declared in.
+Variable declaration and assignment should be aligned to the block they're declared in.
 
 ```c++
 // Block one
@@ -89,6 +138,52 @@ auto                                       res                        = GetFeatu
 VkPhysicalDeviceDescriptorIndexingFeatures descriptorIndexingFeatures = {}; 
 //
 auto res = GetFeatures(descriptorIndexingFeatures);
+```
+
+### Function parameter and argument spacing
+Function declaration and calls should only have spacing between a comma and the next parameter or argument. There should not be a space between the opening paren and the first argument nor should be there be a space between the closing paren and the last argument.
+
+```c++
+// Declaration
+void MyFunction(int a, int b, int c);
+
+// Call
+MyFunction(0, 1, 2);
+```
+
+### Flow control statements
+There must be a single space between the keyword and the open parent of the a flow control statement.
+
+```c++
+// for loops
+for (int x = 0; x < 10; ++x) {
+}
+
+// while loops
+while (cond) {
+}
+
+// do-while loops
+do {
+} while (cond);
+
+// if/else
+if (cond) {
+} 
+else {
+}
+
+// if/else if/else
+if (cond1) {
+}
+else if (cond2) {    
+}
+else {
+}
+
+// switch
+switch (x) {
+}
 ```
 
 ## Naming Conventions
@@ -183,11 +278,14 @@ void MyFunction(int someValue, int someOtherValue)
 If the parameter or variable name looks like it might cause some ambiguity, pick a reasonable casing alternative to improve readability.
 
 ```c++
-// Possibly ambiguous name - avoid parameter and variable names liek this
-void MyFunction(float4x4 mVPMatrix);
+// Possibly ambiguous names - avoid parameter and variable names like these
+void MyFunction(float4x4 mVPMatrix); // mVPMatrix looks too much like class member variable name
+float3 positionWs;                   // poisitionWs looks too much like the pural of position W
+
 
 // Reasonable alternative
-void MyFunction(float4x4 mvpMatrix);
+void MyFunction(float4x4 mvpMatrix); // More clearly MVP matrix
+float3 postionWS;                    // More clearly position WS (World Space)
 ```
 
 ### Global and static variables
@@ -213,7 +311,8 @@ Device* pDevice = pMyDevice;
 void MyFunction(CommandBuffer* pCmd);
 
 // Pointers in structs
-struct MyStruct {
+struct MyStruct
+{
     Window* pWindow = nullptr;
 };
 
@@ -237,7 +336,8 @@ const char* extensionName = "My Extension Name";
 Class member variable names should be camel cased with an `m` prefix.
 
 ```c++
-class MyClass {
+class MyClass
+{
 private:
     int     mMode   = 0;
     Window* mWindow = nullptr;
@@ -249,7 +349,8 @@ private:
 Struct member variable names should be camel cased with the first letter lower cased.
 
 ```c++
-struct MyStruct {
+struct MyStruct
+{
     int     mode = 0;
     Window* pWindow = nullptr;
 };
@@ -264,7 +365,8 @@ void MyStandAloneFunction();
 ```
 
 ```c++
-class MyClass {
+class MyClass
+{
 public:
     MyClass();
     ~MyClass();
@@ -306,7 +408,6 @@ void MyFunction(
     uint32_t       numArrayLayers,
     ResourceState  stateBefore,
     ResourceState  stateAfter);
-)
 
 // Function call
 MyFunction(
@@ -392,18 +493,96 @@ float3x3 MyMat(
     e5, e7, e8);
 ```
 
-## clang-format off/on
+## Braces
 
-`// clang-format off` and `// clang-format on` should be use wherever it makes sense. For instance specifying geometry data.
+### Enums
+Braces for enum blocks should be on the line after the full declaration.
+```c++
+enum MyFlags
+{
+    MY_FLAG_NONE   = 0,
+    MY_FLAG_FIRST  = 1,
+    MY_FLAG_SECOND = 2,
+};
+```
 
-Avoid using  `// clang-format off` and `// clang-format on` to circumvent coding guidelines. 
+### Functions
+Braces for function bodies should be on the line after the function signature.
+```c++
+void MyFunction()
+{
+    int x = 1;    
+}
+```
+### Classes and structs
+Braces for classes and structs should be on the line after the full declaration.
+```c++
+class MyClass
+{
+};
 
-If someone has put `// clang-format off` and `// clang-format on` tags around a block of code, please do not remove it without consulting them. There is a reason that they placed it there in the first place and that should be respected.
+struct MyStruct
+{
+};
+```
+
+### Flow control statements
+Braces for flow control statements should come at the end of the line. 
+*NOTE: This may change in the future to move the brace to the line after the flow control statement.*
+```c++
+// for loops
+for (int x = 0; x < 10; ++x) {
+}
+
+// while loops
+while (cond) {
+}
+
+// do-while loops
+do {
+} while (cond);
+
+// if/else
+if (cond) {
+} 
+else {
+}
+
+// if/else if/else
+if (cond1) {
+}
+else if (cond2) {    
+}
+else {
+}
+
+// switch
+switch (x) {
+}
+```
+#### Do not use Java style if/else
+```c++
+// Avoid this
+if (cond) {
+} else {
+}
+
+// Avoid this
+if (cond1) {
+} else if (cond2) {    
+} else {
+}
+```
+
+## Comments
+Both C and C++ style comments can be used freely.  
+
+*NOTE: While there are some Doxygen style comments for classes, these may change in the future to remove the Doxygen tags Doxygen isn't to generate documentation for BigWheels.*
 
 ## Usage of C++ features
 
-BigWheels permits the use of C++ features up to the version of C++ that is specified in the top level `CMakeList.txt` file. The only C++ feature that that must not be used directly is exceptions. While the STL and possibly some of the depdencies might make use of exceptions, BigWheels does not.
+BigWheels permits the use of C++ features up to the version of C++ that is specified in the top level `CMakeList.txt` file. The only C++ feature that that must not be used directly is exceptions. While the STL and possibly some of the dependencies might make use of exceptions, BigWheels does not.
 
 Please take caution when using an esoteric C++ feature. This can create difficult debugging scenarios later.
 
-Please take caution when using the STL. Common data structures like `std::vector` can be used freely. However, algorithms that make heavy use of C++ templates can be very difficult to debug. If the use of theses algorithms are unavoidable - incude a comment expressing the intent of the code.
+Please take caution with extensive use the STL. Common data structures like `std::vector` can be used freely. However, algorithms that make heavy use of C++ templates can be very difficult to debug. If the use of theses algorithms are unavoidable - incude a comment expressing the intent of the code.
