@@ -164,11 +164,15 @@ public:
     std::optional<ParsingError> Parse(int argc, const char* argv[]);
     const CliOptions&           GetOptions() const { return mOpts; }
     std::string                 GetUsageMsg() const { return mUsageMsg; }
+    void                        AppendUsageMsg(const std::string& additionalMsg)
+    {
+        mUsageMsg += additionalMsg;
+    }
 
 private:
-    CliOptions        mOpts;
+    CliOptions mOpts;
 #if defined(PPX_BUILD_XR)
-    const std::string mUsageMsg = R"(
+    std::string mUsageMsg = R"(
 --help                        Prints this help message and exits.
 
 --deterministic               Disable non-deterministic behaviors, like clocks.
@@ -187,7 +191,7 @@ private:
 --use-software-renderer       Use a software renderer instead of a hardware device, if available.
 )";
 #else
-    const std::string mUsageMsg = R"(
+    std::string mUsageMsg = R"(
 --help                        Prints this help message and exits.
 
 --deterministic               Disable non-deterministic behaviors, like clocks.

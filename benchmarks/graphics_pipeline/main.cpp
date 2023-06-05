@@ -19,6 +19,7 @@
 #include <array>
 
 #include "ppx/ppx.h"
+#include "ppx/knob.h"
 #include "ppx/timer.h"
 #include "ppx/camera.h"
 #include "ppx/graphics_util.h"
@@ -56,6 +57,7 @@ class ProjApp
     : public ppx::Application
 {
 public:
+    virtual void InitKnobs() override;
     virtual void Config(ppx::ApplicationSettings& settings) override;
     virtual void Setup() override;
     virtual void Render() override;
@@ -79,10 +81,10 @@ private:
 
     struct Material
     {
-        grfx::PipelineInterfacePtr                                      pInterface;
-        std::array<grfx::GraphicsPipelinePtr, kPipelineCount>           mPipelines;
-        grfx::DescriptorSetPtr                                          pDescriptorSet;
-        std::vector<Texture>                                            textures;
+        grfx::PipelineInterfacePtr                            pInterface;
+        std::array<grfx::GraphicsPipelinePtr, kPipelineCount> mPipelines;
+        grfx::DescriptorSetPtr                                pDescriptorSet;
+        std::vector<Texture>                                  textures;
     };
 
     struct Primitive
@@ -111,19 +113,22 @@ private:
     using RenderList   = std::unordered_map<Material*, std::vector<Object*>>;
     using TextureCache = std::unordered_map<std::string, grfx::ImagePtr>;
 
-    std::vector<PerFrame>                           mPerFrame;
-    grfx::DescriptorPoolPtr                         mDescriptorPool;
-    grfx::DescriptorSetLayoutPtr                    mSetLayout;
+    std::vector<PerFrame>                                         mPerFrame;
+    grfx::DescriptorPoolPtr                                       mDescriptorPool;
+    grfx::DescriptorSetLayoutPtr                                  mSetLayout;
     std::array<grfx::ShaderModulePtr, kAvailableVsShaders.size()> mVsShaders;
     std::array<grfx::ShaderModulePtr, kAvailablePsShaders.size()> mPsShaders;
-    PerspCamera                                     mCamera;
-    float3                                          mLightPosition = float3(10, 100, 10);
-    BenchmarkSettings                               mBenchmarkSettings;
+    PerspCamera                                                   mCamera;
+    float3                                                        mLightPosition = float3(10, 100, 10);
+    BenchmarkSettings                                             mBenchmarkSettings;
 
     std::vector<Material>  mMaterials;
     std::vector<Primitive> mPrimitives;
     std::vector<Object>    mObjects;
     TextureCache           mTextureCache;
+
+private:
+    std::shared_ptr<KnobCheckbox> pKnobAlphaBlend; // alpha blend functionality unimplemented
 
 private:
     void LoadScene(
@@ -187,6 +192,13 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.api                   = kApi;
     settings.grfx.enableDebug           = false;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
+}
+
+void ProjApp::InitKnobs()
+{
+    pKnobAlphaBlend = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("alpha_blend", false);
+    pKnobAlphaBlend->SetDisplayName("Placeholder1");
+    pKnobAlphaBlend->SetIndent(1);
 }
 
 void ProjApp::LoadTexture(
@@ -625,7 +637,7 @@ void ProjApp::LoadNodes(
 
 void ProjApp::Setup()
 {
-    const auto& cl_options         = GetExtraOptions();
+    const auto& cl_options           = GetExtraOptions();
     mBenchmarkSettings.vsShaderIndex = cl_options.GetExtraOptionValueOrDefault<int32_t>("vs-shader-index", 0);
     PPX_ASSERT_MSG(mBenchmarkSettings.vsShaderIndex >= 0 && static_cast<uint32_t>(mBenchmarkSettings.vsShaderIndex) < kAvailableVsShaders.size(), "vs-shader-index out of range.");
     mBenchmarkSettings.psShaderIndex = cl_options.GetExtraOptionValueOrDefault<int32_t>("ps-shader-index", 0);
@@ -875,6 +887,7 @@ void ProjApp::UpdateGUI()
     if (ImGui::Begin("Parameters")) {
         ImGui::Combo("Vertex Shader", &mBenchmarkSettings.vsShaderIndex, kAvailableVsShaders.data(), static_cast<int>(kAvailableVsShaders.size()));
         ImGui::Combo("Pixel Shader", &mBenchmarkSettings.psShaderIndex, kAvailablePsShaders.data(), static_cast<int>(kAvailablePsShaders.size()));
+        GetKnobManager().DrawAllKnobs(true);
     }
     ImGui::End();
 }

@@ -644,6 +644,11 @@ void Application::DestroyPlatformWindow()
     mWindow->Destroy();
 }
 
+void Application::DispatchInitKnobs()
+{
+    InitKnobs();
+}
+
 void Application::DispatchConfig()
 {
     Config(mSettings);
@@ -944,9 +949,21 @@ int Application::Run(int argc, char** argv)
     }
     mStandardOptions = mCommandLineParser.GetOptions().GetStandardOptions();
 
+    // Knobs need to be set up before commandline parsing.
+    DispatchInitKnobs();
+
+    if (!mKnobManager.IsEmpty()) {
+        mCommandLineParser.AppendUsageMsg(mKnobManager.GetUsageMsg());
+    }
+
     if (mStandardOptions.help) {
         PPX_LOG_INFO(mCommandLineParser.GetUsageMsg());
         return EXIT_SUCCESS;
+    }
+
+    if (!mKnobManager.IsEmpty()) {
+        auto options = mCommandLineParser.GetOptions();
+        mKnobManager.UpdateFromFlags(options);
     }
 
     // Call config.

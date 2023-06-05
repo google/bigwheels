@@ -23,6 +23,7 @@
 #include "ppx/xr_component.h"
 #include "ppx/fs.h"
 #include "ppx/window.h"
+#include "ppx/knob.h"
 
 #include <deque>
 #include <filesystem>
@@ -308,6 +309,8 @@ public:
     virtual void MouseUp(int32_t x, int32_t y, uint32_t buttons) {}                           // Mouse up event
     virtual void Scroll(float dx, float dy) {}                                                // Mouse wheel or touchpad scroll event
     virtual void Render() {}
+    // Init knobs (adjustable parameters in the GUI that can be set at startup with commandline flags)
+    virtual void InitKnobs() {}
 
 protected:
     virtual void DispatchConfig();
@@ -322,12 +325,15 @@ protected:
     virtual void DispatchMouseUp(int32_t x, int32_t y, uint32_t buttons);
     virtual void DispatchScroll(float dx, float dy);
     virtual void DispatchRender();
+    virtual void DispatchInitKnobs();
 
     void TakeScreenshot();
 
     void DrawImGui(grfx::CommandBuffer* pCommandBuffer);
     void DrawDebugInfo(std::function<void(void)> drawAdditionalFn = []() {});
     void DrawProfilerGrfxApiFunctions();
+
+    KnobManager& GetKnobManager() { return mKnobManager; }
 
 public:
     int  Run(int argc, char** argv);
@@ -473,6 +479,7 @@ private:
     grfx::SurfacePtr                mSurface                    = nullptr; // Requires enableDisplay
     std::vector<grfx::SwapchainPtr> mSwapchains;                           // Requires enableDisplay
     std::unique_ptr<ImGuiImpl>      mImGui;
+    KnobManager                     mKnobManager;
 
     uint64_t          mFrameCount        = 0;
     uint32_t          mSwapchainIndex    = 0;
