@@ -1,4 +1,4 @@
-# Copyright 2022 Google LLC
+# Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,5 +17,8 @@ project(01_triangle)
 
 add_samples_for_all_apis(
     NAME ${PROJECT_NAME}
-    SOURCES "main.cpp"
+    SOURCES
+    "Triangle.h"
+    "Triangle.cpp"
+    "main.cpp"
     SHADER_DEPENDENCIES "shader_static_vertex_colors")
