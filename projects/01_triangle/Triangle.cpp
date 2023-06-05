@@ -22,7 +22,7 @@ const grfx::Api kApi = grfx::API_DX_12_0;
 const grfx::Api kApi = grfx::API_VK_1_1;
 #endif
 
-void TriangleApp::Config(ppx::ApplicationSettings& settings)
+void TriangleApp::Config(ApplicationSettings& settings)
 {
     settings.appName          = "01_triangle";
     settings.enableImGui      = true;
@@ -99,7 +99,7 @@ void TriangleApp::Setup()
              0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,
         };
         // clang-format on
-        uint32_t dataSize = ppx::SizeInBytesU32(vertexData);
+        uint32_t dataSize = SizeInBytesU32(vertexData);
 
         grfx::BufferCreateInfo bufferCreateInfo       = {};
         bufferCreateInfo.size                         = dataSize;

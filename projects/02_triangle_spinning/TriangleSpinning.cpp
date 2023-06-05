@@ -22,7 +22,7 @@ const grfx::Api kApi = grfx::API_DX_12_0;
 const grfx::Api kApi = grfx::API_VK_1_1;
 #endif
 
-void TriangleSpinningApp::Config(ppx::ApplicationSettings& settings)
+void TriangleSpinningApp::Config(ApplicationSettings& settings)
 {
     settings.appName          = "02_triangle_spinning";
     settings.enableImGui      = true;
@@ -132,7 +132,7 @@ void TriangleSpinningApp::Setup()
              0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,
         };
         // clang-format on
-        uint32_t dataSize = ppx::SizeInBytesU32(vertexData);
+        uint32_t dataSize = SizeInBytesU32(vertexData);
 
         grfx::BufferCreateInfo bufferCreateInfo       = {};
         bufferCreateInfo.size                         = dataSize;
