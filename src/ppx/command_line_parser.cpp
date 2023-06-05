@@ -118,6 +118,12 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
             }
             mOpts.standardOptions.frame_count = opt.GetValueOrDefault<int>(-1);
         }
+        else if (opt.GetName() == "run-time-ms") {
+            if (!opt.HasValue()) {
+                return std::string("Command-line option --run-time-ms requires a parameter");
+            }
+            mOpts.standardOptions.run_time_ms = opt.GetValueOrDefault<int>(-1);
+        }
         else if (opt.GetName() == "stats-frame-window") {
             if (!opt.HasValue()) {
                 return std::string("Command-line option --stats-frame-window requires a parameter");

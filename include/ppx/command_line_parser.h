@@ -40,6 +40,7 @@ struct StandardOptions
     int                 gpu_index          = -1;
     std::pair<int, int> resolution         = {-1, -1};
     int                 frame_count        = -1;
+    int                 run_time_ms        = -1;
     uint32_t            stats_frame_window = 300;
 #if defined(PPX_BUILD_XR)
     std::pair<int, int> xrUIResolution = {-1, -1};
@@ -177,6 +178,7 @@ private:
 
 --deterministic               Disable non-deterministic behaviors, like clocks.
 --frame-count <N>             Shutdown the application after successfully rendering N frames.
+--run-time-ms <N>             Shutdown the application after N milliseconds.
 --gpu <index>                 Select the gpu with the given index. To determine the set of valid indices use --list-gpus.
 --headless                    Run the sample without creating windows.
 --list-gpus                   Prints a list of the available GPUs on the current system with their index and exits (see --gpu).
@@ -196,6 +198,7 @@ private:
 
 --deterministic               Disable non-deterministic behaviors, like clocks.
 --frame-count <N>             Shutdown the application after successfully rendering N frames.
+--run-time-ms <N>             Shutdown the application after N milliseconds.
 --gpu <index>                 Select the gpu with the given index. To determine the set of valid indices use --list-gpus.
 --headless                    Run the sample without creating windows.
 --list-gpus                   Prints a list of the available GPUs on the current system with their index and exits (see --gpu).

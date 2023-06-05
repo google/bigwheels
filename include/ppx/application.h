@@ -466,7 +466,8 @@ private:
 private:
     CommandLineParser               mCommandLineParser;
     StandardOptions                 mStandardOptions;
-    uint64_t                        mMaxFrame;
+    uint64_t                        mMaxFrames;
+    float                           mRunTimeSeconds;
     ApplicationSettings             mSettings = {};
     std::string                     mDecoratedApiName;
     Timer                           mTimer;

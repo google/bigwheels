@@ -22,6 +22,7 @@
 #include <unordered_map>
 #include <optional>
 #include <filesystem>
+#include <limits>
 
 namespace ppx {
 
@@ -1007,10 +1008,15 @@ int Application::Run(int argc, char** argv)
     }
 #endif
 
-    mMaxFrame = UINT64_MAX;
+    mMaxFrames = UINT64_MAX;
     // If command line provided a maximum number of frames to draw
     if (mStandardOptions.frame_count != -1) {
-        mMaxFrame = mStandardOptions.frame_count;
+        mMaxFrames = mStandardOptions.frame_count;
+    }
+
+    mRunTimeSeconds = std::numeric_limits<float>::max();
+    if (mStandardOptions.run_time_ms > 0) {
+        mRunTimeSeconds = mStandardOptions.run_time_ms / 1000.f;
     }
 
     // Disable ImGui in headless mode.
@@ -1232,9 +1238,9 @@ int Application::Run(int argc, char** argv)
         }
 
         // Frame end
+        double nowMs       = mTimer.MillisSinceStart();
         mFrameCount        = mFrameCount + 1;
-        mFrameEndTime      = static_cast<float>(mTimer.MillisSinceStart());
-        mPreviousFrameTime = mFrameEndTime - mFrameStartTime;
+        mPreviousFrameTime = static_cast<float>(nowMs) - mFrameStartTime;
 
         // Keep a rolling window of frame times to calculate stats,
         // if requested.
@@ -1244,18 +1250,18 @@ int Application::Run(int argc, char** argv)
                 mFrameTimesMs.pop_front();
             }
             float totalFrameTimeMs = std::accumulate(mFrameTimesMs.begin(), mFrameTimesMs.end(), 0.f);
-            mAverageFPS            = mFrameTimesMs.size() / (totalFrameTimeMs / 1000.0f);
+            mAverageFPS            = mFrameTimesMs.size() / (totalFrameTimeMs / 1000.f);
             mAverageFrameTime      = totalFrameTimeMs / mFrameTimesMs.size();
         }
         else {
-            mAverageFPS       = static_cast<float>(mFrameCount / mTimer.SecondsSinceStart());
-            mAverageFrameTime = static_cast<float>(mTimer.MillisSinceStart() / mFrameCount);
+            mAverageFPS       = static_cast<float>(mFrameCount / nowMs / 1000.f);
+            mAverageFrameTime = static_cast<float>(nowMs / mFrameCount);
         }
 
         // Pace frames - if needed
         if (mSettings.grfx.pacedFrameRate > 0) {
             if (mFrameCount > 0) {
-                double currentTime  = mTimer.SecondsSinceStart();
+                double currentTime  = nowMs / 1000.f;
                 double pacedFPS     = 1.0 / static_cast<double>(mSettings.grfx.pacedFrameRate);
                 double expectedTime = mFirstFrameTime + (mFrameCount * pacedFPS);
                 double diff         = expectedTime - currentTime;
@@ -1264,11 +1270,11 @@ int Application::Run(int argc, char** argv)
                 }
             }
             else {
-                mFirstFrameTime = mTimer.SecondsSinceStart();
+                mFirstFrameTime = nowMs / 1000.f;
             }
         }
         // If we reach the maximum number of frames allowed
-        if (mFrameCount >= mMaxFrame) {
+        if (mFrameCount >= mMaxFrames || (nowMs / 1000.f) > mRunTimeSeconds) {
             Quit();
         }
     }
