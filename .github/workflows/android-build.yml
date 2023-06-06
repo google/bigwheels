@@ -31,4 +31,8 @@ jobs:
           echo "VULKAN_SDK=${HOME}/vulkan-sdk/1.3.216.0/x86_64" >> $GITHUB_ENV
       - name: Build Cube sample for Android
         run: |
-          ./gradlew assembleMobile
+          for TASK in $(./gradlew tasks | \grep -E assembleMobile[a-zA-Z] | cut -d ' ' -f 1); do
+            echo "Building $TASK"
+            ./gradlew "$TASK"
+            ./gradlew clean "$TASK"
+          done
