@@ -53,13 +53,13 @@
             "name" : "sphere",
             "pbrMetallicRoughness" : {
                 "baseColorFactor" : [
-                    0.8000000715255737,
+                    0.7991032004356384,
                     0,
-                    0.03361795097589493,
+                    0.0331047922372818,
                     1
                 ],
                 "metallicFactor" : 0,
-                "roughnessFactor" : 0.8041236996650696
+                "roughnessFactor" : 0.5
             }
         }
     ],
@@ -80,7 +80,7 @@
             ]
         },
         {
-            "name" : "Sphere.003",
+            "name" : "Sphere.004",
             "primitives" : [
                 {
                     "attributes" : {
@@ -112,7 +112,7 @@
         {
             "bufferView" : 0,
             "componentType" : 5126,
-            "count" : 1984,
+            "count" : 2856,
             "max" : [
                 0.9999997019767761,
                 1,
@@ -128,19 +128,19 @@
         {
             "bufferView" : 1,
             "componentType" : 5126,
-            "count" : 1984,
+            "count" : 2856,
             "type" : "VEC2"
         },
         {
             "bufferView" : 2,
             "componentType" : 5126,
-            "count" : 1984,
+            "count" : 2856,
             "type" : "VEC3"
         },
         {
             "bufferView" : 3,
             "componentType" : 5126,
-            "count" : 1984,
+            "count" : 2856,
             "type" : "VEC4"
         },
         {
@@ -152,7 +152,7 @@
         {
             "bufferView" : 5,
             "componentType" : 5126,
-            "count" : 16256,
+            "count" : 32512,
             "max" : [
                 0.9999995827674866,
                 1,
@@ -161,94 +161,94 @@
             "min" : [
                 -0.9999986886978149,
                 -1,
-                -1
+                -0.9999983310699463
             ],
             "type" : "VEC3"
         },
         {
             "bufferView" : 6,
             "componentType" : 5126,
-            "count" : 16256,
+            "count" : 32512,
             "type" : "VEC2"
         },
         {
             "bufferView" : 7,
             "componentType" : 5126,
-            "count" : 16256,
+            "count" : 32512,
             "type" : "VEC3"
         },
         {
             "bufferView" : 8,
             "componentType" : 5126,
-            "count" : 16256,
+            "count" : 32512,
             "type" : "VEC4"
         },
         {
             "bufferView" : 9,
             "componentType" : 5123,
-            "count" : 24192,
+            "count" : 48384,
             "type" : "SCALAR"
         }
     ],
     "bufferViews" : [
         {
             "buffer" : 0,
-            "byteLength" : 23808,
+            "byteLength" : 34272,
             "byteOffset" : 0,
             "target" : 34962
         },
         {
             "buffer" : 0,
-            "byteLength" : 15872,
-            "byteOffset" : 23808,
+            "byteLength" : 22848,
+            "byteOffset" : 34272,
             "target" : 34962
         },
         {
             "buffer" : 0,
-            "byteLength" : 23808,
-            "byteOffset" : 39680,
+            "byteLength" : 34272,
+            "byteOffset" : 57120,
             "target" : 34962
         },
         {
             "buffer" : 0,
-            "byteLength" : 31744,
-            "byteOffset" : 63488,
+            "byteLength" : 45696,
+            "byteOffset" : 91392,
             "target" : 34962
         },
         {
             "buffer" : 0,
             "byteLength" : 5760,
-            "byteOffset" : 95232,
+            "byteOffset" : 137088,
             "target" : 34963
         },
         {
             "buffer" : 0,
-            "byteLength" : 195072,
-            "byteOffset" : 100992,
-            "target" : 34962
-        },
-        {
-            "buffer" : 0,
-            "byteLength" : 130048,
-            "byteOffset" : 296064,
-            "target" : 34962
-        },
-        {
-            "buffer" : 0,
-            "byteLength" : 195072,
-            "byteOffset" : 426112,
+            "byteLength" : 390144,
+            "byteOffset" : 142848,
             "target" : 34962
         },
         {
             "buffer" : 0,
             "byteLength" : 260096,
-            "byteOffset" : 621184,
+            "byteOffset" : 532992,
             "target" : 34962
         },
         {
             "buffer" : 0,
-            "byteLength" : 48384,
-            "byteOffset" : 881280,
+            "byteLength" : 390144,
+            "byteOffset" : 793088,
+            "target" : 34962
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 520192,
+            "byteOffset" : 1183232,
+            "target" : 34962
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 96768,
+            "byteOffset" : 1703424,
             "target" : 34963
         }
     ],
@@ -260,7 +260,7 @@
     ],
     "buffers" : [
         {
-            "byteLength" : 929664,
+            "byteLength" : 1800192,
             "uri" : "sphere_1.bin"
         }
     ]
