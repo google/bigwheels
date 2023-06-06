@@ -81,6 +81,9 @@ private:
 std::optional<std::vector<char>> load_file(const std::filesystem::path& path);
 bool                             path_exists(const std::filesystem::path& path);
 
+// Requires a relative path to a file destined for output. Creates directories if necessary and return a usable path to the file.
+std::filesystem::path GetValidPathToOutputFile(const std::filesystem::path& path);
+
 } // namespace ppx::fs
 
 #endif // ppx_fs_h
