@@ -86,6 +86,18 @@ TEST_F(KnobTestFixture, KnobCheckbox_ResetToDefault)
     EXPECT_EQ(boolKnob.GetValue(), true);
 }
 
+TEST_F(KnobTestFixture, KnobCheckbox_Callback)
+{
+    bool         tempBool  = false;
+    bool*        pTempBool = &tempBool;
+    KnobCheckbox boolKnob  = KnobCheckbox("flag_name1", false);
+    boolKnob.AddCallback([pTempBool](bool newValue) { *pTempBool = newValue; });
+    EXPECT_EQ(tempBool, false);
+    boolKnob.SetValue(true);
+    EXPECT_EQ(boolKnob.GetValue(), true);
+    EXPECT_EQ(tempBool, true);
+}
+
 // -------------------------------------------------------------------------------------------------
 // KnobSlider
 // -------------------------------------------------------------------------------------------------
@@ -151,6 +163,18 @@ TEST_F(KnobTestFixture, KnobSlider_ResetToDefault)
     EXPECT_EQ(intKnob.GetValue(), 8);
     intKnob.ResetToDefault();
     EXPECT_EQ(intKnob.GetValue(), 5);
+}
+
+TEST_F(KnobTestFixture, KnobSlider_Callback)
+{
+    int             tempInt  = 0;
+    int*            pTempInt = &tempInt;
+    KnobSlider<int> intKnob  = KnobSlider<int>("flag_name1", 5, 0, 10);
+    intKnob.AddCallback([pTempInt](int newValue) { *pTempInt = newValue; });
+    EXPECT_EQ(tempInt, 0);
+    intKnob.SetValue(8);
+    EXPECT_EQ(intKnob.GetValue(), 8);
+    EXPECT_EQ(tempInt, 8);
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -252,6 +276,20 @@ TEST_F(KnobTestFixture, KnobDropdown_ResetToDefault)
     EXPECT_EQ(strKnob.GetIndex(), 1);
 }
 
+TEST_F(KnobTestFixture, KnobDropdown_Callback)
+{
+    std::string               tempString  = "";
+    std::string*              pTempString = &tempString;
+    std::vector<std::string>  choices     = {"c1", "c2"};
+    KnobDropdown<std::string> strKnob     = KnobDropdown<std::string>("flag_name1", 1, choices);
+    strKnob.AddIndexCallback([pTempString, choices](size_t index) { *pTempString = choices[index]; });
+    EXPECT_EQ(tempString, "");
+    strKnob.SetIndex(0);
+    EXPECT_EQ(strKnob.GetIndex(), 0);
+    EXPECT_EQ(strKnob.GetValue(), "c1");
+    EXPECT_EQ(tempString, "c1");
+}
+
 // -------------------------------------------------------------------------------------------------
 // KnobManager
 // -------------------------------------------------------------------------------------------------
@@ -333,6 +371,26 @@ TEST_F(KnobManagerTestFixture, KnobManager_ResetAllToDefault)
     EXPECT_EQ(boolKnobPtr2->GetValue(), true);
     EXPECT_EQ(intKnobPtr1->GetValue(), 5);
     EXPECT_EQ(strKnobPtr1->GetIndex(), 1);
+}
+
+TEST_F(KnobManagerTestFixture, KnobManager_KnobDependencyByCallback)
+{
+    std::shared_ptr<KnobCheckbox> boolKnobPtr1(km.CreateKnob<KnobCheckbox>("flag_name1", true));
+    std::shared_ptr<KnobCheckbox> boolKnobPtr2(km.CreateKnob<KnobCheckbox>("flag_name2", true));
+    boolKnobPtr1->AddCallback([boolKnobPtr2](bool newValue) { boolKnobPtr2->SetValue(newValue); });
+    EXPECT_EQ(boolKnobPtr1->GetValue(), true);
+    EXPECT_EQ(boolKnobPtr2->GetValue(), true);
+
+    // Changing knob2 should not affect knob1
+    boolKnobPtr2->SetValue(false);
+    EXPECT_EQ(boolKnobPtr1->GetValue(), true);
+    EXPECT_EQ(boolKnobPtr2->GetValue(), false);
+
+    // Changing knob1 should trigger callback and change knob2 to match
+    boolKnobPtr2->SetValue(true);
+    boolKnobPtr1->SetValue(false);
+    EXPECT_EQ(boolKnobPtr1->GetValue(), false);
+    EXPECT_EQ(boolKnobPtr2->GetValue(), false);
 }
 
 } // namespace ppx

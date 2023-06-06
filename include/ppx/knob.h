@@ -42,6 +42,9 @@ namespace ppx {
 // Knob Classes
 // ---------------------------------------------------------------------------------------------
 
+template <typename T>
+using OnChangeCallback = std::function<void(const T& value)>;
+
 // Knob is an abstract class which contains common features for all knobs and knob hierarchy
 class Knob
 {
@@ -89,7 +92,12 @@ public:
 
     void Draw() override
     {
-        ImGui::Checkbox(GetDisplayName().c_str(), &mValue);
+        if (!ImGui::Checkbox(GetDisplayName().c_str(), &mValue)) {
+            return;
+        }
+        if (mCallback) {
+            mCallback(mValue);
+        }
     }
 
     void ResetToDefault() override { SetValue(mDefaultValue); }
@@ -115,7 +123,18 @@ public:
     // Used for when mValue needs to be updated outside of UI
     void SetValue(bool newValue)
     {
+        if (newValue == mValue) {
+            return;
+        }
         mValue = newValue;
+        if (mCallback) {
+            mCallback(mValue);
+        }
+    }
+
+    void AddCallback(OnChangeCallback<bool> callback)
+    {
+        mCallback = callback;
     }
 
 private:
@@ -128,6 +147,11 @@ private:
 private:
     bool mValue;
     bool mDefaultValue;
+
+    // mCallback will be triggered when:
+    // - The checkbox is toggled
+    // - mValue is changed by SetValue()
+    OnChangeCallback<bool> mCallback;
 };
 
 // KnobSlider will be displayed as a slider in the UI
@@ -153,6 +177,10 @@ public:
     void Draw() override
     {
         ImGui::SliderInt(GetDisplayName().c_str(), &mValue, mMinValue, mMaxValue, NULL, ImGuiSliderFlags_AlwaysClamp);
+
+        if (ImGui::IsItemDeactivatedAfterEdit() && mCallback) {
+            mCallback(mValue);
+        }
     }
 
     void ResetToDefault() override { SetValue(mDefaultValue); }
@@ -182,8 +210,18 @@ public:
             PPX_LOG_ERROR(GetFlagName() << " cannot be set to " << newValue << " because it's out of range " << mMinValue << "~" << mMaxValue);
             return;
         }
-
+        if (newValue == mValue) {
+            return;
+        }
         mValue = newValue;
+        if (mCallback) {
+            mCallback(mValue);
+        }
+    }
+
+    void AddCallback(typename OnChangeCallback<T> callback)
+    {
+        mCallback = callback;
     }
 
 private:
@@ -206,6 +244,11 @@ private:
     // mValue will be clamped to the mMinValue to mMaxValue range, inclusive
     T mMinValue;
     T mMaxValue;
+
+    // mCallback will be triggered when:
+    // - The slider is let go
+    // - mValue is changed by SetValue()
+    OnChangeCallback<T> mCallback;
 };
 
 // KnobDropdown will be displayed as a dropdown in the UI
@@ -239,6 +282,7 @@ public:
 
     void Draw() override
     {
+        bool valueUpdated = false;
         if (!ImGui::BeginCombo(GetDisplayName().c_str(), mChoices.at(mIndex).c_str())) {
             return;
         }
@@ -246,7 +290,8 @@ public:
             bool isSelected = (i == mIndex);
             if (ImGui::Selectable(mChoices.at(i).c_str(), isSelected)) {
                 if (i != mIndex) { // A new choice is selected
-                    mIndex = i;
+                    mIndex       = i;
+                    valueUpdated = true;
                 }
             }
             if (isSelected) {
@@ -254,6 +299,10 @@ public:
             }
         }
         ImGui::EndCombo();
+
+        if (valueUpdated && mIndexCallback) {
+            mIndexCallback(mIndex);
+        }
     }
 
     void ResetToDefault() override { SetIndex(mDefaultIndex); }
@@ -292,8 +341,13 @@ public:
             PPX_LOG_ERROR(GetFlagName() << " does not have this index in allowed choices: " << newIndex);
             return;
         }
-
+        if (newIndex == mIndex) {
+            return;
+        }
         mIndex = newIndex;
+        if (mIndexCallback) {
+            mIndexCallback(mIndex);
+        }
     }
 
     // Used for setting from flags
@@ -304,8 +358,12 @@ public:
             PPX_LOG_ERROR(GetFlagName() << " does not have this value in allowed range: " << newValue);
             return;
         }
+        SetIndex(std::distance(mChoices.cbegin(), temp));
+    }
 
-        mIndex = std::distance(mChoices.cbegin(), temp);
+    void AddIndexCallback(OnChangeCallback<size_t> callback)
+    {
+        mIndexCallback = callback;
     }
 
 private:
@@ -335,6 +393,11 @@ private:
     size_t         mIndex;
     size_t         mDefaultIndex;
     std::vector<T> mChoices;
+
+    // mIndexCallback will be triggered when:
+    // - A new choice is selected in the dropdown
+    // - mIndex is changed by SetIndex()
+    OnChangeCallback<size_t> mIndexCallback;
 };
 
 // KnobManager holds the knobs in an application
