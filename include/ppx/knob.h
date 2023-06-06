@@ -219,7 +219,7 @@ public:
         }
     }
 
-    void AddCallback(typename OnChangeCallback<T> callback)
+    void AddCallback(OnChangeCallback<T> callback)
     {
         mCallback = callback;
     }
