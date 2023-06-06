@@ -14,16 +14,23 @@
 
 #include "FishTornado.h"
 #include "ppx/graphics_util.h"
+#include "ppx/csv_file_log.h"
+#include "ppx/fs.h"
 
 #include <filesystem>
 
-#define kShadowRes          1024
-#define kCausticsImageCount 32
-
 #define ENABLE_GPU_QUERIES
 
-static const float3 kFogColor   = float3(15.0f, 86.0f, 107.0f) / 255.0f;
-static const float3 kFloorColor = float3(145.0f, 189.0f, 155.0f) / 255.0f;
+namespace {
+
+constexpr uint32_t kShadowRes          = 1024;
+constexpr uint32_t kCausticsImageCount = 32;
+constexpr float3   kFogColor           = float3(15.0f, 86.0f, 107.0f) / 255.0f;
+constexpr float3   kFloorColor         = float3(145.0f, 189.0f, 155.0f) / 255.0f;
+constexpr float    kMetricsWritePeriod = 5.f;
+constexpr char     kMetricsFilename[]  = "ft_metrics.csv";
+
+} // namespace
 
 FishTornadoApp* FishTornadoApp::GetThisApp()
 {
@@ -423,6 +430,7 @@ void FishTornadoApp::Setup()
     mSettings.renderOcean              = !(clOptions.HasExtraOption("ft-disable-ocean") && clOptions.GetExtraOptionValueOrDefault<bool>("ft-disable-ocean", true));
     mSettings.renderShark              = !(clOptions.HasExtraOption("ft-disable-shark") && clOptions.GetExtraOptionValueOrDefault<bool>("ft-disable-shark", true));
     mSettings.useTracking              = !(clOptions.HasExtraOption("ft-disable-tracking") && clOptions.GetExtraOptionValueOrDefault<bool>("ft-disable-tracking", true));
+    mSettings.outputMetrics            = (clOptions.HasExtraOption("ft-enable-metrics") && clOptions.GetExtraOptionValueOrDefault<bool>("ft-enable-metrics", true));
 
     mSettings.fishResX = clOptions.GetExtraOptionValueOrDefault<uint32_t>("ft-fish-res-x", kDefaultFishResX);
     PPX_ASSERT_MSG(mSettings.fishResX < 65536, "Fish X resolution out-of-range.");
@@ -441,6 +449,7 @@ void FishTornadoApp::Setup()
     SetupPerFrame();
     SetupCaustics();
     SetupDebug();
+    SetupMetrics();
 
     const uint32_t numFramesInFlight = GetNumFramesInFlight();
     // Always setup all elements of the scene, even if they're not in use.
@@ -466,6 +475,10 @@ void FishTornadoApp::Shutdown()
     for (size_t i = 0; i < mPerFrame.size(); ++i) {
         PerFrame& frame = mPerFrame[i];
         frame.sceneConstants.Destroy();
+    }
+
+    if (mSettings.outputMetrics) {
+        WriteMetrics();
     }
 }
 
@@ -1163,9 +1176,23 @@ void FishTornadoApp::DrawGui()
 
         ImGui::Columns(2);
 
+        float prevGpuFrameTime = static_cast<float>(totalGpuFrameTime / static_cast<double>(frequency)) * 1000.0f;
+        if (mSettings.outputMetrics) {
+            auto now              = GetElapsedSeconds();
+            auto prevCpuFrameTime = GetPrevFrameTime();
+            mMetricsData.pGpuFrameTimeGauge->RecordEntry(now, prevGpuFrameTime);
+            mMetricsData.pCpuFrameTimeGauge->RecordEntry(now, prevCpuFrameTime);
+            mMetricsData.pIAVertGauge->RecordEntry(now, totalIAVertices);
+            mMetricsData.pIAPrimGauge->RecordEntry(now, totalIAPrimitives);
+            mMetricsData.pVSInvGauge->RecordEntry(now, totalVSInvocations);
+            mMetricsData.pCInvGauge->RecordEntry(now, totalCInvocations);
+            mMetricsData.pCPrimGauge->RecordEntry(now, totalCPrimitives);
+            mMetricsData.pPSInvGauge->RecordEntry(now, totalPSInvocations);
+        }
+
         ImGui::Text("Previous GPU Frame Time");
         ImGui::NextColumn();
-        ImGui::Text("%f ms ", static_cast<float>(totalGpuFrameTime / static_cast<double>(frequency)) * 1000.0f);
+        ImGui::Text("%f ms ", prevGpuFrameTime);
         ImGui::NextColumn();
 
         ImGui::Separator();
@@ -1227,5 +1254,65 @@ void FishTornadoApp::DrawGui()
     ImGui::Checkbox("Use Async Compute", &mSettings.useAsyncCompute);
     if (mSettings.forceSingleCommandBuffer) {
         ImGui::EndDisabled();
+    }
+}
+
+void FishTornadoApp::SetupMetrics()
+{
+    if (!mSettings.outputMetrics) {
+        return;
+    }
+
+    auto* run = mMetricsData.manager.AddRun("FishTornado Metrics");
+
+    mMetricsData.pGpuFrameTimeGauge = run->AddMetric<ppx::metrics::MetricGauge>({"GPU Frame Time", "ms", ppx::metrics::MetricInterpretation::LOWER_IS_BETTER, {0.f, 60000.f}});
+    mMetricsData.pCpuFrameTimeGauge = run->AddMetric<ppx::metrics::MetricGauge>({"Total (CPU) Frame Time", "ms", ppx::metrics::MetricInterpretation::LOWER_IS_BETTER, {0.f, 60000.f}});
+    mMetricsData.pIAVertGauge       = run->AddMetric<ppx::metrics::MetricGauge>({"IA Vertices", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}});
+    mMetricsData.pIAPrimGauge       = run->AddMetric<ppx::metrics::MetricGauge>({"IA Primitives", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}});
+    mMetricsData.pVSInvGauge        = run->AddMetric<ppx::metrics::MetricGauge>({"VS Invocations", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}});
+    mMetricsData.pCInvGauge         = run->AddMetric<ppx::metrics::MetricGauge>({"C Invocations", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}});
+    mMetricsData.pCPrimGauge        = run->AddMetric<ppx::metrics::MetricGauge>({"C Primitives", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}});
+    mMetricsData.pPSInvGauge        = run->AddMetric<ppx::metrics::MetricGauge>({"PS Invocations", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}});
+
+    mMetricsData.allMetrics.emplace_back(mMetricsData.pGpuFrameTimeGauge);
+    mMetricsData.allMetrics.emplace_back(mMetricsData.pCpuFrameTimeGauge);
+    mMetricsData.allMetrics.emplace_back(mMetricsData.pIAVertGauge);
+    mMetricsData.allMetrics.emplace_back(mMetricsData.pIAPrimGauge);
+    mMetricsData.allMetrics.emplace_back(mMetricsData.pVSInvGauge);
+    mMetricsData.allMetrics.emplace_back(mMetricsData.pCInvGauge);
+    mMetricsData.allMetrics.emplace_back(mMetricsData.pCPrimGauge);
+    mMetricsData.allMetrics.emplace_back(mMetricsData.pPSInvGauge);
+}
+
+void FishTornadoApp::WriteMetrics()
+{
+    if (!mSettings.outputMetrics) {
+        return;
+    }
+
+    auto            validPath = ppx::fs::GetValidPathToOutputFile(std::filesystem::path(kMetricsFilename));
+    ppx::CSVFileLog metricsFileLog(validPath.c_str());
+    metricsFileLog.LogField("Metric");
+    metricsFileLog.LogField("Min");
+    metricsFileLog.LogField("Max");
+    metricsFileLog.LogField("Mean");
+    metricsFileLog.LogField("Median");
+    metricsFileLog.LogField("P90");
+    metricsFileLog.LogField("P95");
+    metricsFileLog.LogField("P99");
+    metricsFileLog.LastField("StdDev");
+
+    for (ppx::metrics::MetricGauge* pMetric : mMetricsData.allMetrics) {
+        auto basic   = pMetric->GetBasicStatistics();
+        auto complex = pMetric->ComputeComplexStatistics();
+        metricsFileLog.LogField(pMetric->GetName());
+        metricsFileLog.LogField(basic.min);
+        metricsFileLog.LogField(basic.max);
+        metricsFileLog.LogField(basic.average);
+        metricsFileLog.LogField(complex.median);
+        metricsFileLog.LogField(complex.percentile90);
+        metricsFileLog.LogField(complex.percentile95);
+        metricsFileLog.LogField(complex.percentile99);
+        metricsFileLog.LastField(complex.standardDeviation);
     }
 }
