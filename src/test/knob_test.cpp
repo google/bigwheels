@@ -92,7 +92,7 @@ TEST_F(KnobTestFixture, KnobCheckbox_ResetToDefault)
 
 TEST_F(KnobTestFixture, KnobSlider_Create)
 {
-    KnobSlider intKnob = KnobSlider<int>("flag_name1", 5, 0, 10);
+    KnobSlider<int> intKnob = KnobSlider<int>("flag_name1", 5, 0, 10);
     EXPECT_EQ(intKnob.GetFlagHelpText(), "--flag_name1 <0~10>\n");
 
     intKnob.SetDisplayName("Knob Name 1");
@@ -112,17 +112,17 @@ TEST_F(KnobTestFixture, KnobSlider_CreateInvalid)
 {
     EXPECT_DEATH(
         {
-            KnobSlider intKnob = KnobSlider<int>("flag_name1", 10, 10, 10);
+            KnobSlider<int> intKnob = KnobSlider<int>("flag_name1", 10, 10, 10);
         },
         "");
     EXPECT_DEATH(
         {
-            KnobSlider intKnob = KnobSlider<int>("flag_name1", -1, 0, 10);
+            KnobSlider<int> intKnob = KnobSlider<int>("flag_name1", -1, 0, 10);
         },
         "");
     EXPECT_DEATH(
         {
-            KnobSlider intKnob = KnobSlider<int>("flag_name1", 11, 0, 10);
+            KnobSlider<int> intKnob = KnobSlider<int>("flag_name1", 11, 0, 10);
         },
         "");
 }
@@ -130,7 +130,7 @@ TEST_F(KnobTestFixture, KnobSlider_CreateInvalid)
 
 TEST_F(KnobTestFixture, KnobSlider_SetIntValue)
 {
-    KnobSlider intKnob = KnobSlider<int>("flag_name1", 5, 0, 10);
+    KnobSlider<int> intKnob = KnobSlider<int>("flag_name1", 5, 0, 10);
     intKnob.SetValue(10);
     EXPECT_EQ(intKnob.GetValue(), 10);
 
@@ -145,7 +145,7 @@ TEST_F(KnobTestFixture, KnobSlider_SetIntValue)
 
 TEST_F(KnobTestFixture, KnobSlider_ResetToDefault)
 {
-    KnobSlider intKnob = KnobSlider<int>("flag_name1", 5, 0, 10);
+    KnobSlider<int> intKnob = KnobSlider<int>("flag_name1", 5, 0, 10);
     EXPECT_EQ(intKnob.GetValue(), 5);
     intKnob.SetValue(8);
     EXPECT_EQ(intKnob.GetValue(), 8);
@@ -159,8 +159,8 @@ TEST_F(KnobTestFixture, KnobSlider_ResetToDefault)
 
 TEST_F(KnobTestFixture, KnobDropdown_Create)
 {
-    std::vector<std::string> choices = {"c1", "c2"};
-    KnobDropdown             strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.cbegin(), choices.cend());
+    std::vector<std::string>  choices = {"c1", "c2"};
+    KnobDropdown<std::string> strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.cbegin(), choices.cend());
     EXPECT_EQ(strKnob.GetFlagHelpText(), "--flag_name1 <\"c1\"|\"c2\">\n");
 
     strKnob.SetDisplayName("Knob Name 1");
@@ -178,8 +178,8 @@ TEST_F(KnobTestFixture, KnobDropdown_Create)
 
 TEST_F(KnobTestFixture, KnobDropdown_CreateVaried)
 {
-    std::vector<std::string> choices1 = {"c1", "c2"};
-    KnobDropdown             strKnob  = KnobDropdown<std::string>("flag_name1", 1, choices1);
+    std::vector<std::string>  choices1 = {"c1", "c2"};
+    KnobDropdown<std::string> strKnob  = KnobDropdown<std::string>("flag_name1", 1, choices1);
     EXPECT_EQ(strKnob.GetIndex(), 1);
 
     std::vector<const char*> choices2 = {"c1", "c2"};
@@ -193,19 +193,19 @@ TEST_F(KnobTestFixture, KnobDropdown_CreateInvalid)
     std::vector<std::string> choices = {};
     EXPECT_DEATH(
         {
-            KnobDropdown strKnob = KnobDropdown<std::string>("flag_name1", 0, choices.cbegin(), choices.cend());
+            KnobDropdown<std::string> strKnob = KnobDropdown<std::string>("flag_name1", 0, choices.cbegin(), choices.cend());
         },
         "");
 
     choices = {"c1", "c2"};
     EXPECT_DEATH(
         {
-            KnobDropdown strKnob = KnobDropdown<std::string>("flag_name2", -1, choices.cbegin(), choices.cend());
+            KnobDropdown<std::string> strKnob = KnobDropdown<std::string>("flag_name2", -1, choices.cbegin(), choices.cend());
         },
         "");
     EXPECT_DEATH(
         {
-            KnobDropdown strKnob = KnobDropdown<std::string>("flag_name3", 2, choices.cbegin(), choices.cend());
+            KnobDropdown<std::string> strKnob = KnobDropdown<std::string>("flag_name3", 2, choices.cbegin(), choices.cend());
         },
         "");
 }
@@ -213,8 +213,8 @@ TEST_F(KnobTestFixture, KnobDropdown_CreateInvalid)
 
 TEST_F(KnobTestFixture, KnobDropdown_SetIndexInt)
 {
-    std::vector<std::string> choices = {"c1", "c2"};
-    KnobDropdown             strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.cbegin(), choices.cend());
+    std::vector<std::string>  choices = {"c1", "c2"};
+    KnobDropdown<std::string> strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.cbegin(), choices.cend());
     strKnob.SetIndex(0);
     EXPECT_EQ(strKnob.GetIndex(), 0);
 
@@ -229,8 +229,8 @@ TEST_F(KnobTestFixture, KnobDropdown_SetIndexInt)
 
 TEST_F(KnobTestFixture, KnobDropdown_SetIndexStr)
 {
-    std::vector<std::string> choices = {"c1", "c2"};
-    KnobDropdown             strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.cbegin(), choices.cend());
+    std::vector<std::string>  choices = {"c1", "c2"};
+    KnobDropdown<std::string> strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.cbegin(), choices.cend());
     strKnob.SetIndex("c1");
     EXPECT_EQ(strKnob.GetIndex(), 0);
     EXPECT_EQ(strKnob.GetValue(), "c1");
@@ -243,8 +243,8 @@ TEST_F(KnobTestFixture, KnobDropdown_SetIndexStr)
 
 TEST_F(KnobTestFixture, KnobDropdown_ResetToDefault)
 {
-    std::vector<std::string> choices = {"c1", "c2"};
-    KnobDropdown             strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.cbegin(), choices.cend());
+    std::vector<std::string>  choices = {"c1", "c2"};
+    KnobDropdown<std::string> strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.cbegin(), choices.cend());
     EXPECT_EQ(strKnob.GetIndex(), 1);
     strKnob.SetIndex(0);
     EXPECT_EQ(strKnob.GetIndex(), 0);
