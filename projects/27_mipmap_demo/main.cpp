@@ -94,7 +94,7 @@ void ProjApp::Setup()
 
     // Texture image, view, and sampler
     {
-        //std::vector<std::string> textureFiles = {"box_panel.jpg", "statue.jpg"};
+        // std::vector<std::string> textureFiles = {"box_panel.jpg", "statue.jpg"};
         for (uint32_t i = 0; i < 2; ++i) {
             grfx_util::ImageOptions options = grfx_util::ImageOptions().MipLevelCount(PPX_REMAINING_MIP_LEVELS);
             PPX_CHECKED_CALL(grfx_util::CreateImageFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("basic/textures/hanging_lights.jpg"), &mImage[i], options, i == 1));

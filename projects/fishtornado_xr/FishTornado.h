@@ -175,7 +175,7 @@ private:
         grfx::SwapchainPtr& swapchain,
         uint32_t            imageIndex);
 
- protected:
+protected:
     virtual void DrawGui() override;
 };
 

@@ -767,9 +767,10 @@ void ProjApp::Render()
     PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.renderCompleteSemaphore));
 }
 
-ProjApp::DrawGui() {
-  DrawCameraInfo();
-  DrawInstructions();
+ProjApp::DrawGui()
+{
+    DrawCameraInfo();
+    DrawInstructions();
 }
 
 SETUP_APPLICATION(ProjApp)
