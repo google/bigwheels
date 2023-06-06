@@ -27,10 +27,14 @@ jobs:
         uses: gradle/gradle-build-action@v2
       - name: Setup Vulkan SDK
         run: |
-          wget -q https://sdk.lunarg.com/sdk/download/1.3.216.0/linux/vulkansdk-linux-x86_64-1.3.216.0.tar.gz
+          wget -q https://sdk.lunarg.com/sdk/download/1.3.250.0/linux/vulkansdk-linux-x86_64-1.3.250.0.tar.gz
+          if ! echo "1524b09f52e887b438b1c1b6573f6c1159a8dcedf6e2e3516b1a20a9c17c5c8b vulkansdk-linux-x86_64-1.3.250.0.tar.gz" | sha256sum -c --status; then
+            echo "Invalid SHA256 for VulkanSDK's binary. Aborting."
+            exit 1
+          fi
           mkdir "${HOME}/vulkan-sdk"
-          tar -xf vulkansdk-linux-x86_64-1.3.216.0.tar.gz -C "${HOME}/vulkan-sdk"
-          echo "VULKAN_SDK=${HOME}/vulkan-sdk/1.3.216.0/x86_64" >> $GITHUB_ENV
+          tar -xf vulkansdk-linux-x86_64-1.3.250.0.tar.gz -C "${HOME}/vulkan-sdk"
+          echo "VULKAN_SDK=${HOME}/vulkan-sdk/1.3.250.0/x86_64" >> $GITHUB_ENV
       - name: Build the sample for Android
         run: |
           ./gradlew ${{ matrix.task }}
