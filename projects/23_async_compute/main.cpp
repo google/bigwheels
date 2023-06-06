@@ -32,6 +32,9 @@ public:
     virtual void Setup() override;
     virtual void Render() override;
 
+protected:
+    virtual void DrawGui() override;
+
 private:
     void SetupComposition();
     void SetupCompute();
@@ -92,7 +95,6 @@ private:
     std::vector<PerFrame> mPerFrame;
     const uint32_t        mNumFramesInFlight = 2;
 
-    void     DrawGui();
     void     UpdateTransforms(PerFrame& frame);
     uint32_t AcquireFrame(PerFrame& frame);
     void     BlitAndPresent(PerFrame& frame, uint32_t swapchainImageIndex);
@@ -911,7 +913,7 @@ void ProjApp::BlitAndPresent(PerFrame& frame, uint32_t swapchainImageIndex)
             cmd->Draw(mDrawToSwapchainPipeline, 1, &frame.drawToSwapchainData.descriptorSet);
 
             // Draw ImGui.
-            DrawDebugInfo([this]() { this->DrawGui(); });
+            DrawDebugInfo();
             DrawImGui(cmd);
         }
         cmd->EndRenderPass();

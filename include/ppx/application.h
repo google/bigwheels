@@ -326,11 +326,12 @@ protected:
     virtual void DispatchScroll(float dx, float dy);
     virtual void DispatchRender();
     virtual void DispatchInitKnobs();
+    virtual void DrawGui() {}; // Draw additional project-related information to ImGui.
 
     void TakeScreenshot();
 
     void DrawImGui(grfx::CommandBuffer* pCommandBuffer);
-    void DrawDebugInfo(std::function<void(void)> drawAdditionalFn = []() {});
+    void DrawDebugInfo();
     void DrawProfilerGrfxApiFunctions();
 
     KnobManager& GetKnobManager() { return mKnobManager; }

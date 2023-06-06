@@ -294,7 +294,9 @@ private:
         MaterialResources&           materialResources);
     void SetupMaterials();
     void SetupIBL();
-    void DrawGui();
+
+protected:
+    virtual void DrawGui() override;
 };
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
@@ -1384,7 +1386,7 @@ void ProjApp::Render()
 #endif
 
             // Draw ImGui
-            DrawDebugInfo([this]() { this->DrawGui(); });
+            DrawDebugInfo();
             DrawImGui(frame.cmd);
         }
         frame.cmd->EndRenderPass();

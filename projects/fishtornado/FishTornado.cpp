@@ -612,7 +612,7 @@ void FishTornadoApp::RenderSceneUsingSingleCommandBuffer(
             }
 
             // Draw ImGui
-            DrawDebugInfo([this]() { this->DrawGui(); });
+            DrawDebugInfo();
 #if defined(PPX_ENABLE_PROFILE_GRFX_API_FUNCTIONS)
             DrawProfilerGrfxApiFunctions();
 #endif // defined(PPX_ENABLE_PROFILE_GRFX_API_FUNCTIONS)
@@ -853,7 +853,7 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
             }
 
             // Draw ImGui
-            DrawDebugInfo([this]() { this->DrawGui(); });
+            DrawDebugInfo();
 #if defined(PPX_ENABLE_PROFILE_GRFX_API_FUNCTIONS)
             DrawProfilerGrfxApiFunctions();
 #endif // defined(PPX_ENABLE_PROFILE_GRFX_API_FUNCTIONS)

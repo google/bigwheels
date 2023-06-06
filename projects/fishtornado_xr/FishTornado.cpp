@@ -642,7 +642,7 @@ void FishTornadoApp::RenderSceneUsingSingleCommandBuffer(
 
             if (!IsXrEnabled()) {
                 // Draw ImGui
-                DrawDebugInfo([this]() { this->DrawGui(); });
+                DrawDebugInfo();
 #if defined(PPX_ENABLE_PROFILE_GRFX_API_FUNCTIONS)
                 DrawProfilerGrfxApiFunctions();
 #endif // defined(PPX_ENABLE_PROFILE_GRFX_API_FUNCTIONS)
@@ -904,7 +904,7 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
 
             if (!IsXrEnabled()) {
                 // Draw ImGui
-                DrawDebugInfo([this]() { this->DrawGui(); });
+                DrawDebugInfo();
 #if defined(PPX_ENABLE_PROFILE_GRFX_API_FUNCTIONS)
                 DrawProfilerGrfxApiFunctions();
 #endif // defined(PPX_ENABLE_PROFILE_GRFX_API_FUNCTIONS)
@@ -1041,7 +1041,7 @@ void FishTornadoApp::Render()
 
             frame.uiCmd->BeginRenderPass(&beginInfo);
             // Draw ImGui
-            DrawDebugInfo([this]() { this->DrawGui(); });
+            DrawDebugInfo();
             DrawImGui(frame.uiCmd);
             frame.uiCmd->EndRenderPass();
         }

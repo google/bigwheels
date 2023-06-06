@@ -174,7 +174,9 @@ private:
         PerFrame&           prevFrame,
         grfx::SwapchainPtr& swapchain,
         uint32_t            imageIndex);
-    void DrawGui();
+
+ protected:
+    virtual void DrawGui() override;
 };
 
 #endif // FISHTORNADO_H
