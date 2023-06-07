@@ -225,6 +225,9 @@ private:
     void ProcessInput();
     void DrawCameraInfo();
     void DrawInstructions();
+
+protected:
+    virtual void DrawGui() override;
 };
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
@@ -742,7 +745,7 @@ void ProjApp::Render()
             }
 
             // Draw ImGui
-            DrawDebugInfo([this]() { DrawCameraInfo(); DrawInstructions(); });
+            DrawDebugInfo();
             DrawImGui(frame.cmd);
         }
         frame.cmd->EndRenderPass();
@@ -762,6 +765,12 @@ void ProjApp::Render()
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
 
     PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.renderCompleteSemaphore));
+}
+
+void ProjApp::DrawGui()
+{
+    DrawCameraInfo();
+    DrawInstructions();
 }
 
 SETUP_APPLICATION(ProjApp)

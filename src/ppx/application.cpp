@@ -1424,7 +1424,7 @@ float2 Application::GetNormalizedDeviceCoordinates(int32_t x, int32_t y) const
     return ndc;
 }
 
-void Application::DrawDebugInfo(std::function<void(void)> drawAdditionalFn)
+void Application::DrawDebugInfo()
 {
     if (!mImGui) {
         return;
@@ -1555,9 +1555,7 @@ void Application::DrawDebugInfo(std::function<void(void)> drawAdditionalFn)
         ImGui::Columns(1);
 
         // Draw additional elements
-        if (drawAdditionalFn) {
-            drawAdditionalFn();
-        }
+        DrawGui();
     }
 #if defined(PPX_BUILD_XR)
     lastImGuiWindowSize = ImGui::GetWindowSize();

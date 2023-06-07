@@ -31,8 +31,8 @@ public:
     virtual void Setup() override;
     virtual void Render() override;
 
-private:
-    void DrawGui();
+protected:
+    virtual void DrawGui() override;
 
 private:
     struct PerFrame
@@ -443,7 +443,7 @@ void ProjApp::Render()
             frame.cmd->DrawIndexed(mLight.mesh->GetIndexCount());
 
             // Draw ImGui
-            DrawDebugInfo([this]() { this->DrawGui(); });
+            DrawDebugInfo();
             DrawImGui(frame.cmd);
         }
         frame.cmd->EndRenderPass();

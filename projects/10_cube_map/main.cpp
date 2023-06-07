@@ -33,8 +33,8 @@ public:
     virtual void MouseMove(int32_t x, int32_t y, int32_t dx, int32_t dy, uint32_t buttons) override;
     virtual void Render() override;
 
-private:
-    void DrawGui();
+protected:
+    virtual void DrawGui() override;
 
 private:
     struct PerFrame
@@ -397,7 +397,7 @@ void ProjApp::Render()
 
             // Draw ImGui
             if (GetSettings()->enableImGui) {
-                DrawDebugInfo([this]() { this->DrawGui(); });
+                DrawDebugInfo();
                 DrawImGui(frame.cmd);
             }
         }

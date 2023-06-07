@@ -240,7 +240,7 @@ struct ApplicationSettings
 
         // Whether to create depth swapchains in addition to color swapchains,
         // and submit the depth info to the runtime as an additional layer.
-        bool enableDepthSwapchain = false;
+        bool     enableDepthSwapchain = false;
         uint32_t uiWidth              = 0;
         uint32_t uiHeight             = 0;
     } xr;
@@ -326,11 +326,12 @@ protected:
     virtual void DispatchScroll(float dx, float dy);
     virtual void DispatchRender();
     virtual void DispatchInitKnobs();
+    virtual void DrawGui(){}; // Draw additional project-related information to ImGui.
 
     void TakeScreenshot();
 
     void DrawImGui(grfx::CommandBuffer* pCommandBuffer);
-    void DrawDebugInfo(std::function<void(void)> drawAdditionalFn = []() {});
+    void DrawDebugInfo();
     void DrawProfilerGrfxApiFunctions();
 
     KnobManager& GetKnobManager() { return mKnobManager; }
@@ -362,9 +363,9 @@ public:
         return mSettings.window.height;
 #endif
     }
-    float                      GetWindowAspect() const { return static_cast<float>(mSettings.window.width) / static_cast<float>(mSettings.window.height); }
-    grfx::Rect                 GetScissor() const;
-    grfx::Viewport             GetViewport(float minDepth = 0.0f, float maxDepth = 1.0f) const;
+    float          GetWindowAspect() const { return static_cast<float>(mSettings.window.width) / static_cast<float>(mSettings.window.height); }
+    grfx::Rect     GetScissor() const;
+    grfx::Viewport GetViewport(float minDepth = 0.0f, float maxDepth = 1.0f) const;
 
     // Loads a DXIL or SPV shader from baseDir.
     //

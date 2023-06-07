@@ -30,8 +30,10 @@ public:
     virtual void Setup() override;
     virtual void Render() override;
 
+protected:
+    virtual void DrawGui() override;
+
 private:
-    void DrawGui();
     struct PerFrame
     {
         ppx::grfx::CommandBufferPtr cmd;
@@ -92,7 +94,7 @@ void ProjApp::Setup()
 
     // Texture image, view, and sampler
     {
-        //std::vector<std::string> textureFiles = {"box_panel.jpg", "statue.jpg"};
+        // std::vector<std::string> textureFiles = {"box_panel.jpg", "statue.jpg"};
         for (uint32_t i = 0; i < 2; ++i) {
             grfx_util::ImageOptions options = grfx_util::ImageOptions().MipLevelCount(PPX_REMAINING_MIP_LEVELS);
             PPX_CHECKED_CALL(grfx_util::CreateImageFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("basic/textures/hanging_lights.jpg"), &mImage[i], options, i == 1));
@@ -323,7 +325,7 @@ void ProjApp::Render()
             frame.cmd->Draw(6, 1, 0, 0);
 
             // Draw ImGui
-            DrawDebugInfo([this]() { this->DrawGui(); });
+            DrawDebugInfo();
             DrawImGui(frame.cmd);
         }
         frame.cmd->EndRenderPass();

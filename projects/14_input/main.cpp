@@ -34,8 +34,8 @@ public:
     virtual void MouseUp(int32_t x, int32_t y, uint32_t buttons) override;
     virtual void Render() override;
 
-private:
-    void DrawGui();
+protected:
+    virtual void DrawGui() override;
 
 private:
     struct PerFrame
@@ -144,7 +144,7 @@ void ProjApp::Render()
         frame.cmd->BeginRenderPass(&beginInfo);
         {
             // Draw ImGui
-            DrawDebugInfo([this]() { this->DrawGui(); });
+            DrawDebugInfo();
             DrawImGui(frame.cmd);
         }
         frame.cmd->EndRenderPass();

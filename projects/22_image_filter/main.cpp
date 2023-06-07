@@ -35,8 +35,10 @@ public:
     virtual void Setup() override;
     virtual void Render() override;
 
+protected:
+    virtual void DrawGui() override;
+
 private:
-    void DrawGui();
     struct PerFrame
     {
         grfx::CommandBufferPtr cmd;
@@ -457,7 +459,7 @@ void ProjApp::Render()
     // Update graphics uniform buffer
     {
         float4x4 mat = calculateTransform(float2(mFilteredImages[mImageOption]->GetWidth(), mFilteredImages[mImageOption]->GetHeight()));
-        //This shader only takes a floa4x4 as uniform
+        // This shader only takes a floa4x4 as uniform
         void* pData = nullptr;
         PPX_CHECKED_CALL(mUniformBuffer->MapMemory(0, &pData));
         memcpy(pData, &mat, sizeof(float4x4));
@@ -502,7 +504,7 @@ void ProjApp::Render()
             frame.cmd->Draw(6, 1, 0, 0);
 
             // Draw ImGui
-            DrawDebugInfo([this]() { this->DrawGui(); });
+            DrawDebugInfo();
             DrawImGui(frame.cmd);
         }
         frame.cmd->EndRenderPass();
