@@ -81,8 +81,17 @@ private:
 std::optional<std::vector<char>> load_file(const std::filesystem::path& path);
 bool                             path_exists(const std::filesystem::path& path);
 
-// Requires a relative path to a file destined for output. Creates directories if necessary and return a usable path to the file.
-std::filesystem::path GetValidPathToOutputFile(const std::filesystem::path& path);
+#if defined(PPX_ANDROID)
+// Returns a path to the application's internal data directory (can be used for output).
+// NOTE: The internal data path on Android is extremely limited in terms of filesize!
+std::filesystem::path GetInternalDataPath();
+#endif
+
+// Creates parent directories as needed for the provided path.
+inline void CreateParentsForPath(const std::filesystem::path& path)
+{
+    std::filesystem::create_directories(path.parent_path());
+}
 
 } // namespace ppx::fs
 

@@ -1290,8 +1290,13 @@ void FishTornadoApp::WriteMetrics()
         return;
     }
 
-    auto            validPath = ppx::fs::GetValidPathToOutputFile(std::filesystem::path(kMetricsFilename));
-    ppx::CSVFileLog metricsFileLog(validPath.c_str());
+#if defined(PPX_ANDROID)
+    auto filePath = ppx::fs::GetInternalDataPath() / std::filesystem::path(kMetricsFilename);
+#else
+    auto filePath = std::filesystem::path(kMetricsFilename);
+#endif
+    ppx::fs::CreateParentsForPath(filePath);
+    ppx::CSVFileLog metricsFileLog(std::string(filePath.c_str()));
     metricsFileLog.LogField("Metric");
     metricsFileLog.LogField("Min");
     metricsFileLog.LogField("Max");

@@ -146,18 +146,11 @@ bool path_exists(const std::filesystem::path& path)
 #endif
 }
 
-std::filesystem::path GetValidPathToOutputFile(const std::filesystem::path& path)
-{
-    PPX_ASSERT_MSG(path.is_relative(), "Only relative paths are valid for output files.");
 #if defined(PPX_ANDROID)
-    // NOTE: The internal data path on Android is extremely limited in terms of filesize!
-    std::filesystem::path internalDataPath(gAndroidContext->activity->internalDataPath);
-    std::filesystem::path outputPath = internalDataPath / path;
-    std::filesystem::create_directories(outputPath.parent_path());
-    return outputPath;
-#else
-    std::filesystem::create_directories(path.parent_path());
-    return path;
-#endif
+std::filesystem::path GetInternalDataPath()
+{
+    return std::filesystem::path(gAndroidContext->activity->internalDataPath);
 }
+#endif
+
 } // namespace ppx::fs
