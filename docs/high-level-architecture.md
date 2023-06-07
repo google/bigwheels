@@ -75,7 +75,7 @@ BigWheels has scaffolding to help build cross-platform applications beyond the g
 
 The platforms currently supported are Windows and Linux.
 
-At the highest level, Bigwheels exposes an `Application` class that applications can inherit from. This class provides facilities such as cross-platform window and device set-up, configuration settings, asset loading, input processing and render loop handling. BigWheels integrates with ImGui to provide a simple, opt-in user interface. There is also support for arbitrary command line options, which are exposed by the `Application` class through the `GetExtraOptions` function.
+At the highest level, Bigwheels exposes an `Application` class that applications can inherit from. This class provides facilities such as cross-platform window and device set-up, configuration settings, asset loading, input processing and render loop handling. BigWheels integrates with ImGui to provide a simple, opt-in user interface. There is also support for arbitrary command line options, which are exposed by the `Application` class through the `GetExtraOptions` function. For a quick and easy way to set up parameters that can be adjusted through the UI as well as set by command line options, the BigWheels `Knob` framework can be used.
 
 In addition to the `Application` class, there are a number of utility classes that an application can use, such as geometry, math, image, text drawing and logging utilities.
 
