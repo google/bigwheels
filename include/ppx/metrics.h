@@ -68,7 +68,7 @@ public:
 public:
     Report();
     ~Report();
-    bool WriteToFile(const char* filename) const;
+    void WriteToFile(const char* filename) const;
 
 private:
     nlohmann::json mContent;

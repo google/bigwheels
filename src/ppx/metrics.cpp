@@ -27,13 +27,12 @@ Report::~Report()
 {
 }
 
-bool Report::WriteToFile(const char* pFilepath) const
+void Report::WriteToFile(const char* pFilepath) const
 {
     PPX_ASSERT_NULL_ARG(pFilepath);
     std::ofstream outputFile(pFilepath, std::ofstream::out);
     outputFile << mContent.dump(4) << std::endl;
     outputFile.close();
-    return true;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
