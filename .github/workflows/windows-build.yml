@@ -22,7 +22,7 @@ jobs:
       - name: Setup Vulkan SDK
         run: |
           Start-BitsTransfer -Source https://sdk.lunarg.com/sdk/download/1.3.250.0/windows/VulkanSDK-1.3.250.0-Installer.exe
-          if ((Get-FileHash .\VulkanSDK-1.3.250.0-Installer.exe).Hash -neq "0c945ba81ab4b3c81abdf0e88fb59de6fa18bc43b1b8f466a5a36f61415e8dcc") {
+          if ((Get-FileHash .\VulkanSDK-1.3.250.0-Installer.exe).Hash -ne "0c945ba81ab4b3c81abdf0e88fb59de6fa18bc43b1b8f466a5a36f61415e8dcc") {
             exit 1
           }
           .\VulkanSDK-1.3.250.0-Installer.exe install --accept-licenses --default-answer --confirm-command --root "$HOME\vulkan-sdk"
