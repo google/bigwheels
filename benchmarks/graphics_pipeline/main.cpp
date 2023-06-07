@@ -47,12 +47,6 @@ static constexpr std::array<const char*, 3> kAvailablePsShaders = {
 
 static constexpr uint32_t kPipelineCount = kAvailablePsShaders.size() * kAvailableVsShaders.size();
 
-struct BenchmarkSettings
-{
-    int32_t vsShaderIndex = 0;
-    int32_t psShaderIndex = 0;
-};
-
 class ProjApp
     : public ppx::Application
 {
@@ -120,7 +114,6 @@ private:
     std::array<grfx::ShaderModulePtr, kAvailablePsShaders.size()> mPsShaders;
     PerspCamera                                                   mCamera;
     float3                                                        mLightPosition = float3(10, 100, 10);
-    BenchmarkSettings                                             mBenchmarkSettings;
 
     std::vector<Material>  mMaterials;
     std::vector<Primitive> mPrimitives;
@@ -128,7 +121,8 @@ private:
     TextureCache           mTextureCache;
 
 private:
-    std::shared_ptr<KnobCheckbox> pKnobAlphaBlend; // alpha blend functionality unimplemented
+    std::shared_ptr<KnobDropdown<std::string>> pKnobVs;
+    std::shared_ptr<KnobDropdown<std::string>> pKnobPs;
 
 private:
     void LoadScene(
@@ -196,9 +190,15 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
 
 void ProjApp::InitKnobs()
 {
-    pKnobAlphaBlend = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("alpha_blend", false);
-    pKnobAlphaBlend->SetDisplayName("Placeholder1");
-    pKnobAlphaBlend->SetIndent(1);
+    const auto& cl_options = GetExtraOptions();
+    PPX_ASSERT_MSG(!cl_options.HasExtraOption("vs-shader-index"), "--vs-shader-index flag has been replaced, instead use --vs and specify the name of the vertex shader");
+    PPX_ASSERT_MSG(!cl_options.HasExtraOption("ps-shader-index"), "--ps-shader-index flag has been replaced, instead use --ps and specify the name of the pixel shader");
+
+    pKnobVs = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("vs", 0, kAvailableVsShaders);
+    pKnobVs->SetDisplayName("Vertex Shader");
+
+    pKnobPs = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("ps", 0, kAvailablePsShaders);
+    pKnobPs->SetDisplayName("Pixel Shader");
 }
 
 void ProjApp::LoadTexture(
@@ -637,12 +637,6 @@ void ProjApp::LoadNodes(
 
 void ProjApp::Setup()
 {
-    const auto& cl_options           = GetExtraOptions();
-    mBenchmarkSettings.vsShaderIndex = cl_options.GetExtraOptionValueOrDefault<int32_t>("vs-shader-index", 0);
-    PPX_ASSERT_MSG(mBenchmarkSettings.vsShaderIndex >= 0 && static_cast<uint32_t>(mBenchmarkSettings.vsShaderIndex) < kAvailableVsShaders.size(), "vs-shader-index out of range.");
-    mBenchmarkSettings.psShaderIndex = cl_options.GetExtraOptionValueOrDefault<int32_t>("ps-shader-index", 0);
-    PPX_ASSERT_MSG(mBenchmarkSettings.psShaderIndex >= 0 && static_cast<uint32_t>(mBenchmarkSettings.psShaderIndex) < kAvailablePsShaders.size(), "ps-shader-index out of range.");
-
     // Cameras
     {
         mCamera = PerspCamera(60.0f, GetWindowAspect());
@@ -843,7 +837,7 @@ void ProjApp::Render()
             frame.cmd->SetScissors(GetScissor());
             frame.cmd->SetViewports(GetViewport());
 
-            uint32_t pipeline_index = mBenchmarkSettings.vsShaderIndex * kAvailablePsShaders.size() + mBenchmarkSettings.psShaderIndex;
+            size_t pipeline_index = pKnobVs->GetIndex() * kAvailablePsShaders.size() + pKnobPs->GetIndex();
             // Draw entities
             for (auto& object : mObjects) {
                 for (auto& renderable : object.renderables) {
@@ -884,12 +878,7 @@ void ProjApp::UpdateGUI()
     }
 
     // GUI
-    if (ImGui::Begin("Parameters")) {
-        ImGui::Combo("Vertex Shader", &mBenchmarkSettings.vsShaderIndex, kAvailableVsShaders.data(), static_cast<int>(kAvailableVsShaders.size()));
-        ImGui::Combo("Pixel Shader", &mBenchmarkSettings.psShaderIndex, kAvailablePsShaders.data(), static_cast<int>(kAvailablePsShaders.size()));
-        GetKnobManager().DrawAllKnobs(true);
-    }
-    ImGui::End();
+    GetKnobManager().DrawAllKnobs();
 }
 
 SETUP_APPLICATION(ProjApp)
