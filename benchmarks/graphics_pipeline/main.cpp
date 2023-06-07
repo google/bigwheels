@@ -142,12 +142,16 @@ private:
     std::array<Scene, kAvailableScenes.size()>                    mScenes;
     size_t                                                        mCurrentSceneIndex;
 
-    TextureCache           mTextureCache;
+    TextureCache mTextureCache;
 
 private:
     std::shared_ptr<KnobDropdown<std::string>> pKnobVs;
     std::shared_ptr<KnobDropdown<std::string>> pKnobPs;
     std::shared_ptr<KnobDropdown<std::string>> pCurrentScene;
+    std::shared_ptr<KnobCheckbox>              pKnobPlaceholder1;
+    std::shared_ptr<KnobSlider<int>>           pKnobPlaceholder2;
+    std::shared_ptr<KnobDropdown<std::string>> pKnobPlaceholder3;
+    std::vector<std::string>                   placeholder3Choices = {"one", "two", "three"};
 
 private:
     void LoadScene(
@@ -227,6 +231,10 @@ void ProjApp::InitKnobs()
 
     pCurrentScene = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("scene", 0, kAvailableScenes);
     pCurrentScene->SetDisplayName("Scene");
+
+    pKnobPlaceholder1 = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("placeholder1", false);
+    pKnobPlaceholder2 = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("placeholder2", 5, 0, 10);
+    pKnobPlaceholder3 = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("placeholder3", 1, placeholder3Choices);
 }
 
 void ProjApp::LoadTexture(
@@ -789,6 +797,22 @@ void ProjApp::Render()
     // the drawing pass, meaning we would change descriptors while drawing.
     // That's why we delay the change to the next frame (now).
     mCurrentSceneIndex = pCurrentScene->GetIndex();
+
+    // Example where changing either the slider or the dropdown will uncheck the box.
+    if (pKnobPlaceholder2->IsValueUpdated()) {
+        std::cout << "placeholder2 knob new value: " << pKnobPlaceholder2->GetValue() << std::endl;
+        pKnobPlaceholder1->SetValue(false);
+        pKnobPlaceholder2->AckUpdatedFlag();
+    }
+    if (pKnobPlaceholder3->IsValueUpdated()) {
+        std::cout << "placeholder3 knob new value: " << pKnobPlaceholder3->GetValue() << std::endl;
+        pKnobPlaceholder1->SetValue(false);
+        pKnobPlaceholder3->AckUpdatedFlag();
+    }
+    if (pKnobPlaceholder1->IsValueUpdated()) {
+        std::cout << "placeholder1 knob new value: " << pKnobPlaceholder1->GetValue() << std::endl;
+        pKnobPlaceholder1->AckUpdatedFlag();
+    }
 
     PerFrame&          frame      = mPerFrame[0];
     grfx::SwapchainPtr swapchain  = GetSwapchain();

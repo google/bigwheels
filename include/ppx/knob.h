@@ -54,10 +54,12 @@ public:
     const std::string& GetFlagName() const { return mFlagName; }
     const std::string& GetFlagHelp() const { return mFlagDesc; }
     size_t             GetIndent() const { return mIndent; }
+    bool               IsValueUpdated() const { return mUpdatedFlag; }
 
     void SetDisplayName(const std::string& displayName) { mDisplayName = displayName; }
     void SetFlagDesc(const std::string& flagDesc) { mFlagDesc = flagDesc; }
     void SetIndent(size_t indent) { mIndent = indent; }
+    void AckUpdatedFlag() { mUpdatedFlag = false; }
 
     virtual void Draw() = 0;
 
@@ -69,11 +71,15 @@ public:
 
     virtual void ResetToDefault() = 0;
 
+protected:
+    void RaiseUpdatedFlag() { mUpdatedFlag = true; }
+
 private:
     std::string mDisplayName;
     std::string mFlagName;
     std::string mFlagDesc;
     size_t      mIndent;
+    bool        mUpdatedFlag;
 };
 
 // KnobCheckbox will be displayed as a checkbox in the UI
@@ -89,7 +95,10 @@ public:
 
     void Draw() override
     {
-        ImGui::Checkbox(GetDisplayName().c_str(), &mValue);
+        if (!ImGui::Checkbox(GetDisplayName().c_str(), &mValue)) {
+            return;
+        }
+        RaiseUpdatedFlag();
     }
 
     void ResetToDefault() override { SetValue(mDefaultValue); }
@@ -115,7 +124,11 @@ public:
     // Used for when mValue needs to be updated outside of UI
     void SetValue(bool newValue)
     {
+        if (newValue == mValue) {
+            return;
+        }
         mValue = newValue;
+        RaiseUpdatedFlag();
     }
 
 private:
@@ -153,6 +166,9 @@ public:
     void Draw() override
     {
         ImGui::SliderInt(GetDisplayName().c_str(), &mValue, mMinValue, mMaxValue, NULL, ImGuiSliderFlags_AlwaysClamp);
+        if (ImGui::IsItemDeactivatedAfterEdit()) {
+            RaiseUpdatedFlag();
+        }
     }
 
     void ResetToDefault() override { SetValue(mDefaultValue); }
@@ -182,8 +198,11 @@ public:
             PPX_LOG_ERROR(GetFlagName() << " cannot be set to " << newValue << " because it's out of range " << mMinValue << "~" << mMaxValue);
             return;
         }
-
+        if (newValue == mValue) {
+            return;
+        }
         mValue = newValue;
+        RaiseUpdatedFlag();
     }
 
 private:
@@ -247,6 +266,7 @@ public:
             if (ImGui::Selectable(mChoices.at(i).c_str(), isSelected)) {
                 if (i != mIndex) { // A new choice is selected
                     mIndex = i;
+                    RaiseUpdatedFlag();
                 }
             }
             if (isSelected) {
@@ -292,8 +312,11 @@ public:
             PPX_LOG_ERROR(GetFlagName() << " does not have this index in allowed choices: " << newIndex);
             return;
         }
-
+        if (newIndex == mIndex) {
+            return;
+        }
         mIndex = newIndex;
+        RaiseUpdatedFlag();
     }
 
     // Used for setting from flags
@@ -305,7 +328,7 @@ public:
             return;
         }
 
-        mIndex = std::distance(mChoices.cbegin(), temp);
+        SetIndex(std::distance(mChoices.cbegin(), temp));
     }
 
 private:
