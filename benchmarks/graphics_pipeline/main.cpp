@@ -225,7 +225,7 @@ void ProjApp::InitKnobs()
     pKnobPs = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("ps", 0, kAvailablePsShaders);
     pKnobPs->SetDisplayName("Pixel Shader");
 
-    pCurrentScene = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("scene-index", 0, kAvailableScenes);
+    pCurrentScene = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("scene", 0, kAvailableScenes);
     pCurrentScene->SetDisplayName("Scene");
 }
 
