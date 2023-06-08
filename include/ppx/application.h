@@ -233,7 +233,7 @@ struct ApplicationSettings
     bool        headless              = false;
     bool        enableImGui           = false;
     bool        allowThirdPartyAssets = false;
-    // Set to true to opt-in for metrics
+    // Set to true to opt-in for metrics.
     bool useMetrics = false;
 
     struct
@@ -417,7 +417,7 @@ public:
     // Default metrics are automatically added to the run: framerate, cpu_frame_time and frame_count.
     // Additional ones may be added by the caller.
     // The run is automatically exported and saved to disk when the application shuts down.
-    metrics::Run* StartMetricsRun(const char* pName);
+    metrics::Run* StartMetricsRun(const std::string& name);
 
     // Stops the currently active run.
     // The caller must not use the run, or any associated metrics, after calling this function.

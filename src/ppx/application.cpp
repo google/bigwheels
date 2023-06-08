@@ -692,12 +692,17 @@ void Application::DispatchShutdown()
         const time_t                                             current_time = std::chrono::system_clock::to_time_t(now);
         reportFilename << "report_" << current_time << metrics::Report::kFileExtension;
 
-        // Export the report from the metrics manager
-        metrics::Report report;
-        mMetrics.manager.Export(reportFilename.str().c_str(), &report);
+        // Check whether the file already exists
+        if(std::filesystem::exists(reportFilename.str())) {
+            PPX_LOG_ERROR("Metrics report file cannot be written to disk as file [" << reportFilename.str() << "] already exists");
+        } else {
+            // Export the report from the metrics manager
+            metrics::Report report;
+            mMetrics.manager.Export(reportFilename.str().c_str(), &report);
 
-        // Serialize the report to disk
-        report.WriteToFile(reportFilename.str().c_str());
+            // Serialize the report to disk
+            report.WriteToFile(reportFilename.str().c_str());
+        }
     }
 
     PPX_LOG_INFO("Number of frames drawn: " << GetFrameCount());
@@ -1453,7 +1458,7 @@ float2 Application::GetNormalizedDeviceCoordinates(int32_t x, int32_t y) const
     return ndc;
 }
 
-metrics::Run* Application::StartMetricsRun(const char* pName)
+metrics::Run* Application::StartMetricsRun(const std::string& name)
 {
     PPX_ASSERT_MSG(mSettings.useMetrics, "Application::Settings::useMetrics must be set to true before using the metrics capabilities");
     if (!mSettings.useMetrics) {
@@ -1461,7 +1466,7 @@ metrics::Run* Application::StartMetricsRun(const char* pName)
     }
 
     PPX_ASSERT_MSG(mMetrics.pCurrentRun == nullptr, "a run is already active; stop it before starting another one");
-    mMetrics.pCurrentRun = mMetrics.manager.AddRun(pName);
+    mMetrics.pCurrentRun = mMetrics.manager.AddRun(name.c_str());
 
     // Add default metrics to every single run
     {
