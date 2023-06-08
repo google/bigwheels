@@ -1270,9 +1270,11 @@ Result CreateCubeMapFromFile(
     // Target format
     grfx::Format targetFormat = grfx::FORMAT_R8G8B8A8_UNORM;
 
+    PPX_ASSERT_MSG(bitmap.GetWidth() * 3 == bitmap.GetHeight() * 4, "cubemap texture dimension must be a multiple of 4x3");
     // Calculate subImage to use for target image dimensions
     SubImage tmpSubImage = CalcSubimageCrossHorizontalLeft(0, bitmap.GetWidth(), bitmap.GetHeight(), targetFormat);
 
+    PPX_ASSERT_MSG(tmpSubImage.width == tmpSubImage.height, "cubemap face width != height");
     // Create target image
     grfx::ImagePtr targetImage;
     {
@@ -1331,7 +1333,7 @@ Result CreateCubeMapFromFile(
             copyInfo.dstImage.y                   = 0;
             copyInfo.dstImage.z                   = 0;
             copyInfo.dstImage.width               = subImage.width;
-            copyInfo.dstImage.height              = subImage.width;
+            copyInfo.dstImage.height              = subImage.height;
             copyInfo.dstImage.depth               = 1;
         }
 
