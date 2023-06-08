@@ -131,7 +131,7 @@ public:
     const GaugeBasicStatistics   GetBasicStatistics() const;
     const GaugeComplexStatistics ComputeComplexStatistics() const;
 
-    void Export(nlohmann::json* pOutRunObject) const;
+    nlohmann::json Export() const;
 
 private:
     struct TimeSeriesEntry
@@ -173,7 +173,7 @@ public:
         return mMetadata.name;
     };
 
-    void Export(nlohmann::json* pOutRunObject) const;
+    nlohmann::json Export() const;
 
 private:
     ~MetricCounter();
@@ -206,7 +206,7 @@ private:
     void AddMetric(MetricCounter* pMetric);
     bool HasMetric(const char* pName) const;
 
-    void Export(nlohmann::json* pRunObject) const;
+    nlohmann::json Export() const;
 
 private:
     std::string                                     mName;
@@ -240,7 +240,7 @@ public:
     Run* AddRun(const char* pName);
 
     // Exports all the runs and metrics information into a report.
-    void Export(const char* pName, Report* pOutReport) const;
+    Report Export(const char* pName) const;
 
 private:
     METRICS_NO_COPY(Manager)

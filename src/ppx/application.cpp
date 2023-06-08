@@ -693,12 +693,12 @@ void Application::DispatchShutdown()
         reportFilename << "report_" << current_time << metrics::Report::kFileExtension;
 
         // Check whether the file already exists
-        if(std::filesystem::exists(reportFilename.str())) {
+        if (std::filesystem::exists(reportFilename.str())) {
             PPX_LOG_ERROR("Metrics report file cannot be written to disk as file [" << reportFilename.str() << "] already exists");
-        } else {
+        }
+        else {
             // Export the report from the metrics manager
-            metrics::Report report;
-            mMetrics.manager.Export(reportFilename.str().c_str(), &report);
+            const metrics::Report report = mMetrics.manager.Export(reportFilename.str().c_str());
 
             // Serialize the report to disk
             report.WriteToFile(reportFilename.str().c_str());

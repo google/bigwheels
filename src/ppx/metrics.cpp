@@ -37,15 +37,15 @@ void Report::WriteToFile(const char* pFilepath) const
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static void ExportMetadata(const MetricMetadata& metadata, nlohmann::json* pOutMetadataObject)
+static nlohmann::json ExportMetadata(const MetricMetadata& metadata)
 {
-    PPX_ASSERT_NULL_ARG(pOutMetadataObject);
-    nlohmann::json& object         = *pOutMetadataObject;
+    nlohmann::json object;
     object["name"]                 = metadata.name;
     object["unit"]                 = metadata.unit;
     object["interpretation"]       = metadata.interpretation;
     object["expected_lower_bound"] = metadata.expectedRange.lowerBound;
     object["expected_upper_bound"] = metadata.expectedRange.upperBound;
+    return object;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -157,20 +157,17 @@ void MetricGauge::UpdateBasicStatistics(double seconds, double value)
     }
 }
 
-void MetricGauge::Export(nlohmann::json* pOutMetricObject) const
+nlohmann::json MetricGauge::Export() const
 {
-    PPX_ASSERT_NULL_ARG(pOutMetricObject);
-
-    nlohmann::json& metricObject = *pOutMetricObject;
+    nlohmann::json metricObject;
 
     {
-        nlohmann::json metadataObject;
-        ExportMetadata(mMetadata, &metadataObject);
-        metricObject["metadata"] = metadataObject;
+        metricObject["metadata"] = ExportMetadata(mMetadata);
     }
 
     {
-        nlohmann::json             statisticsObject;
+        nlohmann::json statisticsObject;
+
         const GaugeBasicStatistics basicStatistics = GetBasicStatistics();
         statisticsObject["min"]                    = basicStatistics.min;
         statisticsObject["max"]                    = basicStatistics.max;
@@ -190,6 +187,8 @@ void MetricGauge::Export(nlohmann::json* pOutMetricObject) const
     for (const TimeSeriesEntry& entry : mTimeSeries) {
         metricObject["time_series"] += nlohmann::json::array({entry.seconds, entry.value});
     }
+
+    return metricObject;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -213,14 +212,12 @@ uint64_t MetricCounter::Get() const
     return mCounter;
 }
 
-void MetricCounter::Export(nlohmann::json* pOutMetricObject) const
+nlohmann::json MetricCounter::Export() const
 {
-    PPX_ASSERT_NULL_ARG(pOutMetricObject);
-    nlohmann::json metadataObject;
-    ExportMetadata(mMetadata, &metadataObject);
-    nlohmann::json& metricObject = *pOutMetricObject;
-    metricObject["metadata"]     = metadataObject;
-    metricObject["value"]        = mCounter;
+    nlohmann::json metricObject;
+    metricObject["metadata"] = ExportMetadata(mMetadata);
+    metricObject["value"]    = mCounter;
+    return metricObject;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -262,21 +259,17 @@ bool Run::HasMetric(const char* pName) const
     return mGauges.find(pName) != mGauges.end() || mCounters.find(pName) != mCounters.end();
 }
 
-void Run::Export(nlohmann::json* pOutRunObject) const
+nlohmann::json Run::Export() const
 {
-    PPX_ASSERT_NULL_ARG(pOutRunObject);
-    nlohmann::json& object = *pOutRunObject;
-    object["name"]         = mName;
+    nlohmann::json object;
+    object["name"] = mName;
     for (auto [name, pMetric] : mGauges) {
-        nlohmann::json metricObject;
-        pMetric->Export(&metricObject);
-        object["gauges"] += metricObject;
+        object["gauges"] += pMetric->Export();
     }
     for (auto [name, pMetric] : mCounters) {
-        nlohmann::json metricObject;
-        pMetric->Export(&metricObject);
-        object["counters"] += metricObject;
+        object["counters"] += pMetric->Export();
     }
+    return object;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -308,20 +301,18 @@ Run* Manager::AddRun(const char* pName)
     return pRun;
 }
 
-void Manager::Export(const char* pName, Report* pOutReport) const
+Report Manager::Export(const char* pName) const
 {
     PPX_ASSERT_NULL_ARG(pName);
-    PPX_ASSERT_NULL_ARG(pOutReport);
 
-    nlohmann::json& content = pOutReport->mContent;
-    content.clear();
+    Report          report;
+    nlohmann::json& content = report.mContent;
 
     content["name"] = pName;
     for (auto [name, pRun] : mRuns) {
-        nlohmann::json runObject;
-        pRun->Export(&runObject);
-        content["runs"] += runObject;
+        content["runs"] += pRun->Export();
     }
+    return report;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
