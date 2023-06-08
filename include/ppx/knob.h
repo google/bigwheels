@@ -54,12 +54,10 @@ public:
     const std::string& GetFlagName() const { return mFlagName; }
     const std::string& GetFlagHelp() const { return mFlagDesc; }
     size_t             GetIndent() const { return mIndent; }
-    bool               IsValueUpdated() const { return mUpdatedFlag; }
 
     void SetDisplayName(const std::string& displayName) { mDisplayName = displayName; }
     void SetFlagDesc(const std::string& flagDesc) { mFlagDesc = flagDesc; }
     void SetIndent(size_t indent) { mIndent = indent; }
-    void AckUpdatedFlag() { mUpdatedFlag = false; }
 
     virtual void Draw() = 0;
 
@@ -70,6 +68,9 @@ public:
     virtual void UpdateFromFlags(const CliOptions& opts) = 0;
 
     virtual void ResetToDefault() = 0;
+
+    // Returns true if there has been an update to the knob value and lowers mUpdatedFlag
+    bool DigestUpdate();
 
 protected:
     void RaiseUpdatedFlag() { mUpdatedFlag = true; }

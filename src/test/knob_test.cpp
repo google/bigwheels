@@ -72,13 +72,13 @@ TEST_F(KnobTestFixture, KnobCheckbox_Create)
 TEST_F(KnobTestFixture, KnobCheckbox_SetBoolValue)
 {
     KnobCheckbox boolKnob = KnobCheckbox("flag_name1", false);
-    boolKnob.AckUpdatedFlag();
+    EXPECT_EQ(boolKnob.DigestUpdate(), true);
     EXPECT_EQ(boolKnob.GetValue(), false);
-    EXPECT_EQ(boolKnob.IsValueUpdated(), false);
 
+    EXPECT_EQ(boolKnob.DigestUpdate(), false);
     boolKnob.SetValue(true);
     EXPECT_EQ(boolKnob.GetValue(), true);
-    EXPECT_EQ(boolKnob.IsValueUpdated(), true);
+    EXPECT_EQ(boolKnob.DigestUpdate(), true);
 }
 
 TEST_F(KnobTestFixture, KnobCheckbox_ResetToDefault)
@@ -136,24 +136,25 @@ TEST_F(KnobTestFixture, KnobSlider_CreateInvalid)
 TEST_F(KnobTestFixture, KnobSlider_SetIntValue)
 {
     KnobSlider<int> intKnob = KnobSlider<int>("flag_name1", 5, 0, 10);
-    intKnob.AckUpdatedFlag();
+    EXPECT_EQ(intKnob.DigestUpdate(), true);
     EXPECT_EQ(intKnob.GetValue(), 5);
-    EXPECT_EQ(intKnob.IsValueUpdated(), false);
 
+    EXPECT_EQ(intKnob.DigestUpdate(), false);
     intKnob.SetValue(10);
     EXPECT_EQ(intKnob.GetValue(), 10);
-    EXPECT_EQ(intKnob.IsValueUpdated(), true);
-    intKnob.AckUpdatedFlag();
+    EXPECT_EQ(intKnob.DigestUpdate(), true);
 
     // Below min, should not be set
+    EXPECT_EQ(intKnob.DigestUpdate(), false);
     intKnob.SetValue(-3);
     EXPECT_EQ(intKnob.GetValue(), 10);
-    EXPECT_EQ(intKnob.IsValueUpdated(), false);
+    EXPECT_EQ(intKnob.DigestUpdate(), false);
 
     // Above max, should not be set
+    EXPECT_EQ(intKnob.DigestUpdate(), false);
     intKnob.SetValue(22);
     EXPECT_EQ(intKnob.GetValue(), 10);
-    EXPECT_EQ(intKnob.IsValueUpdated(), false);
+    EXPECT_EQ(intKnob.DigestUpdate(), false);
 }
 
 TEST_F(KnobTestFixture, KnobSlider_ResetToDefault)
@@ -228,24 +229,25 @@ TEST_F(KnobTestFixture, KnobDropdown_SetIndexInt)
 {
     std::vector<std::string>  choices = {"c1", "c2"};
     KnobDropdown<std::string> strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.cbegin(), choices.cend());
-    strKnob.AckUpdatedFlag();
+    EXPECT_EQ(strKnob.DigestUpdate(), true);
     EXPECT_EQ(strKnob.GetIndex(), 1);
-    EXPECT_EQ(strKnob.IsValueUpdated(), false);
 
+    EXPECT_EQ(strKnob.DigestUpdate(), false);
     strKnob.SetIndex(0);
     EXPECT_EQ(strKnob.GetIndex(), 0);
-    EXPECT_EQ(strKnob.IsValueUpdated(), true);
-    strKnob.AckUpdatedFlag();
+    EXPECT_EQ(strKnob.DigestUpdate(), true);
 
     // Below min, should not be set
+    EXPECT_EQ(strKnob.DigestUpdate(), false);
     strKnob.SetIndex(-3);
     EXPECT_EQ(strKnob.GetIndex(), 0);
-    EXPECT_EQ(strKnob.IsValueUpdated(), false);
+    EXPECT_EQ(strKnob.DigestUpdate(), false);
 
     // Above max, should not be set
+    EXPECT_EQ(strKnob.DigestUpdate(), false);
     strKnob.SetIndex(2);
     EXPECT_EQ(strKnob.GetIndex(), 0);
-    EXPECT_EQ(strKnob.IsValueUpdated(), false);
+    EXPECT_EQ(strKnob.DigestUpdate(), false);
 }
 
 TEST_F(KnobTestFixture, KnobDropdown_SetIndexStr)

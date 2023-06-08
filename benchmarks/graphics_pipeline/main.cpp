@@ -799,19 +799,16 @@ void ProjApp::Render()
     mCurrentSceneIndex = pCurrentScene->GetIndex();
 
     // Example where changing either the slider or the dropdown will uncheck the box.
-    if (pKnobPlaceholder2->IsValueUpdated()) {
+    if (pKnobPlaceholder2->DigestUpdate()) {
         std::cout << "placeholder2 knob new value: " << pKnobPlaceholder2->GetValue() << std::endl;
         pKnobPlaceholder1->SetValue(false);
-        pKnobPlaceholder2->AckUpdatedFlag();
     }
-    if (pKnobPlaceholder3->IsValueUpdated()) {
+    if (pKnobPlaceholder3->DigestUpdate()) {
         std::cout << "placeholder3 knob new value: " << pKnobPlaceholder3->GetValue() << std::endl;
         pKnobPlaceholder1->SetValue(false);
-        pKnobPlaceholder3->AckUpdatedFlag();
     }
-    if (pKnobPlaceholder1->IsValueUpdated()) {
+    if (pKnobPlaceholder1->DigestUpdate()) {
         std::cout << "placeholder1 knob new value: " << pKnobPlaceholder1->GetValue() << std::endl;
-        pKnobPlaceholder1->AckUpdatedFlag();
     }
 
     PerFrame&          frame      = mPerFrame[0];
