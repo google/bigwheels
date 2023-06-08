@@ -87,12 +87,6 @@ bool                             path_exists(const std::filesystem::path& path);
 std::filesystem::path GetInternalDataPath();
 #endif
 
-// Creates parent directories as needed for the provided path.
-inline void CreateParentsForPath(const std::filesystem::path& path)
-{
-    std::filesystem::create_directories(path.parent_path());
-}
-
 } // namespace ppx::fs
 
 #endif // ppx_fs_h

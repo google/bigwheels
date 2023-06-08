@@ -1295,7 +1295,7 @@ void FishTornadoApp::WriteMetrics()
 #else
     auto filePath = std::filesystem::path(kMetricsFilename);
 #endif
-    ppx::fs::CreateParentsForPath(filePath);
+    std::filesystem::create_directories(filePath.parent_path());
     ppx::CSVFileLog metricsFileLog(std::string(filePath.c_str()));
     metricsFileLog.LogField("Metric");
     metricsFileLog.LogField("Min");
