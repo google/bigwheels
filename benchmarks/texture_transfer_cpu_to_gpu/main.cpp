@@ -14,6 +14,7 @@
 
 #include <deque>
 #include <fstream>
+#include <filesystem>
 
 #include "ppx/grfx/grfx_scope.h"
 
@@ -91,7 +92,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
 
 void ProjApp::SaveResultsToFile()
 {
-    CSVFileLog fileLogger = {mCSVFileName};
+    CSVFileLog fileLogger{std::filesystem::path(mCSVFileName)};
     for (const auto& row : mFrameRegisters) {
         fileLogger.LogField(row.frameNumber);
         fileLogger.LogField(row.cpuTransferTimeMs);

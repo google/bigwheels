@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <filesystem>
+
 #include "ppx/config.h"
 #include "ppx/math_config.h"
 #include "ppx/graphics_util.h"
@@ -115,7 +117,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
 
 void ProjApp::SaveResultsToFile()
 {
-    CSVFileLog fileLogger = {mCSVFileName};
+    CSVFileLog fileLogger{std::filesystem::path(mCSVFileName)};
     for (const auto& row : mFrameRegisters) {
         fileLogger.LogField(row.frameNumber);
         fileLogger.LogField(row.gpuWorkDurationMs);

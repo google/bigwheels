@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include <deque>
+#include <filesystem>
+
 #include "ppx/ppx.h"
 #include "ppx/csv_file_log.h"
 
@@ -89,7 +91,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
 
 void ProjApp::SaveResultsToFile()
 {
-    CSVFileLog fileLogger = {mCSVFileName};
+    CSVFileLog fileLogger{std::filesystem::path(mCSVFileName)};
     for (const auto& row : mFrameRegisters) {
         fileLogger.LogField(row.frameNumber);
         fileLogger.LogField(row.gpuWorkDurationMs);
