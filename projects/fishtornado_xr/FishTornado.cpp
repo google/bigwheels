@@ -1300,6 +1300,15 @@ void FishTornadoApp::WriteMetrics()
 #endif
     std::filesystem::create_directories(filePath.parent_path());
     ppx::CSVFileLog metricsFileLog(filePath);
+
+    metricsFileLog.LogField("Frame Count");
+    metricsFileLog.LastField(GetFrameCount());
+    metricsFileLog.LogField("Average FPS");
+    metricsFileLog.LastField(GetAverageFPS());
+
+    // Insert a line.
+    metricsFileLog.LastField("");
+
     metricsFileLog.LogField("Metric");
     metricsFileLog.LogField("Min");
     metricsFileLog.LogField("Max");
