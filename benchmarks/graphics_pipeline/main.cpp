@@ -209,7 +209,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.window.width               = 1920;
     settings.window.height              = 1080;
     settings.grfx.api                   = kApi;
-    settings.grfx.enableDebug           = true;
+    settings.grfx.enableDebug           = false;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
 }
 
