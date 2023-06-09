@@ -175,6 +175,7 @@ private:
     void SetupPerFrame();
     void SetupCaustics();
     void SetupDebug();
+    // TODO(slumpwuffle): Replace these one-off metrics with the new metrics system when it arrives.
     void SetupMetrics();
     void SetupScene();
     void UploadCaustics();
@@ -194,6 +195,7 @@ private:
         PerFrame&           prevFrame,
         grfx::SwapchainPtr& swapchain,
         uint32_t            imageIndex);
+    // TODO(slumpwuffle): Replace these one-off metrics with the new metrics system when it arrives.
     void WriteMetrics();
 
 protected:

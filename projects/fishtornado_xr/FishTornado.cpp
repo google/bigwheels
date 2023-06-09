@@ -477,6 +477,7 @@ void FishTornadoApp::Shutdown()
         frame.sceneConstants.Destroy();
     }
 
+    // TODO(slumpwuffle): Replace these one-off metrics with the new metrics system when it arrives.
     if (mSettings.outputMetrics) {
         WriteMetrics();
     }
@@ -1257,6 +1258,7 @@ void FishTornadoApp::DrawGui()
     }
 }
 
+// TODO(slumpwuffle): Replace these one-off metrics with the new metrics system when it arrives.
 void FishTornadoApp::SetupMetrics()
 {
     if (!mSettings.outputMetrics) {
@@ -1284,6 +1286,7 @@ void FishTornadoApp::SetupMetrics()
     mMetricsData.allMetrics.emplace_back(mMetricsData.pPSInvGauge);
 }
 
+// TODO(slumpwuffle): Replace these one-off metrics with the new metrics system when it arrives.
 void FishTornadoApp::WriteMetrics()
 {
     if (!mSettings.outputMetrics) {
@@ -1296,7 +1299,7 @@ void FishTornadoApp::WriteMetrics()
     auto filePath = std::filesystem::path(kMetricsFilename);
 #endif
     std::filesystem::create_directories(filePath.parent_path());
-    ppx::CSVFileLog metricsFileLog(std::string(filePath.c_str()));
+    ppx::CSVFileLog metricsFileLog(filePath);
     metricsFileLog.LogField("Metric");
     metricsFileLog.LogField("Min");
     metricsFileLog.LogField("Max");
