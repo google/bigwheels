@@ -1181,14 +1181,14 @@ void FishTornadoApp::DrawGui()
         if (mSettings.outputMetrics) {
             auto now              = GetElapsedSeconds();
             auto prevCpuFrameTime = GetPrevFrameTime();
-            mMetricsData.pGpuFrameTimeGauge->RecordEntry(now, prevGpuFrameTime);
-            mMetricsData.pCpuFrameTimeGauge->RecordEntry(now, prevCpuFrameTime);
-            mMetricsData.pIAVertGauge->RecordEntry(now, totalIAVertices);
-            mMetricsData.pIAPrimGauge->RecordEntry(now, totalIAPrimitives);
-            mMetricsData.pVSInvGauge->RecordEntry(now, totalVSInvocations);
-            mMetricsData.pCInvGauge->RecordEntry(now, totalCInvocations);
-            mMetricsData.pCPrimGauge->RecordEntry(now, totalCPrimitives);
-            mMetricsData.pPSInvGauge->RecordEntry(now, totalPSInvocations);
+            mMetricsData.metrics[MetricsData::kTypeGpuFrameTime]->RecordEntry(now, prevGpuFrameTime);
+            mMetricsData.metrics[MetricsData::kTypeCpuFrameTime]->RecordEntry(now, prevCpuFrameTime);
+            mMetricsData.metrics[MetricsData::kTypeIAVertices]->RecordEntry(now, totalIAVertices);
+            mMetricsData.metrics[MetricsData::kTypeIAPrimitives]->RecordEntry(now, totalIAPrimitives);
+            mMetricsData.metrics[MetricsData::kTypeVSInvocations]->RecordEntry(now, totalVSInvocations);
+            mMetricsData.metrics[MetricsData::kTypeCInvocations]->RecordEntry(now, totalCInvocations);
+            mMetricsData.metrics[MetricsData::kTypeCPrimitives]->RecordEntry(now, totalCPrimitives);
+            mMetricsData.metrics[MetricsData::kTypePSInvocations]->RecordEntry(now, totalPSInvocations);
         }
 
         ImGui::Text("Previous GPU Frame Time");
@@ -1267,23 +1267,14 @@ void FishTornadoApp::SetupMetrics()
 
     auto* run = mMetricsData.manager.AddRun("FishTornado Metrics");
 
-    mMetricsData.pGpuFrameTimeGauge = run->AddMetric<ppx::metrics::MetricGauge>({"GPU Frame Time", "ms", ppx::metrics::MetricInterpretation::LOWER_IS_BETTER, {0.f, 60000.f}});
-    mMetricsData.pCpuFrameTimeGauge = run->AddMetric<ppx::metrics::MetricGauge>({"Total (CPU) Frame Time", "ms", ppx::metrics::MetricInterpretation::LOWER_IS_BETTER, {0.f, 60000.f}});
-    mMetricsData.pIAVertGauge       = run->AddMetric<ppx::metrics::MetricGauge>({"IA Vertices", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}});
-    mMetricsData.pIAPrimGauge       = run->AddMetric<ppx::metrics::MetricGauge>({"IA Primitives", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}});
-    mMetricsData.pVSInvGauge        = run->AddMetric<ppx::metrics::MetricGauge>({"VS Invocations", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}});
-    mMetricsData.pCInvGauge         = run->AddMetric<ppx::metrics::MetricGauge>({"C Invocations", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}});
-    mMetricsData.pCPrimGauge        = run->AddMetric<ppx::metrics::MetricGauge>({"C Primitives", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}});
-    mMetricsData.pPSInvGauge        = run->AddMetric<ppx::metrics::MetricGauge>({"PS Invocations", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}});
-
-    mMetricsData.allMetrics.emplace_back(mMetricsData.pGpuFrameTimeGauge);
-    mMetricsData.allMetrics.emplace_back(mMetricsData.pCpuFrameTimeGauge);
-    mMetricsData.allMetrics.emplace_back(mMetricsData.pIAVertGauge);
-    mMetricsData.allMetrics.emplace_back(mMetricsData.pIAPrimGauge);
-    mMetricsData.allMetrics.emplace_back(mMetricsData.pVSInvGauge);
-    mMetricsData.allMetrics.emplace_back(mMetricsData.pCInvGauge);
-    mMetricsData.allMetrics.emplace_back(mMetricsData.pCPrimGauge);
-    mMetricsData.allMetrics.emplace_back(mMetricsData.pPSInvGauge);
+    mMetricsData.metrics[MetricsData::kTypeGpuFrameTime]  = run->AddMetric<ppx::metrics::MetricGauge>({"GPU Frame Time", "ms", ppx::metrics::MetricInterpretation::LOWER_IS_BETTER, {0.f, 60000.f}});
+    mMetricsData.metrics[MetricsData::kTypeCpuFrameTime]  = run->AddMetric<ppx::metrics::MetricGauge>({"Total (CPU) Frame Time", "ms", ppx::metrics::MetricInterpretation::LOWER_IS_BETTER, {0.f, 60000.f}});
+    mMetricsData.metrics[MetricsData::kTypeIAVertices]    = run->AddMetric<ppx::metrics::MetricGauge>({"IA Vertices", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}});
+    mMetricsData.metrics[MetricsData::kTypeIAPrimitives]  = run->AddMetric<ppx::metrics::MetricGauge>({"IA Primitives", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}});
+    mMetricsData.metrics[MetricsData::kTypeVSInvocations] = run->AddMetric<ppx::metrics::MetricGauge>({"VS Invocations", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}});
+    mMetricsData.metrics[MetricsData::kTypeCInvocations]  = run->AddMetric<ppx::metrics::MetricGauge>({"C Invocations", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}});
+    mMetricsData.metrics[MetricsData::kTypeCPrimitives]   = run->AddMetric<ppx::metrics::MetricGauge>({"C Primitives", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}});
+    mMetricsData.metrics[MetricsData::kTypePSInvocations] = run->AddMetric<ppx::metrics::MetricGauge>({"PS Invocations", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}});
 }
 
 // TODO(slumpwuffle): Replace these one-off metrics with the new metrics system when it arrives.
@@ -1319,7 +1310,7 @@ void FishTornadoApp::WriteMetrics()
     metricsFileLog.LogField("P99");
     metricsFileLog.LastField("StdDev");
 
-    for (ppx::metrics::MetricGauge* pMetric : mMetricsData.allMetrics) {
+    for (ppx::metrics::MetricGauge* pMetric : mMetricsData.metrics) {
         auto basic   = pMetric->GetBasicStatistics();
         auto complex = pMetric->ComputeComplexStatistics();
         metricsFileLog.LogField(pMetric->GetName());
