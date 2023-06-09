@@ -69,7 +69,7 @@ public:
 
     virtual void ResetToDefault() = 0;
 
-    // Returns true if there has been an update to the knob value and lowers mUpdatedFlag
+    // Returns true if there has been an update to the knob value
     bool DigestUpdate();
 
 protected:
