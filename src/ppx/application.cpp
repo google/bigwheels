@@ -1009,12 +1009,13 @@ int Application::Run(int argc, char** argv)
 #endif
 
     mMaxFrames = UINT64_MAX;
-    // If command line provided a maximum number of frames to draw
-    if (mStandardOptions.frame_count != -1) {
+    // If command line provided a maximum number of frames to draw.
+    if (mStandardOptions.frame_count > 0) {
         mMaxFrames = mStandardOptions.frame_count;
     }
 
     mRunTimeSeconds = std::numeric_limits<float>::max();
+    // If command line provides a maximum number of milliseconds to run.
     if (mStandardOptions.run_time_ms > 0) {
         mRunTimeSeconds = mStandardOptions.run_time_ms / 1000.f;
     }

@@ -197,8 +197,8 @@ private:
 --help                        Prints this help message and exits.
 
 --deterministic               Disable non-deterministic behaviors, like clocks.
---frame-count <N>             Shutdown the application after successfully rendering N frames.
---run-time-ms <N>             Shutdown the application after N milliseconds.
+--frame-count <N>             Shutdown the application after successfully rendering N frames. Default: 0 (infinite).
+--run-time-ms <N>             Shutdown the application after N milliseconds. Default: 0 (infinite).
 --gpu <index>                 Select the gpu with the given index. To determine the set of valid indices use --list-gpus.
 --headless                    Run the sample without creating windows.
 --list-gpus                   Prints a list of the available GPUs on the current system with their index and exits (see --gpu).
