@@ -45,6 +45,24 @@ static constexpr std::array<const char*, 3> kAvailablePsShaders = {
     "Benchmark_PsAluBound",
     "Benchmark_PsMemBound"};
 
+static constexpr std::array<const char*, 7> kAvailableScenes = {
+    "altimeter",
+    "sphere_0",
+    "sphere_1",
+    "sphere_2",
+    "sphere_3",
+    "sphere_4",
+    "sphere_5"};
+
+static constexpr std::array<const char*, kAvailableScenes.size()> kAvailableScenesFilePath = {
+    "basic/models/altimeter/altimeter.gltf",
+    "basic/models/spheres/sphere_0.gltf",
+    "basic/models/spheres/sphere_1.gltf",
+    "basic/models/spheres/sphere_2.gltf",
+    "basic/models/spheres/sphere_3.gltf",
+    "basic/models/spheres/sphere_4.gltf",
+    "basic/models/spheres/sphere_5.gltf"};
+
 static constexpr uint32_t kPipelineCount = kAvailablePsShaders.size() * kAvailableVsShaders.size();
 
 class ProjApp
@@ -104,6 +122,13 @@ private:
         std::vector<Renderable> renderables;
     };
 
+    struct Scene
+    {
+        std::vector<Object>    objects;
+        std::vector<Material>  materials;
+        std::vector<Primitive> primitives;
+    };
+
     using RenderList   = std::unordered_map<Material*, std::vector<Object*>>;
     using TextureCache = std::unordered_map<std::string, grfx::ImagePtr>;
 
@@ -114,15 +139,15 @@ private:
     std::array<grfx::ShaderModulePtr, kAvailablePsShaders.size()> mPsShaders;
     PerspCamera                                                   mCamera;
     float3                                                        mLightPosition = float3(10, 100, 10);
+    std::array<Scene, kAvailableScenes.size()>                    mScenes;
+    size_t                                                        mCurrentSceneIndex;
 
-    std::vector<Material>  mMaterials;
-    std::vector<Primitive> mPrimitives;
-    std::vector<Object>    mObjects;
     TextureCache           mTextureCache;
 
 private:
     std::shared_ptr<KnobDropdown<std::string>> pKnobVs;
     std::shared_ptr<KnobDropdown<std::string>> pKnobPs;
+    std::shared_ptr<KnobDropdown<std::string>> pCurrentScene;
 
 private:
     void LoadScene(
@@ -199,6 +224,9 @@ void ProjApp::InitKnobs()
 
     pKnobPs = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("ps", 0, kAvailablePsShaders);
     pKnobPs->SetDisplayName("Pixel Shader");
+
+    pCurrentScene = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("scene", 0, kAvailableScenes);
+    pCurrentScene->SetDisplayName("Scene");
 }
 
 void ProjApp::LoadTexture(
@@ -299,10 +327,10 @@ void ProjApp::LoadMaterial(
 
             // FIXME: assuming all primitives provides POSITION, UV, NORMAL and TANGENT. Might not be the case.
             gpCreateInfo.vertexInputState.bindingCount      = 4;
-            gpCreateInfo.vertexInputState.bindings[0]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[0];
-            gpCreateInfo.vertexInputState.bindings[1]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[1];
-            gpCreateInfo.vertexInputState.bindings[2]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[2];
-            gpCreateInfo.vertexInputState.bindings[3]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[3];
+            gpCreateInfo.vertexInputState.bindings[0]       = mScenes[0].primitives[0].mesh->GetDerivedVertexBindings()[0];
+            gpCreateInfo.vertexInputState.bindings[1]       = mScenes[0].primitives[0].mesh->GetDerivedVertexBindings()[1];
+            gpCreateInfo.vertexInputState.bindings[2]       = mScenes[0].primitives[0].mesh->GetDerivedVertexBindings()[2];
+            gpCreateInfo.vertexInputState.bindings[3]       = mScenes[0].primitives[0].mesh->GetDerivedVertexBindings()[3];
             gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
             gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
             gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
@@ -714,16 +742,18 @@ void ProjApp::Setup()
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mSetLayout));
     }
 
-    LoadScene(
-        "basic/models/altimeter/altimeter.gltf",
-        GetDevice(),
-        GetSwapchain(),
-        GetGraphicsQueue(),
-        mDescriptorPool,
-        &mTextureCache,
-        &mObjects,
-        &mPrimitives,
-        &mMaterials);
+    for (size_t i = 0; i < kAvailableScenesFilePath.size(); i++) {
+        LoadScene(
+            kAvailableScenesFilePath[i],
+            GetDevice(),
+            GetSwapchain(),
+            GetGraphicsQueue(),
+            mDescriptorPool,
+            &mTextureCache,
+            &mScenes[i].objects,
+            &mScenes[i].primitives,
+            &mScenes[i].materials);
+    }
 
     // Per frame data
     {
@@ -755,6 +785,11 @@ void ProjApp::Setup()
 
 void ProjApp::Render()
 {
+    // This is important: If we directly passed mCurrentSceneIndex to ImGUI, the value would change during
+    // the drawing pass, meaning we would change descriptors while drawing.
+    // That's why we delay the change to the next frame (now).
+    mCurrentSceneIndex = pCurrentScene->GetIndex();
+
     PerFrame&          frame      = mPerFrame[0];
     grfx::SwapchainPtr swapchain  = GetSwapchain();
     uint32_t           imageIndex = UINT32_MAX;
@@ -768,8 +803,8 @@ void ProjApp::Render()
     mCamera.LookAt(float3(2, 2, 2), float3(0, 0, 0));
 
     // Update uniform buffers
-    for (auto& object : mObjects) {
-        struct Scene
+    for (auto& object : mScenes[mCurrentSceneIndex].objects) {
+        struct FrameData
         {
             float4x4 modelMatrix;                // Transforms object space to world space
             float4x4 ITModelMatrix;              // Inverse-transpose of the model matrix.
@@ -779,15 +814,15 @@ void ProjApp::Render()
             float4   eyePosition;
         };
 
-        Scene scene                      = {};
-        scene.modelMatrix                = object.modelMatrix;
-        scene.ITModelMatrix              = object.ITModelMatrix;
-        scene.ambient                    = float4(0.3f);
-        scene.cameraViewProjectionMatrix = mCamera.GetViewProjectionMatrix();
-        scene.lightPosition              = float4(mLightPosition, 0);
-        scene.eyePosition                = float4(mCamera.GetEyePosition(), 0.f);
+        FrameData data                  = {};
+        data.modelMatrix                = object.modelMatrix;
+        data.ITModelMatrix              = object.ITModelMatrix;
+        data.ambient                    = float4(0.3f);
+        data.cameraViewProjectionMatrix = mCamera.GetViewProjectionMatrix();
+        data.lightPosition              = float4(mLightPosition, 0);
+        data.eyePosition                = float4(mCamera.GetEyePosition(), 0.f);
 
-        object.pUniformBuffer->CopyFromSource(sizeof(scene), &scene);
+        object.pUniformBuffer->CopyFromSource(sizeof(data), &data);
     }
 
     {
@@ -795,7 +830,7 @@ void ProjApp::Render()
         constexpr size_t                                    TEXTURE_COUNT    = 3;
         constexpr size_t                                    DESCRIPTOR_COUNT = 1 + TEXTURE_COUNT * 2 /* uniform + 3 * (sampler + texture) */;
         std::array<grfx::WriteDescriptor, DESCRIPTOR_COUNT> write;
-        for (auto& object : mObjects) {
+        for (auto& object : mScenes[mCurrentSceneIndex].objects) {
             for (auto& renderable : object.renderables) {
                 auto* pPrimitive     = renderable.pPrimitive;
                 auto* pMaterial      = renderable.pMaterial;
@@ -839,7 +874,7 @@ void ProjApp::Render()
 
             size_t pipeline_index = pKnobVs->GetIndex() * kAvailablePsShaders.size() + pKnobPs->GetIndex();
             // Draw entities
-            for (auto& object : mObjects) {
+            for (auto& object : mScenes[mCurrentSceneIndex].objects) {
                 for (auto& renderable : object.renderables) {
                     frame.cmd->BindGraphicsPipeline(renderable.pMaterial->mPipelines[pipeline_index]);
                     frame.cmd->BindGraphicsDescriptorSets(renderable.pMaterial->pInterface, 1, &renderable.pDescriptorSet);
