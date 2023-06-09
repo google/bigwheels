@@ -127,15 +127,15 @@ private:
 
     struct MetricsData
     {
-        static constexpr int kTypeGpuFrameTime  = 0;
-        static constexpr int kTypeCpuFrameTime  = 1;
-        static constexpr int kTypeIAVertices    = 2;
-        static constexpr int kTypeIAPrimitives  = 3;
-        static constexpr int kTypeVSInvocations = 4;
-        static constexpr int kTypeCInvocations  = 5;
-        static constexpr int kTypeCPrimitives   = 6;
-        static constexpr int kTypePSInvocations = 7;
-        static constexpr int kCount             = 8;
+        static constexpr size_t kTypeGpuFrameTime  = 0;
+        static constexpr size_t kTypeCpuFrameTime  = 1;
+        static constexpr size_t kTypeIAVertices    = 2;
+        static constexpr size_t kTypeIAPrimitives  = 3;
+        static constexpr size_t kTypeVSInvocations = 4;
+        static constexpr size_t kTypeCInvocations  = 5;
+        static constexpr size_t kTypeCPrimitives   = 6;
+        static constexpr size_t kTypePSInvocations = 7;
+        static constexpr size_t kCount             = 8;
 
         ppx::metrics::Manager      manager;
         ppx::metrics::MetricGauge* metrics[kCount]      = {};
