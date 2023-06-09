@@ -21,6 +21,7 @@
 #include <iomanip>
 #include <mutex>
 #include <sstream>
+#include <filesystem>
 
 const std::string PPX_DEFAULT_CSV_FILE{"stats.csv"};
 
@@ -33,7 +34,7 @@ class CSVFileLog
 {
 public:
     CSVFileLog();
-    CSVFileLog(const std::string& filepath);
+    CSVFileLog(const std::filesystem::path& filepath);
     ~CSVFileLog();
 
     template <typename T>
@@ -65,7 +66,6 @@ private:
     void Flush();
 
 private:
-    std::string       mFilePath;
     std::ofstream     mFileStream;
     std::stringstream mBuffer;
     std::mutex        mWriteMutex;

@@ -21,11 +21,10 @@ CSVFileLog::CSVFileLog()
 {
 }
 
-CSVFileLog::CSVFileLog(const std::string& filepath)
+CSVFileLog::CSVFileLog(const std::filesystem::path& filepath)
 {
-    mFilePath = filepath;
-    if (!mFilePath.empty()) {
-        mFileStream.open(mFilePath.c_str());
+    if (!filepath.empty()) {
+        mFileStream.open(filepath.c_str());
     }
     Lock();
 }
