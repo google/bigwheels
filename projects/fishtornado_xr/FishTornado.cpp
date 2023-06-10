@@ -1297,30 +1297,25 @@ void FishTornadoApp::WriteMetrics()
     metricsFileLog.LogField("Average FPS");
     metricsFileLog.LastField(GetAverageFPS());
 
-    // Insert a line.
-    metricsFileLog.LastField("");
-
-    metricsFileLog.LogField("Metric");
-    metricsFileLog.LogField("Min");
-    metricsFileLog.LogField("Max");
-    metricsFileLog.LogField("Mean");
-    metricsFileLog.LogField("Median");
-    metricsFileLog.LogField("P90");
-    metricsFileLog.LogField("P95");
-    metricsFileLog.LogField("P99");
-    metricsFileLog.LastField("StdDev");
-
     for (ppx::metrics::MetricGauge* pMetric : mMetricsData.metrics) {
         auto basic   = pMetric->GetBasicStatistics();
         auto complex = pMetric->ComputeComplexStatistics();
-        metricsFileLog.LogField(pMetric->GetName());
-        metricsFileLog.LogField(basic.min);
-        metricsFileLog.LogField(basic.max);
-        metricsFileLog.LogField(basic.average);
-        metricsFileLog.LogField(complex.median);
-        metricsFileLog.LogField(complex.percentile90);
-        metricsFileLog.LogField(complex.percentile95);
-        metricsFileLog.LogField(complex.percentile99);
+        auto name    = pMetric->GetName();
+        metricsFileLog.LogField(name + " Min");
+        metricsFileLog.LastField(basic.min);
+        metricsFileLog.LogField(name + " Max");
+        metricsFileLog.LastField(basic.max);
+        metricsFileLog.LogField(name + " Mean");
+        metricsFileLog.LastField(basic.average);
+        metricsFileLog.LogField(name + " Median");
+        metricsFileLog.LastField(complex.median);
+        metricsFileLog.LogField(name + " P90");
+        metricsFileLog.LastField(complex.percentile90);
+        metricsFileLog.LogField(name + " P95");
+        metricsFileLog.LastField(complex.percentile95);
+        metricsFileLog.LogField(name + " P99");
+        metricsFileLog.LastField(complex.percentile99);
+        metricsFileLog.LogField(name + " StdDev");
         metricsFileLog.LastField(complex.standardDeviation);
     }
 }
