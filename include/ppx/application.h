@@ -423,6 +423,9 @@ public:
     // The caller must not use the run, or any associated metrics, after calling this function.
     void StopMetricsRun();
 
+    // Returns true when a run is active, otherwise returns false.
+    bool HasActiveRun() const;
+
 #if defined(PPX_BUILD_XR)
     XrComponent& GetXrComponent()
     {
@@ -463,6 +466,8 @@ private:
 
     // Updates the metrics.
     void UpdateMetrics();
+    // Saves the metrics data to a file on disk.
+    void SaveMetricsReportToDisk();
 
 private:
     friend struct WindowEvents;
