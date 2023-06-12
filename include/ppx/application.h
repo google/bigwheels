@@ -234,7 +234,7 @@ struct ApplicationSettings
     bool        enableImGui           = false;
     bool        allowThirdPartyAssets = false;
     // Set to true to opt-in for metrics.
-    bool useMetrics = false;
+    bool enableMetrics = false;
 
     struct
     {

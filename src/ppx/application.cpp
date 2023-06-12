@@ -682,7 +682,7 @@ void Application::DispatchSetup()
 
 void Application::SaveMetricsReportToDisk()
 {
-    if (!mSettings.useMetrics) {
+    if (!mSettings.enableMetrics) {
         return;
     }
 
@@ -1467,8 +1467,8 @@ float2 Application::GetNormalizedDeviceCoordinates(int32_t x, int32_t y) const
 
 metrics::Run* Application::StartMetricsRun(const std::string& name)
 {
-    PPX_ASSERT_MSG(mSettings.useMetrics, "Application::Settings::useMetrics must be set to true before using the metrics capabilities");
-    if (!mSettings.useMetrics) {
+    PPX_ASSERT_MSG(mSettings.enableMetrics, "Application::Settings::enableMetrics must be set to true before using the metrics capabilities");
+    if (!mSettings.enableMetrics) {
         return nullptr;
     }
 
@@ -1504,8 +1504,8 @@ metrics::Run* Application::StartMetricsRun(const std::string& name)
 
 void Application::StopMetricsRun()
 {
-    PPX_ASSERT_MSG(mSettings.useMetrics, "Application::Settings::useMetrics must be set to true before using the metrics capabilities");
-    if (!mSettings.useMetrics) {
+    PPX_ASSERT_MSG(mSettings.enableMetrics, "Application::Settings::enableMetrics must be set to true before using the metrics capabilities");
+    if (!mSettings.enableMetrics) {
         return;
     }
 
@@ -1518,12 +1518,12 @@ void Application::StopMetricsRun()
 
 bool Application::HasActiveRun() const
 {
-    return mSettings.useMetrics && mMetrics.pCurrentRun != nullptr;
+    return mSettings.enableMetrics && mMetrics.pCurrentRun != nullptr;
 }
 
 void Application::UpdateMetrics()
 {
-    if (!mSettings.useMetrics || mMetrics.pCurrentRun == nullptr) {
+    if (!mSettings.enableMetrics || mMetrics.pCurrentRun == nullptr) {
         return;
     }
 
