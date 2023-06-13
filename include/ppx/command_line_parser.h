@@ -23,6 +23,8 @@
 #include <type_traits>
 #include <optional>
 
+#include "nlohmann/json.hpp"
+
 namespace ppx {
 // -------------------------------------------------------------------------------------------------
 // StandardOptions
@@ -48,6 +50,7 @@ struct StandardOptions
 
     int         screenshot_frame_number                  = -1;
     std::string screenshot_path                          = "";
+    std::string config_json_path                         = "";
     bool        operator==(const StandardOptions&) const = default;
 };
 
@@ -171,11 +174,15 @@ public:
     }
 
 private:
-    CliOptions mOpts;
+    std::optional<ParsingError>                    ParseConfigJsonFile(const std::string& jsonFilePath);
+    std::optional<CommandLineParser::ParsingError> PopulateOptions();
+    std::vector<CliOptions::Option>                mUnorganizedOpts;
+    CliOptions                                     mOpts;
 #if defined(PPX_BUILD_XR)
     std::string mUsageMsg = R"(
 --help                        Prints this help message and exits.
 
+--config-json-path            Read JSON file from this path and accept any flags/knobs/extra options specified within
 --deterministic               Disable non-deterministic behaviors, like clocks.
 --frame-count <N>             Shutdown the application after successfully rendering N frames.
 --run-time-ms <N>             Shutdown the application after N milliseconds.
@@ -196,6 +203,7 @@ private:
     std::string mUsageMsg = R"(
 --help                        Prints this help message and exits.
 
+--config-json-path            Read JSON file from this path and accept any flags/knobs/extra options specified within
 --deterministic               Disable non-deterministic behaviors, like clocks.
 --frame-count <N>             Shutdown the application after successfully rendering N frames. Default: 0 (infinite).
 --run-time-ms <N>             Shutdown the application after N milliseconds. Default: 0 (infinite).

@@ -111,7 +111,8 @@ list(APPEND IMGUI_SOURCE_FILES
 )
 
 list(APPEND JSON_HEADER_FILES
-    ${JSON_DIR}/nlohmann/json.hpp)
+    ${JSON_DIR}/nlohmann/json.hpp
+)
 
 if (NOT PPX_ANDROID)
     list(APPEND IMGUI_SOURCE_FILES
@@ -415,6 +416,7 @@ add_library(
     ${CONTRIB_FILES}
     ${IMGUI_HEADER_FILES}
     ${IMGUI_SOURCE_FILES}
+    ${JSON_HEADER_FILES}
     ${XXHASH_FILES}
     ${JSON_HEADER_FILES}
 )
@@ -441,6 +443,7 @@ target_include_directories(
             ${PPX_THIRD_PARTY_DIR}/tinyobjloader
             ${PPX_THIRD_PARTY_DIR}/pcg32
             ${PPX_THIRD_PARTY_DIR}/cgltf
+            ${PPX_THIRD_PARTY_DIR}/json/single_include
             ${PPX_THIRD_PARTY_DIR}/xxHash
             ${PPX_THIRD_PARTY_DIR}/utfcpp/source
             ${JSON_DIR}

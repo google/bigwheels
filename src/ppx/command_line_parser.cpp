@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <algorithm>
+#include <fstream>
 #include <iostream>
 #include <locale>
 #include <vector>
@@ -46,8 +47,7 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
 
     // Process arguments into either standalone flags or
     // options with parameters.
-    std::vector<std::string>        args(argv + 1, argv + argc);
-    std::vector<CliOptions::Option> options;
+    std::vector<std::string> args(argv + 1, argv + argc);
     for (size_t i = 0; i < args.size(); ++i) {
         std::string name = ppx::string_util::TrimCopy(args[i]);
         if (!IsOptionOrFlag(name)) {
@@ -58,15 +58,31 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
         std::string parameter = (i + 1 < args.size()) ? ppx::string_util::TrimCopy(args[i + 1]) : "";
         if (!IsOptionOrFlag(parameter)) {
             // We found an option with a parameter.
-            options.emplace_back(name, parameter);
+            mUnorganizedOpts.emplace_back(name, parameter);
             ++i;
         }
         else {
-            options.emplace_back(name, "");
+            mUnorganizedOpts.emplace_back(name, "");
         }
     }
 
-    for (const auto& opt : options) {
+    if (auto error = CommandLineParser::PopulateOptions()) {
+        return error;
+    }
+
+    const std::string& jsonFilePath = mOpts.standardOptions.config_json_path;
+    if (jsonFilePath != "") {
+        if (auto error = ParseConfigJsonFile(jsonFilePath)) {
+            return error;
+        }
+    }
+
+    return std::nullopt;
+}
+
+std::optional<CommandLineParser::ParsingError> CommandLineParser::PopulateOptions()
+{
+    for (const auto& opt : mUnorganizedOpts) {
         // Process standard options.
         if (opt.GetName() == "help") {
             mOpts.standardOptions.help = true;
@@ -142,6 +158,12 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
             }
             mOpts.standardOptions.screenshot_path = opt.GetValueOrDefault<std::string>("");
         }
+        else if (opt.GetName() == "config-json-path") {
+            if (!opt.HasValue()) {
+                return std::string("Command-line option --config-json-path requires a parameter");
+            }
+            mOpts.standardOptions.config_json_path = opt.GetValueOrDefault<std::string>("");
+        }
 #if defined(PPX_BUILD_XR)
         else if (opt.GetName() == "xr-ui-resolution") {
             if (!opt.HasValue()) {
@@ -170,6 +192,30 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
         }
     }
 
+    mUnorganizedOpts.clear();
+    return std::nullopt;
+}
+
+std::optional<CommandLineParser::ParsingError> CommandLineParser::ParseConfigJsonFile(const std::string& jsonFilePath)
+{
+    std::ifstream  f(jsonFilePath);
+    nlohmann::json data = nlohmann::json::parse(f);
+
+    // Flattening the JSON structure to fit in mUnorganizedOpts
+    // Storing any nested objects and arrays as strings
+    for (auto it = data.cbegin(); it != data.cend(); ++it) {
+        std::stringstream ss;
+        ss << it.value();
+        std::string value = ss.str();
+        if (value.back() == '"' && value.at(0) == '"') {
+            value.erase(value.begin());
+            value.pop_back();
+        }
+        mUnorganizedOpts.emplace_back(it.key(), value);
+    }
+    if (auto error = CommandLineParser::PopulateOptions()) {
+        return error;
+    }
     return std::nullopt;
 }
 
