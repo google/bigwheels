@@ -424,7 +424,7 @@ public:
     void StopMetricsRun();
 
     // Returns true when a run is active, otherwise returns false.
-    bool HasActiveRun() const;
+    bool HasActiveMetricsRun() const;
 
 #if defined(PPX_BUILD_XR)
     XrComponent& GetXrComponent()

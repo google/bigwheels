@@ -1516,14 +1516,14 @@ void Application::StopMetricsRun()
     mMetrics.pFrameCount   = nullptr;
 }
 
-bool Application::HasActiveRun() const
+bool Application::HasActiveMetricsRun() const
 {
     return mSettings.enableMetrics && mMetrics.pCurrentRun != nullptr;
 }
 
 void Application::UpdateMetrics()
 {
-    if (!mSettings.enableMetrics || mMetrics.pCurrentRun == nullptr) {
+    if (!HasActiveMetricsRun()) {
         return;
     }
 
