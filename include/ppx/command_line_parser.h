@@ -39,8 +39,8 @@ struct StandardOptions
     // Options
     int                 gpu_index          = -1;
     std::pair<int, int> resolution         = {-1, -1};
-    int                 frame_count        = -1;
-    int                 run_time_ms        = -1;
+    int                 frame_count        = 0;
+    int                 run_time_ms        = 0;
     uint32_t            stats_frame_window = 300;
 #if defined(PPX_BUILD_XR)
     std::pair<int, int> xrUIResolution = {-1, -1};
