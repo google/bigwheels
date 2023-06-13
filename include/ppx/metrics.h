@@ -101,6 +101,12 @@ public:
     size_t GetEntriesCount() const;
     void   GetEntry(size_t index, double* pSeconds, double* pValue) const;
 
+    // Information from the metadata.
+    std::string GetName() const
+    {
+        return mMetadata.name;
+    };
+
     const GaugeBasicStatistics   GetBasicStatistics() const;
     const GaugeComplexStatistics ComputeComplexStatistics() const;
 
@@ -137,6 +143,12 @@ public:
 
     void     Increment(uint64_t add);
     uint64_t Get() const;
+
+    // Information from the metadata.
+    std::string GetName() const
+    {
+        return mMetadata.name;
+    };
 
 private:
     ~MetricCounter();

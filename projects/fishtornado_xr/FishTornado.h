@@ -23,9 +23,11 @@
 #include "Shark.h"
 
 #include "ppx/ppx.h"
+#include "ppx/metrics.h"
 #include "ppx/camera.h"
 
 #include <filesystem>
+#include <vector>
 
 #if defined(USE_DX12)
 const grfx::Api kApi = grfx::API_DX_12_0;
@@ -46,6 +48,7 @@ struct FishTornadoSettings
     uint32_t fishResY                 = kDefaultFishResY;
     uint32_t fishThreadsX             = kDefaultFishThreadsX;
     uint32_t fishThreadsY             = kDefaultFishThreadsY;
+    bool     outputMetrics            = false;
 };
 
 class FishTornadoApp
@@ -122,6 +125,23 @@ private:
         ppx::grfx::FencePtr         uiRenderCompleteFence;
     };
 
+    struct MetricsData
+    {
+        static constexpr size_t kTypeGpuFrameTime  = 0;
+        static constexpr size_t kTypeCpuFrameTime  = 1;
+        static constexpr size_t kTypeIAVertices    = 2;
+        static constexpr size_t kTypeIAPrimitives  = 3;
+        static constexpr size_t kTypeVSInvocations = 4;
+        static constexpr size_t kTypeCInvocations  = 5;
+        static constexpr size_t kTypeCPrimitives   = 6;
+        static constexpr size_t kTypePSInvocations = 7;
+        static constexpr size_t kCount             = 8;
+
+        ppx::metrics::Manager      manager;
+        ppx::metrics::MetricGauge* metrics[kCount]      = {};
+        float                      lastMetricsWriteTime = 0;
+    };
+
     grfx::DescriptorPoolPtr               mDescriptorPool;
     grfx::DescriptorSetLayoutPtr          mSceneDataSetLayout;
     grfx::DescriptorSetLayoutPtr          mModelDataSetLayout;
@@ -146,6 +166,7 @@ private:
     int                                   mViewCount                = 1;
     std::vector<uint64_t>                 mViewGpuFrameTime         = {};
     std::vector<grfx::PipelineStatistics> mViewPipelineStatistics   = {};
+    MetricsData                           mMetricsData;
 
 private:
     void SetupDescriptorPool();
@@ -156,6 +177,8 @@ private:
     void SetupPerFrame();
     void SetupCaustics();
     void SetupDebug();
+    // TODO(slumpwuffle): Replace these one-off metrics with the new metrics system when it arrives.
+    void SetupMetrics();
     void SetupScene();
     void UploadCaustics();
     void UpdateTime();
@@ -174,6 +197,8 @@ private:
         PerFrame&           prevFrame,
         grfx::SwapchainPtr& swapchain,
         uint32_t            imageIndex);
+    // TODO(slumpwuffle): Replace these one-off metrics with the new metrics system when it arrives.
+    void WriteMetrics();
 
 protected:
     virtual void DrawGui() override;

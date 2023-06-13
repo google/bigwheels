@@ -81,6 +81,12 @@ private:
 std::optional<std::vector<char>> load_file(const std::filesystem::path& path);
 bool                             path_exists(const std::filesystem::path& path);
 
+#if defined(PPX_ANDROID)
+// Returns a path to the application's internal data directory (can be used for output).
+// NOTE: The internal data path on Android is extremely limited in terms of filesize!
+std::filesystem::path GetInternalDataPath();
+#endif
+
 } // namespace ppx::fs
 
 #endif // ppx_fs_h

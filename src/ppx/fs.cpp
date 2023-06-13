@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "ppx/fs.h"
+#include "ppx/config.h"
 
 #include <filesystem>
 #include <vector>
@@ -144,5 +145,12 @@ bool path_exists(const std::filesystem::path& path)
     return std::filesystem::exists(path);
 #endif
 }
+
+#if defined(PPX_ANDROID)
+std::filesystem::path GetInternalDataPath()
+{
+    return std::filesystem::path(gAndroidContext->activity->internalDataPath);
+}
+#endif
 
 } // namespace ppx::fs

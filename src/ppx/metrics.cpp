@@ -170,14 +170,14 @@ Run::~Run()
 void Run::AddMetric(MetricGauge* pMetric)
 {
     PPX_ASSERT_NULL_ARG(pMetric);
-    const auto ret = mGauges.insert({pMetric->mMetadata.name, pMetric});
+    const auto ret = mGauges.insert({pMetric->GetName(), pMetric});
     PPX_ASSERT_MSG(ret.second, "An insertion shall always take place when adding a metric");
 }
 
 void Run::AddMetric(MetricCounter* pMetric)
 {
     PPX_ASSERT_NULL_ARG(pMetric);
-    const auto ret = mCounters.insert({pMetric->mMetadata.name, pMetric});
+    const auto ret = mCounters.insert({pMetric->GetName(), pMetric});
     PPX_ASSERT_MSG(ret.second, "An insertion shall always take place when adding a metric");
 }
 
