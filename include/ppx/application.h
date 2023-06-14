@@ -17,13 +17,14 @@
 
 #include "ppx/base_application.h"
 #include "ppx/command_line_parser.h"
-#include "ppx/math_config.h"
-#include "ppx/imgui_impl.h"
-#include "ppx/timer.h"
-#include "ppx/xr_component.h"
 #include "ppx/fs.h"
-#include "ppx/window.h"
+#include "ppx/imgui_impl.h"
 #include "ppx/knob.h"
+#include "ppx/math_config.h"
+#include "ppx/metrics.h"
+#include "ppx/timer.h"
+#include "ppx/window.h"
+#include "ppx/xr_component.h"
 
 #include <deque>
 #include <filesystem>
@@ -232,6 +233,8 @@ struct ApplicationSettings
     bool        headless              = false;
     bool        enableImGui           = false;
     bool        allowThirdPartyAssets = false;
+    // Set to true to opt-in for metrics.
+    bool enableMetrics = false;
 
     struct
     {
@@ -409,6 +412,20 @@ public:
 
     bool IsXrEnabled() const { return mSettings.xr.enable; }
 
+    // Starts a new metric run and returns it.
+    // Only one run is ever active at the same time.
+    // Default metrics are automatically added to the run: framerate, cpu_frame_time and frame_count.
+    // Additional ones may be added by the caller.
+    // The run is automatically exported and saved to disk when the application shuts down.
+    metrics::Run* StartMetricsRun(const std::string& name);
+
+    // Stops the currently active run.
+    // The caller must not use the run, or any associated metrics, after calling this function.
+    void StopMetricsRun();
+
+    // Returns true when a run is active, otherwise returns false.
+    bool HasActiveMetricsRun() const;
+
 #if defined(PPX_BUILD_XR)
     XrComponent& GetXrComponent()
     {
@@ -446,6 +463,11 @@ private:
     Result CreatePlatformWindow();
     void   DestroyPlatformWindow();
     bool   IsRunning() const;
+
+    // Updates the metrics.
+    void UpdateMetrics();
+    // Saves the metrics data to a file on disk.
+    void SaveMetricsReportToDisk();
 
 private:
     friend struct WindowEvents;
@@ -492,6 +514,20 @@ private:
     float             mAverageFrameTime  = 0;
     double            mFirstFrameTime    = 0;
     std::deque<float> mFrameTimesMs;
+
+    // Metrics
+    struct
+    {
+        metrics::Manager        manager;
+        metrics::Run*           pCurrentRun   = nullptr;
+        metrics::MetricGauge*   pCpuFrameTime = nullptr;
+        metrics::MetricGauge*   pFramerate    = nullptr;
+        metrics::MetricCounter* pFrameCount   = nullptr;
+
+        double   framerateRecordTimer   = 0.0;
+        uint64_t framerateFrameCount    = 0;
+        bool     resetFramerateTracking = true;
+    } mMetrics;
 
 #if defined(PPX_MSW)
     //

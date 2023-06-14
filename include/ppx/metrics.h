@@ -15,6 +15,7 @@
 #ifndef ppx_metrics_h
 #define ppx_metrics_h
 
+#include "nlohmann/json.hpp"
 #include "ppx/config.h"
 
 #include <limits>
@@ -51,6 +52,26 @@ struct MetricMetadata
     std::string          unit;
     MetricInterpretation interpretation = MetricInterpretation::NONE;
     Range                expectedRange;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+
+// A report contains runs and metrics information.
+// It is meant to be saved to disk.
+class Report final
+{
+    friend class Manager;
+
+public:
+    static constexpr const char* kFileExtension = ".json";
+
+public:
+    Report();
+    ~Report();
+    void WriteToFile(const char* filename) const;
+
+private:
+    nlohmann::json mContent;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -110,6 +131,8 @@ public:
     const GaugeBasicStatistics   GetBasicStatistics() const;
     const GaugeComplexStatistics ComputeComplexStatistics() const;
 
+    nlohmann::json Export() const;
+
 private:
     struct TimeSeriesEntry
     {
@@ -150,6 +173,8 @@ public:
         return mMetadata.name;
     };
 
+    nlohmann::json Export() const;
+
 private:
     ~MetricCounter();
     METRICS_NO_COPY(MetricCounter)
@@ -181,6 +206,8 @@ private:
     void AddMetric(MetricCounter* pMetric);
     bool HasMetric(const char* pName) const;
 
+    nlohmann::json Export() const;
+
 private:
     std::string                                     mName;
     std::unordered_map<std::string, MetricGauge*>   mGauges;
@@ -211,6 +238,9 @@ public:
     ~Manager();
 
     Run* AddRun(const char* pName);
+
+    // Exports all the runs and metrics information into a report.
+    Report Export(const char* pName) const;
 
 private:
     METRICS_NO_COPY(Manager)
