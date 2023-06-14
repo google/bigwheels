@@ -52,7 +52,7 @@ namespace ppx {
 // KnobCheckbox
 // -------------------------------------------------------------------------------------------------
 
-TEST_F(KnobTestFixture, KnobCheckbox_Create)
+TEST_F(KnobTestFixture, KnobCheckbox_CreateAndSetBasicMembers)
 {
     KnobCheckbox boolKnob = KnobCheckbox("flag_name1", true);
     EXPECT_EQ(boolKnob.GetFlagHelpText(), "--flag_name1 <true|false>\n");
@@ -65,32 +65,45 @@ TEST_F(KnobTestFixture, KnobCheckbox_Create)
     EXPECT_EQ(boolKnob.GetFlagName(), "flag_name1");
     EXPECT_EQ(boolKnob.GetFlagHelp(), "description1");
     EXPECT_EQ(boolKnob.GetIndent(), 3);
-    EXPECT_EQ(boolKnob.GetValue(), true);
+    EXPECT_TRUE(boolKnob.GetValue());
     EXPECT_EQ(boolKnob.GetFlagHelpText(), "--flag_name1 <true|false> : description1\n");
 }
 
-TEST_F(KnobTestFixture, KnobCheckbox_SetBoolValue)
+TEST_F(KnobTestFixture, KnobCheckbox_CanSetBoolValue)
 {
     KnobCheckbox boolKnob = KnobCheckbox("flag_name1", false);
+    EXPECT_FALSE(boolKnob.GetValue());
     boolKnob.SetValue(true);
-    EXPECT_EQ(boolKnob.GetValue(), true);
+    EXPECT_TRUE(boolKnob.GetValue());
+}
+
+TEST_F(KnobTestFixture, KnobCheckbox_CanDigestBoolValueUpdate)
+{
+    KnobCheckbox boolKnob = KnobCheckbox("flag_name1", false);
+    EXPECT_TRUE(boolKnob.DigestUpdate());
+    EXPECT_FALSE(boolKnob.GetValue());
+
+    EXPECT_FALSE(boolKnob.DigestUpdate());
+    boolKnob.SetValue(true);
+    EXPECT_TRUE(boolKnob.GetValue());
+    EXPECT_TRUE(boolKnob.DigestUpdate());
 }
 
 TEST_F(KnobTestFixture, KnobCheckbox_ResetToDefault)
 {
     KnobCheckbox boolKnob = KnobCheckbox("flag_name1", true);
-    EXPECT_EQ(boolKnob.GetValue(), true);
+    EXPECT_TRUE(boolKnob.GetValue());
     boolKnob.SetValue(false);
-    EXPECT_EQ(boolKnob.GetValue(), false);
+    EXPECT_FALSE(boolKnob.GetValue());
     boolKnob.ResetToDefault();
-    EXPECT_EQ(boolKnob.GetValue(), true);
+    EXPECT_TRUE(boolKnob.GetValue());
 }
 
 // -------------------------------------------------------------------------------------------------
 // KnobSlider
 // -------------------------------------------------------------------------------------------------
 
-TEST_F(KnobTestFixture, KnobSlider_Create)
+TEST_F(KnobTestFixture, KnobSlider_CreateAndSetBasicMembers)
 {
     KnobSlider<int> intKnob = KnobSlider<int>("flag_name1", 5, 0, 10);
     EXPECT_EQ(intKnob.GetFlagHelpText(), "--flag_name1 <0~10>\n");
@@ -108,18 +121,26 @@ TEST_F(KnobTestFixture, KnobSlider_Create)
 }
 
 #if defined(PERFORM_DEATH_TESTS)
-TEST_F(KnobTestFixture, KnobSlider_CreateInvalid)
+TEST_F(KnobTestFixture, KnobSlider_CreateInvalidRangeTooSmall)
 {
     EXPECT_DEATH(
         {
             KnobSlider<int> intKnob = KnobSlider<int>("flag_name1", 10, 10, 10);
         },
         "");
+}
+
+TEST_F(KnobTestFixture, KnobSlider_CreateInvalidDefaultTooLow)
+{
     EXPECT_DEATH(
         {
             KnobSlider<int> intKnob = KnobSlider<int>("flag_name1", -1, 0, 10);
         },
         "");
+}
+
+TEST_F(KnobTestFixture, KnobSlider_CreateInvalidDefaultTooHigh)
+{
     EXPECT_DEATH(
         {
             KnobSlider<int> intKnob = KnobSlider<int>("flag_name1", 11, 0, 10);
@@ -128,19 +149,38 @@ TEST_F(KnobTestFixture, KnobSlider_CreateInvalid)
 }
 #endif
 
-TEST_F(KnobTestFixture, KnobSlider_SetIntValue)
+TEST_F(KnobTestFixture, KnobSlider_CanSetIntValue)
 {
     KnobSlider<int> intKnob = KnobSlider<int>("flag_name1", 5, 0, 10);
+    EXPECT_EQ(intKnob.GetValue(), 5);
     intKnob.SetValue(10);
     EXPECT_EQ(intKnob.GetValue(), 10);
+}
 
-    // Below min, should not be set
+TEST_F(KnobTestFixture, KnobSlider_CanDigestIntValueUpdate)
+{
+    KnobSlider<int> intKnob = KnobSlider<int>("flag_name1", 5, 0, 10);
+    EXPECT_TRUE(intKnob.DigestUpdate());
+    EXPECT_EQ(intKnob.GetValue(), 5);
+
+    EXPECT_FALSE(intKnob.DigestUpdate());
+    intKnob.SetValue(10);
+    EXPECT_EQ(intKnob.GetValue(), 10);
+    EXPECT_TRUE(intKnob.DigestUpdate());
+}
+
+TEST_F(KnobTestFixture, KnobSlider_MinIntValueClamped)
+{
+    KnobSlider<int> intKnob = KnobSlider<int>("flag_name1", 5, 0, 10);
     intKnob.SetValue(-3);
-    EXPECT_EQ(intKnob.GetValue(), 10);
+    EXPECT_EQ(intKnob.GetValue(), 5);
+}
 
-    // Above max, should not be set
+TEST_F(KnobTestFixture, KnobSlider_MaxIntValueClamped)
+{
+    KnobSlider<int> intKnob = KnobSlider<int>("flag_name1", 5, 0, 10);
     intKnob.SetValue(22);
-    EXPECT_EQ(intKnob.GetValue(), 10);
+    EXPECT_EQ(intKnob.GetValue(), 5);
 }
 
 TEST_F(KnobTestFixture, KnobSlider_ResetToDefault)
@@ -157,7 +197,7 @@ TEST_F(KnobTestFixture, KnobSlider_ResetToDefault)
 // KnobDropdown
 // -------------------------------------------------------------------------------------------------
 
-TEST_F(KnobTestFixture, KnobDropdown_Create)
+TEST_F(KnobTestFixture, KnobDropdown_CreateAndSetBasicMembers)
 {
     std::vector<std::string>  choices = {"c1", "c2"};
     KnobDropdown<std::string> strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.cbegin(), choices.cend());
@@ -188,7 +228,7 @@ TEST_F(KnobTestFixture, KnobDropdown_CreateVaried)
 }
 
 #if defined(PERFORM_DEATH_TESTS)
-TEST_F(KnobTestFixture, KnobDropdown_CreateInvalid)
+TEST_F(KnobTestFixture, KnobDropdown_CreateInvalidEmptyChoices)
 {
     std::vector<std::string> choices = {};
     EXPECT_DEATH(
@@ -196,49 +236,83 @@ TEST_F(KnobTestFixture, KnobDropdown_CreateInvalid)
             KnobDropdown<std::string> strKnob = KnobDropdown<std::string>("flag_name1", 0, choices.cbegin(), choices.cend());
         },
         "");
+}
 
-    choices = {"c1", "c2"};
+TEST_F(KnobTestFixture, KnobDropdown_CreateInvalidDefaultTooLow)
+{
+    std::vector<std::string> choices = {"c1", "c2"};
     EXPECT_DEATH(
         {
-            KnobDropdown<std::string> strKnob = KnobDropdown<std::string>("flag_name2", -1, choices.cbegin(), choices.cend());
+            KnobDropdown<std::string> strKnob = KnobDropdown<std::string>("flag_name1", -1, choices.cbegin(), choices.cend());
         },
         "");
+}
+
+TEST_F(KnobTestFixture, KnobDropdown_CreateInvalidDefaultTooHigh)
+{
+    std::vector<std::string> choices = {"c1", "c2"};
     EXPECT_DEATH(
         {
-            KnobDropdown<std::string> strKnob = KnobDropdown<std::string>("flag_name3", 2, choices.cbegin(), choices.cend());
+            KnobDropdown<std::string> strKnob = KnobDropdown<std::string>("flag_name1", 2, choices.cbegin(), choices.cend());
         },
         "");
 }
 #endif
 
-TEST_F(KnobTestFixture, KnobDropdown_SetIndexInt)
+TEST_F(KnobTestFixture, KnobDropdown_CanSetIndexInt)
 {
     std::vector<std::string>  choices = {"c1", "c2"};
     KnobDropdown<std::string> strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.cbegin(), choices.cend());
+    EXPECT_EQ(strKnob.GetIndex(), 1);
     strKnob.SetIndex(0);
-    EXPECT_EQ(strKnob.GetIndex(), 0);
-
-    // Below min, should not be set
-    strKnob.SetIndex(-3);
-    EXPECT_EQ(strKnob.GetIndex(), 0);
-
-    // Above max, should not be set
-    strKnob.SetIndex(2);
     EXPECT_EQ(strKnob.GetIndex(), 0);
 }
 
-TEST_F(KnobTestFixture, KnobDropdown_SetIndexStr)
+TEST_F(KnobTestFixture, KnobDropdown_CanSetIndexStr)
 {
     std::vector<std::string>  choices = {"c1", "c2"};
     KnobDropdown<std::string> strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.cbegin(), choices.cend());
     strKnob.SetIndex("c1");
     EXPECT_EQ(strKnob.GetIndex(), 0);
     EXPECT_EQ(strKnob.GetValue(), "c1");
+}
 
-    // Not in choices, should not be set
+TEST_F(KnobTestFixture, KnobDropdown_MinIndexClamped)
+{
+    std::vector<std::string>  choices = {"c1", "c2"};
+    KnobDropdown<std::string> strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.cbegin(), choices.cend());
+    strKnob.SetIndex(-3);
+    EXPECT_EQ(strKnob.GetIndex(), 1);
+}
+
+TEST_F(KnobTestFixture, KnobDropdown_MaxIndexClamped)
+{
+    std::vector<std::string>  choices = {"c1", "c2"};
+    KnobDropdown<std::string> strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.cbegin(), choices.cend());
+    strKnob.SetIndex(2);
+    EXPECT_EQ(strKnob.GetIndex(), 1);
+}
+
+TEST_F(KnobTestFixture, KnobDropdown_WontSetUnknownStr)
+{
+    std::vector<std::string>  choices = {"c1", "c2"};
+    KnobDropdown<std::string> strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.cbegin(), choices.cend());
     strKnob.SetIndex("c3");
+    EXPECT_EQ(strKnob.GetIndex(), 1);
+    EXPECT_EQ(strKnob.GetValue(), "c2");
+}
+
+TEST_F(KnobTestFixture, KnobDropdown_CanDigestIndexUpdate)
+{
+    std::vector<std::string>  choices = {"c1", "c2"};
+    KnobDropdown<std::string> strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.cbegin(), choices.cend());
+    EXPECT_TRUE(strKnob.DigestUpdate());
+    EXPECT_EQ(strKnob.GetIndex(), 1);
+
+    EXPECT_FALSE(strKnob.DigestUpdate());
+    strKnob.SetIndex(0);
     EXPECT_EQ(strKnob.GetIndex(), 0);
-    EXPECT_EQ(strKnob.GetValue(), "c1");
+    EXPECT_TRUE(strKnob.DigestUpdate());
 }
 
 TEST_F(KnobTestFixture, KnobDropdown_ResetToDefault)
@@ -264,7 +338,7 @@ TEST_F(KnobManagerTestFixture, KnobManager_Create)
 TEST_F(KnobManagerTestFixture, KnobManager_CreateBoolCheckbox)
 {
     std::shared_ptr<KnobCheckbox> boolKnobPtr(km.CreateKnob<KnobCheckbox>("flag_name1", true));
-    EXPECT_EQ(boolKnobPtr->GetValue(), true);
+    EXPECT_TRUE(boolKnobPtr->GetValue());
 }
 
 TEST_F(KnobManagerTestFixture, KnobManager_CreateIntSlider)
@@ -320,19 +394,54 @@ TEST_F(KnobManagerTestFixture, KnobManager_ResetAllToDefault)
 
     // Change from default
     boolKnobPtr1->SetValue(false);
-    EXPECT_EQ(boolKnobPtr1->GetValue(), false);
+    EXPECT_FALSE(boolKnobPtr1->GetValue());
     boolKnobPtr2->SetValue(false);
-    EXPECT_EQ(boolKnobPtr2->GetValue(), false);
+    EXPECT_FALSE(boolKnobPtr2->GetValue());
     intKnobPtr1->SetValue(8);
     EXPECT_EQ(intKnobPtr1->GetValue(), 8);
     strKnobPtr1->SetIndex(0);
     EXPECT_EQ(strKnobPtr1->GetIndex(), 0);
 
     km.ResetAllToDefault();
-    EXPECT_EQ(boolKnobPtr1->GetValue(), true);
-    EXPECT_EQ(boolKnobPtr2->GetValue(), true);
+    EXPECT_TRUE(boolKnobPtr1->GetValue());
+    EXPECT_TRUE(boolKnobPtr2->GetValue());
     EXPECT_EQ(intKnobPtr1->GetValue(), 5);
     EXPECT_EQ(strKnobPtr1->GetIndex(), 1);
+}
+
+void UpdateDependentKnobs(std::shared_ptr<KnobCheckbox> p1, std::shared_ptr<KnobSlider<int>> p2, std::shared_ptr<KnobDropdown<std::string>> p3)
+{
+    // Example where changing either the slider or the dropdown will uncheck the box.
+    if (p2->DigestUpdate()) {
+        std::cout << "digested p2" << std::endl;
+        p1->SetValue(false);
+    }
+    if (p3->DigestUpdate()) {
+        std::cout << "digested p3" << std::endl;
+        p1->SetValue(false);
+    }
+    p1->DigestUpdate();
+    std::cout << "current value of p1: " << p1->GetValue() << std::endl;
+}
+
+TEST_F(KnobManagerTestFixture, KnobManager_UpdateDependentKnobs)
+{
+    std::shared_ptr<KnobCheckbox>              pKnob1(km.CreateKnob<ppx::KnobCheckbox>("knob1", false));
+    std::shared_ptr<KnobSlider<int>>           pKnob2(km.CreateKnob<ppx::KnobSlider<int>>("knob2", 5, 0, 10));
+    std::vector<std::string>                   knob3Choices = {"one", "two", "three"};
+    std::shared_ptr<KnobDropdown<std::string>> pKnob3(km.CreateKnob<ppx::KnobDropdown<std::string>>("knob3", 1, knob3Choices));
+
+    UpdateDependentKnobs(pKnob1, pKnob2, pKnob3);
+    pKnob1->SetValue(true);
+    pKnob2->SetValue(8);
+    pKnob3->SetIndex(2);
+    EXPECT_TRUE(pKnob1->GetValue());
+
+    std::cout << "about to digest second time" << std::endl;
+    UpdateDependentKnobs(pKnob1, pKnob2, pKnob3);
+    EXPECT_EQ(pKnob2->GetValue(), 8);
+    EXPECT_EQ(pKnob3->GetIndex(), 2);
+    EXPECT_FALSE(pKnob1->GetValue());
 }
 
 } // namespace ppx

@@ -142,7 +142,7 @@ private:
     std::array<Scene, kAvailableScenes.size()>                    mScenes;
     size_t                                                        mCurrentSceneIndex;
 
-    TextureCache           mTextureCache;
+    TextureCache mTextureCache;
 
 private:
     std::shared_ptr<KnobDropdown<std::string>> pKnobVs;
