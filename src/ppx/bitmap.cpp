@@ -515,9 +515,6 @@ static Result IsRadianceFile(const std::filesystem::path& path, bool& isRadiance
     // Read signature
     size_t n = file.Read(buf, kBufferSize);
 
-    // Close file
-    file.Close();
-
     // Only check if kBufferSize bytes were read
     if (n == kBufferSize) {
         int res    = strncmp(buf, kRadianceSig, kBufferSize);
@@ -529,17 +526,22 @@ static Result IsRadianceFile(const std::filesystem::path& path, bool& isRadiance
 
 Result Bitmap::StbiInfo(const std::filesystem::path& path, int* pX, int* pY, int* pComp)
 {
-#if defined(PPX_ANDROID)
     ppx::fs::File file;
     if (!file.Open(path)) {
         return ppx::ERROR_IMAGE_FILE_LOAD_FAILED;
     }
-    auto stbi_result = stbi_info_from_memory((unsigned char*)file.GetBuffer(), file.GetLength(), pX, pY, pComp);
-    file.Close();
-#else
-    auto stbi_result = stbi_info(path.string().c_str(), pX, pY, pComp);
-#endif
-    return (stbi_result ? ppx::SUCCESS : ppx::ERROR_IMAGE_FILE_LOAD_FAILED);
+
+    int stbiResult = 0;
+    if (file.IsMapped()) {
+        stbiResult = stbi_info_from_memory(reinterpret_cast<const stbi_uc*>(file.GetPointer()), file.GetLength(), pX, pY, pComp);
+    }
+    else {
+        std::vector<uint8_t> buffer(file.GetLength());
+        file.Read(buffer.data(), buffer.size());
+        stbiResult = stbi_info_from_memory(buffer.data(), buffer.size(), pX, pY, pComp);
+    }
+
+    return stbiResult ? ppx::SUCCESS : ppx::ERROR_IMAGE_FILE_LOAD_FAILED;
 }
 
 bool Bitmap::IsBitmapFile(const std::filesystem::path& path)
@@ -583,30 +585,23 @@ Result Bitmap::GetFileProperties(const std::filesystem::path& path, uint32_t* pW
 
 char* Bitmap::StbiLoad(const std::filesystem::path& path, Bitmap::Format format, int* pWidth, int* pHeight, int* pChannels, int desiredChannels)
 {
-    char* pResult = nullptr;
-#if defined(PPX_ANDROID)
     ppx::fs::File file;
     if (!file.Open(path)) {
-        return pResult;
+        return nullptr;
     }
+
+    std::vector<stbi_uc> buffer(0);
+    if (!file.IsMapped()) {
+        buffer.resize(file.GetLength());
+        file.Read(buffer.data(), buffer.size());
+    }
+    const stbi_uc* readPtr = file.IsMapped() ? reinterpret_cast<const stbi_uc*>(file.GetPointer()) : buffer.data();
+    ;
+
     if (format == Bitmap::FORMAT_RGBA_FLOAT) {
-        pResult = reinterpret_cast<char*>(stbi_loadf_from_memory(
-            reinterpret_cast<const stbi_uc*>(file.GetBuffer()), file.GetLength(), pWidth, pHeight, pChannels, desiredChannels));
+        return reinterpret_cast<char*>(stbi_loadf_from_memory(readPtr, file.GetLength(), pWidth, pHeight, pChannels, desiredChannels));
     }
-    else {
-        pResult = reinterpret_cast<char*>(stbi_load_from_memory(
-            reinterpret_cast<const stbi_uc*>(file.GetBuffer()), file.GetLength(), pWidth, pHeight, pChannels, desiredChannels));
-    }
-    file.Close();
-#else
-    if (format == Bitmap::FORMAT_RGBA_FLOAT) {
-        pResult = reinterpret_cast<char*>(stbi_loadf(path.string().c_str(), pWidth, pHeight, pChannels, desiredChannels));
-    }
-    else {
-        pResult = reinterpret_cast<char*>(stbi_load(path.string().c_str(), pWidth, pHeight, pChannels, desiredChannels));
-    }
-#endif
-    return pResult;
+    return reinterpret_cast<char*>(stbi_load_from_memory(readPtr, file.GetLength(), pWidth, pHeight, pChannels, desiredChannels));
 }
 
 Result Bitmap::LoadFile(const std::filesystem::path& path, Bitmap* pBitmap)
