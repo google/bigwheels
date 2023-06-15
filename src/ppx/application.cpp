@@ -1051,8 +1051,9 @@ int Application::Run(int argc, char** argv)
         mRunTimeSeconds = mStandardOptions.run_time_ms / 1000.f;
     }
 
-    // Disable ImGui in headless mode.
-    if (mSettings.headless && mSettings.enableImGui) {
+    // Disable ImGui in headless or deterministic mode.
+    // ImGUI is not non-deterministic, but the visible informations (stats, timers) are.
+    if ((mSettings.headless || mStandardOptions.deterministic) && mSettings.enableImGui) {
         mSettings.enableImGui = false;
         PPX_LOG_WARN("Headless mode: disabling ImGui");
     }
