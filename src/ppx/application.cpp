@@ -13,16 +13,19 @@
 // limitations under the License.
 
 #include "ppx/application.h"
-#include "ppx/profiler.h"
-#include "ppx/ppm_export.h"
 #include "ppx/fs.h"
+#include "ppx/ppm_export.h"
+#include "ppx/profiler.h"
 
+#include <chrono>
+#include <filesystem>
+#include <fstream>
+#include <limits>
 #include <map>
 #include <numeric>
-#include <unordered_map>
 #include <optional>
-#include <filesystem>
-#include <limits>
+#include <sstream>
+#include <unordered_map>
 
 namespace ppx {
 
@@ -677,9 +680,37 @@ void Application::DispatchSetup()
     Setup();
 }
 
+void Application::SaveMetricsReportToDisk()
+{
+    if (!mSettings.enableMetrics) {
+        return;
+    }
+
+    // Build a unique name for the report
+    std::stringstream                                        reportFilename;
+    const std::chrono::time_point<std::chrono::system_clock> now          = std::chrono::system_clock::now();
+    const time_t                                             current_time = std::chrono::system_clock::to_time_t(now);
+    reportFilename << "report_" << current_time << metrics::Report::kFileExtension;
+
+    // Check whether the file already exists
+    if (std::filesystem::exists(reportFilename.str())) {
+        PPX_LOG_ERROR("Metrics report file cannot be written to disk as file [" << reportFilename.str() << "] already exists");
+        return;
+    }
+
+    // Export the report from the metrics manager
+    const metrics::Report report = mMetrics.manager.Export(reportFilename.str().c_str());
+    // Serialize the report to disk
+    report.WriteToFile(reportFilename.str().c_str());
+    // Report the filename for convenience
+    PPX_LOG_INFO("Metrics report written to file [" << reportFilename.str() << "]");
+}
+
 void Application::DispatchShutdown()
 {
     Shutdown();
+
+    SaveMetricsReportToDisk();
 
     PPX_LOG_INFO("Number of frames drawn: " << GetFrameCount());
     PPX_LOG_INFO("Average frame time:     " << GetAverageFrameTime() << " ms");
@@ -1260,6 +1291,9 @@ int Application::Run(int argc, char** argv)
             mAverageFrameTime = static_cast<float>(nowMs / mFrameCount);
         }
 
+        // Update the metrics.
+        UpdateMetrics();
+
         // Pace frames - if needed
         if (mSettings.grfx.pacedFrameRate > 0) {
             if (mFrameCount > 0) {
@@ -1430,6 +1464,99 @@ float2 Application::GetNormalizedDeviceCoordinates(int32_t x, int32_t y) const
     float  fy  = y / static_cast<float>(GetWindowHeight());
     float2 ndc = float2(2.0f, -2.0f) * (float2(fx, fy) - float2(0.5f));
     return ndc;
+}
+
+metrics::Run* Application::StartMetricsRun(const std::string& name)
+{
+    PPX_ASSERT_MSG(mSettings.enableMetrics, "Application::Settings::enableMetrics must be set to true before using the metrics capabilities");
+    if (!mSettings.enableMetrics) {
+        return nullptr;
+    }
+
+    PPX_ASSERT_MSG(mMetrics.pCurrentRun == nullptr, "a run is already active; stop it before starting another one");
+    mMetrics.pCurrentRun = mMetrics.manager.AddRun(name.c_str());
+
+    // Add default metrics to every single run
+    {
+        metrics::MetricMetadata metadata = {};
+        metadata.name                    = "cpu_frame_time";
+        metadata.unit                    = "ms";
+        metadata.interpretation          = metrics::MetricInterpretation::LOWER_IS_BETTER;
+        mMetrics.pCpuFrameTime           = mMetrics.pCurrentRun->AddMetric<metrics::MetricGauge>(metadata);
+    }
+    {
+        metrics::MetricMetadata metadata = {};
+        metadata.name                    = "framerate";
+        metadata.unit                    = "";
+        metadata.interpretation          = metrics::MetricInterpretation::HIGHER_IS_BETTER;
+        mMetrics.pFramerate              = mMetrics.pCurrentRun->AddMetric<metrics::MetricGauge>(metadata);
+    }
+    {
+        metrics::MetricMetadata metadata = {};
+        metadata.name                    = "frame_count";
+        metadata.unit                    = "";
+        metadata.interpretation          = metrics::MetricInterpretation::NONE;
+        mMetrics.pFrameCount             = mMetrics.pCurrentRun->AddMetric<metrics::MetricCounter>(metadata);
+    }
+
+    mMetrics.resetFramerateTracking = true;
+    return mMetrics.pCurrentRun;
+}
+
+void Application::StopMetricsRun()
+{
+    PPX_ASSERT_MSG(mSettings.enableMetrics, "Application::Settings::enableMetrics must be set to true before using the metrics capabilities");
+    if (!mSettings.enableMetrics) {
+        return;
+    }
+
+    PPX_ASSERT_MSG(mMetrics.pCurrentRun != nullptr, "there are no active runs");
+    mMetrics.pCurrentRun   = nullptr;
+    mMetrics.pCpuFrameTime = nullptr;
+    mMetrics.pFramerate    = nullptr;
+    mMetrics.pFrameCount   = nullptr;
+}
+
+bool Application::HasActiveMetricsRun() const
+{
+    return mSettings.enableMetrics && mMetrics.pCurrentRun != nullptr;
+}
+
+void Application::UpdateMetrics()
+{
+    if (!HasActiveMetricsRun()) {
+        return;
+    }
+
+    PPX_ASSERT_NULL_ARG(mMetrics.pCpuFrameTime);
+    PPX_ASSERT_NULL_ARG(mMetrics.pFramerate);
+    PPX_ASSERT_NULL_ARG(mMetrics.pFrameCount);
+
+    const double seconds = GetElapsedSeconds();
+
+    // Record default metrics
+    mMetrics.pCpuFrameTime->RecordEntry(seconds, mPreviousFrameTime);
+    mMetrics.pFrameCount->Increment(1);
+
+    // Record the average framerate over a given period of time
+    if (mMetrics.resetFramerateTracking) {
+        // Start tracking time
+        mMetrics.framerateRecordTimer   = seconds;
+        mMetrics.framerateFrameCount    = 0;
+        mMetrics.resetFramerateTracking = false;
+    }
+    else {
+        // compute the framerate and record the result
+        ++mMetrics.framerateFrameCount;
+        const double     framerateSecondsDiff    = seconds - mMetrics.framerateRecordTimer;
+        constexpr double FRAMERATE_RECORD_PERIOD = 1.0;
+        if (framerateSecondsDiff >= FRAMERATE_RECORD_PERIOD) {
+            const double framerate = mMetrics.framerateFrameCount / framerateSecondsDiff;
+            mMetrics.pFramerate->RecordEntry(seconds, framerate);
+            mMetrics.framerateRecordTimer = seconds;
+            mMetrics.framerateFrameCount  = 0;
+        }
+    }
 }
 
 void Application::DrawDebugInfo()

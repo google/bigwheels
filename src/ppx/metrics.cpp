@@ -19,6 +19,37 @@ namespace metrics {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+Report::Report()
+{
+}
+
+Report::~Report()
+{
+}
+
+void Report::WriteToFile(const char* pFilepath) const
+{
+    PPX_ASSERT_NULL_ARG(pFilepath);
+    std::ofstream outputFile(pFilepath, std::ofstream::out);
+    outputFile << mContent.dump(4) << std::endl;
+    outputFile.close();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+static nlohmann::json ExportMetadata(const MetricMetadata& metadata)
+{
+    nlohmann::json object;
+    object["name"]                 = metadata.name;
+    object["unit"]                 = metadata.unit;
+    object["interpretation"]       = metadata.interpretation;
+    object["expected_lower_bound"] = metadata.expectedRange.lowerBound;
+    object["expected_upper_bound"] = metadata.expectedRange.upperBound;
+    return object;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
 MetricGauge::MetricGauge(const MetricMetadata& metadata)
     : mMetadata(metadata), mAccumulatedValue(0)
 {
@@ -126,6 +157,40 @@ void MetricGauge::UpdateBasicStatistics(double seconds, double value)
     }
 }
 
+nlohmann::json MetricGauge::Export() const
+{
+    nlohmann::json metricObject;
+
+    {
+        metricObject["metadata"] = ExportMetadata(mMetadata);
+    }
+
+    {
+        nlohmann::json statisticsObject;
+
+        const GaugeBasicStatistics basicStatistics = GetBasicStatistics();
+        statisticsObject["min"]                    = basicStatistics.min;
+        statisticsObject["max"]                    = basicStatistics.max;
+        statisticsObject["average"]                = basicStatistics.average;
+        statisticsObject["time_ratio"]             = basicStatistics.timeRatio;
+
+        const GaugeComplexStatistics complexStatistics = ComputeComplexStatistics();
+        statisticsObject["median"]                     = complexStatistics.median;
+        statisticsObject["standard_deviation"]         = complexStatistics.standardDeviation;
+        statisticsObject["percentile_90"]              = complexStatistics.percentile90;
+        statisticsObject["percentile_95"]              = complexStatistics.percentile95;
+        statisticsObject["percentile_99"]              = complexStatistics.percentile99;
+
+        metricObject["statistics"] = statisticsObject;
+    }
+
+    for (const TimeSeriesEntry& entry : mTimeSeries) {
+        metricObject["time_series"] += nlohmann::json::array({entry.seconds, entry.value});
+    }
+
+    return metricObject;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 MetricCounter::MetricCounter(const MetricMetadata& metadata)
@@ -147,6 +212,14 @@ uint64_t MetricCounter::Get() const
     return mCounter;
 }
 
+nlohmann::json MetricCounter::Export() const
+{
+    nlohmann::json metricObject;
+    metricObject["metadata"] = ExportMetadata(mMetadata);
+    metricObject["value"]    = mCounter;
+    return metricObject;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 Run::Run(const char* pName)
@@ -157,12 +230,12 @@ Run::Run(const char* pName)
 
 Run::~Run()
 {
-    for (auto [name, metric] : mGauges) {
-        delete metric;
+    for (auto [name, pMetric] : mGauges) {
+        delete pMetric;
     }
     mGauges.clear();
-    for (auto [name, metric] : mCounters) {
-        delete metric;
+    for (auto [name, pMetric] : mCounters) {
+        delete pMetric;
     }
     mCounters.clear();
 }
@@ -186,6 +259,19 @@ bool Run::HasMetric(const char* pName) const
     return mGauges.find(pName) != mGauges.end() || mCounters.find(pName) != mCounters.end();
 }
 
+nlohmann::json Run::Export() const
+{
+    nlohmann::json object;
+    object["name"] = mName;
+    for (auto [name, pMetric] : mGauges) {
+        object["gauges"] += pMetric->Export();
+    }
+    for (auto [name, pMetric] : mCounters) {
+        object["counters"] += pMetric->Export();
+    }
+    return object;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 Manager::Manager()
@@ -194,8 +280,8 @@ Manager::Manager()
 
 Manager::~Manager()
 {
-    for (auto [name, run] : mRuns) {
-        delete run;
+    for (auto [name, pRun] : mRuns) {
+        delete pRun;
     }
     mRuns.clear();
 }
@@ -213,6 +299,20 @@ Run* Manager::AddRun(const char* pName)
     const auto ret = mRuns.insert({pName, pRun});
     PPX_ASSERT_MSG(ret.second, "An insertion shall always take place when adding a run");
     return pRun;
+}
+
+Report Manager::Export(const char* pName) const
+{
+    PPX_ASSERT_NULL_ARG(pName);
+
+    Report          report;
+    nlohmann::json& content = report.mContent;
+
+    content["name"] = pName;
+    for (auto [name, pRun] : mRuns) {
+        content["runs"] += pRun->Export();
+    }
+    return report;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
