@@ -54,11 +54,15 @@ protected:
         readableFileHandle = createFile(kDefaultFileContent);
         readableFile       = filenameFromFile(readableFileHandle);
 
-        directory = readableFile.parent_path();
-
+        directory = std::filesystem::temp_directory_path();
         {
-            char* filename  = tmpnam(nullptr);
-            nonExistantFile = std::filesystem::path(filename);
+            // This is NOT safe. The test will fail if the non-existant file is created between
+            // this step, and the test. But for the CI this should be OK.
+            std::string name  = "some_non_existant_file_";
+            size_t      index = 0;
+            do {
+                nonExistantFile = std::filesystem::temp_directory_path() / (name + std::to_string(index++));
+            } while (std::filesystem::exists(nonExistantFile));
         }
     }
 
@@ -99,28 +103,35 @@ private:
 
 namespace ppx {
 
-TEST_F(FsTest, InitializedFileIsBad)
+TEST_F(FsTest, JustInitializedFileIsBad)
 {
     fs::File file;
 
     EXPECT_FALSE(file.IsValid());
 }
 
-TEST_F(FsTest, SimpleOpen)
+TEST_F(FsTest, OpenGoodFileSucceeds)
 {
     fs::File file;
     EXPECT_TRUE(file.Open(readableFile));
-}
-
-TEST_F(FsTest, SimpleOpenValid)
-{
-    fs::File file;
-    EXPECT_TRUE(file.Open(readableFile));
-
     EXPECT_TRUE(file.IsValid());
 }
 
-TEST_F(FsTest, OpenAndRead)
+TEST_F(FsTest, OpenNonExistantFileFails)
+{
+    fs::File file;
+    EXPECT_FALSE(file.Open(nonExistantFile));
+    EXPECT_FALSE(file.IsValid());
+}
+
+TEST_F(FsTest, OpenDirectoryFaile)
+{
+    fs::File file;
+    EXPECT_FALSE(file.Open(nonExistantFile));
+    EXPECT_FALSE(file.IsValid());
+}
+
+TEST_F(FsTest, OpenAndReadReturnsContent)
 {
     fs::File file;
     EXPECT_TRUE(file.Open(readableFile));
@@ -131,7 +142,7 @@ TEST_F(FsTest, OpenAndRead)
     EXPECT_EQ(buffer, kDefaultFileContent);
 }
 
-TEST_F(FsTest, OpenAndReadCursor)
+TEST_F(FsTest, OpenAndReadRemembersCursor)
 {
     fs::File file;
     EXPECT_TRUE(file.Open(readableFile));
@@ -165,7 +176,7 @@ TEST_F(FsTest, GetSizeIgnoresCursor)
     EXPECT_EQ(file.GetLength(), kDefaultFileContent.size());
 }
 
-TEST_F(FsTest, RAIIClosure)
+TEST_F(FsTest, CloseFileDescriptorOnScopeEnd)
 {
     const size_t fdCountBefore = getOpenFDCount();
 
