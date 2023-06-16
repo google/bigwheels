@@ -22,6 +22,7 @@
 //   Use PPX_TIMER_FORCE_MONOTONIC to force CLOCK_MONOTONIC.
 //
 
+#include <string>
 #include <cstdint>
 
 // clang-format off
@@ -88,6 +89,21 @@ private:
     bool     mInitialized    = false;
     uint64_t mStartTimestamp = 0;
     uint64_t mStopTimestamp  = 0;
+};
+
+// Helper class to display a timer result using RAII pattern.
+class ScopedTimer
+{
+    Timer             mTimer;
+    const std::string mMessage;
+
+public:
+    // Create a timer. The logged message will have the format "<message>: %f ms elapsed".
+    ScopedTimer(const std::string& message);
+    ~ScopedTimer();
+
+    ScopedTimer(const ScopedTimer&) = delete;
+    ScopedTimer(ScopedTimer&&)      = delete;
 };
 
 } // namespace ppx

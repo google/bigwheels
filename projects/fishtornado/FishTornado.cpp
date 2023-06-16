@@ -357,22 +357,15 @@ void FishTornadoApp::SetupCaustics()
 void FishTornadoApp::UploadCaustics()
 {
     for (uint32_t i = 0; i < kCausticsImageCount; ++i) {
-        Timer timer;
-        PPX_ASSERT_MSG(timer.Start() == ppx::TIMER_RESULT_SUCCESS, "timer start failed");
-        double fnStartTime = timer.SecondsSinceStart();
-
         std::stringstream filename;
         filename << "fishtornado/textures/ocean/caustics/save." << std::setw(2) << std::setfill('0') << i << ".png";
         std::filesystem::path path = GetAssetPath(filename.str());
+        ScopedTimer           timer("Image creation from file '" + path.string() + "'");
 
         Bitmap bitmap;
         PPX_CHECKED_CALL(Bitmap::LoadFile(path, &bitmap));
 
         PPX_CHECKED_CALL(grfx_util::CopyBitmapToTexture(GetGraphicsQueue(), &bitmap, mCausticsTexture, 0, i, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_SHADER_RESOURCE));
-
-        double fnEndTime = timer.SecondsSinceStart();
-        float  fnElapsed = static_cast<float>(fnEndTime - fnStartTime);
-        PPX_LOG_INFO("Created image from image file: " << path << " (" << FloatString(fnElapsed) << " seconds)");
     }
 }
 

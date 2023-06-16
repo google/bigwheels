@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "ppx/timer.h"
+#include "ppx/config.h"
 
 #include <cassert>
 #include <cmath>
@@ -468,6 +469,19 @@ double Timer::NanosSinceStart() const
     }
     double nanos = TimestampToMicros(diff);
     return nanos;
+}
+
+ScopedTimer::ScopedTimer(const std::string& message)
+    : mMessage(message)
+{
+    PPX_ASSERT_MSG(mTimer.Start() == TIMER_RESULT_SUCCESS, "Timer start failed.");
+}
+
+ScopedTimer::~ScopedTimer()
+{
+    PPX_ASSERT_MSG(mTimer.Stop() == TIMER_RESULT_SUCCESS, "Timer stop failed.");
+    const float elapsed = static_cast<float>(mTimer.SecondsSinceStart());
+    PPX_LOG_INFO(mMessage + ": " + FloatString(elapsed) << " seconds.");
 }
 
 } // namespace ppx
