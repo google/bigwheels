@@ -326,7 +326,7 @@ Result Application::InitializeGrfxDevice()
         ci.enableSwapchain          = true;
         ci.applicationName          = mSettings.appName;
         ci.engineName               = mSettings.appName;
-        ci.useSoftwareRenderer      = mStandardOptions.use_software_renderer;
+        ci.useSoftwareRenderer      = mKnobOptions.pUseSoftwareRenderer->GetValue();
 #if defined(PPX_BUILD_XR)
         ci.pXrComponent = mSettings.xr.enable ? &mXrComponent : nullptr;
         // Disable original swapchain when XR is enabled as the XR swapchain will be coming from OpenXR.
@@ -353,8 +353,8 @@ Result Application::InitializeGrfxDevice()
         }
 
         uint32_t gpuIndex = 0;
-        if (!mStandardOptions.use_software_renderer && mStandardOptions.gpu_index != -1) {
-            gpuIndex = mStandardOptions.gpu_index;
+        if (!mKnobOptions.pUseSoftwareRenderer->GetValue() && mKnobOptions.pGpuIndex->GetValue() != -1) {
+            gpuIndex = mKnobOptions.pGpuIndex->GetValue();
         }
 
         grfx::GpuPtr gpu;
@@ -650,6 +650,65 @@ void Application::DestroyPlatformWindow()
 
 void Application::DispatchInitKnobs()
 {
+    // Standard Options
+    mKnobOptions.pListGpus = GetKnobManager().CreateKnobConstant<bool>("list-gpus", false);
+    mKnobOptions.pListGpus->SetFlagDesc("Prints a list of the available GPUs on the current system with their index and exits (see --gpu).");
+
+    mKnobOptions.pUseSoftwareRenderer = GetKnobManager().CreateKnobConstant<bool>("use-software-renderer", false);
+    mKnobOptions.pUseSoftwareRenderer->SetFlagDesc("Use a software renderer instead of a hardware device, if available.");
+
+#if defined(PPX_LINUX_HEADLESS)
+    // Force headless if BigWheels was built without surface support.
+    mKnobOptions.pHeadless = GetKnobManager().CreateKnobConstant<bool>("headless", true);
+#else
+    mKnobOptions.pHeadless = GetKnobManager().CreateKnobConstant<bool>("headless", false);
+#endif
+    mKnobOptions.pHeadless->SetFlagDesc("Run the sample without creating windows.");
+
+    mKnobOptions.pDeterministic = GetKnobManager().CreateKnobConstant<bool>("deterministic", false);
+    mKnobOptions.pDeterministic->SetFlagDesc("Disable non-deterministic behaviors, like clocks.");
+
+    mKnobOptions.pGpuIndex = GetKnobManager().CreateKnobConstant<int>("gpu", -1, -1, INT_MAX);
+    mKnobOptions.pGpuIndex->SetFlagDesc("Select the gpu with the given index. To determine the set of valid indices use --list-gpus.");
+
+    mKnobOptions.pResolution = GetKnobManager().CreateKnobConstantPair<int, int>("resolution", std::make_pair(0, 0));
+    mKnobOptions.pResolution->SetFlagDesc("Specify the main window resolution in pixels. Width and Height must be two positive integers greater or equal to 1.");
+    mKnobOptions.pResolution->SetHelpParams(" <width>x<height>");
+    mKnobOptions.pResolution->SetIsValidFunc([](std::pair<int, int> res) {
+        return res.first >= 0 && res.second >= 0;
+    });
+
+#if defined(PPX_BUILD_XR)
+    mKnobOptions.pResolution->SetFlagDesc("Specify the per-eye resolution in pixels. Width and Height must be two positive integers greater or equal to 1.");
+
+    mKnobOptions.pXrUiResolution = GetKnobManager().CreateKnobConstantPair<int, int>("xr-ui-resolution", std::make_pair(0, 0));
+    mKnobOptions.pXrUiResolution->SetFlagDesc("Specify the UI quad resolution in pixels. Width and Height must be two positive integers greater or equal to 1.");
+    mKnobOptions.pXrUiResolution->SetHelpParams(" <width>x<height>");
+    mKnobOptions.pXrUiResolution->SetIsValidFunc([](std::pair<int, int> res) {
+        return res.first >= 0 && res.second >= 0;
+    });
+#endif
+
+    mKnobOptions.pFrameCount = GetKnobManager().CreateKnobConstant<int>("frame-count", 0, 0, INT_MAX);
+    mKnobOptions.pFrameCount->SetFlagDesc("Shutdown the application after successfully rendering N frames. Default: 0 (infinite)");
+
+    mKnobOptions.pRunTimeMs = GetKnobManager().CreateKnobConstant<int>("run-time-ms", 0, 0, INT_MAX);
+    mKnobOptions.pRunTimeMs->SetFlagDesc("Shutdown the application after N milliseconds. Default: 0 (infinite).");
+
+    mKnobOptions.pStatsFrameWindow = GetKnobManager().CreateKnobConstant<int>("stats-frame-window", -1, -1, INT_MAX);
+    mKnobOptions.pStatsFrameWindow->SetFlagDesc("Calculate frame statistics over the last N frames only. Set to 0 to use all frames since the beginning of the application.");
+
+    mKnobOptions.pScreenshotFrameNumber = GetKnobManager().CreateKnobConstant<int>("screenshot-frame-number", -1, -1, INT_MAX);
+    mKnobOptions.pScreenshotFrameNumber->SetFlagDesc("Take a screenshot of frame number N and save it in PPM format. See also `--screenshot-path`.");
+
+    mKnobOptions.pScreenshotPath = GetKnobManager().CreateKnobConstant<std::string>("screenshot-path", "");
+    mKnobOptions.pScreenshotPath->SetFlagDesc("Save the screenshot to this path. If not specified, BigWheels will create \"screenshot_frameN.ppm\" in the current working directory.");
+    mKnobOptions.pScreenshotPath->SetHelpParams(" <path>");
+
+    mKnobOptions.pJsonConfigPath = GetKnobManager().CreateKnobConstant<std::string>("json-config-path", "");
+    mKnobOptions.pJsonConfigPath->SetFlagDesc("Read commandline flags from a JSON file.");
+    mKnobOptions.pJsonConfigPath->SetHelpParams(" <path>");
+
     InitKnobs();
 }
 
@@ -818,9 +877,10 @@ void Application::TakeScreenshot()
     unsigned char* texels = nullptr;
     screenshotBuf->MapMemory(0, (void**)&texels);
 
-    std::string filepath = mStandardOptions.screenshot_path.empty()
-                               ? "screenshot_frame" + std::to_string(mFrameCount) + ".ppm"
-                               : mStandardOptions.screenshot_path;
+    std::string filepath = mKnobOptions.pScreenshotPath->GetValue();
+    if (filepath.empty()) {
+        filepath = "screenshot_frame" + std::to_string(mFrameCount) + ".ppm";
+    }
     PPX_CHECKED_CALL(ExportToPPM(filepath, swapchainImg->GetFormat(), texels, width, height, outPitch.rowPitch));
 
     screenshotBuf->UnmapMemory();
@@ -979,38 +1039,31 @@ int Application::Run(int argc, char** argv)
         PPX_ASSERT_MSG(false, "Unable to parse command line arguments");
         return EXIT_FAILURE;
     }
-    mStandardOptions = mCommandLineParser.GetOptions().GetStandardOptions();
 
-    // Knobs need to be set up before commandline parsing.
+    // Knobs set up so that help message can be updated.
     DispatchInitKnobs();
-
-    if (!mKnobManager.IsEmpty()) {
-        mCommandLineParser.AppendUsageMsg(mKnobManager.GetUsageMsg());
-    }
-
-    if (mStandardOptions.help) {
+    mCommandLineParser.AppendUsageMsg(mKnobManager.GetUsageMsg());
+    if (mCommandLineParser.GetPrintHelp()) {
         PPX_LOG_INFO(mCommandLineParser.GetUsageMsg());
         return EXIT_SUCCESS;
     }
 
-    if (!mKnobManager.IsEmpty()) {
-        auto options = mCommandLineParser.GetOptions();
-        mKnobManager.UpdateFromFlags(options);
+    mKnobManager.UpdateFromFlags(mCommandLineParser.GetOptions());
+    auto jsonFilePath = mKnobOptions.pJsonConfigPath->GetValue();
+    if (jsonFilePath != "") {
+        if (auto error = mCommandLineParser.ParseJsonConfig(jsonFilePath)) {
+            PPX_LOG_ERROR(error->errorMsg);
+            PPX_ASSERT_MSG(false, "Unable to parse JSON config file");
+            return EXIT_FAILURE;
+        }
+        mKnobManager.UpdateFromFlags(mCommandLineParser.GetOptions());
     }
 
     // Call config.
     // Put this early because it might disable the display.
     DispatchConfig();
 
-    // If command line argument specified headless.
-    if (mStandardOptions.headless) {
-        mSettings.headless = true;
-    }
-
-#if defined(PPX_LINUX_HEADLESS)
-    // Force headless if BigWheels was built without surface support.
-    mSettings.headless = true;
-#endif
+    mSettings.headless = mKnobOptions.pHeadless->GetValue();
 
     if (!mWindow) {
         if (mSettings.headless) {
@@ -1026,34 +1079,36 @@ int Application::Run(int argc, char** argv)
     }
 
     // If command line argument provided width and height
-    bool hasResolutionFlag = (mStandardOptions.resolution.first > 0 && mStandardOptions.resolution.second > 0);
+    int  width             = mKnobOptions.pResolution->GetValue().first;
+    int  height            = mKnobOptions.pResolution->GetValue().second;
+    bool hasResolutionFlag = (width > 0 && height > 0);
     if (hasResolutionFlag) {
-        mSettings.window.width  = mStandardOptions.resolution.first;
-        mSettings.window.height = mStandardOptions.resolution.second;
+        mSettings.window.width  = width;
+        mSettings.window.height = height;
     }
 
 #if defined(PPX_BUILD_XR)
-    if (mStandardOptions.xrUIResolution.first > 0 && mStandardOptions.xrUIResolution.second > 0) {
-        mSettings.xr.uiWidth  = mStandardOptions.xrUIResolution.first;
-        mSettings.xr.uiHeight = mStandardOptions.xrUIResolution.second;
+    width  = mKnobOptions.pXrUiResolution->GetValue().first;
+    height = mKnobOptions.pXrUiResolution->GetValue().second;
+    if (width > 0 && height > 0) {
+        mSettings.xr.uiWidth  = width;
+        mSettings.xr.uiHeight = height;
     }
 #endif
 
-    mMaxFrames = UINT64_MAX;
-    // If command line provided a maximum number of frames to draw.
-    if (mStandardOptions.frame_count > 0) {
-        mMaxFrames = mStandardOptions.frame_count;
+    mMaxFrames = mKnobOptions.pFrameCount->GetValue();
+    if (mMaxFrames <= 0) {
+        mMaxFrames = UINT64_MAX;
     }
 
-    mRunTimeSeconds = std::numeric_limits<float>::max();
-    // If command line provides a maximum number of milliseconds to run.
-    if (mStandardOptions.run_time_ms > 0) {
-        mRunTimeSeconds = mStandardOptions.run_time_ms / 1000.f;
+    mRunTimeSeconds = mKnobOptions.pRunTimeMs->GetValue() / 1000.0f;
+    if (mRunTimeSeconds <= 0.0f) {
+        mRunTimeSeconds = std::numeric_limits<float>::max();
     }
 
     // Disable ImGui in headless or deterministic mode.
     // ImGUI is not non-deterministic, but the visible informations (stats, timers) are.
-    if ((mSettings.headless || mStandardOptions.deterministic) && mSettings.enableImGui) {
+    if ((mSettings.headless || mKnobOptions.pDeterministic->GetValue()) && mSettings.enableImGui) {
         mSettings.enableImGui = false;
         PPX_LOG_WARN("Headless mode: disabling ImGui");
     }
@@ -1107,7 +1162,7 @@ int Application::Run(int argc, char** argv)
 #endif
 
     // List gpus
-    if (mStandardOptions.list_gpus) {
+    if (mKnobOptions.pListGpus->GetValue()) {
         uint32_t          count = GetInstance()->GetGpuCount();
         std::stringstream ss;
         for (uint32_t i = 0; i < count; ++i) {
@@ -1266,7 +1321,7 @@ int Application::Run(int argc, char** argv)
         }
 
         // Take screenshot if this is the requested frame.
-        if (mFrameCount == static_cast<uint64_t>(mStandardOptions.screenshot_frame_number)) {
+        if (mFrameCount == static_cast<uint64_t>(mKnobOptions.pScreenshotFrameNumber->GetValue())) {
             TakeScreenshot();
         }
 
@@ -1277,9 +1332,9 @@ int Application::Run(int argc, char** argv)
 
         // Keep a rolling window of frame times to calculate stats,
         // if requested.
-        if (mStandardOptions.stats_frame_window > 0) {
+        if (mKnobOptions.pStatsFrameWindow->GetValue() > 0) {
             mFrameTimesMs.push_back(mPreviousFrameTime);
-            if (mFrameTimesMs.size() > mStandardOptions.stats_frame_window) {
+            if (mFrameTimesMs.size() > mKnobOptions.pStatsFrameWindow->GetValue()) {
                 mFrameTimesMs.pop_front();
             }
             float totalFrameTimeMs = std::accumulate(mFrameTimesMs.begin(), mFrameTimesMs.end(), 0.f);
@@ -1349,11 +1404,6 @@ int Application::Run(int argc, char** argv)
 void Application::Quit()
 {
     mWindow->Quit();
-}
-
-const StandardOptions Application::GetStandardOptions() const
-{
-    return mStandardOptions;
 }
 
 const CliOptions& Application::GetExtraOptions() const
@@ -1444,7 +1494,7 @@ grfx::SwapchainPtr Application::GetSwapchain(uint32_t index) const
 
 float Application::GetElapsedSeconds() const
 {
-    if (mStandardOptions.deterministic) {
+    if (mKnobOptions.pDeterministic->GetValue()) {
         return static_cast<float>(mFrameCount * (1.f / 60.f));
     }
     return static_cast<float>(mTimer.SecondsSinceStart());

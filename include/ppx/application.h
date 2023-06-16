@@ -344,8 +344,8 @@ public:
     void Quit();
 
     std::vector<const char*> GetCommandLineArgs() const;
-    const StandardOptions    GetStandardOptions() const;
-    const CliOptions&        GetExtraOptions() const;
+    //const StandardOptions    GetStandardOptions() const;
+    const CliOptions& GetExtraOptions() const;
 
     const ApplicationSettings* GetSettings() const { return &mSettings; }
     uint32_t                   GetWindowWidth() const { return mSettings.window.width; }
@@ -487,7 +487,6 @@ private:
 
 private:
     CommandLineParser               mCommandLineParser;
-    StandardOptions                 mStandardOptions;
     uint64_t                        mMaxFrames;
     float                           mRunTimeSeconds;
     ApplicationSettings             mSettings = {};
@@ -514,6 +513,29 @@ private:
     float             mAverageFrameTime  = 0;
     double            mFirstFrameTime    = 0;
     std::deque<float> mFrameTimesMs;
+
+    // Standard Options
+    struct
+    {
+        // Flags
+        std::shared_ptr<KnobConstant<bool>> pListGpus;
+        std::shared_ptr<KnobConstant<bool>> pUseSoftwareRenderer;
+        std::shared_ptr<KnobConstant<bool>> pHeadless;
+        std::shared_ptr<KnobConstant<bool>> pDeterministic;
+
+        // Options
+        std::shared_ptr<KnobConstant<int>>          pGpuIndex;
+        std::shared_ptr<KnobConstantPair<int, int>> pResolution;
+#if defined(PPX_BUILD_XR)
+        std::shared_ptr<KnobConstantPair<int, int>> pXrUiResolution;
+#endif
+        std::shared_ptr<KnobConstant<int>>         pFrameCount;
+        std::shared_ptr<KnobConstant<int>>         pRunTimeMs;
+        std::shared_ptr<KnobConstant<int>>         pStatsFrameWindow;
+        std::shared_ptr<KnobConstant<int>>         pScreenshotFrameNumber;
+        std::shared_ptr<KnobConstant<std::string>> pScreenshotPath;
+        std::shared_ptr<KnobConstant<std::string>> pJsonConfigPath;
+    } mKnobOptions;
 
     // Metrics
     struct

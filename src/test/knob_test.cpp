@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "gtest/gtest.h"
+#include "gmock/gmock.h"
 
 #include "ppx/knob.h"
 
@@ -55,7 +56,6 @@ namespace ppx {
 TEST_F(KnobTestFixture, KnobCheckbox_CreateAndSetBasicMembers)
 {
     KnobCheckbox boolKnob = KnobCheckbox("flag_name1", true);
-    EXPECT_EQ(boolKnob.GetFlagHelpText(), "--flag_name1 <true|false>\n");
 
     boolKnob.SetDisplayName("Knob Name 1");
     boolKnob.SetFlagDesc("description1");
@@ -64,9 +64,9 @@ TEST_F(KnobTestFixture, KnobCheckbox_CreateAndSetBasicMembers)
     EXPECT_EQ(boolKnob.GetDisplayName(), "Knob Name 1");
     EXPECT_EQ(boolKnob.GetFlagName(), "flag_name1");
     EXPECT_EQ(boolKnob.GetFlagHelp(), "description1");
+    EXPECT_EQ(boolKnob.GetHelpParams(), " <true|false>");
     EXPECT_EQ(boolKnob.GetIndent(), 3);
     EXPECT_TRUE(boolKnob.GetValue());
-    EXPECT_EQ(boolKnob.GetFlagHelpText(), "--flag_name1 <true|false> : description1\n");
 }
 
 TEST_F(KnobTestFixture, KnobCheckbox_CanSetBoolValue)
@@ -106,7 +106,6 @@ TEST_F(KnobTestFixture, KnobCheckbox_ResetToDefault)
 TEST_F(KnobTestFixture, KnobSlider_CreateAndSetBasicMembers)
 {
     KnobSlider<int> intKnob = KnobSlider<int>("flag_name1", 5, 0, 10);
-    EXPECT_EQ(intKnob.GetFlagHelpText(), "--flag_name1 <0~10>\n");
 
     intKnob.SetDisplayName("Knob Name 1");
     intKnob.SetFlagDesc("description1");
@@ -115,9 +114,9 @@ TEST_F(KnobTestFixture, KnobSlider_CreateAndSetBasicMembers)
     EXPECT_EQ(intKnob.GetDisplayName(), "Knob Name 1");
     EXPECT_EQ(intKnob.GetFlagName(), "flag_name1");
     EXPECT_EQ(intKnob.GetFlagHelp(), "description1");
+    EXPECT_EQ(intKnob.GetHelpParams(), " <0~10>");
     EXPECT_EQ(intKnob.GetIndent(), 3);
     EXPECT_EQ(intKnob.GetValue(), 5);
-    EXPECT_EQ(intKnob.GetFlagHelpText(), "--flag_name1 <0~10> : description1\n");
 }
 
 #if defined(PERFORM_DEATH_TESTS)
@@ -201,7 +200,6 @@ TEST_F(KnobTestFixture, KnobDropdown_CreateAndSetBasicMembers)
 {
     std::vector<std::string>  choices = {"c1", "c2"};
     KnobDropdown<std::string> strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.cbegin(), choices.cend());
-    EXPECT_EQ(strKnob.GetFlagHelpText(), "--flag_name1 <\"c1\"|\"c2\">\n");
 
     strKnob.SetDisplayName("Knob Name 1");
     strKnob.SetFlagDesc("description1");
@@ -210,10 +208,10 @@ TEST_F(KnobTestFixture, KnobDropdown_CreateAndSetBasicMembers)
     EXPECT_EQ(strKnob.GetDisplayName(), "Knob Name 1");
     EXPECT_EQ(strKnob.GetFlagName(), "flag_name1");
     EXPECT_EQ(strKnob.GetFlagHelp(), "description1");
+    EXPECT_EQ(strKnob.GetHelpParams(), R"( <"c1"|"c2">)");
     EXPECT_EQ(strKnob.GetIndent(), 3);
     EXPECT_EQ(strKnob.GetIndex(), 1);
     EXPECT_EQ(strKnob.GetValue(), "c2");
-    EXPECT_EQ(strKnob.GetFlagHelpText(), "--flag_name1 <\"c1\"|\"c2\"> : description1\n");
 }
 
 TEST_F(KnobTestFixture, KnobDropdown_CreateVaried)
@@ -327,6 +325,70 @@ TEST_F(KnobTestFixture, KnobDropdown_ResetToDefault)
 }
 
 // -------------------------------------------------------------------------------------------------
+// KnobConstant
+// -------------------------------------------------------------------------------------------------
+
+TEST_F(KnobTestFixture, KnobConstant_CreateBoolAndSetBasicMembers)
+{
+    KnobConstant<bool> constBoolKnob = KnobConstant<bool>("flag_name1", false);
+
+    constBoolKnob.SetFlagDesc("description1");
+
+    EXPECT_EQ(constBoolKnob.GetFlagName(), "flag_name1");
+    EXPECT_EQ(constBoolKnob.GetFlagHelp(), "description1");
+    EXPECT_EQ(constBoolKnob.GetHelpParams(), "");
+    EXPECT_EQ(constBoolKnob.GetValue(), false);
+}
+
+TEST_F(KnobTestFixture, KnobConstant_CreateStringAndSetBasicMembers)
+{
+    KnobConstant<std::string> constStrKnob = KnobConstant<std::string>("flag_name1", "placeholder");
+
+    constStrKnob.SetFlagDesc("description1");
+
+    EXPECT_EQ(constStrKnob.GetFlagName(), "flag_name1");
+    EXPECT_EQ(constStrKnob.GetFlagHelp(), "description1");
+    EXPECT_EQ(constStrKnob.GetHelpParams(), "");
+    EXPECT_EQ(constStrKnob.GetValue(), "placeholder");
+}
+
+TEST_F(KnobTestFixture, KnobConstant_CreateIntAndSetBasicMembers)
+{
+    KnobConstant<int> constIntKnob = KnobConstant<int>("flag_name1", 0);
+
+    constIntKnob.SetFlagDesc("description1");
+
+    EXPECT_EQ(constIntKnob.GetFlagName(), "flag_name1");
+    EXPECT_EQ(constIntKnob.GetFlagHelp(), "description1");
+    EXPECT_EQ(constIntKnob.GetHelpParams(), "");
+    EXPECT_EQ(constIntKnob.GetValue(), 0);
+}
+
+TEST_F(KnobTestFixture, KnobConstant_CreateIntWithRangeAndSetBasicMembers)
+{
+    KnobConstant<int> constIntKnob = KnobConstant<int>("flag_name1", 5, 0, 10);
+
+    constIntKnob.SetFlagDesc("description1");
+
+    EXPECT_EQ(constIntKnob.GetFlagName(), "flag_name1");
+    EXPECT_EQ(constIntKnob.GetFlagHelp(), "description1");
+    EXPECT_EQ(constIntKnob.GetHelpParams(), " <0~10>");
+    EXPECT_EQ(constIntKnob.GetValue(), 5);
+}
+
+TEST_F(KnobTestFixture, KnobConstantPair_CreateIntIntAndSetBasicMembers)
+{
+    KnobConstantPair<int, int> knob = KnobConstantPair<int, int>("flag_name1", std::make_pair(5, 5));
+
+    knob.SetFlagDesc("description1");
+
+    EXPECT_EQ(knob.GetFlagName(), "flag_name1");
+    EXPECT_EQ(knob.GetFlagHelp(), "description1");
+    EXPECT_EQ(knob.GetHelpParams(), "");
+    EXPECT_EQ(knob.GetValue(), std::make_pair(5, 5));
+}
+
+// -------------------------------------------------------------------------------------------------
 // KnobManager
 // -------------------------------------------------------------------------------------------------
 
@@ -354,6 +416,36 @@ TEST_F(KnobManagerTestFixture, KnobManager_CreateStrDropdown)
     EXPECT_EQ(strKnobPtr->GetIndex(), 1);
 }
 
+TEST_F(KnobManagerTestFixture, KnobManager_CreateConstantKnobBool)
+{
+    std::shared_ptr<KnobConstant<bool>> knobPtr(km.CreateKnobConstant<bool>("flag_name1", true));
+    EXPECT_EQ(knobPtr->GetValue(), true);
+}
+
+TEST_F(KnobManagerTestFixture, KnobManager_CreateConstantKnobStr)
+{
+    std::shared_ptr<KnobConstant<std::string>> knobPtr(km.CreateKnobConstant<std::string>("flag_name1", "placeholder"));
+    EXPECT_EQ(knobPtr->GetValue(), "placeholder");
+}
+
+TEST_F(KnobManagerTestFixture, KnobManager_CreateConstantKnobInt)
+{
+    std::shared_ptr<KnobConstant<int>> knobPtr(km.CreateKnobConstant<int>("flag_name1", 5));
+    EXPECT_EQ(knobPtr->GetValue(), 5);
+}
+
+TEST_F(KnobManagerTestFixture, KnobManager_CreateConstantKnobIntWithRange)
+{
+    std::shared_ptr<KnobConstant<int>> knobPtr(km.CreateKnobConstant<int>("flag_name1", 5, 0, 10));
+    EXPECT_EQ(knobPtr->GetValue(), 5);
+}
+
+TEST_F(KnobManagerTestFixture, KnobManager_CreateConstantKnobPairIntInt)
+{
+    std::shared_ptr<KnobConstantPair<int, int>> knobPtr(km.CreateKnobConstantPair<int, int>("flag_name1", std::make_pair(5, 5)));
+    EXPECT_EQ(knobPtr->GetValue(), std::make_pair(5, 5));
+}
+
 #if defined(PERFORM_DEATH_TESTS)
 TEST_F(KnobManagerTestFixture, KnobManager_CreateUniqueName)
 {
@@ -368,20 +460,31 @@ TEST_F(KnobManagerTestFixture, KnobManager_CreateUniqueName)
 
 TEST_F(KnobManagerTestFixture, KnobManager_GetUsageMsg)
 {
-    std::shared_ptr<KnobCheckbox>              boolKnobPtr1(km.CreateKnob<KnobCheckbox>("flag_name1", true));
-    std::shared_ptr<KnobCheckbox>              boolKnobPtr2(km.CreateKnob<KnobCheckbox>("flag_name2", true));
-    std::shared_ptr<KnobSlider<int>>           intKnobPtr1(km.CreateKnob<KnobSlider<int>>("flag_name3", 5, 0, 10));
-    std::vector<std::string>                   choices1 = {"c1", "c2", "c3"};
-    std::shared_ptr<KnobDropdown<std::string>> strKnobPtr1(km.CreateKnob<KnobDropdown<std::string>>("flag_name4", 1, choices1.cbegin(), choices1.cend()));
+    std::shared_ptr<KnobCheckbox>               boolKnobPtr1(km.CreateKnob<KnobCheckbox>("flag_name1", true));
+    std::shared_ptr<KnobCheckbox>               boolKnobPtr2(km.CreateKnob<KnobCheckbox>("flag_name2", true));
+    std::shared_ptr<KnobSlider<int>>            intKnobPtr1(km.CreateKnob<KnobSlider<int>>("flag_name3", 5, 0, 10));
+    std::vector<std::string>                    choices1 = {"c1", "c2", "c3"};
+    std::shared_ptr<KnobDropdown<std::string>>  strKnobPtr1(km.CreateKnob<KnobDropdown<std::string>>("flag_name4", 1, choices1.cbegin(), choices1.cend()));
+    std::shared_ptr<KnobConstant<int>>          cKnobPtr1(km.CreateKnobConstant<int>("flag_name5", 0));
+    std::shared_ptr<KnobConstant<int>>          cKnobPtr2(km.CreateKnobConstant<int>("flag_name6", 0, -1, INT_MAX));
+    std::shared_ptr<KnobConstantPair<int, int>> cKnobPtr3(km.CreateKnobConstantPair<int, int>("flag_name7", std::make_pair(1, 1)));
+    cKnobPtr3->SetHelpParams(" <NxM>");
 
-    std::string usageMsg = R"(
-Application-specific flags
---flag_name1 <true|false>
---flag_name2 <true|false>
---flag_name3 <0~10>
---flag_name4 <"c1"|"c2"|"c3">
-)";
-    EXPECT_EQ(km.GetUsageMsg(), usageMsg);
+    std::string usageMsg       = km.GetUsageMsg();
+    std::string usageMsgSubstr = R"(--flag_name1 <true|false>)";
+    EXPECT_THAT(usageMsg, ::testing::HasSubstr(usageMsgSubstr));
+    usageMsgSubstr = R"(--flag_name2 <true|false>)";
+    EXPECT_THAT(usageMsg, ::testing::HasSubstr(usageMsgSubstr));
+    usageMsgSubstr = R"(--flag_name3 <0~10>)";
+    EXPECT_THAT(usageMsg, ::testing::HasSubstr(usageMsgSubstr));
+    usageMsgSubstr = R"(--flag_name4 <"c1"|"c2"|"c3">)";
+    EXPECT_THAT(usageMsg, ::testing::HasSubstr(usageMsgSubstr));
+    usageMsgSubstr = R"(--flag_name5)";
+    EXPECT_THAT(usageMsg, ::testing::HasSubstr(usageMsgSubstr));
+    usageMsgSubstr = R"(--flag_name6 <-1~INT_MAX>)";
+    EXPECT_THAT(usageMsg, ::testing::HasSubstr(usageMsgSubstr));
+    usageMsgSubstr = R"(--flag_name7 <NxM>)";
+    EXPECT_THAT(usageMsg, ::testing::HasSubstr(usageMsgSubstr));
 }
 
 TEST_F(KnobManagerTestFixture, KnobManager_ResetAllToDefault)

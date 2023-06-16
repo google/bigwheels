@@ -24,124 +24,95 @@
 #include <optional>
 
 namespace ppx {
-// -------------------------------------------------------------------------------------------------
-// StandardOptions
-// -------------------------------------------------------------------------------------------------
-struct StandardOptions
-{
-    // Flags
-    bool help                  = false;
-    bool list_gpus             = false;
-    bool use_software_renderer = false;
-    bool headless              = false;
-    bool deterministic         = false;
-
-    // Options
-    int                 gpu_index          = -1;
-    std::pair<int, int> resolution         = {-1, -1};
-    int                 frame_count        = 0;
-    int                 run_time_ms        = 0;
-    uint32_t            stats_frame_window = 300;
-#if defined(PPX_BUILD_XR)
-    std::pair<int, int> xrUIResolution = {-1, -1};
-#endif
-
-    int         screenshot_frame_number                  = -1;
-    std::string screenshot_path                          = "";
-    bool        operator==(const StandardOptions&) const = default;
-};
 
 // -------------------------------------------------------------------------------------------------
 // CliOptions
 // -------------------------------------------------------------------------------------------------
-struct CliOptions
+
+class CliOptions
 {
-    struct Option
-    {
-    public:
-        Option(const std::string& name, const std::string& value)
-            : name(name), value(value) {}
-
-        const std::string& GetName() const { return name; }
-        bool               HasValue() const { return !value.empty(); }
-
-        // Get the option value after converting it into the desired integral,
-        // floating-point, or boolean type. If the value fails to be converted,
-        // return the specified default value.
-        template <typename T>
-        T GetValueOrDefault(const T& defaultValue) const
-        {
-            static_assert(std::is_integral_v<T> || std::is_floating_point_v<T> || std::is_same_v<T, std::string>, "GetValueOrDefault must be called with an integral, floating-point, boolean, or std::string type");
-            if constexpr (std::is_same_v<T, std::string>) {
-                return value;
-            }
-            else if constexpr (std::is_same_v<T, bool>) {
-                return GetValueAsBool(defaultValue);
-            }
-
-            std::stringstream ss{value};
-            T                 val;
-            ss >> val;
-            if (ss.fail()) {
-                return defaultValue;
-            }
-            return val;
-        }
-
-    private:
-        // For boolean options, accept "true" and "false" as well as numeric values.
-        bool GetValueAsBool(bool defaultValue) const
-        {
-            std::stringstream ss{value};
-            bool              val;
-            ss >> val;
-            if (ss.fail()) {
-                ss.clear();
-                ss >> std::boolalpha >> val;
-                if (ss.fail()) {
-                    return defaultValue;
-                }
-            }
-            return val;
-        }
-
-        std::string name;
-        std::string value;
-    };
-
 public:
-    const StandardOptions& GetStandardOptions() const
-    {
-        return standardOptions;
-    }
+    CliOptions() = default;
 
     bool HasExtraOption(const std::string& option) const
     {
-        return extraOptions.find(option) != extraOptions.end();
+        return allOptions.find(option) != allOptions.end();
     }
 
-    size_t GetNumExtraOptions() const { return extraOptions.size(); }
+    size_t GetNumExtraOptions() const { return allOptions.size(); }
 
-    // Get the option value after converting it into the desired integral,
-    // floating-point, or boolean type. If the option does not exist or the
-    // value fails to be converted, return the specified default value.
+    // Get the parameter value after converting it into the desired integral,
+    // floating-point, or boolean type. If the value fails to be converted,
+    // return the specified default value.
     template <typename T>
-    T GetExtraOptionValueOrDefault(const std::string& option, const T& defaultValue) const
+    T GetExtraOptionValueOrDefault(const std::string& optionName, const T& defaultValue) const
     {
-        if (!HasExtraOption(option)) {
+        static_assert(std::is_integral_v<T> || std::is_floating_point_v<T> || std::is_same_v<T, std::string>, "GetValueOrDefault must be called with an integral, floating-point, boolean, or std::string type");
+
+        // Return default value for all unspecified flags
+        if (allOptions.find(optionName) == allOptions.cend()) {
             return defaultValue;
         }
-        return extraOptions.at(option).GetValueOrDefault<T>(defaultValue);
+
+        auto valueStr = allOptions.at(optionName);
+        return GetParsedOrDefault(valueStr, defaultValue);
+    }
+
+    template <typename T1, typename T2>
+    std::pair<T1, T2> GetIntPairValueOrDefault(const std::string& optionName, const std::pair<T1, T2>& defaultValue) const
+    {
+        // Return default value for all unspecified flags
+        if (allOptions.find(optionName) == allOptions.cend()) {
+            return defaultValue;
+        }
+
+        // valueStr in format NxM
+        auto   valueStr = allOptions.at(optionName);
+        size_t xIndex   = valueStr.find("x");
+        if (xIndex == std::string::npos) {
+            return defaultValue;
+        }
+        std::string substringN = valueStr.substr(0, xIndex);
+        std::string substringM = valueStr.substr(xIndex + 1);
+        T1          N          = GetParsedOrDefault(substringN, defaultValue.first);
+        T2          M          = GetParsedOrDefault(substringM, defaultValue.second);
+        return std::make_pair(N, M);
     }
 
 private:
-    void AddExtraOption(const Option& opt)
+    // Add new option unless an option with this name already exists
+    void AddOption(const std::string& key, const std::string& value);
+
+    // For boolean parameters
+    //   interpreted as true: "true", 1, ""
+    //   interpreted as false: "false", 0
+    bool GetParsedBoolOrDefault(const std::string& value, bool defaultValue) const;
+
+    template <typename T1>
+    T1 GetParsedNumberOrDefault(const std::string& value, T1 defaultValue) const
     {
-        extraOptions.insert(std::make_pair(opt.GetName(), opt));
+        std::stringstream ss{value};
+        T1                valueAsNum;
+        ss >> valueAsNum;
+        if (ss.fail()) {
+            return defaultValue;
+        }
+        return valueAsNum;
     }
 
-    std::unordered_map<std::string, Option> extraOptions;
-    StandardOptions                         standardOptions;
+    template <typename T>
+    T GetParsedOrDefault(const std::string& valueStr, const T& defaultValue) const
+    {
+        if constexpr (std::is_same_v<T, std::string>) {
+            return valueStr == "" ? defaultValue : valueStr;
+        }
+        else if constexpr (std::is_same_v<T, bool>) {
+            return GetParsedBoolOrDefault(valueStr, defaultValue);
+        }
+        return GetParsedNumberOrDefault(valueStr, defaultValue);
+    }
+
+    std::unordered_map<std::string, std::string> allOptions;
 
     friend class CommandLineParser;
 };
@@ -163,55 +134,30 @@ public:
     // succeeded. Otherwise, return true if an error occurred,
     // and write the error to `out_error`.
     std::optional<ParsingError> Parse(int argc, const char* argv[]);
-    const CliOptions&           GetOptions() const { return mOpts; }
-    std::string                 GetUsageMsg() const { return mUsageMsg; }
-    void                        AppendUsageMsg(const std::string& additionalMsg)
-    {
-        mUsageMsg += additionalMsg;
-    }
+    std::optional<ParsingError> ParseJsonConfig(const std::string& jsonConfigPath);
+
+    const CliOptions& GetOptions() const { return mOpts; }
+    std::string       GetUsageMsg() const { return mUsageMsg; }
+    void              AppendUsageMsg(const std::string& additionalMsg) { mUsageMsg += additionalMsg; }
+    bool              GetPrintHelp() const { return mPrintHelp; }
 
 private:
-    CliOptions mOpts;
-#if defined(PPX_BUILD_XR)
-    std::string mUsageMsg = R"(
---help                        Prints this help message and exits.
+    CliOptions  mOpts;
+    bool        mPrintHelp = false;
+    std::string mUsageMsg  = R"(
+USAGE
+==============================
+Options can be turned on with:
+  --flag_name true
+  --flag_name
 
---deterministic               Disable non-deterministic behaviors, like clocks.
---frame-count <N>             Shutdown the application after successfully rendering N frames.
---run-time-ms <N>             Shutdown the application after N milliseconds.
---gpu <index>                 Select the gpu with the given index. To determine the set of valid indices use --list-gpus.
---headless                    Run the sample without creating windows.
---list-gpus                   Prints a list of the available GPUs on the current system with their index and exits (see --gpu).
---resolution <Width>x<Height> Specify the per-eye resolution in pixels. Width and Height must be two positive integers greater or equal to 1.
---xr-ui-resolution <Width>x<Height> Specify the UI quad resolution in pixels. Width and Height must be two positive integers greater or equal to 1.
---screenshot-frame-number <N> Take a screenshot of frame number N and save it in PPM format.
-                              See also `--screenshot-path`.
---screenshot-path             Save the screenshot to this path. If not specified, BigWheels will create a
-                              "screenshot_frameN" file in the current working directory.
---stats-frame-window <N>      Calculate frame statistics over the last N frames only.
-                              Set to 0 to use all frames since the beginning of the application.
---use-software-renderer       Use a software renderer instead of a hardware device, if available.
-)";
-#else
-    std::string mUsageMsg = R"(
---help                        Prints this help message and exits.
+And turned off with:
+  --flag_name false
+  --no-flag_name
+==============================
 
---deterministic               Disable non-deterministic behaviors, like clocks.
---frame-count <N>             Shutdown the application after successfully rendering N frames. Default: 0 (infinite).
---run-time-ms <N>             Shutdown the application after N milliseconds. Default: 0 (infinite).
---gpu <index>                 Select the gpu with the given index. To determine the set of valid indices use --list-gpus.
---headless                    Run the sample without creating windows.
---list-gpus                   Prints a list of the available GPUs on the current system with their index and exits (see --gpu).
---resolution <Width>x<Height> Specify the main window resolution in pixels. Width and Height must be two positive integers greater or equal to 1.
---screenshot-frame-number <N> Take a screenshot of frame number N and save it in PPM format.
-                              See also `--screenshot-path`.
---screenshot-path             Save the screenshot to this path. If not specified, BigWheels will create a
-                              "screenshot_frameN" file in the current working directory.
---stats-frame-window <N>      Calculate frame statistics over the last N frames only.
-                              Set to 0 to use all frames since the beginning of the application.
---use-software-renderer       Use a software renderer instead of a hardware device, if available.
+--help  Prints this help message and exits.  
 )";
-#endif
 };
 } // namespace ppx
 

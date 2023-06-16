@@ -69,25 +69,57 @@ void KnobManager::DrawAllKnobs(bool inExistingWindow)
 
 std::string KnobManager::GetUsageMsg()
 {
-    std::string usageMsg = "\nApplication-specific flags\n";
+    std::string usageMsg = "\nGeneral Flags:\n";
+    // Tends to have short params, will align description
+    // --flag_name <params>     description
+    size_t maxFlagLength = 0;
+    for (const auto& knobPtr : mKnobConstants) {
+        size_t flagLength = knobPtr->GetFlagName().size() + knobPtr->GetHelpParams().size() + 2;
+        if (flagLength > maxFlagLength) {
+            maxFlagLength = flagLength;
+        }
+    }
+    for (const auto& knobPtr : mKnobConstants) {
+        std::string flagText = "--" + knobPtr->GetFlagName() + knobPtr->GetHelpParams();
+        size_t      spaces   = maxFlagLength - flagText.size() + 2;
+        for (size_t i = 0; i < spaces; i++) {
+            flagText += " ";
+        }
+        usageMsg += flagText + knobPtr->GetFlagHelp() + "\n";
+    }
+
+    usageMsg += "\nApplication-Specific Flags:\n";
+    // Tends to have longer params, do not attempt to align description
+    // --flag_name <params> : description
     for (const auto& knobPtr : mKnobs) {
-        usageMsg += knobPtr->GetFlagHelpText();
+        usageMsg += "--" + knobPtr->GetFlagName() + knobPtr->GetHelpParams();
+        if (knobPtr->GetFlagHelp() != "") {
+            usageMsg += " : " + knobPtr->GetFlagHelp();
+        }
+        usageMsg += "\n";
     }
     return usageMsg;
 }
 
 void KnobManager::UpdateFromFlags(const CliOptions& opts)
 {
+    for (auto& knobPtr : mKnobConstants) {
+        knobPtr->UpdateFromFlags(opts);
+    }
     for (auto& knobPtr : mKnobs) {
         knobPtr->UpdateFromFlags(opts);
     }
 }
 
-void KnobManager::RegisterKnob(const std::string& flagName, std::shared_ptr<Knob> newKnob)
+void KnobManager::RegisterKnob(const std::string& flagName, std::shared_ptr<Knob> newKnob, bool isConstant)
 {
     mFlagNames.insert(flagName);
-    mKnobs.emplace_back(std::move(newKnob));
-    PPX_LOG_INFO("Created knob " << flagName);
+    if (isConstant) {
+        mKnobConstants.emplace_back(std::move(newKnob));
+    }
+    else {
+        mKnobs.emplace_back(std::move(newKnob));
+    }
 }
 
 } // namespace ppx

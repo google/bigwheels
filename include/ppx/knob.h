@@ -54,15 +54,14 @@ public:
     const std::string& GetFlagName() const { return mFlagName; }
     const std::string& GetFlagHelp() const { return mFlagDesc; }
     size_t             GetIndent() const { return mIndent; }
+    const std::string& GetHelpParams() const { return mHelpParams; }
 
     void SetDisplayName(const std::string& displayName) { mDisplayName = displayName; }
     void SetFlagDesc(const std::string& flagDesc) { mFlagDesc = flagDesc; }
     void SetIndent(size_t indent) { mIndent = indent; }
+    void SetHelpParams(const std::string& helpParams) { mHelpParams = helpParams; }
 
     virtual void Draw() = 0;
-
-    // Returns the flag description used in usage message
-    virtual std::string GetFlagHelpText() const = 0;
 
     // Updates knob value from commandline flag
     virtual void UpdateFromFlags(const CliOptions& opts) = 0;
@@ -79,6 +78,7 @@ private:
     std::string mDisplayName;
     std::string mFlagName;
     std::string mFlagDesc;
+    std::string mHelpParams;
     size_t      mIndent;
     bool        mUpdatedFlag;
 };
@@ -91,6 +91,7 @@ public:
     KnobCheckbox(const std::string& flagName, bool defaultValue)
         : Knob(flagName)
     {
+        SetHelpParams(" <true|false>");
         SetDefaultAndValue(defaultValue);
     }
 
@@ -103,15 +104,6 @@ public:
     }
 
     void ResetToDefault() override { SetValue(mDefaultValue); }
-
-    std::string GetFlagHelpText() const override
-    {
-        std::string flagHelpText = "--" + GetFlagName() + " <true|false>";
-        if (!GetFlagHelp().empty()) {
-            flagHelpText += " : " + GetFlagHelp();
-        }
-        return flagHelpText + "\n";
-    }
 
     // Expected commandline flag format:
     // --flag_name <true|false>
@@ -161,6 +153,7 @@ public:
 
         mMinValue = minValue;
         mMaxValue = maxValue;
+        SetHelpParams(" <" + std::to_string(mMinValue) + "~" + std::to_string(mMaxValue) + ">");
         SetDefaultAndValue(defaultValue);
     }
 
@@ -173,15 +166,6 @@ public:
     }
 
     void ResetToDefault() override { SetValue(mDefaultValue); }
-
-    std::string GetFlagHelpText() const override
-    {
-        std::string flagHelpText = "--" + GetFlagName() + " <" + std::to_string(mMinValue) + "~" + std::to_string(mMaxValue) + ">";
-        if (!GetFlagHelp().empty()) {
-            flagHelpText += " : " + GetFlagHelp();
-        }
-        return flagHelpText + "\n";
-    }
 
     // Expected commandline flag format:
     // --flag_name <int>
@@ -247,6 +231,15 @@ public:
     {
         PPX_ASSERT_MSG(defaultIndex < mChoices.size(), "defaultIndex is out of range");
 
+        std::string choiceStr = "";
+        for (const auto& choice : mChoices) {
+            choiceStr += '\"' + choice + '\"' + "|";
+        }
+        if (!choiceStr.empty()) {
+            choiceStr.pop_back();
+        }
+        choiceStr = " <" + choiceStr + ">";
+        SetHelpParams(choiceStr);
         SetDefaultAndIndex(defaultIndex);
     }
 
@@ -278,23 +271,6 @@ public:
     }
 
     void ResetToDefault() override { SetIndex(mDefaultIndex); }
-
-    std::string GetFlagHelpText() const override
-    {
-        std::string choiceStr = "";
-        for (const auto& choice : mChoices) {
-            choiceStr += '\"' + choice + '\"' + "|";
-        }
-        if (!choiceStr.empty()) {
-            choiceStr.pop_back();
-        }
-
-        std::string flagHelpText = "--" + GetFlagName() + " <" + choiceStr + ">";
-        if (!GetFlagHelp().empty()) {
-            flagHelpText += " : " + GetFlagHelp();
-        }
-        return flagHelpText + "\n";
-    }
 
     // Expected commandline flag format:
     // --flag_name <str>
@@ -361,6 +337,131 @@ private:
     std::vector<T> mChoices;
 };
 
+// KnobConstant is intended for parameters that cannot be adjusted when the application is run
+// They will not be displayed in the UI and cannot have their values changed by the application
+template <typename T>
+class KnobConstant final
+    : public Knob
+{
+public:
+    KnobConstant(const std::string& flagName, T defaultValue)
+        : Knob(flagName)
+    {
+        static_assert(std::is_same_v<T, bool> || std::is_same_v<T, std::string> || std::is_same_v<T, int> || std::is_same_v<T, float>, "KnobConstant must be of type bool, std::string, int, or float");
+
+        SetValue(defaultValue);
+    }
+
+    KnobConstant(const std::string& flagName, T defaultValue, T minValue, T maxValue)
+        : Knob(flagName)
+    {
+        PPX_ASSERT_MSG(minValue < maxValue, "invalid range to initialize KnobConstant");
+        PPX_ASSERT_MSG(minValue <= defaultValue && defaultValue <= maxValue, "defaultValue is out of range");
+
+        SetIsValidFunc([minValue, maxValue](T newValue) {
+            if (newValue < minValue || newValue > maxValue) {
+                return false;
+            }
+            return true;
+        });
+
+        std::string minValueText = std::to_string(minValue);
+        std::string maxValueText = std::to_string(maxValue);
+        if (minValue == INT_MIN) {
+            minValueText = "INT_MIN";
+        }
+        if (maxValue == INT_MAX) {
+            maxValueText = "INT_MAX";
+        }
+        SetHelpParams(" <" + minValueText + "~" + maxValueText + ">");
+        SetValue(defaultValue);
+    }
+
+    void Draw() override {}
+
+    void ResetToDefault() override {}
+
+    void UpdateFromFlags(const CliOptions& opts) override
+    {
+        SetValue(opts.GetExtraOptionValueOrDefault(GetFlagName(), mValue));
+    }
+
+    T GetValue() const { return mValue; }
+
+    void SetIsValidFunc(std::function<bool(T)> isValidFunc)
+    {
+        mIsValidFunc = isValidFunc;
+    }
+
+private:
+    bool IsValidValue(T val)
+    {
+        if (!mIsValidFunc) {
+            return true;
+        }
+        return mIsValidFunc(val);
+    }
+
+    void SetValue(T newValue)
+    {
+        PPX_ASSERT_MSG(IsValidValue(newValue), "invalid default value");
+        mValue = newValue;
+    }
+
+private:
+    T                      mValue;
+    std::function<bool(T)> mIsValidFunc;
+};
+
+// KnobConstantPair is intended for paired parameters that cannot be adjusted when the application is run
+// They will not be displayed in the UI and cannot have their values changed by the application
+template <typename T1, typename T2>
+class KnobConstantPair final
+    : public Knob
+{
+public:
+    KnobConstantPair(const std::string& flagName, std::pair<T1, T2> defaultValue)
+        : Knob(flagName)
+    {
+        SetValue(defaultValue);
+    }
+
+    void Draw() override {}
+
+    void ResetToDefault() override {}
+
+    void UpdateFromFlags(const CliOptions& opts) override
+    {
+        SetValue(opts.GetIntPairValueOrDefault(GetFlagName(), mValue));
+    }
+
+    std::pair<T1, T2> GetValue() const { return mValue; }
+
+    void SetIsValidFunc(std::function<bool(std::pair<T1, T2>)> isValidFunc)
+    {
+        mIsValidFunc = isValidFunc;
+    }
+
+private:
+    bool IsValidValue(std::pair<T1, T2> value)
+    {
+        if (!mIsValidFunc) {
+            return true;
+        }
+        return mIsValidFunc(value);
+    }
+
+    void SetValue(std::pair<T1, T2> newValue)
+    {
+        PPX_ASSERT_MSG(IsValidValue(newValue), "invalid default value");
+        mValue = newValue;
+    }
+
+private:
+    std::pair<T1, T2>                      mValue;
+    std::function<bool(std::pair<T1, T2>)> mIsValidFunc;
+};
+
 // KnobManager holds the knobs in an application
 class KnobManager
 {
@@ -372,6 +473,9 @@ public:
 private:
     // Knobs are added on creation and never removed
     std::vector<std::shared_ptr<Knob>> mKnobs;
+
+    // Knobs which are not dislayed and that cannot have their values changed
+    std::vector<std::shared_ptr<Knob>> mKnobConstants;
 
     // mFlagNames is kept to prevent multiple knobs having the same mFlagName
     std::unordered_set<std::string> mFlagNames;
@@ -388,9 +492,38 @@ public:
     std::shared_ptr<T> CreateKnob(const std::string& flagName, ArgsT... args)
     {
         PPX_ASSERT_MSG(mFlagNames.count(flagName) == 0, "knob with this name already exists");
+        PPX_ASSERT_MSG(flagName.substr(0, 3) != "no-", "knobs with prefix no- are not allowed");
 
         std::shared_ptr<T> knobPtr(new T(flagName, std::forward<ArgsT>(args)...));
-        RegisterKnob(flagName, knobPtr);
+        RegisterKnob(flagName, knobPtr, false);
+        return knobPtr;
+    }
+
+    // Example:
+    //   CreateKnobConstant<bool>("flag_name", bool defaultValue);
+    //   CreateKnobConstant<int>("flag_name", int defaultValue, minValue, maxValue);
+    //   CreateKnobConstant<std::string>("flag_name", std::string defaultValue);
+    template <typename T, typename... ArgsT>
+    std::shared_ptr<KnobConstant<T>> CreateKnobConstant(const std::string& flagName, ArgsT... args)
+    {
+        PPX_ASSERT_MSG(mFlagNames.count(flagName) == 0, "knob with this name already exists");
+        PPX_ASSERT_MSG(flagName.substr(0, 3) != "no-", "knobs with prefix no- are not allowed");
+
+        std::shared_ptr<KnobConstant<T>> knobPtr(new KnobConstant<T>(flagName, std::forward<ArgsT>(args)...));
+        RegisterKnob(flagName, knobPtr, true);
+        return knobPtr;
+    }
+
+    // Example:
+    //   CreateKnobConstantPair<int, int>("flag_name", int defaultValue);
+    template <typename T1, typename T2, typename... ArgsT>
+    std::shared_ptr<KnobConstantPair<T1, T2>> CreateKnobConstantPair(const std::string& flagName, ArgsT... args)
+    {
+        PPX_ASSERT_MSG(mFlagNames.count(flagName) == 0, "knob with this name already exists");
+        PPX_ASSERT_MSG(flagName.substr(0, 3) != "no-", "knobs with prefix no- are not allowed");
+
+        std::shared_ptr<KnobConstantPair<T1, T2>> knobPtr(new KnobConstantPair<T1, T2>(flagName, std::forward<ArgsT>(args)...));
+        RegisterKnob(flagName, knobPtr, true);
         return knobPtr;
     }
 
@@ -399,7 +532,7 @@ public:
     void        UpdateFromFlags(const CliOptions& opts);
 
 private:
-    void RegisterKnob(const std::string& flagName, std::shared_ptr<Knob> newKnob);
+    void RegisterKnob(const std::string& flagName, std::shared_ptr<Knob> newKnob, bool isConstant);
 };
 
 } // namespace ppx

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <algorithm>
+#include <fstream>
 #include <iostream>
 #include <locale>
 #include <vector>
@@ -21,6 +22,8 @@
 
 #include "ppx/command_line_parser.h"
 #include "ppx/string_util.h"
+
+#include "nlohmann/json.hpp"
 
 namespace {
 
@@ -37,6 +40,32 @@ bool IsOptionOrFlag(const std::string& s)
 
 namespace ppx {
 
+void CliOptions::AddOption(const std::string& key, const std::string& value)
+{
+    if (allOptions.find(key) != allOptions.cend()) {
+        return;
+    }
+    allOptions.insert(std::make_pair(key, value));
+}
+
+bool CliOptions::GetParsedBoolOrDefault(const std::string& value, bool defaultValue) const
+{
+    if (value == "") {
+        return true;
+    }
+    std::stringstream ss{value};
+    bool              valueAsBool;
+    ss >> valueAsBool;
+    if (ss.fail()) {
+        ss.clear();
+        ss >> std::boolalpha >> valueAsBool;
+        if (ss.fail()) {
+            return defaultValue;
+        }
+    }
+    return valueAsBool;
+}
+
 std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc, const char* argv[])
 {
     // argc is always >= 1 and argv[0] is the name of the executable.
@@ -44,132 +73,58 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
         return std::nullopt;
     }
 
-    // Process arguments into either standalone flags or
-    // options with parameters.
-    std::vector<std::string>        args(argv + 1, argv + argc);
-    std::vector<CliOptions::Option> options;
+    // Process arguments into either standalone flags or options with parameters.
+    // For boolean flags, accepted formats:
+    // --flag-name, --flag-name true
+    // --no-flag-name, --flag-name false
+    std::vector<std::string> args(argv + 1, argv + argc);
     for (size_t i = 0; i < args.size(); ++i) {
         std::string name = ppx::string_util::TrimCopy(args[i]);
         if (!IsOptionOrFlag(name)) {
             return "Invalid command-line option " + name;
         }
         name = name.substr(2);
+        if (name == "help") {
+            mPrintHelp = true;
+            return std::nullopt;
+        }
 
-        std::string parameter = (i + 1 < args.size()) ? ppx::string_util::TrimCopy(args[i + 1]) : "";
-        if (!IsOptionOrFlag(parameter)) {
+        std::string nextElem = (i + 1 < args.size()) ? ppx::string_util::TrimCopy(args[i + 1]) : "";
+        if (nextElem.size() > 0 && !IsOptionOrFlag(nextElem)) {
             // We found an option with a parameter.
-            options.emplace_back(name, parameter);
+            mOpts.AddOption(name, nextElem);
             ++i;
         }
+        else if (name.substr(0, 3) == "no-") {
+            // Option does not have a parameter, check if it has a no- prefix
+            mOpts.AddOption(name, "0");
+        }
         else {
-            options.emplace_back(name, "");
+            // Option has no parameter, likely a boolean flag but do not assign "true"
+            // in case it is a non-boolean string flag that is missing a parameter
+            mOpts.AddOption(name, "");
         }
     }
+    return std::nullopt;
+}
 
-    for (const auto& opt : options) {
-        // Process standard options.
-        if (opt.GetName() == "help") {
-            mOpts.standardOptions.help = true;
-        }
-        else if (opt.GetName() == "list-gpus") {
-            mOpts.standardOptions.list_gpus = true;
-        }
-        else if (opt.GetName() == "use-software-renderer") {
-            mOpts.standardOptions.use_software_renderer = true;
-        }
-        else if (opt.GetName() == "headless") {
-            mOpts.standardOptions.headless = true;
-        }
-        else if (opt.GetName() == "deterministic") {
-            mOpts.standardOptions.deterministic = true;
-        }
-        else if (opt.GetName() == "gpu") {
-            if (!opt.HasValue()) {
-                return std::string("Command-line option --gpu requires a parameter");
-            }
-            mOpts.standardOptions.gpu_index = opt.GetValueOrDefault<int>(-1);
-            if (mOpts.standardOptions.gpu_index < 0) {
-                return std::string("Command-line option --gpu requires a positive integer as the parameter");
-            }
-        }
-        else if (opt.GetName() == "resolution") {
-            if (!opt.HasValue()) {
-                return std::string("Command-line option --resolution requires a parameter");
-            }
+std::optional<CommandLineParser::ParsingError> CommandLineParser::ParseJsonConfig(const std::string& jsonFilePath)
+{
+    std::ifstream  f(jsonFilePath);
+    nlohmann::json jsonStruct = nlohmann::json::parse(f);
 
-            // Resolution is passed as <Width>x<Height>.
-            std::string       val = opt.GetValueOrDefault<std::string>("");
-            std::stringstream ss{val};
-            int               width = -1, height = -1;
-            char              x;
-            ss >> width >> x >> height;
-            if (ss.fail() || x != 'x') {
-                return std::string("Parameter for command-line option --resolution must be in <Width>x<Height> format, got " + val + " instead");
-            }
-            if (width < 1 || height < 1) {
-                return std::string("Parameter for command-line option --resolution must be in <Width>x<Height> format where Width and Height are integers greater or equal to 1");
-            }
-
-            mOpts.standardOptions.resolution = {width, height};
+    // Flattening the JSON structure to fit in mUnorganizedOpts
+    // Storing any nested objects and arrays as strings
+    for (auto it = jsonStruct.cbegin(); it != jsonStruct.cend(); ++it) {
+        std::stringstream ss;
+        ss << it.value();
+        std::string value = ss.str();
+        if (value.back() == '"' && value.at(0) == '"') {
+            value.erase(value.begin());
+            value.pop_back();
         }
-        else if (opt.GetName() == "frame-count") {
-            if (!opt.HasValue()) {
-                return std::string("Command-line option --frame-count requires a parameter");
-            }
-            mOpts.standardOptions.frame_count = opt.GetValueOrDefault<int>(0);
-        }
-        else if (opt.GetName() == "run-time-ms") {
-            if (!opt.HasValue()) {
-                return std::string("Command-line option --run-time-ms requires a parameter");
-            }
-            mOpts.standardOptions.run_time_ms = opt.GetValueOrDefault<int>(0);
-        }
-        else if (opt.GetName() == "stats-frame-window") {
-            if (!opt.HasValue()) {
-                return std::string("Command-line option --stats-frame-window requires a parameter");
-            }
-            mOpts.standardOptions.stats_frame_window = opt.GetValueOrDefault<uint32_t>(300);
-        }
-        else if (opt.GetName() == "screenshot-frame-number") {
-            if (!opt.HasValue()) {
-                return std::string("Command-line option --screenshot-frame-number requires a parameter");
-            }
-            mOpts.standardOptions.screenshot_frame_number = opt.GetValueOrDefault<int>(-1);
-        }
-        else if (opt.GetName() == "screenshot-path") {
-            if (!opt.HasValue()) {
-                return std::string("Command-line option --screenshot-path requires a parameter");
-            }
-            mOpts.standardOptions.screenshot_path = opt.GetValueOrDefault<std::string>("");
-        }
-#if defined(PPX_BUILD_XR)
-        else if (opt.GetName() == "xr-ui-resolution") {
-            if (!opt.HasValue()) {
-                return std::string("Command-line option --xr-ui-resolution requires a parameter");
-            }
-
-            // Resolution is passed as <Width>x<Height>.
-            std::string       val = opt.GetValueOrDefault<std::string>("");
-            std::stringstream ss{val};
-            int               width = -1, height = -1;
-            char              x;
-            ss >> width >> x >> height;
-            if (ss.fail() || x != 'x') {
-                return std::string("Parameter for command-line option --xr-ui-resolution must be in <Width>x<Height> format, got " + val + " instead");
-            }
-            if (width < 1 || height < 1) {
-                return std::string("Parameter for command-line option --xr-ui-resolution must be in <Width>x<Height> format where Width and Height are integers greater or equal to 1");
-            }
-
-            mOpts.standardOptions.xrUIResolution = {width, height};
-        }
-#endif
-        else {
-            // Non-standard option.
-            mOpts.AddExtraOption(opt);
-        }
+        mOpts.AddOption(it.key(), value);
     }
-
     return std::nullopt;
 }
 
