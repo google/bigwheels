@@ -33,64 +33,102 @@ void set_android_context(android_app* androidContext)
 }
 #endif
 
+File::File()
+    : mHandleType(BAD_HANDLE)
+{
+}
+
+File::~File()
+{
+    switch (mHandleType) {
+        case ASSET_HANDLE:
+#if defined(PPX_ANDROID)
+            AAsset_close(mAsset);
+#else
+            PPX_ASSERT_MSG(false, "Bad implem. This case should never be reached.");
+#endif
+            break;
+        case STREAM_HANDLE:
+            mStream.close();
+            break;
+        default:
+            break;
+    }
+}
+
 bool File::Open(const std::filesystem::path& path)
 {
 #if defined(PPX_ANDROID)
-    mFile = AAssetManager_open(gAndroidContext->activity->assetManager, path.c_str(), AASSET_MODE_BUFFER);
-    return mFile != nullptr;
-#else
+    if (!path.is_absolute()) {
+        mAsset      = AAssetManager_open(gAndroidContext->activity->assetManager, path.c_str(), AASSET_MODE_BUFFER);
+        mHandleType = mAsset != nullptr ? ASSET_HANDLE : BAD_HANDLE;
+        mFileSize   = mHandleType == ASSET_HANDLE ? AAsset_getLength(mAsset) : 0;
+        mFileOffset = 0;
+        mBuffer     = AAsset_getBuffer(mAsset);
+        return mHandleType == ASSET_HANDLE;
+    }
+#endif
+
     mStream.open(path, std::ios::binary);
-    return mStream.good();
-#endif
-}
+    if (!mStream.good()) {
+        return false;
+    }
 
-bool File::IsOpen() const
-{
-#if defined(PPX_ANDROID)
-    return mFile != nullptr;
-#else
-    return mStream.is_open();
-#endif
-}
-
-size_t File::Read(void* buf, size_t count)
-{
-#if defined(PPX_ANDROID)
-    return AAsset_read(mFile, buf, count);
-#else
-    mStream.read(reinterpret_cast<char*>(buf), count);
-    return mStream.gcount();
-#endif
-}
-
-size_t File::GetLength()
-{
-#if defined(PPX_ANDROID)
-    return AAsset_getLength(mFile);
-#else
-    std::streamoff pos = mStream.tellg();
     mStream.seekg(0, std::ios::end);
-    size_t size = mStream.tellg();
-    mStream.seekg(pos, std::ios::beg);
-    return size;
-#endif
+    mFileSize = mStream.tellg();
+    mStream.seekg(0, std::ios::beg);
+    mFileOffset = 0;
+    mHandleType = STREAM_HANDLE;
+    return true;
 }
 
-void File::Close()
+bool File::IsValid() const
 {
-#if defined(PPX_ANDROID)
-    AAsset_close(mFile);
-#else
-    mStream.close();
-#endif
+    if (mHandleType == STREAM_HANDLE) {
+        return mStream.good();
+    }
+    return mHandleType == ASSET_HANDLE && mAsset != nullptr;
 }
 
-#if defined(PPX_ANDROID)
-const void* File::GetBuffer()
+bool File::IsMapped() const
 {
-    return AAsset_getBuffer(mFile);
+    return IsValid() && mBuffer != nullptr;
 }
+
+size_t File::Read(void* buffer, size_t count)
+{
+    PPX_ASSERT_MSG(IsValid(), "Calling File::read() on an invalid file.");
+
+    size_t readCount = 0;
+
+    if (IsMapped()) {
+        readCount = std::min(count, GetLength() - mFileOffset);
+        memcpy(buffer, reinterpret_cast<const uint8_t*>(GetMappedData()) + mFileOffset, readCount);
+    }
+    else if (mHandleType == STREAM_HANDLE) {
+        mStream.read(reinterpret_cast<char*>(buffer), count);
+        readCount = mStream.gcount();
+    }
+#if defined(PPX_ANDROID)
+    else if (mHandleType == ASSET_HANDLE) {
+        readCount = AAsset_read(mAsset, buffer, count);
+    }
 #endif
+
+    mFileOffset += readCount;
+    return readCount;
+}
+
+size_t File::GetLength() const
+{
+    return mFileSize;
+}
+
+const void* File::GetMappedData() const
+{
+    PPX_ASSERT_MSG(IsMapped(), "Called GetMappedData() on an non-mapped file.");
+    return mBuffer;
+}
 
 bool FileStream::Open(const char* path)
 {
@@ -104,46 +142,40 @@ bool FileStream::Open(const char* path)
 
 std::optional<std::vector<char>> load_file(const std::filesystem::path& path)
 {
-    std::vector<char> data;
-
     ppx::fs::File file;
     if (!file.Open(path)) {
         return std::nullopt;
     }
-    size_t size = file.GetLength();
-    data.resize(size);
-
-#if defined(PPX_ANDROID)
-    // Allow the system to use MMIO if available.
-    const void* buf = file.GetBuffer();
-    memcpy(data.data(), buf, size);
-#else
-    file.Read(data.data(), size);
-#endif
-    file.Close();
-    return data;
+    const size_t      size = file.GetLength();
+    std::vector<char> buffer(size);
+    const size_t      readSize = file.Read(buffer.data(), size);
+    if (readSize != size) {
+        return std::nullopt;
+    }
+    return buffer;
 }
 
 bool path_exists(const std::filesystem::path& path)
 {
 #if defined(PPX_ANDROID)
-    AAsset* temp_file = AAssetManager_open(gAndroidContext->activity->assetManager, path.c_str(), AASSET_MODE_BUFFER);
-    if (temp_file != nullptr) {
-        AAsset_close(temp_file);
-        return true;
-    }
+    if (!path.is_absolute()) {
+        AAsset* temp_file = AAssetManager_open(gAndroidContext->activity->assetManager, path.c_str(), AASSET_MODE_BUFFER);
+        if (temp_file != nullptr) {
+            AAsset_close(temp_file);
+            return true;
+        }
 
-    // So it's not a file. Check if it's a subdirectory
-    AAssetDir* temp_dir = AAssetManager_openDir(gAndroidContext->activity->assetManager, path.c_str());
-    if (temp_dir != nullptr) {
-        AAssetDir_close(temp_dir);
-        return true;
+        // So it's not a file. Check if it's a subdirectory
+        AAssetDir* temp_dir = AAssetManager_openDir(gAndroidContext->activity->assetManager, path.c_str());
+        if (temp_dir != nullptr) {
+            AAssetDir_close(temp_dir);
+            return true;
+        }
+        return false;
     }
-
-    return false;
-#else
-    return std::filesystem::exists(path);
 #endif
+
+    return std::filesystem::exists(path);
 }
 
 #if defined(PPX_ANDROID)
