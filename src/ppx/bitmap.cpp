@@ -595,9 +595,8 @@ char* Bitmap::StbiLoad(const std::filesystem::path& path, Bitmap::Format format,
         buffer.resize(file.GetLength());
         file.Read(buffer.data(), buffer.size());
     }
-    const stbi_uc* readPtr = file.IsMapped() ? reinterpret_cast<const stbi_uc*>(file.GetPointer()) : buffer.data();
-    ;
 
+    const stbi_uc* readPtr = file.IsMapped() ? reinterpret_cast<const stbi_uc*>(file.GetPointer()) : buffer.data();
     if (format == Bitmap::FORMAT_RGBA_FLOAT) {
         return reinterpret_cast<char*>(stbi_loadf_from_memory(readPtr, file.GetLength(), pWidth, pHeight, pChannels, desiredChannels));
     }
@@ -624,6 +623,7 @@ Result Bitmap::LoadFile(const std::filesystem::path& path, Bitmap* pBitmap)
     char*          dataPtr          = StbiLoad(path, format, &width, &height, &channels, requiredChannels);
 
     if (IsNull(dataPtr)) {
+        PPX_LOG_ERROR("Failed to open file '" + path.string() + "'");
         return ppx::ERROR_IMAGE_FILE_LOAD_FAILED;
     }
     ppxres = Bitmap::Create(width, height, format, dataPtr, pBitmap);

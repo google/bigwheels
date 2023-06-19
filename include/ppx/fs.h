@@ -56,10 +56,10 @@ class File
     {
         // Default handle, no file associated.
         BAD_HANDLE = 0,
-        // The file is accessible throught a stream.
+        // The file is accessible through a stream.
         STREAM_HANDLE = 1,
         // The file is accessible through an Android asset handle.
-        ASSET_HANDLE = 3
+        ASSET_HANDLE = 2,
     };
 
 public:
@@ -68,7 +68,7 @@ public:
     File(const File&& other) = delete;
     ~File();
 
-    // Open a file given a specific path.
+    // Opens a file given a specific path.
     // path: the path of the file to open.
     //  - On desktop, loads the regular file at `path`. (memory-mapping availability is implementation defined).
     //  - On Android, relative path are assumed to be loaded from the APK, those are memory mapped.
@@ -79,7 +79,7 @@ public:
     // - This class supports RAII. File will be closed on destroy.
     bool Open(const std::filesystem::path& path);
 
-    // Read `size` bytes from the file into `buffer`.
+    // Reads `size` bytes from the file into `buffer`.
     // buffer: a pointer to a buffer with at least `count` writable bytes.
     // count: the maximum number of bytes to write to `buffer`.
     // Returns the number of bytes written to `buffer`.
@@ -88,14 +88,14 @@ public:
     // - If the file size is larger than `count`, the read stops at `count` bytes.
     size_t Read(void* buffer, size_t count);
 
-    // Is this file readable?
+    // Returns true if the file is readable.
     bool IsValid() const;
-    // Is this file mapped in memory? See `File::GetPointer()`.
+    // Returns true if the file is mapped in memory. See `File::GetPointer()`.
     bool IsMapped() const;
 
-    // Gets the total size in bytes of the file from the start.
+    // Returns the total size in bytes of the file from the start.
     size_t GetLength() const;
-    // Gets a readable pointer to a beginning of the file. Behavior undefined is `File::IsMapped()` is false.
+    // Returns a readable pointer to a beginning of the file. Behavior undefined if `File::IsMapped()` is false.
     const void* GetPointer() const;
 
 private:
@@ -123,8 +123,8 @@ private:
 // Opens a regular file and returns its content if the read succeeded.
 // `path`: the path of the file to load.
 // The path is handled differently depending on the platform:
-//  - desktop: all path are treated the same.
-//  - android: relative path are assumed to be in APK's storage (Asset API). Absolute are loaded from disk.
+//  - desktop: all paths are treated the same.
+//  - android: relative paths are assumed to be in APK's storage (Asset API). Absolute are loaded from disk.
 std::optional<std::vector<char>> load_file(const std::filesystem::path& path);
 
 // Returns true if a given path exists (file or directory).

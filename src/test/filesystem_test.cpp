@@ -37,13 +37,13 @@ static size_t getOpenFDCount()
     DIR* fdDir = opendir("/proc/self/fd");
     assert(fdDir != nullptr);
 
-    size_t fd_count = 0;
+    size_t fdCount = 0;
     while (readdir(fdDir)) {
-        ++fd_count;
+        ++fdCount;
     }
 
     closedir(fdDir);
-    return fd_count;
+    return fdCount;
 }
 
 class FsTest : public ::testing::Test
@@ -124,7 +124,7 @@ TEST_F(FsTest, OpenNonExistantFileFails)
     EXPECT_FALSE(file.IsValid());
 }
 
-TEST_F(FsTest, OpenDirectoryFaile)
+TEST_F(FsTest, OpenDirectoryFails)
 {
     fs::File file;
     EXPECT_FALSE(file.Open(nonExistantFile));
