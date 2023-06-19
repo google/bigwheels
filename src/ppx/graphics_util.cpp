@@ -1180,11 +1180,9 @@ Result CreateIBLTexturesFromFile(
 
     // Load IBL environment map - this is stored as a bitmap on disk
     std::filesystem::path envFilePath = path.parent_path() / envFile;
+    ScopedTimer           timer("Texture creation from mipmap file '" + envFilePath.string() + "'");
     Mipmap                mipmap      = {};
-    {
-        ScopedTimer timer("Texture creation from mipmap file '" + envFilePath.string() + "'");
-        ppxres = Mipmap::LoadFile(envFilePath, baseWidth, baseHeight, &mipmap, levelCount);
-    }
+    ppxres                            = Mipmap::LoadFile(envFilePath, baseWidth, baseHeight, &mipmap, levelCount);
     if (Failed(ppxres)) {
         return ppxres;
     }

@@ -98,7 +98,7 @@ class ScopedTimer
     const std::string mMessage;
 
 public:
-    // Create a timer. The logged message will have the format "<message>: %f ms elapsed".
+    // Creates a timer. The logged message will have the format "<message>: %f ms elapsed".
     ScopedTimer(const std::string& message);
     ~ScopedTimer();
 
