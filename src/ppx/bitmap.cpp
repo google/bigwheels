@@ -533,7 +533,7 @@ Result Bitmap::StbiInfo(const std::filesystem::path& path, int* pX, int* pY, int
 
     int stbiResult = 0;
     if (file.IsMapped()) {
-        stbiResult = stbi_info_from_memory(reinterpret_cast<const stbi_uc*>(file.GetPointer()), file.GetLength(), pX, pY, pComp);
+        stbiResult = stbi_info_from_memory(reinterpret_cast<const stbi_uc*>(file.GetMappedData()), file.GetLength(), pX, pY, pComp);
     }
     else {
         std::vector<uint8_t> buffer(file.GetLength());
@@ -596,7 +596,7 @@ char* Bitmap::StbiLoad(const std::filesystem::path& path, Bitmap::Format format,
         file.Read(buffer.data(), buffer.size());
     }
 
-    const stbi_uc* readPtr = file.IsMapped() ? reinterpret_cast<const stbi_uc*>(file.GetPointer()) : buffer.data();
+    const stbi_uc* readPtr = file.IsMapped() ? reinterpret_cast<const stbi_uc*>(file.GetMappedData()) : buffer.data();
     if (format == Bitmap::FORMAT_RGBA_FLOAT) {
         return reinterpret_cast<char*>(stbi_loadf_from_memory(readPtr, file.GetLength(), pWidth, pHeight, pChannels, desiredChannels));
     }

@@ -103,7 +103,7 @@ size_t File::Read(void* buffer, size_t count)
 
     if (IsMapped()) {
         readCount = std::min(count, GetLength() - mFileOffset);
-        memcpy(buffer, reinterpret_cast<const uint8_t*>(GetPointer()) + mFileOffset, readCount);
+        memcpy(buffer, reinterpret_cast<const uint8_t*>(GetMappedData()) + mFileOffset, readCount);
     }
     else if (mHandleType == STREAM_HANDLE) {
         mStream.read(reinterpret_cast<char*>(buffer), count);
@@ -124,9 +124,9 @@ size_t File::GetLength() const
     return mFileSize;
 }
 
-const void* File::GetPointer() const
+const void* File::GetMappedData() const
 {
-    PPX_ASSERT_MSG(IsMapped(), "Called GetPointer() on an non-mapped file.");
+    PPX_ASSERT_MSG(IsMapped(), "Called GetMappedData() on an non-mapped file.");
     return mBuffer;
 }
 

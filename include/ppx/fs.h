@@ -90,13 +90,13 @@ public:
 
     // Returns true if the file is readable.
     bool IsValid() const;
-    // Returns true if the file is mapped in memory. See `File::GetPointer()`.
+    // Returns true if the file is mapped in memory. See `File::GetMappedData()`.
     bool IsMapped() const;
 
     // Returns the total size in bytes of the file from the start.
     size_t GetLength() const;
     // Returns a readable pointer to a beginning of the file. Behavior undefined if `File::IsMapped()` is false.
-    const void* GetPointer() const;
+    const void* GetMappedData() const;
 
 private:
 #if !defined(PPX_ANDROID)
