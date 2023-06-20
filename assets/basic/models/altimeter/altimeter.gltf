@@ -6,6 +6,7 @@
     "extensionsUsed" : [
         "KHR_materials_specular",
         "KHR_materials_ior",
+        "KHR_materials_unlit",
         "MSFT_texture_dds"
     ],
     "scene" : 0,
@@ -13,7 +14,8 @@
         {
             "name" : "Scene",
             "nodes" : [
-                0
+                0,
+                1
             ]
         }
     ],
@@ -26,6 +28,15 @@
                 0,
                 0,
                 0.2589210271835327
+            ]
+        },
+        {
+            "mesh" : 1,
+            "name" : "skybox",
+            "scale" : [
+                100,
+                100,
+                100
             ]
         }
     ],
@@ -57,6 +68,19 @@
                     "index" : 2
                 }
             }
+        },
+        {
+            "name" : "Skybox",
+            "extensions" : {
+                "KHR_materials_unlit": {}
+            },
+            "pbrMetallicRoughness" : {
+                "baseColorTexture" : {
+                    "index" : 3
+                },
+                "metallicFactor" : 0,
+                "roughnessFactor" : 1.0
+            }
         }
     ],
     "meshes" : [
@@ -72,6 +96,21 @@
                     },
                     "indices" : 4,
                     "material" : 0
+                }
+            ]
+        },
+        {
+            "name" : "Sphere.001",
+            "primitives" : [
+                {
+                    "attributes" : {
+                        "POSITION" : 5,
+                        "TEXCOORD_0" : 6,
+                        "NORMAL" : 7,
+                        "TANGENT" : 8
+                    },
+                    "indices" : 9,
+                    "material" : 1
                 }
             ]
         }
@@ -105,6 +144,16 @@
               }
             }
 
+        },
+        {
+            "sampler" : 0,
+            "source" : 3,
+            "extensions": {
+              "MSFT_texture_dds": {
+                "source": 6
+              }
+            }
+
         }
     ],
     "images" : [
@@ -124,6 +173,11 @@
             "uri" : "metalness-roughness.png"
         },
         {
+            "mimeType" : "image/jpeg",
+            "name" : "basic-skybox",
+            "uri" : "basic-skybox.jpg"
+        },
+        {
             "mimeType" : "image/vnd-ms.dds",
             "name" : "normal",
             "uri" : "normal.dds"
@@ -137,7 +191,12 @@
             "mimeType" : "image/vnd-ms.dds",
             "name" : "metalness-roughness",
             "uri" : "metalness-roughness.dds"
-        }
+         },
+        {
+            "mimeType" : "image/vnd-ms.dds",
+            "name" : "basic-skybox",
+            "uri" : "basic-skybox.dds"
+         }
     ],
     "accessors" : [
         {
@@ -179,6 +238,46 @@
             "componentType" : 5123,
             "count" : 5319,
             "type" : "SCALAR"
+        },
+        {
+            "bufferView" : 5,
+            "componentType" : 5126,
+            "count" : 2870,
+            "max" : [
+                0.9999997019767761,
+                1,
+                0.9999993443489075
+            ],
+            "min" : [
+                -0.9999990463256836,
+                -1,
+                -1
+            ],
+            "type" : "VEC3"
+        },
+        {
+            "bufferView" : 6,
+            "componentType" : 5126,
+            "count" : 2870,
+            "type" : "VEC2"
+        },
+        {
+            "bufferView" : 7,
+            "componentType" : 5126,
+            "count" : 2870,
+            "type" : "VEC3"
+        },
+        {
+            "bufferView" : 8,
+            "componentType" : 5126,
+            "count" : 2870,
+            "type" : "VEC4"
+        },
+        {
+            "bufferView" : 9,
+            "componentType" : 5123,
+            "count" : 2880,
+            "type" : "SCALAR"
         }
     ],
     "bufferViews" : [
@@ -211,6 +310,36 @@
             "byteLength" : 10638,
             "byteOffset" : 156816,
             "target" : 34963
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 34440,
+            "byteOffset" : 167456,
+            "target" : 34962
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 22960,
+            "byteOffset" : 201896,
+            "target" : 34962
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 34440,
+            "byteOffset" : 224856,
+            "target" : 34962
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 45920,
+            "byteOffset" : 259296,
+            "target" : 34962
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 5760,
+            "byteOffset" : 305216,
+            "target" : 34963
         }
     ],
     "samplers" : [
@@ -221,7 +350,7 @@
     ],
     "buffers" : [
         {
-            "byteLength" : 167456,
+            "byteLength" : 310976,
             "uri" : "altimeter.bin"
         }
     ]
