@@ -54,15 +54,14 @@ public:
     const std::string& GetFlagName() const { return mFlagName; }
     const std::string& GetFlagHelp() const { return mFlagDesc; }
     size_t             GetIndent() const { return mIndent; }
+    const std::string& GetHelpParams() const { return mHelpParams; }
 
     void SetDisplayName(const std::string& displayName) { mDisplayName = displayName; }
     void SetFlagDesc(const std::string& flagDesc) { mFlagDesc = flagDesc; }
     void SetIndent(size_t indent) { mIndent = indent; }
+    void SetHelpParams(const std::string& helpParams) { mHelpParams = helpParams; }
 
     virtual void Draw() = 0;
-
-    // Returns the flag description used in usage message
-    virtual std::string GetFlagHelpText() const = 0;
 
     // Updates knob value from commandline flag
     virtual void UpdateFromFlags(const CliOptions& opts) = 0;
@@ -80,6 +79,7 @@ private:
     std::string mFlagName;
     std::string mFlagDesc;
     size_t      mIndent;
+    std::string mHelpParams;
     bool        mUpdatedFlag;
 };
 
@@ -88,56 +88,23 @@ class KnobCheckbox final
     : public Knob
 {
 public:
-    KnobCheckbox(const std::string& flagName, bool defaultValue)
-        : Knob(flagName), mDefaultValue(defaultValue), mValue(defaultValue)
-    {
-        RaiseUpdatedFlag();
-    }
+    KnobCheckbox(const std::string& flagName, bool defaultValue);
 
-    void Draw() override
-    {
-        if (!ImGui::Checkbox(GetDisplayName().c_str(), &mValue)) {
-            return;
-        }
-        RaiseUpdatedFlag();
-    }
+    void Draw() override;
 
     void ResetToDefault() override { SetValue(mDefaultValue); }
 
-    std::string GetFlagHelpText() const override
-    {
-        std::string flagHelpText = "--" + GetFlagName() + " <true|false>";
-        if (!GetFlagHelp().empty()) {
-            flagHelpText += " : " + GetFlagHelp();
-        }
-        return flagHelpText + "\n";
-    }
-
     // Expected commandline flag format:
     // --flag_name <true|false>
-    void UpdateFromFlags(const CliOptions& opts) override
-    {
-        SetDefaultAndValue(opts.GetExtraOptionValueOrDefault(GetFlagName(), mValue));
-    }
+    void UpdateFromFlags(const CliOptions& opts) override;
 
     bool GetValue() const { return mValue; }
 
     // Used for when mValue needs to be updated outside of UI
-    void SetValue(bool newValue)
-    {
-        if (newValue == mValue) {
-            return;
-        }
-        mValue = newValue;
-        RaiseUpdatedFlag();
-    }
+    void SetValue(bool newValue);
 
 private:
-    void SetDefaultAndValue(bool newValue)
-    {
-        mDefaultValue = newValue;
-        ResetToDefault();
-    }
+    void SetDefaultAndValue(bool newValue);
 
 private:
     bool mValue;
@@ -158,6 +125,7 @@ public:
     {
         PPX_ASSERT_MSG(minValue < maxValue, "invalid range to initialize slider");
         PPX_ASSERT_MSG(minValue <= defaultValue && defaultValue <= maxValue, "defaultValue is out of range");
+        SetHelpParams(" <" + std::to_string(mMinValue) + "~" + std::to_string(mMaxValue) + ">");
         RaiseUpdatedFlag();
     }
 
@@ -170,15 +138,6 @@ public:
     }
 
     void ResetToDefault() override { SetValue(mDefaultValue); }
-
-    std::string GetFlagHelpText() const override
-    {
-        std::string flagHelpText = "--" + GetFlagName() + " <" + std::to_string(mMinValue) + "~" + std::to_string(mMaxValue) + ">";
-        if (!GetFlagHelp().empty()) {
-            flagHelpText += " : " + GetFlagHelp();
-        }
-        return flagHelpText + "\n";
-    }
 
     // Expected commandline flag format:
     // --flag_name <int>
@@ -243,6 +202,21 @@ public:
         : Knob(flagName), mIndex(defaultIndex), mDefaultIndex(defaultIndex), mChoices(choicesBegin, choicesEnd)
     {
         PPX_ASSERT_MSG(defaultIndex < mChoices.size(), "defaultIndex is out of range");
+        std::string choiceStr = "";
+        for (const auto& choice : mChoices) {
+            bool hasSpace = choice.find_first_of("\t ") != std::string::npos;
+            if (hasSpace) {
+                choiceStr += R"(")" + choice + R"("|)";
+            }
+            else {
+                choiceStr += choice + "|";
+            }
+        }
+        if (!choiceStr.empty()) {
+            choiceStr.pop_back();
+        }
+        choiceStr = " <" + choiceStr + ">";
+        SetHelpParams(choiceStr);
         RaiseUpdatedFlag();
     }
 
@@ -274,23 +248,6 @@ public:
     }
 
     void ResetToDefault() override { SetIndex(mDefaultIndex); }
-
-    std::string GetFlagHelpText() const override
-    {
-        std::string choiceStr = "";
-        for (const auto& choice : mChoices) {
-            choiceStr += '\"' + choice + '\"' + "|";
-        }
-        if (!choiceStr.empty()) {
-            choiceStr.pop_back();
-        }
-
-        std::string flagHelpText = "--" + GetFlagName() + " <" + choiceStr + ">";
-        if (!GetFlagHelp().empty()) {
-            flagHelpText += " : " + GetFlagHelp();
-        }
-        return flagHelpText + "\n";
-    }
 
     // Expected commandline flag format:
     // --flag_name <str>

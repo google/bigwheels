@@ -32,6 +32,45 @@ bool Knob::DigestUpdate()
 }
 
 // -------------------------------------------------------------------------------------------------
+// KnobCheckbox
+// -------------------------------------------------------------------------------------------------
+
+KnobCheckbox::KnobCheckbox(const std::string& flagName, bool defaultValue)
+    : Knob(flagName), mDefaultValue(defaultValue), mValue(defaultValue)
+{
+    SetHelpParams(" <true|false>");
+    RaiseUpdatedFlag();
+}
+
+void KnobCheckbox::Draw()
+{
+    if (!ImGui::Checkbox(GetDisplayName().c_str(), &mValue)) {
+        return;
+    }
+    RaiseUpdatedFlag();
+}
+
+void KnobCheckbox::UpdateFromFlags(const CliOptions& opts)
+{
+    SetDefaultAndValue(opts.GetExtraOptionValueOrDefault(GetFlagName(), mValue));
+}
+
+void KnobCheckbox::SetValue(bool newValue)
+{
+    if (newValue == mValue) {
+        return;
+    }
+    mValue = newValue;
+    RaiseUpdatedFlag();
+}
+
+void KnobCheckbox::SetDefaultAndValue(bool newValue)
+{
+    mDefaultValue = newValue;
+    ResetToDefault();
+}
+
+// -------------------------------------------------------------------------------------------------
 // KnobManager
 // -------------------------------------------------------------------------------------------------
 
@@ -69,9 +108,15 @@ void KnobManager::DrawAllKnobs(bool inExistingWindow)
 
 std::string KnobManager::GetUsageMsg()
 {
-    std::string usageMsg = "\nApplication-specific flags\n";
+    std::string usageMsg = "\nApplication-Specific Flags:\n";
+    // Tends to have longer params, do not attempt to align description
+    // --flag_name <params> : description
     for (const auto& knobPtr : mKnobs) {
-        usageMsg += knobPtr->GetFlagHelpText();
+        usageMsg += "--" + knobPtr->GetFlagName() + knobPtr->GetHelpParams();
+        if (knobPtr->GetFlagHelp() != "") {
+            usageMsg += " : " + knobPtr->GetFlagHelp();
+        }
+        usageMsg += "\n";
     }
     return usageMsg;
 }

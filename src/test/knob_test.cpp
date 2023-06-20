@@ -55,7 +55,6 @@ namespace ppx {
 TEST_F(KnobTestFixture, KnobCheckbox_CreateAndSetBasicMembers)
 {
     KnobCheckbox boolKnob = KnobCheckbox("flag_name1", true);
-    EXPECT_EQ(boolKnob.GetFlagHelpText(), "--flag_name1 <true|false>\n");
 
     boolKnob.SetDisplayName("Knob Name 1");
     boolKnob.SetFlagDesc("description1");
@@ -66,7 +65,6 @@ TEST_F(KnobTestFixture, KnobCheckbox_CreateAndSetBasicMembers)
     EXPECT_EQ(boolKnob.GetFlagHelp(), "description1");
     EXPECT_EQ(boolKnob.GetIndent(), 3);
     EXPECT_TRUE(boolKnob.GetValue());
-    EXPECT_EQ(boolKnob.GetFlagHelpText(), "--flag_name1 <true|false> : description1\n");
 }
 
 TEST_F(KnobTestFixture, KnobCheckbox_CanSetBoolValue)
@@ -106,7 +104,6 @@ TEST_F(KnobTestFixture, KnobCheckbox_ResetToDefault)
 TEST_F(KnobTestFixture, KnobSlider_CreateAndSetBasicMembers)
 {
     KnobSlider<int> intKnob = KnobSlider<int>("flag_name1", 5, 0, 10);
-    EXPECT_EQ(intKnob.GetFlagHelpText(), "--flag_name1 <0~10>\n");
 
     intKnob.SetDisplayName("Knob Name 1");
     intKnob.SetFlagDesc("description1");
@@ -117,7 +114,6 @@ TEST_F(KnobTestFixture, KnobSlider_CreateAndSetBasicMembers)
     EXPECT_EQ(intKnob.GetFlagHelp(), "description1");
     EXPECT_EQ(intKnob.GetIndent(), 3);
     EXPECT_EQ(intKnob.GetValue(), 5);
-    EXPECT_EQ(intKnob.GetFlagHelpText(), "--flag_name1 <0~10> : description1\n");
 }
 
 #if defined(PERFORM_DEATH_TESTS)
@@ -201,7 +197,6 @@ TEST_F(KnobTestFixture, KnobDropdown_CreateAndSetBasicMembers)
 {
     std::vector<std::string>  choices = {"c1", "c2"};
     KnobDropdown<std::string> strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.cbegin(), choices.cend());
-    EXPECT_EQ(strKnob.GetFlagHelpText(), "--flag_name1 <\"c1\"|\"c2\">\n");
 
     strKnob.SetDisplayName("Knob Name 1");
     strKnob.SetFlagDesc("description1");
@@ -213,7 +208,6 @@ TEST_F(KnobTestFixture, KnobDropdown_CreateAndSetBasicMembers)
     EXPECT_EQ(strKnob.GetIndent(), 3);
     EXPECT_EQ(strKnob.GetIndex(), 1);
     EXPECT_EQ(strKnob.GetValue(), "c2");
-    EXPECT_EQ(strKnob.GetFlagHelpText(), "--flag_name1 <\"c1\"|\"c2\"> : description1\n");
 }
 
 TEST_F(KnobTestFixture, KnobDropdown_CreateVaried)
@@ -371,15 +365,15 @@ TEST_F(KnobManagerTestFixture, KnobManager_GetUsageMsg)
     std::shared_ptr<KnobCheckbox>              boolKnobPtr1(km.CreateKnob<KnobCheckbox>("flag_name1", true));
     std::shared_ptr<KnobCheckbox>              boolKnobPtr2(km.CreateKnob<KnobCheckbox>("flag_name2", true));
     std::shared_ptr<KnobSlider<int>>           intKnobPtr1(km.CreateKnob<KnobSlider<int>>("flag_name3", 5, 0, 10));
-    std::vector<std::string>                   choices1 = {"c1", "c2", "c3"};
+    std::vector<std::string>                   choices1 = {"c1", "c2", "c3 and more"};
     std::shared_ptr<KnobDropdown<std::string>> strKnobPtr1(km.CreateKnob<KnobDropdown<std::string>>("flag_name4", 1, choices1.cbegin(), choices1.cend()));
 
     std::string usageMsg = R"(
-Application-specific flags
+Application-Specific Flags:
 --flag_name1 <true|false>
 --flag_name2 <true|false>
 --flag_name3 <0~10>
---flag_name4 <"c1"|"c2"|"c3">
+--flag_name4 <c1|c2|"c3 and more">
 )";
     EXPECT_EQ(km.GetUsageMsg(), usageMsg);
 }
