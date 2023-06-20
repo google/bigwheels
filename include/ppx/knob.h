@@ -47,7 +47,7 @@ class Knob
 {
 public:
     Knob(const std::string& flagName)
-        : mFlagName(flagName), mDisplayName(flagName), mIndent(0) {}
+        : mFlagName(flagName), mDisplayName(flagName), mIndent(0), mUpdatedFlag(false) {}
     virtual ~Knob() = default;
 
     const std::string& GetDisplayName() const { return mDisplayName; }
@@ -89,9 +89,9 @@ class KnobCheckbox final
 {
 public:
     KnobCheckbox(const std::string& flagName, bool defaultValue)
-        : Knob(flagName)
+        : Knob(flagName), mDefaultValue(defaultValue), mValue(defaultValue)
     {
-        SetDefaultAndValue(defaultValue);
+        RaiseUpdatedFlag();
     }
 
     void Draw() override
@@ -154,14 +154,11 @@ public:
     static_assert(std::is_same_v<T, int>, "KnobSlider must be created with type: int");
 
     KnobSlider(const std::string& flagName, T defaultValue, T minValue, T maxValue)
-        : Knob(flagName)
+        : Knob(flagName), mValue(defaultValue), mDefaultValue(defaultValue), mMinValue(minValue), mMaxValue(maxValue)
     {
         PPX_ASSERT_MSG(minValue < maxValue, "invalid range to initialize slider");
         PPX_ASSERT_MSG(minValue <= defaultValue && defaultValue <= maxValue, "defaultValue is out of range");
-
-        mMinValue = minValue;
-        mMaxValue = maxValue;
-        SetDefaultAndValue(defaultValue);
+        RaiseUpdatedFlag();
     }
 
     void Draw() override
@@ -243,11 +240,10 @@ public:
         size_t             defaultIndex,
         Iter               choicesBegin,
         Iter               choicesEnd)
-        : Knob(flagName), mChoices(choicesBegin, choicesEnd)
+        : Knob(flagName), mIndex(defaultIndex), mDefaultIndex(defaultIndex), mChoices(choicesBegin, choicesEnd)
     {
         PPX_ASSERT_MSG(defaultIndex < mChoices.size(), "defaultIndex is out of range");
-
-        SetDefaultAndIndex(defaultIndex);
+        RaiseUpdatedFlag();
     }
 
     template <typename Container>

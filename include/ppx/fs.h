@@ -46,27 +46,69 @@ namespace ppx::fs {
 void set_android_context(android_app* androidContext);
 #endif
 
-//! @class File
-//!
-//!
+// Abstract a static, regular file on all platforms.
+// This class doesn't handle sockets, or file which content is not constant
+// for the lifetime of this class.
 class File
 {
+    // Internal enum to know which handle is currently valid.
+    enum FileHandleType
+    {
+        // Default handle, no file associated.
+        BAD_HANDLE = 0,
+        // The file is accessible through a stream.
+        STREAM_HANDLE = 1,
+        // The file is accessible through an Android asset handle.
+        ASSET_HANDLE = 2,
+    };
+
 public:
-    bool   Open(const std::filesystem::path& path);
-    bool   IsOpen() const;
-    size_t Read(void* buf, size_t count);
-    size_t GetLength();
-    void   Close();
-#if defined(PPX_ANDROID)
-    const void* GetBuffer();
-#endif
+    File();
+    File(const File& other)  = delete;
+    File(const File&& other) = delete;
+    ~File();
+
+    // Opens a file given a specific path.
+    // path: the path of the file to open.
+    //  - On desktop, loads the regular file at `path`. (memory-mapping availability is implementation defined).
+    //  - On Android, relative path are assumed to be loaded from the APK, those are memory mapped.
+    //                absolute path are loaded as regular files (mapping availability is implementation defined).
+    //
+    // - This API only supports regular files.
+    // - This API expects the file not to change size or content while this handle is open.
+    // - This class supports RAII. File will be closed on destroy.
+    bool Open(const std::filesystem::path& path);
+
+    // Reads `size` bytes from the file into `buffer`.
+    // buffer: a pointer to a buffer with at least `count` writable bytes.
+    // count: the maximum number of bytes to write to `buffer`.
+    // Returns the number of bytes written to `buffer`.
+    //
+    // - The file has an internal cursor, meaning the next read will start at the end of the last read.
+    // - If the file size is larger than `count`, the read stops at `count` bytes.
+    size_t Read(void* buffer, size_t count);
+
+    // Returns true if the file is readable.
+    bool IsValid() const;
+    // Returns true if the file is mapped in memory. See `File::GetMappedData()`.
+    bool IsMapped() const;
+
+    // Returns the total size in bytes of the file from the start.
+    size_t GetLength() const;
+    // Returns a readable pointer to a beginning of the file. Behavior undefined if `File::IsMapped()` is false.
+    const void* GetMappedData() const;
 
 private:
-#if defined(PPX_ANDROID)
-    AAsset* mFile = nullptr;
-#else
-    std::ifstream mStream;
+#if !defined(PPX_ANDROID)
+    typedef void AAsset;
 #endif
+
+    FileHandleType mHandleType = BAD_HANDLE;
+    AAsset*        mAsset      = nullptr;
+    const void*    mBuffer     = nullptr;
+    std::ifstream  mStream;
+    size_t         mFileSize   = 0;
+    size_t         mFileOffset = 0;
 };
 
 class FileStream : public std::streambuf
@@ -78,8 +120,19 @@ private:
     std::vector<char> mBuffer;
 };
 
+// Opens a regular file and returns its content if the read succeeded.
+// `path`: the path of the file to load.
+// The path is handled differently depending on the platform:
+//  - desktop: all paths are treated the same.
+//  - android: relative paths are assumed to be in APK's storage (Asset API). Absolute are loaded from disk.
 std::optional<std::vector<char>> load_file(const std::filesystem::path& path);
-bool                             path_exists(const std::filesystem::path& path);
+
+// Returns true if a given path exists (file or directory).
+// `path`: the path to check.
+// The path is handled differently depending on the platform:
+//  - desktop: all path are treated the same.
+//  - android: relative path are assumed to be in APK's storage (Asset API). Absolute are loaded from disk.
+bool path_exists(const std::filesystem::path& path);
 
 #if defined(PPX_ANDROID)
 // Returns a path to the application's internal data directory (can be used for output).

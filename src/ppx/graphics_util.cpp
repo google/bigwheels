@@ -802,9 +802,7 @@ Result CreateImageFromFile(
     PPX_ASSERT_NULL_ARG(pQueue);
     PPX_ASSERT_NULL_ARG(ppImage);
 
-    Timer timer;
-    PPX_ASSERT_MSG(timer.Start() == ppx::TIMER_RESULT_SUCCESS, "timer start failed");
-    double fnStartTime = timer.SecondsSinceStart();
+    ScopedTimer timer("Image creation from file '" + path.string() + "'");
 
     Result ppxres;
     if (Bitmap::IsBitmapFile(path)) {
@@ -839,15 +837,9 @@ Result CreateImageFromFile(
         ppxres = Result::ERROR_IMAGE_FILE_LOAD_FAILED;
     }
 
-    double fnEndTime = timer.SecondsSinceStart();
-    float  fnElapsed = static_cast<float>(fnEndTime - fnStartTime);
-    if (ppxres == Result::SUCCESS) {
-        PPX_LOG_INFO("Created image from image file: " << path << " (" << FloatString(fnElapsed) << " seconds)");
-    }
-    else {
+    if (ppxres != Result::SUCCESS) {
         PPX_LOG_INFO("Failed to create image from image file: " << path);
     }
-
     return ppx::SUCCESS;
 }
 
@@ -1059,9 +1051,7 @@ Result CreateTextureFromFile(
     PPX_ASSERT_NULL_ARG(pQueue);
     PPX_ASSERT_NULL_ARG(ppTexture);
 
-    Timer timer;
-    PPX_ASSERT_MSG(timer.Start() == ppx::TIMER_RESULT_SUCCESS, "timer start failed");
-    double fnStartTime = timer.SecondsSinceStart();
+    ScopedTimer timer("Texture creation from image file '" + path.string() + "'");
 
     // Load bitmap
     Bitmap bitmap;
@@ -1069,17 +1059,7 @@ Result CreateTextureFromFile(
     if (Failed(ppxres)) {
         return ppxres;
     }
-
-    ppxres = CreateTextureFromBitmap(pQueue, &bitmap, ppTexture, options);
-    if (Failed(ppxres)) {
-        return ppxres;
-    }
-
-    double fnEndTime = timer.SecondsSinceStart();
-    float  fnElapsed = static_cast<float>(fnEndTime - fnStartTime);
-    PPX_LOG_INFO("Created texture from image file: " << path << " (" << FloatString(fnElapsed) << " seconds)");
-
-    return ppx::SUCCESS;
+    return CreateTextureFromBitmap(pQueue, &bitmap, ppTexture, options);
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -1189,17 +1169,18 @@ Result CreateIBLTexturesFromFile(
 
     // Create irradiance texture - does not require mip maps
     std::filesystem::path irrFilePath = path.parent_path() / irrFile;
-    Result                ppxres      = CreateTextureFromFile(pQueue, irrFilePath, ppIrradianceTexture);
+    Result                ppxres;
+    {
+        ScopedTimer timer("Texture creation from file '" + irrFilePath.string() + "'");
+        ppxres = CreateTextureFromFile(pQueue, irrFilePath, ppIrradianceTexture);
+    }
     if (Failed(ppxres)) {
         return ppxres;
     }
 
-    Timer timer;
-    PPX_ASSERT_MSG(timer.Start() == ppx::TIMER_RESULT_SUCCESS, "timer start failed");
-    double fnStartTime = timer.SecondsSinceStart();
-
     // Load IBL environment map - this is stored as a bitmap on disk
     std::filesystem::path envFilePath = path.parent_path() / envFile;
+    ScopedTimer           timer("Texture creation from mipmap file '" + envFilePath.string() + "'");
     Mipmap                mipmap      = {};
     ppxres                            = Mipmap::LoadFile(envFilePath, baseWidth, baseHeight, &mipmap, levelCount);
     if (Failed(ppxres)) {
@@ -1207,16 +1188,7 @@ Result CreateIBLTexturesFromFile(
     }
 
     // Create environment texture
-    ppxres = CreateTextureFromMipmap(pQueue, &mipmap, ppEnvironmentTexture);
-    if (Failed(ppxres)) {
-        return ppxres;
-    }
-
-    double fnEndTime = timer.SecondsSinceStart();
-    float  fnElapsed = static_cast<float>(fnEndTime - fnStartTime);
-    PPX_LOG_INFO("Created texture from mipmap file: " << envFilePath << " (" << FloatString(fnElapsed) << " seconds)");
-
-    return ppx::SUCCESS;
+    return CreateTextureFromMipmap(pQueue, &mipmap, ppEnvironmentTexture);
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -1230,6 +1202,7 @@ Result CreateCubeMapFromFile(
 {
     PPX_ASSERT_NULL_ARG(pQueue);
     PPX_ASSERT_NULL_ARG(ppImage);
+    ScopedTimer timer("Cubemap creation from file '" + path.string() + "'");
 
     // Load bitmap
     Bitmap bitmap;
