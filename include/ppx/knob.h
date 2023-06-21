@@ -46,18 +46,20 @@ namespace ppx {
 class Knob
 {
 public:
-    Knob(const std::string& flagName)
-        : mFlagName(flagName), mDisplayName(flagName), mIndent(0), mUpdatedFlag(false) {}
+    Knob(const std::string& flagName, bool visible)
+        : mFlagName(flagName), mDisplayName(flagName), mIndent(0), mUpdatedFlag(false), mVisible(visible) {}
     virtual ~Knob() = default;
 
     const std::string& GetDisplayName() const { return mDisplayName; }
     const std::string& GetFlagName() const { return mFlagName; }
     const std::string& GetFlagHelp() const { return mFlagDesc; }
     size_t             GetIndent() const { return mIndent; }
+    bool               GetVisible() const { return mVisible; }
 
     void SetDisplayName(const std::string& displayName) { mDisplayName = displayName; }
     void SetFlagDesc(const std::string& flagDesc) { mFlagDesc = flagDesc; }
     void SetIndent(size_t indent) { mIndent = indent; }
+    void SetVisible(bool visible) { mVisible = visible; }
 
     virtual void Draw() = 0;
 
@@ -81,6 +83,7 @@ private:
     std::string mFlagDesc;
     size_t      mIndent;
     bool        mUpdatedFlag;
+    bool        mVisible;
 };
 
 // KnobCheckbox will be displayed as a checkbox in the UI
@@ -89,7 +92,7 @@ class KnobCheckbox final
 {
 public:
     KnobCheckbox(const std::string& flagName, bool defaultValue)
-        : Knob(flagName), mDefaultValue(defaultValue), mValue(defaultValue)
+        : Knob(flagName, true), mDefaultValue(defaultValue), mValue(defaultValue)
     {
         RaiseUpdatedFlag();
     }
@@ -154,7 +157,7 @@ public:
     static_assert(std::is_same_v<T, int>, "KnobSlider must be created with type: int");
 
     KnobSlider(const std::string& flagName, T defaultValue, T minValue, T maxValue)
-        : Knob(flagName), mValue(defaultValue), mDefaultValue(defaultValue), mMinValue(minValue), mMaxValue(maxValue)
+        : Knob(flagName, true), mValue(defaultValue), mDefaultValue(defaultValue), mMinValue(minValue), mMaxValue(maxValue)
     {
         PPX_ASSERT_MSG(minValue < maxValue, "invalid range to initialize slider");
         PPX_ASSERT_MSG(minValue <= defaultValue && defaultValue <= maxValue, "defaultValue is out of range");
@@ -240,7 +243,7 @@ public:
         size_t             defaultIndex,
         Iter               choicesBegin,
         Iter               choicesEnd)
-        : Knob(flagName), mIndex(defaultIndex), mDefaultIndex(defaultIndex), mChoices(choicesBegin, choicesEnd)
+        : Knob(flagName, true), mIndex(defaultIndex), mDefaultIndex(defaultIndex), mChoices(choicesBegin, choicesEnd)
     {
         PPX_ASSERT_MSG(defaultIndex < mChoices.size(), "defaultIndex is out of range");
         RaiseUpdatedFlag();
@@ -365,13 +368,13 @@ class KnobConstant final
 {
 public:
     KnobConstant(const std::string& flagName, T defaultValue)
-        : Knob(flagName)
+        : Knob(flagName, false)
     {
         SetValue(defaultValue);
     }
 
     KnobConstant(const std::string& flagName, T defaultValue, T minValue, T maxValue)
-        : Knob(flagName)
+        : Knob(flagName, false)
     {
         static_assert(std::is_arithmetic_v<T>, "KnobConstant can only be defined with min/max when it's of arithmetic type");
         PPX_ASSERT_MSG(minValue < maxValue, "invalid range to initialize KnobConstant");
@@ -432,16 +435,6 @@ private:
     std::function<bool(T)> mIsValidFunc;
 };
 
-template <typename T>
-struct IsKnobConstant : std::false_type
-{
-};
-
-template <typename T>
-struct IsKnobConstant<KnobConstant<T>> : std::true_type
-{
-};
-
 // KnobManager holds the knobs in an application
 class KnobManager
 {
@@ -453,9 +446,6 @@ public:
 private:
     // Knobs are added on creation and never removed
     std::vector<std::shared_ptr<Knob>> mKnobs;
-
-    // Knobs which are not dislayed and that cannot have their values changed
-    std::vector<std::shared_ptr<Knob>> mKnobConstants;
 
     // mFlagNames is kept to prevent multiple knobs having the same mFlagName
     std::unordered_set<std::string> mFlagNames;
@@ -474,7 +464,7 @@ public:
         PPX_ASSERT_MSG(mFlagNames.count(flagName) == 0, "knob with this name already exists");
 
         std::shared_ptr<T> knobPtr(new T(flagName, std::forward<ArgsT>(args)...));
-        RegisterKnob(flagName, knobPtr, IsKnobConstant<T>::value);
+        RegisterKnob(flagName, knobPtr);
         return knobPtr;
     }
 
@@ -483,7 +473,7 @@ public:
     void        UpdateFromFlags(const CliOptions& opts);
 
 private:
-    void RegisterKnob(const std::string& flagName, std::shared_ptr<Knob> newKnob, bool isConstant);
+    void RegisterKnob(const std::string& flagName, std::shared_ptr<Knob> newKnob);
 };
 
 } // namespace ppx

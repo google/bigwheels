@@ -49,6 +49,9 @@ void KnobManager::DrawAllKnobs(bool inExistingWindow)
     }
 
     for (const auto& knobPtr : mKnobs) {
+        if (!knobPtr->GetVisible()) {
+            continue;
+        }
         for (size_t i = 0; i < knobPtr->GetIndent(); i++) {
             ImGui::Indent();
         }
@@ -70,9 +73,6 @@ void KnobManager::DrawAllKnobs(bool inExistingWindow)
 std::string KnobManager::GetUsageMsg()
 {
     std::string usageMsg = "\nApplication-specific flags\n";
-    for (const auto& knobPtr : mKnobConstants) {
-        usageMsg += knobPtr->GetFlagHelpText();
-    }
     for (const auto& knobPtr : mKnobs) {
         usageMsg += knobPtr->GetFlagHelpText();
     }
@@ -81,23 +81,15 @@ std::string KnobManager::GetUsageMsg()
 
 void KnobManager::UpdateFromFlags(const CliOptions& opts)
 {
-    for (auto& knobPtr : mKnobConstants) {
-        knobPtr->UpdateFromFlags(opts);
-    }
     for (auto& knobPtr : mKnobs) {
         knobPtr->UpdateFromFlags(opts);
     }
 }
 
-void KnobManager::RegisterKnob(const std::string& flagName, std::shared_ptr<Knob> newKnob, bool isConstant)
+void KnobManager::RegisterKnob(const std::string& flagName, std::shared_ptr<Knob> newKnob)
 {
     mFlagNames.insert(flagName);
-    if (isConstant) {
-        mKnobConstants.emplace_back(std::move(newKnob));
-    }
-    else {
-        mKnobs.emplace_back(std::move(newKnob));
-    }
+    mKnobs.emplace_back(std::move(newKnob));
 }
 
 } // namespace ppx

@@ -473,11 +473,11 @@ TEST_F(KnobManagerTestFixture, KnobManager_GetUsageMsg)
 
     std::string usageMsg = R"(
 Application-specific flags
---flag_name5
 --flag_name1 <true|false>
 --flag_name2 <true|false>
 --flag_name3 <0~10>
 --flag_name4 <"c1"|"c2"|"c3">
+--flag_name5
 )";
     EXPECT_EQ(km.GetUsageMsg(), usageMsg);
 }
