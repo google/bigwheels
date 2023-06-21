@@ -20,6 +20,7 @@
 
 #include <filesystem>
 #include <limits>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -27,10 +28,10 @@
 namespace ppx {
 namespace metrics {
 
-#define METRICS_NO_COPY(type)   \
-    type(type&)       = delete; \
-    type(const type&) = delete; \
-    type& operator=(const type&) = delete;
+#define METRICS_NO_COPY(TYPE__)     \
+    TYPE__(TYPE__&)       = delete; \
+    TYPE__(const TYPE__&) = delete; \
+    TYPE__& operator=(const TYPE__&) = delete;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -53,6 +54,8 @@ struct MetricMetadata
     std::string          unit;
     MetricInterpretation interpretation = MetricInterpretation::NONE;
     Range                expectedRange;
+
+    nlohmann::json Export() const;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -61,8 +64,8 @@ struct MetricMetadata
 // They can be retrieved without any significant run-time cost.
 struct GaugeBasicStatistics
 {
-    double min       = std::numeric_limits<double>::min();
-    double max       = std::numeric_limits<double>::max();
+    double min       = std::numeric_limits<double>::max();
+    double max       = std::numeric_limits<double>::min();
     double average   = 0.0;
     double timeRatio = 0.0;
 };
@@ -88,8 +91,6 @@ class MetricGauge final
     friend class Run;
 
 public:
-    MetricGauge(const MetricMetadata& metadata);
-
     // Record a measurement for the metric at a particular point in time.
     // Each entry must have a positive 'seconds' that is greater than the
     // 'seconds' of the previous entry (i.e. 'seconds' must form a stricly
@@ -122,7 +123,8 @@ private:
     };
 
 private:
-    ~MetricGauge();
+    MetricGauge(const MetricMetadata& metadata)
+        : mMetadata(metadata), mAccumulatedValue(0) {}
     METRICS_NO_COPY(MetricGauge)
 
     void UpdateBasicStatistics(double seconds, double value);
@@ -131,7 +133,7 @@ private:
     MetricMetadata               mMetadata;
     std::vector<TimeSeriesEntry> mTimeSeries;
     GaugeBasicStatistics         mBasicStatistics;
-    double                       mAccumulatedValue;
+    double                       mAccumulatedValue = 0.0;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -143,8 +145,6 @@ class MetricCounter final
     friend class Run;
 
 public:
-    MetricCounter(const MetricMetadata& metadata);
-
     void     Increment(uint64_t add);
     uint64_t Get() const;
 
@@ -157,7 +157,8 @@ public:
     nlohmann::json Export() const;
 
 private:
-    ~MetricCounter();
+    MetricCounter(const MetricMetadata& metadata)
+        : mMetadata(metadata), mCounter(0U) {}
     METRICS_NO_COPY(MetricCounter)
 
 private:
@@ -176,49 +177,42 @@ class Run final
 
 public:
     template <typename T>
-    T* AddMetric(MetricMetadata metadata);
+    T* AddMetric(MetricMetadata metadata)
+    {
+        PPX_ASSERT_MSG(!metadata.name.empty(), "The metric name must not be empty");
+        PPX_ASSERT_MSG(!HasMetric(metadata.name), "Metrics must have unique names (duplicate name detected)");
+
+        auto* pMetric = new T(metadata);
+        auto  metric  = std::unique_ptr<T>(pMetric);
+        AddMetric(std::move(metric));
+        return pMetric;
+    }
 
 private:
-    Run(const char* pName);
-    ~Run();
+    Run(const std::string& name)
+        : mName(name) {}
     METRICS_NO_COPY(Run)
 
-    void AddMetric(MetricGauge* pMetric);
-    void AddMetric(MetricCounter* pMetric);
-    bool HasMetric(const char* pName) const;
+    void AddMetric(std::unique_ptr<MetricGauge>&& metric);
+    void AddMetric(std::unique_ptr<MetricCounter>&& metric);
+    bool HasMetric(const std::string& name) const;
 
     nlohmann::json Export() const;
 
 private:
     std::string                                     mName;
-    std::unordered_map<std::string, MetricGauge*>   mGauges;
-    std::unordered_map<std::string, MetricCounter*> mCounters;
+    std::unordered_map<std::string, std::unique_ptr<MetricGauge>>   mGauges;
+    std::unordered_map<std::string, std::unique_ptr<MetricCounter>> mCounters;
 };
-
-template <typename T>
-T* Run::AddMetric(MetricMetadata metadata)
-{
-    PPX_ASSERT_MSG(!metadata.name.empty(), "The metric name must not be empty");
-    PPX_ASSERT_MSG(!HasMetric(metadata.name.c_str()), "Metrics must have unique names (duplicate name detected)");
-
-    T* pMetric = new T(metadata);
-    if (pMetric == nullptr) {
-        return nullptr;
-    }
-
-    AddMetric(pMetric);
-    return pMetric;
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 
 class Manager final
 {
 public:
-    Manager();
-    ~Manager();
+    Manager() = default;
 
-    Run* AddRun(const char* pName);
+    Run* AddRun(const std::string& name);
 
     // Exports all the runs and metrics information into a report to disk.
     void ExportToDisk(const std::string& baseReportName) const;
@@ -253,7 +247,7 @@ private:
     };
 
 private:
-    std::unordered_map<std::string, Run*> mRuns;
+    std::unordered_map<std::string, std::unique_ptr<Run>> mRuns;
 };
 
 ////////////////////////////////////////////////////////////////////////////////

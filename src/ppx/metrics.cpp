@@ -23,30 +23,18 @@ namespace metrics {
 
 ////////////////////////////////////////////////////////////////////////////////
 
-static nlohmann::json ExportMetadata(const MetricMetadata& metadata)
+nlohmann::json MetricMetadata::Export() const
 {
     nlohmann::json object;
-    object["name"]                 = metadata.name;
-    object["unit"]                 = metadata.unit;
-    object["interpretation"]       = metadata.interpretation;
-    object["expected_lower_bound"] = metadata.expectedRange.lowerBound;
-    object["expected_upper_bound"] = metadata.expectedRange.upperBound;
+    object["name"]                 = name;
+    object["unit"]                 = unit;
+    object["interpretation"]       = interpretation;
+    object["expected_lower_bound"] = expectedRange.lowerBound;
+    object["expected_upper_bound"] = expectedRange.upperBound;
     return object;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-
-MetricGauge::MetricGauge(const MetricMetadata& metadata)
-    : mMetadata(metadata), mAccumulatedValue(0)
-{
-    memset(&mBasicStatistics, 0, sizeof(mBasicStatistics));
-    mBasicStatistics.min = std::numeric_limits<double>::max();
-    mBasicStatistics.max = std::numeric_limits<double>::min();
-}
-
-MetricGauge::~MetricGauge()
-{
-}
 
 void MetricGauge::RecordEntry(double seconds, double value)
 {
@@ -146,31 +134,26 @@ void MetricGauge::UpdateBasicStatistics(double seconds, double value)
 nlohmann::json MetricGauge::Export() const
 {
     nlohmann::json metricObject;
+    nlohmann::json statisticsObject;
 
-    {
-        metricObject["metadata"] = ExportMetadata(mMetadata);
-    }
+    metricObject["metadata"] = mMetadata.Export();
 
-    {
-        nlohmann::json statisticsObject;
+    const GaugeBasicStatistics basicStatistics = GetBasicStatistics();
+    statisticsObject["min"]                    = basicStatistics.min;
+    statisticsObject["max"]                    = basicStatistics.max;
+    statisticsObject["average"]                = basicStatistics.average;
+    statisticsObject["time_ratio"]             = basicStatistics.timeRatio;
 
-        const GaugeBasicStatistics basicStatistics = GetBasicStatistics();
-        statisticsObject["min"]                    = basicStatistics.min;
-        statisticsObject["max"]                    = basicStatistics.max;
-        statisticsObject["average"]                = basicStatistics.average;
-        statisticsObject["time_ratio"]             = basicStatistics.timeRatio;
+    const GaugeComplexStatistics complexStatistics = ComputeComplexStatistics();
+    statisticsObject["median"]                     = complexStatistics.median;
+    statisticsObject["standard_deviation"]         = complexStatistics.standardDeviation;
+    statisticsObject["percentile_90"]              = complexStatistics.percentile90;
+    statisticsObject["percentile_95"]              = complexStatistics.percentile95;
+    statisticsObject["percentile_99"]              = complexStatistics.percentile99;
 
-        const GaugeComplexStatistics complexStatistics = ComputeComplexStatistics();
-        statisticsObject["median"]                     = complexStatistics.median;
-        statisticsObject["standard_deviation"]         = complexStatistics.standardDeviation;
-        statisticsObject["percentile_90"]              = complexStatistics.percentile90;
-        statisticsObject["percentile_95"]              = complexStatistics.percentile95;
-        statisticsObject["percentile_99"]              = complexStatistics.percentile99;
+    metricObject["statistics"] = statisticsObject;
 
-        metricObject["statistics"] = statisticsObject;
-    }
-
-    for (const TimeSeriesEntry& entry : mTimeSeries) {
+    for (const auto& entry : mTimeSeries) {
         metricObject["time_series"] += nlohmann::json::array({entry.seconds, entry.value});
     }
 
@@ -178,15 +161,6 @@ nlohmann::json MetricGauge::Export() const
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-
-MetricCounter::MetricCounter(const MetricMetadata& metadata)
-    : mMetadata(metadata), mCounter(0U)
-{
-}
-
-MetricCounter::~MetricCounter()
-{
-}
 
 void MetricCounter::Increment(uint64_t add)
 {
@@ -201,58 +175,36 @@ uint64_t MetricCounter::Get() const
 nlohmann::json MetricCounter::Export() const
 {
     nlohmann::json metricObject;
-    metricObject["metadata"] = ExportMetadata(mMetadata);
+    metricObject["metadata"] = mMetadata.Export();
     metricObject["value"]    = mCounter;
     return metricObject;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-Run::Run(const char* pName)
-    : mName(pName)
+void Run::AddMetric(std::unique_ptr<MetricGauge>&& metric)
 {
-    PPX_ASSERT_MSG(pName != nullptr, "A run name cannot be null");
+    mGauges.emplace(metric->GetName(), std::move(metric));
 }
 
-Run::~Run()
+void Run::AddMetric(std::unique_ptr<MetricCounter>&& metric)
 {
-    for (auto [name, pMetric] : mGauges) {
-        delete pMetric;
-    }
-    mGauges.clear();
-    for (auto [name, pMetric] : mCounters) {
-        delete pMetric;
-    }
-    mCounters.clear();
+    mCounters.emplace(metric->GetName(), std::move(metric));
 }
 
-void Run::AddMetric(MetricGauge* pMetric)
+bool Run::HasMetric(const std::string& name) const
 {
-    PPX_ASSERT_NULL_ARG(pMetric);
-    const auto ret = mGauges.insert({pMetric->GetName(), pMetric});
-    PPX_ASSERT_MSG(ret.second, "An insertion shall always take place when adding a metric");
-}
-
-void Run::AddMetric(MetricCounter* pMetric)
-{
-    PPX_ASSERT_NULL_ARG(pMetric);
-    const auto ret = mCounters.insert({pMetric->GetName(), pMetric});
-    PPX_ASSERT_MSG(ret.second, "An insertion shall always take place when adding a metric");
-}
-
-bool Run::HasMetric(const char* pName) const
-{
-    return mGauges.find(pName) != mGauges.end() || mCounters.find(pName) != mCounters.end();
+    return mGauges.find(name) != mGauges.end() || mCounters.find(name) != mCounters.end();
 }
 
 nlohmann::json Run::Export() const
 {
     nlohmann::json object;
     object["name"] = mName;
-    for (auto [name, pMetric] : mGauges) {
+    for (const auto& [name, pMetric] : mGauges) {
         object["gauges"] += pMetric->Export();
     }
-    for (auto [name, pMetric] : mCounters) {
+    for (const auto& [name, pMetric] : mCounters) {
         object["counters"] += pMetric->Export();
     }
     return object;
@@ -260,30 +212,14 @@ nlohmann::json Run::Export() const
 
 ////////////////////////////////////////////////////////////////////////////////
 
-Manager::Manager()
+Run* Manager::AddRun(const std::string& name)
 {
-}
+    PPX_ASSERT_MSG(!name.empty(), "A run name must not be empty");
+    PPX_ASSERT_MSG(mRuns.find(name) == mRuns.end(), "Runs must have unique names (duplicate name detected)");
 
-Manager::~Manager()
-{
-    for (auto [name, pRun] : mRuns) {
-        delete pRun;
-    }
-    mRuns.clear();
-}
-
-Run* Manager::AddRun(const char* pName)
-{
-    PPX_ASSERT_MSG(pName != nullptr, "A run name must not be null");
-    PPX_ASSERT_MSG(mRuns.find(pName) == mRuns.end(), "Runs must have unique names (duplicate name detected)");
-
-    Run* pRun = new Run(pName);
-    if (pRun == nullptr) {
-        return nullptr;
-    }
-
-    const auto ret = mRuns.insert({pName, pRun});
-    PPX_ASSERT_MSG(ret.second, "An insertion shall always take place when adding a run");
+    auto* pRun = new Run(name);
+    auto  run  = std::unique_ptr<Run>(pRun);
+    mRuns.emplace(name, std::move(run));
     return pRun;
 }
 
@@ -292,7 +228,7 @@ void Manager::ExportToDisk(const std::string& baseReportName) const
     PPX_ASSERT_MSG(!baseReportName.empty(), "Base report name must not be empty!");
 
     nlohmann::json content;
-    for (auto [name, pRun] : mRuns) {
+    for (const auto& [name, pRun] : mRuns) {
         content["runs"] += pRun->Export();
     }
 
