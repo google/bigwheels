@@ -54,7 +54,7 @@ public:
     const std::string& GetFlagName() const { return mFlagName; }
     const std::string& GetFlagHelp() const { return mFlagDesc; }
     size_t             GetIndent() const { return mIndent; }
-    bool               GetVisible() const { return mVisible; }
+    bool               IsVisible() const { return mVisible; }
 
     void SetDisplayName(const std::string& displayName) { mDisplayName = displayName; }
     void SetFlagDesc(const std::string& flagDesc) { mFlagDesc = flagDesc; }

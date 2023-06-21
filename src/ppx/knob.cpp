@@ -49,7 +49,7 @@ void KnobManager::DrawAllKnobs(bool inExistingWindow)
     }
 
     for (const auto& knobPtr : mKnobs) {
-        if (!knobPtr->GetVisible()) {
+        if (!knobPtr->IsVisible()) {
             continue;
         }
         for (size_t i = 0; i < knobPtr->GetIndent(); i++) {
