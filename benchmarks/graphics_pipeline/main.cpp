@@ -40,10 +40,11 @@ static constexpr std::array<const char*, 2> kAvailableVsShaders = {
     "Benchmark_VsSimple",
     "Benchmark_VsAluBound"};
 
-static constexpr std::array<const char*, 3> kAvailablePsShaders = {
+static constexpr std::array<const char*, 4> kAvailablePsShaders = {
     "Benchmark_PsSimple",
     "Benchmark_PsAluBound",
-    "Benchmark_PsMemBound"};
+    "Benchmark_PsMemBound",
+    "Benchmark_PsUnlit"};
 
 static constexpr std::array<const char*, 7> kAvailableScenes = {
     "altimeter",
@@ -64,6 +65,9 @@ static constexpr std::array<const char*, kAvailableScenes.size()> kAvailableScen
     "basic/models/spheres/sphere_5.gltf"};
 
 static constexpr uint32_t kPipelineCount = kAvailablePsShaders.size() * kAvailableVsShaders.size();
+
+// We set arbitrarily the maximum number of materials for now.
+static constexpr uint32_t kMaxMaterialCount = 5;
 
 class ProjApp
     : public ppx::Application
@@ -97,6 +101,8 @@ private:
         std::array<grfx::GraphicsPipelinePtr, kPipelineCount> mPipelines;
         grfx::DescriptorSetPtr                                pDescriptorSet;
         std::vector<Texture>                                  textures;
+        std::string                                           name;
+        size_t                                                pipelineIndex;
     };
 
     struct Primitive
@@ -145,9 +151,9 @@ private:
     TextureCache mTextureCache;
 
 private:
-    std::shared_ptr<KnobDropdown<std::string>> pKnobVs;
-    std::shared_ptr<KnobDropdown<std::string>> pKnobPs;
-    std::shared_ptr<KnobDropdown<std::string>> pCurrentScene;
+    std::vector<std::shared_ptr<KnobDropdown<std::string>>> pMaterialsKnobVs;
+    std::vector<std::shared_ptr<KnobDropdown<std::string>>> pMaterialsKnobPs;
+    std::shared_ptr<KnobDropdown<std::string>>              pCurrentScene;
 
 private:
     void LoadScene(
@@ -200,6 +206,8 @@ private:
         std::vector<Material>*                                    pMaterials) const;
 
     void UpdateGUI();
+
+    void UpdateKnobs(size_t sceneIndex);
 };
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
@@ -219,14 +227,31 @@ void ProjApp::InitKnobs()
     PPX_ASSERT_MSG(!cl_options.HasExtraOption("vs-shader-index"), "--vs-shader-index flag has been replaced, instead use --vs and specify the name of the vertex shader");
     PPX_ASSERT_MSG(!cl_options.HasExtraOption("ps-shader-index"), "--ps-shader-index flag has been replaced, instead use --ps and specify the name of the pixel shader");
 
-    pKnobVs = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("vs", 0, kAvailableVsShaders);
-    pKnobVs->SetDisplayName("Vertex Shader");
-
-    pKnobPs = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("ps", 0, kAvailablePsShaders);
-    pKnobPs->SetDisplayName("Pixel Shader");
-
-    pCurrentScene = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("scene", 0, kAvailableScenes);
+    mCurrentSceneIndex = 0;
+    pCurrentScene      = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("scene", mCurrentSceneIndex, kAvailableScenes);
     pCurrentScene->SetDisplayName("Scene");
+
+    pMaterialsKnobVs.resize(kMaxMaterialCount);
+    pMaterialsKnobPs.resize(kMaxMaterialCount);
+    for (size_t i = 0; i < kMaxMaterialCount; i++) {
+        pMaterialsKnobVs[i] = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("vs_" + std::to_string(i), 0, kAvailableVsShaders);
+        pMaterialsKnobPs[i] = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("ps_" + std::to_string(i), 0, kAvailablePsShaders);
+    }
+}
+
+void ProjApp::UpdateKnobs(size_t sceneIndex)
+{
+    for (size_t i = 0; i < mScenes[sceneIndex].materials.size(); i++) {
+        pMaterialsKnobVs[i]->SetDisplayName("VS for " + mScenes[sceneIndex].materials[i].name);
+        pMaterialsKnobVs[i]->Show();
+        pMaterialsKnobPs[i]->SetDisplayName("PS for " + mScenes[sceneIndex].materials[i].name);
+        pMaterialsKnobPs[i]->Show();
+    }
+    // Hide the rest of the knobs
+    for (size_t i = mScenes[sceneIndex].materials.size(); i < kMaxMaterialCount; i++) {
+        pMaterialsKnobVs[i]->Hide();
+        pMaterialsKnobPs[i]->Hide();
+    }
 }
 
 void ProjApp::LoadTexture(
@@ -346,6 +371,7 @@ void ProjApp::LoadMaterial(
             PPX_CHECKED_CALL(pDevice->CreateGraphicsPipeline(&gpCreateInfo, &pOutput->mPipelines[pipeline_index++]));
         }
     }
+    pOutput->name = material.name;
 
     pOutput->textures.resize(3);
     if (material.pbr_metallic_roughness.base_color_texture.texture == nullptr) {
@@ -534,6 +560,8 @@ void ProjApp::LoadScene(
 
         PPX_ASSERT_MSG(data->buffers_count == 1, "Only supports one buffer for now.");
         PPX_ASSERT_MSG(data->buffers[0].data != nullptr, "Data not loaded. Was cgltf_load_buffer called?");
+
+        PPX_ASSERT_MSG(data->materials_count <= kMaxMaterialCount, "No support for more than " << kMaxMaterialCount << " distinct materials");
     }
     const double timerModelLoadingElapsed = timerModelLoading.SecondsSinceStart();
 
@@ -755,6 +783,8 @@ void ProjApp::Setup()
             &mScenes[i].materials);
     }
 
+    UpdateKnobs(mCurrentSceneIndex);
+
     // Per frame data
     {
         PerFrame frame = {};
@@ -789,6 +819,11 @@ void ProjApp::Render()
     // the drawing pass, meaning we would change descriptors while drawing.
     // That's why we delay the change to the next frame (now).
     mCurrentSceneIndex = pCurrentScene->GetIndex();
+    UpdateKnobs(mCurrentSceneIndex);
+
+    for (size_t i = 0; i < mScenes[mCurrentSceneIndex].materials.size(); i++) {
+        mScenes[mCurrentSceneIndex].materials[i].pipelineIndex = pMaterialsKnobVs[i]->GetIndex() * kAvailablePsShaders.size() + pMaterialsKnobPs[i]->GetIndex();
+    }
 
     PerFrame&          frame      = mPerFrame[0];
     grfx::SwapchainPtr swapchain  = GetSwapchain();
@@ -872,10 +907,10 @@ void ProjApp::Render()
             frame.cmd->SetScissors(GetScissor());
             frame.cmd->SetViewports(GetViewport());
 
-            size_t pipeline_index = pKnobVs->GetIndex() * kAvailablePsShaders.size() + pKnobPs->GetIndex();
             // Draw entities
             for (auto& object : mScenes[mCurrentSceneIndex].objects) {
                 for (auto& renderable : object.renderables) {
+                    size_t pipeline_index = renderable.pMaterial->pipelineIndex;
                     frame.cmd->BindGraphicsPipeline(renderable.pMaterial->mPipelines[pipeline_index]);
                     frame.cmd->BindGraphicsDescriptorSets(renderable.pMaterial->pInterface, 1, &renderable.pDescriptorSet);
 

@@ -88,6 +88,9 @@ void KnobManager::DrawAllKnobs(bool inExistingWindow)
     }
 
     for (const auto& knobPtr : mKnobs) {
+        if (!knobPtr->GetVisibility()) {
+            continue;
+        }
         for (size_t i = 0; i < knobPtr->mIndent; i++) {
             ImGui::Indent();
         }

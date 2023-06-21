@@ -47,7 +47,7 @@ class Knob
 {
 public:
     Knob(const std::string& flagName)
-        : mFlagName(flagName), mDisplayName(flagName), mIndent(0), mUpdatedFlag(false) {}
+        : mFlagName(flagName), mDisplayName(flagName), mIndent(0), mUpdatedFlag(false), mIsVisible(true) {}
     virtual ~Knob() = default;
 
     // Customize flag usage message
@@ -62,6 +62,10 @@ public:
     bool DigestUpdate();
 
     virtual void ResetToDefault() = 0;
+
+    void Show() { mIsVisible = true; }
+    void Hide() { mIsVisible = false; }
+    bool GetVisibility() const { return mIsVisible; }
 
 protected:
     void RaiseUpdatedFlag() { mUpdatedFlag = true; }
@@ -82,6 +86,7 @@ private:
     std::string mFlagDescription;
     size_t      mIndent; // Indent for when knob is drawn in the UI
     bool        mUpdatedFlag;
+    bool        mIsVisible;
 
 private:
     friend class KnobManager;
