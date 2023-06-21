@@ -357,6 +357,95 @@ private:
     std::vector<T> mChoices;
 };
 
+// KnobConstant is intended for parameters that cannot be adjusted when the application is run
+// They will not be displayed in the UI and cannot have their values changed by the application
+template <typename T>
+class KnobConstant final
+    : public Knob
+{
+public:
+    KnobConstant(const std::string& flagName, T defaultValue)
+        : Knob(flagName)
+    {
+        static_assert(std::is_same_v<T, bool> || std::is_same_v<T, std::string> || std::is_same_v<T, int> || std::is_same_v<T, float> || std::is_same_v<T, std::pair<int, int>>, "KnobConstant must be of type bool, std::string, int, float, or paired int");
+
+        SetValue(defaultValue);
+    }
+
+    KnobConstant(const std::string& flagName, T defaultValue, T minValue, T maxValue)
+        : Knob(flagName)
+    {
+        PPX_ASSERT_MSG(minValue < maxValue, "invalid range to initialize KnobConstant");
+        PPX_ASSERT_MSG(minValue <= defaultValue && defaultValue <= maxValue, "defaultValue is out of range");
+
+        SetIsValidFunc([minValue, maxValue](T newValue) {
+            if (newValue < minValue || newValue > maxValue) {
+                return false;
+            }
+            return true;
+        });
+
+        SetValue(defaultValue);
+    }
+
+    void Draw() override {}
+
+    void ResetToDefault() override {}
+
+    std::string GetFlagHelpText() const override
+    {
+        std::string flagHelpText = "--" + GetFlagName();
+        if (!GetFlagHelp().empty()) {
+            flagHelpText += " : " + GetFlagHelp();
+        }
+        return flagHelpText + "\n";
+    }
+
+    void UpdateFromFlags(const CliOptions& opts) override
+    {
+        if constexpr (std::is_same_v<T, bool> || std::is_same_v<T, std::string> || std::is_same_v<T, int> || std::is_same_v<T, float>) {
+            SetValue(opts.GetExtraOptionValueOrDefault(GetFlagName(), mValue));
+        }
+        return;
+    }
+
+    T GetValue() const { return mValue; }
+
+    void SetIsValidFunc(std::function<bool(T)> isValidFunc)
+    {
+        mIsValidFunc = isValidFunc;
+    }
+
+private:
+    bool IsValidValue(T val)
+    {
+        if (!mIsValidFunc) {
+            return true;
+        }
+        return mIsValidFunc(val);
+    }
+
+    void SetValue(T newValue)
+    {
+        PPX_ASSERT_MSG(IsValidValue(newValue), "invalid default value");
+        mValue = newValue;
+    }
+
+private:
+    T                      mValue;
+    std::function<bool(T)> mIsValidFunc;
+};
+
+template <typename T>
+struct IsKnobConstant : std::false_type
+{
+};
+
+template <typename T>
+struct IsKnobConstant<KnobConstant<T>> : std::true_type
+{
+};
+
 // KnobManager holds the knobs in an application
 class KnobManager
 {
@@ -368,6 +457,9 @@ public:
 private:
     // Knobs are added on creation and never removed
     std::vector<std::shared_ptr<Knob>> mKnobs;
+
+    // Knobs which are not dislayed and that cannot have their values changed
+    std::vector<std::shared_ptr<Knob>> mKnobConstants;
 
     // mFlagNames is kept to prevent multiple knobs having the same mFlagName
     std::unordered_set<std::string> mFlagNames;
@@ -386,7 +478,7 @@ public:
         PPX_ASSERT_MSG(mFlagNames.count(flagName) == 0, "knob with this name already exists");
 
         std::shared_ptr<T> knobPtr(new T(flagName, std::forward<ArgsT>(args)...));
-        RegisterKnob(flagName, knobPtr);
+        RegisterKnob(flagName, knobPtr, IsKnobConstant<T>::value);
         return knobPtr;
     }
 
@@ -395,7 +487,7 @@ public:
     void        UpdateFromFlags(const CliOptions& opts);
 
 private:
-    void RegisterKnob(const std::string& flagName, std::shared_ptr<Knob> newKnob);
+    void RegisterKnob(const std::string& flagName, std::shared_ptr<Knob> newKnob, bool isConstant);
 };
 
 } // namespace ppx

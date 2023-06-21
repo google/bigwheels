@@ -70,6 +70,9 @@ void KnobManager::DrawAllKnobs(bool inExistingWindow)
 std::string KnobManager::GetUsageMsg()
 {
     std::string usageMsg = "\nApplication-specific flags\n";
+    for (const auto& knobPtr : mKnobConstants) {
+        usageMsg += knobPtr->GetFlagHelpText();
+    }
     for (const auto& knobPtr : mKnobs) {
         usageMsg += knobPtr->GetFlagHelpText();
     }
@@ -78,16 +81,23 @@ std::string KnobManager::GetUsageMsg()
 
 void KnobManager::UpdateFromFlags(const CliOptions& opts)
 {
+    for (auto& knobPtr : mKnobConstants) {
+        knobPtr->UpdateFromFlags(opts);
+    }
     for (auto& knobPtr : mKnobs) {
         knobPtr->UpdateFromFlags(opts);
     }
 }
 
-void KnobManager::RegisterKnob(const std::string& flagName, std::shared_ptr<Knob> newKnob)
+void KnobManager::RegisterKnob(const std::string& flagName, std::shared_ptr<Knob> newKnob, bool isConstant)
 {
     mFlagNames.insert(flagName);
-    mKnobs.emplace_back(std::move(newKnob));
-    PPX_LOG_INFO("Created knob " << flagName);
+    if (isConstant) {
+        mKnobConstants.emplace_back(std::move(newKnob));
+    }
+    else {
+        mKnobs.emplace_back(std::move(newKnob));
+    }
 }
 
 } // namespace ppx
