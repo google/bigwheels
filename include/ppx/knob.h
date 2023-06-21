@@ -367,14 +367,13 @@ public:
     KnobConstant(const std::string& flagName, T defaultValue)
         : Knob(flagName)
     {
-        static_assert(std::is_same_v<T, bool> || std::is_same_v<T, std::string> || std::is_same_v<T, int> || std::is_same_v<T, float> || std::is_same_v<T, std::pair<int, int>>, "KnobConstant must be of type bool, std::string, int, float, or paired int");
-
         SetValue(defaultValue);
     }
 
     KnobConstant(const std::string& flagName, T defaultValue, T minValue, T maxValue)
         : Knob(flagName)
     {
+        static_assert(std::is_arithmetic_v<T>, "KnobConstant can only be defined with min/max when it's of arithmetic type");
         PPX_ASSERT_MSG(minValue < maxValue, "invalid range to initialize KnobConstant");
         PPX_ASSERT_MSG(minValue <= defaultValue && defaultValue <= maxValue, "defaultValue is out of range");
 
@@ -403,10 +402,7 @@ public:
 
     void UpdateFromFlags(const CliOptions& opts) override
     {
-        if constexpr (std::is_same_v<T, bool> || std::is_same_v<T, std::string> || std::is_same_v<T, int> || std::is_same_v<T, float>) {
-            SetValue(opts.GetExtraOptionValueOrDefault(GetFlagName(), mValue));
-        }
-        return;
+        SetValue(opts.GetExtraOptionValueOrDefault(GetFlagName(), mValue));
     }
 
     T GetValue() const { return mValue; }
