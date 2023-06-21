@@ -18,6 +18,7 @@
 #include "nlohmann/json.hpp"
 #include "ppx/config.h"
 
+#include <filesystem>
 #include <limits>
 #include <string>
 #include <unordered_map>
@@ -52,26 +53,6 @@ struct MetricMetadata
     std::string          unit;
     MetricInterpretation interpretation = MetricInterpretation::NONE;
     Range                expectedRange;
-};
-
-////////////////////////////////////////////////////////////////////////////////
-
-// A report contains runs and metrics information.
-// It is meant to be saved to disk.
-class Report final
-{
-    friend class Manager;
-
-public:
-    static constexpr const char* kFileExtension = ".json";
-
-public:
-    Report();
-    ~Report();
-    void WriteToFile(const char* pFilepath) const;
-
-private:
-    nlohmann::json mContent;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -239,11 +220,37 @@ public:
 
     Run* AddRun(const char* pName);
 
-    // Exports all the runs and metrics information into a report.
-    Report Export(const char* pName) const;
+    // Exports all the runs and metrics information into a report to disk.
+    void ExportToDisk(const std::string& baseReportName) const;
 
 private:
     METRICS_NO_COPY(Manager)
+
+    // A report contains runs and metrics information meant to be saved to disk.
+    // Because the json object at its core relies on strings-as-pointers, the
+    // lifecycle of a report is tied to the lifecycle of the runs and metrics
+    // owned by the Manager. But this is opaque. To protect misuse, the class
+    // is a private member.
+    class Report final
+    {
+    public:
+        static constexpr const char* kFileExtension = ".json";
+
+    public:
+        // Copy constructor for content.
+        Report(const nlohmann::json& content, const std::string& baseReportName);
+        // Move constructor for content.
+        Report(nlohmann::json&& content, const std::string& baseReportName);
+
+        void WriteToDisk(bool overwriteExisting = false) const;
+
+    private:
+        void SetReportName(const std::string& baseReportName);
+
+        nlohmann::json        mContent;
+        std::string           mReportName;
+        std::filesystem::path mFilePath;
+    };
 
 private:
     std::unordered_map<std::string, Run*> mRuns;
