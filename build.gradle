@@ -133,6 +133,21 @@ android {
             manifest.srcFile 'src/android/AndroidManifest.XR.xml'
         }
     }
+
+    splits {
+        // Configures multiple APKs based on ABI.
+        abi {
+          enable true
+          // Resets the list of ABIs for Gradle to create APKs for to none.
+          reset()
+
+          // Specifies a list of ABIs for Gradle to create APKs for.
+          include "arm64-v8a"
+
+          // Do not generate a universal APK that includes all ABIs.
+          universalApk false
+        }
+    }
 }
 
 dependencies {
