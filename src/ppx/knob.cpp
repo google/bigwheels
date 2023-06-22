@@ -38,13 +38,13 @@ bool Knob::DigestUpdate()
 KnobCheckbox::KnobCheckbox(const std::string& flagName, bool defaultValue)
     : Knob(flagName), mDefaultValue(defaultValue), mValue(defaultValue)
 {
-    SetHelpParams(" <true|false>");
+    SetFlagParameters(" <true|false>");
     RaiseUpdatedFlag();
 }
 
 void KnobCheckbox::Draw()
 {
-    if (!ImGui::Checkbox(GetDisplayName().c_str(), &mValue)) {
+    if (!ImGui::Checkbox(mDisplayName.c_str(), &mValue)) {
         return;
     }
     RaiseUpdatedFlag();
@@ -52,7 +52,7 @@ void KnobCheckbox::Draw()
 
 void KnobCheckbox::UpdateFromFlags(const CliOptions& opts)
 {
-    SetDefaultAndValue(opts.GetExtraOptionValueOrDefault(GetFlagName(), mValue));
+    SetDefaultAndValue(opts.GetExtraOptionValueOrDefault(mFlagName, mValue));
 }
 
 void KnobCheckbox::SetValue(bool newValue)
@@ -88,11 +88,11 @@ void KnobManager::DrawAllKnobs(bool inExistingWindow)
     }
 
     for (const auto& knobPtr : mKnobs) {
-        for (size_t i = 0; i < knobPtr->GetIndent(); i++) {
+        for (size_t i = 0; i < knobPtr->mIndent; i++) {
             ImGui::Indent();
         }
         knobPtr->Draw();
-        for (size_t i = 0; i < knobPtr->GetIndent(); i++) {
+        for (size_t i = 0; i < knobPtr->mIndent; i++) {
             ImGui::Unindent();
         }
     }
@@ -112,9 +112,9 @@ std::string KnobManager::GetUsageMsg()
     // Tends to have longer params, do not attempt to align description
     // --flag_name <params> : description
     for (const auto& knobPtr : mKnobs) {
-        usageMsg += "--" + knobPtr->GetFlagName() + knobPtr->GetHelpParams();
-        if (knobPtr->GetFlagHelp() != "") {
-            usageMsg += " : " + knobPtr->GetFlagHelp();
+        usageMsg += "--" + knobPtr->mFlagName + knobPtr->mFlagParameters;
+        if (knobPtr->mFlagDesc != "") {
+            usageMsg += " : " + knobPtr->mFlagDesc;
         }
         usageMsg += "\n";
     }
