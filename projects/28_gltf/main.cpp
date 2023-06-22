@@ -97,7 +97,8 @@ private:
     grfx::DescriptorPoolPtr      mDescriptorPool;
     grfx::DescriptorSetLayoutPtr mSetLayout;
     grfx::ShaderModulePtr        mVertexShader;
-    grfx::ShaderModulePtr        mPixelShader;
+    grfx::ShaderModulePtr        mPbrPixelShader;
+    grfx::ShaderModulePtr        mUnlitPixelShader;
     PerspCamera                  mCamera;
     float3                       mLightPosition = float3(10, 100, 10);
 
@@ -247,7 +248,6 @@ void ProjApp::LoadMaterial(
     if (material.extensions_count != 0) {
         printf("Material %s has extensions, but they are ignored. Rendered result may vary.\n", material.name);
     }
-
     // This is to simplify the pipeline creation for now. Need to revisit later.
     PPX_ASSERT_MSG(material.has_pbr_metallic_roughness, "Only PBR metallic roughness supported for now.");
 
@@ -259,7 +259,8 @@ void ProjApp::LoadMaterial(
 
     grfx::GraphicsPipelineCreateInfo2 gpCreateInfo = {};
     gpCreateInfo.VS                                = {mVertexShader.Get(), "vsmain"};
-    gpCreateInfo.PS                                = {mPixelShader.Get(), "psmain"};
+    ppx::grfx::ShaderModule* psModule              = material.unlit ? mUnlitPixelShader.Get() : mPbrPixelShader.Get();
+    gpCreateInfo.PS                                = {psModule, "psmain"};
     // FIXME: assuming all primitives provides POSITION, UV, NORMAL and TANGENT. Might not be the case.
     gpCreateInfo.vertexInputState.bindingCount      = 4;
     gpCreateInfo.vertexInputState.bindings[0]       = mPrimitives[0].mesh->GetDerivedVertexBindings()[0];
@@ -620,7 +621,12 @@ void ProjApp::Setup()
     bytecode = LoadShader("basic/shaders", "PbrMetallicRoughness.ps");
     PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
     shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-    PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPixelShader));
+    PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPbrPixelShader));
+
+    bytecode = LoadShader("basic/shaders", "Unlit.ps");
+    PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
+    shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+    PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mUnlitPixelShader));
 
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
@@ -701,7 +707,8 @@ void ProjApp::Setup()
     }
 
     GetDevice()->DestroyShaderModule(mVertexShader);
-    GetDevice()->DestroyShaderModule(mPixelShader);
+    GetDevice()->DestroyShaderModule(mPbrPixelShader);
+    GetDevice()->DestroyShaderModule(mUnlitPixelShader);
 }
 
 void ProjApp::Render()

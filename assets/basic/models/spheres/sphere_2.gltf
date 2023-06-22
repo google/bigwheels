@@ -3,6 +3,9 @@
         "generator" : "Khronos glTF Blender I/O v3.4.50",
         "version" : "2.0"
     },
+    "extensionsUsed" : [
+      "KHR_materials_unlit"
+    ],
     "scene" : 0,
     "scenes" : [
         {
@@ -30,22 +33,16 @@
     ],
     "materials" : [
         {
-            "emissiveFactor" : [
-                1,
-                1,
-                1
-            ],
-            "emissiveTexture" : {
-                "index" : 0
+            "extensions" : {
+                "KHR_materials_unlit": {}
             },
             "name" : "Skybox",
             "pbrMetallicRoughness" : {
-                "baseColorFactor" : [
-                    0,
-                    0,
-                    0,
-                    1
-                ]
+                "baseColorTexture" : {
+                    "index" : 0
+                },
+                "metallicFactor" : 0,
+                "roughnessFactor" : 1.0
             }
         },
         {
