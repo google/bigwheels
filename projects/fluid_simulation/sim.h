@@ -21,31 +21,31 @@ namespace FluidSim {
 
 struct SimulationConfig
 {
-    float       simResolution       = 128;
-    float       dyeResolution       = 1024;
-    float       captureResolution   = 512;
-    float       densityDissipation  = 1.0f;
-    float       velocityDissipation = 0.2f;
-    float       pressure            = 0.8f;
-    int         pressureIterations  = 20;
-    float       curl                = 30.0f;
-    float       splatRadius         = 0.25f;
-    float       splatForce          = 6000.0f;
-    bool        shading             = true;
-    bool        colorful            = true;
-    float       colorUpdateSpeed    = 10.0f;
-    bool        paused              = false;
-    ppx::float4 backColor           = {0.0f, 0.0f, 0.0f, 1.0f};
-    bool        transparent         = false;
-    bool        bloom               = true;
-    int         bloomIterations     = 8;
-    int         bloomResolution     = 256;
-    float       bloomIntensity      = 0.8f;
-    float       bloomThreshold      = 0.6f;
-    float       bloomSoftKnee       = 0.7f;
-    bool        sunrays             = true;
-    int         sunraysResolution   = 196;
-    float       sunraysWeight       = 1.0f;
+    bool        bloom                = true;
+    float       bloomIntensity       = 0.8f;
+    uint32_t    bloomIterations      = 8;
+    uint32_t    bloomResolution      = 256;
+    float       bloomSoftKnee        = 0.7f;
+    float       bloomThreshold       = 0.6f;
+    float       colorUpdateFrequency = 0.9f;
+    float       curl                 = 30.0f;
+    float       densityDissipation   = 1.0f;
+    uint32_t    dyeResolution        = 1024;
+    bool        marble               = true;
+    float       marbleDropFrequency  = 0.9f;
+    uint32_t    numSplats            = 0;
+    float       pressure             = 0.8f;
+    uint32_t    pressureIterations   = 20;
+    uint32_t    simResolution        = 128;
+    float       splatForce           = 6000.0f;
+    float       splatFrequency       = 0.4f;
+    float       splatRadius          = 0.25f;
+    bool        sunrays              = true;
+    uint32_t    sunraysResolution    = 196;
+    float       sunraysWeight        = 1.0f;
+    bool        transparent          = false;
+    float       velocityDissipation  = 0.2f;
+    ppx::float4 backColor            = {0.0f, 0.0f, 0.0f, 1.0f};
 
     SimulationConfig() {}
 };
@@ -55,7 +55,7 @@ struct Bouncer
 {
     ppx::float2 coord = {0.5, 0.5};
     ppx::float2 delta = {0.014, -0.073};
-    ppx::float3 color = {30, 0, 300};
+    ppx::float3 color = {0.5, 0.5, 0};
 };
 
 class ProjApp;
@@ -65,6 +65,7 @@ class FluidSimulation
 public:
     FluidSimulation(ProjApp* app);
     ProjApp*                     GetApp() const { return mApp; }
+    const SimulationConfig&      GetConfig() const;
     ppx::grfx::DescriptorPoolPtr GetDescriptorPool() const { return mDescriptorPool; }
     ComputeResources*            GetComputeResources() { return &mCompute; }
     GraphicsResources*           GetGraphicsResources() { return &mGraphics; }
@@ -113,12 +114,9 @@ private:
     // Graphics resources (pipeline interface, descriptor layout, sampler, etc).
     GraphicsResources mGraphics;
 
-    // Configuration settings for the simulation.
-    SimulationConfig mConfig;
-
     // Time tracker to determine the delta since we called FluidSimulation::Update.  Used to
     // pass to compute values like decay and velocity to cycle colors.
-    float mLastUpdateTime;
+    double mLastUpdateTime;
 
     // Textures used for filtering.
     std::unique_ptr<Texture>              mBloomTexture;
@@ -173,16 +171,8 @@ private:
     // Time tracker used to cycle colours as the pointer moves.
     ppx::Timer mTimer;
 
-    // Color cycler.  This value cycles between 0.0 and 1.0 based on
-    // SimulationConfig::colorUpdateSpeed and the elapsed time.
-    float mColorCycler = 0.0;
-
     // Virtual object moving through the simulation field causing wakes in the fluid.
     Bouncer mMarble;
-
-    // Queue of splats to generate at random when moving objects.  These emulate
-    // the spacebar keystroke action in the original WebGL application.
-    std::queue<uint32_t> mSplatQ;
 
     void        ApplyBloom(Texture* source, Texture* destination);
     void        ApplySunrays(Texture* source, Texture* mask, Texture* destination);
@@ -194,8 +184,7 @@ private:
     void        DrawTextures();
     ppx::float3 GenerateColor();
     float       CalcDeltaTime();
-    void        UpdateColors(float deltaTime);
-    void        MoveObjects();
+    void        MoveMarble();
     void        Step(float deltaTime);
 
     /// @brief             Return a vector describing a rectangle with dimensions that can fit "resolution" pixels.
@@ -204,7 +193,7 @@ private:
     ///
     /// @return            A vector of 2 dimensions. The dimensions have the same aspect ratio as
     ///                    the application window and can fit at least "resolution" pixels in it.
-    ppx::int2 GetResolution(float resolution);
+    ppx::uint2 GetResolution(uint32_t resolution);
 
     ppx::float3  HSVtoRGB(ppx::float3 hsv);
     void         InitBloomTextures();
@@ -236,11 +225,15 @@ private:
 class ProjApp : public ppx::Application
 {
 public:
-    virtual void Config(ppx::ApplicationSettings& settings) override;
-    virtual void Setup() override;
-    virtual void Render() override;
+    virtual void            Config(ppx::ApplicationSettings& settings) override;
+    virtual void            Setup() override;
+    virtual void            Render() override;
+    const SimulationConfig& GetSimulationConfig() const { return mConfig; }
 
 private:
+    // Configuration parameters to the simulator.
+    SimulationConfig mConfig;
+
     // Fluid simulation driver.
     std::unique_ptr<FluidSimulation> mSim;
 };

@@ -188,7 +188,7 @@ void ComputeDispatchRecord::BindOutputTexture(uint32_t bindingSlot)
 
 void ComputeShader::Dispatch(const PerFrame& frame, const std::unique_ptr<ComputeDispatchRecord>& dr)
 {
-    ppx::float3 dispatchSize = ppx::float3(dr->mOutput->GetWidth(), dr->mOutput->GetHeight(), 1);
+    ppx::uint3 dispatchSize = ppx::uint3(dr->mOutput->GetWidth(), dr->mOutput->GetHeight(), 1);
 
     PPX_LOG_DEBUG("Running compute shader '" << mShaderFile << ".cs' (" << dispatchSize << ")\n");
 

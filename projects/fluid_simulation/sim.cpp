@@ -24,6 +24,11 @@ const ppx::grfx::Format kR    = ppx::grfx::FORMAT_R16_FLOAT;
 const ppx::grfx::Format kRG   = ppx::grfx::FORMAT_R16G16_FLOAT;
 const ppx::grfx::Format kRGBA = ppx::grfx::FORMAT_R16G16B16A16_FLOAT;
 
+const SimulationConfig& FluidSimulation::GetConfig() const
+{
+    return mApp->GetSimulationConfig();
+}
+
 FluidSimulation::FluidSimulation(ProjApp* app)
     : mApp(app)
 {
@@ -190,23 +195,23 @@ void FluidSimulation::InitGraphicsShaders()
     mDraw = std::make_unique<GraphicsShader>(this);
 }
 
-ppx::int2 FluidSimulation::GetResolution(float resolution)
+ppx::uint2 FluidSimulation::GetResolution(uint32_t resolution)
 {
     float aspectRatio = static_cast<float>(GetApp()->GetWindowWidth()) / static_cast<float>(GetApp()->GetWindowHeight());
     if (aspectRatio < 1.0f) {
         aspectRatio = 1.0f / aspectRatio;
     }
 
-    int min = round(resolution);
-    int max = round(resolution * aspectRatio);
+    uint32_t min = resolution;
+    uint32_t max = static_cast<uint32_t>(std::round(static_cast<float>(resolution) * aspectRatio));
 
-    return (GetApp()->GetWindowWidth() > GetApp()->GetWindowHeight()) ? ppx::int2(max, min) : ppx::int2(min, max);
+    return (GetApp()->GetWindowWidth() > GetApp()->GetWindowHeight()) ? ppx::uint2(max, min) : ppx::uint2(min, max);
 }
 
 void FluidSimulation::InitTextures()
 {
-    ppx::int2 simRes = GetResolution(mConfig.simResolution);
-    ppx::int2 dyeRes = GetResolution(mConfig.dyeResolution);
+    ppx::int2 simRes = GetResolution(GetConfig().simResolution);
+    ppx::int2 dyeRes = GetResolution(GetConfig().dyeResolution);
 
     // Generate all the textures.
     ppx::uint2 wsize     = {GetApp()->GetWindowWidth(), GetApp()->GetWindowHeight()};
@@ -229,10 +234,10 @@ void FluidSimulation::InitTextures()
 
 void FluidSimulation::InitBloomTextures()
 {
-    ppx::int2 res = GetResolution(mConfig.bloomResolution);
+    ppx::int2 res = GetResolution(GetConfig().bloomResolution);
     mBloomTexture = std::make_unique<Texture>(this, "bloom", res.x, res.y, kRGBA);
     PPX_ASSERT_MSG(mBloomTextures.empty(), "Bloom textures already initialized");
-    for (int i = 0; i < mConfig.bloomIterations; i++) {
+    for (uint32_t i = 0; i < GetConfig().bloomIterations; i++) {
         uint32_t width  = res.x >> (i + 1);
         uint32_t height = res.y >> (i + 1);
         if (width < 2 || height < 2)
@@ -243,7 +248,7 @@ void FluidSimulation::InitBloomTextures()
 
 void FluidSimulation::InitSunraysTextures()
 {
-    ppx::int2 res       = GetResolution(mConfig.sunraysResolution);
+    ppx::int2 res       = GetResolution(GetConfig().sunraysResolution);
     mSunraysTexture     = std::make_unique<Texture>(this, "sunrays", res.x, res.y, kR);
     mSunraysTempTexture = std::make_unique<Texture>(this, "sunrays temp", res.x, res.y, kR);
 }
@@ -260,10 +265,7 @@ void FluidSimulation::GenerateInitialSplat()
     }
     mTexturesToInitialize.clear();
 
-    MultipleSplats(1);
-#if 0
-    Random().UInt32() % 20 + 5);
-#endif
+    MultipleSplats(GetConfig().numSplats);
 }
 
 ppx::float3 FluidSimulation::HSVtoRGB(ppx::float3 hsv)
@@ -309,7 +311,7 @@ float FluidSimulation::CorrectRadius(float radius)
 void FluidSimulation::Splat(ppx::float2 point, ppx::float2 delta, ppx::float3 color)
 {
     float       aspect     = GetApp()->GetWindowAspect();
-    float       radius     = CorrectRadius(mConfig.splatRadius / 100.0f);
+    float       radius     = CorrectRadius(GetConfig().splatRadius / 100.0f);
     ppx::float4 deltaColor = ppx::float4(delta.x, delta.y, 0.0f, 1.0f);
     ScheduleDR(mSplat->GetDR(mVelocityTexture[0].get(), mVelocityTexture[1].get(), point, aspect, radius, deltaColor));
     std::swap(mVelocityTexture[0], mVelocityTexture[1]);
@@ -320,21 +322,19 @@ void FluidSimulation::Splat(ppx::float2 point, ppx::float2 delta, ppx::float3 co
 
 void FluidSimulation::MultipleSplats(uint32_t amount)
 {
+    // Emit a random number of splats if the stated amount is 0.
+    if (amount == 0) {
+        amount = Random().UInt32() % 20 + 5;
+    }
+
     PPX_LOG_DEBUG("Emitting " << amount << " splashes of color\n");
     for (uint32_t i = 0; i < amount; i++) {
-#if 0
-         ppx::float3 color = GenerateColor();
-         color.r *= 10.0f;
-         color.g *= 10.0f;
-         color.b *= 10.0f;
-#endif
-        ppx::float3 color = ppx::float3(0.485268f, 1.5f, 0.0f);
-#if 0
-         ppx::float2 point(Random().Float(), Random().Float());
-         ppx::float2 delta(1000.0f * (Random().Float() - 0.5f), 1000.0f * (Random().Float() - 0.5f));
-#endif
-        ppx::float2 point(0.5f, 0.5f);
-        ppx::float2 delta(250.0f, 250.0f);
+        ppx::float3 color = GenerateColor();
+        color.r *= 10.0f;
+        color.g *= 10.0f;
+        color.b *= 10.0f;
+        ppx::float2 point(Random().Float(), Random().Float());
+        ppx::float2 delta(1000.0f * (Random().Float() - 0.5f), 1000.0f * (Random().Float() - 0.5f));
         PPX_LOG_DEBUG("Splash #" << i << " at " << point << " with color " << color << "\n");
         Splat(point, delta, color);
     }
@@ -342,26 +342,19 @@ void FluidSimulation::MultipleSplats(uint32_t amount)
 
 void FluidSimulation::Render()
 {
-    if (mConfig.bloom) {
+    if (GetConfig().bloom) {
         ApplyBloom(mDyeTexture[0].get(), mBloomTexture.get());
     }
 
-    if (mConfig.sunrays) {
+    if (GetConfig().sunrays) {
         ApplySunrays(mDyeTexture[0].get(), mDyeTexture[1].get(), mSunraysTexture.get());
         Blur(mSunraysTexture.get(), mSunraysTempTexture.get(), 1);
     }
 
-    if (!mConfig.transparent) {
-        DrawColor(NormalizeColor(mConfig.backColor));
-    }
-    else {
-        DrawCheckerboard();
-    }
-#if 1
     DrawDisplay();
-#else
-    DrawTextures();
-#endif
+
+    if (GetApp()->GetSettings()->grfx.enableDebug)
+        DrawTextures();
 }
 
 void FluidSimulation::ApplyBloom(Texture* source, Texture* destination)
@@ -371,30 +364,30 @@ void FluidSimulation::ApplyBloom(Texture* source, Texture* destination)
 
     Texture* last = destination;
 
-    float knee   = mConfig.bloomThreshold * mConfig.bloomSoftKnee + 0.0001f;
-    float curve0 = mConfig.bloomThreshold - knee;
+    float knee   = GetConfig().bloomThreshold * GetConfig().bloomSoftKnee + 0.0001f;
+    float curve0 = GetConfig().bloomThreshold - knee;
     float curve1 = knee * 2.0f;
     float curve2 = 0.25f / knee;
-    ScheduleDR(mBloomPrefilter->GetDR(source, last, ppx::float3(curve0, curve1, curve2), mConfig.bloomThreshold));
+    ScheduleDR(mBloomPrefilter->GetDR(source, last, ppx::float3(curve0, curve1, curve2), GetConfig().bloomThreshold));
 
     for (auto& dest : mBloomTextures) {
         ScheduleDR(mBloomBlur->GetDR(last, dest.get(), last->GetTexelSize()));
         last = dest.get();
     }
 
-    for (int i = mBloomTextures.size() - 2; i >= 0; i--) {
+    for (int i = static_cast<int>(mBloomTextures.size() - 2); i >= 0; i--) {
         Texture* baseTex = mBloomTextures[i].get();
         ScheduleDR(mBloomBlurAdditive->GetDR(last, baseTex, last->GetTexelSize()));
         last = baseTex;
     }
 
-    ScheduleDR(mBloomFinal->GetDR(last, destination, last->GetTexelSize(), mConfig.bloomIntensity));
+    ScheduleDR(mBloomFinal->GetDR(last, destination, last->GetTexelSize(), GetConfig().bloomIntensity));
 }
 
 void FluidSimulation::ApplySunrays(Texture* source, Texture* mask, Texture* destination)
 {
     ScheduleDR(mSunraysMask->GetDR(source, mask));
-    ScheduleDR(mSunrays->GetDR(mask, destination, mConfig.sunraysWeight));
+    ScheduleDR(mSunrays->GetDR(mask, destination, GetConfig().sunraysWeight));
 }
 
 void FluidSimulation::Blur(Texture* target, Texture* temp, uint32_t iterations)
@@ -428,13 +421,13 @@ void FluidSimulation::DrawDisplay()
     uint32_t    height      = GetApp()->GetWindowHeight();
     ppx::float2 texelSize   = ppx::float2(1.0f / width, 1.0f / height);
     ppx::float2 ditherScale = mDitheringTexture->GetDitherScale(width, height);
+    DrawColor(NormalizeColor(GetConfig().backColor));
     ScheduleDR(mDisplay->GetDR(mDyeTexture[0].get(), mBloomTexture.get(), mSunraysTexture.get(), mDitheringTexture.get(), mDisplayTexture.get(), texelSize, ditherScale));
     ScheduleDR(mDraw->GetDR(mDisplayTexture.get(), ppx::float2(-1.0f, 1.0f)));
 }
 
 void FluidSimulation::DrawTextures()
 {
-    DrawColor(ppx::float4(1.0f, 1.0f, 0.8f, 1.0f));
     std::vector<Texture*> v = {
         mBloomTexture.get(),
         mCurlTexture.get(),
@@ -464,47 +457,44 @@ void FluidSimulation::DrawTextures()
 
 void FluidSimulation::Update()
 {
-    // Queue up some splats at random.  But limit the amount of outstanding splats so it doesn't get too busy.
-    if (mSplatQ.size() < 5 && Random().Float() > 0.9) {
-        mSplatQ.push(Random().UInt32() % 3 + 1);
+    float delta = CalcDeltaTime();
+
+    // If the marble has been selected, move it around and drop it at random.
+    if (GetConfig().marble) {
+        MoveMarble();
+
+        // Update the color of the marble.
+        if (mRandom.Float() <= GetConfig().colorUpdateFrequency) {
+            mMarble.color = GenerateColor();
+        }
+
+        // Drop the marble at random.
+        if (mRandom.Float() <= GetConfig().marbleDropFrequency) {
+            ppx::float2 delta = mMarble.delta * GetConfig().splatForce;
+            Splat(mMarble.coord, delta, mMarble.color);
+        }
     }
 
-    // ppx::Timer::SleepMillis(500);
-    float delta = CalcDeltaTime();
-    UpdateColors(delta);
-    MoveObjects();
+    // Queue up some splats at random. But limit the amount of outstanding splats so it doesn't get too busy.
+    if (Random().Float() <= GetConfig().splatFrequency) {
+        MultipleSplats(1);
+    }
+
     Step(delta);
     Render();
 }
 
 float FluidSimulation::CalcDeltaTime()
 {
-    float now       = mTimer.MillisSinceStart();
-    float delta     = (now - mLastUpdateTime) / 1000;
+    double now      = mTimer.MillisSinceStart();
+    float  delta    = static_cast<float>((now - mLastUpdateTime) / 1000.0);
     delta           = std::min(delta, 0.016666f);
     mLastUpdateTime = now;
     return delta;
 }
 
-void FluidSimulation::UpdateColors(float deltaTime)
+void FluidSimulation::MoveMarble()
 {
-    mColorCycler += deltaTime * mConfig.colorUpdateSpeed;
-
-    if (mColorCycler >= 1.0) {
-        mColorCycler  = 0.0;
-        mMarble.color = GenerateColor();
-    }
-}
-
-void FluidSimulation::MoveObjects()
-{
-#if 0
-    if (mSplatQ.size() > 0) {
-        MultipleSplats(mSplatQ.front());
-        mSplatQ.pop();
-    }
-#endif
-
     // Move the marble so that it bounces off of the window borders.
     mMarble.coord += mMarble.delta;
 
@@ -524,13 +514,6 @@ void FluidSimulation::MoveObjects()
         mMarble.coord.y = 1.0f;
         mMarble.delta.y *= -1.0f;
     }
-
-#if 0
-    if (mRandom.Float() > 0.9) {
-        ppx::float2 delta = mMarble.delta * mConfig.splatForce;
-        Splat(mMarble.coord, delta, mMarble.color);
-    }
-#endif
 }
 
 void FluidSimulation::Step(float delta)
@@ -539,15 +522,15 @@ void FluidSimulation::Step(float delta)
 
     ScheduleDR(mCurl->GetDR(mVelocityTexture[0].get(), mCurlTexture.get(), texelSize));
 
-    ScheduleDR(mVorticity->GetDR(mVelocityTexture[0].get(), mCurlTexture.get(), mVelocityTexture[1].get(), texelSize, mConfig.curl, delta));
+    ScheduleDR(mVorticity->GetDR(mVelocityTexture[0].get(), mCurlTexture.get(), mVelocityTexture[1].get(), texelSize, GetConfig().curl, delta));
     std::swap(mVelocityTexture[0], mVelocityTexture[1]);
 
     ScheduleDR(mDivergence->GetDR(mVelocityTexture[0].get(), mDivergenceTexture.get(), texelSize));
 
-    ScheduleDR(mClear->GetDR(mPressureTexture[0].get(), mPressureTexture[1].get(), mConfig.pressure));
+    ScheduleDR(mClear->GetDR(mPressureTexture[0].get(), mPressureTexture[1].get(), GetConfig().pressure));
     std::swap(mPressureTexture[0], mPressureTexture[1]);
 
-    for (int i = 0; i < mConfig.pressureIterations; ++i) {
+    for (uint32_t i = 0; i < GetConfig().pressureIterations; ++i) {
         ScheduleDR(mPressure->GetDR(mPressureTexture[0].get(), mDivergenceTexture.get(), mPressureTexture[1].get(), texelSize));
         std::swap(mPressureTexture[0], mPressureTexture[1]);
     }
@@ -555,10 +538,10 @@ void FluidSimulation::Step(float delta)
     ScheduleDR(mGradientSubtract->GetDR(mPressureTexture[0].get(), mVelocityTexture[0].get(), mVelocityTexture[1].get(), texelSize));
     std::swap(mVelocityTexture[0], mVelocityTexture[1]);
 
-    ScheduleDR(mAdvection->GetDR(mVelocityTexture[0].get(), mVelocityTexture[0].get(), mVelocityTexture[1].get(), delta, mConfig.velocityDissipation, texelSize, texelSize));
+    ScheduleDR(mAdvection->GetDR(mVelocityTexture[0].get(), mVelocityTexture[0].get(), mVelocityTexture[1].get(), delta, GetConfig().velocityDissipation, texelSize, texelSize));
     std::swap(mVelocityTexture[0], mVelocityTexture[1]);
 
-    ScheduleDR(mAdvection->GetDR(mVelocityTexture[0].get(), mDyeTexture[0].get(), mDyeTexture[1].get(), delta, mConfig.densityDissipation, texelSize, mDyeTexture[0]->GetTexelSize()));
+    ScheduleDR(mAdvection->GetDR(mVelocityTexture[0].get(), mDyeTexture[0].get(), mDyeTexture[1].get(), delta, GetConfig().densityDissipation, texelSize, mDyeTexture[0]->GetTexelSize()));
     std::swap(mDyeTexture[0], mDyeTexture[1]);
 }
 

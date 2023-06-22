@@ -33,3 +33,9 @@ std::ostream& operator<<(std::ostream& os, const ppx::float4& i)
     os << "(" << i.r << ", " << i.g << ", " << i.b << ", " << i.a << ")";
     return os;
 }
+
+std::ostream& operator<<(std::ostream& os, const ppx::uint3& i)
+{
+    os << "(" << i.x << ", " << i.y << ", " << i.z << ")";
+    return os;
+}
