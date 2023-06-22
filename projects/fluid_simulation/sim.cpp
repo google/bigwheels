@@ -209,20 +209,19 @@ void FluidSimulation::InitTextures()
     ppx::int2 dyeRes = GetResolution(mConfig.dyeResolution);
 
     // Generate all the textures.
-    ppx::uint2        wsize       = {GetApp()->GetWindowWidth(), GetApp()->GetWindowHeight()};
-    ppx::grfx::Format colorFormat = GetApp()->GetSwapchain()->GetColorFormat();
-    mCheckerboardTexture          = std::make_unique<Texture>(this, "checkerboard", wsize.x, wsize.y, colorFormat);
-    mCurlTexture                  = std::make_unique<Texture>(this, "curl", simRes.x, simRes.y, colorFormat);
-    mDivergenceTexture            = std::make_unique<Texture>(this, "divergence", simRes.x, simRes.y, colorFormat);
-    mDisplayTexture               = std::make_unique<Texture>(this, "display", wsize.x, wsize.y, colorFormat);
-    mDitheringTexture             = std::make_unique<Texture>(this, "fluid_simulation/textures/LDR_LLL1_0.png");
-    mDrawColorTexture             = std::make_unique<Texture>(this, "draw color", wsize.x, wsize.y, colorFormat);
-    mDyeTexture[0]                = std::make_unique<Texture>(this, "dye[0]", dyeRes.x, dyeRes.y, kRGBA);
-    mDyeTexture[1]                = std::make_unique<Texture>(this, "dye[1]", dyeRes.x, dyeRes.y, kRGBA);
-    mPressureTexture[0]           = std::make_unique<Texture>(this, "pressure[0]", simRes.x, simRes.y, colorFormat);
-    mPressureTexture[1]           = std::make_unique<Texture>(this, "pressure[1]", simRes.x, simRes.y, colorFormat);
-    mVelocityTexture[0]           = std::make_unique<Texture>(this, "velocity[0]", simRes.x, simRes.y, kRG);
-    mVelocityTexture[1]           = std::make_unique<Texture>(this, "velocity[1]", simRes.x, simRes.y, kRG);
+    ppx::uint2 wsize     = {GetApp()->GetWindowWidth(), GetApp()->GetWindowHeight()};
+    mCheckerboardTexture = std::make_unique<Texture>(this, "checkerboard", wsize.x, wsize.y, GetApp()->GetSwapchain()->GetColorFormat());
+    mCurlTexture         = std::make_unique<Texture>(this, "curl", simRes.x, simRes.y, kR);
+    mDivergenceTexture   = std::make_unique<Texture>(this, "divergence", simRes.x, simRes.y, kR);
+    mDisplayTexture      = std::make_unique<Texture>(this, "display", wsize.x, wsize.y, kRGBA);
+    mDitheringTexture    = std::make_unique<Texture>(this, "fluid_simulation/textures/LDR_LLL1_0.png");
+    mDrawColorTexture    = std::make_unique<Texture>(this, "draw color", wsize.x, wsize.y, kRGBA);
+    mDyeTexture[0]       = std::make_unique<Texture>(this, "dye[0]", dyeRes.x, dyeRes.y, kRGBA);
+    mDyeTexture[1]       = std::make_unique<Texture>(this, "dye[1]", dyeRes.x, dyeRes.y, kRGBA);
+    mPressureTexture[0]  = std::make_unique<Texture>(this, "pressure[0]", simRes.x, simRes.y, kR);
+    mPressureTexture[1]  = std::make_unique<Texture>(this, "pressure[1]", simRes.x, simRes.y, kR);
+    mVelocityTexture[0]  = std::make_unique<Texture>(this, "velocity[0]", simRes.x, simRes.y, kRG);
+    mVelocityTexture[1]  = std::make_unique<Texture>(this, "velocity[1]", simRes.x, simRes.y, kRG);
 
     InitBloomTextures();
     InitSunraysTextures();
@@ -358,7 +357,7 @@ void FluidSimulation::Render()
     else {
         DrawCheckerboard();
     }
-#if 0
+#if 1
     DrawDisplay();
 #else
     DrawTextures();
