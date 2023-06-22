@@ -355,14 +355,14 @@ TEST_F(KnobManagerTestFixture, KnobManager_GetCustomizedUsageMsg)
 {
     std::shared_ptr<KnobCheckbox> k1(km.CreateKnob<KnobCheckbox>("flag_name1", true));
     k1->SetFlagParameters(" <bool>");
-    k1->SetFlagDesc("description1");
+    k1->SetFlagDescription("description1");
     std::shared_ptr<KnobCheckbox>    k2(km.CreateKnob<KnobCheckbox>("flag_name2", true));
     std::shared_ptr<KnobSlider<int>> k3(km.CreateKnob<KnobSlider<int>>("flag_name3", 5, 0, 10));
     k3->SetFlagParameters(" <N>");
-    k3->SetFlagDesc("description3");
+    k3->SetFlagDescription("description3");
     std::vector<std::string>                   choices4 = {"c1", "c2", "c3 and more"};
     std::shared_ptr<KnobDropdown<std::string>> k4(km.CreateKnob<KnobDropdown<std::string>>("flag_name4", 1, choices4.cbegin(), choices4.cend()));
-    k4->SetFlagDesc("description4");
+    k4->SetFlagDescription("description4");
 
     std::string usageMsg = R"(
 Application-Specific Flags:

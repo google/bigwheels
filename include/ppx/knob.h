@@ -51,7 +51,7 @@ public:
     virtual ~Knob() = default;
 
     // Customize flag usage message
-    void SetFlagDesc(const std::string& flagDesc) { mFlagDesc = flagDesc; }
+    void SetFlagDescription(const std::string& flagDescription) { mFlagDescription = flagDescription; }
     void SetFlagParameters(const std::string& flagParameters) { mFlagParameters = flagParameters; }
 
     // Customize how knob is drawn in the UI
@@ -77,7 +77,7 @@ protected:
 
 private:
     std::string mFlagParameters;
-    std::string mFlagDesc;
+    std::string mFlagDescription;
     size_t      mIndent; // Indent for when knob is drawn in the UI
     bool        mUpdatedFlag;
 

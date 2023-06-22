@@ -113,8 +113,8 @@ std::string KnobManager::GetUsageMsg()
     // --flag_name <params> : description
     for (const auto& knobPtr : mKnobs) {
         usageMsg += "--" + knobPtr->mFlagName + knobPtr->mFlagParameters;
-        if (knobPtr->mFlagDesc != "") {
-            usageMsg += " : " + knobPtr->mFlagDesc;
+        if (knobPtr->mFlagDescription != "") {
+            usageMsg += " : " + knobPtr->mFlagDescription;
         }
         usageMsg += "\n";
     }
