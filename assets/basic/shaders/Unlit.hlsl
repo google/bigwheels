@@ -15,7 +15,7 @@
 struct SceneData
 {
     float4x4 ModelMatrix;                // Transforms object space to world space.
-    float4x4 ITModelMatrix;                // Inverse transpose of the ModelMatrix.
+    float4x4 ITModelMatrix;              // Inverse transpose of the ModelMatrix.
     float4   Ambient;                    // Object's ambient intensity.
     float4x4 CameraViewProjectionMatrix; // Camera's view projection matrix.
     float4   LightPosition;              // Light's position.
