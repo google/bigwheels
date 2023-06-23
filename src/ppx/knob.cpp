@@ -38,7 +38,7 @@ bool Knob::DigestUpdate()
 KnobCheckbox::KnobCheckbox(const std::string& flagName, bool defaultValue)
     : Knob(flagName), mDefaultValue(defaultValue), mValue(defaultValue)
 {
-    SetFlagParameters(" <true|false>");
+    SetFlagParameters("<true|false>");
     RaiseUpdatedFlag();
 }
 
@@ -112,7 +112,10 @@ std::string KnobManager::GetUsageMsg()
     // Tends to have longer params, do not attempt to align description
     // --flag_name <params> : description
     for (const auto& knobPtr : mKnobs) {
-        usageMsg += "--" + knobPtr->mFlagName + knobPtr->mFlagParameters;
+        usageMsg += "--" + knobPtr->mFlagName;
+        if (knobPtr->mFlagParameters != "") {
+            usageMsg += " " + knobPtr->mFlagParameters;
+        }
         if (knobPtr->mFlagDescription != "") {
             usageMsg += " : " + knobPtr->mFlagDescription;
         }

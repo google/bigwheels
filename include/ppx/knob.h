@@ -61,12 +61,14 @@ public:
     // Returns true if there has been an update to the knob value
     bool DigestUpdate();
 
+    virtual void ResetToDefault() = 0;
+
 protected:
     void RaiseUpdatedFlag() { mUpdatedFlag = true; }
 
 private:
-    virtual void Draw()           = 0;
-    virtual void ResetToDefault() = 0;
+    // Only called from KnobManager
+    virtual void Draw() = 0;
 
     // Updates knob value from commandline flag
     virtual void UpdateFromFlags(const CliOptions& opts) = 0;
@@ -126,7 +128,7 @@ public:
     {
         PPX_ASSERT_MSG(minValue < maxValue, "invalid range to initialize slider");
         PPX_ASSERT_MSG(minValue <= defaultValue && defaultValue <= maxValue, "defaultValue is out of range");
-        SetFlagParameters(" <" + std::to_string(mMinValue) + "~" + std::to_string(mMaxValue) + ">");
+        SetFlagParameters("<" + std::to_string(mMinValue) + "~" + std::to_string(mMaxValue) + ">");
         RaiseUpdatedFlag();
     }
 
@@ -215,7 +217,7 @@ public:
         if (!choiceStr.empty()) {
             choiceStr.pop_back();
         }
-        choiceStr = " <" + choiceStr + ">";
+        choiceStr = "<" + choiceStr + ">";
         SetFlagParameters(choiceStr);
         RaiseUpdatedFlag();
     }
