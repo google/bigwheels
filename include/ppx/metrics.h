@@ -176,6 +176,9 @@ class Run final
     friend class Manager;
 
 public:
+    // TODO(slumpwuffle): The lifetime of the pointer returned by this function is not well-defined
+    // to the caller, and its expiration cannot be known directly. Instead, we may want to use either
+    // strong/weak pointers or functional access to help prevent unexpected use-after-free situations.
     template <typename T>
     T* AddMetric(MetricMetadata metadata)
     {
