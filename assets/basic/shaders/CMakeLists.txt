@@ -27,3 +27,4 @@ generate_rules_for_shader("shader_image_filter" SOURCE "${PPX_DIR}/assets/basic/
 generate_rules_for_shader("shader_static_texture" SOURCE "${PPX_DIR}/assets/basic/shaders/StaticTexture.hlsl" STAGES "vs" "ps")
 generate_rules_for_shader("shader_texture_mip" SOURCE "${PPX_DIR}/assets/basic/shaders/TextureMip.hlsl" STAGES "vs" "ps")
 generate_rules_for_shader("shader_passthrough_pos" SOURCE "${PPX_DIR}/assets/basic/shaders/PassThroughPos.hlsl" STAGES "vs")
+generate_rules_for_shader("shader_unlit" SOURCE "${PPX_DIR}/assets/basic/shaders/Unlit.hlsl" STAGES "ps")

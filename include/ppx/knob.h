@@ -50,40 +50,43 @@ public:
         : mFlagName(flagName), mDisplayName(flagName), mIndent(0), mUpdatedFlag(false), mVisible(visible) {}
     virtual ~Knob() = default;
 
-    const std::string& GetDisplayName() const { return mDisplayName; }
-    const std::string& GetFlagName() const { return mFlagName; }
-    const std::string& GetFlagHelp() const { return mFlagDesc; }
-    size_t             GetIndent() const { return mIndent; }
-    bool               IsVisible() const { return mVisible; }
+    // Customize flag usage message
+    void SetFlagDescription(const std::string& flagDescription) { mFlagDescription = flagDescription; }
+    void SetFlagParameters(const std::string& flagParameters) { mFlagParameters = flagParameters; }
 
+    // Customize how knob is drawn in the UI
     void SetDisplayName(const std::string& displayName) { mDisplayName = displayName; }
-    void SetFlagDesc(const std::string& flagDesc) { mFlagDesc = flagDesc; }
     void SetIndent(size_t indent) { mIndent = indent; }
     void SetVisible(bool visible) { mVisible = visible; }
 
-    virtual void Draw() = 0;
-
-    // Returns the flag description used in usage message
-    virtual std::string GetFlagHelpText() const = 0;
-
-    // Updates knob value from commandline flag
-    virtual void UpdateFromFlags(const CliOptions& opts) = 0;
-
-    virtual void ResetToDefault() = 0;
-
     // Returns true if there has been an update to the knob value
     bool DigestUpdate();
+
+    virtual void ResetToDefault() = 0;
 
 protected:
     void RaiseUpdatedFlag() { mUpdatedFlag = true; }
 
 private:
-    std::string mDisplayName;
+    // Only called from KnobManager
+    virtual void Draw() = 0;
+
+    // Updates knob value from commandline flag
+    virtual void UpdateFromFlags(const CliOptions& opts) = 0;
+
+protected:
     std::string mFlagName;
-    std::string mFlagDesc;
-    size_t      mIndent;
+    std::string mDisplayName;
+
+private:
+    std::string mFlagParameters;
+    std::string mFlagDescription;
+    size_t      mIndent; // Indent for when knob is drawn in the UI
     bool        mUpdatedFlag;
     bool        mVisible;
+
+private:
+    friend class KnobManager;
 };
 
 // KnobCheckbox will be displayed as a checkbox in the UI
@@ -91,56 +94,22 @@ class KnobCheckbox final
     : public Knob
 {
 public:
-    KnobCheckbox(const std::string& flagName, bool defaultValue)
-        : Knob(flagName, true), mDefaultValue(defaultValue), mValue(defaultValue)
-    {
-        RaiseUpdatedFlag();
-    }
-
-    void Draw() override
-    {
-        if (!ImGui::Checkbox(GetDisplayName().c_str(), &mValue)) {
-            return;
-        }
-        RaiseUpdatedFlag();
-    }
-
-    void ResetToDefault() override { SetValue(mDefaultValue); }
-
-    std::string GetFlagHelpText() const override
-    {
-        std::string flagHelpText = "--" + GetFlagName() + " <true|false>";
-        if (!GetFlagHelp().empty()) {
-            flagHelpText += " : " + GetFlagHelp();
-        }
-        return flagHelpText + "\n";
-    }
-
-    // Expected commandline flag format:
-    // --flag_name <true|false>
-    void UpdateFromFlags(const CliOptions& opts) override
-    {
-        SetDefaultAndValue(opts.GetExtraOptionValueOrDefault(GetFlagName(), mValue));
-    }
+    KnobCheckbox(const std::string& flagName, bool defaultValue);
 
     bool GetValue() const { return mValue; }
 
     // Used for when mValue needs to be updated outside of UI
-    void SetValue(bool newValue)
-    {
-        if (newValue == mValue) {
-            return;
-        }
-        mValue = newValue;
-        RaiseUpdatedFlag();
-    }
+    void ResetToDefault() override { SetValue(mDefaultValue); }
+    void SetValue(bool newValue);
 
 private:
-    void SetDefaultAndValue(bool newValue)
-    {
-        mDefaultValue = newValue;
-        ResetToDefault();
-    }
+    void Draw() override;
+
+    // Expected commandline flag format:
+    // --flag_name <true|false>
+    void UpdateFromFlags(const CliOptions& opts) override;
+
+    void SetDefaultAndValue(bool newValue);
 
 private:
     bool mValue;
@@ -161,42 +130,18 @@ public:
     {
         PPX_ASSERT_MSG(minValue < maxValue, "invalid range to initialize slider");
         PPX_ASSERT_MSG(minValue <= defaultValue && defaultValue <= maxValue, "defaultValue is out of range");
+        SetFlagParameters("<" + std::to_string(mMinValue) + "~" + std::to_string(mMaxValue) + ">");
         RaiseUpdatedFlag();
-    }
-
-    void Draw() override
-    {
-        ImGui::SliderInt(GetDisplayName().c_str(), &mValue, mMinValue, mMaxValue, NULL, ImGuiSliderFlags_AlwaysClamp);
-        if (ImGui::IsItemDeactivatedAfterEdit()) {
-            RaiseUpdatedFlag();
-        }
-    }
-
-    void ResetToDefault() override { SetValue(mDefaultValue); }
-
-    std::string GetFlagHelpText() const override
-    {
-        std::string flagHelpText = "--" + GetFlagName() + " <" + std::to_string(mMinValue) + "~" + std::to_string(mMaxValue) + ">";
-        if (!GetFlagHelp().empty()) {
-            flagHelpText += " : " + GetFlagHelp();
-        }
-        return flagHelpText + "\n";
-    }
-
-    // Expected commandline flag format:
-    // --flag_name <int>
-    void UpdateFromFlags(const CliOptions& opts) override
-    {
-        SetDefaultAndValue(opts.GetExtraOptionValueOrDefault(GetFlagName(), mValue));
     }
 
     T GetValue() const { return mValue; }
 
     // Used for when mValue needs to be updated outside of UI
+    void ResetToDefault() override { SetValue(mDefaultValue); }
     void SetValue(T newValue)
     {
         if (!IsValidValue(newValue)) {
-            PPX_LOG_ERROR(GetFlagName() << " cannot be set to " << newValue << " because it's out of range " << mMinValue << "~" << mMaxValue);
+            PPX_LOG_ERROR(mFlagName << " cannot be set to " << newValue << " because it's out of range " << mMinValue << "~" << mMaxValue);
             return;
         }
         if (newValue == mValue) {
@@ -207,6 +152,21 @@ public:
     }
 
 private:
+    void Draw() override
+    {
+        ImGui::SliderInt(mDisplayName.c_str(), &mValue, mMinValue, mMaxValue, NULL, ImGuiSliderFlags_AlwaysClamp);
+        if (ImGui::IsItemDeactivatedAfterEdit()) {
+            RaiseUpdatedFlag();
+        }
+    }
+
+    // Expected commandline flag format:
+    // --flag_name <int>
+    void UpdateFromFlags(const CliOptions& opts) override
+    {
+        SetDefaultAndValue(opts.GetExtraOptionValueOrDefault(mFlagName, mValue));
+    }
+
     bool IsValidValue(T val)
     {
         return mMinValue <= val && val <= mMaxValue;
@@ -246,6 +206,21 @@ public:
         : Knob(flagName, true), mIndex(defaultIndex), mDefaultIndex(defaultIndex), mChoices(choicesBegin, choicesEnd)
     {
         PPX_ASSERT_MSG(defaultIndex < mChoices.size(), "defaultIndex is out of range");
+        std::string choiceStr = "";
+        for (const auto& choice : mChoices) {
+            bool hasSpace = choice.find_first_of("\t ") != std::string::npos;
+            if (hasSpace) {
+                choiceStr += "\"" + choice + "\"|";
+            }
+            else {
+                choiceStr += choice + "|";
+            }
+        }
+        if (!choiceStr.empty()) {
+            choiceStr.pop_back();
+        }
+        choiceStr = "<" + choiceStr + ">";
+        SetFlagParameters(choiceStr);
         RaiseUpdatedFlag();
     }
 
@@ -258,7 +233,7 @@ public:
 
     void Draw() override
     {
-        if (!ImGui::BeginCombo(GetDisplayName().c_str(), mChoices.at(mIndex).c_str())) {
+        if (!ImGui::BeginCombo(mDisplayName.c_str(), mChoices.at(mIndex).c_str())) {
             return;
         }
         for (size_t i = 0; i < mChoices.size(); ++i) {
@@ -276,40 +251,15 @@ public:
         ImGui::EndCombo();
     }
 
-    void ResetToDefault() override { SetIndex(mDefaultIndex); }
-
-    std::string GetFlagHelpText() const override
-    {
-        std::string choiceStr = "";
-        for (const auto& choice : mChoices) {
-            choiceStr += '\"' + choice + '\"' + "|";
-        }
-        if (!choiceStr.empty()) {
-            choiceStr.pop_back();
-        }
-
-        std::string flagHelpText = "--" + GetFlagName() + " <" + choiceStr + ">";
-        if (!GetFlagHelp().empty()) {
-            flagHelpText += " : " + GetFlagHelp();
-        }
-        return flagHelpText + "\n";
-    }
-
-    // Expected commandline flag format:
-    // --flag_name <str>
-    void UpdateFromFlags(const CliOptions& opts) override
-    {
-        SetDefaultAndIndex(opts.GetExtraOptionValueOrDefault(GetFlagName(), GetValue()));
-    }
-
     size_t   GetIndex() const { return mIndex; }
     const T& GetValue() const { return mChoices[mIndex]; }
 
     // Used for when mIndex needs to be updated outside of UI
+    void ResetToDefault() override { SetIndex(mDefaultIndex); }
     void SetIndex(size_t newIndex)
     {
         if (!IsValidIndex(newIndex)) {
-            PPX_LOG_ERROR(GetFlagName() << " does not have this index in allowed choices: " << newIndex);
+            PPX_LOG_ERROR(mFlagName << " does not have this index in allowed choices: " << newIndex);
             return;
         }
         if (newIndex == mIndex) {
@@ -318,13 +268,12 @@ public:
         mIndex = newIndex;
         RaiseUpdatedFlag();
     }
-
-    // Used for setting from flags
+    // Needed for setting from flags but use is discouraged otherwise
     void SetIndex(const std::string& newValue)
     {
         auto temp = std::find(mChoices.cbegin(), mChoices.cend(), newValue);
         if (temp == mChoices.cend()) {
-            PPX_LOG_ERROR(GetFlagName() << " does not have this value in allowed range: " << newValue);
+            PPX_LOG_ERROR(mFlagName << " does not have this value in allowed range: " << newValue);
             return;
         }
 
@@ -332,6 +281,13 @@ public:
     }
 
 private:
+    // Expected commandline flag format:
+    // --flag_name <str>
+    void UpdateFromFlags(const CliOptions& opts) override
+    {
+        SetDefaultAndIndex(opts.GetExtraOptionValueOrDefault(mFlagName, GetValue()));
+    }
+
     bool IsValidIndex(size_t index)
     {
         return index < mChoices.size();
@@ -390,32 +346,18 @@ public:
         SetValue(defaultValue);
     }
 
-    void Draw() override {}
+    void Draw() override {} //TODO(chenangela: normally turned off but if turned on will just draw the values of const knobs)
 
-    void ResetToDefault() override {}
-
-    std::string GetFlagHelpText() const override
-    {
-        std::string flagHelpText = "--" + GetFlagName();
-        if (!GetFlagHelp().empty()) {
-            flagHelpText += " : " + GetFlagHelp();
-        }
-        return flagHelpText + "\n";
-    }
-
-    void UpdateFromFlags(const CliOptions& opts) override
-    {
-        SetValue(opts.GetExtraOptionValueOrDefault(GetFlagName(), mValue));
-    }
-
-    T GetValue() const { return mValue; }
-
-    void SetIsValidFunc(std::function<bool(T)> isValidFunc)
-    {
-        mIsValidFunc = isValidFunc;
-    }
+    T    GetValue() const { return mValue; }
+    void ResetToDefault() override {} // KnobConstant is always the "default" value
+    void SetIsValidFunc(std::function<bool(T)> isValidFunc) { mIsValidFunc = isValidFunc; }
 
 private:
+    void UpdateFromFlags(const CliOptions& opts) override
+    {
+        SetValue(opts.GetExtraOptionValueOrDefault(mFlagName, mValue));
+    }
+
     bool IsValidValue(T val)
     {
         if (!mIsValidFunc) {
