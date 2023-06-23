@@ -75,7 +75,7 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
             mOpts.standardOptions.assets_paths.push_back(opt.GetValueOrDefault<std::string>(""));
         }
         else if (opt.GetName() == "deterministic") {
-            mOpts.standardOptions.deterministic = true;
+            mOpts.standardOptions.deterministic = opt.GetValueOrDefault<bool>(true);
         }
         else if (opt.GetName() == "frame-count") {
             if (!opt.HasValue()) {
@@ -93,13 +93,13 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
             }
         }
         else if (opt.GetName() == "headless") {
-            mOpts.standardOptions.headless = true;
+            mOpts.standardOptions.headless = opt.GetValueOrDefault<bool>(true);
         }
         else if (opt.GetName() == "help") {
-            mOpts.standardOptions.help = true;
+            mOpts.standardOptions.help = opt.GetValueOrDefault<bool>(true);
         }
         else if (opt.GetName() == "list-gpus") {
-            mOpts.standardOptions.list_gpus = true;
+            mOpts.standardOptions.list_gpus = opt.GetValueOrDefault<bool>(true);
         }
         else if (opt.GetName() == "resolution") {
             if (!opt.HasValue()) {
@@ -146,7 +146,7 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
             mOpts.standardOptions.screenshot_path = opt.GetValueOrDefault<std::string>("");
         }
         else if (opt.GetName() == "use-software-renderer") {
-            mOpts.standardOptions.use_software_renderer = true;
+            mOpts.standardOptions.use_software_renderer = opt.GetValueOrDefault<bool>(true);
         }
 #if defined(PPX_BUILD_XR)
         else if (opt.GetName() == "xr-ui-resolution") {
