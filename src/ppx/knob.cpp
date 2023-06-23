@@ -32,6 +32,45 @@ bool Knob::DigestUpdate()
 }
 
 // -------------------------------------------------------------------------------------------------
+// KnobCheckbox
+// -------------------------------------------------------------------------------------------------
+
+KnobCheckbox::KnobCheckbox(const std::string& flagName, bool defaultValue)
+    : Knob(flagName), mDefaultValue(defaultValue), mValue(defaultValue)
+{
+    SetFlagParameters("<true|false>");
+    RaiseUpdatedFlag();
+}
+
+void KnobCheckbox::Draw()
+{
+    if (!ImGui::Checkbox(mDisplayName.c_str(), &mValue)) {
+        return;
+    }
+    RaiseUpdatedFlag();
+}
+
+void KnobCheckbox::UpdateFromFlags(const CliOptions& opts)
+{
+    SetDefaultAndValue(opts.GetExtraOptionValueOrDefault(mFlagName, mValue));
+}
+
+void KnobCheckbox::SetValue(bool newValue)
+{
+    if (newValue == mValue) {
+        return;
+    }
+    mValue = newValue;
+    RaiseUpdatedFlag();
+}
+
+void KnobCheckbox::SetDefaultAndValue(bool newValue)
+{
+    mDefaultValue = newValue;
+    ResetToDefault();
+}
+
+// -------------------------------------------------------------------------------------------------
 // KnobManager
 // -------------------------------------------------------------------------------------------------
 
@@ -49,11 +88,11 @@ void KnobManager::DrawAllKnobs(bool inExistingWindow)
     }
 
     for (const auto& knobPtr : mKnobs) {
-        for (size_t i = 0; i < knobPtr->GetIndent(); i++) {
+        for (size_t i = 0; i < knobPtr->mIndent; i++) {
             ImGui::Indent();
         }
         knobPtr->Draw();
-        for (size_t i = 0; i < knobPtr->GetIndent(); i++) {
+        for (size_t i = 0; i < knobPtr->mIndent; i++) {
             ImGui::Unindent();
         }
     }
@@ -69,9 +108,18 @@ void KnobManager::DrawAllKnobs(bool inExistingWindow)
 
 std::string KnobManager::GetUsageMsg()
 {
-    std::string usageMsg = "\nApplication-specific flags\n";
+    std::string usageMsg = "\nApplication-Specific Flags:\n";
+    // Tends to have longer params, do not attempt to align description
+    // --flag_name <params> : description
     for (const auto& knobPtr : mKnobs) {
-        usageMsg += knobPtr->GetFlagHelpText();
+        usageMsg += "--" + knobPtr->mFlagName;
+        if (knobPtr->mFlagParameters != "") {
+            usageMsg += " " + knobPtr->mFlagParameters;
+        }
+        if (knobPtr->mFlagDescription != "") {
+            usageMsg += " : " + knobPtr->mFlagDescription;
+        }
+        usageMsg += "\n";
     }
     return usageMsg;
 }
