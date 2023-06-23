@@ -264,6 +264,10 @@ void Manager::Report::WriteToDisk(bool overwriteExisting) const
 
     std::filesystem::create_directories(mFilePath.parent_path());
     std::ofstream outputFile(mFilePath.c_str(), std::ofstream::out);
+    if (!outputFile.is_open()) {
+        PPX_LOG_ERROR("Failed to open metrics file at path [" << mFilePath << "] for writing!");
+        return;
+    }
     outputFile << mContent.dump(4) << std::endl;
     outputFile.close();
 

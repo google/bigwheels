@@ -124,7 +124,7 @@ private:
 
 private:
     MetricGauge(const MetricMetadata& metadata)
-        : mMetadata(metadata), mAccumulatedValue(0) {}
+        : mMetadata(metadata) {}
     METRICS_NO_COPY(MetricGauge)
 
     void UpdateBasicStatistics(double seconds, double value);
