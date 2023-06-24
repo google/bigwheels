@@ -91,7 +91,7 @@ void KnobManager::DrawAllKnobs(bool inExistingWindow)
         if (!knobPtr->mVisible) {
             continue;
         }
-        for (size_t i = 0; i < knobPtr->mVisible; i++) {
+        for (size_t i = 0; i < knobPtr->mIndent; i++) {
             ImGui::Indent();
         }
         knobPtr->Draw();
