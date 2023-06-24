@@ -27,6 +27,8 @@ class ProjApp
 public:
     virtual void Config(ppx::ApplicationSettings& settings) override;
     virtual void Setup() override;
+    virtual void WindowIconify(bool iconified) override;
+    virtual void WindowMaximize(bool maximized) override;
     virtual void KeyDown(ppx::KeyCode key) override;
     virtual void KeyUp(ppx::KeyCode key) override;
     virtual void MouseMove(int32_t x, int32_t y, int32_t dx, int32_t dy, uint32_t buttons) override;
@@ -60,6 +62,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.api         = kApi;
     settings.grfx.enableDebug = false;
     settings.enableImGui      = true;
+    settings.window.resizable = true;
 }
 
 void ProjApp::Setup()
@@ -83,6 +86,16 @@ void ProjApp::Setup()
 
         mPerFrame.push_back(frame);
     }
+}
+
+void ProjApp::WindowIconify(bool iconified)
+{
+    PPX_LOG_INFO("Window " << (iconified ? "iconified" : "restored"));
+}
+
+void ProjApp::WindowMaximize(bool maximized)
+{
+    PPX_LOG_INFO("Window " << (maximized ? "maximized" : "restored"));
 }
 
 void ProjApp::KeyDown(ppx::KeyCode key)
@@ -115,6 +128,10 @@ void ProjApp::MouseUp(int32_t x, int32_t y, uint32_t buttons)
 
 void ProjApp::Render()
 {
+    if (IsWindowIconified()) {
+        return;
+    }
+
     PerFrame& frame = mPerFrame[0];
 
     grfx::SwapchainPtr swapchain = GetSwapchain();
@@ -163,7 +180,7 @@ void ProjApp::Render()
 
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
 
-    PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.renderCompleteSemaphore));
+    PPX_CHECKED_CALL(Present(swapchain, imageIndex, 1, &frame.renderCompleteSemaphore));
 }
 
 void ProjApp::DrawGui()
