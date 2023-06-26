@@ -37,6 +37,7 @@ struct StandardOptions
     bool use_software_renderer = false;
 
     // Options
+    std::string         assets_path        = "";
     int                 gpu_index          = -1;
     int                 frame_count        = 0;
     int                 run_time_ms        = 0;

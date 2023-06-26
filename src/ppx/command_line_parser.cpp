@@ -68,7 +68,13 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
 
     for (const auto& opt : options) {
         // Process standard options.
-        if (opt.GetName() == "deterministic") {
+        if (opt.GetName() == "assets-path") {
+            if (!opt.HasValue()) {
+                return std::string("Command-line option --assets-path requires a parameter");
+            }
+            mOpts.standardOptions.assets_path = opt.GetValueOrDefault<std::string>("");
+        }
+        else if (opt.GetName() == "deterministic") {
             mOpts.standardOptions.deterministic = true;
         }
         else if (opt.GetName() == "frame-count") {
