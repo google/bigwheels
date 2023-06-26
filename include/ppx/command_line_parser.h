@@ -177,6 +177,7 @@ private:
     std::string mUsageMsg = R"(
 --help                        Prints this help message and exits.
 
+--assets-path                 Add a path in front of the assets search path list.
 --deterministic               Disable non-deterministic behaviors, like clocks.
 --frame-count <N>             Shutdown the application after successfully rendering N frames.
 --run-time-ms <N>             Shutdown the application after N milliseconds.
@@ -197,6 +198,7 @@ private:
     std::string mUsageMsg = R"(
 --help                        Prints this help message and exits.
 
+--assets-path                 Add a path in front of the assets search path list.
 --deterministic               Disable non-deterministic behaviors, like clocks.
 --frame-count <N>             Shutdown the application after successfully rendering N frames. Default: 0 (infinite).
 --run-time-ms <N>             Shutdown the application after N milliseconds. Default: 0 (infinite).
