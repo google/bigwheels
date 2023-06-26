@@ -336,7 +336,7 @@ public:
         PPX_ASSERT_MSG(minValue < maxValue, "invalid range to initialize KnobConstant");
         PPX_ASSERT_MSG(minValue <= defaultValue && defaultValue <= maxValue, "defaultValue is out of range");
 
-        SetIsValidFunc([minValue, maxValue](T newValue) {
+        SetValidator([minValue, maxValue](T newValue) {
             if (newValue < minValue || newValue > maxValue) {
                 return false;
             }
@@ -346,11 +346,11 @@ public:
         SetValue(defaultValue);
     }
 
-    void Draw() override {} //TODO(chenangela: normally turned off but if turned on will just draw the values of const knobs)
+    void Draw() override {} // KnobConstant is invisible in the UI
 
     T    GetValue() const { return mValue; }
     void ResetToDefault() override {} // KnobConstant is always the "default" value
-    void SetIsValidFunc(std::function<bool(T)> isValidFunc) { mIsValidFunc = isValidFunc; }
+    void SetValidator(std::function<bool(T)> validatorFunc) { mValidatorFunc = validatorFunc; }
 
 private:
     void UpdateFromFlags(const CliOptions& opts) override
@@ -360,21 +360,21 @@ private:
 
     bool IsValidValue(T val)
     {
-        if (!mIsValidFunc) {
+        if (!mValidatorFunc) {
             return true;
         }
-        return mIsValidFunc(val);
+        return mValidatorFunc(val);
     }
 
     void SetValue(T newValue)
     {
-        PPX_ASSERT_MSG(IsValidValue(newValue), "invalid default value");
+        PPX_ASSERT_MSG(IsValidValue(newValue), "invalid value for knob " + mFlagName);
         mValue = newValue;
     }
 
 private:
     T                      mValue;
-    std::function<bool(T)> mIsValidFunc;
+    std::function<bool(T)> mValidatorFunc;
 };
 
 // KnobManager holds the knobs in an application
