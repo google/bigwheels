@@ -131,7 +131,7 @@ void KnobManager::UpdateFromFlags(const CliOptions& opts)
     }
 }
 
-void KnobManager::RegisterKnob(const std::string& flagName, std::shared_ptr<Knob> newKnob)
+void KnobManager::RegisterKnob(const std::string& flagName, std::unique_ptr<Knob> newKnob)
 {
     mFlagNames.insert(flagName);
     mKnobs.emplace_back(std::move(newKnob));

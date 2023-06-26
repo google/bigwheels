@@ -145,9 +145,9 @@ private:
     TextureCache mTextureCache;
 
 private:
-    std::shared_ptr<KnobDropdown<std::string>> pKnobVs;
-    std::shared_ptr<KnobDropdown<std::string>> pKnobPs;
-    std::shared_ptr<KnobDropdown<std::string>> pCurrentScene;
+    KnobPtr<KnobDropdown<std::string>> pKnobVs;
+    KnobPtr<KnobDropdown<std::string>> pKnobPs;
+    KnobPtr<KnobDropdown<std::string>> pCurrentScene;
 
 private:
     void LoadScene(

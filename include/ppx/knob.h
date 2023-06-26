@@ -87,6 +87,32 @@ private:
     friend class KnobManager;
 };
 
+class KnobManager;
+
+// KnobPtr holds a reference to a knob managed by KnobManager.
+template <typename KnobT>
+class KnobPtr
+{
+public:
+    KnobPtr()               = default;
+    KnobPtr(const KnobPtr&) = default;
+    KnobPtr& operator=(const KnobPtr&) = default;
+
+    KnobT* operator->() const
+    {
+        PPX_ASSERT_MSG(mPtr != nullptr, "Use undefined knob.")
+        return mPtr;
+    }
+    // Define it when we actually needed it.
+    KnobT& operator*() const = delete;
+
+private:
+    friend KnobManager;
+    explicit KnobPtr(KnobT* pKnob)
+        : mPtr(pKnob) {}
+    KnobT* mPtr = nullptr;
+};
+
 // KnobCheckbox will be displayed as a checkbox in the UI
 class KnobCheckbox final
     : public Knob
@@ -324,7 +350,7 @@ public:
 
 private:
     // Knobs are added on creation and never removed
-    std::vector<std::shared_ptr<Knob>> mKnobs;
+    std::vector<std::unique_ptr<Knob>> mKnobs;
 
     // mFlagNames is kept to prevent multiple knobs having the same mFlagName
     std::unordered_set<std::string> mFlagNames;
@@ -338,13 +364,14 @@ public:
     //   CreateKnob<KnobSlider<int>>("flag_name", int defaultValue, minValue, maxValue);
     //   CreateKnob<KnobDropdown<std::string>>("flag_name", size_t defaultIndex, std::vector<std::string> choices);
     template <typename T, typename... ArgsT>
-    std::shared_ptr<T> CreateKnob(const std::string& flagName, ArgsT... args)
+    KnobPtr<T> CreateKnob(const std::string& flagName, ArgsT... args)
     {
         PPX_ASSERT_MSG(mFlagNames.count(flagName) == 0, "knob with this name already exists");
 
-        std::shared_ptr<T> knobPtr(new T(flagName, std::forward<ArgsT>(args)...));
-        RegisterKnob(flagName, knobPtr);
-        return knobPtr;
+        std::unique_ptr<T> knobPtr(new T(flagName, std::forward<ArgsT>(args)...));
+        KnobPtr<T>         res = KnobPtr<T>(knobPtr.get());
+        RegisterKnob(flagName, std::move(knobPtr));
+        return res;
     }
 
     void        DrawAllKnobs(bool inExistingWindow = false);
@@ -352,7 +379,7 @@ public:
     void        UpdateFromFlags(const CliOptions& opts);
 
 private:
-    void RegisterKnob(const std::string& flagName, std::shared_ptr<Knob> newKnob);
+    void RegisterKnob(const std::string& flagName, std::unique_ptr<Knob> newKnob);
 };
 
 } // namespace ppx

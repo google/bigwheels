@@ -304,30 +304,30 @@ TEST_F(KnobManagerTestFixture, KnobManager_Create)
 
 TEST_F(KnobManagerTestFixture, KnobManager_CreateBoolCheckbox)
 {
-    std::shared_ptr<KnobCheckbox> boolKnobPtr(km.CreateKnob<KnobCheckbox>("flag_name1", true));
+    KnobPtr<KnobCheckbox> boolKnobPtr(km.CreateKnob<KnobCheckbox>("flag_name1", true));
     EXPECT_TRUE(boolKnobPtr->GetValue());
 }
 
 TEST_F(KnobManagerTestFixture, KnobManager_CreateIntSlider)
 {
-    std::shared_ptr<KnobSlider<int>> intKnobPtr(km.CreateKnob<KnobSlider<int>>("flag_name1", 5, 0, 10));
+    KnobPtr<KnobSlider<int>> intKnobPtr(km.CreateKnob<KnobSlider<int>>("flag_name1", 5, 0, 10));
     EXPECT_EQ(intKnobPtr->GetValue(), 5);
 }
 
 TEST_F(KnobManagerTestFixture, KnobManager_CreateStrDropdown)
 {
-    std::vector<std::string>                   choices = {"c1", "c2", "c3"};
-    std::shared_ptr<KnobDropdown<std::string>> strKnobPtr(km.CreateKnob<KnobDropdown<std::string>>("flag_name1", 1, choices.cbegin(), choices.cend()));
+    std::vector<std::string>           choices = {"c1", "c2", "c3"};
+    KnobPtr<KnobDropdown<std::string>> strKnobPtr(km.CreateKnob<KnobDropdown<std::string>>("flag_name1", 1, choices.cbegin(), choices.cend()));
     EXPECT_EQ(strKnobPtr->GetIndex(), 1);
 }
 
 #if defined(PERFORM_DEATH_TESTS)
 TEST_F(KnobManagerTestFixture, KnobManager_CreateUniqueName)
 {
-    std::shared_ptr<KnobCheckbox> boolKnobPtr1(km.CreateKnob<KnobCheckbox>("flag_name1", true));
+    KnobPtr<KnobCheckbox> boolKnobPtr1(km.CreateKnob<KnobCheckbox>("flag_name1", true));
     EXPECT_DEATH(
         {
-            std::shared_ptr<KnobCheckbox> boolKnobPtr2(km.CreateKnob<KnobCheckbox>("flag_name1", true));
+            KnobPtr<KnobCheckbox> boolKnobPtr2(km.CreateKnob<KnobCheckbox>("flag_name1", true));
         },
         "");
 }
@@ -335,11 +335,11 @@ TEST_F(KnobManagerTestFixture, KnobManager_CreateUniqueName)
 
 TEST_F(KnobManagerTestFixture, KnobManager_GetBasicUsageMsg)
 {
-    std::shared_ptr<KnobCheckbox>              k1(km.CreateKnob<KnobCheckbox>("flag_name1", true));
-    std::shared_ptr<KnobCheckbox>              k2(km.CreateKnob<KnobCheckbox>("flag_name2", true));
-    std::shared_ptr<KnobSlider<int>>           k3(km.CreateKnob<KnobSlider<int>>("flag_name3", 5, 0, 10));
-    std::vector<std::string>                   choices4 = {"c1", "c2", "c3 and more"};
-    std::shared_ptr<KnobDropdown<std::string>> k4(km.CreateKnob<KnobDropdown<std::string>>("flag_name4", 1, choices4.cbegin(), choices4.cend()));
+    KnobPtr<KnobCheckbox>              k1(km.CreateKnob<KnobCheckbox>("flag_name1", true));
+    KnobPtr<KnobCheckbox>              k2(km.CreateKnob<KnobCheckbox>("flag_name2", true));
+    KnobPtr<KnobSlider<int>>           k3(km.CreateKnob<KnobSlider<int>>("flag_name3", 5, 0, 10));
+    std::vector<std::string>           choices4 = {"c1", "c2", "c3 and more"};
+    KnobPtr<KnobDropdown<std::string>> k4(km.CreateKnob<KnobDropdown<std::string>>("flag_name4", 1, choices4.cbegin(), choices4.cend()));
 
     std::string usageMsg = R"(
 Application-Specific Flags:
@@ -353,15 +353,15 @@ Application-Specific Flags:
 
 TEST_F(KnobManagerTestFixture, KnobManager_GetCustomizedUsageMsg)
 {
-    std::shared_ptr<KnobCheckbox> k1(km.CreateKnob<KnobCheckbox>("flag_name1", true));
+    KnobPtr<KnobCheckbox> k1(km.CreateKnob<KnobCheckbox>("flag_name1", true));
     k1->SetFlagParameters("<bool>");
     k1->SetFlagDescription("description1");
-    std::shared_ptr<KnobCheckbox>    k2(km.CreateKnob<KnobCheckbox>("flag_name2", true));
-    std::shared_ptr<KnobSlider<int>> k3(km.CreateKnob<KnobSlider<int>>("flag_name3", 5, 0, 10));
+    KnobPtr<KnobCheckbox>    k2(km.CreateKnob<KnobCheckbox>("flag_name2", true));
+    KnobPtr<KnobSlider<int>> k3(km.CreateKnob<KnobSlider<int>>("flag_name3", 5, 0, 10));
     k3->SetFlagParameters("<N>");
     k3->SetFlagDescription("description3");
-    std::vector<std::string>                   choices4 = {"c1", "c2", "c3 and more"};
-    std::shared_ptr<KnobDropdown<std::string>> k4(km.CreateKnob<KnobDropdown<std::string>>("flag_name4", 1, choices4.cbegin(), choices4.cend()));
+    std::vector<std::string>           choices4 = {"c1", "c2", "c3 and more"};
+    KnobPtr<KnobDropdown<std::string>> k4(km.CreateKnob<KnobDropdown<std::string>>("flag_name4", 1, choices4.cbegin(), choices4.cend()));
     k4->SetFlagDescription("description4");
 
     std::string usageMsg = R"(
@@ -376,11 +376,11 @@ Application-Specific Flags:
 
 TEST_F(KnobManagerTestFixture, KnobManager_ResetAllToDefault)
 {
-    std::shared_ptr<KnobCheckbox>              boolKnobPtr1(km.CreateKnob<KnobCheckbox>("flag_name1", true));
-    std::shared_ptr<KnobCheckbox>              boolKnobPtr2(km.CreateKnob<KnobCheckbox>("flag_name2", true));
-    std::shared_ptr<KnobSlider<int>>           intKnobPtr1(km.CreateKnob<KnobSlider<int>>("flag_name3", 5, 0, 10));
-    std::vector<std::string>                   choices1 = {"c1", "c2", "c3"};
-    std::shared_ptr<KnobDropdown<std::string>> strKnobPtr1(km.CreateKnob<KnobDropdown<std::string>>("flag_name4", 1, choices1.cbegin(), choices1.cend()));
+    KnobPtr<KnobCheckbox>              boolKnobPtr1(km.CreateKnob<KnobCheckbox>("flag_name1", true));
+    KnobPtr<KnobCheckbox>              boolKnobPtr2(km.CreateKnob<KnobCheckbox>("flag_name2", true));
+    KnobPtr<KnobSlider<int>>           intKnobPtr1(km.CreateKnob<KnobSlider<int>>("flag_name3", 5, 0, 10));
+    std::vector<std::string>           choices1 = {"c1", "c2", "c3"};
+    KnobPtr<KnobDropdown<std::string>> strKnobPtr1(km.CreateKnob<KnobDropdown<std::string>>("flag_name4", 1, choices1.cbegin(), choices1.cend()));
 
     // Change from default
     boolKnobPtr1->SetValue(false);
@@ -399,7 +399,7 @@ TEST_F(KnobManagerTestFixture, KnobManager_ResetAllToDefault)
     EXPECT_EQ(strKnobPtr1->GetIndex(), 1);
 }
 
-void UpdateDependentKnobs(std::shared_ptr<KnobCheckbox> p1, std::shared_ptr<KnobSlider<int>> p2, std::shared_ptr<KnobDropdown<std::string>> p3)
+void UpdateDependentKnobs(KnobPtr<KnobCheckbox> p1, KnobPtr<KnobSlider<int>> p2, KnobPtr<KnobDropdown<std::string>> p3)
 {
     // Example where changing either the slider or the dropdown will uncheck the box.
     if (p2->DigestUpdate()) {
@@ -416,10 +416,10 @@ void UpdateDependentKnobs(std::shared_ptr<KnobCheckbox> p1, std::shared_ptr<Knob
 
 TEST_F(KnobManagerTestFixture, KnobManager_UpdateDependentKnobs)
 {
-    std::shared_ptr<KnobCheckbox>              pKnob1(km.CreateKnob<ppx::KnobCheckbox>("knob1", false));
-    std::shared_ptr<KnobSlider<int>>           pKnob2(km.CreateKnob<ppx::KnobSlider<int>>("knob2", 5, 0, 10));
-    std::vector<std::string>                   knob3Choices = {"one", "two", "three"};
-    std::shared_ptr<KnobDropdown<std::string>> pKnob3(km.CreateKnob<ppx::KnobDropdown<std::string>>("knob3", 1, knob3Choices));
+    KnobPtr<KnobCheckbox>              pKnob1(km.CreateKnob<ppx::KnobCheckbox>("knob1", false));
+    KnobPtr<KnobSlider<int>>           pKnob2(km.CreateKnob<ppx::KnobSlider<int>>("knob2", 5, 0, 10));
+    std::vector<std::string>           knob3Choices = {"one", "two", "three"};
+    KnobPtr<KnobDropdown<std::string>> pKnob3(km.CreateKnob<ppx::KnobDropdown<std::string>>("knob3", 1, knob3Choices));
 
     UpdateDependentKnobs(pKnob1, pKnob2, pKnob3);
     pKnob1->SetValue(true);
