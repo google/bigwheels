@@ -30,24 +30,24 @@ namespace ppx {
 struct StandardOptions
 {
     // Flags
+    bool deterministic         = false;
+    bool headless              = false;
     bool help                  = false;
     bool list_gpus             = false;
     bool use_software_renderer = false;
-    bool headless              = false;
-    bool deterministic         = false;
 
     // Options
     int                 gpu_index          = -1;
-    std::pair<int, int> resolution         = {-1, -1};
     int                 frame_count        = 0;
     int                 run_time_ms        = 0;
+    std::pair<int, int> resolution         = {-1, -1};
+    int                 screenshot_frame_number                  = -1;
+    std::string         screenshot_path                          = "";
     uint32_t            stats_frame_window = 300;
 #if defined(PPX_BUILD_XR)
     std::pair<int, int> xrUIResolution = {-1, -1};
 #endif
 
-    int         screenshot_frame_number                  = -1;
-    std::string screenshot_path                          = "";
     bool        operator==(const StandardOptions&) const = default;
 };
 
