@@ -675,7 +675,7 @@ void Application::DispatchConfig()
     }
 
     if (mStandardOptions.assets_path != "") {
-      AddAssetDir(mStandardOptions.assets_path, /* insert_at_front= */ true);
+        AddAssetDir(mStandardOptions.assets_path, /* insert_at_front= */ true);
     }
 }
 
