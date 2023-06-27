@@ -23,11 +23,11 @@
     dir *= 1.0 / float(ITERATIONS) * Density;
     float illuminationDecay = 1.0;
 
-    float color = UTexture.SampleLevel(Sampler, inputCoord.vUv, 0).a;
+    float color = UTexture.SampleLevel(ClampSampler, inputCoord.vUv, 0).a;
 
     for (int i = 0; i < ITERATIONS; i++) {
         coord -= dir;
-        float col = UTexture.SampleLevel(Sampler, coord, 0).a;
+        float col = UTexture.SampleLevel(ClampSampler, coord, 0).a;
         color += col * illuminationDecay * Params.weight;
         illuminationDecay *= Decay;
     }

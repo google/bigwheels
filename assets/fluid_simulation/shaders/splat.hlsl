@@ -13,6 +13,6 @@
     float2 p = coord.vUv - Params.coordinate.xy;
     p.x *= Params.aspectRatio;
     float3 splat = exp(-dot(p, p) / Params.radius) * Params.color.rgb;
-    float3 base  = UTexture.SampleLevel(Sampler, coord.vUv, 0).xyz;
+    float3 base  = UTexture.SampleLevel(ClampSampler, coord.vUv, 0).xyz;
     Output[coord.xy] = float4(base + splat, 1.0);
 }

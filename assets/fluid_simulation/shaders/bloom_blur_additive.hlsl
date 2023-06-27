@@ -11,10 +11,10 @@
                                   : SV_DispatchThreadID) {
     Coord  coord = BaseVS(tid, Params.normalizationScale, Params.texelSize);
     float4 sum   = 0.0;
-    sum += UTexture.SampleLevel(Sampler, coord.vL, 0);
-    sum += UTexture.SampleLevel(Sampler, coord.vR, 0);
-    sum += UTexture.SampleLevel(Sampler, coord.vT, 0);
-    sum += UTexture.SampleLevel(Sampler, coord.vB, 0);
+    sum += UTexture.SampleLevel(ClampSampler, coord.vL, 0);
+    sum += UTexture.SampleLevel(ClampSampler, coord.vR, 0);
+    sum += UTexture.SampleLevel(ClampSampler, coord.vT, 0);
+    sum += UTexture.SampleLevel(ClampSampler, coord.vB, 0);
     sum *= 0.25;
     Output[coord.xy] += sum;
 }

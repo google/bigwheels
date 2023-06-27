@@ -89,6 +89,11 @@ ProjApp* Texture::GetApp() const
     return mSim->GetApp();
 }
 
+ppx::float2 Texture::GetNormalizedSize() const
+{
+    return ppx::float2(GetWidth() * 2.0f / GetApp()->GetWindowWidth(), GetHeight() * 2.0f / GetApp()->GetWindowHeight());
+}
+
 ProjApp* Shader::GetApp() const
 {
     return mSim->GetApp();
@@ -136,7 +141,7 @@ ComputeDispatchRecord::ComputeDispatchRecord(ComputeShader* cs, Texture* output,
     memcpy(pData, &si, sizeof(si));
     mUniformBuffer->UnmapMemory();
 
-    const size_t               numBindings = 2;
+    const size_t               numBindings = 3;
     ppx::grfx::WriteDescriptor write[numBindings];
 
     write[0].binding      = 0;
@@ -147,7 +152,11 @@ ComputeDispatchRecord::ComputeDispatchRecord(ComputeShader* cs, Texture* output,
 
     write[1].binding  = 1;
     write[1].type     = ppx::grfx::DESCRIPTOR_TYPE_SAMPLER;
-    write[1].pSampler = mShader->GetComputeResources()->mSampler;
+    write[1].pSampler = mShader->GetComputeResources()->mClampSampler;
+
+    write[2].binding  = 12;
+    write[2].type     = ppx::grfx::DESCRIPTOR_TYPE_SAMPLER;
+    write[2].pSampler = mShader->GetComputeResources()->mRepeatSampler;
 
     PPX_CHECKED_CALL(mDescriptorSet->UpdateDescriptors(numBindings, write));
 }
@@ -177,20 +186,20 @@ void ComputeDispatchRecord::BindOutputTexture(uint32_t bindingSlot)
     PPX_CHECKED_CALL(mDescriptorSet->UpdateDescriptors(1, &write));
 }
 
-void ComputeShader::Dispatch(const PerFrame& frame, ComputeDispatchRecord& dr)
+void ComputeShader::Dispatch(const PerFrame& frame, const std::unique_ptr<ComputeDispatchRecord>& dr)
 {
-    ppx::float3 dispatchSize = ppx::float3(dr.mOutput->GetWidth(), dr.mOutput->GetHeight(), 1);
+    ppx::uint3 dispatchSize = ppx::uint3(dr->mOutput->GetWidth(), dr->mOutput->GetHeight(), 1);
 
     PPX_LOG_DEBUG("Running compute shader '" << mShaderFile << ".cs' (" << dispatchSize << ")\n");
 
-    frame.cmd->TransitionImageLayout(dr.mOutput->GetImagePtr(), PPX_ALL_SUBRESOURCES, ppx::grfx::RESOURCE_STATE_SHADER_RESOURCE, ppx::grfx::RESOURCE_STATE_UNORDERED_ACCESS);
-    frame.cmd->BindComputeDescriptorSets(dr.mShader->GetComputeResources()->mPipelineInterface, 1, &dr.mDescriptorSet);
+    frame.cmd->TransitionImageLayout(dr->mOutput->GetImagePtr(), PPX_ALL_SUBRESOURCES, ppx::grfx::RESOURCE_STATE_SHADER_RESOURCE, ppx::grfx::RESOURCE_STATE_UNORDERED_ACCESS);
+    frame.cmd->BindComputeDescriptorSets(dr->mShader->GetComputeResources()->mPipelineInterface, 1, &dr->mDescriptorSet);
     frame.cmd->BindComputePipeline(mPipeline);
     frame.cmd->Dispatch(dispatchSize.x, dispatchSize.y, dispatchSize.z);
-    frame.cmd->TransitionImageLayout(dr.mOutput->GetImagePtr(), PPX_ALL_SUBRESOURCES, ppx::grfx::RESOURCE_STATE_UNORDERED_ACCESS, ppx::grfx::RESOURCE_STATE_SHADER_RESOURCE);
+    frame.cmd->TransitionImageLayout(dr->mOutput->GetImagePtr(), PPX_ALL_SUBRESOURCES, ppx::grfx::RESOURCE_STATE_UNORDERED_ACCESS, ppx::grfx::RESOURCE_STATE_SHADER_RESOURCE);
 }
 
-GraphicsDispatchRecord::GraphicsDispatchRecord(GraphicsShader* gs, Texture* image)
+GraphicsDispatchRecord::GraphicsDispatchRecord(GraphicsShader* gs, Texture* image, ppx::float2 coord)
     : mShader(gs), mImage(image)
 {
     // Allocate a new descriptor set.
@@ -209,6 +218,40 @@ GraphicsDispatchRecord::GraphicsDispatchRecord(GraphicsShader* gs, Texture* imag
     write[1].pSampler = mShader->GetGraphicsResources()->mSampler;
 
     PPX_CHECKED_CALL(mDescriptorSet->UpdateDescriptors(numBindings, write));
+
+    // Normalize image dimensions.
+    ppx::float2 normDim = image->GetNormalizedSize();
+
+    // Compute the vertices for the texture position.
+    ppx::float2 va = coord;
+    ppx::float2 vb = ppx::float2(coord.x, coord.y - normDim.y);
+    ppx::float2 vc = ppx::float2(coord.x + normDim.x, coord.y - normDim.y);
+    ppx::float2 vd = ppx::float2(coord.x + normDim.x, coord.y);
+
+    // Initialize vertex and geometry data.
+    // clang-format off
+    std::vector<float> vertexData = {
+        // Texture position     // Texture sampling coordinates
+        va.x, va.y, 0.0f,       0.0f, 0.0f, // A --> Upper left.
+        vb.x, vb.y, 0.0f,       0.0f, 1.0f, // B --> Bottom left.
+        vc.x, vc.y, 0.0f,       1.0f, 1.0f, // C --> Bottom right.
+
+        va.x, va.y, 0.0f,       0.0f, 0.0f, // A --> Upper left.
+        vc.x, vc.y, 0.0f,       1.0f, 1.0f, // C --> Bottom right.
+        vd.x, vd.y, 0.0f,       1.0f, 0.0f, // D --> Top right.
+    };
+    // clang-format on
+
+    ppx::grfx::BufferCreateInfo bci  = {};
+    bci.size                         = ppx::SizeInBytesU32(vertexData);
+    bci.usageFlags.bits.vertexBuffer = true;
+    bci.memoryUsage                  = ppx::grfx::MEMORY_USAGE_CPU_TO_GPU;
+    PPX_CHECKED_CALL(mShader->GetApp()->GetDevice()->CreateBuffer(&bci, &mVertexBuffer));
+
+    void* pAddr = nullptr;
+    PPX_CHECKED_CALL(mVertexBuffer->MapMemory(0, &pAddr));
+    memcpy(pAddr, vertexData.data(), ppx::SizeInBytesU32(vertexData));
+    mVertexBuffer->UnmapMemory();
 
     PPX_LOG_DEBUG("Created graphic descriptor set for " << image);
 }
@@ -253,11 +296,11 @@ GraphicsShader::GraphicsShader(FluidSimulation* sim)
     PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateGraphicsPipeline(&gpci, &mPipeline));
 }
 
-void GraphicsShader::Dispatch(const PerFrame& frame, GraphicsDispatchRecord& dr)
+void GraphicsShader::Dispatch(const PerFrame& frame, const std::unique_ptr<GraphicsDispatchRecord>& dr)
 {
-    frame.cmd->BindGraphicsDescriptorSets(GetGraphicsResources()->mPipelineInterface, 1, &dr.mDescriptorSet);
+    frame.cmd->BindGraphicsDescriptorSets(GetGraphicsResources()->mPipelineInterface, 1, &dr->mDescriptorSet);
     frame.cmd->BindGraphicsPipeline(mPipeline);
-    frame.cmd->BindVertexBuffers(1, &GetGraphicsResources()->mVertexBuffer, &GetGraphicsResources()->mVertexBinding.GetStride());
+    frame.cmd->BindVertexBuffers(1, &dr->mVertexBuffer, &GetGraphicsResources()->mVertexBinding.GetStride());
     frame.cmd->Draw(6, 1, 0, 0);
 }
 

@@ -20,13 +20,13 @@ float3 linearToGamma(float3 color)
 [numthreads(1, 1, 1)] void csmain(uint2 tid
                                   : SV_DispatchThreadID) {
     Coord  coord = BaseVS(tid, Params.normalizationScale, Params.texelSize);
-    float3 c     = UTexture.SampleLevel(Sampler, coord.vUv, 0).rgb;
+    float3 c     = UTexture.SampleLevel(ClampSampler, coord.vUv, 0).rgb;
 
 #ifdef SHADING
-    float3 lc = UTexture.SampleLevel(Sampler, coord.vL, 0).rgb;
-    float3 rc = UTexture.SampleLevel(Sampler, coord.vR, 0).rgb;
-    float3 tc = UTexture.SampleLevel(Sampler, coord.vT, 0).rgb;
-    float3 bc = UTexture.SampleLevel(Sampler, coord.vB, 0).rgb;
+    float3 lc = UTexture.SampleLevel(ClampSampler, coord.vL, 0).rgb;
+    float3 rc = UTexture.SampleLevel(ClampSampler, coord.vR, 0).rgb;
+    float3 tc = UTexture.SampleLevel(ClampSampler, coord.vT, 0).rgb;
+    float3 bc = UTexture.SampleLevel(ClampSampler, coord.vB, 0).rgb;
 
     float dx = length(rc) - length(lc);
     float dy = length(tc) - length(bc);
@@ -39,11 +39,11 @@ float3 linearToGamma(float3 color)
 #endif
 
 #ifdef BLOOM
-    float3 bloom = UBloom.SampleLevel(Sampler, coord.vUv, 0).rgb;
+    float3 bloom = UBloom.SampleLevel(ClampSampler, coord.vUv, 0).rgb;
 #endif
 
 #ifdef SUNRAYS
-    float sunrays = USunrays.SampleLevel(Sampler, coord.vUv, 0).r;
+    float sunrays = USunrays.SampleLevel(ClampSampler, coord.vUv, 0).r;
     c *= sunrays;
 #ifdef BLOOM
     bloom *= sunrays;
@@ -51,7 +51,7 @@ float3 linearToGamma(float3 color)
 #endif
 
 #ifdef BLOOM
-    float noise = UDithering.SampleLevel(Sampler, coord.vUv * Params.ditherScale, 0).r;
+    float noise = UDithering.SampleLevel(RepeatSampler, coord.vUv * Params.ditherScale, 0).r;
     noise       = noise * 2.0 - 1.0;
     bloom += noise / 255.0;
     bloom = linearToGamma(bloom);

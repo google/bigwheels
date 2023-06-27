@@ -10,5 +10,5 @@
 [numthreads(1, 1, 1)] void csmain(uint2 tid
                                   : SV_DispatchThreadID) {
     Coord coord      = BaseVS(tid, Params.normalizationScale, Params.texelSize);
-    Output[coord.xy] = Params.clearValue * UTexture.SampleLevel(Sampler, coord.vUv, 0);
+    Output[coord.xy] = Params.clearValue * UTexture.SampleLevel(ClampSampler, coord.vUv, 0);
 }
