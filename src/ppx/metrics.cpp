@@ -226,10 +226,8 @@ Run* Manager::AddRun(const std::string& name)
     return pRun;
 }
 
-void Manager::ExportToDisk(const std::string& baseReportName) const
+void Manager::ExportToDisk(const std::string& reportPath) const
 {
-    PPX_ASSERT_MSG(!baseReportName.empty(), "Base report name must not be empty!");
-
     nlohmann::json content;
     for (const auto& [name, pRun] : mRuns) {
         content["runs"] += pRun->Export();
@@ -239,21 +237,21 @@ void Manager::ExportToDisk(const std::string& baseReportName) const
     // Since the json library relies on strings-as-pointers rather than self-allocated objects,
     // the lifecycle of the report is tied to the lifecycle of the runs and metrics owned by
     // the manager. But this is opaque.
-    Report(std::move(content), baseReportName).WriteToDisk();
+    Report(std::move(content), reportPath).WriteToDisk();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-Manager::Report::Report(const nlohmann::json& content, const std::string& baseFilename)
+Manager::Report::Report(const nlohmann::json& content, const std::string& reportPath)
     : mContent(content)
 {
-    SetReportName(baseFilename);
+    SetReportPath(reportPath);
 }
 
-Manager::Report::Report(nlohmann::json&& content, const std::string& baseFilename)
+Manager::Report::Report(nlohmann::json&& content, const std::string& reportPath)
     : mContent(content)
 {
-    SetReportName(baseFilename);
+    SetReportPath(reportPath);
 }
 
 void Manager::Report::WriteToDisk(bool overwriteExisting) const
@@ -266,7 +264,7 @@ void Manager::Report::WriteToDisk(bool overwriteExisting) const
     }
 
     std::filesystem::create_directories(mFilePath.parent_path());
-    std::ofstream outputFile(mFilePath.c_str(), std::ofstream::out);
+    std::ofstream outputFile(mFilePath, std::ofstream::out);
     if (!outputFile.is_open()) {
         PPX_LOG_ERROR("Failed to open metrics file at path [" << mFilePath << "] for writing!");
         return;
@@ -277,17 +275,28 @@ void Manager::Report::WriteToDisk(bool overwriteExisting) const
     PPX_LOG_INFO("Metrics report written to path [" << mFilePath << "]");
 }
 
-void Manager::Report::SetReportName(const std::string& baseReportName)
+void Manager::Report::SetReportPath(const std::string& reportPath)
 {
-    const time_t      currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    std::stringstream reportName;
-    reportName << baseReportName << "_" << currentTime;
-    mReportName      = reportName.str();
-    mContent["name"] = mReportName.c_str();
+    std::filesystem::path path(reportPath.empty() ? std::string(kDefaultReportPath) : reportPath);
+    auto                  filename   = path.filename().string();
+    auto                  atLocation = filename.find("@");
+    auto                  now        = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::stringstream     timeStream;
+    timeStream << now;
+    while (atLocation != std::string::npos) {
+        filename.replace(atLocation, 1, timeStream.str());
+        atLocation = filename.find("@");
+    }
+    path.replace_filename(std::filesystem::path(filename));
+    if (path.extension() != std::filesystem::path(kFileExtension)) {
+        path += kFileExtension;
+    }
 #if defined(PPX_ANDROID)
     mFilePath = ppx::fs::GetInternalDataPath();
 #endif
-    mFilePath /= (mReportName + kFileExtension);
+    mFilePath /= path;
+    mContent["filename"]     = mFilePath.filename().string();
+    mContent["generated_at"] = timeStream.str();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
