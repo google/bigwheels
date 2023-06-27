@@ -694,7 +694,7 @@ void Application::SaveMetricsReportToDisk()
     }
 
     // Export the report from the metrics manager to the disk.
-    mMetrics.manager.ExportToDisk("report");
+    mMetrics.manager.ExportToDisk(mSettings.reportPath);
 }
 
 void Application::DispatchShutdown()
@@ -1068,7 +1068,13 @@ int Application::Run(int argc, char** argv)
     // ImGUI is not non-deterministic, but the visible informations (stats, timers) are.
     if ((mSettings.headless || mStandardOptions.deterministic) && mSettings.enableImGui) {
         mSettings.enableImGui = false;
-        PPX_LOG_WARN("Headless mode: disabling ImGui");
+        PPX_LOG_WARN("Headless or deterministic mode: disabling ImGui");
+    }
+
+    if (mStandardOptions.enable_metrics) {
+        mSettings.enableMetrics = true;
+        // An empty reportPath will be replaced with the default.
+        mSettings.reportPath = mStandardOptions.metrics_filename;
     }
 
     // Initialize the platform

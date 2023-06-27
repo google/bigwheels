@@ -235,6 +235,7 @@ struct ApplicationSettings
     bool        allowThirdPartyAssets = false;
     // Set to true to opt-in for metrics.
     bool enableMetrics = false;
+    std::string reportPath    = "";
 
     struct
     {
