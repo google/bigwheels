@@ -11,12 +11,12 @@
                                   : SV_DispatchThreadID) {
     Coord coord = BaseVS(tid, Params.normalizationScale, Params.texelSize);
 
-    float L = UPressure.SampleLevel(Sampler, coord.vL, 0).x;
-    float R = UPressure.SampleLevel(Sampler, coord.vR, 0).x;
-    float T = UPressure.SampleLevel(Sampler, coord.vT, 0).x;
-    float B = UPressure.SampleLevel(Sampler, coord.vB, 0).x;
+    float L = UPressure.SampleLevel(ClampSampler, coord.vL, 0).x;
+    float R = UPressure.SampleLevel(ClampSampler, coord.vR, 0).x;
+    float T = UPressure.SampleLevel(ClampSampler, coord.vT, 0).x;
+    float B = UPressure.SampleLevel(ClampSampler, coord.vB, 0).x;
 
-    float2 velocity = UVelocity.SampleLevel(Sampler, coord.vUv, 0).xy;
+    float2 velocity = UVelocity.SampleLevel(ClampSampler, coord.vUv, 0).xy;
     velocity.xy -= float2(R - L, T - B);
 
     Output[coord.xy] = float4(velocity, 0.0, 1.0);

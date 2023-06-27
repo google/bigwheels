@@ -30,6 +30,7 @@
 std::ostream& operator<<(std::ostream& os, const ppx::float2& i);
 std::ostream& operator<<(std::ostream& os, const ppx::float3& i);
 std::ostream& operator<<(std::ostream& os, const ppx::float4& i);
+std::ostream& operator<<(std::ostream& os, const ppx::uint3& i);
 
 namespace ppx {
 

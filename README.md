@@ -56,9 +56,9 @@ To add a new test:
 1) Add and write a new test file under `src/test/`, e.g. `src/test/new_test.cpp`.
 2) Add the new file name to the list of test sources in `src/test/CMakeLists.txt`.
 
-To build tests (without running them), use `make build-tests`. Test binaries are output in `test/`.
+To build tests (without running them), use `ninja build-tests`. Test binaries are output in `test/`.
 
-To run tests (they will be built if needed), use `make run-tests`.
+To run tests (they will be built if needed), use `ninja run-tests`.
 
 # Benchmarks
 BigWheels includes a variety of benchmarks that test graphics fundamentals under the `benchmarks` folder. See the [documentation](docs/benchmarks.md) for benchmarks on how to build and run them.

@@ -11,12 +11,12 @@
                                   : SV_DispatchThreadID) {
     Coord coord = BaseVS(tid, Params.normalizationScale, Params.texelSize);
 
-    float L = UVelocity.SampleLevel(Sampler, coord.vL, 0).x;
-    float R = UVelocity.SampleLevel(Sampler, coord.vR, 0).x;
-    float T = UVelocity.SampleLevel(Sampler, coord.vT, 0).y;
-    float B = UVelocity.SampleLevel(Sampler, coord.vB, 0).y;
+    float L = UVelocity.SampleLevel(ClampSampler, coord.vL, 0).x;
+    float R = UVelocity.SampleLevel(ClampSampler, coord.vR, 0).x;
+    float T = UVelocity.SampleLevel(ClampSampler, coord.vT, 0).y;
+    float B = UVelocity.SampleLevel(ClampSampler, coord.vB, 0).y;
 
-    float2 C = UVelocity.SampleLevel(Sampler, coord.vUv, 0).xy;
+    float2 C = UVelocity.SampleLevel(ClampSampler, coord.vUv, 0).xy;
     if (coord.vL.x < 0.0) {
         L = -C.x;
     }

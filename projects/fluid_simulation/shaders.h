@@ -26,7 +26,8 @@ class FluidSimulation;
 struct ComputeResources
 {
     ppx::grfx::PipelineInterfacePtr   mPipelineInterface;
-    ppx::grfx::SamplerPtr             mSampler;
+    ppx::grfx::SamplerPtr             mClampSampler;
+    ppx::grfx::SamplerPtr             mRepeatSampler;
     ppx::grfx::DescriptorSetLayoutPtr mDescriptorSetLayout;
 };
 
@@ -37,7 +38,6 @@ struct GraphicsResources
     ppx::grfx::VertexBinding          mVertexBinding;
     ppx::grfx::DescriptorSetLayoutPtr mDescriptorSetLayout;
     ppx::grfx::SamplerPtr             mSampler;
-    ppx::grfx::BufferPtr              mVertexBuffer;
 };
 
 // Frame synchronization data.
@@ -72,6 +72,7 @@ public:
 
     uint32_t                       GetWidth() const { return mTexture->GetWidth(); }
     uint32_t                       GetHeight() const { return mTexture->GetHeight(); }
+    ppx::float2                    GetNormalizedSize() const;
     const std::string&             GetName() const { return mName; }
     ppx::grfx::ImagePtr            GetImagePtr() { return mTexture; }
     ppx::grfx::SampledImageViewPtr GetSampledView() { return mSampledView; }
@@ -199,10 +200,32 @@ public:
     /// @brief Run this shader using the given dispatch record, output texture and inputs.
     /// @param frame Frame to use.
     /// @param dr    Dispatch record to use.
-    void Dispatch(const PerFrame& frame, ComputeDispatchRecord& dr);
+    void Dispatch(const PerFrame& frame, const std::unique_ptr<ComputeDispatchRecord>& dr);
 
 private:
     ppx::grfx::ComputePipelinePtr mPipeline;
+};
+
+class AdvectionShader : public ComputeShader
+{
+public:
+    AdvectionShader(FluidSimulation* sim)
+        : ComputeShader(sim, "advection") {}
+
+    std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* uVelocity, Texture* uSource, Texture* output, float delta, float dissipation, ppx::float2 texelSize, ppx::float2 dyeTexelSize)
+    {
+        ScalarInput si(output);
+        si.texelSize    = texelSize;
+        si.dyeTexelSize = dyeTexelSize;
+        si.dissipation  = dissipation;
+        si.dt           = delta;
+
+        auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
+        dr->BindInputTexture(uVelocity, 3);
+        dr->BindInputTexture(uSource, 5);
+        dr->BindOutputTexture(11);
+        return std::move(dr);
+    }
 };
 
 class BloomBlurShader : public ComputeShader
@@ -216,15 +239,15 @@ public:
     /// @param output       Texture to write to.
     /// @param texelSize    Texel size.
     /// @return The dispatch record to schedule.
-    ComputeDispatchRecord GetDR(Texture* uTexture, Texture* output, ppx::float2 texelSize)
+    std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* uTexture, Texture* output, ppx::float2 texelSize)
     {
         ScalarInput si(output);
         si.texelSize = texelSize;
 
-        ComputeDispatchRecord dr(this, output, si);
-        dr.BindInputTexture(uTexture, 2);
-        dr.BindOutputTexture(11);
-        return dr;
+        auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
+        dr->BindInputTexture(uTexture, 2);
+        dr->BindOutputTexture(11);
+        return std::move(dr);
     }
 };
 
@@ -238,15 +261,15 @@ public:
     /// @param uTexture     Texture to sample from.
     /// @param output       Texture to write to.
     /// @return The dispatch record to schedule.
-    ComputeDispatchRecord GetDR(Texture* uTexture, Texture* output, ppx::float2 texelSize)
+    std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* uTexture, Texture* output, ppx::float2 texelSize)
     {
         ScalarInput si(output);
         si.texelSize = texelSize;
 
-        ComputeDispatchRecord dr(this, output, si);
-        dr.BindInputTexture(uTexture, 2);
-        dr.BindOutputTexture(11);
-        return dr;
+        auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
+        dr->BindInputTexture(uTexture, 2);
+        dr->BindOutputTexture(11);
+        return std::move(dr);
     }
 };
 
@@ -261,16 +284,16 @@ public:
     /// @param output       Texture to write to.
     /// @param intensity    Intensity parameter.
     /// @return The dispatch record to schedule.
-    ComputeDispatchRecord GetDR(Texture* uTexture, Texture* output, ppx::float2 texelSize, float intensity)
+    std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* uTexture, Texture* output, ppx::float2 texelSize, float intensity)
     {
         ScalarInput si(output);
         si.texelSize = texelSize;
         si.intensity = intensity;
 
-        ComputeDispatchRecord dr(this, output, si);
-        dr.BindInputTexture(uTexture, 2);
-        dr.BindOutputTexture(11);
-        return dr;
+        auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
+        dr->BindInputTexture(uTexture, 2);
+        dr->BindOutputTexture(11);
+        return std::move(dr);
     }
 };
 
@@ -286,16 +309,16 @@ public:
     /// @param curve        Curve parameter.
     /// @param threshold    Threshold parameter.
     /// @return The dispatch record to schedule.
-    ComputeDispatchRecord GetDR(Texture* uTexture, Texture* output, ppx::float3 curve, float threshold)
+    std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* uTexture, Texture* output, ppx::float3 curve, float threshold)
     {
         ScalarInput si(output);
         si.curve     = curve;
         si.threshold = threshold;
 
-        ComputeDispatchRecord dr(this, output, si);
-        dr.BindInputTexture(uTexture, 2);
-        dr.BindOutputTexture(11);
-        return dr;
+        auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
+        dr->BindInputTexture(uTexture, 2);
+        dr->BindOutputTexture(11);
+        return std::move(dr);
     }
 };
 
@@ -309,15 +332,15 @@ public:
     /// @param uTexture     Texture to sample from.
     /// @param output       Texture to write to.
     /// @return The dispatch record to schedule.
-    ComputeDispatchRecord GetDR(Texture* uTexture, Texture* output, ppx::float2 texelSize)
+    std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* uTexture, Texture* output, ppx::float2 texelSize)
     {
         ScalarInput si(output);
         si.texelSize = texelSize;
 
-        ComputeDispatchRecord dr(this, output, si);
-        dr.BindInputTexture(uTexture, 2);
-        dr.BindOutputTexture(11);
-        return dr;
+        auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
+        dr->BindInputTexture(uTexture, 2);
+        dr->BindOutputTexture(11);
+        return std::move(dr);
     }
 };
 
@@ -331,14 +354,32 @@ public:
     /// @param output       Texture to write to.
     /// @param aspectRatio  Aspect ratio parameter.
     /// @return The dispatch record to schedule.
-    ComputeDispatchRecord GetDR(Texture* output, float aspectRatio)
+    std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* output, float aspectRatio)
     {
         ScalarInput si(output);
         si.aspectRatio = aspectRatio;
 
-        ComputeDispatchRecord dr(this, output, si);
-        dr.BindOutputTexture(11);
-        return dr;
+        auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
+        dr->BindOutputTexture(11);
+        return std::move(dr);
+    }
+};
+
+class ClearShader : public ComputeShader
+{
+public:
+    ClearShader(FluidSimulation* sim)
+        : ComputeShader(sim, "clear") {}
+
+    std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* uTexture, Texture* output, float clearValue)
+    {
+        ScalarInput si(output);
+        si.clearValue = clearValue;
+
+        auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
+        dr->BindInputTexture(uTexture, 2);
+        dr->BindOutputTexture(11);
+        return std::move(dr);
     }
 };
 
@@ -352,14 +393,32 @@ public:
     /// @param output   Texture to write to.
     /// @param color    Color to write to the whole texture.
     /// @return The dispatch record to schedule.
-    ComputeDispatchRecord GetDR(Texture* output, ppx::float4 color)
+    std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* output, ppx::float4 color)
     {
         ScalarInput si(output);
         si.color = color;
 
-        ComputeDispatchRecord dr(this, output, si);
-        dr.BindOutputTexture(11);
-        return dr;
+        auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
+        dr->BindOutputTexture(11);
+        return std::move(dr);
+    }
+};
+
+class CurlShader : public ComputeShader
+{
+public:
+    CurlShader(FluidSimulation* sim)
+        : ComputeShader(sim, "curl") {}
+
+    std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* velocity, Texture* output, ppx::float2 texelSize)
+    {
+        ScalarInput si(output);
+        si.texelSize = texelSize;
+
+        auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
+        dr->BindInputTexture(velocity, 3);
+        dr->BindOutputTexture(11);
+        return std::move(dr);
     }
 };
 
@@ -373,19 +432,75 @@ public:
     /// @param output   Texture to write to.
     /// @param color    Color to write to the whole texture.
     /// @return The dispatch record to schedule.
-    ComputeDispatchRecord GetDR(Texture* uTexture, Texture* uBloom, Texture* uSunrays, Texture* uDithering, Texture* output, ppx::float2 texelSize, ppx::float2 ditherScale)
+    std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* uTexture, Texture* uBloom, Texture* uSunrays, Texture* uDithering, Texture* output, ppx::float2 texelSize, ppx::float2 ditherScale)
     {
         ScalarInput si(output);
         si.texelSize   = texelSize;
         si.ditherScale = ditherScale;
 
-        ComputeDispatchRecord dr(this, output, si);
-        dr.BindInputTexture(uTexture, 2);
-        dr.BindInputTexture(uBloom, 6);
-        dr.BindInputTexture(uSunrays, 7);
-        dr.BindInputTexture(uDithering, 8);
-        dr.BindOutputTexture(11);
-        return dr;
+        auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
+        dr->BindInputTexture(uTexture, 2);
+        dr->BindInputTexture(uBloom, 6);
+        dr->BindInputTexture(uSunrays, 7);
+        dr->BindInputTexture(uDithering, 8);
+        dr->BindOutputTexture(11);
+        return std::move(dr);
+    }
+};
+
+class DivergenceShader : public ComputeShader
+{
+public:
+    DivergenceShader(FluidSimulation* sim)
+        : ComputeShader(sim, "divergence") {}
+
+    std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* uVelocity, Texture* output, ppx::float2 texelSize)
+    {
+        ScalarInput si(output);
+        si.texelSize = texelSize;
+
+        auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
+        dr->BindInputTexture(uVelocity, 3);
+        dr->BindOutputTexture(11);
+        return std::move(dr);
+    }
+};
+
+class GradientSubtractShader : public ComputeShader
+{
+public:
+    GradientSubtractShader(FluidSimulation* sim)
+        : ComputeShader(sim, "gradient_subtract") {}
+
+    std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* uPressure, Texture* uVelocity, Texture* output, ppx::float2 texelSize)
+    {
+        ScalarInput si(output);
+        si.texelSize = texelSize;
+
+        auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
+        dr->BindInputTexture(uPressure, 9);
+        dr->BindInputTexture(uVelocity, 3);
+        dr->BindOutputTexture(11);
+        return std::move(dr);
+    }
+};
+
+class PressureShader : public ComputeShader
+{
+public:
+    PressureShader(FluidSimulation* sim)
+        : ComputeShader(sim, "pressure") {}
+
+    std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* uPressure, Texture* uDivergence, Texture* output, ppx::float2 texelSize)
+    {
+        ScalarInput si(output);
+        si.texelSize = texelSize;
+
+        auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
+        dr->BindInputTexture(uPressure, 9);
+        dr->BindInputTexture(uDivergence, 10);
+        dr->BindOutputTexture(11);
+        return std::move(dr);
     }
 };
 
@@ -404,7 +519,7 @@ public:
     /// @param radius       Radius shader parameter.
     /// @param color        Color shader parameter.
     /// @return The dispatch record to schedule.
-    ComputeDispatchRecord GetDR(Texture* uTexture, Texture* output, ppx::float2 coordinate, float aspectRatio, float radius, ppx::float4 color)
+    std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* uTexture, Texture* output, ppx::float2 coordinate, float aspectRatio, float radius, ppx::float4 color)
     {
         ScalarInput si(output);
         si.coordinate  = coordinate;
@@ -412,10 +527,10 @@ public:
         si.radius      = radius;
         si.color       = color;
 
-        ComputeDispatchRecord dr(this, output, si);
-        dr.BindInputTexture(uTexture, 2);
-        dr.BindOutputTexture(11);
-        return dr;
+        auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
+        dr->BindInputTexture(uTexture, 2);
+        dr->BindOutputTexture(11);
+        return std::move(dr);
     }
 };
 
@@ -429,13 +544,14 @@ public:
     /// @param uTexture     Texture to sample from.
     /// @param output       Texture to write to.
     /// @return The dispatch record to schedule.
-    ComputeDispatchRecord GetDR(Texture* uTexture, Texture* output)
+    std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* uTexture, Texture* output)
     {
-        ScalarInput           si(output);
-        ComputeDispatchRecord dr(this, output, si);
-        dr.BindInputTexture(uTexture, 2);
-        dr.BindOutputTexture(11);
-        return dr;
+        ScalarInput si(output);
+
+        auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
+        dr->BindInputTexture(uTexture, 2);
+        dr->BindOutputTexture(11);
+        return std::move(dr);
     }
 };
 
@@ -450,14 +566,35 @@ public:
     /// @param output       Texture to write to.
     /// @param weight       Weight parameter.
     /// @return The dispatch record to schedule.
-    ComputeDispatchRecord GetDR(Texture* uTexture, Texture* output, float weight)
+    std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* uTexture, Texture* output, float weight)
     {
         ScalarInput si(output);
         si.weight = weight;
-        ComputeDispatchRecord dr(this, output, si);
-        dr.BindInputTexture(uTexture, 2);
-        dr.BindOutputTexture(11);
-        return dr;
+
+        auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
+        dr->BindInputTexture(uTexture, 2);
+        dr->BindOutputTexture(11);
+        return std::move(dr);
+    }
+};
+
+class VorticityShader : public ComputeShader
+{
+public:
+    VorticityShader(FluidSimulation* sim)
+        : ComputeShader(sim, "vorticity") {}
+
+    std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* uVelocity, Texture* uCurl, Texture* output, ppx::float2 texelSize, float curl, float delta)
+    {
+        ScalarInput si(output);
+        si.curl = curl;
+        si.dt   = delta;
+
+        auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
+        dr->BindInputTexture(uVelocity, 3);
+        dr->BindInputTexture(uCurl, 4);
+        dr->BindOutputTexture(11);
+        return std::move(dr);
     }
 };
 
@@ -468,12 +605,13 @@ public:
 class GraphicsShader;
 struct GraphicsDispatchRecord
 {
-    GraphicsDispatchRecord(GraphicsShader* gs, Texture* image);
+    GraphicsDispatchRecord(GraphicsShader* gs, Texture* image, ppx::float2 coord);
     void FreeResources();
 
     GraphicsShader*             mShader;
     ppx::grfx::DescriptorSetPtr mDescriptorSet;
     Texture*                    mImage;
+    ppx::grfx::BufferPtr        mVertexBuffer;
 };
 
 class GraphicsShader : public Shader
@@ -484,15 +622,16 @@ public:
     /// @brief Draw the given texture.
     /// @param frame        Frame to use.
     /// @param dr           GraphicsDispatchRecord instance to use for setting up the pipeline.
-    void Dispatch(const PerFrame& frame, GraphicsDispatchRecord& dr);
+    void Dispatch(const PerFrame& frame, const std::unique_ptr<GraphicsDispatchRecord>& dr);
 
     /// @brief Create a dispatch record to execute this shader instance.
     /// @param image    Texture to draw.
+    /// @param coord    Normalized coordinate where to draw the texture.
     /// @return The dispatch record to schedule.
-    GraphicsDispatchRecord GetDR(Texture* image)
+    std::unique_ptr<GraphicsDispatchRecord> GetDR(Texture* image, ppx::float2 coord)
     {
-        GraphicsDispatchRecord dr(this, image);
-        return dr;
+        auto dr = std::make_unique<GraphicsDispatchRecord>(this, image, coord);
+        return std::move(dr);
     }
 
 private:
