@@ -353,8 +353,9 @@ void FluidSimulation::Render()
 
     DrawDisplay();
 
-    if (GetApp()->GetSettings()->grfx.enableDebug)
+    if (GetApp()->GetSettings()->grfx.enableDebug) {
         DrawTextures();
+    }
 }
 
 void FluidSimulation::ApplyBloom(Texture* source, Texture* destination)
