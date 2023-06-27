@@ -10,7 +10,7 @@
 [numthreads(1, 1, 1)] void csmain(uint2 tid
                                   : SV_DispatchThreadID) {
     Coord  coord = BaseVS(tid, Params.normalizationScale, Params.texelSize);
-    float4 c     = UTexture.SampleLevel(Sampler, coord.vUv, 0);
+    float4 c     = UTexture.SampleLevel(ClampSampler, coord.vUv, 0);
     float  br    = max(c.r, max(c.g, c.b));
     c.a          = 1.0 - min(max(br * 20.0, 0.0), 0.8);
     Output[coord.xy] = c;
