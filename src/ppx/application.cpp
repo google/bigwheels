@@ -686,24 +686,8 @@ void Application::SaveMetricsReportToDisk()
         return;
     }
 
-    // Build a unique name for the report
-    std::stringstream                                        reportFilename;
-    const std::chrono::time_point<std::chrono::system_clock> now          = std::chrono::system_clock::now();
-    const time_t                                             current_time = std::chrono::system_clock::to_time_t(now);
-    reportFilename << "report_" << current_time << metrics::Report::kFileExtension;
-
-    // Check whether the file already exists
-    if (std::filesystem::exists(reportFilename.str())) {
-        PPX_LOG_ERROR("Metrics report file cannot be written to disk as file [" << reportFilename.str() << "] already exists");
-        return;
-    }
-
-    // Export the report from the metrics manager
-    const metrics::Report report = mMetrics.manager.Export(reportFilename.str().c_str());
-    // Serialize the report to disk
-    report.WriteToFile(reportFilename.str().c_str());
-    // Report the filename for convenience
-    PPX_LOG_INFO("Metrics report written to file [" << reportFilename.str() << "]");
+    // Export the report from the metrics manager to the disk.
+    mMetrics.manager.ExportToDisk("report");
 }
 
 void Application::DispatchShutdown()
