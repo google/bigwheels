@@ -57,9 +57,9 @@ protected:
         k2 = km.CreateKnob<ppx::KnobCheckbox>("flag_name2", true);
         k3 = km.CreateKnob<ppx::KnobSlider<int>>("flag_name3", 5, 0, 10);
         k4 = km.CreateKnob<ppx::KnobDropdown<std::string>>("flag_name4", 1, choices4);
-        k5 = km.CreateKnob<ppx::KnobConstant<bool>>("flag_name5", true);
-        k6 = km.CreateKnob<ppx::KnobConstant<float>>("flag_name6", 6.6f, 0.0f, 10.0f);
-        k7 = km.CreateKnob<ppx::KnobConstant<int>>("flag_name7", 8, 0, INT_MAX);
+        k5 = km.CreateKnob<ppx::KnobFlag<bool>>("flag_name5", true);
+        k6 = km.CreateKnob<ppx::KnobFlag<float>>("flag_name6", 6.6f, 0.0f, 10.0f);
+        k7 = km.CreateKnob<ppx::KnobFlag<int>>("flag_name7", 8, 0, INT_MAX);
     }
 
 protected:
@@ -68,9 +68,9 @@ protected:
     std::shared_ptr<ppx::KnobSlider<int>>           k3;
     std::vector<std::string>                        choices4 = {"c1", "c2", "c3 and more"};
     std::shared_ptr<ppx::KnobDropdown<std::string>> k4;
-    std::shared_ptr<ppx::KnobConstant<bool>>        k5;
-    std::shared_ptr<ppx::KnobConstant<float>>       k6;
-    std::shared_ptr<ppx::KnobConstant<int>>         k7;
+    std::shared_ptr<ppx::KnobFlag<bool>>            k5;
+    std::shared_ptr<ppx::KnobFlag<float>>           k6;
+    std::shared_ptr<ppx::KnobFlag<int>>             k7;
 };
 
 namespace ppx {
@@ -321,42 +321,42 @@ TEST_F(KnobTestFixture, KnobDropdown_ResetToDefault)
 }
 
 // -------------------------------------------------------------------------------------------------
-// KnobConstant
+// KnobFlag
 // -------------------------------------------------------------------------------------------------
 
-TEST_F(KnobTestFixture, KnobConstant_CreateBool)
+TEST_F(KnobTestFixture, KnobFlag_CreateBool)
 {
-    KnobConstant<bool> k = KnobConstant<bool>("flag_name1", false);
+    KnobFlag<bool> k = KnobFlag<bool>("flag_name1", false);
     EXPECT_EQ(k.GetValue(), false);
 }
 
-TEST_F(KnobTestFixture, KnobConstant_CreateString)
+TEST_F(KnobTestFixture, KnobFlag_CreateString)
 {
-    KnobConstant<std::string> k = KnobConstant<std::string>("flag_name1", "placeholder");
+    KnobFlag<std::string> k = KnobFlag<std::string>("flag_name1", "placeholder");
     EXPECT_EQ(k.GetValue(), "placeholder");
 }
 
-TEST_F(KnobTestFixture, KnobConstant_CreateInt)
+TEST_F(KnobTestFixture, KnobFlag_CreateInt)
 {
-    KnobConstant<int> k = KnobConstant<int>("flag_name1", 0);
+    KnobFlag<int> k = KnobFlag<int>("flag_name1", 0);
     EXPECT_EQ(k.GetValue(), 0);
 }
 
-TEST_F(KnobTestFixture, KnobConstant_CreateFloat)
+TEST_F(KnobTestFixture, KnobFlag_CreateFloat)
 {
-    KnobConstant<float> k = KnobConstant<float>("flag_name1", 1.5f);
+    KnobFlag<float> k = KnobFlag<float>("flag_name1", 1.5f);
     EXPECT_EQ(k.GetValue(), 1.5f);
 }
 
-TEST_F(KnobTestFixture, KnobConstant_CreateIntWithRange)
+TEST_F(KnobTestFixture, KnobFlag_CreateIntWithRange)
 {
-    KnobConstant<int> k = KnobConstant<int>("flag_name1", 5, 0, 10);
+    KnobFlag<int> k = KnobFlag<int>("flag_name1", 5, 0, 10);
     EXPECT_EQ(k.GetValue(), 5);
 }
 
-TEST_F(KnobTestFixture, KnobConstant_CreateFloatWithRange)
+TEST_F(KnobTestFixture, KnobFlag_CreateFloatWithRange)
 {
-    KnobConstant<float> k = KnobConstant<float>("flag_name1", 1.5f, 0.0f, 3.0f);
+    KnobFlag<float> k = KnobFlag<float>("flag_name1", 1.5f, 0.0f, 3.0f);
     EXPECT_EQ(k.GetValue(), 1.5f);
 }
 
@@ -388,39 +388,39 @@ TEST_F(KnobManagerTestFixture, KnobManager_CreateStrDropdown)
     EXPECT_EQ(strKnobPtr->GetIndex(), 1);
 }
 
-TEST_F(KnobManagerTestFixture, KnobManager_CreateConstantKnobBool)
+TEST_F(KnobManagerTestFixture, KnobManager_CreateKnobFlagBool)
 {
-    std::shared_ptr<KnobConstant<bool>> knobPtr(km.CreateKnob<KnobConstant<bool>>("flag_name1", true));
+    std::shared_ptr<KnobFlag<bool>> knobPtr(km.CreateKnob<KnobFlag<bool>>("flag_name1", true));
     EXPECT_EQ(knobPtr->GetValue(), true);
 }
 
-TEST_F(KnobManagerTestFixture, KnobManager_CreateConstantKnobStr)
+TEST_F(KnobManagerTestFixture, KnobManager_CreateKnobFlagStr)
 {
-    std::shared_ptr<KnobConstant<std::string>> knobPtr(km.CreateKnob<KnobConstant<std::string>>("flag_name1", "placeholder"));
+    std::shared_ptr<KnobFlag<std::string>> knobPtr(km.CreateKnob<KnobFlag<std::string>>("flag_name1", "placeholder"));
     EXPECT_EQ(knobPtr->GetValue(), "placeholder");
 }
 
-TEST_F(KnobManagerTestFixture, KnobManager_CreateConstantKnobInt)
+TEST_F(KnobManagerTestFixture, KnobManager_CreateKnobFlagInt)
 {
-    std::shared_ptr<KnobConstant<int>> knobPtr(km.CreateKnob<KnobConstant<int>>("flag_name1", 5));
+    std::shared_ptr<KnobFlag<int>> knobPtr(km.CreateKnob<KnobFlag<int>>("flag_name1", 5));
     EXPECT_EQ(knobPtr->GetValue(), 5);
 }
 
-TEST_F(KnobManagerTestFixture, KnobManager_CreateConstantKnobFloat)
+TEST_F(KnobManagerTestFixture, KnobManager_CreateKnobFlagFloat)
 {
-    std::shared_ptr<KnobConstant<float>> knobPtr(km.CreateKnob<KnobConstant<float>>("flag_name1", 5.5f));
+    std::shared_ptr<KnobFlag<float>> knobPtr(km.CreateKnob<KnobFlag<float>>("flag_name1", 5.5f));
     EXPECT_EQ(knobPtr->GetValue(), 5.5f);
 }
 
-TEST_F(KnobManagerTestFixture, KnobManager_CreateConstantKnobIntWithRange)
+TEST_F(KnobManagerTestFixture, KnobManager_CreateKnobFlagIntWithRange)
 {
-    std::shared_ptr<KnobConstant<int>> knobPtr(km.CreateKnob<KnobConstant<int>>("flag_name1", 5, 0, 10));
+    std::shared_ptr<KnobFlag<int>> knobPtr(km.CreateKnob<KnobFlag<int>>("flag_name1", 5, 0, 10));
     EXPECT_EQ(knobPtr->GetValue(), 5);
 }
 
-TEST_F(KnobManagerTestFixture, KnobManager_CreateConstantKnobFloatWithRange)
+TEST_F(KnobManagerTestFixture, KnobManager_CreateKnobFlagFloatWithRange)
 {
-    std::shared_ptr<KnobConstant<float>> knobPtr(km.CreateKnob<KnobConstant<float>>("flag_name1", 1.5f, 0.0f, 3.0f));
+    std::shared_ptr<KnobFlag<float>> knobPtr(km.CreateKnob<KnobFlag<float>>("flag_name1", 1.5f, 0.0f, 3.0f));
     EXPECT_EQ(knobPtr->GetValue(), 1.5f);
 }
 

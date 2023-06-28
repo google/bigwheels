@@ -46,7 +46,7 @@ namespace ppx {
 class Knob
 {
 public:
-    Knob(const std::string& flagName, bool visible)
+    Knob(const std::string& flagName, bool visible = false)
         : mFlagName(flagName), mDisplayName(flagName), mIndent(0), mUpdatedFlag(false), mVisible(visible) {}
     virtual ~Knob() = default;
 
@@ -231,26 +231,6 @@ public:
         const Container&   container)
         : KnobDropdown(flagName, defaultIndex, std::begin(container), std::end(container)) {}
 
-    void Draw() override
-    {
-        if (!ImGui::BeginCombo(mDisplayName.c_str(), mChoices.at(mIndex).c_str())) {
-            return;
-        }
-        for (size_t i = 0; i < mChoices.size(); ++i) {
-            bool isSelected = (i == mIndex);
-            if (ImGui::Selectable(mChoices.at(i).c_str(), isSelected)) {
-                if (i != mIndex) { // A new choice is selected
-                    mIndex = i;
-                    RaiseUpdatedFlag();
-                }
-            }
-            if (isSelected) {
-                ImGui::SetItemDefaultFocus();
-            }
-        }
-        ImGui::EndCombo();
-    }
-
     size_t   GetIndex() const { return mIndex; }
     const T& GetValue() const { return mChoices[mIndex]; }
 
@@ -281,6 +261,26 @@ public:
     }
 
 private:
+    void Draw() override
+    {
+        if (!ImGui::BeginCombo(mDisplayName.c_str(), mChoices.at(mIndex).c_str())) {
+            return;
+        }
+        for (size_t i = 0; i < mChoices.size(); ++i) {
+            bool isSelected = (i == mIndex);
+            if (ImGui::Selectable(mChoices.at(i).c_str(), isSelected)) {
+                if (i != mIndex) { // A new choice is selected
+                    mIndex = i;
+                    RaiseUpdatedFlag();
+                }
+            }
+            if (isSelected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+
     // Expected commandline flag format:
     // --flag_name <str>
     void UpdateFromFlags(const CliOptions& opts) override
@@ -316,24 +316,25 @@ private:
     std::vector<T> mChoices;
 };
 
-// KnobConstant is intended for parameters that cannot be adjusted when the application is run
+// KnobFlag is intended for parameters that cannot be adjusted when the application is run
 // They will not be displayed in the UI and cannot have their values changed by the application
+// Their values are the default unless otherwise set through commandline flags on application start up
 template <typename T>
-class KnobConstant final
+class KnobFlag final
     : public Knob
 {
 public:
-    KnobConstant(const std::string& flagName, T defaultValue)
+    KnobFlag(const std::string& flagName, T defaultValue)
         : Knob(flagName, false)
     {
         SetValue(defaultValue);
     }
 
-    KnobConstant(const std::string& flagName, T defaultValue, T minValue, T maxValue)
+    KnobFlag(const std::string& flagName, T defaultValue, T minValue, T maxValue)
         : Knob(flagName, false)
     {
-        static_assert(std::is_arithmetic_v<T>, "KnobConstant can only be defined with min/max when it's of arithmetic type");
-        PPX_ASSERT_MSG(minValue < maxValue, "invalid range to initialize KnobConstant");
+        static_assert(std::is_arithmetic_v<T>, "KnobFlag can only be defined with min/max when it's of arithmetic type");
+        PPX_ASSERT_MSG(minValue < maxValue, "invalid range to initialize KnobFlag");
         PPX_ASSERT_MSG(minValue <= defaultValue && defaultValue <= maxValue, "defaultValue is out of range");
 
         SetValidator([minValue, maxValue](T newValue) {
@@ -346,13 +347,14 @@ public:
         SetValue(defaultValue);
     }
 
-    void Draw() override {} // KnobConstant is invisible in the UI
+    T GetValue() const { return mValue; }
 
-    T    GetValue() const { return mValue; }
-    void ResetToDefault() override {} // KnobConstant is always the "default" value
     void SetValidator(std::function<bool(T)> validatorFunc) { mValidatorFunc = validatorFunc; }
 
 private:
+    void Draw() override {}           // KnobFlag is invisible in the UI
+    void ResetToDefault() override {} // KnobFlag is always the "default" value
+
     void UpdateFromFlags(const CliOptions& opts) override
     {
         SetValue(opts.GetExtraOptionValueOrDefault(mFlagName, mValue));
