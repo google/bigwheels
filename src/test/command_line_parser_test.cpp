@@ -112,8 +112,6 @@ TEST(CommandLineParserTest, StandardOptionsParsingMultipleAssets)
 {
     CommandLineParser parser;
     const char*       args[] = {"/path/to/executable", "--assets-path", "some-path", "--assets-path", "some-other-path"};
-    StandardOptions   wantOptions;
-    wantOptions.assets_paths = {"some-path", "some-other-path"};
 
     EXPECT_FALSE(parser.Parse(sizeof(args) / sizeof(args[0]), args));
     auto opts = parser.GetOptions();
