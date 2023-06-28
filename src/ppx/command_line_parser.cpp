@@ -68,20 +68,20 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
 
     for (const auto& opt : options) {
         // Process standard options.
-        if (opt.GetName() == "help") {
-            mOpts.standardOptions.help = true;
-        }
-        else if (opt.GetName() == "list-gpus") {
-            mOpts.standardOptions.list_gpus = true;
-        }
-        else if (opt.GetName() == "use-software-renderer") {
-            mOpts.standardOptions.use_software_renderer = true;
-        }
-        else if (opt.GetName() == "headless") {
-            mOpts.standardOptions.headless = true;
+        if (opt.GetName() == "assets-path") {
+            if (!opt.HasValue()) {
+                return std::string("Command-line option --assets-path requires a parameter");
+            }
+            mOpts.standardOptions.assets_path = opt.GetValueOrDefault<std::string>("");
         }
         else if (opt.GetName() == "deterministic") {
             mOpts.standardOptions.deterministic = true;
+        }
+        else if (opt.GetName() == "frame-count") {
+            if (!opt.HasValue()) {
+                return std::string("Command-line option --frame-count requires a parameter");
+            }
+            mOpts.standardOptions.frame_count = opt.GetValueOrDefault<int>(0);
         }
         else if (opt.GetName() == "gpu") {
             if (!opt.HasValue()) {
@@ -91,6 +91,15 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
             if (mOpts.standardOptions.gpu_index < 0) {
                 return std::string("Command-line option --gpu requires a positive integer as the parameter");
             }
+        }
+        else if (opt.GetName() == "headless") {
+            mOpts.standardOptions.headless = true;
+        }
+        else if (opt.GetName() == "help") {
+            mOpts.standardOptions.help = true;
+        }
+        else if (opt.GetName() == "list-gpus") {
+            mOpts.standardOptions.list_gpus = true;
         }
         else if (opt.GetName() == "resolution") {
             if (!opt.HasValue()) {
@@ -111,12 +120,6 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
             }
 
             mOpts.standardOptions.resolution = {width, height};
-        }
-        else if (opt.GetName() == "frame-count") {
-            if (!opt.HasValue()) {
-                return std::string("Command-line option --frame-count requires a parameter");
-            }
-            mOpts.standardOptions.frame_count = opt.GetValueOrDefault<int>(0);
         }
         else if (opt.GetName() == "run-time-ms") {
             if (!opt.HasValue()) {
@@ -141,6 +144,9 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
                 return std::string("Command-line option --screenshot-path requires a parameter");
             }
             mOpts.standardOptions.screenshot_path = opt.GetValueOrDefault<std::string>("");
+        }
+        else if (opt.GetName() == "use-software-renderer") {
+            mOpts.standardOptions.use_software_renderer = true;
         }
 #if defined(PPX_BUILD_XR)
         else if (opt.GetName() == "xr-ui-resolution") {

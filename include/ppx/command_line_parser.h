@@ -30,24 +30,25 @@ namespace ppx {
 struct StandardOptions
 {
     // Flags
+    bool deterministic         = false;
+    bool headless              = false;
     bool help                  = false;
     bool list_gpus             = false;
     bool use_software_renderer = false;
-    bool headless              = false;
-    bool deterministic         = false;
 
     // Options
-    int                 gpu_index          = -1;
-    std::pair<int, int> resolution         = {-1, -1};
+    std::string         assets_path             = "";
+    int                 gpu_index               = -1;
     int                 frame_count        = 0;
     int                 run_time_ms        = 0;
+    std::pair<int, int> resolution              = {-1, -1};
+    int                 screenshot_frame_number = -1;
+    std::string         screenshot_path         = "";
     uint32_t            stats_frame_window = 300;
 #if defined(PPX_BUILD_XR)
     std::pair<int, int> xrUIResolution = {-1, -1};
 #endif
 
-    int         screenshot_frame_number                  = -1;
-    std::string screenshot_path                          = "";
     bool        operator==(const StandardOptions&) const = default;
 };
 
@@ -176,6 +177,7 @@ private:
     std::string mUsageMsg = R"(
 --help                        Prints this help message and exits.
 
+--assets-path                 Add a path in front of the assets search path list.
 --deterministic               Disable non-deterministic behaviors, like clocks.
 --frame-count <N>             Shutdown the application after successfully rendering N frames.
 --run-time-ms <N>             Shutdown the application after N milliseconds.
@@ -196,6 +198,7 @@ private:
     std::string mUsageMsg = R"(
 --help                        Prints this help message and exits.
 
+--assets-path                 Add a path in front of the assets search path list.
 --deterministic               Disable non-deterministic behaviors, like clocks.
 --frame-count <N>             Shutdown the application after successfully rendering N frames. Default: 0 (infinite).
 --run-time-ms <N>             Shutdown the application after N milliseconds. Default: 0 (infinite).

@@ -673,6 +673,10 @@ void Application::DispatchConfig()
         path /= RELATIVE_PATH_TO_PROJECT_ROOT;
         AddAssetDir(path / "third_party/assets");
     }
+
+    if (!mStandardOptions.assets_path.empty()) {
+        AddAssetDir(mStandardOptions.assets_path, /* insert_at_front= */ true);
+    }
 }
 
 void Application::DispatchSetup()
