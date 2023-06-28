@@ -29,7 +29,7 @@ namespace ppx {
 namespace metrics {
 
 #define METRICS_NO_COPY(TYPE__)     \
-    TYPE__(TYPE__&)       = delete; \
+    TYPE__(TYPE__&&)      = delete; \
     TYPE__(const TYPE__&) = delete; \
     TYPE__& operator=(const TYPE__&) = delete;
 
@@ -180,7 +180,7 @@ public:
     // to the caller, and its expiration cannot be known directly. Instead, we may want to use either
     // strong/weak pointers or functional access to help prevent unexpected use-after-free situations.
     template <typename T>
-    T* AddMetric(MetricMetadata metadata)
+    T* AddMetric(const MetricMetadata& metadata)
     {
         PPX_ASSERT_MSG(!metadata.name.empty(), "The metric name must not be empty");
         PPX_ASSERT_MSG(!HasMetric(metadata.name), "Metrics must have unique names (duplicate name detected)");
