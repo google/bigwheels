@@ -36,7 +36,7 @@ bool Knob::DigestUpdate()
 // -------------------------------------------------------------------------------------------------
 
 KnobCheckbox::KnobCheckbox(const std::string& flagName, bool defaultValue)
-    : Knob(flagName, true), mDefaultValue(defaultValue), mValue(defaultValue)
+    : Knob(flagName, true), mValue(defaultValue), mDefaultValue(defaultValue)
 {
     SetFlagParameters("<true|false>");
     RaiseUpdatedFlag();

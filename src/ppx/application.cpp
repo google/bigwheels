@@ -673,6 +673,13 @@ void Application::DispatchConfig()
         path /= RELATIVE_PATH_TO_PROJECT_ROOT;
         AddAssetDir(path / "third_party/assets");
     }
+
+    if (!mStandardOptions.assets_paths.empty()) {
+        // Insert at front, in reverse order, so we respect the command line ordering for priority.
+        for (auto it = mStandardOptions.assets_paths.rbegin(); it < mStandardOptions.assets_paths.rend(); it++) {
+            AddAssetDir(*it, /* insert_at_front= */ true);
+        }
+    }
 }
 
 void Application::DispatchSetup()
