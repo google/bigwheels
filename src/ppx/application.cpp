@@ -891,13 +891,13 @@ void Application::ResizeCallback(uint32_t width, uint32_t height)
 
 void Application::WindowIconifyCallback(bool iconified)
 {
-    mWindow->SetWindowState(iconified ? WINDOW_STATE_ICONIFIED : WINDOW_STATE_RESTORED);
+    mWindow->SetState(iconified ? WINDOW_STATE_ICONIFIED : WINDOW_STATE_RESTORED);
     DispatchWindowIconify(iconified);
 }
 
 void Application::WindowMaximizeCallback(bool maximized)
 {
-    mWindow->SetWindowState(maximized ? WINDOW_STATE_MAXIMIZED : WINDOW_STATE_RESTORED);
+    mWindow->SetState(maximized ? WINDOW_STATE_MAXIMIZED : WINDOW_STATE_RESTORED);
     DispatchWindowMaximize(maximized);
 }
 

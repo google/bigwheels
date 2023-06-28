@@ -81,7 +81,6 @@ public:
 
     virtual WindowSize Size() const;
 
-    void        SetWindowState(WindowState state) { mState = state; }
     WindowState GetState() const { return mState; }
     bool        IsRestored() const { return (GetState() == WINDOW_STATE_RESTORED); }
     bool        IsIconified() const { return (GetState() == WINDOW_STATE_ICONIFIED); }
@@ -101,12 +100,13 @@ private:
     WindowState mState = WINDOW_STATE_RESTORED;
 
 #if defined(PPX_ANDROID)
-    static std::unique_ptr<Window>
-    GetImplAndroid(Application*);
+    static std::unique_ptr<Window> GetImplAndroid(Application*);
 #else
-    static std::unique_ptr<Window>
-    GetImplGLFW(Application*);
+    static std::unique_ptr<Window> GetImplGLFW(Application*);
 #endif
+
+    friend class Application;
+    void SetState(WindowState state) { mState = state; }
 };
 
 } // namespace ppx
