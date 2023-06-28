@@ -16,8 +16,6 @@
 
 #include "ppx/knob.h"
 
-#include <sstream>
-
 #if !defined(NDEBUG)
 #define PERFORM_DEATH_TESTS
 #endif

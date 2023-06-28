@@ -22,6 +22,7 @@
 
 #include <iostream>
 #include <memory>
+#include <sstream>
 #include <unordered_set>
 #include <vector>
 
@@ -352,7 +353,13 @@ public:
     void SetValidator(std::function<bool(T)> validatorFunc) { mValidatorFunc = validatorFunc; }
 
 private:
-    void Draw() override {}           // KnobFlag is invisible in the UI
+    void Draw() override
+    {
+        std::stringstream ss;
+        ss << mFlagName << ": " << mValue;
+        std::string flagText = ss.str();
+        ImGui::Text(flagText.c_str());
+    }
     void ResetToDefault() override {} // KnobFlag is always the "default" value
 
     void UpdateFromFlags(const CliOptions& opts) override
