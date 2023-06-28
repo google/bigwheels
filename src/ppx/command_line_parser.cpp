@@ -72,7 +72,7 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
             if (!opt.HasValue()) {
                 return std::string("Command-line option --assets-path requires a parameter");
             }
-            mOpts.standardOptions.assets_path = opt.GetValueOrDefault<std::string>("");
+            mOpts.standardOptions.assets_paths.push_back(opt.GetValueOrDefault<std::string>(""));
         }
         else if (opt.GetName() == "deterministic") {
             mOpts.standardOptions.deterministic = true;

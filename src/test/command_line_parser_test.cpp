@@ -108,5 +108,21 @@ TEST(CommandLineParserTest, StandardOptionsParsingErrorInvalidParameterResolutio
     EXPECT_THAT(error->errorMsg, HasSubstr("must be in <Width>x<Height> format"));
 }
 
+TEST(CommandLineParserTest, StandardOptionsParsingMultipleAssets)
+{
+    CommandLineParser parser;
+    const char*       args[] = {"/path/to/executable", "--assets-path", "some-path", "--assets-path", "some-other-path"};
+    StandardOptions   wantOptions;
+    wantOptions.assets_paths = {"some-path", "some-other-path"};
+
+    EXPECT_FALSE(parser.Parse(sizeof(args) / sizeof(args[0]), args));
+    auto opts = parser.GetOptions();
+
+    const auto& paths = parser.GetOptions().GetStandardOptions().assets_paths;
+    EXPECT_EQ(paths.size(), 2);
+    EXPECT_EQ(paths[0], "some-path");
+    EXPECT_EQ(paths[1], "some-other-path");
+}
+
 } // namespace
 } // namespace ppx
