@@ -16,12 +16,13 @@
 #define ppx_command_line_parser_h
 
 #include <ios>
-#include <set>
-#include <string>
-#include <sstream>
-#include <unordered_map>
-#include <type_traits>
 #include <optional>
+#include <set>
+#include <sstream>
+#include <string>
+#include <type_traits>
+#include <unordered_map>
+#include <vector>
 
 namespace ppx {
 // -------------------------------------------------------------------------------------------------
@@ -37,14 +38,14 @@ struct StandardOptions
     bool use_software_renderer = false;
 
     // Options
-    std::string         assets_path             = "";
-    int                 gpu_index               = -1;
-    int                 frame_count        = 0;
-    int                 run_time_ms        = 0;
-    std::pair<int, int> resolution              = {-1, -1};
-    int                 screenshot_frame_number = -1;
-    std::string         screenshot_path         = "";
-    uint32_t            stats_frame_window = 300;
+    std::vector<std::string> assets_paths            = {};
+    int                      gpu_index               = -1;
+    int                      frame_count             = 0;
+    int                      run_time_ms             = 0;
+    std::pair<int, int>      resolution              = {-1, -1};
+    int                      screenshot_frame_number = -1;
+    std::string              screenshot_path         = "";
+    uint32_t                 stats_frame_window      = 300;
 #if defined(PPX_BUILD_XR)
     std::pair<int, int> xrUIResolution = {-1, -1};
 #endif
@@ -177,7 +178,7 @@ private:
     std::string mUsageMsg = R"(
 --help                        Prints this help message and exits.
 
---assets-path                 Add a path in front of the assets search path list.
+--assets-path                 Add a path in front of the assets search path list (Can be specified multiple times).
 --deterministic               Disable non-deterministic behaviors, like clocks.
 --frame-count <N>             Shutdown the application after successfully rendering N frames.
 --run-time-ms <N>             Shutdown the application after N milliseconds.
@@ -198,7 +199,7 @@ private:
     std::string mUsageMsg = R"(
 --help                        Prints this help message and exits.
 
---assets-path                 Add a path in front of the assets search path list.
+--assets-path                 Add a path in front of the assets search path list (Can be specified multiple times).
 --deterministic               Disable non-deterministic behaviors, like clocks.
 --frame-count <N>             Shutdown the application after successfully rendering N frames. Default: 0 (infinite).
 --run-time-ms <N>             Shutdown the application after N milliseconds. Default: 0 (infinite).
