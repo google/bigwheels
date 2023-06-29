@@ -718,6 +718,16 @@ void Application::DispatchResize(uint32_t width, uint32_t height)
     Resize(width, height);
 }
 
+void Application::DispatchWindowIconify(bool iconified)
+{
+    WindowIconify(iconified);
+}
+
+void Application::DispatchWindowMaximize(bool maximized)
+{
+    WindowMaximize(maximized);
+}
+
 void Application::DispatchKeyDown(KeyCode key)
 {
     KeyDown(key);
@@ -877,6 +887,18 @@ void Application::ResizeCallback(uint32_t width, uint32_t height)
         // Dispatch resize event
         DispatchResize(mSettings.window.width, mSettings.window.height);
     }
+}
+
+void Application::WindowIconifyCallback(bool iconified)
+{
+    mWindow->SetState(iconified ? WINDOW_STATE_ICONIFIED : WINDOW_STATE_RESTORED);
+    DispatchWindowIconify(iconified);
+}
+
+void Application::WindowMaximizeCallback(bool maximized)
+{
+    mWindow->SetState(maximized ? WINDOW_STATE_MAXIMIZED : WINDOW_STATE_RESTORED);
+    DispatchWindowMaximize(maximized);
 }
 
 void Application::KeyDownCallback(KeyCode key)
@@ -1208,7 +1230,7 @@ int Application::Run(int argc, char** argv)
             mWindow->ProcessEvent();
 
             // Start new Imgui frame
-            if (mImGui) {
+            if (mImGui && !IsWindowIconified()) {
                 mImGui->NewFrame();
             }
 
@@ -1345,6 +1367,33 @@ const CliOptions& Application::GetExtraOptions() const
     return mCommandLineParser.GetOptions();
 }
 
+bool Application::IsWindowIconified() const
+{
+    return GetWindow()->IsIconified();
+}
+
+bool Application::IsWindowMaximized() const
+{
+    return GetWindow()->IsMaximized();
+}
+
+uint32_t Application::GetUIWidth() const
+{
+#if defined(PPX_BUILD_XR)
+    return (mSettings.xr.enable && mSettings.xr.uiWidth > 0) ? mSettings.xr.uiWidth : mSettings.window.width;
+#else
+    return mSettings.window.width;
+#endif
+}
+uint32_t Application::GetUIHeight() const
+{
+#if defined(PPX_BUILD_XR)
+    return (mSettings.xr.enable && mSettings.xr.uiHeight > 0) ? mSettings.xr.uiHeight : mSettings.window.height;
+#else
+    return mSettings.window.height;
+#endif
+}
+
 grfx::Rect Application::GetScissor() const
 {
     grfx::Rect rect = {};
@@ -1426,6 +1475,20 @@ grfx::SwapchainPtr Application::GetSwapchain(uint32_t index) const
 {
     PPX_ASSERT_MSG(index < mSwapchains.size(), "Invalid Swapchain Index!");
     return mSwapchains[index];
+}
+
+Result Application::Present(
+    const grfx::SwapchainPtr&     swapchain,
+    uint32_t                      imageIndex,
+    uint32_t                      waitSemaphoreCount,
+    const grfx::Semaphore* const* ppWaitSemaphores)
+{
+    Result ppxres = swapchain->Present(imageIndex, waitSemaphoreCount, ppWaitSemaphores);
+    if (!ppxres) {
+        return ppxres;
+    }
+
+    return ppx::SUCCESS;
 }
 
 float Application::GetElapsedSeconds() const
