@@ -12,12 +12,16 @@
 #include "ppx/application.h"
 #include "ppx/config.h"
 #include "ppx/grfx/grfx_format.h"
-#include "ppx/timer.h"
 
 #include <algorithm>
 #include <cmath>
 
 namespace FluidSim {
+
+// In a normal game, animations are linked to the frame delta-time to make then run
+// as a fixed perceptible speed. For our use-case (benchmarking), determinism is important.
+// Targeting 60 images per second.
+constexpr float kFrameDeltaTime = 1.f / 60.f;
 
 // Color formats used by textures.
 const ppx::grfx::Format kR    = ppx::grfx::FORMAT_R16_FLOAT;
@@ -51,9 +55,6 @@ FluidSimulation::FluidSimulation(ProjApp* app)
     fci = {true}; // Create signaled
     PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateFence(&fci, &frame.renderCompleteFence));
     mPerFrame.push_back(frame);
-
-    // Initialize simulation state.
-    mTimer.Start();
 
     // Set up all the filters to use.
     InitComputeShaders();
@@ -458,8 +459,6 @@ void FluidSimulation::DrawTextures()
 
 void FluidSimulation::Update()
 {
-    float delta = CalcDeltaTime();
-
     // If the marble has been selected, move it around and drop it at random.
     if (GetConfig().marble) {
         MoveMarble();
@@ -481,17 +480,8 @@ void FluidSimulation::Update()
         MultipleSplats(1);
     }
 
-    Step(delta);
+    Step(kFrameDeltaTime);
     Render();
-}
-
-float FluidSimulation::CalcDeltaTime()
-{
-    double now      = mTimer.MillisSinceStart();
-    float  delta    = static_cast<float>((now - mLastUpdateTime) / 1000.0);
-    delta           = std::min(delta, 0.016666f);
-    mLastUpdateTime = now;
-    return delta;
 }
 
 void FluidSimulation::MoveMarble()
