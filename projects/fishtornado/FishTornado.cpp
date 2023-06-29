@@ -374,7 +374,7 @@ void FishTornadoApp::SetupDebug()
 #if !defined(PPX_D3D12)
     // Debug draw
     {
-        mDebugDrawPipeline = CreateForwardPipeline(GetAssetPath("fishtornado/shaders"), "DebugDraw.vs", "DebugDraw.ps");
+        mDebugDrawPipeline = CreateForwardPipeline("fishtornado/shaders", "DebugDraw.vs", "DebugDraw.ps");
     }
 #endif
 }

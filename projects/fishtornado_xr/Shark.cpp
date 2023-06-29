@@ -46,8 +46,8 @@ void Shark::Setup(uint32_t numFramesInFlight)
         PPX_CHECKED_CALL(frame.modelSet->UpdateUniformBuffer(RENDER_MODEL_DATA_REGISTER, 0, frame.modelConstants.GetGpuBuffer()));
     }
 
-    mForwardPipeline = pApp->CreateForwardPipeline(pApp->GetAssetPath("fishtornado/shaders"), "Shark.vs", "Shark.ps");
-    mShadowPipeline  = pApp->CreateShadowPipeline(pApp->GetAssetPath("fishtornado/shaders"), "SharkShadow.vs");
+    mForwardPipeline = pApp->CreateForwardPipeline("fishtornado/shaders", "Shark.vs", "Shark.ps");
+    mShadowPipeline  = pApp->CreateShadowPipeline("fishtornado/shaders", "SharkShadow.vs");
 
     TriMeshOptions options = TriMeshOptions().Indices().AllAttributes().InvertTexCoordsV().InvertWinding();
     PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, pApp->GetAssetPath("fishtornado/models/shark/shark.obj"), &mMesh, options));
