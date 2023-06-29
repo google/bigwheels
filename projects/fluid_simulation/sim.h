@@ -13,7 +13,6 @@
 #include "ppx/application.h"
 #include "ppx/math_config.h"
 #include "ppx/random.h"
-#include "ppx/timer.h"
 
 #include <queue>
 
@@ -114,10 +113,6 @@ private:
     // Graphics resources (pipeline interface, descriptor layout, sampler, etc).
     GraphicsResources mGraphics;
 
-    // Time tracker to determine the delta since we called FluidSimulation::Update.  Used to
-    // pass to compute values like decay and velocity to cycle colors.
-    double mLastUpdateTime;
-
     // Textures used for filtering.
     std::unique_ptr<Texture>              mBloomTexture;
     std::vector<std::unique_ptr<Texture>> mBloomTextures;
@@ -168,9 +163,6 @@ private:
     // Random numbers used to initialize the simulation.
     ppx::Random mRandom;
 
-    // Time tracker used to cycle colours as the pointer moves.
-    ppx::Timer mTimer;
-
     // Virtual object moving through the simulation field causing wakes in the fluid.
     Bouncer mMarble;
 
@@ -183,7 +175,6 @@ private:
     void        DrawDisplay();
     void        DrawTextures();
     ppx::float3 GenerateColor();
-    float       CalcDeltaTime();
     void        MoveMarble();
     void        Step(float deltaTime);
 
