@@ -99,6 +99,7 @@ std::filesystem::path BaseApplication::GetAssetPath(const std::filesystem::path&
             break;
         }
     }
+    PPX_ASSERT_MSG(!assetPath.empty(), "Could not determine asset path for " << subPath);
     return assetPath;
 }
 
