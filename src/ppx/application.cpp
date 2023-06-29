@@ -1369,15 +1369,15 @@ grfx::Viewport Application::GetViewport(float minDepth, float maxDepth) const
 
 namespace {
 
-std::optional<std::filesystem::path> GetShaderPathSuffix(const ppx::ApplicationSettings& settings, const std::string& baseName)
+std::optional<std::filesystem::path> GetShaderPathSuffix(const ppx::ApplicationSettings& settings, const std::filesystem::path& baseName)
 {
     switch (settings.grfx.api) {
         case grfx::API_DX_12_0:
         case grfx::API_DX_12_1:
-            return std::filesystem::path("dxil") / (baseName + ".dxil");
+            return (std::filesystem::path("dxil") / baseName).concat(".dxil");
         case grfx::API_VK_1_1:
         case grfx::API_VK_1_2:
-            return std::filesystem::path("spv") / (baseName + ".spv");
+            return (std::filesystem::path("spv") / baseName).concat(".spv");
         default:
             return std::nullopt;
     }
