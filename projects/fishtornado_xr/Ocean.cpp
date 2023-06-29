@@ -60,7 +60,7 @@ void Ocean::Setup(uint32_t numFramesInFlight)
 
     // Floor
     {
-        mFloorForwardPipeline = pApp->CreateForwardPipeline(pApp->GetAssetPath("fishtornado/shaders"), "OceanFloor.vs", "OceanFloor.ps");
+        mFloorForwardPipeline = pApp->CreateForwardPipeline("fishtornado/shaders", "OceanFloor.vs", "OceanFloor.ps");
 
         TriMeshOptions options = TriMeshOptions().Indices().AllAttributes().TexCoordScale(float2(25.0f));
         PPX_CHECKED_CALL(grfx_util::CreateMeshFromFile(queue, pApp->GetAssetPath("fishtornado/models/ocean/floor_lowRes.obj"), &mFloorMesh, options));
@@ -84,7 +84,7 @@ void Ocean::Setup(uint32_t numFramesInFlight)
 
     // Surface
     {
-        mSurfaceForwardPipeline = pApp->CreateForwardPipeline(pApp->GetAssetPath("fishtornado/shaders"), "OceanSurface.vs", "OceanSurface.ps");
+        mSurfaceForwardPipeline = pApp->CreateForwardPipeline("fishtornado/shaders", "OceanSurface.vs", "OceanSurface.ps");
 
         TriMeshOptions options = TriMeshOptions().Indices().AllAttributes().TexCoordScale(float2(1.0f));
         TriMesh        mesh    = TriMesh::CreatePlane(TRI_MESH_PLANE_NEGATIVE_Y, float2(2500.0f), 10, 10, options);
@@ -111,8 +111,8 @@ void Ocean::Setup(uint32_t numFramesInFlight)
         {
             grfx::ShaderModulePtr VS, PS;
 
-            PPX_CHECKED_CALL(pApp->CreateShader(pApp->GetAssetPath("fishtornado/shaders"), "OceanBeam.vs", &VS));
-            PPX_CHECKED_CALL(pApp->CreateShader(pApp->GetAssetPath("fishtornado/shaders"), "OceanBeam.ps", &PS));
+            PPX_CHECKED_CALL(pApp->CreateShader("fishtornado/shaders", "OceanBeam.vs", &VS));
+            PPX_CHECKED_CALL(pApp->CreateShader("fishtornado/shaders", "OceanBeam.ps", &PS));
             const grfx::VertexInputRate inputRate = grfx::VERTEX_INPUT_RATE_VERTEX;
             grfx::VertexDescription     vertexDescription;
             vertexDescription.AppendBinding(grfx::VertexAttribute{PPX_SEMANTIC_NAME_POSITION, 0, grfx::FORMAT_R32G32B32_FLOAT, 0, PPX_APPEND_OFFSET_ALIGNED, inputRate});

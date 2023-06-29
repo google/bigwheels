@@ -1385,8 +1385,10 @@ std::optional<std::filesystem::path> GetShaderPathSuffix(const ppx::ApplicationS
 
 } // namespace
 
-std::vector<char> Application::LoadShader(const std::filesystem::path& baseDir, const std::string& baseName) const
+std::vector<char> Application::LoadShader(const std::filesystem::path& baseDir, const std::filesystem::path& baseName) const
 {
+    PPX_ASSERT_MSG(baseDir.is_relative(), "baseDir must be relative. Do not call GetAssetPath() on the directory.");
+    PPX_ASSERT_MSG(baseName.is_relative(), "baseName must be relative. Do not call GetAssetPath() on the directory.");
     auto suffix = GetShaderPathSuffix(mSettings, baseName);
     if (!suffix.has_value()) {
         PPX_ASSERT_MSG(false, "unsupported API");
@@ -1404,7 +1406,7 @@ std::vector<char> Application::LoadShader(const std::filesystem::path& baseDir, 
     return bytecode.value();
 }
 
-Result Application::CreateShader(const std::filesystem::path& baseDir, const std::string& baseName, grfx::ShaderModule** ppShaderModule) const
+Result Application::CreateShader(const std::filesystem::path& baseDir, const std::filesystem::path& baseName, grfx::ShaderModule** ppShaderModule) const
 {
     std::vector<char> bytecode = LoadShader(baseDir, baseName);
     if (bytecode.empty()) {

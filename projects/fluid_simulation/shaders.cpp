@@ -112,7 +112,7 @@ ComputeShader::ComputeShader(FluidSimulation* sim, const std::string& shaderFile
     : Shader(sim, shaderFile)
 {
     ppx::grfx::ShaderModulePtr cs;
-    std::vector<char>          bytecode = GetApp()->LoadShader(GetApp()->GetAssetPath("fluid_simulation/shaders"), mShaderFile + ".cs");
+    std::vector<char>          bytecode = GetApp()->LoadShader("fluid_simulation/shaders", mShaderFile + ".cs");
     PPX_ASSERT_MSG(!bytecode.empty(), "CS shader bytecode load failed");
     ppx::grfx::ShaderModuleCreateInfo sci = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
     PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateShaderModule(&sci, &cs));
@@ -267,13 +267,13 @@ GraphicsShader::GraphicsShader(FluidSimulation* sim)
 {
     // Graphics pipeline.
     ppx::grfx::ShaderModulePtr vs;
-    std::vector<char>          bytecode = GetApp()->LoadShader(GetApp()->GetAssetPath("basic/shaders"), mShaderFile + ".vs");
+    std::vector<char>          bytecode = GetApp()->LoadShader("basic/shaders", mShaderFile + ".vs");
     PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
     ppx::grfx::ShaderModuleCreateInfo sci = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
     PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateShaderModule(&sci, &vs));
 
     ppx::grfx::ShaderModulePtr ps;
-    bytecode = GetApp()->LoadShader(GetApp()->GetAssetPath("basic/shaders"), mShaderFile + ".ps");
+    bytecode = GetApp()->LoadShader("basic/shaders", mShaderFile + ".ps");
     PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
     sci = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
     PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateShaderModule(&sci, &ps));
