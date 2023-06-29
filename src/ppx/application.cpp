@@ -684,23 +684,14 @@ void Application::DispatchConfig()
 
 void Application::DispatchSetup()
 {
+    SetupMetrics();
     Setup();
-}
-
-void Application::SaveMetricsReportToDisk()
-{
-    if (!mSettings.enableMetrics) {
-        return;
-    }
-
-    // Export the report from the metrics manager to the disk.
-    mMetrics.manager.ExportToDisk(mSettings.reportPath);
 }
 
 void Application::DispatchShutdown()
 {
     Shutdown();
-
+    ShutdownMetrics();
     SaveMetricsReportToDisk();
 
     PPX_LOG_INFO("Number of frames drawn: " << GetFrameCount());
@@ -761,6 +752,45 @@ void Application::DispatchScroll(float dx, float dy)
 void Application::DispatchRender()
 {
     Render();
+}
+
+void Application::DispatchUpdateMetrics()
+{
+    // Update shared metrics first.
+    UpdateAppMetrics();
+
+    // Then update app-specific metrics.
+    UpdateMetrics();
+}
+
+void Application::SetupMetrics()
+{
+    if (!mSettings.enableMetrics) {
+        return;
+    }
+
+    // Default behavior for this function is to start a single run at setup, and stop it at shutdown.
+    // This enables all applications to get a minimum of functionality from enabling metrics.
+    StartMetricsRun("Default Run");
+}
+
+void Application::ShutdownMetrics()
+{
+    if (!mSettings.enableMetrics) {
+        return;
+    }
+
+    StopMetricsRun();
+}
+
+void Application::SaveMetricsReportToDisk()
+{
+    if (!mSettings.enableMetrics) {
+        return;
+    }
+
+    // Export the report from the metrics manager to the disk.
+    mMetrics.manager.ExportToDisk(mSettings.reportPath);
 }
 
 void Application::TakeScreenshot()
@@ -1282,13 +1312,12 @@ int Application::Run(int argc, char** argv)
             TakeScreenshot();
         }
 
-        // Frame end
+        // Frame end general metrics data, used for recorded metrics, display, screenshots, and pacing.
         double nowMs       = mTimer.MillisSinceStart();
         mFrameCount        = mFrameCount + 1;
         mPreviousFrameTime = static_cast<float>(nowMs) - mFrameStartTime;
 
-        // Keep a rolling window of frame times to calculate stats,
-        // if requested.
+        // Keep a rolling window of frame times to calculate stats, if requested.
         if (mStandardOptions.stats_frame_window > 0) {
             mFrameTimesMs.push_back(mPreviousFrameTime);
             if (mFrameTimesMs.size() > mStandardOptions.stats_frame_window) {
@@ -1303,8 +1332,8 @@ int Application::Run(int argc, char** argv)
             mAverageFrameTime = static_cast<float>(nowMs / mFrameCount);
         }
 
-        // Update the metrics.
-        UpdateMetrics();
+        // Update the recorded metrics.
+        DispatchUpdateMetrics();
 
         // Pace frames - if needed
         if (mSettings.grfx.pacedFrameRate > 0) {
@@ -1521,14 +1550,11 @@ float2 Application::GetNormalizedDeviceCoordinates(int32_t x, int32_t y) const
     return ndc;
 }
 
-metrics::Run* Application::StartMetricsRun(const std::string& name)
+void Application::StartMetricsRun(const std::string& name)
 {
-    PPX_ASSERT_MSG(mSettings.enableMetrics, "Application::Settings::enableMetrics must be set to true before using the metrics capabilities");
-    if (!mSettings.enableMetrics) {
-        return nullptr;
-    }
-
-    PPX_ASSERT_MSG(mMetrics.pCurrentRun == nullptr, "a run is already active; stop it before starting another one");
+    // Callers should check mSettings.enableMetrics before making this call.
+    PPX_ASSERT_MSG(mSettings.enableMetrics, "Metrics must be enabled to use metrics capabilities!");
+    PPX_ASSERT_MSG(mMetrics.pCurrentRun == nullptr, "A run is already active; it must be stopped before starting another one.");
     mMetrics.pCurrentRun = mMetrics.manager.AddRun(name.c_str());
 
     // Add default metrics to every single run
@@ -1555,21 +1581,22 @@ metrics::Run* Application::StartMetricsRun(const std::string& name)
     }
 
     mMetrics.resetFramerateTracking = true;
-    return mMetrics.pCurrentRun;
 }
 
 void Application::StopMetricsRun()
 {
-    PPX_ASSERT_MSG(mSettings.enableMetrics, "Application::Settings::enableMetrics must be set to true before using the metrics capabilities");
-    if (!mSettings.enableMetrics) {
-        return;
+    // Callers should check mSettings.enableMetrics before making this call.
+    PPX_ASSERT_MSG(mSettings.enableMetrics, "Metrics must be enabled to use metrics capabilities!");
+    if (mMetrics.pCurrentRun == nullptr) {
+        // If no run is in progress, this is likely a bad code path. But this won't harm anything.
+        PPX_LOG_ERROR("Attempt to stop metrics without a run in progress!");
     }
-
-    PPX_ASSERT_MSG(mMetrics.pCurrentRun != nullptr, "there are no active runs");
     mMetrics.pCurrentRun   = nullptr;
     mMetrics.pCpuFrameTime = nullptr;
     mMetrics.pFramerate    = nullptr;
     mMetrics.pFrameCount   = nullptr;
+    mMetrics.gauges.clear();
+    mMetrics.counters.clear();
 }
 
 bool Application::HasActiveMetricsRun() const
@@ -1577,8 +1604,64 @@ bool Application::HasActiveMetricsRun() const
     return mSettings.enableMetrics && mMetrics.pCurrentRun != nullptr;
 }
 
-void Application::UpdateMetrics()
+Application::MetricID Application::AddMetric(MetricType type, const metrics::MetricMetadata& metadata)
 {
+    if (!HasActiveMetricsRun()) {
+        return kInvalidMetricID;
+    }
+
+    switch (type) {
+        case MetricType::kGauge: {
+            auto* metric   = mMetrics.pCurrentRun->AddMetric<metrics::MetricGauge>(metadata);
+            auto  metricID = mMetrics.nextMetricID++;
+            mMetrics.gauges.emplace(metricID, metric);
+            return metricID;
+        }
+        case MetricType::kCounter: {
+            auto* metric   = mMetrics.pCurrentRun->AddMetric<metrics::MetricCounter>(metadata);
+            auto  metricID = mMetrics.nextMetricID++;
+            mMetrics.counters.emplace(metricID, metric);
+            return metricID;
+        }
+        default:
+            PPX_LOG_ERROR("Unrecognized metric type!");
+    }
+    return kInvalidMetricID;
+}
+
+bool Application::RecordGaugeMetric(MetricID id, double seconds, double value)
+{
+    if (!HasActiveMetricsRun()) {
+        PPX_LOG_WARN("Attempted to record a metric entry with no active run.");
+        return false;
+    }
+    auto findResult = mMetrics.gauges.find(id);
+    if (findResult == mMetrics.gauges.end()) {
+        PPX_LOG_ERROR("Attempted to record a metric entry against an invalid ID.");
+        return false;
+    }
+    findResult->second->RecordEntry(seconds, value);
+    return true;
+}
+
+bool Application::RecordCounterMetric(MetricID id, uint64_t increment)
+{
+    if (!HasActiveMetricsRun()) {
+        PPX_LOG_WARN("Attempted to record a metric entry with no active run.");
+        return false;
+    }
+    auto findResult = mMetrics.counters.find(id);
+    if (findResult == mMetrics.counters.end()) {
+        PPX_LOG_ERROR("Attempted to record a metric entry against an invalid ID.");
+        return false;
+    }
+    findResult->second->Increment(increment);
+    return true;
+}
+
+void Application::UpdateAppMetrics()
+{
+    // The rest only applies to recorded metrics.
     if (!HasActiveMetricsRun()) {
         return;
     }

@@ -212,9 +212,8 @@ nlohmann::json Run::Export() const
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// TODO(slumpwuffle): The lifetime of the pointer returned by this function is not well-defined
-// to the caller, and its expiration cannot be known directly. Instead, we may want to use either
-// strong/weak pointers or functional access to help prevent unexpected use-after-free situations.
+// The lifetime of this pointer aligns with the lifetime of the parent Manager.
+// It is the responsibility of the caller to guard against use-after-free accordingly.
 Run* Manager::AddRun(const std::string& name)
 {
     PPX_ASSERT_MSG(!name.empty(), "A run name must not be empty");

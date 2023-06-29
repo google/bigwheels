@@ -334,7 +334,13 @@ protected:
     virtual void DispatchScroll(float dx, float dy);
     virtual void DispatchRender();
     virtual void DispatchInitKnobs();
-    virtual void DrawGui(){}; // Draw additional project-related information to ImGui.
+    virtual void DispatchUpdateMetrics();
+    virtual void DrawGui() {} // Draw additional project-related information to ImGui.
+
+    // Override these methods in a derived class to change the default behavior of metrics.
+    virtual void SetupMetrics();
+    virtual void ShutdownMetrics();
+    virtual void UpdateMetrics() {}
 
     void TakeScreenshot();
 
@@ -343,6 +349,16 @@ protected:
     void DrawProfilerGrfxApiFunctions();
 
     KnobManager& GetKnobManager() { return mKnobManager; }
+
+public:
+    typedef uint32_t          MetricID;
+    static constexpr MetricID kInvalidMetricID = 0;
+
+    enum class MetricType
+    {
+        kGauge   = 1,
+        kCounter = 2,
+    };
 
 public:
     int  Run(int argc, char** argv);
@@ -410,19 +426,25 @@ public:
 
     bool IsXrEnabled() const { return mSettings.xr.enable; }
 
-    // Starts a new metric run and returns it.
-    // Only one run is ever active at the same time.
-    // Default metrics are automatically added to the run: framerate, cpu_frame_time and frame_count.
-    // Additional ones may be added by the caller.
+    // Starts a new metric run. While active, metrics can be added and recorded. Only one run is
+    // ever active at a time. Default metrics are automatically added to the run: framerate,
+    // cpu_frame_time and frame_count. Additional ones may be added by calling AddMetric.
     // The run is automatically exported and saved to disk when the application shuts down.
-    metrics::Run* StartMetricsRun(const std::string& name);
+    void StartMetricsRun(const std::string& name);
 
-    // Stops the currently active run.
-    // The caller must not use the run, or any associated metrics, after calling this function.
+    // Stops the currently active run. All MetricIDs from the previous run are invalidated.
     void StopMetricsRun();
 
     // Returns true when a run is active, otherwise returns false.
     bool HasActiveMetricsRun() const;
+
+    // Adds a metric of the given type with the provided metadata. If a run is not active,
+    // returns kInvalidMetricID.
+    MetricID AddMetric(MetricType type, const metrics::MetricMetadata& metadata);
+
+    // Returns true if recording was successful, false otherwise.
+    bool RecordGaugeMetric(MetricID id, double seconds, double value);
+    bool RecordCounterMetric(MetricID id, uint64_t increment);
 
 #if defined(PPX_BUILD_XR)
     XrComponent& GetXrComponent()
@@ -462,8 +484,8 @@ private:
     void   DestroyPlatformWindow();
     bool   IsRunning() const;
 
-    // Updates the metrics.
-    void UpdateMetrics();
+    // Updates the shared, app-level metrics.
+    void UpdateAppMetrics();
     // Saves the metrics data to a file on disk.
     void SaveMetricsReportToDisk();
 
@@ -527,6 +549,10 @@ private:
         double   framerateRecordTimer   = 0.0;
         uint64_t framerateFrameCount    = 0;
         bool     resetFramerateTracking = true;
+
+        MetricID                                              nextMetricID = kInvalidMetricID + 1;
+        std::unordered_map<MetricID, metrics::MetricGauge*>   gauges;
+        std::unordered_map<MetricID, metrics::MetricCounter*> counters;
     } mMetrics;
 
 #if defined(PPX_MSW)
