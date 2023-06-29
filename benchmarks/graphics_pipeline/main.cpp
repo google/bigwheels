@@ -22,6 +22,7 @@
 #include "ppx/knob.h"
 #include "ppx/timer.h"
 #include "ppx/camera.h"
+#include "ppx/math_util.h"
 #include "ppx/graphics_util.h"
 #include "ppx/grfx/grfx_scope.h"
 #define CGLTF_IMPLEMENTATION
@@ -29,6 +30,50 @@
 #include "glm/gtc/type_ptr.hpp"
 
 using namespace ppx;
+
+class Person
+{
+public:
+    enum class MovementDirection
+    {
+        FORWARD,
+        LEFT,
+        RIGHT,
+        BACKWARD
+    };
+
+    Person()
+    {
+        Setup();
+    }
+
+    // Initialize the location of this person.
+    void Setup()
+    {
+        location   = float3(0, 0, -5);
+        rateOfMove = 0.2f;
+    }
+
+    // Move the location of this person in @param dir direction for @param distance units.
+    // All the symbolic directions are computed using the current direction where the person
+    // is looking at (azimuth).
+    void Move(MovementDirection dir, float distance);
+
+    // Return the coordinates in world space that the person is looking at.
+    const float3 GetLookAt() const { return location + float3(0, 0, 1); }
+
+    // Return the location of the person in world space.
+    const float3 GetLocation() const { return location; }
+
+    float GetRateOfMove() const { return rateOfMove; }
+
+private:
+    // Coordinate in world space where the person is standing.
+    float3 location;
+
+    // Rate of motion (grid units).
+    float rateOfMove;
+};
 
 #if defined(USE_DX12)
 const grfx::Api kApi = grfx::API_DX_12_0;
@@ -73,6 +118,8 @@ public:
     virtual void Config(ppx::ApplicationSettings& settings) override;
     virtual void Setup() override;
     virtual void Render() override;
+    virtual void KeyDown(ppx::KeyCode key) override;
+    virtual void KeyUp(ppx::KeyCode key) override;
 
 private:
     struct PerFrame
@@ -142,6 +189,8 @@ private:
     float3                                                        mLightPosition = float3(10, 100, 10);
     std::array<Scene, kAvailableScenes.size()>                    mScenes;
     size_t                                                        mCurrentSceneIndex;
+    std::set<ppx::KeyCode>                                        mPressedKeys;
+    Person                                                        mPerson;
     uint64_t                                                      mGpuWorkDuration;
 
     TextureCache mTextureCache;
@@ -200,6 +249,12 @@ private:
         const std::unordered_map<const cgltf_primitive*, size_t>& primitiveToIndex,
         std::vector<Primitive>*                                   pPrimitives,
         std::vector<Material>*                                    pMaterials) const;
+
+    void SetupCamera();
+
+    void UpdateCamera();
+
+    void ProcessInput();
 
     void UpdateGUI();
 
@@ -667,11 +722,23 @@ void ProjApp::LoadNodes(
     }
 }
 
+void ProjApp::SetupCamera()
+{
+    mPerson.Setup();
+    UpdateCamera();
+}
+
+void ProjApp::UpdateCamera()
+{
+    mCamera.LookAt(mPerson.GetLocation(), mPerson.GetLookAt());
+    mCamera.SetPerspective(60.f, GetWindowAspect());
+}
+
 void ProjApp::Setup()
 {
     // Cameras
     {
-        mCamera = PerspCamera(60.0f, GetWindowAspect());
+        SetupCamera();
     }
 
     // Create descriptor pool large enough for this project
@@ -793,6 +860,60 @@ void ProjApp::Setup()
     }
 }
 
+void ProjApp::KeyDown(ppx::KeyCode key)
+{
+    mPressedKeys.insert(key);
+}
+
+void ProjApp::KeyUp(ppx::KeyCode key)
+{
+    mPressedKeys.erase(key);
+}
+
+void Person::Move(MovementDirection dir, float distance)
+{
+    if (dir == MovementDirection::FORWARD) {
+        location += float3(0, 0, distance);
+    }
+    else if (dir == MovementDirection::LEFT) {
+        location += float3(distance, 0, 0);
+    }
+    else if (dir == MovementDirection::RIGHT) {
+        location += float3(-distance, 0, 0);
+    }
+    else if (dir == MovementDirection::BACKWARD) {
+        location += float3(0, 0, -distance);
+    }
+    else {
+        PPX_ASSERT_MSG(false, "unhandled direction code " << static_cast<int>(dir));
+    }
+}
+
+void ProjApp::ProcessInput()
+{
+    if (mPressedKeys.empty()) {
+        return;
+    }
+
+    if (mPressedKeys.count(ppx::KEY_W) > 0) {
+        mPerson.Move(Person::MovementDirection::FORWARD, mPerson.GetRateOfMove());
+    }
+
+    if (mPressedKeys.count(ppx::KEY_A) > 0) {
+        mPerson.Move(Person::MovementDirection::LEFT, mPerson.GetRateOfMove());
+    }
+
+    if (mPressedKeys.count(ppx::KEY_S) > 0) {
+        mPerson.Move(Person::MovementDirection::BACKWARD, mPerson.GetRateOfMove());
+    }
+
+    if (mPressedKeys.count(ppx::KEY_D) > 0) {
+        mPerson.Move(Person::MovementDirection::RIGHT, mPerson.GetRateOfMove());
+    }
+
+    UpdateCamera();
+}
+
 void ProjApp::Render()
 {
     // This is important: If we directly passed mCurrentSceneIndex to ImGUI, the value would change during
@@ -818,8 +939,7 @@ void ProjApp::Render()
     // Reset query
     frame.timestampQuery->Reset(/* firstQuery= */ 0, frame.timestampQuery->GetCount());
 
-    // Update camera(s)
-    mCamera.LookAt(float3(2, 2, 2), float3(0, 0, 0));
+    ProcessInput();
 
     // Update uniform buffers
     for (auto& object : mScenes[mCurrentSceneIndex].objects) {
