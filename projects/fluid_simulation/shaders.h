@@ -224,7 +224,7 @@ public:
         dr->BindInputTexture(uVelocity, 3);
         dr->BindInputTexture(uSource, 5);
         dr->BindOutputTexture(11);
-        return std::move(dr);
+        return dr;
     }
 };
 
@@ -247,7 +247,7 @@ public:
         auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
         dr->BindInputTexture(uTexture, 2);
         dr->BindOutputTexture(11);
-        return std::move(dr);
+        return dr;
     }
 };
 
@@ -269,7 +269,7 @@ public:
         auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
         dr->BindInputTexture(uTexture, 2);
         dr->BindOutputTexture(11);
-        return std::move(dr);
+        return dr;
     }
 };
 
@@ -293,7 +293,7 @@ public:
         auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
         dr->BindInputTexture(uTexture, 2);
         dr->BindOutputTexture(11);
-        return std::move(dr);
+        return dr;
     }
 };
 
@@ -318,7 +318,7 @@ public:
         auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
         dr->BindInputTexture(uTexture, 2);
         dr->BindOutputTexture(11);
-        return std::move(dr);
+        return dr;
     }
 };
 
@@ -340,7 +340,7 @@ public:
         auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
         dr->BindInputTexture(uTexture, 2);
         dr->BindOutputTexture(11);
-        return std::move(dr);
+        return dr;
     }
 };
 
@@ -361,7 +361,7 @@ public:
 
         auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
         dr->BindOutputTexture(11);
-        return std::move(dr);
+        return dr;
     }
 };
 
@@ -379,7 +379,7 @@ public:
         auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
         dr->BindInputTexture(uTexture, 2);
         dr->BindOutputTexture(11);
-        return std::move(dr);
+        return dr;
     }
 };
 
@@ -400,7 +400,7 @@ public:
 
         auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
         dr->BindOutputTexture(11);
-        return std::move(dr);
+        return dr;
     }
 };
 
@@ -418,7 +418,7 @@ public:
         auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
         dr->BindInputTexture(velocity, 3);
         dr->BindOutputTexture(11);
-        return std::move(dr);
+        return dr;
     }
 };
 
@@ -444,7 +444,7 @@ public:
         dr->BindInputTexture(uSunrays, 7);
         dr->BindInputTexture(uDithering, 8);
         dr->BindOutputTexture(11);
-        return std::move(dr);
+        return dr;
     }
 };
 
@@ -462,7 +462,7 @@ public:
         auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
         dr->BindInputTexture(uVelocity, 3);
         dr->BindOutputTexture(11);
-        return std::move(dr);
+        return dr;
     }
 };
 
@@ -481,7 +481,7 @@ public:
         dr->BindInputTexture(uPressure, 9);
         dr->BindInputTexture(uVelocity, 3);
         dr->BindOutputTexture(11);
-        return std::move(dr);
+        return dr;
     }
 };
 
@@ -500,7 +500,7 @@ public:
         dr->BindInputTexture(uPressure, 9);
         dr->BindInputTexture(uDivergence, 10);
         dr->BindOutputTexture(11);
-        return std::move(dr);
+        return dr;
     }
 };
 
@@ -530,7 +530,7 @@ public:
         auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
         dr->BindInputTexture(uTexture, 2);
         dr->BindOutputTexture(11);
-        return std::move(dr);
+        return dr;
     }
 };
 
@@ -551,7 +551,7 @@ public:
         auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
         dr->BindInputTexture(uTexture, 2);
         dr->BindOutputTexture(11);
-        return std::move(dr);
+        return dr;
     }
 };
 
@@ -574,7 +574,7 @@ public:
         auto dr = std::make_unique<ComputeDispatchRecord>(this, output, si);
         dr->BindInputTexture(uTexture, 2);
         dr->BindOutputTexture(11);
-        return std::move(dr);
+        return dr;
     }
 };
 
@@ -594,7 +594,7 @@ public:
         dr->BindInputTexture(uVelocity, 3);
         dr->BindInputTexture(uCurl, 4);
         dr->BindOutputTexture(11);
-        return std::move(dr);
+        return dr;
     }
 };
 
@@ -630,8 +630,7 @@ public:
     /// @return The dispatch record to schedule.
     std::unique_ptr<GraphicsDispatchRecord> GetDR(Texture* image, ppx::float2 coord)
     {
-        auto dr = std::make_unique<GraphicsDispatchRecord>(this, image, coord);
-        return std::move(dr);
+        return std::make_unique<GraphicsDispatchRecord>(this, image, coord);
     }
 
 private:
