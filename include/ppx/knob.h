@@ -318,7 +318,7 @@ private:
 };
 
 // KnobFlag is intended for parameters that cannot be adjusted when the application is run
-// They will not be displayed in the UI and cannot have their values changed by the application
+// They will be hidden in the UI by default
 // Their values are the default unless otherwise set through commandline flags on application start up
 template <typename T>
 class KnobFlag final
