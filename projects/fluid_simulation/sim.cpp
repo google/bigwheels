@@ -20,7 +20,7 @@ namespace FluidSim {
 
 // In a normal game, animations are linked to the frame delta-time to make then run
 // as a fixed perceptible speed. For our use-case (benchmarking), determinism is important.
-// Targeting 60ips.
+// Targeting 60 images per second.
 constexpr float kFrameDeltaTime = 1.f / 60.f;
 
 // Color formats used by textures.
