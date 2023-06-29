@@ -48,7 +48,6 @@ struct FishTornadoSettings
     uint32_t fishResY                 = kDefaultFishResY;
     uint32_t fishThreadsX             = kDefaultFishThreadsX;
     uint32_t fishThreadsY             = kDefaultFishThreadsY;
-    bool     outputMetrics            = false;
 };
 
 class FishTornadoApp
@@ -93,6 +92,10 @@ public:
 
     bool WasLastFrameAsync() { return mLastFrameWasAsyncCompute; }
 
+protected:
+    virtual void DrawGui() override;
+    virtual void UpdateMetrics() override;
+
 private:
     struct PerFrame
     {
@@ -128,18 +131,17 @@ private:
     struct MetricsData
     {
         static constexpr size_t kTypeGpuFrameTime  = 0;
-        static constexpr size_t kTypeCpuFrameTime  = 1;
-        static constexpr size_t kTypeIAVertices    = 2;
-        static constexpr size_t kTypeIAPrimitives  = 3;
-        static constexpr size_t kTypeVSInvocations = 4;
-        static constexpr size_t kTypeCInvocations  = 5;
-        static constexpr size_t kTypeCPrimitives   = 6;
-        static constexpr size_t kTypePSInvocations = 7;
-        static constexpr size_t kCount             = 8;
+        static constexpr size_t kTypeIAVertices    = 1;
+        static constexpr size_t kTypeIAPrimitives  = 2;
+        static constexpr size_t kTypeVSInvocations = 3;
+        static constexpr size_t kTypeCInvocations  = 4;
+        static constexpr size_t kTypeCPrimitives   = 5;
+        static constexpr size_t kTypePSInvocations = 6;
+        static constexpr size_t kCount             = 7;
 
-        ppx::metrics::Manager      manager;
-        ppx::metrics::MetricID     metrics[kCount]      = {};
-        float                      lastMetricsWriteTime = 0;
+        ppx::metrics::MetricID metrics[kCount]      = {};
+        float                  lastMetricsWriteTime = 0;
+        uint64_t               data[kCount]         = {};
     };
 
     grfx::DescriptorPoolPtr               mDescriptorPool;
@@ -177,8 +179,7 @@ private:
     void SetupPerFrame();
     void SetupCaustics();
     void SetupDebug();
-    // TODO(slumpwuffle): Replace these one-off metrics with the new metrics system when it arrives.
-    void SetupMetrics();
+    void SetupFtMetrics();
     void SetupScene();
     void UploadCaustics();
     void UpdateTime();
@@ -197,11 +198,6 @@ private:
         PerFrame&           prevFrame,
         grfx::SwapchainPtr& swapchain,
         uint32_t            imageIndex);
-    // TODO(slumpwuffle): Replace these one-off metrics with the new metrics system when it arrives.
-    void WriteMetrics();
-
-protected:
-    virtual void DrawGui() override;
 };
 
 #endif // FISHTORNADO_H
