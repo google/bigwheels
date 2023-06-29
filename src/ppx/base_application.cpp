@@ -92,7 +92,7 @@ void BaseApplication::AddAssetDir(const std::filesystem::path& path, bool insert
 std::filesystem::path BaseApplication::GetAssetPath(const std::filesystem::path& subPath) const
 {
     std::filesystem::path assetPath;
-    for (auto& assetDir : mAssetDirs) {
+    for (const auto& assetDir : mAssetDirs) {
         std::filesystem::path path = assetDir / subPath;
         if (ppx::fs::path_exists(path)) {
             assetPath = path;

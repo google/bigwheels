@@ -211,7 +211,7 @@ void Flocking::SetupPipelines()
     {
         grfx::ShaderModulePtr CS;
 
-        PPX_CHECKED_CALL(pApp->CreateShader(pApp->GetAssetPath("fishtornado/shaders"), "FlockingPosition.cs", &CS));
+        PPX_CHECKED_CALL(pApp->CreateShader("fishtornado/shaders", "FlockingPosition.cs", &CS));
         grfx::ComputePipelineCreateInfo createInfo = {};
         createInfo.CS                              = {CS, "csmain"};
         createInfo.pPipelineInterface              = mFlockingPositionPipelineInterface;
@@ -224,7 +224,7 @@ void Flocking::SetupPipelines()
     {
         grfx::ShaderModulePtr CS;
 
-        PPX_CHECKED_CALL(pApp->CreateShader(pApp->GetAssetPath("fishtornado/shaders"), "FlockingVelocity.cs", &CS));
+        PPX_CHECKED_CALL(pApp->CreateShader("fishtornado/shaders", "FlockingVelocity.cs", &CS));
         grfx::ComputePipelineCreateInfo createInfo = {};
         createInfo.CS                              = {CS, "csmain"};
         createInfo.pPipelineInterface              = mFlockingVelocityPipelineInterface;
@@ -234,10 +234,10 @@ void Flocking::SetupPipelines()
     }
 
     // Foward
-    mForwardPipeline = pApp->CreateForwardPipeline(pApp->GetAssetPath("fishtornado/shaders"), "FlockingRender.vs", "FlockingRender.ps", mForwardPipelineInterface);
+    mForwardPipeline = pApp->CreateForwardPipeline("fishtornado/shaders", "FlockingRender.vs", "FlockingRender.ps", mForwardPipelineInterface);
 
     // Shadow
-    mShadowPipeline = pApp->CreateShadowPipeline(pApp->GetAssetPath("fishtornado/shaders"), "FlockingShadow.vs", mForwardPipelineInterface);
+    mShadowPipeline = pApp->CreateShadowPipeline("fishtornado/shaders", "FlockingShadow.vs", mForwardPipelineInterface);
 }
 
 void Flocking::Setup(uint32_t numFramesInFlight, const FishTornadoSettings& settings)

@@ -384,8 +384,8 @@ public:
     //     - loads shader file: some/path/shaders/dxil/Texture.vs.dxil for API_DX_12_0, API_DX_12_1
     //     - loads shader file: some/path/shaders/spv/Texture.vs.spv   for API_VK_1_1, API_VK_1_2
     //
-    std::vector<char> LoadShader(const std::filesystem::path& baseDir, const std::string& baseName) const;
-    Result            CreateShader(const std::filesystem::path& baseDir, const std::string& baseName, grfx::ShaderModule** ppShaderModule) const;
+    std::vector<char> LoadShader(const std::filesystem::path& baseDir, const std::filesystem::path& baseName) const;
+    Result            CreateShader(const std::filesystem::path& baseDir, const std::filesystem::path& baseName, grfx::ShaderModule** ppShaderModule) const;
 
     Window*           GetWindow() const { return mWindow.get(); }
     grfx::InstancePtr GetInstance() const { return mInstance; }
