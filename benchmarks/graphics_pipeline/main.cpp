@@ -941,11 +941,8 @@ void ProjApp::UpdateGUI()
     }
 
     // GUI
-    ImGui::Begin("Debug");
+    ImGui::Begin("Knobs");
     GetKnobManager().DrawAllKnobs(true);
-    ImGui::End();
-
-    ImGui::Begin("Debug");
     DrawExtraInfo();
     ImGui::End();
 }
