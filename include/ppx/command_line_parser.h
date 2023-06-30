@@ -15,6 +15,7 @@
 #ifndef ppx_command_line_parser_h
 #define ppx_command_line_parser_h
 
+#include <cstdint>
 #include <ios>
 #include <optional>
 #include <set>
