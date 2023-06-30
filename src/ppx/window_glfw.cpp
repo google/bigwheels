@@ -203,6 +203,28 @@ struct WindowEvents
             static_cast<uint32_t>(event_height));
     }
 
+    static void IconifyCallback(GLFWwindow* window, int iconified)
+    {
+        auto it = sWindows.find(window);
+        if (it == sWindows.end()) {
+            return;
+        }
+        Application* p_application = it->second;
+
+        p_application->WindowIconifyCallback((iconified == GLFW_TRUE) ? true : false);
+    }
+
+    static void MaximizeCallback(GLFWwindow* window, int maximized)
+    {
+        auto it = sWindows.find(window);
+        if (it == sWindows.end()) {
+            return;
+        }
+        Application* p_application = it->second;
+
+        p_application->WindowMaximizeCallback((maximized == GLFW_TRUE) ? true : false);
+    }
+
     static void MouseButtonCallback(GLFWwindow* window, int event_button, int event_action, int event_mods)
     {
         auto it = sWindows.find(window);
@@ -336,6 +358,8 @@ struct WindowEvents
 
         glfwSetWindowPosCallback(window, WindowEvents::MoveCallback);
         glfwSetWindowSizeCallback(window, WindowEvents::ResizeCallback);
+        glfwSetWindowIconifyCallback(window, WindowEvents::IconifyCallback);
+        glfwSetWindowMaximizeCallback(window, WindowEvents::MaximizeCallback);
         glfwSetMouseButtonCallback(window, WindowEvents::MouseButtonCallback);
         glfwSetCursorPosCallback(window, WindowEvents::MouseMoveCallback);
         glfwSetScrollCallback(window, WindowEvents::ScrollCallback);
@@ -350,9 +374,8 @@ struct WindowEvents
 std::unordered_map<GLFWwindow*, Application*> WindowEvents::sWindows;
 
 // -------------------------------------------------------------------------------------------------
-// GLFW Window
+// WindowImplGLFW
 // -------------------------------------------------------------------------------------------------
-
 class WindowImplGLFW : public Window
 {
 public:

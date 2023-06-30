@@ -21,6 +21,13 @@
 
 namespace ppx {
 
+enum WindowState
+{
+    WINDOW_STATE_RESTORED  = 0,
+    WINDOW_STATE_ICONIFIED = 1,
+    WINDOW_STATE_MAXIMIZED = 2,
+};
+
 namespace grfx {
 struct SurfaceCreateInfo;
 } // namespace grfx
@@ -74,6 +81,11 @@ public:
 
     virtual WindowSize Size() const;
 
+    WindowState GetState() const { return mState; }
+    bool        IsRestored() const { return (GetState() == WINDOW_STATE_RESTORED); }
+    bool        IsIconified() const { return (GetState() == WINDOW_STATE_ICONIFIED); }
+    bool        IsMaximized() const { return (GetState() == WINDOW_STATE_MAXIMIZED); }
+
     virtual void FillSurfaceInfo(grfx::SurfaceCreateInfo*) const {}
 
 protected:
@@ -84,13 +96,17 @@ protected:
 private:
     Application* mApp;
 
-    bool mQuit = false;
+    bool        mQuit  = false;
+    WindowState mState = WINDOW_STATE_RESTORED;
 
 #if defined(PPX_ANDROID)
     static std::unique_ptr<Window> GetImplAndroid(Application*);
 #else
     static std::unique_ptr<Window> GetImplGLFW(Application*);
 #endif
+
+    friend class Application;
+    void SetState(WindowState state) { mState = state; }
 };
 
 } // namespace ppx

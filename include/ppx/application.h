@@ -305,6 +305,8 @@ public:
     virtual void Shutdown() {}
     virtual void Move(int32_t x, int32_t y) {}                                                // Window move event
     virtual void Resize(uint32_t width, uint32_t height) {}                                   // Window resize event
+    virtual void WindowIconify(bool iconified) {}                                             // Window iconify event
+    virtual void WindowMaximize(bool maximized) {}                                            // Window maximize event
     virtual void KeyDown(KeyCode key) {}                                                      // Key down event
     virtual void KeyUp(KeyCode key) {}                                                        // Key up event
     virtual void MouseMove(int32_t x, int32_t y, int32_t dx, int32_t dy, uint32_t buttons) {} // Mouse move event
@@ -321,6 +323,8 @@ protected:
     virtual void DispatchShutdown();
     virtual void DispatchMove(int32_t x, int32_t y);
     virtual void DispatchResize(uint32_t width, uint32_t height);
+    virtual void DispatchWindowIconify(bool iconified);
+    virtual void DispatchWindowMaximize(bool maximized);
     virtual void DispatchKeyDown(KeyCode key);
     virtual void DispatchKeyUp(KeyCode key);
     virtual void DispatchMouseMove(int32_t x, int32_t y, int32_t dx, int32_t dy, uint32_t buttons);
@@ -350,25 +354,13 @@ public:
     const ApplicationSettings* GetSettings() const { return &mSettings; }
     uint32_t                   GetWindowWidth() const { return mSettings.window.width; }
     uint32_t                   GetWindowHeight() const { return mSettings.window.height; }
-    uint32_t                   GetUIWidth() const
-    {
-#if defined(PPX_BUILD_XR)
-        return (mSettings.xr.enable && mSettings.xr.uiWidth > 0) ? mSettings.xr.uiWidth : mSettings.window.width;
-#else
-        return mSettings.window.width;
-#endif
-    }
-    uint32_t GetUIHeight() const
-    {
-#if defined(PPX_BUILD_XR)
-        return (mSettings.xr.enable && mSettings.xr.uiHeight > 0) ? mSettings.xr.uiHeight : mSettings.window.height;
-#else
-        return mSettings.window.height;
-#endif
-    }
-    float          GetWindowAspect() const { return static_cast<float>(mSettings.window.width) / static_cast<float>(mSettings.window.height); }
-    grfx::Rect     GetScissor() const;
-    grfx::Viewport GetViewport(float minDepth = 0.0f, float maxDepth = 1.0f) const;
+    bool                       IsWindowIconified() const;
+    bool                       IsWindowMaximized() const;
+    uint32_t                   GetUIWidth() const;
+    uint32_t                   GetUIHeight() const;
+    float                      GetWindowAspect() const { return static_cast<float>(mSettings.window.width) / static_cast<float>(mSettings.window.height); }
+    grfx::Rect                 GetScissor() const;
+    grfx::Viewport             GetViewport(float minDepth = 0.0f, float maxDepth = 1.0f) const;
 
     // Loads a DXIL or SPV shader from baseDir.
     //
@@ -397,6 +389,11 @@ public:
     // "index" here is for XR applications to fetch the swapchain of different views.
     // For non-XR applications, "index" should be always 0.
     grfx::SwapchainPtr GetSwapchain(uint32_t index = 0) const;
+    Result             Present(
+                    const grfx::SwapchainPtr&     swapchain,
+                    uint32_t                      imageIndex,
+                    uint32_t                      waitSemaphoreCount,
+                    const grfx::Semaphore* const* ppWaitSemaphores);
 
     float    GetElapsedSeconds() const;
     float    GetPrevFrameTime() const { return mPreviousFrameTime; }
@@ -478,6 +475,8 @@ private:
     //
     void MoveCallback(int32_t x, int32_t y);
     void ResizeCallback(uint32_t width, uint32_t height);
+    void WindowIconifyCallback(bool iconified);
+    void WindowMaximizeCallback(bool maximized);
     void KeyDownCallback(KeyCode key);
     void KeyUpCallback(KeyCode key);
     void MouseMoveCallback(int32_t x, int32_t y, uint32_t buttons);
