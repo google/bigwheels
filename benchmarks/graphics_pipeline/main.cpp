@@ -31,7 +31,10 @@
 
 using namespace ppx;
 
-class Person
+static constexpr float kCameraSpeed = 0.2f;
+
+class FreeCamera
+    : public ppx::PerspCamera
 {
 public:
     enum class MovementDirection
@@ -42,37 +45,21 @@ public:
         BACKWARD
     };
 
-    Person()
+    FreeCamera()
     {
         Setup();
     }
 
-    // Initialize the location of this person.
-    void Setup()
-    {
-        location   = float3(0, 0, -5);
-        rateOfMove = 0.2f;
-    }
-
-    // Move the location of this person in @param dir direction for @param distance units.
-    // All the symbolic directions are computed using the current direction where the person
-    // is looking at (azimuth).
+    // Moves the location of the camera in dir direction for distance units.
     void Move(MovementDirection dir, float distance);
 
-    // Return the coordinates in world space that the person is looking at.
-    const float3 GetLookAt() const { return location + float3(0, 0, 1); }
-
-    // Return the location of the person in world space.
-    const float3 GetLocation() const { return location; }
-
-    float GetRateOfMove() const { return rateOfMove; }
-
 private:
-    // Coordinate in world space where the person is standing.
-    float3 location;
-
-    // Rate of motion (grid units).
-    float rateOfMove;
+    // Initializes the eye position and target of the camera.
+    void Setup()
+    {
+        mEyePosition = float3(0, 0, -5);
+        mTarget      = float3(0, 0, -4);
+    }
 };
 
 #if defined(USE_DX12)
@@ -185,12 +172,11 @@ private:
     grfx::DescriptorSetLayoutPtr                                  mSetLayout;
     std::array<grfx::ShaderModulePtr, kAvailableVsShaders.size()> mVsShaders;
     std::array<grfx::ShaderModulePtr, kAvailablePsShaders.size()> mPsShaders;
-    PerspCamera                                                   mCamera;
+    FreeCamera                                                    mCamera;
     float3                                                        mLightPosition = float3(10, 100, 10);
     std::array<Scene, kAvailableScenes.size()>                    mScenes;
     size_t                                                        mCurrentSceneIndex;
     std::set<ppx::KeyCode>                                        mPressedKeys;
-    Person                                                        mPerson;
     uint64_t                                                      mGpuWorkDuration;
 
     TextureCache mTextureCache;
@@ -724,13 +710,12 @@ void ProjApp::LoadNodes(
 
 void ProjApp::SetupCamera()
 {
-    mPerson.Setup();
     UpdateCamera();
 }
 
 void ProjApp::UpdateCamera()
 {
-    mCamera.LookAt(mPerson.GetLocation(), mPerson.GetLookAt());
+    mCamera.LookAt(mCamera.GetEyePosition(), mCamera.GetTarget());
     mCamera.SetPerspective(60.f, GetWindowAspect());
 }
 
@@ -870,23 +855,23 @@ void ProjApp::KeyUp(ppx::KeyCode key)
     mPressedKeys.erase(key);
 }
 
-void Person::Move(MovementDirection dir, float distance)
+void FreeCamera::Move(MovementDirection dir, float distance)
 {
-    if (dir == MovementDirection::FORWARD) {
-        location += float3(0, 0, distance);
+    switch (dir) {
+        case MovementDirection::FORWARD:
+            mEyePosition += float3(0, 0, distance);
+            break;
+        case MovementDirection::LEFT:
+            mEyePosition += float3(distance, 0, 0);
+            break;
+        case MovementDirection::RIGHT:
+            mEyePosition += float3(-distance, 0, 0);
+            break;
+        case MovementDirection::BACKWARD:
+            mEyePosition += float3(0, 0, -distance);
+            break;
     }
-    else if (dir == MovementDirection::LEFT) {
-        location += float3(distance, 0, 0);
-    }
-    else if (dir == MovementDirection::RIGHT) {
-        location += float3(-distance, 0, 0);
-    }
-    else if (dir == MovementDirection::BACKWARD) {
-        location += float3(0, 0, -distance);
-    }
-    else {
-        PPX_ASSERT_MSG(false, "unhandled direction code " << static_cast<int>(dir));
-    }
+    mTarget = mEyePosition + float3(0, 0, 1);
 }
 
 void ProjApp::ProcessInput()
@@ -895,20 +880,22 @@ void ProjApp::ProcessInput()
         return;
     }
 
+    float deltaTime = GetPrevFrameTime();
+
     if (mPressedKeys.count(ppx::KEY_W) > 0) {
-        mPerson.Move(Person::MovementDirection::FORWARD, mPerson.GetRateOfMove());
+        mCamera.Move(FreeCamera::MovementDirection::FORWARD, kCameraSpeed * deltaTime);
     }
 
     if (mPressedKeys.count(ppx::KEY_A) > 0) {
-        mPerson.Move(Person::MovementDirection::LEFT, mPerson.GetRateOfMove());
+        mCamera.Move(FreeCamera::MovementDirection::LEFT, kCameraSpeed * deltaTime);
     }
 
     if (mPressedKeys.count(ppx::KEY_S) > 0) {
-        mPerson.Move(Person::MovementDirection::BACKWARD, mPerson.GetRateOfMove());
+        mCamera.Move(FreeCamera::MovementDirection::BACKWARD, kCameraSpeed * deltaTime);
     }
 
     if (mPressedKeys.count(ppx::KEY_D) > 0) {
-        mPerson.Move(Person::MovementDirection::RIGHT, mPerson.GetRateOfMove());
+        mCamera.Move(FreeCamera::MovementDirection::RIGHT, kCameraSpeed * deltaTime);
     }
 
     UpdateCamera();
