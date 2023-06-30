@@ -812,11 +812,11 @@ void ProjApp::Render()
     // Read query results
     if (GetFrameCount() > 0) {
         uint64_t data[2] = {0, 0};
-        PPX_CHECKED_CALL(frame.timestampQuery->GetData(data, 2 * sizeof(uint64_t)));
+        PPX_CHECKED_CALL(frame.timestampQuery->GetData(data, sizeof(data)));
         mGpuWorkDuration = data[1] - data[0];
     }
     // Reset query
-    frame.timestampQuery->Reset(0, 2);
+    frame.timestampQuery->Reset(/* firstQuery= */ 0, frame.timestampQuery->GetCount());
 
     // Update camera(s)
     mCamera.LookAt(float3(2, 2, 2), float3(0, 0, 0));
@@ -880,7 +880,7 @@ void ProjApp::Render()
     PPX_CHECKED_CALL(frame.cmd->Begin());
     {
         // Write start timestamp
-        frame.cmd->WriteTimestamp(frame.timestampQuery, grfx::PIPELINE_STAGE_TOP_OF_PIPE_BIT, 0);
+        frame.cmd->WriteTimestamp(frame.timestampQuery, grfx::PIPELINE_STAGE_TOP_OF_PIPE_BIT, /* queryIndex = */ 0);
 
         grfx::RenderPassPtr renderPass = swapchain->GetRenderPass(imageIndex);
         PPX_ASSERT_MSG(!renderPass.IsNull(), "render pass object is null");
@@ -913,10 +913,10 @@ void ProjApp::Render()
         frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
 
         // Write end timestamp
-        frame.cmd->WriteTimestamp(frame.timestampQuery, grfx::PIPELINE_STAGE_TOP_OF_PIPE_BIT, 1);
+        frame.cmd->WriteTimestamp(frame.timestampQuery, grfx::PIPELINE_STAGE_TOP_OF_PIPE_BIT, /* queryIndex = */ 1);
 
         // Resolve queries
-        frame.cmd->ResolveQueryData(frame.timestampQuery, 0, 2);
+        frame.cmd->ResolveQueryData(frame.timestampQuery, /* startIndex= */ 0, frame.timestampQuery->GetCount());
     }
     PPX_CHECKED_CALL(frame.cmd->End());
 
