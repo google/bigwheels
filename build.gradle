@@ -87,7 +87,7 @@ subprojects {
                     else {
                         cppFlags '-std=c++20'
                     }
-                   
+
                     if (project.hasProperty('DXC_PATH')) {
                       arguments "-DDXC_PATH=$DXC_PATH"
                     }
