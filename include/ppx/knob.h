@@ -22,6 +22,7 @@
 
 #include <iostream>
 #include <memory>
+#include <sstream>
 #include <unordered_set>
 #include <vector>
 
@@ -46,8 +47,8 @@ namespace ppx {
 class Knob
 {
 public:
-    Knob(const std::string& flagName)
-        : mFlagName(flagName), mDisplayName(flagName), mIndent(0), mUpdatedFlag(false) {}
+    Knob(const std::string& flagName, bool visible = false)
+        : mFlagName(flagName), mDisplayName(flagName), mIndent(0), mUpdatedFlag(false), mVisible(visible) {}
     virtual ~Knob() = default;
 
     // Customize flag usage message
@@ -57,6 +58,7 @@ public:
     // Customize how knob is drawn in the UI
     void SetDisplayName(const std::string& displayName) { mDisplayName = displayName; }
     void SetIndent(size_t indent) { mIndent = indent; }
+    void SetVisible(bool visible) { mVisible = visible; }
 
     // Returns true if there has been an update to the knob value
     bool DigestUpdate();
@@ -82,6 +84,7 @@ private:
     std::string mFlagDescription;
     size_t      mIndent; // Indent for when knob is drawn in the UI
     bool        mUpdatedFlag;
+    bool        mVisible;
 
 private:
     friend class KnobManager;
@@ -124,7 +127,7 @@ public:
     static_assert(std::is_same_v<T, int>, "KnobSlider must be created with type: int");
 
     KnobSlider(const std::string& flagName, T defaultValue, T minValue, T maxValue)
-        : Knob(flagName), mValue(defaultValue), mDefaultValue(defaultValue), mMinValue(minValue), mMaxValue(maxValue)
+        : Knob(flagName, true), mValue(defaultValue), mDefaultValue(defaultValue), mMinValue(minValue), mMaxValue(maxValue)
     {
         PPX_ASSERT_MSG(minValue < maxValue, "invalid range to initialize slider");
         PPX_ASSERT_MSG(minValue <= defaultValue && defaultValue <= maxValue, "defaultValue is out of range");
@@ -201,7 +204,7 @@ public:
         size_t             defaultIndex,
         Iter               choicesBegin,
         Iter               choicesEnd)
-        : Knob(flagName), mIndex(defaultIndex), mDefaultIndex(defaultIndex), mChoices(choicesBegin, choicesEnd)
+        : Knob(flagName, true), mIndex(defaultIndex), mDefaultIndex(defaultIndex), mChoices(choicesBegin, choicesEnd)
     {
         PPX_ASSERT_MSG(defaultIndex < mChoices.size(), "defaultIndex is out of range");
         std::string choiceStr = "";
@@ -228,26 +231,6 @@ public:
         size_t             defaultIndex,
         const Container&   container)
         : KnobDropdown(flagName, defaultIndex, std::begin(container), std::end(container)) {}
-
-    void Draw() override
-    {
-        if (!ImGui::BeginCombo(mDisplayName.c_str(), mChoices.at(mIndex).c_str())) {
-            return;
-        }
-        for (size_t i = 0; i < mChoices.size(); ++i) {
-            bool isSelected = (i == mIndex);
-            if (ImGui::Selectable(mChoices.at(i).c_str(), isSelected)) {
-                if (i != mIndex) { // A new choice is selected
-                    mIndex = i;
-                    RaiseUpdatedFlag();
-                }
-            }
-            if (isSelected) {
-                ImGui::SetItemDefaultFocus();
-            }
-        }
-        ImGui::EndCombo();
-    }
 
     size_t   GetIndex() const { return mIndex; }
     const T& GetValue() const { return mChoices[mIndex]; }
@@ -279,6 +262,26 @@ public:
     }
 
 private:
+    void Draw() override
+    {
+        if (!ImGui::BeginCombo(mDisplayName.c_str(), mChoices.at(mIndex).c_str())) {
+            return;
+        }
+        for (size_t i = 0; i < mChoices.size(); ++i) {
+            bool isSelected = (i == mIndex);
+            if (ImGui::Selectable(mChoices.at(i).c_str(), isSelected)) {
+                if (i != mIndex) { // A new choice is selected
+                    mIndex = i;
+                    RaiseUpdatedFlag();
+                }
+            }
+            if (isSelected) {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+
     // Expected commandline flag format:
     // --flag_name <str>
     void UpdateFromFlags(const CliOptions& opts) override
@@ -312,6 +315,75 @@ private:
     size_t         mIndex;
     size_t         mDefaultIndex;
     std::vector<T> mChoices;
+};
+
+// KnobFlag is intended for parameters that cannot be adjusted when the application is run
+// They will be hidden in the UI by default
+// Their values are the default unless otherwise set through commandline flags on application start up
+template <typename T>
+class KnobFlag final
+    : public Knob
+{
+public:
+    KnobFlag(const std::string& flagName, T defaultValue)
+        : Knob(flagName, false)
+    {
+        SetValue(defaultValue);
+    }
+
+    KnobFlag(const std::string& flagName, T defaultValue, T minValue, T maxValue)
+        : Knob(flagName, false)
+    {
+        static_assert(std::is_arithmetic_v<T>, "KnobFlag can only be defined with min/max when it's of arithmetic type");
+        PPX_ASSERT_MSG(minValue < maxValue, "invalid range to initialize KnobFlag");
+        PPX_ASSERT_MSG(minValue <= defaultValue && defaultValue <= maxValue, "defaultValue is out of range");
+
+        SetValidator([minValue, maxValue](T newValue) {
+            if (newValue < minValue || newValue > maxValue) {
+                return false;
+            }
+            return true;
+        });
+
+        SetValue(defaultValue);
+    }
+
+    T GetValue() const { return mValue; }
+
+    void SetValidator(std::function<bool(T)> validatorFunc) { mValidatorFunc = validatorFunc; }
+
+private:
+    void Draw() override
+    {
+        std::stringstream ss;
+        ss << mFlagName << ": " << mValue;
+        std::string flagText = ss.str();
+        ImGui::Text(flagText.c_str());
+    }
+    void ResetToDefault() override {} // KnobFlag is always the "default" value
+
+    void UpdateFromFlags(const CliOptions& opts) override
+    {
+        SetValue(opts.GetExtraOptionValueOrDefault(mFlagName, mValue));
+    }
+
+    bool IsValidValue(T val)
+    {
+        if (!mValidatorFunc) {
+            return true;
+        }
+        return mValidatorFunc(val);
+    }
+
+    void SetValue(T newValue)
+    {
+        PPX_ASSERT_MSG(IsValidValue(newValue), "invalid value for knob " + mFlagName);
+        mValue = newValue;
+    }
+
+private:
+    T                      mValue;
+    std::function<bool(T)> mValidatorFunc;
 };
 
 // KnobManager holds the knobs in an application

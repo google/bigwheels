@@ -36,7 +36,7 @@ bool Knob::DigestUpdate()
 // -------------------------------------------------------------------------------------------------
 
 KnobCheckbox::KnobCheckbox(const std::string& flagName, bool defaultValue)
-    : Knob(flagName), mValue(defaultValue), mDefaultValue(defaultValue)
+    : Knob(flagName, true), mValue(defaultValue), mDefaultValue(defaultValue)
 {
     SetFlagParameters("<true|false>");
     RaiseUpdatedFlag();
@@ -88,6 +88,9 @@ void KnobManager::DrawAllKnobs(bool inExistingWindow)
     }
 
     for (const auto& knobPtr : mKnobs) {
+        if (!knobPtr->mVisible) {
+            continue;
+        }
         for (size_t i = 0; i < knobPtr->mIndent; i++) {
             ImGui::Indent();
         }
@@ -135,7 +138,6 @@ void KnobManager::RegisterKnob(const std::string& flagName, std::shared_ptr<Knob
 {
     mFlagNames.insert(flagName);
     mKnobs.emplace_back(std::move(newKnob));
-    PPX_LOG_INFO("Created knob " << flagName);
 }
 
 } // namespace ppx
