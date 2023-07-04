@@ -50,7 +50,7 @@ Supported graphics APIs:
 See the [documentation](docs/building_and_running.md) for instructions on how to build and run BigWheels and the sample projects.
 
 # Unit Tests
-BigWheels uses GoogleTest for its unit testing framework. Unit tests can be optionally disabled from the build with `-DBUILD_TESTS=OFF`.
+BigWheels uses GoogleTest for its unit testing framework. Unit tests can be optionally disabled from the build with `-DPPX_BUILD_TESTS=OFF`.
 
 To add a new test:
 1) Add and write a new test file under `src/test/`, e.g. `src/test/new_test.cpp`.
