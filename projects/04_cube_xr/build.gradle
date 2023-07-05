@@ -4,8 +4,4 @@ task copyTask {
         into 'assets/basic/shaders/spv'
         include '*.spv'
     }
-    copy {
-        from rootProject.ext.assetsPath + '/fishtornado'
-        into 'assets/fishtornado'
-    }
 }
