@@ -359,11 +359,12 @@ Result DescriptorSet::UpdateDescriptors(uint32_t writeCount, const grfx::WriteDe
             } break;
 
             case grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER: {
-                uint64_t sizeInBytes = (srcWrite.bufferRange == PPX_WHOLE_SIZE) ? srcWrite.pBuffer->GetSize() : srcWrite.bufferRange;
+                D3D12_GPU_VIRTUAL_ADDRESS baseAddress = ToApi(srcWrite.pBuffer)->GetDxResource()->GetGPUVirtualAddress();
+                UINT                      sizeInBytes = static_cast<UINT>((srcWrite.bufferRange == PPX_WHOLE_SIZE) ? srcWrite.pBuffer->GetSize() : srcWrite.bufferRange);
 
                 D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
-                desc.BufferLocation                  = ToApi(srcWrite.pBuffer)->GetDxResource()->GetGPUVirtualAddress();
-                desc.SizeInBytes                     = static_cast<UINT>(sizeInBytes);
+                desc.BufferLocation                  = baseAddress + static_cast<D3D12_GPU_VIRTUAL_ADDRESS>(srcWrite.bufferOffset);
+                desc.SizeInBytes                     = sizeInBytes;
 
                 SIZE_T                      ptr    = heapOffset.descriptorHandle.ptr + static_cast<SIZE_T>(handleIncSizeCBVSRVUAV * srcWrite.arrayIndex);
                 D3D12_CPU_DESCRIPTOR_HANDLE handle = D3D12_CPU_DESCRIPTOR_HANDLE{ptr};

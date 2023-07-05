@@ -533,9 +533,12 @@ void CommandBuffer::BindComputePipeline(const grfx::ComputePipeline* pPipeline)
 
 void CommandBuffer::BindIndexBuffer(const grfx::IndexBufferView* pView)
 {
+    D3D12_GPU_VIRTUAL_ADDRESS baseAddress = ToApi(pView->pBuffer)->GetDxResource()->GetGPUVirtualAddress();
+    UINT                      sizeInBytes = static_cast<UINT>((pView->size == PPX_WHOLE_SIZE) ? pView->pBuffer->GetSize() : pView->size);
+
     D3D12_INDEX_BUFFER_VIEW view = {};
-    view.BufferLocation          = ToApi(pView->pBuffer)->GetDxResource()->GetGPUVirtualAddress();
-    view.SizeInBytes             = static_cast<UINT>(pView->pBuffer->GetSize());
+    view.BufferLocation          = baseAddress + static_cast<D3D12_GPU_VIRTUAL_ADDRESS>(pView->offset);
+    view.SizeInBytes             = sizeInBytes;
     view.Format                  = ToD3D12IndexFormat(pView->indexType);
     PPX_ASSERT_MSG(view.Format != DXGI_FORMAT_UNKNOWN, "unknown index  format");
 
@@ -548,8 +551,11 @@ void CommandBuffer::BindVertexBuffers(
 {
     D3D12_VERTEX_BUFFER_VIEW views[PPX_MAX_RENDER_TARGETS] = {};
     for (uint32_t i = 0; i < viewCount; ++i) {
-        views[i].BufferLocation = ToApi(pViews[i].pBuffer)->GetDxResource()->GetGPUVirtualAddress();
-        views[i].SizeInBytes    = static_cast<UINT>(pViews[i].pBuffer->GetSize());
+        D3D12_GPU_VIRTUAL_ADDRESS baseAddress = ToApi(pViews[i].pBuffer)->GetDxResource()->GetGPUVirtualAddress();
+        UINT                      sizeInBytes = static_cast<UINT>((pViews[i].size == PPX_WHOLE_SIZE) ? pViews[i].pBuffer->GetSize() : pViews[i].size);
+
+        views[i].BufferLocation = baseAddress + static_cast<D3D12_GPU_VIRTUAL_ADDRESS>(pViews[i].offset);
+        views[i].SizeInBytes    = sizeInBytes;
         views[i].StrideInBytes  = static_cast<UINT>(pViews[i].stride);
     }
 
