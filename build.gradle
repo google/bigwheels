@@ -1,6 +1,6 @@
 ext {
-    assetsPath = '../../assets'
-    thirdPartyAssetsPath = '../../third_party/assets'
+    assetsPath = "${rootProject.projectDir}/assets"
+    thirdPartyAssetsPath = "${rootProject.projectDir}/third_party/assets"
 }
 
 subprojects {
@@ -19,11 +19,11 @@ subprojects {
         androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.0'
     }
 
-    buildDir = "../../build/android/${project.name}"
+    buildDir = "${rootProject.buildDir}/android/${project.name}"
 
     android {
         namespace 'com.google.bigwheels'
-        compileSdkVersion 32
+        compileSdk 32
 
         compileOptions {
             sourceCompatibility JavaVersion.VERSION_1_8
@@ -34,9 +34,9 @@ subprojects {
         }
         externalNativeBuild {
             cmake {
-                path file('../../CMakeLists.txt')
+                path file("${rootProject.projectDir}/CMakeLists.txt")
                 version '3.22.1+'
-                buildStagingDirectory "../../.cxx/${project.name}"
+                buildStagingDirectory "${rootProject.projectDir}/.cxx/${project.name}"
             }
         }
 
@@ -97,12 +97,12 @@ subprojects {
             multiDexEnabled true
             it.buildConfigField "String", "sample_library_name", '"vk_' + project.name + '"'
             sourceSets.main {
-                java.srcDirs = [ '../../src/android' ]
-                assets.srcDirs = ['assets']
+                java.srcDirs = [ "${rootProject.projectDir}/src/android" ]
+                assets.srcDirs = [ "assets" ]
                 if (project.name.contains("_xr")) {
-                    manifest.srcFile '../../src/android/AndroidManifest.XR.xml'
+                    manifest.srcFile "${rootProject.projectDir}/src/android/AndroidManifest.XR.xml"
                 } else {
-                    manifest.srcFile '../../src/android/AndroidManifest.xml'
+                    manifest.srcFile "${rootProject.projectDir}/src/android/AndroidManifest.xml"
                 }
             }
         }
