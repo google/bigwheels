@@ -538,7 +538,7 @@ void CommandBuffer::BindIndexBuffer(const grfx::IndexBufferView* pView)
 
     D3D12_INDEX_BUFFER_VIEW view = {};
     view.BufferLocation          = baseAddress + static_cast<D3D12_GPU_VIRTUAL_ADDRESS>(pView->offset);
-    view.SizeInBytes             = static_cast<UINT>(pView->size);
+    view.SizeInBytes             = sizeInBytes;
     view.Format                  = ToD3D12IndexFormat(pView->indexType);
     PPX_ASSERT_MSG(view.Format != DXGI_FORMAT_UNKNOWN, "unknown index  format");
 
