@@ -77,8 +77,7 @@ subprojects {
                     }
                     else {
                         arguments '-DPPX_ANDROID=TRUE',
-                                  '-DPPX_BUILD_TESTS=FALSE',
-                                  '-DBUILD_TESTS=FALSE' // Required for OpenXR
+                                  '-DPPX_BUILD_TESTS=FALSE'
                     }
                     if (project.name.contains("_xr")) {
                         cppFlags '-std=c++20',
