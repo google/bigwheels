@@ -47,19 +47,12 @@ public:
 
     FreeCamera()
     {
-        Setup();
+        mEyePosition = float3(0, 0, -5);
+        mTarget      = float3(0, 0, -4);
     }
 
     // Moves the location of the camera in dir direction for distance units.
     void Move(MovementDirection dir, float distance);
-
-private:
-    // Initializes the eye position and target of the camera.
-    void Setup()
-    {
-        mEyePosition = float3(0, 0, -5);
-        mTarget      = float3(0, 0, -4);
-    }
 };
 
 #if defined(USE_DX12)
@@ -176,7 +169,7 @@ private:
     float3                                                        mLightPosition = float3(10, 100, 10);
     std::array<Scene, kAvailableScenes.size()>                    mScenes;
     size_t                                                        mCurrentSceneIndex;
-    std::set<ppx::KeyCode>                                        mPressedKeys;
+    std::array<bool, TOTAL_KEY_COUNT>                             mPressedKeys = {0};
     uint64_t                                                      mGpuWorkDuration;
 
     TextureCache mTextureCache;
@@ -238,14 +231,32 @@ private:
 
     void SetupCamera();
 
-    void UpdateCamera();
-
     void ProcessInput();
 
     void UpdateGUI();
 
     void DrawExtraInfo();
 };
+
+void FreeCamera::Move(MovementDirection dir, float distance)
+{
+    switch (dir) {
+        case MovementDirection::FORWARD:
+            mEyePosition += float3(0, 0, distance);
+            break;
+        case MovementDirection::LEFT:
+            mEyePosition += float3(distance, 0, 0);
+            break;
+        case MovementDirection::RIGHT:
+            mEyePosition += float3(-distance, 0, 0);
+            break;
+        case MovementDirection::BACKWARD:
+            mEyePosition += float3(0, 0, -distance);
+            break;
+    }
+    mTarget = mEyePosition + float3(0, 0, 1);
+    LookAt(GetEyePosition(), GetTarget());
+}
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
 {
@@ -710,11 +721,6 @@ void ProjApp::LoadNodes(
 
 void ProjApp::SetupCamera()
 {
-    UpdateCamera();
-}
-
-void ProjApp::UpdateCamera()
-{
     mCamera.LookAt(mCamera.GetEyePosition(), mCamera.GetTarget());
     mCamera.SetPerspective(60.f, GetWindowAspect());
 }
@@ -847,58 +853,33 @@ void ProjApp::Setup()
 
 void ProjApp::KeyDown(ppx::KeyCode key)
 {
-    mPressedKeys.insert(key);
+    mPressedKeys[key] = true;
 }
 
 void ProjApp::KeyUp(ppx::KeyCode key)
 {
-    mPressedKeys.erase(key);
-}
-
-void FreeCamera::Move(MovementDirection dir, float distance)
-{
-    switch (dir) {
-        case MovementDirection::FORWARD:
-            mEyePosition += float3(0, 0, distance);
-            break;
-        case MovementDirection::LEFT:
-            mEyePosition += float3(distance, 0, 0);
-            break;
-        case MovementDirection::RIGHT:
-            mEyePosition += float3(-distance, 0, 0);
-            break;
-        case MovementDirection::BACKWARD:
-            mEyePosition += float3(0, 0, -distance);
-            break;
-    }
-    mTarget = mEyePosition + float3(0, 0, 1);
+    mPressedKeys[key] = false;
 }
 
 void ProjApp::ProcessInput()
 {
-    if (mPressedKeys.empty()) {
-        return;
-    }
-
     float deltaTime = GetPrevFrameTime();
 
-    if (mPressedKeys.count(ppx::KEY_W) > 0) {
+    if (mPressedKeys[KEY_W]) {
         mCamera.Move(FreeCamera::MovementDirection::FORWARD, kCameraSpeed * deltaTime);
     }
 
-    if (mPressedKeys.count(ppx::KEY_A) > 0) {
+    if (mPressedKeys[KEY_A]) {
         mCamera.Move(FreeCamera::MovementDirection::LEFT, kCameraSpeed * deltaTime);
     }
 
-    if (mPressedKeys.count(ppx::KEY_S) > 0) {
+    if (mPressedKeys[KEY_S]) {
         mCamera.Move(FreeCamera::MovementDirection::BACKWARD, kCameraSpeed * deltaTime);
     }
 
-    if (mPressedKeys.count(ppx::KEY_D) > 0) {
+    if (mPressedKeys[KEY_D]) {
         mCamera.Move(FreeCamera::MovementDirection::RIGHT, kCameraSpeed * deltaTime);
     }
-
-    UpdateCamera();
 }
 
 void ProjApp::Render()
