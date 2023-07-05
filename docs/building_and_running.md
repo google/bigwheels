@@ -93,7 +93,7 @@ Some common commands:
 ./gradlew 01_triangle:assembleDebug
 
 # Build & install the debug application through ADB:
-./gradlew 01_triangle:install -PDXC_PATH=some/path/to/dxc
+./gradlew 01_triangle:installDebug -PDXC_PATH=some/path/to/dxc
 ```
 
 To generate APKs for all available samples:
