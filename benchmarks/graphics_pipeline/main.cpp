@@ -45,14 +45,28 @@ public:
         BACKWARD
     };
 
-    FreeCamera(float3 eyePosition, float3 target)
+    FreeCamera(float3 eyePosition, float3 target, float theta, float phi)
     {
         mEyePosition = eyePosition;
         mTarget      = target;
+        mTheta       = theta;
+        mPhi         = phi;
     }
 
     // Moves the location of the camera in dir direction for distance units.
     void Move(MovementDirection dir, float distance);
+
+    // Changes the location where the camera is looking at by turning `deltaTheta`
+    // radians and looking up `deltaPhi` radians. `deltaTheta` is an angle in
+    // the range [0, 2pi] and `deltaPhi` is an angle in the range [0, pi].
+    void Turn(float deltaTheta, float deltaPhi);
+
+private:
+    // Spherical coordinates in world space where the camera is looking at.
+    // `mTheta` is an angle in the range [0, 2pi].
+    // `mPhi` is an angle in the range [0, pi].
+    float mTheta;
+    float mPhi;
 };
 
 #if defined(USE_DX12)
@@ -95,13 +109,14 @@ class ProjApp
 {
 public:
     ProjApp()
-        : mCamera(float3(0, 0, -5), float3(0, 0, -4)) {}
+        : mCamera(float3(0, 0, -5), float3(0, 0, -4), pi<float>() / 2.0f, pi<float>() / 2.0f) {}
     virtual void InitKnobs() override;
     virtual void Config(ppx::ApplicationSettings& settings) override;
     virtual void Setup() override;
-    virtual void Render() override;
+    virtual void MouseMove(int32_t x, int32_t y, int32_t dx, int32_t dy, uint32_t buttons) override;
     virtual void KeyDown(ppx::KeyCode key) override;
     virtual void KeyUp(ppx::KeyCode key) override;
+    virtual void Render() override;
 
 private:
     struct PerFrame
@@ -240,22 +255,62 @@ private:
 
 void FreeCamera::Move(MovementDirection dir, float distance)
 {
+    // Given that v = (1, mTheta, mPhi) is where the camera is looking at in the Spherical
+    // coordinates and moving forward goes in this direction, we have to update the
+    // camera location for each movement as follows:
+    //      FORWARD:     distance * unitVectorOf(v)
+    //      BACKWARD:    -distance * unitVectorOf(v)
+    //      RIGHT:       distance * unitVectorOf(1, mTheta + pi/2, pi/2)
+    //      LEFT:        -distance * unitVectorOf(1, mTheta + pi/2, pi/2)
     switch (dir) {
-        case MovementDirection::FORWARD:
-            mEyePosition += float3(0, 0, distance);
+        case MovementDirection::FORWARD: {
+            float3 unitVector = glm::normalize(SphericalToCartesian(mTheta, mPhi));
+            mEyePosition += distance * unitVector;
             break;
-        case MovementDirection::LEFT:
-            mEyePosition += float3(distance, 0, 0);
+        }
+        case MovementDirection::LEFT: {
+            float3 perpendicularUnitVector = glm::normalize(SphericalToCartesian(mTheta + pi<float>() / 2.0f, pi<float>() / 2.0f));
+            mEyePosition -= distance * perpendicularUnitVector;
             break;
-        case MovementDirection::RIGHT:
-            mEyePosition += float3(-distance, 0, 0);
+        }
+        case MovementDirection::RIGHT: {
+            float3 perpendicularUnitVector = glm::normalize(SphericalToCartesian(mTheta + pi<float>() / 2.0f, pi<float>() / 2.0f));
+            mEyePosition += distance * perpendicularUnitVector;
             break;
-        case MovementDirection::BACKWARD:
-            mEyePosition += float3(0, 0, -distance);
+        }
+        case MovementDirection::BACKWARD: {
+            float3 unitVector = glm::normalize(SphericalToCartesian(mTheta, mPhi));
+            mEyePosition -= distance * unitVector;
             break;
+        }
     }
-    mTarget = mEyePosition + float3(0, 0, 1);
-    LookAt(GetEyePosition(), GetTarget());
+    mTarget = mEyePosition + SphericalToCartesian(mTheta, mPhi);
+    LookAt(mEyePosition, mTarget);
+}
+
+void FreeCamera::Turn(float deltaTheta, float deltaPhi)
+{
+    mTheta += deltaTheta;
+    mPhi += deltaPhi;
+
+    // Saturate mTheta values by making wrap around.
+    if (mTheta < 0) {
+        mTheta = 2 * pi<float>();
+    }
+    else if (mTheta > 2 * pi<float>()) {
+        mTheta = 0;
+    }
+
+    // mPhi is saturated by making it stop, so the world doesn't turn upside down.
+    if (mPhi < 0) {
+        mPhi = 0;
+    }
+    else if (mPhi > pi<float>()) {
+        mPhi = pi<float>();
+    }
+
+    mTarget = mEyePosition + SphericalToCartesian(mTheta, mPhi);
+    LookAt(mEyePosition, mTarget);
 }
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
@@ -844,6 +899,20 @@ void ProjApp::Setup()
     for (const auto& shader : mPsShaders) {
         GetDevice()->DestroyShaderModule(shader);
     }
+}
+
+void ProjApp::MouseMove(int32_t x, int32_t y, int32_t dx, int32_t dy, uint32_t buttons)
+{
+    float2 prevPos  = GetNormalizedDeviceCoordinates(x - dx, y - dy);
+    float2 currPos  = GetNormalizedDeviceCoordinates(x, y);
+    float2 deltaPos = currPos - prevPos;
+
+    // In the NDC: -1 <= x, y <= 1, so the maximum value for dx and dy is 2
+    // which turns the camera by pi/2 radians, so for a specific dx and dy
+    // we turn (dx * pi / 4, dy * pi / 4) respectively.
+    float deltaTheta = deltaPos[0] * pi<float>() / 4.0f;
+    float deltaPhi   = deltaPos[1] * pi<float>() / 4.0f;
+    mCamera.Turn(deltaTheta, -deltaPhi);
 }
 
 void ProjApp::KeyDown(ppx::KeyCode key)
