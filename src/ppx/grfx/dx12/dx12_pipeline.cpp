@@ -333,7 +333,7 @@ Result PipelineInterface::CreateApiObjects(const grfx::PipelineInterfaceCreateIn
         // Store parameter
         parameters.push_back(parameter);
 
-        // Store a specific paramter index for root constants to get to it without a search.
+        // Store a specific parameter index for root constants to get to it without a search.
         mRootConstantsParameterIndex = CountU32(parameters) - 1;
     }
 

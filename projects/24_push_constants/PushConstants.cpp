@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ const grfx::Api kApi = grfx::API_VK_1_1;
 
 void PushConstantsApp::Config(ppx::ApplicationSettings& settings)
 {
-    settings.appName                    = "29_push_constants";
+    settings.appName                    = "24_push_constants";
     settings.enableImGui                = true;
     settings.grfx.api                   = kApi;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;

@@ -386,7 +386,7 @@ void CommandBuffer::SetScissors(
 
 void CommandBuffer::SetGraphicsPipelineInterface(const grfx::PipelineInterface* pInterface)
 {
-    // Only set oot signature if we have to
+    // Only set root signature if we have to
     if (pInterface != mCurrentGraphicsInterface) {
         mCurrentGraphicsInterface = pInterface;
         mCommandList->SetGraphicsRootSignature(ToApi(mCurrentGraphicsInterface)->GetDxRootSignature().Get());
@@ -395,7 +395,7 @@ void CommandBuffer::SetGraphicsPipelineInterface(const grfx::PipelineInterface* 
 
 void CommandBuffer::SetComputePipelineInterface(const grfx::PipelineInterface* pInterface)
 {
-    // Only set oot signature if we have to
+    // Only set root signature if we have to
     if (pInterface != mCurrentComputeInterface) {
         mCurrentComputeInterface = pInterface;
         mCommandList->SetComputeRootSignature(ToApi(mCurrentComputeInterface)->GetDxRootSignature().Get());
