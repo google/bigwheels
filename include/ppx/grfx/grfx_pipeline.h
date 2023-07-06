@@ -231,13 +231,13 @@ struct PipelineInterfaceCreateInfo
     // VK: Push constants
     // DX: Root constants
     //
-    // Push/root constants are measured in DWORDs (uint32_t) aka 32-bit values. 
+    // Push/root constants are measured in DWORDs (uint32_t) aka 32-bit values.
     //
     // The binding and set for push constants CAN NOT overlap with a binding
     // AND set in sets (the struct immediately above this one). It's okay for
     // push constants to be in an existing set at binding that is not used
     // by an entry in the set layout.
-    //    
+    //
     struct
     {
         uint32_t              count           = 0;                 // Measured in DWORDs, must be less than or equal to PPX_MAX_PUSH_CONSTANTS
