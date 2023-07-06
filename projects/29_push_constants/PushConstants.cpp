@@ -307,7 +307,7 @@ void PushConstantsApp::Render()
                 frame.cmd->SetGraphicsPushConstants(mPipelineInterface, 16, &mat);
                 // Set texture index push constant at offset=16
                 uint32_t textureIndex = 0;
-                frame.cmd->SetComputePushConstants(mPipelineInterface, 1, &textureIndex, 16);
+                frame.cmd->SetGraphicsPushConstants(mPipelineInterface, 1, &textureIndex, 16);
             }
             frame.cmd->Draw(36, 1, 0, 0);
 
@@ -324,7 +324,7 @@ void PushConstantsApp::Render()
                 frame.cmd->SetGraphicsPushConstants(mPipelineInterface, 16, &mat);
                 // Set texture index push constant at offset=16
                 uint32_t textureIndex = 1;
-                frame.cmd->SetComputePushConstants(mPipelineInterface, 1, &textureIndex, 16);
+                frame.cmd->SetGraphicsPushConstants(mPipelineInterface, 1, &textureIndex, 16);
             }
             frame.cmd->Draw(36, 1, 0, 0);
 
@@ -341,7 +341,7 @@ void PushConstantsApp::Render()
                 frame.cmd->SetGraphicsPushConstants(mPipelineInterface, 16, &mat);
                 // Set texture index push constant at offset=16
                 uint32_t textureIndex = 2;
-                frame.cmd->SetComputePushConstants(mPipelineInterface, 1, &textureIndex, 16);
+                frame.cmd->SetGraphicsPushConstants(mPipelineInterface, 1, &textureIndex, 16);
             }
             frame.cmd->Draw(36, 1, 0, 0);
 
