@@ -138,7 +138,7 @@ Result CommandBuffer::Begin()
 
     // Reset current root signatures
     mCurrentGraphicsInterface = nullptr;
-    mCurrentComputeInterface = nullptr;
+    mCurrentComputeInterface  = nullptr;
 
     // Set descriptor heaps
     ID3D12DescriptorHeap* heaps[2]  = {nullptr};
