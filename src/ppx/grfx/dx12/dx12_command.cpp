@@ -136,6 +136,10 @@ Result CommandBuffer::Begin()
         return ppx::ERROR_API_FAILURE;
     }
 
+    // Reset current root signatures
+    mCurrentGraphicsInterface = nullptr;
+    mCurrentComputeInterface = nullptr;
+
     // Set descriptor heaps
     ID3D12DescriptorHeap* heaps[2]  = {nullptr};
     uint32_t              heapCount = 0;
@@ -380,6 +384,24 @@ void CommandBuffer::SetScissors(
     mCommandList->RSSetScissorRects(static_cast<UINT>(scissorCount), rects);
 }
 
+void CommandBuffer::SetGraphicsPipelineInterface(const grfx::PipelineInterface* pInterface)
+{
+    // Only set oot signature if we have to
+    if (pInterface != mCurrentGraphicsInterface) {
+        mCurrentGraphicsInterface = pInterface;
+        mCommandList->SetGraphicsRootSignature(ToApi(mCurrentGraphicsInterface)->GetDxRootSignature().Get());
+    }
+}
+
+void CommandBuffer::SetComputePipelineInterface(const grfx::PipelineInterface* pInterface)
+{
+    // Only set oot signature if we have to
+    if (pInterface != mCurrentComputeInterface) {
+        mCurrentComputeInterface = pInterface;
+        mCommandList->SetComputeRootSignature(ToApi(mCurrentComputeInterface)->GetDxRootSignature().Get());
+    }
+}
+
 void CommandBuffer::BindDescriptorSets(
     const grfx::PipelineInterface*    pInterface,
     uint32_t                          setCount,
@@ -474,7 +496,7 @@ void CommandBuffer::BindGraphicsDescriptorSets(
     const grfx::DescriptorSet* const* ppSets)
 {
     // Set root signature
-    mCommandList->SetGraphicsRootSignature(ToApi(pInterface)->GetDxRootSignature().Get());
+    SetGraphicsPipelineInterface(pInterface);
 
     // Fill out mRootDescriptorTablesCBVSRVUAV and mRootDescriptorTablesSampler
     size_t rdtCountCBVSRVUAV = 0;
@@ -492,6 +514,25 @@ void CommandBuffer::BindGraphicsDescriptorSets(
         const RootDescriptorTable& rdt = mRootDescriptorTablesSampler[i];
         mCommandList->SetGraphicsRootDescriptorTable(rdt.parameterIndex, rdt.baseDescriptor);
     }
+}
+
+void CommandBuffer::SetGraphicsPushConstants(
+    const grfx::PipelineInterface* pInterface,
+    uint32_t                       count,
+    const void*                    pValues,
+    uint32_t                       offset)
+{
+    PPX_ASSERT_MSG(((offset + count) <= PPX_MAX_PUSH_CONSTANTS), "offset + count (" << (offset + count) << ") exceeds PPX_MAX_PUSH_CONSTANTS (" << PPX_MAX_PUSH_CONSTANTS << ")");
+
+    // Set root signature
+    SetGraphicsPipelineInterface(pInterface);
+
+    UINT rootParameterIndex = static_cast<UINT>(ToApi(pInterface)->GetRootConstantsParameterIndex());
+    mCommandList->SetGraphicsRoot32BitConstants(
+        rootParameterIndex,
+        static_cast<UINT>(count),
+        pValues,
+        static_cast<UINT>(offset));
 }
 
 void CommandBuffer::BindGraphicsPipeline(const grfx::GraphicsPipeline* pPipeline)
@@ -506,7 +547,7 @@ void CommandBuffer::BindComputeDescriptorSets(
     const grfx::DescriptorSet* const* ppSets)
 {
     // Set root signature
-    mCommandList->SetComputeRootSignature(ToApi(pInterface)->GetDxRootSignature().Get());
+    SetComputePipelineInterface(pInterface);
 
     // Fill out mRootDescriptorTablesCBVSRVUAV and mRootDescriptorTablesSampler
     size_t rdtCountCBVSRVUAV = 0;
@@ -524,6 +565,25 @@ void CommandBuffer::BindComputeDescriptorSets(
         const RootDescriptorTable& rdt = mRootDescriptorTablesSampler[i];
         mCommandList->SetComputeRootDescriptorTable(rdt.parameterIndex, rdt.baseDescriptor);
     }
+}
+
+void CommandBuffer::SetComputePushConstants(
+    const grfx::PipelineInterface* pInterface,
+    uint32_t                       count,
+    const void*                    pValues,
+    uint32_t                       offset)
+{
+    PPX_ASSERT_MSG(((offset + count) <= PPX_MAX_PUSH_CONSTANTS), "offset + count (" << (offset + count) << ") exceeds PPX_MAX_PUSH_CONSTANTS (" << PPX_MAX_PUSH_CONSTANTS << ")");
+
+    // Set root signature
+    SetComputePipelineInterface(pInterface);
+
+    UINT rootParameterIndex = static_cast<UINT>(ToApi(pInterface)->GetRootConstantsParameterIndex());
+    mCommandList->SetComputeRoot32BitConstants(
+        rootParameterIndex,
+        static_cast<UINT>(count),
+        pValues,
+        static_cast<UINT>(offset));
 }
 
 void CommandBuffer::BindComputePipeline(const grfx::ComputePipeline* pPipeline)

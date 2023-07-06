@@ -272,11 +272,11 @@ Result PipelineInterface::CreateApiObjects(const grfx::PipelineInterfaceCreateIn
 {
     dx12::Device* pDevice = ToApi(GetDevice());
 
-    //std::vector<std::unique_ptr<std::vector<D3D12_DESCRIPTOR_RANGE1>>> parameterRanges;
+    // std::vector<std::unique_ptr<std::vector<D3D12_DESCRIPTOR_RANGE1>>> parameterRanges;
     std::vector<std::unique_ptr<D3D12_DESCRIPTOR_RANGE1>> parameterRanges;
 
     // Creates a parameter for each binding - this is naive way of
-    // create paramters and their associated range. It flavors flexibility.
+    // create paramters and their associated range. It favors flexibility.
     //
     // @TODO: Optimize
     //
@@ -320,62 +320,21 @@ Result PipelineInterface::CreateApiObjects(const grfx::PipelineInterfaceCreateIn
             paramIndex.index          = static_cast<UINT>(parameters.size() - 1);
             mParameterIndices.push_back(paramIndex);
         }
+    }
 
-        /*
-        // Allocate container for CBVSRVUAV ranges
-        std::unique_ptr<std::vector<D3D12_DESCRIPTOR_RANGE1>> rangesCBVSRVUAV = std::make_unique<std::vector<D3D12_DESCRIPTOR_RANGE1>>();
-        if (!ranges) {
-            PPX_ASSERT_MSG(false, "allocation for descriptor ranges failed (CBVSRVUAV)");
-            return ppx::ERROR_ALLOCATION_FAILED;
-        }
-        // Allocate container for Sampler ranges
-        std::unique_ptr<std::vector<D3D12_DESCRIPTOR_RANGE1>> rangesSampler = std::make_unique<std::vector<D3D12_DESCRIPTOR_RANGE1>>();
-        if (!ranges) {
-            PPX_ASSERT_MSG(false, "allocation for descriptor ranges failed (Sampler)");
-            return ppx::ERROR_ALLOCATION_FAILED;
-        }
+    // Add root constants
+    if (pCreateInfo->pushConstants.count > 0) {
+        D3D12_ROOT_PARAMETER1 parameter    = {};
+        parameter.ParameterType            = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+        parameter.Constants.ShaderRegister = static_cast<UINT>(pCreateInfo->pushConstants.binding);
+        parameter.Constants.RegisterSpace  = static_cast<UINT>(pCreateInfo->pushConstants.set);
+        parameter.Constants.Num32BitValues = static_cast<UINT>(pCreateInfo->pushConstants.count);
+        parameter.ShaderVisibility         = ToD3D12ShaderVisibliity(pCreateInfo->pushConstants.shaderVisiblity);
+        // Store parameter
+        parameters.push_back(parameter);
 
-        // Fill out ranges
-        for (size_t bindingIndex = 0; bindingIndex < bindings.size(); ++bindingIndex) {
-            const grfx::DescriptorBinding& binding = bindings[bindingIndex];
-
-            D3D12_DESCRIPTOR_RANGE1 range           = {};
-            range.RangeType                         = ToD3D12RangeType(binding.type);
-            range.NumDescriptors                    = static_cast<UINT>(binding.arrayCount);
-            range.BaseShaderRegister                = static_cast<UINT>(binding.binding);
-            range.RegisterSpace                     = static_cast<UINT>(set);
-            range.Flags                             = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
-            range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
-            // Explicitly check for sampler
-            if (range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER) {
-                rangesSampler->push_back(range);
-            }
-            // Assume everything else is CBVSRVUAV
-            else {
-                rangesCBVSRVUAV->push_back(range);
-            }
-        }
-
-        // CBVSRVUAV parameter
-        {
-            // Fill out parameter
-            D3D12_ROOT_PARAMETER1 parameter               = {};
-            parameter.ParameterType                       = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-            parameter.DescriptorTable.NumDescriptorRanges = static_cast<UINT>(rangesCBVSRVUAV->size());
-            parameter.DescriptorTable.pDescriptorRanges   = DataPtr(*rangesCBVSRVUAV);
-            parameter.ShaderVisibility                    = ToD3D12ShaderVisibliity(pLayout->GetShaderVisiblity());
-            // Store parameter
-            parameters.push_back(parameter);
-            // Store ranges
-            parameterRanges.push_back(std::move(ranges));
-            // Store parameter index
-            ParameterIndex paramIndex = {};
-            paramIndex.set            = set;
-            paramIndex.index          = static_cast<UINT>(parameters.size() - 1);
-            mParameterIndices.push_back(paramIndex);
-        }
-*/
+        // Store a specific paramter index for root constants to get to it without a search.
+        mRootConstantsParameterIndex = CountU32(parameters) - 1;
     }
 
     D3D12_VERSIONED_ROOT_SIGNATURE_DESC desc = {};

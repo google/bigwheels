@@ -300,12 +300,30 @@ public:
         uint32_t                          setCount,
         const grfx::DescriptorSet* const* ppSets) = 0;
 
+    //
+    // Parameters count and offset are measured in DWORDs (uint32_t) aka 32-bit values.
+    // To set the first 4 32-bit values, use count = 4, offset = 0.
+    // To set the 16 DWORDs starting at offset 8, use count=16, offset = 8.
+    //
+    virtual void SetGraphicsPushConstants(
+        const grfx::PipelineInterface* pInterface,
+        uint32_t                       count,
+        const void*                    pValues,
+        uint32_t                       offset = 0) = 0;
+
     virtual void BindGraphicsPipeline(const grfx::GraphicsPipeline* pPipeline) = 0;
 
     virtual void BindComputeDescriptorSets(
         const grfx::PipelineInterface*    pInterface,
         uint32_t                          setCount,
         const grfx::DescriptorSet* const* ppSets) = 0;
+
+    // See comments at SetGraphicsPushConstants for explanation about count and offset.
+    virtual void SetComputePushConstants(
+        const grfx::PipelineInterface* pInterface,
+        uint32_t                       count,
+        const void*                    pValues,
+        uint32_t                       offset = 0) = 0;
 
     virtual void BindComputePipeline(const grfx::ComputePipeline* pPipeline) = 0;
 

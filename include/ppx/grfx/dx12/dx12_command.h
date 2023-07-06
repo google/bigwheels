@@ -70,12 +70,24 @@ public:
         uint32_t                          setCount,
         const grfx::DescriptorSet* const* ppSets) override;
 
+    virtual void SetGraphicsPushConstants(
+        const grfx::PipelineInterface* pInterface,
+        uint32_t                       count,
+        const void*                    pValues,
+        uint32_t                       offset) override;
+
     virtual void BindGraphicsPipeline(const grfx::GraphicsPipeline* pPipeline) override;
 
     virtual void BindComputeDescriptorSets(
         const grfx::PipelineInterface*    pInterface,
         uint32_t                          setCount,
         const grfx::DescriptorSet* const* ppSets) override;
+
+    virtual void SetComputePushConstants(
+        const grfx::PipelineInterface* pInterface,
+        uint32_t                       count,
+        const void*                    pValues,
+        uint32_t                       offset) override;
 
     virtual void BindComputePipeline(const grfx::ComputePipeline* pPipeline) override;
 
@@ -151,6 +163,9 @@ protected:
     virtual void   DestroyApiObjects() override;
 
 private:
+    void SetGraphicsPipelineInterface(const grfx::PipelineInterface* pInterface);
+    void SetComputePipelineInterface(const grfx::PipelineInterface* pInterface);
+
     void BindDescriptorSets(
         const grfx::PipelineInterface*    pInterface,
         uint32_t                          setCount,
@@ -159,14 +174,16 @@ private:
         size_t&                           rdtCountSampler);
 
 private:
-    D3D12GraphicsCommandListPtr mCommandList;
-    D3D12CommandAllocatorPtr    mCommandAllocator;
-    UINT                        mHeapSizeCBVSRVUAV = 0;
-    UINT                        mHeapSizeSampler   = 0;
-    D3D12DescriptorHeapPtr      mHeapCBVSRVUAV;
-    D3D12DescriptorHeapPtr      mHeapSampler;
-    UINT                        mHeapOffsetCBVSRVUAV = 0;
-    UINT                        mHeapOffsetSampler   = 0;
+    D3D12GraphicsCommandListPtr    mCommandList;
+    D3D12CommandAllocatorPtr       mCommandAllocator;
+    UINT                           mHeapSizeCBVSRVUAV = 0;
+    UINT                           mHeapSizeSampler   = 0;
+    D3D12DescriptorHeapPtr         mHeapCBVSRVUAV;
+    D3D12DescriptorHeapPtr         mHeapSampler;
+    UINT                           mHeapOffsetCBVSRVUAV      = 0;
+    UINT                           mHeapOffsetSampler        = 0;
+    const grfx::PipelineInterface* mCurrentGraphicsInterface = nullptr;
+    const grfx::PipelineInterface* mCurrentComputeInterface  = nullptr;
 
     struct RootDescriptorTable
     {

@@ -58,9 +58,6 @@ struct VertexInputState
 {
     uint32_t            bindingCount                      = 0;
     grfx::VertexBinding bindings[PPX_MAX_VERTEX_BINDINGS] = {};
-
-    //uint32_t              attributeCount                     = 0;
-    //grfx::VertexAttribute attributes[PPX_MAX_RENDER_TARGETS] = {{"", 0, grfx::FORMAT_UNDEFINED, 0, PPX_APPEND_OFFSET_ALIGNED, grfx::VERTEX_INPUT_RATE_VERTEX}};
 };
 
 struct InputAssemblyState
@@ -215,19 +212,6 @@ public:
 protected:
     virtual Result Create(const grfx::GraphicsPipelineCreateInfo* pCreateInfo) override;
     friend class grfx::Device;
-
-protected:
-    //struct VertexInputBinding
-    //{
-    //    uint32_t                           binding    = PPX_MAX_VERTEX_ATTRIBUTES;
-    //    std::vector<grfx::VertexAttribute> attributes = {};
-    //    uint32_t                           stride     = 0;
-    //    grfx::VertexInputRate              inputRate  = grfx::VERTEX_INPUT_RATE_VERTEX;
-    //
-    //    void CalculateOffsetsAndStride();
-    //};
-    //
-    //std::vector<VertexInputBinding> mInputBindings;
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -243,6 +227,24 @@ struct PipelineInterfaceCreateInfo
         uint32_t                         set     = PPX_VALUE_IGNORED; // Set number
         const grfx::DescriptorSetLayout* pLayout = nullptr;           // Set layout
     } sets[PPX_MAX_BOUND_DESCRIPTOR_SETS] = {};
+
+    // VK: Push constants
+    // DX: Root constants
+    //
+    // Push/root constants are measured in DWORDs (uint32_t) aka 32-bit values. 
+    //
+    // The binding and set for push constants CAN NOT overlap with a binding
+    // AND set in sets (the struct immediately above this one). It's okay for
+    // push constants to be in an existing set at binding that is not used
+    // by an entry in the set layout.
+    //    
+    struct
+    {
+        uint32_t              count           = 0;                 // Measured in DWORDs, must be less than or equal to PPX_MAX_PUSH_CONSTANTS
+        uint32_t              binding         = PPX_VALUE_IGNORED; // D3D12 only, ignored by Vulkan
+        uint32_t              set             = PPX_VALUE_IGNORED; // D3D12 only, ignored by Vulkan
+        grfx::ShaderStageBits shaderVisiblity = grfx::SHADER_STAGE_ALL;
+    } pushConstants;
 };
 
 //! @class PipelineInterface

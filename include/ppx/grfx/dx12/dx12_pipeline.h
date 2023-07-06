@@ -98,6 +98,7 @@ public:
     D3D12RootSignaturePtr GetDxRootSignature() const { return mRootSignature; }
     uint32_t              GetParameterIndexCount() const { return CountU32(mParameterIndices); }
     UINT                  FindParameterIndex(uint32_t set, uint32_t binding) const;
+    uint32_t              GetRootConstantsParameterIndex() const { return mRootConstantsParameterIndex; }
 
 protected:
     virtual Result CreateApiObjects(const grfx::PipelineInterfaceCreateInfo* pCreateInfo) override;
@@ -113,6 +114,7 @@ private:
         uint32_t index   = PPX_VALUE_IGNORED;
     };
     std::vector<ParameterIndex> mParameterIndices;
+    uint32_t                    mRootConstantsParameterIndex = PPX_VALUE_IGNORED;
 };
 
 } // namespace dx12

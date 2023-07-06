@@ -70,12 +70,24 @@ public:
         uint32_t                          setCount,
         const grfx::DescriptorSet* const* ppSets) override;
 
+    virtual void SetGraphicsPushConstants(
+        const grfx::PipelineInterface* pInterface,
+        uint32_t                       count,
+        const void*                    pValues,
+        uint32_t                       offset) override;
+
     virtual void BindGraphicsPipeline(const grfx::GraphicsPipeline* pPipeline) override;
 
     virtual void BindComputeDescriptorSets(
         const grfx::PipelineInterface*    pInterface,
         uint32_t                          setCount,
         const grfx::DescriptorSet* const* ppSets) override;
+
+    virtual void SetComputePushConstants(
+        const grfx::PipelineInterface* pInterface,
+        uint32_t                       count,
+        const void*                    pValues,
+        uint32_t                       offset) override;
 
     virtual void BindComputePipeline(const grfx::ComputePipeline* pPipeline) override;
 
@@ -156,6 +168,12 @@ private:
         const grfx::PipelineInterface*    pInterface,
         uint32_t                          setCount,
         const grfx::DescriptorSet* const* ppSets);
+
+    void SetPushConstants(
+        const grfx::PipelineInterface* pInterface,
+        uint32_t                       count,
+        const void*                    pValues,
+        uint32_t                       offset);
 
 private:
     VkCommandBufferPtr mCommandBuffer;

@@ -423,6 +423,43 @@ void CommandBuffer::BindGraphicsDescriptorSets(
     BindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, pInterface, setCount, ppSets);
 }
 
+void CommandBuffer::SetPushConstants(
+    const grfx::PipelineInterface* pInterface,
+    uint32_t                       count,
+    const void*                    pValues,
+    uint32_t                       offset)
+{
+    PPX_ASSERT_NULL_ARG(pInterface);
+    PPX_ASSERT_NULL_ARG(pValues);
+
+    PPX_ASSERT_MSG(((offset + count) <= PPX_MAX_PUSH_CONSTANTS), "offset + count (" << (offset + count) << ") exceeds PPX_MAX_PUSH_CONSTANTS (" << PPX_MAX_PUSH_CONSTANTS << ")");
+
+    const uint32_t sizeInBytes   = count * sizeof(uint32_t);
+    const uint32_t offsetInBytes = offset * sizeof(uint32_t);
+
+    vkCmdPushConstants(
+        mCommandBuffer,
+        ToApi(pInterface)->GetVkPipelineLayout(),
+        ToApi(pInterface)->GetPushConstantShaderStageFlags(),
+        offsetInBytes,
+        sizeInBytes,
+        pValues);
+}
+
+void CommandBuffer::SetGraphicsPushConstants(
+    const grfx::PipelineInterface* pInterface,
+    uint32_t                       count,
+    const void*                    pValues,
+    uint32_t                       offset)
+{
+    const VkShaderStageFlags shaderStageFlags = ToApi(pInterface)->GetPushConstantShaderStageFlags();
+    if ((shaderStageFlags & VK_SHADER_STAGE_ALL_GRAPHICS) == 0) {
+        PPX_ASSERT_MSG(false, "push constants shader visibility flags in pInterface does not have any graphics stages");
+    }
+
+    SetPushConstants(pInterface, count, pValues, offset);
+}
+
 void CommandBuffer::BindGraphicsPipeline(const grfx::GraphicsPipeline* pPipeline)
 {
     PPX_ASSERT_NULL_ARG(pPipeline);
@@ -439,6 +476,20 @@ void CommandBuffer::BindComputeDescriptorSets(
     const grfx::DescriptorSet* const* ppSets)
 {
     BindDescriptorSets(VK_PIPELINE_BIND_POINT_COMPUTE, pInterface, setCount, ppSets);
+}
+
+void CommandBuffer::SetComputePushConstants(
+    const grfx::PipelineInterface* pInterface,
+    uint32_t                       count,
+    const void*                    pValues,
+    uint32_t                       offset)
+{
+    const VkShaderStageFlags shaderStageFlags = ToApi(pInterface)->GetPushConstantShaderStageFlags();
+    if ((shaderStageFlags & VK_SHADER_STAGE_COMPUTE_BIT) == 0) {
+        PPX_ASSERT_MSG(false, "push constants shader visibility flags in pInterface does not have compute stage");
+    }
+
+    SetPushConstants(pInterface, count, pValues, offset);
 }
 
 void CommandBuffer::BindComputePipeline(const grfx::ComputePipeline* pPipeline)
