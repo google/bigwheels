@@ -450,14 +450,16 @@ void CommandBuffer::SetGraphicsPushConstants(
     const grfx::PipelineInterface* pInterface,
     uint32_t                       count,
     const void*                    pValues,
-    uint32_t                       offset)
+    uint32_t                       dstOffset)
 {
+    PPX_ASSERT_MSG(((dstOffset + count) <= PPX_MAX_PUSH_CONSTANTS), "dstOffset + count (" << (dstOffset + count) << ") exceeds PPX_MAX_PUSH_CONSTANTS (" << PPX_MAX_PUSH_CONSTANTS << ")");
+
     const VkShaderStageFlags shaderStageFlags = ToApi(pInterface)->GetPushConstantShaderStageFlags();
     if ((shaderStageFlags & VK_SHADER_STAGE_ALL_GRAPHICS) == 0) {
         PPX_ASSERT_MSG(false, "push constants shader visibility flags in pInterface does not have any graphics stages");
     }
 
-    SetPushConstants(pInterface, count, pValues, offset);
+    SetPushConstants(pInterface, count, pValues, dstOffset);
 }
 
 void CommandBuffer::BindGraphicsPipeline(const grfx::GraphicsPipeline* pPipeline)
@@ -482,14 +484,16 @@ void CommandBuffer::SetComputePushConstants(
     const grfx::PipelineInterface* pInterface,
     uint32_t                       count,
     const void*                    pValues,
-    uint32_t                       offset)
+    uint32_t                       dstOffset)
 {
+    PPX_ASSERT_MSG(((dstOffset + count) <= PPX_MAX_PUSH_CONSTANTS), "dstOffset + count (" << (dstOffset + count) << ") exceeds PPX_MAX_PUSH_CONSTANTS (" << PPX_MAX_PUSH_CONSTANTS << ")");
+
     const VkShaderStageFlags shaderStageFlags = ToApi(pInterface)->GetPushConstantShaderStageFlags();
     if ((shaderStageFlags & VK_SHADER_STAGE_COMPUTE_BIT) == 0) {
         PPX_ASSERT_MSG(false, "push constants shader visibility flags in pInterface does not have compute stage");
     }
 
-    SetPushConstants(pInterface, count, pValues, offset);
+    SetPushConstants(pInterface, count, pValues, dstOffset);
 }
 
 void CommandBuffer::BindComputePipeline(const grfx::ComputePipeline* pPipeline)

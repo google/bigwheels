@@ -74,7 +74,7 @@ public:
         const grfx::PipelineInterface* pInterface,
         uint32_t                       count,
         const void*                    pValues,
-        uint32_t                       offset) override;
+        uint32_t                       dstOffset) override;
 
     virtual void BindGraphicsPipeline(const grfx::GraphicsPipeline* pPipeline) override;
 
@@ -87,7 +87,7 @@ public:
         const grfx::PipelineInterface* pInterface,
         uint32_t                       count,
         const void*                    pValues,
-        uint32_t                       offset) override;
+        uint32_t                       dstOffset) override;
 
     virtual void BindComputePipeline(const grfx::ComputePipeline* pPipeline) override;
 

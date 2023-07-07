@@ -309,7 +309,7 @@ public:
         const grfx::PipelineInterface* pInterface,
         uint32_t                       count,
         const void*                    pValues,
-        uint32_t                       offset = 0) = 0;
+        uint32_t                       dstOffset = 0) = 0;
 
     virtual void BindGraphicsPipeline(const grfx::GraphicsPipeline* pPipeline) = 0;
 
@@ -323,7 +323,7 @@ public:
         const grfx::PipelineInterface* pInterface,
         uint32_t                       count,
         const void*                    pValues,
-        uint32_t                       offset = 0) = 0;
+        uint32_t                       dstOffset = 0) = 0;
 
     virtual void BindComputePipeline(const grfx::ComputePipeline* pPipeline) = 0;
 

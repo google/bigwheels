@@ -520,9 +520,9 @@ void CommandBuffer::SetGraphicsPushConstants(
     const grfx::PipelineInterface* pInterface,
     uint32_t                       count,
     const void*                    pValues,
-    uint32_t                       offset)
+    uint32_t                       dstOffset)
 {
-    PPX_ASSERT_MSG(((offset + count) <= PPX_MAX_PUSH_CONSTANTS), "offset + count (" << (offset + count) << ") exceeds PPX_MAX_PUSH_CONSTANTS (" << PPX_MAX_PUSH_CONSTANTS << ")");
+    PPX_ASSERT_MSG(((dstOffset + count) <= PPX_MAX_PUSH_CONSTANTS), "dstOffset + count (" << (dstOffset + count) << ") exceeds PPX_MAX_PUSH_CONSTANTS (" << PPX_MAX_PUSH_CONSTANTS << ")");
 
     // Set root signature
     SetGraphicsPipelineInterface(pInterface);
@@ -532,7 +532,7 @@ void CommandBuffer::SetGraphicsPushConstants(
         rootParameterIndex,
         static_cast<UINT>(count),
         pValues,
-        static_cast<UINT>(offset));
+        static_cast<UINT>(dstOffset));
 }
 
 void CommandBuffer::BindGraphicsPipeline(const grfx::GraphicsPipeline* pPipeline)
@@ -571,9 +571,9 @@ void CommandBuffer::SetComputePushConstants(
     const grfx::PipelineInterface* pInterface,
     uint32_t                       count,
     const void*                    pValues,
-    uint32_t                       offset)
+    uint32_t                       dstOffset)
 {
-    PPX_ASSERT_MSG(((offset + count) <= PPX_MAX_PUSH_CONSTANTS), "offset + count (" << (offset + count) << ") exceeds PPX_MAX_PUSH_CONSTANTS (" << PPX_MAX_PUSH_CONSTANTS << ")");
+    PPX_ASSERT_MSG(((dstOffset + count) <= PPX_MAX_PUSH_CONSTANTS), "dstOffset + count (" << (dstOffset + count) << ") exceeds PPX_MAX_PUSH_CONSTANTS (" << PPX_MAX_PUSH_CONSTANTS << ")");
 
     // Set root signature
     SetComputePipelineInterface(pInterface);
@@ -583,7 +583,7 @@ void CommandBuffer::SetComputePushConstants(
         rootParameterIndex,
         static_cast<UINT>(count),
         pValues,
-        static_cast<UINT>(offset));
+        static_cast<UINT>(dstOffset));
 }
 
 void CommandBuffer::BindComputePipeline(const grfx::ComputePipeline* pPipeline)

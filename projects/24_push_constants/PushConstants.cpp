@@ -29,7 +29,7 @@ void PushConstantsApp::Config(ppx::ApplicationSettings& settings)
     settings.enableImGui                = true;
     settings.grfx.api                   = kApi;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
-    settings.grfx.enableDebug           = true;
+    settings.grfx.enableDebug           = false;
 }
 
 void PushConstantsApp::Setup()
@@ -142,7 +142,7 @@ void PushConstantsApp::Setup()
         piCreateInfo.setCount                          = 1;
         piCreateInfo.sets[0].set                       = 0;
         piCreateInfo.sets[0].pLayout                   = mDescriptorSetLayout;
-        piCreateInfo.pushConstants.count               = 17; // float4x4 + uint
+        piCreateInfo.pushConstants.count               = (sizeof(float4x4) + sizeof(uint32_t)) / sizeof(uint32_t);
         piCreateInfo.pushConstants.binding             = 0;
         piCreateInfo.pushConstants.set                 = 0;
         PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mPipelineInterface));
@@ -294,18 +294,20 @@ void PushConstantsApp::Render()
             // Get elapsed seconds
             float t = GetElapsedSeconds();
 
+            // Calculate perspective and view matrices
+            float4x4 P = glm::perspective(glm::radians(60.0f), GetWindowAspect(), 0.001f, 10000.0f);
+            float4x4 V = glm::lookAt(float3(0, 0, 3), float3(0, 0, 0), float3(0, 1, 0));
+
             // Draw center cube
             {
                 // Calculate MVP
-                float4x4 P   = glm::perspective(glm::radians(60.0f), GetWindowAspect(), 0.001f, 10000.0f);
-                float4x4 V   = glm::lookAt(float3(0, 0, 3), float3(0, 0, 0), float3(0, 1, 0));
                 float4x4 T   = glm::translate(float3(0, 0, -10 * (1 + sin(t / 2))));
                 float4x4 R   = glm::rotate(t / 4, float3(0, 0, 1)) * glm::rotate(t / 4, float3(0, 1, 0)) * glm::rotate(t / 4, float3(1, 0, 0));
                 float4x4 M   = T * R;
                 float4x4 mat = P * V * M;
                 // Set MVP push constants
                 frame.cmd->SetGraphicsPushConstants(mPipelineInterface, 16, &mat);
-                // Set texture index push constant at offset=16
+                // Set texture index push constant at dstOffset=16
                 uint32_t textureIndex = 0;
                 frame.cmd->SetGraphicsPushConstants(mPipelineInterface, 1, &textureIndex, 16);
             }
@@ -314,8 +316,6 @@ void PushConstantsApp::Render()
             // Draw left cube
             {
                 // Calculate MVP
-                float4x4 P   = glm::perspective(glm::radians(60.0f), GetWindowAspect(), 0.001f, 10000.0f);
-                float4x4 V   = glm::lookAt(float3(0, 0, 3), float3(0, 0, 0), float3(0, 1, 0));
                 float4x4 T   = glm::translate(float3(-4, 0, -10 * (1 + sin(t / 2))));
                 float4x4 R   = glm::rotate(t / 4, float3(0, 0, 1)) * glm::rotate(t / 2, float3(0, 1, 0)) * glm::rotate(t / 4, float3(1, 0, 0));
                 float4x4 M   = T * R;
@@ -331,8 +331,6 @@ void PushConstantsApp::Render()
             // Draw right cube
             {
                 // Calculate MVP
-                float4x4 P   = glm::perspective(glm::radians(60.0f), GetWindowAspect(), 0.001f, 10000.0f);
-                float4x4 V   = glm::lookAt(float3(0, 0, 3), float3(0, 0, 0), float3(0, 1, 0));
                 float4x4 T   = glm::translate(float3(4, 0, -10 * (1 + sin(t / 2))));
                 float4x4 R   = glm::rotate(t / 4, float3(0, 0, 1)) * glm::rotate(t, float3(0, 1, 0)) * glm::rotate(t / 4, float3(1, 0, 0));
                 float4x4 M   = T * R;
