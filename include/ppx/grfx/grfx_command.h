@@ -301,9 +301,15 @@ public:
         const grfx::DescriptorSet* const* ppSets) = 0;
 
     //
-    // Parameters count and offset are measured in DWORDs (uint32_t) aka 32-bit values.
-    // To set the first 4 32-bit values, use count = 4, offset = 0.
-    // To set the 16 DWORDs starting at offset 8, use count=16, offset = 8.
+    // Parameters count and dstOffset are measured in DWORDs (uint32_t) aka 32-bit values.
+    // To set the first 4 32-bit values, use count = 4, dstOffset = 0.
+    // To set the 16 DWORDs starting at offset 8, use count=16, dstOffset = 8.
+    // 
+    // VK: pValues is subjected to Vulkan packing rules. BigWheels compiles HLSL
+    //     shaders with -fvk-use-dx-layout on. This makes the packing rules match
+    //     that of D3D12. However, if a shader is compiled without that flag or
+    //     with a different compiler or source language. The contents pointed to
+    //     by pValues must respect the packing rules in effect.
     //
     virtual void SetGraphicsPushConstants(
         const grfx::PipelineInterface* pInterface,
@@ -318,7 +324,7 @@ public:
         uint32_t                          setCount,
         const grfx::DescriptorSet* const* ppSets) = 0;
 
-    // See comments at SetGraphicsPushConstants for explanation about count and offset.
+    // See comments at SetGraphicsPushConstants for explanation about count, pValues and dstOffset.
     virtual void SetComputePushConstants(
         const grfx::PipelineInterface* pInterface,
         uint32_t                       count,
