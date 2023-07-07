@@ -173,7 +173,7 @@ private:
         const grfx::PipelineInterface* pInterface,
         uint32_t                       count,
         const void*                    pValues,
-        uint32_t                       offset);
+        uint32_t                       dstOffset);
 
 private:
     VkCommandBufferPtr mCommandBuffer;

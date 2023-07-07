@@ -427,15 +427,15 @@ void CommandBuffer::SetPushConstants(
     const grfx::PipelineInterface* pInterface,
     uint32_t                       count,
     const void*                    pValues,
-    uint32_t                       offset)
+    uint32_t                       dstOffset)
 {
     PPX_ASSERT_NULL_ARG(pInterface);
     PPX_ASSERT_NULL_ARG(pValues);
 
-    PPX_ASSERT_MSG(((offset + count) <= PPX_MAX_PUSH_CONSTANTS), "offset + count (" << (offset + count) << ") exceeds PPX_MAX_PUSH_CONSTANTS (" << PPX_MAX_PUSH_CONSTANTS << ")");
+    PPX_ASSERT_MSG(((dstOffset + count) <= PPX_MAX_PUSH_CONSTANTS), "dstOffset + count (" << (dstOffset + count) << ") exceeds PPX_MAX_PUSH_CONSTANTS (" << PPX_MAX_PUSH_CONSTANTS << ")");
 
     const uint32_t sizeInBytes   = count * sizeof(uint32_t);
-    const uint32_t offsetInBytes = offset * sizeof(uint32_t);
+    const uint32_t offsetInBytes = dstOffset * sizeof(uint32_t);
 
     vkCmdPushConstants(
         mCommandBuffer,
