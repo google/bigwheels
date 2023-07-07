@@ -304,7 +304,7 @@ public:
     // Parameters count and dstOffset are measured in DWORDs (uint32_t) aka 32-bit values.
     // To set the first 4 32-bit values, use count = 4, dstOffset = 0.
     // To set the 16 DWORDs starting at offset 8, use count=16, dstOffset = 8.
-    // 
+    //
     // VK: pValues is subjected to Vulkan packing rules. BigWheels compiles HLSL
     //     shaders with -fvk-use-dx-layout on. This makes the packing rules match
     //     that of D3D12. However, if a shader is compiled without that flag or
