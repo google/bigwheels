@@ -117,12 +117,15 @@ public:
 
     VkPipelineLayoutPtr GetVkPipelineLayout() const { return mPipelineLayout; }
 
+    VkShaderStageFlags GetPushConstantShaderStageFlags() const { return mPushConstantShaderStageFlags; }
+
 protected:
     virtual Result CreateApiObjects(const grfx::PipelineInterfaceCreateInfo* pCreateInfo) override;
     virtual void   DestroyApiObjects() override;
 
 private:
     VkPipelineLayoutPtr mPipelineLayout;
+    VkShaderStageFlags  mPushConstantShaderStageFlags = 0;
 };
 
 } // namespace vk

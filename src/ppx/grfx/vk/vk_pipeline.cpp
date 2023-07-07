@@ -15,6 +15,7 @@
 #include "ppx/grfx/vk/vk_pipeline.h"
 #include "ppx/grfx/vk/vk_descriptor.h"
 #include "ppx/grfx/vk/vk_device.h"
+#include "ppx/grfx/vk/vk_gpu.h"
 #include "ppx/grfx/vk/vk_render_pass.h"
 #include "ppx/grfx/vk/vk_shader.h"
 
@@ -171,24 +172,6 @@ Result GraphicsPipeline::InitializeVertexInput(
         vkBindings.push_back(vkBinding);
     }
 
-    //// Fill out Vulkan attributes and bindings
-    //for (auto& binding : mInputBindings) {
-    //    for (auto& attribute : binding.attributes) {
-    //        VkVertexInputAttributeDescription vkAttribute = {};
-    //        vkAttribute.location                          = attribute.location;
-    //        vkAttribute.binding                           = attribute.binding;
-    //        vkAttribute.format                            = ToVkFormat(attribute.format);
-    //        vkAttribute.offset                            = attribute.offset;
-    //        vkAttributes.push_back(vkAttribute);
-    //    }
-    //
-    //    VkVertexInputBindingDescription vkBinding = {};
-    //    vkBinding.binding                         = binding.binding;
-    //    vkBinding.stride                          = binding.stride;
-    //    vkBinding.inputRate                       = ToVkVertexInputRate(binding.inputRate);
-    //    vkBindings.push_back(vkBinding);
-    //}
-
     stateCreateInfo.flags                           = 0;
     stateCreateInfo.vertexBindingDescriptionCount   = CountU32(vkBindings);
     stateCreateInfo.pVertexBindingDescriptions      = DataPtr(vkBindings);
@@ -313,7 +296,7 @@ Result GraphicsPipeline::InitializeColorBlend(
     std::vector<VkPipelineColorBlendAttachmentState>& vkAttachments,
     VkPipelineColorBlendStateCreateInfo&              stateCreateInfo)
 {
-    //auto& attachemnts = m_create_info.color_blend_attachment_states.GetStates();
+    // auto& attachemnts = m_create_info.color_blend_attachment_states.GetStates();
     //// Warn if colorWriteMask is zero
     //{
     //    uint32_t count = CountU32(attachemnts);
@@ -368,7 +351,7 @@ Result GraphicsPipeline::InitializeDynamicState(
     //
     dynamicStates.push_back(VK_DYNAMIC_STATE_VIEWPORT);
     dynamicStates.push_back(VK_DYNAMIC_STATE_SCISSOR);
-    //dynamicStates.push_back(VK_DYNAMIC_STATE_LINE_WIDTH);
+    // dynamicStates.push_back(VK_DYNAMIC_STATE_LINE_WIDTH);
     dynamicStates.push_back(VK_DYNAMIC_STATE_DEPTH_BIAS);
     dynamicStates.push_back(VK_DYNAMIC_STATE_BLEND_CONSTANTS);
     dynamicStates.push_back(VK_DYNAMIC_STATE_DEPTH_BOUNDS);
@@ -562,12 +545,33 @@ Result PipelineInterface::CreateApiObjects(const grfx::PipelineInterfaceCreateIn
         setLayouts[i] = ToApi(pCreateInfo->sets[i].pLayout)->GetVkDescriptorSetLayout();
     }
 
+    bool                hasPushConstants   = (pCreateInfo->pushConstants.count > 0);
+    VkPushConstantRange pushConstantsRange = {};
+    if (hasPushConstants) {
+        const uint32_t sizeInBytes = pCreateInfo->pushConstants.count * sizeof(uint32_t);
+
+        // Double check device limits
+        auto& limits = ToApi(GetDevice()->GetGpu())->GetLimits();
+        if (sizeInBytes > limits.maxPushConstantsSize) {
+            PPX_ASSERT_MSG(false, "push constants size in bytes (" << sizeInBytes << ") exceeds VkPhysicalDeviceLimits::maxPushConstantsSize (" << limits.maxPushConstantsSize << ")");
+            return ppx::ERROR_LIMIT_EXCEEDED;
+        }
+
+        // Save stage flags for use in command buffer
+        mPushConstantShaderStageFlags = ToVkShaderStageFlags(pCreateInfo->pushConstants.shaderVisiblity);
+
+        // Fill out range
+        pushConstantsRange.stageFlags = mPushConstantShaderStageFlags;
+        pushConstantsRange.offset     = 0;
+        pushConstantsRange.size       = sizeInBytes;
+    }
+
     VkPipelineLayoutCreateInfo vkci = {VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
     vkci.flags                      = 0;
     vkci.setLayoutCount             = pCreateInfo->setCount;
     vkci.pSetLayouts                = setLayouts;
-    vkci.pushConstantRangeCount     = 0;
-    vkci.pPushConstantRanges        = nullptr;
+    vkci.pushConstantRangeCount     = hasPushConstants ? 1 : 0;
+    vkci.pPushConstantRanges        = hasPushConstants ? &pushConstantsRange : nullptr;
 
     VkResult vkres = vkCreatePipelineLayout(
         ToApi(GetDevice())->GetVkDevice(),

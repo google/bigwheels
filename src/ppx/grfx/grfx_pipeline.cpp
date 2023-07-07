@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "ppx/grfx/grfx_pipeline.h"
+#include "ppx/grfx/grfx_descriptor.h"
 
 namespace ppx {
 namespace grfx {
@@ -215,17 +216,17 @@ Result ComputePipeline::Create(const grfx::ComputePipelineCreateInfo* pCreateInf
 Result GraphicsPipeline::Create(const grfx::GraphicsPipelineCreateInfo* pCreateInfo)
 {
     //// Checked binding range
-    //for (uint32_t i = 0; i < pCreateInfo->vertexInputState.attributeCount; ++i) {
-    //    const grfx::VertexAttribute& attribute = pCreateInfo->vertexInputState.attributes[i];
-    //    if (attribute.binding >= PPX_MAX_VERTEX_BINDINGS) {
-    //        PPX_ASSERT_MSG(false, "binding exceeds PPX_MAX_VERTEX_ATTRIBUTES");
-    //        return ppx::ERROR_GRFX_MAX_VERTEX_BINDING_EXCEEDED;
-    //    }
-    //    if (attribute.format == grfx::FORMAT_UNDEFINED) {
-    //        PPX_ASSERT_MSG(false, "vertex attribute format is undefined");
-    //        return ppx::ERROR_GRFX_VERTEX_ATTRIBUTE_FROMAT_UNDEFINED;
-    //    }
-    //}
+    // for (uint32_t i = 0; i < pCreateInfo->vertexInputState.attributeCount; ++i) {
+    //     const grfx::VertexAttribute& attribute = pCreateInfo->vertexInputState.attributes[i];
+    //     if (attribute.binding >= PPX_MAX_VERTEX_BINDINGS) {
+    //         PPX_ASSERT_MSG(false, "binding exceeds PPX_MAX_VERTEX_ATTRIBUTES");
+    //         return ppx::ERROR_GRFX_MAX_VERTEX_BINDING_EXCEEDED;
+    //     }
+    //     if (attribute.format == grfx::FORMAT_UNDEFINED) {
+    //         PPX_ASSERT_MSG(false, "vertex attribute format is undefined");
+    //         return ppx::ERROR_GRFX_VERTEX_ATTRIBUTE_FROMAT_UNDEFINED;
+    //     }
+    // }
     //
     //// Build input bindings
     //{
@@ -327,6 +328,47 @@ Result PipelineInterface::Create(const grfx::PipelineInterfaceCreateInfo* pCreat
             if (diff != 1) {
                 mHasConsecutiveSetNumbers = false;
                 break;
+            }
+        }
+    }
+
+    // Check limit and make sure the push constants binding/set doesn't collide
+    // with an existing binding in the set layouts.
+    //
+    if (pCreateInfo->pushConstants.count > 0) {
+        if (pCreateInfo->pushConstants.count > PPX_MAX_PUSH_CONSTANTS) {
+            PPX_ASSERT_MSG(false, "push constants count (" << pCreateInfo->pushConstants.count << ") exceeds PPX_MAX_PUSH_CONSTANTS (" << PPX_MAX_PUSH_CONSTANTS << ")");
+            return ppx::ERROR_LIMIT_EXCEEDED;
+        }
+
+        if (pCreateInfo->pushConstants.binding == PPX_VALUE_IGNORED) {
+            PPX_ASSERT_MSG(false, "push constants binding number is invalid");
+            return ppx::ERROR_GRFX_INVALID_BINDING_NUMBER;
+        }
+        if (pCreateInfo->pushConstants.set == PPX_VALUE_IGNORED) {
+            PPX_ASSERT_MSG(false, "push constants set number is invalid");
+            return ppx::ERROR_GRFX_INVALID_SET_NUMBER;
+        }
+
+        for (uint32_t i = 0; i < pCreateInfo->setCount; ++i) {
+            auto& set = pCreateInfo->sets[i];
+            // Skip if set number doesn't match
+            if (set.set != pCreateInfo->pushConstants.set) {
+                continue;
+            }
+            // See if the layout has a binding that's the same as the push constants binding
+            const uint32_t pushConstantsBinding = pCreateInfo->pushConstants.binding;
+            auto&          bindings             = set.pLayout->GetBindings();
+            auto           it                   = std::find_if(
+                bindings.begin(),
+                bindings.end(),
+                [pushConstantsBinding](const grfx::DescriptorBinding& elem) -> bool {
+                    bool match = (elem.binding == pushConstantsBinding);
+                    return match; });
+            // Error out if a match is found
+            if (it != bindings.end()) {
+                PPX_ASSERT_MSG(false, "push constants binding and set overlaps with a binding in set " << set.set);
+                return ppx::ERROR_GRFX_NON_UNIQUE_BINDING;
             }
         }
     }

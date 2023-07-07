@@ -40,6 +40,15 @@
 #define PPX_WHOLE_SIZE                          UINT64_MAX
 
 //
+// This value is based on what the majority of the GPUs can
+// support in Vulkan. While D3D12 generally allows about 64
+// DWORDs, a significant amount of Vulkan drivers have a limit
+// of 128 bytes for VkPhysicalDeviceLimits::maxPushConstantsSize.
+// This limits the numberof push constants to 32.
+//
+#define PPX_MAX_PUSH_CONSTANTS                  32
+
+//
 // Vulkan dynamic uniform/storage buffers requires that offsets are aligned
 // to VkPhysicalDeviceLimits::minUniformBufferOffsetAlignment. 
 // Based on vulkan.gpuinfo.org, the range of this value [1, 256]

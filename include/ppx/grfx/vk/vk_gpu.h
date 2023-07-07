@@ -31,6 +31,8 @@ public:
 
     VkPhysicalDevicePtr GetVkGpu() const { return mGpu; }
 
+    const VkPhysicalDeviceLimits& GetLimits() const { return mGpuProperties.limits; }
+
     float GetTimestampPeriod() const;
 
     uint32_t GetQueueFamilyCount() const;
