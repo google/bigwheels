@@ -1522,41 +1522,46 @@ float2 Application::GetNormalizedDeviceCoordinates(int32_t x, int32_t y) const
     return ndc;
 }
 
-metrics::Run* Application::StartMetricsRun(const std::string& name)
+void Application::StartMetricsRun(const std::string& name)
 {
     PPX_ASSERT_MSG(mSettings.enableMetrics, "Application::Settings::enableMetrics must be set to true before using the metrics capabilities");
     if (!mSettings.enableMetrics) {
-        return nullptr;
+        return;
     }
 
-    PPX_ASSERT_MSG(mMetrics.pCurrentRun == nullptr, "a run is already active; stop it before starting another one");
-    mMetrics.pCurrentRun = mMetrics.manager.AddRun(name.c_str());
+    PPX_ASSERT_MSG(!mMetrics.manager.HasActiveRun(), "A run is already active; stop it before starting another one");
+    mMetrics.manager.StartRun(name.c_str());
 
     // Add default metrics to every single run
     {
         metrics::MetricMetadata metadata = {};
+        metadata.type                    = metrics::MetricType::kGauge;
         metadata.name                    = "cpu_frame_time";
         metadata.unit                    = "ms";
         metadata.interpretation          = metrics::MetricInterpretation::LOWER_IS_BETTER;
-        mMetrics.pCpuFrameTime           = mMetrics.pCurrentRun->AddMetric<metrics::MetricGauge>(metadata);
+        mMetrics.cpuFrameTimeId          = mMetrics.manager.AddMetric(metadata);
+        PPX_ASSERT_MSG(mMetrics.cpuFrameTimeId != metrics::kInvalidMetricID, "Failed to create frame time metric");
     }
     {
         metrics::MetricMetadata metadata = {};
+        metadata.type                    = metrics::MetricType::kGauge;
         metadata.name                    = "framerate";
         metadata.unit                    = "";
         metadata.interpretation          = metrics::MetricInterpretation::HIGHER_IS_BETTER;
-        mMetrics.pFramerate              = mMetrics.pCurrentRun->AddMetric<metrics::MetricGauge>(metadata);
+        mMetrics.framerateId             = mMetrics.manager.AddMetric(metadata);
+        PPX_ASSERT_MSG(mMetrics.cpuFrameTimeId != metrics::kInvalidMetricID, "Failed to create framerate metric");
     }
     {
         metrics::MetricMetadata metadata = {};
+        metadata.type                    = metrics::MetricType::kCounter;
         metadata.name                    = "frame_count";
         metadata.unit                    = "";
         metadata.interpretation          = metrics::MetricInterpretation::NONE;
-        mMetrics.pFrameCount             = mMetrics.pCurrentRun->AddMetric<metrics::MetricCounter>(metadata);
+        mMetrics.frameCountId            = mMetrics.manager.AddMetric(metadata);
+        PPX_ASSERT_MSG(mMetrics.cpuFrameTimeId != metrics::kInvalidMetricID, "Failed to create frame count metric");
     }
 
     mMetrics.resetFramerateTracking = true;
-    return mMetrics.pCurrentRun;
 }
 
 void Application::StopMetricsRun()
@@ -1566,33 +1571,38 @@ void Application::StopMetricsRun()
         return;
     }
 
-    PPX_ASSERT_MSG(mMetrics.pCurrentRun != nullptr, "there are no active runs");
-    mMetrics.pCurrentRun   = nullptr;
-    mMetrics.pCpuFrameTime = nullptr;
-    mMetrics.pFramerate    = nullptr;
-    mMetrics.pFrameCount   = nullptr;
+    mMetrics.manager.EndRun();
+    mMetrics.cpuFrameTimeId = metrics::kInvalidMetricID;
+    mMetrics.framerateId    = metrics::kInvalidMetricID;
+    mMetrics.frameCountId   = metrics::kInvalidMetricID;
 }
 
 bool Application::HasActiveMetricsRun() const
 {
-    return mSettings.enableMetrics && mMetrics.pCurrentRun != nullptr;
+    return mSettings.enableMetrics && mMetrics.manager.HasActiveRun();
 }
 
 void Application::UpdateMetrics()
 {
+    // This data is the same for every call to increase the frame count.
+    static const metrics::MetricData frameCountData = {
+        .type    = metrics::MetricType::kCounter,
+        .counter = {
+            .increment = 1},
+    };
+
     if (!HasActiveMetricsRun()) {
         return;
     }
 
-    PPX_ASSERT_NULL_ARG(mMetrics.pCpuFrameTime);
-    PPX_ASSERT_NULL_ARG(mMetrics.pFramerate);
-    PPX_ASSERT_NULL_ARG(mMetrics.pFrameCount);
-
     const double seconds = GetElapsedSeconds();
 
     // Record default metrics
-    mMetrics.pCpuFrameTime->RecordEntry(seconds, mPreviousFrameTime);
-    mMetrics.pFrameCount->Increment(1);
+    metrics::MetricData frameTimeData = {metrics::MetricType::kGauge};
+    frameTimeData.gauge.seconds       = seconds;
+    frameTimeData.gauge.value         = mPreviousFrameTime;
+    mMetrics.manager.RecordMetricData(mMetrics.cpuFrameTimeId, frameTimeData);
+    mMetrics.manager.RecordMetricData(mMetrics.frameCountId, frameCountData);
 
     // Record the average framerate over a given period of time
     if (mMetrics.resetFramerateTracking) {
@@ -1608,7 +1618,10 @@ void Application::UpdateMetrics()
         constexpr double FRAMERATE_RECORD_PERIOD = 1.0;
         if (framerateSecondsDiff >= FRAMERATE_RECORD_PERIOD) {
             const double framerate = mMetrics.framerateFrameCount / framerateSecondsDiff;
-            mMetrics.pFramerate->RecordEntry(seconds, framerate);
+            metrics::MetricData framerateData = {metrics::MetricType::kGauge};
+            framerateData.gauge.seconds       = seconds;
+            framerateData.gauge.value         = framerate;
+            mMetrics.manager.RecordMetricData(mMetrics.framerateId, framerateData);
             mMetrics.framerateRecordTimer = seconds;
             mMetrics.framerateFrameCount  = 0;
         }

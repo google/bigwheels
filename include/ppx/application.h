@@ -416,7 +416,7 @@ public:
     // Default metrics are automatically added to the run: framerate, cpu_frame_time and frame_count.
     // Additional ones may be added by the caller.
     // The run is automatically exported and saved to disk when the application shuts down.
-    metrics::Run* StartMetricsRun(const std::string& name);
+    void StartMetricsRun(const std::string& name);
 
     // Stops the currently active run.
     // The caller must not use the run, or any associated metrics, after calling this function.
@@ -520,10 +520,9 @@ private:
     struct
     {
         metrics::Manager        manager;
-        metrics::Run*           pCurrentRun   = nullptr;
-        metrics::MetricGauge*   pCpuFrameTime = nullptr;
-        metrics::MetricGauge*   pFramerate    = nullptr;
-        metrics::MetricCounter* pFrameCount   = nullptr;
+        metrics::MetricID       cpuFrameTimeId = metrics::kInvalidMetricID;
+        metrics::MetricID       framerateId    = metrics::kInvalidMetricID;
+        metrics::MetricID       frameCountId   = metrics::kInvalidMetricID;
 
         double   framerateRecordTimer   = 0.0;
         uint64_t framerateFrameCount    = 0;

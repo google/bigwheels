@@ -23,6 +23,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace ppx {
@@ -34,6 +35,15 @@ namespace metrics {
     TYPE__& operator=(const TYPE__&) = delete;
 
 ////////////////////////////////////////////////////////////////////////////////
+
+typedef uint32_t          MetricID;
+static constexpr MetricID kInvalidMetricID = 0;
+
+enum class MetricType
+{
+    kGauge   = 1,
+    kCounter = 2,
+};
 
 enum class MetricInterpretation
 {
@@ -50,6 +60,7 @@ struct Range
 
 struct MetricMetadata
 {
+    MetricType           type;
     std::string          name;
     std::string          unit;
     MetricInterpretation interpretation = MetricInterpretation::NONE;
@@ -58,62 +69,69 @@ struct MetricMetadata
     nlohmann::json Export() const;
 };
 
+struct GaugeData
+{
+    double seconds;
+    double value;
+};
+
+struct CounterData
+{
+    uint64_t increment;
+};
+
+struct MetricData
+{
+    MetricType type;
+    union
+    {
+        GaugeData   gauge;
+        CounterData counter;
+    };
+};
+
 ////////////////////////////////////////////////////////////////////////////////
 
-// Basic statistics are computed on the fly as metrics entries are recorded.
-// They can be retrieved without any significant run-time cost.
-struct GaugeBasicStatistics
+// Interface for all metric types.
+class Metric
 {
-    double min       = std::numeric_limits<double>::max();
-    double max       = std::numeric_limits<double>::min();
-    double average   = 0.0;
-    double timeRatio = 0.0;
+public:
+    virtual bool           RecordEntry(const MetricData& data) = 0;
+    virtual nlohmann::json Export() const                      = 0;
+    virtual MetricType     GetType() const                     = 0;
+    virtual ~Metric(){};
 };
 
-// Complex statistics cannot be computed on the fly.
-// They require significant computation (e.g. sorting).
-struct GaugeComplexStatistics
-{
-    double median            = 0.0;
-    double standardDeviation = 0.0;
-    double percentile90      = 0.0;
-    double percentile95      = 0.0;
-    double percentile99      = 0.0;
-};
+////////////////////////////////////////////////////////////////////////////////
 
 // A gauge metric represents a value that may increase or decrease over time.
 // The value is sampled frequently (e.g. every frame) and statistics can be
 // derived from the sampling process.
 // The most typical case is the frame time, but memory consumption and image
 // quality are also good examples.
-class MetricGauge final
+class MetricGauge final : public Metric
 {
     friend class Run;
 
 public:
+    ~MetricGauge() override {}
+
     // Record a measurement for the metric at a particular point in time.
     // Each entry must have a positive 'seconds' that is greater than the
     // 'seconds' of the previous entry (i.e. 'seconds' must form a stricly
     // increasing positive function).
     // Note however that the system does NOT assume that the 'seconds' of
     // the first entry equal zero.
-    void RecordEntry(double seconds, double value);
+    // Returns whether the given entry data was valid and able to be recorded.
+    bool RecordEntry(const MetricData& data) override;
 
-    // Entries can be retrieved using these two functions.
-    // 'index' should be between 0 and 'GetEntriesCount() - 1'.
-    size_t GetEntriesCount() const;
-    void   GetEntry(size_t index, double* pSeconds, double* pValue) const;
+    // Exports this metric in JSON format.
+    nlohmann::json Export() const override;
 
-    // Information from the metadata.
-    std::string GetName() const
+    MetricType GetType() const override
     {
-        return mMetadata.name;
-    };
-
-    const GaugeBasicStatistics   GetBasicStatistics() const;
-    const GaugeComplexStatistics ComputeComplexStatistics() const;
-
-    nlohmann::json Export() const;
+        return MetricType::kGauge;
+    }
 
 private:
     struct TimeSeriesEntry
@@ -122,17 +140,39 @@ private:
         double value;
     };
 
+    struct Stats
+    {
+        // Basic - updated every entry.
+        double min       = std::numeric_limits<double>::max();
+        double max       = std::numeric_limits<double>::min();
+        double average   = 0.0;
+        double timeRatio = 0.0;
+
+        // Complex - computed on request.
+        double median            = 0.0;
+        double standardDeviation = 0.0;
+        double percentile01      = 0.0;
+        double percentile05      = 0.0;
+        double percentile10      = 0.0;
+        double percentile90      = 0.0;
+        double percentile95      = 0.0;
+        double percentile99      = 0.0;
+    };
+
 private:
     MetricGauge(const MetricMetadata& metadata)
-        : mMetadata(metadata) {}
+        : mMetadata(metadata)
+    {
+        PPX_ASSERT_MSG(mMetadata.type == MetricType::kGauge, "Gauge must be instantiated with gauge-type metadata!");
+    }
     METRICS_NO_COPY(MetricGauge)
 
-    void UpdateBasicStatistics(double seconds, double value);
+    Stats ComputeStats() const;
 
 private:
     MetricMetadata               mMetadata;
     std::vector<TimeSeriesEntry> mTimeSeries;
-    GaugeBasicStatistics         mBasicStatistics;
+    Stats                        mBasicStats;
     double                       mAccumulatedValue = 0.0;
 };
 
@@ -140,30 +180,35 @@ private:
 
 // A counter metric represents a value that only goes up, e.g. the number
 // of stutters or pipeline cache misses.
-class MetricCounter final
+class MetricCounter final : public Metric
 {
     friend class Run;
 
 public:
-    void     Increment(uint64_t add);
-    uint64_t Get() const;
+    ~MetricCounter() override {}
 
-    // Information from the metadata.
-    std::string GetName() const
+    bool RecordEntry(const MetricData& data) override;
+
+    // Exports this metric in JSON format.
+    nlohmann::json Export() const override;
+
+    MetricType GetType() const override
     {
-        return mMetadata.name;
-    };
-
-    nlohmann::json Export() const;
+        return MetricType::kCounter;
+    }
 
 private:
     MetricCounter(const MetricMetadata& metadata)
-        : mMetadata(metadata), mCounter(0U) {}
+        : mMetadata(metadata)
+    {
+        PPX_ASSERT_MSG(mMetadata.type == MetricType::kCounter, "Counter must be instantiated with counter-type metadata!");
+    }
     METRICS_NO_COPY(MetricCounter)
 
 private:
     MetricMetadata mMetadata;
-    uint64_t       mCounter;
+    uint64_t       mCounter    = 0;
+    size_t         mEntryCount = 0;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -176,36 +221,24 @@ class Run final
     friend class Manager;
 
 public:
-    // TODO(slumpwuffle): The lifetime of the pointer returned by this function is not well-defined
-    // to the caller, and its expiration cannot be known directly. Instead, we may want to use either
-    // strong/weak pointers or functional access to help prevent unexpected use-after-free situations.
-    template <typename T>
-    T* AddMetric(const MetricMetadata& metadata)
-    {
-        PPX_ASSERT_MSG(!metadata.name.empty(), "The metric name must not be empty");
-        PPX_ASSERT_MSG(!HasMetric(metadata.name), "Metrics must have unique names (duplicate name detected)");
+    // The lifetime of this pointer aligns with the lifetime of the parent Run.
+    // It is the responsibility of the caller to guard against use-after-free accordingly.
+    Metric* AddMetric(const MetricMetadata& metadata);
 
-        auto* pMetric = new T(metadata);
-        auto  metric  = std::unique_ptr<T>(pMetric);
-        AddMetric(std::move(metric));
-        return pMetric;
-    }
+    // Exports the run in JSON format.
+    nlohmann::json Export() const;
 
 private:
     Run(const std::string& name)
         : mName(name) {}
     METRICS_NO_COPY(Run)
 
-    void AddMetric(std::unique_ptr<MetricGauge>&& metric);
-    void AddMetric(std::unique_ptr<MetricCounter>&& metric);
     bool HasMetric(const std::string& name) const;
 
-    nlohmann::json Export() const;
-
 private:
-    std::string                                     mName;
-    std::unordered_map<std::string, std::unique_ptr<MetricGauge>>   mGauges;
-    std::unordered_map<std::string, std::unique_ptr<MetricCounter>> mCounters;
+    std::string                          mName;
+    std::unordered_set<std::string>      mMetricNames;
+    std::vector<std::unique_ptr<Metric>> mMetrics;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -215,10 +248,26 @@ class Manager final
 public:
     Manager() = default;
 
-    Run* AddRun(const std::string& name);
+    // Starts a run. There may only be one active run at a time.
+    void StartRun(const std::string& name);
+    // Concludes the current run.
+    void EndRun();
+    // Returns whether a run is active.
+    bool HasActiveRun() const;
 
-    // Exports all the runs and metrics information into a report to disk.
+    // Adds a metric to the current run. A run must be started to add a metric.
+    // Failure to add a metric returns kInvalidMetricID.
+    MetricID AddMetric(const MetricMetadata& metadata);
+
+    // Record data for the given metric ID. Metrics for completed runs will be discarded.
+    bool RecordMetricData(MetricID id, const MetricData& data);
+
+    // Exports all the runs and metrics information into a report to disk. Does NOT close
+    // the current run.
     void ExportToDisk(const std::string& reportPath, bool overwriteExisting = false) const;
+
+    // Exports all current data to a string.
+    std::string ExportToString(const std::string& reportPath) const;
 
 private:
     METRICS_NO_COPY(Manager)
@@ -242,6 +291,8 @@ private:
 
         void WriteToDisk(bool overwriteExisting) const;
 
+        std::string GetContentString() const;
+
     private:
         void SetReportPath(const std::string& reportPath);
 
@@ -249,8 +300,19 @@ private:
         std::filesystem::path mFilePath;
     };
 
+    Report CreateReport(const std::string& reportPath) const;
+
 private:
     std::unordered_map<std::string, std::unique_ptr<Run>> mRuns;
+
+    // Set while there's an active Run, otherwise null.
+    Run* mActiveRun = nullptr;
+
+    // Must be stored with the manager; Runs should not share MetricIDs.
+    MetricID mNextMetricID = kInvalidMetricID + 1;
+
+    // Convenient to store with the manager, so the hop of going through the Run isn't necessary.
+    std::unordered_map<MetricID, Metric*> mActiveMetrics;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
