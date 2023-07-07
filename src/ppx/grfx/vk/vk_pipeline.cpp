@@ -172,24 +172,6 @@ Result GraphicsPipeline::InitializeVertexInput(
         vkBindings.push_back(vkBinding);
     }
 
-    //// Fill out Vulkan attributes and bindings
-    // for (auto& binding : mInputBindings) {
-    //     for (auto& attribute : binding.attributes) {
-    //         VkVertexInputAttributeDescription vkAttribute = {};
-    //         vkAttribute.location                          = attribute.location;
-    //         vkAttribute.binding                           = attribute.binding;
-    //         vkAttribute.format                            = ToVkFormat(attribute.format);
-    //         vkAttribute.offset                            = attribute.offset;
-    //         vkAttributes.push_back(vkAttribute);
-    //     }
-    //
-    //     VkVertexInputBindingDescription vkBinding = {};
-    //     vkBinding.binding                         = binding.binding;
-    //     vkBinding.stride                          = binding.stride;
-    //     vkBinding.inputRate                       = ToVkVertexInputRate(binding.inputRate);
-    //     vkBindings.push_back(vkBinding);
-    // }
-
     stateCreateInfo.flags                           = 0;
     stateCreateInfo.vertexBindingDescriptionCount   = CountU32(vkBindings);
     stateCreateInfo.pVertexBindingDescriptions      = DataPtr(vkBindings);
