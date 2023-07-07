@@ -44,7 +44,9 @@ Built binaries are written to `build\bin`.
 Use Android Studio to open the BigWheels folder and build it.
 A custom DXC_PATH can be set through the env of a `.properties` file.
 
-You can select the sample and target device by navigating to `Build -> Select Build Variant` within Android Studio.
+You can select the sample in the "Select Run/Debug Configuring" drop-down
+within the top toolbar. You can also select the target device using the
+top toolbar.
 
 ## Android (on Linux)
 
@@ -69,57 +71,46 @@ Make sure the Android SDK path is in your env
 export ANDROID_HOME=/path/to/android/sdk
 ```
 
-Multiple targets are available, This example will assume the `triangle`
-target is built. Below the target naming scheme will be explained.
-
-To use Vulkan's SDK DXC version:
+You can list available projects with:
 
 ```bash
-./gradlew buildMobileTriangleDebug
+./gradlew projects
 ```
 
-To provide the DXC path:
+You can use command line tools to build, package and install projects.
+The example below will assume the `01_triangle` target is built.
+
+Some common commands:
 
 ```bash
-./gradlew buildMobileTriangleDebug -PDXC_PATH=some/path/to/dxc
+# Build using Vulkan's SDK DXC version:
+./gradlew 01_triangle:build
+
+# Building with a custom DXC path:
+./gradlew 01_triangle:build -PDXC_PATH=some/path/to/dxc
+
+# Assemble a debug APK without installing:
+./gradlew 01_triangle:assembleDebug
+
+# Build & install the debug application through ADB:
+./gradlew 01_triangle:installDebug -PDXC_PATH=some/path/to/dxc
 ```
 
-To build & install the application through ADB
+To generate APKs for all available samples:
 
+```bash
+./gradlew assemble
 ```
-./gradlew installMobileTriangleDebug -PDXC_PATH=some/path/to/dxc
-```
 
-The target names are composed using this pattern:
-<buildType><device><sampleName>[xr]<flavor>
+The generated APKs can be found in the
+`build/android/<project_name>/outputs/apk/<flavour>` directory.
 
-buildType:
-  - assemble: build and package the APK without installing
-  - build: only build the artefacts
-  - install: build and package the APK and install with ADB.
+### Adding a new Android sample
 
-device:
-  - Mobile : an Android phone
-  - Xr : an XR device
-
-sampleName:
-  - Triangle    : 01_triangle
-  - Cube        : 04_cube
-  ...
-
-The `xr` suffix can be added on some samples (see projects/ directory)
-
-flavor:
-  - Debug
-  - Release
-
-Example:
-
-To build Fishtornado, XR:
-
-```
-./gradlew buildXrFishtornadoxrDebug
-```
+To add a new Android project to the list of available projects,
+create a `build.gradle` file in the project directory and define
+a `copyTask` that specifies all assets used in the project.
+You can follow any existing samples for an example.
 
 ## OpenXR
 OpenXR support can be enabled by adding `-DPPX_BUILD_XR=1` flag.

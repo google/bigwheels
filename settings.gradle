@@ -4,6 +4,9 @@ pluginManagement {
         google()
         mavenCentral()
     }
+    plugins {
+        id 'com.android.application' version '7.3.1' apply false
+    }
 }
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
@@ -12,5 +15,19 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "bigwheels"
-include ':app'
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:7.3.0'
+    }
+}
+
+file('projects').eachDir { sub ->
+    if (file("projects/$sub.name/build.gradle").exists()) {
+        include ":$sub.name"
+        project(":$sub.name").projectDir = new File("projects/$sub.name")
+    }
+}

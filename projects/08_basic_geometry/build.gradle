@@ -1,0 +1,7 @@
+task copyTask {
+    copy {
+        from rootProject.ext.assetsPath + '/basic/shaders/spv'
+        into 'assets/basic/shaders/spv'
+        include '*.spv'
+    }
+}

@@ -32,3 +32,5 @@ local.properties
 /.cxx
 /.gradle
 /.idea
+
+projects/**/assets

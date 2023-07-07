@@ -1,0 +1,16 @@
+task copyTask {
+    copy {
+        from rootProject.ext.assetsPath + '/basic/shaders/spv'
+        into 'assets/basic/shaders/spv'
+        include '*.spv'
+    }
+    copy {
+        from rootProject.ext.assetsPath + '/gbuffer/shaders/spv'
+        into 'assets/gbuffer/shaders/spv'
+        include '*.spv'
+    }
+    copy {
+        from rootProject.ext.assetsPath + '/materials/textures'
+        into 'assets/materials/textures'
+    }
+}
