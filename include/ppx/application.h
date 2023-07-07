@@ -335,7 +335,16 @@ protected:
     virtual void DispatchScroll(float dx, float dy);
     virtual void DispatchRender();
     virtual void DispatchInitKnobs();
+    virtual void DispatchUpdateMetrics();
     virtual void DrawGui(){}; // Draw additional project-related information to ImGui.
+
+    // Override these methods in a derived class to change the default behavior of metrics.
+    virtual void SetupMetrics();
+    virtual void ShutdownMetrics();
+
+    // NOTE: This function can be used for BOTH displayed AND recorded metrics.
+    // Thus it should always be called once per frame.
+    virtual void UpdateMetrics() {}
 
     void TakeScreenshot();
 
@@ -411,19 +420,28 @@ public:
 
     bool IsXrEnabled() const { return mSettings.xr.enable; }
 
-    // Starts a new metric run and returns it.
-    // Only one run is ever active at the same time.
-    // Default metrics are automatically added to the run: framerate, cpu_frame_time and frame_count.
-    // Additional ones may be added by the caller.
+    // Starts a new metric run and returns it. Only one run may be active at the same time.
+    // This function wraps the metrics manager to add default metrics to the run:
+    // framerate, cpu_frame_time and frame_count. Additional ones may be added by calling
+    // the other wrapper functions below.
     // The run is automatically exported and saved to disk when the application shuts down.
     void StartMetricsRun(const std::string& name);
 
-    // Stops the currently active run.
-    // The caller must not use the run, or any associated metrics, after calling this function.
+    // Stops the currently active run, invaliding all existing MetricIDs.
+    // See StartMetricsRun for why this wrapper is necessary.
     void StopMetricsRun();
 
     // Returns true when a run is active, otherwise returns false.
+    // See StartMetricsRun for why this wrapper is necessary.
     bool HasActiveMetricsRun() const;
+
+    // Adds a metric to the current run. If no run is active, returns metrics::kInvalidMetricID.
+    // See StartMetricsRun for why this wrapper is necessary.
+    metrics::MetricID AddMetric(const metrics::MetricMetadata& metadata);
+
+    // Record data for the given metric ID. Metrics for completed runs will be discarded.
+    // See StartMetricsRun for why this wrapper is necessary.
+    bool RecordMetricData(metrics::MetricID id, const metrics::MetricData& data);
 
 #if defined(PPX_BUILD_XR)
     XrComponent& GetXrComponent()
@@ -463,8 +481,8 @@ private:
     void   DestroyPlatformWindow();
     bool   IsRunning() const;
 
-    // Updates the metrics.
-    void UpdateMetrics();
+    // Updates the shared, app-level metrics.
+    void UpdateAppMetrics();
     // Saves the metrics data to a file on disk.
     void SaveMetricsReportToDisk();
 
