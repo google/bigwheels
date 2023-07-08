@@ -226,7 +226,7 @@ Run* Manager::AddRun(const std::string& name)
     return pRun;
 }
 
-void Manager::ExportToDisk(const std::string& reportPath) const
+void Manager::ExportToDisk(const std::string& reportPath, bool overwriteExisting) const
 {
     nlohmann::json content;
     for (const auto& [name, pRun] : mRuns) {
@@ -237,7 +237,7 @@ void Manager::ExportToDisk(const std::string& reportPath) const
     // Since the json library relies on strings-as-pointers rather than self-allocated objects,
     // the lifecycle of the report is tied to the lifecycle of the runs and metrics owned by
     // the manager. But this is opaque.
-    Report(std::move(content), reportPath).WriteToDisk();
+    Report(std::move(content), reportPath).WriteToDisk(overwriteExisting);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

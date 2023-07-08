@@ -218,7 +218,7 @@ public:
     Run* AddRun(const std::string& name);
 
     // Exports all the runs and metrics information into a report to disk.
-    void ExportToDisk(const std::string& reportPath) const;
+    void ExportToDisk(const std::string& reportPath, bool overwriteExisting = false) const;
 
 private:
     METRICS_NO_COPY(Manager)
@@ -240,7 +240,7 @@ private:
         // Move constructor for content.
         Report(nlohmann::json&& content, const std::string& reportPath);
 
-        void WriteToDisk(bool overwriteExisting = false) const;
+        void WriteToDisk(bool overwriteExisting) const;
 
     private:
         void SetReportPath(const std::string& reportPath);

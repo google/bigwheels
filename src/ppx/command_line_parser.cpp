@@ -110,6 +110,9 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
             }
             mOpts.standardOptions.metrics_filename = opt.GetValueOrDefault<std::string>("");
         }
+        else if (opt.GetName() == "overwrite-metrics-file") {
+            mOpts.standardOptions.overwrite_metrics_file = opt.GetValueOrDefault<bool>(true);
+        }
         else if (opt.GetName() == "resolution") {
             if (!opt.HasValue()) {
                 return std::string("Command-line option --resolution requires a parameter");

@@ -234,7 +234,8 @@ struct ApplicationSettings
     bool        enableImGui           = false;
     bool        allowThirdPartyAssets = false;
     // Set to true to opt-in for metrics.
-    bool enableMetrics = false;
+    bool        enableMetrics        = false;
+    bool        overwriteMetricsFile = false;
     std::string reportPath    = "";
 
     struct
