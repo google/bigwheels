@@ -236,7 +236,7 @@ struct ApplicationSettings
     // Set to true to opt-in for metrics.
     bool        enableMetrics        = false;
     bool        overwriteMetricsFile = false;
-    std::string reportPath    = "";
+    std::string reportPath           = "";
 
     struct
     {

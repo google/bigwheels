@@ -1074,7 +1074,7 @@ int Application::Run(int argc, char** argv)
     if (mStandardOptions.enable_metrics) {
         mSettings.enableMetrics = true;
         // An empty reportPath will be replaced with the default.
-        mSettings.reportPath = mStandardOptions.metrics_filename;
+        mSettings.reportPath           = mStandardOptions.metrics_filename;
         mSettings.overwriteMetricsFile = mStandardOptions.overwrite_metrics_file;
     }
 
