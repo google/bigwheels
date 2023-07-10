@@ -174,50 +174,71 @@ public:
     }
 
 private:
-    CliOptions mOpts;
+    CliOptions  mOpts;
+    std::string mUsageMsg = R"(
+--help              Prints this help message and exits.
+
+--assets-path       Add a path in front of the assets search path list (Can be
+                    specified multiple times).
+
+--deterministic     Disable non-deterministic behaviors, like clocks and
+                    diagnostic display.
+
+--frame-count <N>   Shutdown the application after successfully rendering N
+                    frames. Default: 0 (infinite).
+
+--run-time-ms <N>   Shutdown the application after N milliseconds. Default: 0
+                    (infinite).
+
+--gpu <index>       Select the gpu with the given index. To determine the set
+                    of valid indices use --list-gpus.
+
+--headless          Run the sample without creating windows.
+
+--list-gpus         Prints a list of the available GPUs on the current system
+                    with their index and exits (see --gpu).
+)"
 #if defined(PPX_BUILD_XR)
-    std::string mUsageMsg = R"(
---help                        Prints this help message and exits.
-
---assets-path                 Add a path in front of the assets search path list (Can be specified multiple times).
---deterministic               Disable non-deterministic behaviors, like clocks.
---frame-count <N>             Shutdown the application after successfully rendering N frames.
---run-time-ms <N>             Shutdown the application after N milliseconds.
---gpu <index>                 Select the gpu with the given index. To determine the set of valid indices use --list-gpus.
---headless                    Run the sample without creating windows.
---list-gpus                   Prints a list of the available GPUs on the current system with their index and exits (see --gpu).
---resolution <Width>x<Height> Specify the per-eye resolution in pixels. Width and Height must be two positive integers greater or equal to 1.
---xr-ui-resolution <Width>x<Height> Specify the UI quad resolution in pixels. Width and Height must be two positive integers greater or equal to 1.
---screenshot-frame-number <N> Take a screenshot of frame number N and save it in PPM format.
-                              See also `--screenshot-path`.
---screenshot-path             Save the screenshot to this path. If not specified, BigWheels will create a
-                              "screenshot_frameN" file in the current working directory.
---stats-frame-window <N>      Calculate frame statistics over the last N frames only.
-                              Set to 0 to use all frames since the beginning of the application.
---use-software-renderer       Use a software renderer instead of a hardware device, if available.
-)";
+                            R"(
+--resolution <Width>x<Height>
+                    Specify the per-eye resolution in pixels. Width and Height
+                    must be two positive integers greater or equal to 1.
+)"
 #else
-    std::string mUsageMsg = R"(
---help                        Prints this help message and exits.
-
---assets-path                 Add a path in front of the assets search path list (Can be specified multiple times).
---deterministic               Disable non-deterministic behaviors, like clocks.
---frame-count <N>             Shutdown the application after successfully rendering N frames. Default: 0 (infinite).
---run-time-ms <N>             Shutdown the application after N milliseconds. Default: 0 (infinite).
---gpu <index>                 Select the gpu with the given index. To determine the set of valid indices use --list-gpus.
---headless                    Run the sample without creating windows.
---list-gpus                   Prints a list of the available GPUs on the current system with their index and exits (see --gpu).
---resolution <Width>x<Height> Specify the main window resolution in pixels. Width and Height must be two positive integers greater or equal to 1.
---screenshot-frame-number <N> Take a screenshot of frame number N and save it in PPM format.
-                              See also `--screenshot-path`.
---screenshot-path             Save the screenshot to this path. If not specified, BigWheels will create a
-                              "screenshot_frameN" file in the current working directory.
---stats-frame-window <N>      Calculate frame statistics over the last N frames only.
-                              Set to 0 to use all frames since the beginning of the application.
---use-software-renderer       Use a software renderer instead of a hardware device, if available.
-)";
+                            R"(
+--resolution <Width>x<Height>
+                    Specify the main window resolution in pixels. Width and
+                    Height must be two positive integers greater or equal to 1.
+)"
 #endif
+                            R"(
+--screenshot-frame-number <N>
+                    Take a screenshot of frame number N and save it in PPM
+                    format. See also `--screenshot-path`.
+
+--screenshot-path   Save the screenshot to this destination. If not specified,
+                    BigWheels will create a "screenshot_frameN" file in the
+                    current working directory.
+
+--stats-frame-window <N>
+                    Calculate frame statistics over the last N frames only.
+                    Default: 0 (use all frames since the beginning of the
+                    application).
+
+--use-software-renderer
+                    Use a software renderer instead of a hardware device, if
+                    available.
+)"
+#if defined(PPX_BUILD_XR)
+                            R"(
+--xr-ui-resolution <Width>x<Height>
+                    Specify the UI quad resolution in pixels. Width and Height
+                    must be two positive integers greater or equal to 1.
+)"
+#endif
+        ; // mUsageMsg
 };
+
 } // namespace ppx
 
 #endif // ppx_command_line_parser_h
