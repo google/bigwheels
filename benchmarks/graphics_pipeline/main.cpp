@@ -45,10 +45,11 @@ public:
         BACKWARD
     };
 
-    FreeCamera()
+    FreeCamera(float3 eyePosition, float3 target)
     {
-        mEyePosition = float3(0, 0, -5);
-        mTarget      = float3(0, 0, -4);
+        mEyePosition = eyePosition;
+        mTarget      = target;
+        LookAt(mEyePosition, mTarget);
     }
 
     // Moves the location of the camera in dir direction for distance units.
@@ -165,7 +166,7 @@ private:
     grfx::DescriptorSetLayoutPtr                                  mSetLayout;
     std::array<grfx::ShaderModulePtr, kAvailableVsShaders.size()> mVsShaders;
     std::array<grfx::ShaderModulePtr, kAvailablePsShaders.size()> mPsShaders;
-    FreeCamera                                                    mCamera;
+    std::unique_ptr<FreeCamera>                                   mCamera;
     float3                                                        mLightPosition = float3(10, 100, 10);
     std::array<Scene, kAvailableScenes.size()>                    mScenes;
     size_t                                                        mCurrentSceneIndex;
@@ -228,8 +229,6 @@ private:
         const std::unordered_map<const cgltf_primitive*, size_t>& primitiveToIndex,
         std::vector<Primitive>*                                   pPrimitives,
         std::vector<Material>*                                    pMaterials) const;
-
-    void SetupCamera();
 
     void ProcessInput();
 
@@ -719,17 +718,12 @@ void ProjApp::LoadNodes(
     }
 }
 
-void ProjApp::SetupCamera()
-{
-    mCamera.LookAt(mCamera.GetEyePosition(), mCamera.GetTarget());
-    mCamera.SetPerspective(60.f, GetWindowAspect());
-}
-
 void ProjApp::Setup()
 {
     // Cameras
     {
-        SetupCamera();
+        mCamera = std::unique_ptr<FreeCamera>(new FreeCamera(float3(0, 0, -5), float3(0, 0, -4)));
+        mCamera->SetPerspective(60.f, GetWindowAspect());
     }
 
     // Create descriptor pool large enough for this project
@@ -866,19 +860,19 @@ void ProjApp::ProcessInput()
     float deltaTime = GetPrevFrameTime();
 
     if (mPressedKeys[KEY_W]) {
-        mCamera.Move(FreeCamera::MovementDirection::FORWARD, kCameraSpeed * deltaTime);
+        mCamera->Move(FreeCamera::MovementDirection::FORWARD, kCameraSpeed * deltaTime);
     }
 
     if (mPressedKeys[KEY_A]) {
-        mCamera.Move(FreeCamera::MovementDirection::LEFT, kCameraSpeed * deltaTime);
+        mCamera->Move(FreeCamera::MovementDirection::LEFT, kCameraSpeed * deltaTime);
     }
 
     if (mPressedKeys[KEY_S]) {
-        mCamera.Move(FreeCamera::MovementDirection::BACKWARD, kCameraSpeed * deltaTime);
+        mCamera->Move(FreeCamera::MovementDirection::BACKWARD, kCameraSpeed * deltaTime);
     }
 
     if (mPressedKeys[KEY_D]) {
-        mCamera.Move(FreeCamera::MovementDirection::RIGHT, kCameraSpeed * deltaTime);
+        mCamera->Move(FreeCamera::MovementDirection::RIGHT, kCameraSpeed * deltaTime);
     }
 }
 
@@ -925,9 +919,9 @@ void ProjApp::Render()
         data.modelMatrix                = object.modelMatrix;
         data.ITModelMatrix              = object.ITModelMatrix;
         data.ambient                    = float4(0.3f);
-        data.cameraViewProjectionMatrix = mCamera.GetViewProjectionMatrix();
+        data.cameraViewProjectionMatrix = mCamera->GetViewProjectionMatrix();
         data.lightPosition              = float4(mLightPosition, 0);
-        data.eyePosition                = float4(mCamera.GetEyePosition(), 0.f);
+        data.eyePosition                = float4(mCamera->GetEyePosition(), 0.f);
 
         object.pUniformBuffer->CopyFromSource(sizeof(data), &data);
     }
