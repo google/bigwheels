@@ -82,6 +82,7 @@ private:
         grfx::FencePtr         imageAcquiredFence;
         grfx::SemaphorePtr     renderCompleteSemaphore;
         grfx::FencePtr         renderCompleteFence;
+        grfx::QueryPtr         timestampQuery;
     };
 
     struct Texture
@@ -141,6 +142,7 @@ private:
     float3                                                        mLightPosition = float3(10, 100, 10);
     std::array<Scene, kAvailableScenes.size()>                    mScenes;
     size_t                                                        mCurrentSceneIndex;
+    uint64_t                                                      mGpuWorkDuration;
 
     TextureCache mTextureCache;
 
@@ -200,6 +202,8 @@ private:
         std::vector<Material>*                                    pMaterials) const;
 
     void UpdateGUI();
+
+    void DrawExtraInfo();
 };
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
@@ -772,6 +776,12 @@ void ProjApp::Setup()
         fenceCreateInfo = {true}; // Create signaled
         PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &frame.renderCompleteFence));
 
+        // Timestamp query
+        grfx::QueryCreateInfo queryCreateInfo = {};
+        queryCreateInfo.type                  = grfx::QUERY_TYPE_TIMESTAMP;
+        queryCreateInfo.count                 = 2;
+        PPX_CHECKED_CALL(GetDevice()->CreateQuery(&queryCreateInfo, &frame.timestampQuery));
+
         mPerFrame.push_back(frame);
     }
 
@@ -798,6 +808,15 @@ void ProjApp::Render()
     PPX_CHECKED_CALL(frame.imageAcquiredFence->WaitAndReset());
     // Wait for and reset render complete fence
     PPX_CHECKED_CALL(frame.renderCompleteFence->WaitAndReset());
+
+    // Read query results
+    if (GetFrameCount() > 0) {
+        uint64_t data[2] = {0, 0};
+        PPX_CHECKED_CALL(frame.timestampQuery->GetData(data, sizeof(data)));
+        mGpuWorkDuration = data[1] - data[0];
+    }
+    // Reset query
+    frame.timestampQuery->Reset(/* firstQuery= */ 0, frame.timestampQuery->GetCount());
 
     // Update camera(s)
     mCamera.LookAt(float3(2, 2, 2), float3(0, 0, 0));
@@ -860,6 +879,9 @@ void ProjApp::Render()
     // Build command buffer
     PPX_CHECKED_CALL(frame.cmd->Begin());
     {
+        // Write start timestamp
+        frame.cmd->WriteTimestamp(frame.timestampQuery, grfx::PIPELINE_STAGE_TOP_OF_PIPE_BIT, /* queryIndex = */ 0);
+
         grfx::RenderPassPtr renderPass = swapchain->GetRenderPass(imageIndex);
         PPX_ASSERT_MSG(!renderPass.IsNull(), "render pass object is null");
 
@@ -884,11 +906,16 @@ void ProjApp::Render()
                     frame.cmd->DrawIndexed(renderable.pPrimitive->mesh->GetIndexCount());
                 }
             }
-
             DrawImGui(frame.cmd);
         }
         frame.cmd->EndRenderPass();
         frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
+
+        // Write end timestamp
+        frame.cmd->WriteTimestamp(frame.timestampQuery, grfx::PIPELINE_STAGE_TOP_OF_PIPE_BIT, /* queryIndex = */ 1);
+
+        // Resolve queries
+        frame.cmd->ResolveQueryData(frame.timestampQuery, /* startIndex= */ 0, frame.timestampQuery->GetCount());
     }
     PPX_CHECKED_CALL(frame.cmd->End());
 
@@ -913,7 +940,30 @@ void ProjApp::UpdateGUI()
     }
 
     // GUI
-    GetKnobManager().DrawAllKnobs();
+    ImGui::Begin("Debug Window");
+    GetKnobManager().DrawAllKnobs(true);
+    ImGui::Separator();
+    DrawExtraInfo();
+    ImGui::End();
 }
 
+void ProjApp::DrawExtraInfo()
+{
+    uint64_t frequency = 0;
+    GetGraphicsQueue()->GetTimestampFrequency(&frequency);
+
+    ImGui::Columns(2);
+    const float gpuWorkDuration = static_cast<float>(mGpuWorkDuration / static_cast<double>(frequency)) * 1000.0f;
+    ImGui::Text("GPU Work Duration");
+    ImGui::NextColumn();
+    ImGui::Text("%f ms ", gpuWorkDuration);
+    ImGui::NextColumn();
+
+    ImGui::Columns(2);
+    const float gpuFPS = static_cast<float>(frequency / static_cast<double>(mGpuWorkDuration));
+    ImGui::Text("GPU FPS");
+    ImGui::NextColumn();
+    ImGui::Text("%f fps ", gpuFPS);
+    ImGui::NextColumn();
+}
 SETUP_APPLICATION(ProjApp)
