@@ -906,7 +906,6 @@ void ProjApp::Render()
                     frame.cmd->DrawIndexed(renderable.pPrimitive->mesh->GetIndexCount());
                 }
             }
-
             DrawImGui(frame.cmd);
         }
         frame.cmd->EndRenderPass();
@@ -941,8 +940,9 @@ void ProjApp::UpdateGUI()
     }
 
     // GUI
-    ImGui::Begin("Knobs");
+    ImGui::Begin("Debug Window");
     GetKnobManager().DrawAllKnobs(true);
+    ImGui::Separator();
     DrawExtraInfo();
     ImGui::End();
 }
