@@ -29,7 +29,7 @@ namespace ppx {
 namespace metrics {
 
 #define METRICS_NO_COPY(TYPE__)     \
-    TYPE__(TYPE__&)       = delete; \
+    TYPE__(TYPE__&&)      = delete; \
     TYPE__(const TYPE__&) = delete; \
     TYPE__& operator=(const TYPE__&) = delete;
 
@@ -180,7 +180,7 @@ public:
     // to the caller, and its expiration cannot be known directly. Instead, we may want to use either
     // strong/weak pointers or functional access to help prevent unexpected use-after-free situations.
     template <typename T>
-    T* AddMetric(MetricMetadata metadata)
+    T* AddMetric(const MetricMetadata& metadata)
     {
         PPX_ASSERT_MSG(!metadata.name.empty(), "The metric name must not be empty");
         PPX_ASSERT_MSG(!HasMetric(metadata.name), "Metrics must have unique names (duplicate name detected)");
@@ -218,7 +218,7 @@ public:
     Run* AddRun(const std::string& name);
 
     // Exports all the runs and metrics information into a report to disk.
-    void ExportToDisk(const std::string& baseReportName) const;
+    void ExportToDisk(const std::string& reportPath, bool overwriteExisting = false) const;
 
 private:
     METRICS_NO_COPY(Manager)
@@ -232,20 +232,20 @@ private:
     {
     public:
         static constexpr const char* kFileExtension = ".json";
+        static constexpr const char* kDefaultReportPath = "report_@";
 
     public:
         // Copy constructor for content.
-        Report(const nlohmann::json& content, const std::string& baseReportName);
+        Report(const nlohmann::json& content, const std::string& reportPath);
         // Move constructor for content.
-        Report(nlohmann::json&& content, const std::string& baseReportName);
+        Report(nlohmann::json&& content, const std::string& reportPath);
 
-        void WriteToDisk(bool overwriteExisting = false) const;
+        void WriteToDisk(bool overwriteExisting) const;
 
     private:
-        void SetReportName(const std::string& baseReportName);
+        void SetReportPath(const std::string& reportPath);
 
         nlohmann::json        mContent;
-        std::string           mReportName;
         std::filesystem::path mFilePath;
     };
 

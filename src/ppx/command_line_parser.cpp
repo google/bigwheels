@@ -77,6 +77,9 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
         else if (opt.GetName() == "deterministic") {
             mOpts.standardOptions.deterministic = opt.GetValueOrDefault<bool>(true);
         }
+        else if (opt.GetName() == "enable-metrics") {
+            mOpts.standardOptions.enable_metrics = opt.GetValueOrDefault<bool>(true);
+        }
         else if (opt.GetName() == "frame-count") {
             if (!opt.HasValue()) {
                 return std::string("Command-line option --frame-count requires a parameter");
@@ -100,6 +103,15 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
         }
         else if (opt.GetName() == "list-gpus") {
             mOpts.standardOptions.list_gpus = opt.GetValueOrDefault<bool>(true);
+        }
+        else if (opt.GetName() == "metrics-filename") {
+            if (!opt.HasValue()) {
+                return std::string("Command-line option --metrics-filename requires a parameter");
+            }
+            mOpts.standardOptions.metrics_filename = opt.GetValueOrDefault<std::string>("");
+        }
+        else if (opt.GetName() == "overwrite-metrics-file") {
+            mOpts.standardOptions.overwrite_metrics_file = opt.GetValueOrDefault<bool>(true);
         }
         else if (opt.GetName() == "resolution") {
             if (!opt.HasValue()) {

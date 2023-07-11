@@ -32,18 +32,21 @@ namespace ppx {
 struct StandardOptions
 {
     // Flags
-    bool deterministic         = false;
-    bool headless              = false;
-    bool help                  = false;
-    bool list_gpus             = false;
-    bool use_software_renderer = false;
+    bool deterministic          = false;
+    bool enable_metrics         = false;
+    bool headless               = false;
+    bool help                   = false;
+    bool list_gpus              = false;
+    bool overwrite_metrics_file = false;
+    bool use_software_renderer  = false;
 
     // Options
     std::vector<std::string> assets_paths            = {};
-    int                      gpu_index               = -1;
     int                      frame_count             = 0;
-    int                      run_time_ms             = 0;
+    int                      gpu_index               = -1;
+    std::string              metrics_filename        = "";
     std::pair<int, int>      resolution              = {-1, -1};
+    int                      run_time_ms             = 0;
     int                      screenshot_frame_number = -1;
     std::string              screenshot_path         = "";
     uint32_t                 stats_frame_window      = 300;
@@ -184,6 +187,9 @@ private:
 --deterministic     Disable non-deterministic behaviors, like clocks and
                     diagnostic display.
 
+--enable-metrics    Enable metrics report output. See also:
+                    `--metrics-filename` and `--overwrite-metrics-file`.
+
 --frame-count <N>   Shutdown the application after successfully rendering N
                     frames. Default: 0 (infinite).
 
@@ -197,6 +203,20 @@ private:
 
 --list-gpus         Prints a list of the available GPUs on the current system
                     with their index and exits (see --gpu).
+
+--metrics-filename  If metrics are enabled, save the metrics report to the
+                    provided filename (including path). If used, any "@"
+                    symbols in the filename (not the path) will be replaced
+                    with the current timestamp. If the filename does not end in
+                    .json, it will be appended. Default: "report_@". See also:
+                    `--enable-metrics` and `--overwrite-metrics-file`.
+
+--overwrite-metrics-file
+                    Only applies if metrics are enabled with
+                    `--enable-metrics`. If an existing file at the path set
+                    with `--metrics-filename` is found, it will be overwritten.
+                    Default: false. See also: `--enable-metrics` and
+                    `--metrics-filename`.
 )"
 #if defined(PPX_BUILD_XR)
                             R"(
