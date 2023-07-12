@@ -45,12 +45,6 @@ public:
         BACKWARD
     };
 
-    FreeCamera()
-    {
-        mEyePosition = float3(0, 0, -5),
-        mTarget      = float3(0, 0, -4);
-    }
-
     FreeCamera(float3 eyePosition, float3 target)
     {
         mEyePosition = eyePosition;
@@ -100,6 +94,8 @@ class ProjApp
     : public ppx::Application
 {
 public:
+    ProjApp()
+        : mCamera(float3(0, 0, -5), float3(0, 0, -4)) {}
     virtual void InitKnobs() override;
     virtual void Config(ppx::ApplicationSettings& settings) override;
     virtual void Setup() override;
