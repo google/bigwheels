@@ -258,6 +258,12 @@ Result DescriptorSet::UpdateDescriptors(uint32_t writeCount, const grfx::WriteDe
 // -------------------------------------------------------------------------------------------------
 Result DescriptorSetLayout::CreateApiObjects(const grfx::DescriptorSetLayoutCreateInfo* pCreateInfo)
 {
+    // Make sure the device has VK_KHR_push_descriptors if pushable is turned on
+    if (pCreateInfo->flags.bits.pushable && (ToApi(GetDevice())->GetMaxPushDescriptors() == 0)) {
+        PPX_ASSERT_MSG(false, "Descriptor set layout create info has pushable flag but device does not support VK_KHR_push_descriptor");
+        return ppx::ERROR_REQUIRED_FEATURE_UNAVAILABLE;
+    }
+
     std::vector<VkDescriptorSetLayoutBinding> vkBindings;
     for (size_t i = 0; i < pCreateInfo->bindings.size(); ++i) {
         //
@@ -286,6 +292,10 @@ Result DescriptorSetLayout::CreateApiObjects(const grfx::DescriptorSetLayoutCrea
     VkDescriptorSetLayoutCreateInfo vkci = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
     vkci.bindingCount                    = CountU32(vkBindings);
     vkci.pBindings                       = DataPtr(vkBindings);
+
+    if (pCreateInfo->flags.bits.pushable) {
+        vkci.flags |= VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
+    }
 
     VkResult vkres = vkCreateDescriptorSetLayout(
         ToApi(GetDevice())->GetVkDevice(),

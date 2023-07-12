@@ -155,9 +155,11 @@ class Query;
 class Queue;
 class RenderPass;
 class RenderTargetView;
+class SampledImageView;
 class Sampler;
 class Semaphore;
 class ShaderModule;
+class StorageImageView;
 class Surface;
 class Swapchain;
 
@@ -315,6 +317,13 @@ struct ApiObjectLookUp<grfx::RenderTargetView>
 };
 
 template <>
+struct ApiObjectLookUp<grfx::SampledImageView>
+{
+    using GrfxType = grfx::SampledImageView;
+    using ApiType  = vk::SampledImageView;
+};
+
+template <>
 struct ApiObjectLookUp<grfx::Sampler>
 {
     using GrfxType = grfx::Sampler;
@@ -333,6 +342,13 @@ struct ApiObjectLookUp<grfx::ShaderModule>
 {
     using GrfxType = grfx::ShaderModule;
     using ApiType  = vk::ShaderModule;
+};
+
+template <>
+struct ApiObjectLookUp<grfx::StorageImageView>
+{
+    using GrfxType = grfx::StorageImageView;
+    using ApiType  = vk::StorageImageView;
 };
 
 template <>
