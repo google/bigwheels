@@ -307,11 +307,11 @@ void PushDescriptorsApp::Render()
             // Draw left cube
             {
                 // Calculate MVP
-                float4x4   T            = glm::translate(float3(-4, 0, -10 * (1 + sin(t / 2))));
-                float4x4   R            = glm::rotate(t / 4, float3(0, 0, 1)) * glm::rotate(t / 2, float3(0, 1, 0)) * glm::rotate(t / 4, float3(1, 0, 0));
-                float4x4   M            = T * R;
-                float4x4   mat          = P * V * M;
-                uint32_t   textureIndex = 1;
+                float4x4 T            = glm::translate(float3(-4, 0, -10 * (1 + sin(t / 2))));
+                float4x4 R            = glm::rotate(t / 4, float3(0, 0, 1)) * glm::rotate(t / 2, float3(0, 1, 0)) * glm::rotate(t / 4, float3(1, 0, 0));
+                float4x4 M            = T * R;
+                float4x4 mat          = P * V * M;
+                uint32_t textureIndex = 1;
 
                 // Get offseted casted pointer to uniform buffer for this draw call
                 const size_t bufferOffset = 1 * kUniformBufferStride;
@@ -328,11 +328,11 @@ void PushDescriptorsApp::Render()
             // Draw right cube
             {
                 // Calculate MVP
-                float4x4   T            = glm::translate(float3(4, 0, -10 * (1 + sin(t / 2))));
-                float4x4   R            = glm::rotate(t / 4, float3(0, 0, 1)) * glm::rotate(t, float3(0, 1, 0)) * glm::rotate(t / 4, float3(1, 0, 0));
-                float4x4   M            = T * R;
-                float4x4   mat          = P * V * M;
-                uint32_t   textureIndex = 2;
+                float4x4 T            = glm::translate(float3(4, 0, -10 * (1 + sin(t / 2))));
+                float4x4 R            = glm::rotate(t / 4, float3(0, 0, 1)) * glm::rotate(t, float3(0, 1, 0)) * glm::rotate(t / 4, float3(1, 0, 0));
+                float4x4 M            = T * R;
+                float4x4 mat          = P * V * M;
+                uint32_t textureIndex = 2;
 
                 // Get offseted casted pointer to uniform buffer for this draw call
                 const size_t bufferOffset = 2 * kUniformBufferStride;
