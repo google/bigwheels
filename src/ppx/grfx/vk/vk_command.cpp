@@ -122,6 +122,100 @@ void CommandBuffer::EndRenderPassImpl()
     vk::CmdEndRenderPass(mCommandBuffer);
 }
 
+void CommandBuffer::PushDescriptorImpl(
+    grfx::CommandType              pipelineBindPoint,
+    const grfx::PipelineInterface* pInterface,
+    grfx::DescriptorType           descriptorType,
+    uint32_t                       binding,
+    uint32_t                       set,
+    uint32_t                       bufferOffset,
+    const grfx::Buffer*            pBuffer,
+    const grfx::SampledImageView*  pSampledImageView,
+    const grfx::StorageImageView*  pStorageImageView,
+    const grfx::Sampler*           pSampler)
+{
+    auto pLayout = pInterface->GetSetLayout(set);
+    PPX_ASSERT_MSG((pLayout != nullptr), "set=" << set << " does not match a set in the pipeline interface");
+    PPX_ASSERT_MSG((pLayout->IsPushable() == true), "set=" << set << " refers set that is not pushable");
+
+    // Determine pipeline bind point
+    VkPipelineBindPoint vulkanPipelineBindPoint = InvalidValue<VkPipelineBindPoint>();
+    switch (pipelineBindPoint) {
+        default: PPX_ASSERT_MSG(false, "invalid pipeline bindpoint"); break;
+        case grfx::COMMAND_TYPE_GRAPHICS: vulkanPipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS; break;
+        case grfx::COMMAND_TYPE_COMPUTE: vulkanPipelineBindPoint = VK_PIPELINE_BIND_POINT_COMPUTE; break;
+    }
+
+    // Determine descriptor type and fill out buffer/image info
+    VkDescriptorImageInfo         imageInfo            = {};
+    VkDescriptorBufferInfo        bufferInfo           = {};
+    const VkDescriptorImageInfo*  pImageInfo           = nullptr;
+    const VkDescriptorBufferInfo* pBufferInfo          = nullptr;
+    VkDescriptorType              vulkanDescriptorType = InvalidValue<VkDescriptorType>();
+
+    switch (descriptorType) {
+        default: PPX_ASSERT_MSG(false, "descriptor is not of pushable type binding=" << binding << ", set=" << set); break;
+
+        case grfx::DESCRIPTOR_TYPE_SAMPLER: {
+            vulkanDescriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+            imageInfo.sampler    = ToApi(pSampler)->GetVkSampler();
+            pImageInfo           = &imageInfo;
+        } break;
+
+        case grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE: {
+            vulkanDescriptorType  = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            imageInfo.imageView   = ToApi(pSampledImageView)->GetVkImageView();
+            pImageInfo            = &imageInfo;
+        } break;
+
+        case grfx::DESCRIPTOR_TYPE_STORAGE_IMAGE: {
+            vulkanDescriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+            imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+            imageInfo.imageView   = ToApi(pStorageImageView)->GetVkImageView();
+            pImageInfo            = &imageInfo;
+        } break;
+
+        case grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER: {
+            vulkanDescriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            bufferInfo.buffer    = ToApi(pBuffer)->GetVkBuffer();
+            bufferInfo.offset    = bufferOffset;
+            bufferInfo.range     = VK_WHOLE_SIZE;
+            pBufferInfo          = &bufferInfo;
+        } break;
+
+        case grfx::DESCRIPTOR_TYPE_RAW_STORAGE_BUFFER:
+        case grfx::DESCRIPTOR_TYPE_RO_STRUCTURED_BUFFER:
+        case grfx::DESCRIPTOR_TYPE_RW_STRUCTURED_BUFFER: {
+            vulkanDescriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+            bufferInfo.buffer    = ToApi(pBuffer)->GetVkBuffer();
+            bufferInfo.offset    = bufferOffset;
+            bufferInfo.range     = VK_WHOLE_SIZE;
+            pBufferInfo          = &bufferInfo;
+        } break;
+    }
+
+    // Fill out most of descriptor write
+    VkWriteDescriptorSet write = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+    write.pNext                = nullptr;
+    write.dstSet               = VK_NULL_HANDLE;
+    write.dstBinding           = binding;
+    write.dstArrayElement      = 0;
+    write.descriptorCount      = 1;
+    write.descriptorType       = vulkanDescriptorType;
+    write.pImageInfo           = pImageInfo;
+    write.pBufferInfo          = pBufferInfo;
+    write.pTexelBufferView     = nullptr;
+
+    vk::CmdPushDescriptorSetKHR(
+        mCommandBuffer,                           // commandBuffer
+        vulkanPipelineBindPoint,                  // pipelineBindPoint
+        ToApi(pInterface)->GetVkPipelineLayout(), // layout
+        set,                                      // set
+        1,                                        // descriptorWriteCount
+        &write);                                  // pDescriptorWrites;
+}
+
 void CommandBuffer::TransitionImageLayout(
     const grfx::Image*  pImage,
     uint32_t            mipLevel,

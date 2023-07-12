@@ -38,6 +38,18 @@ private:
     virtual void BeginRenderPassImpl(const grfx::RenderPassBeginInfo* pBeginInfo) override;
     virtual void EndRenderPassImpl() override;
 
+    virtual void PushDescriptorImpl(
+        grfx::CommandType              pipelineBindPoint,
+        const grfx::PipelineInterface* pInterface,
+        grfx::DescriptorType           descriptorType,
+        uint32_t                       binding,
+        uint32_t                       set,
+        uint32_t                       bufferOffset,
+        const grfx::Buffer*            pBuffer,
+        const grfx::SampledImageView*  pSampledImageView,
+        const grfx::StorageImageView*  pStorageImageView,
+        const grfx::Sampler*           pSampler) override;
+
 public:
     virtual void TransitionImageLayout(
         const grfx::Image*  pImage,

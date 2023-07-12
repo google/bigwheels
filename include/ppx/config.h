@@ -134,7 +134,7 @@ enum Result
     ERROR_GRFX_NON_UNIQUE_SET                       = -1012,
     ERROR_GRFX_MINIMUM_BUFFER_SIZE_NOT_MET          = -1013,
     ERROR_GRFX_INVALID_SHADER_BYTE_CODE             = -1014,
-    ERROR_INVALID_PIPELINE_INTERFACE                = -1015,
+    ERROR_GRFX_INVALID_PIPELINE_INTERFACE           = -1015,
     ERROR_GRFX_INVALID_QUERY_TYPE                   = -1016,
     ERROR_GRFX_INVALID_QUERY_COUNT                  = -1017,
     ERROR_GRFX_NO_QUEUES_AVAILABLE                  = -1018,
@@ -145,6 +145,7 @@ enum Result
     ERROR_GRFX_NON_UNIQUE_BINDING                   = -1023,
     ERROR_GRFX_INVALID_BINDING_NUMBER               = -1024,
     ERROR_GRFX_INVALID_SET_NUMBER                   = -1025,
+    ERROR_GRFX_OPERATION_NOT_PERMITTED              = -1026,
 
     ERROR_IMAGE_FILE_LOAD_FAILED               = -2000,
     ERROR_IMAGE_FILE_SAVE_FAILED               = -2001,
@@ -216,7 +217,7 @@ inline const char* ToString(ppx::Result value)
         case Result::ERROR_GRFX_NON_UNIQUE_SET                        : return "ERROR_GRFX_NON_UNIQUE_SET";
         case Result::ERROR_GRFX_MINIMUM_BUFFER_SIZE_NOT_MET           : return "ERROR_GRFX_MINIMUM_BUFFER_SIZE_NOT_MET";
         case Result::ERROR_GRFX_INVALID_SHADER_BYTE_CODE              : return "ERROR_GRFX_INVALID_SHADER_BYTE_CODE";
-        case Result::ERROR_INVALID_PIPELINE_INTERFACE                 : return "ERROR_INVALID_PIPELINE_INTERFACE";
+        case Result::ERROR_GRFX_INVALID_PIPELINE_INTERFACE            : return "ERROR_GRFX_INVALID_PIPELINE_INTERFACE";
         case Result::ERROR_GRFX_INVALID_QUERY_TYPE                    : return "ERROR_GRFX_INVALID_QUERY_TYPE";
         case Result::ERROR_GRFX_INVALID_QUERY_COUNT                   : return "ERROR_GRFX_INVALID_QUERY_COUNT";
         case Result::ERROR_GRFX_NO_QUEUES_AVAILABLE                   : return "ERROR_GRFX_NO_QUEUES_AVAILABLE";
@@ -227,6 +228,7 @@ inline const char* ToString(ppx::Result value)
         case Result::ERROR_GRFX_NON_UNIQUE_BINDING                    : return "ERROR_GRFX_NON_UNIQUE_BINDING";
         case Result::ERROR_GRFX_INVALID_BINDING_NUMBER                : return "ERROR_GRFX_INVALID_BINDING_NUMBER";
         case Result::ERROR_GRFX_INVALID_SET_NUMBER                    : return "ERROR_GRFX_INVALID_SET_NUMBER";
+        case Result::ERROR_GRFX_OPERATION_NOT_PERMITTED               : return "ERROR_GRFX_OPERATION_NOT_PERMITTED";
 
         case Result::ERROR_IMAGE_FILE_LOAD_FAILED                     : return "ERROR_IMAGE_FILE_LOAD_FAILED";
         case Result::ERROR_IMAGE_FILE_SAVE_FAILED                     : return "ERROR_IMAGE_FILE_SAVE_FAILED";
