@@ -271,7 +271,6 @@ protected:
 private:
     bool                                                           mHasConsecutiveSetNumbers = false;
     std::vector<uint32_t>                                          mSetNumbers               = {};
-    std::unordered_map<uint32_t, const grfx::DescriptorSetLayout*> mSetLayouts;
 };
 
 } // namespace grfx
