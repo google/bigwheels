@@ -53,10 +53,9 @@ public:
     uint32_t                GetGraphicsQueueFamilyIndex() const { return mGraphicsQueueFamilyIndex; }
     uint32_t                GetComputeQueueFamilyIndex() const { return mComputeQueueFamilyIndex; }
     uint32_t                GetTransferQueueFamilyIndex() const { return mTransferQueueFamilyIndex; }
-    std::array<uint32_t, 3> GetAllQueueFamilyIndices() const
-    {
-        return {mGraphicsQueueFamilyIndex, mComputeQueueFamilyIndex, mTransferQueueFamilyIndex};
-    }
+    std::array<uint32_t, 3> GetAllQueueFamilyIndices() const;
+
+    uint32_t GetMaxPushDescriptors() const { return mMaxPushDescriptors; }
 
 protected:
     virtual Result AllocateObject(grfx::Buffer** ppObject) override;
@@ -107,7 +106,10 @@ private:
     uint32_t                 mGraphicsQueueFamilyIndex  = 0;
     uint32_t                 mComputeQueueFamilyIndex   = 0;
     uint32_t                 mTransferQueueFamilyIndex  = 0;
+    uint32_t                 mMaxPushDescriptors        = 0;
 };
+
+extern PFN_vkCmdPushDescriptorSetKHR CmdPushDescriptorSetKHR;
 
 } // namespace vk
 } // namespace grfx

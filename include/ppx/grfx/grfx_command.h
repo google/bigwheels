@@ -317,6 +317,45 @@ public:
         const void*                    pValues,
         uint32_t                       dstOffset = 0) = 0;
 
+    virtual void PushGraphicsUniformBuffer(
+        const grfx::PipelineInterface* pInterface,
+        uint32_t                       binding,
+        uint32_t                       set,
+        uint32_t                       bufferOffset,
+        const grfx::Buffer*            pBuffer);
+
+    virtual void PushGraphicsStructuredBuffer(
+        const grfx::PipelineInterface* pInterface,
+        uint32_t                       binding,
+        uint32_t                       set,
+        uint32_t                       bufferOffset,
+        const grfx::Buffer*            pBuffer);
+
+    virtual void PushGraphicsStorageBuffer(
+        const grfx::PipelineInterface* pInterface,
+        uint32_t                       binding,
+        uint32_t                       set,
+        uint32_t                       bufferOffset,
+        const grfx::Buffer*            pBuffer);
+
+    virtual void PushGraphicsSampledImage(
+        const grfx::PipelineInterface* pInterface,
+        uint32_t                       binding,
+        uint32_t                       set,
+        const grfx::SampledImageView*  pView);
+
+    virtual void PushGraphicsStorageImage(
+        const grfx::PipelineInterface* pInterface,
+        uint32_t                       binding,
+        uint32_t                       set,
+        const grfx::StorageImageView*  pView);
+
+    virtual void PushGraphicsSampler(
+        const grfx::PipelineInterface* pInterface,
+        uint32_t                       binding,
+        uint32_t                       set,
+        const grfx::Sampler*           pSampler);
+
     virtual void BindGraphicsPipeline(const grfx::GraphicsPipeline* pPipeline) = 0;
 
     virtual void BindComputeDescriptorSets(
@@ -330,6 +369,45 @@ public:
         uint32_t                       count,
         const void*                    pValues,
         uint32_t                       dstOffset = 0) = 0;
+
+    virtual void PushComputeUniformBuffer(
+        const grfx::PipelineInterface* pInterface,
+        uint32_t                       binding,
+        uint32_t                       set,
+        uint32_t                       bufferOffset,
+        const grfx::Buffer*            pBuffer);
+
+    virtual void PushComputeStructuredBuffer(
+        const grfx::PipelineInterface* pInterface,
+        uint32_t                       binding,
+        uint32_t                       set,
+        uint32_t                       bufferOffset,
+        const grfx::Buffer*            pBuffer);
+
+    virtual void PushComputeStorageBuffer(
+        const grfx::PipelineInterface* pInterface,
+        uint32_t                       binding,
+        uint32_t                       set,
+        uint32_t                       bufferOffset,
+        const grfx::Buffer*            pBuffer);
+
+    virtual void PushComputeSampledImage(
+        const grfx::PipelineInterface* pInterface,
+        uint32_t                       binding,
+        uint32_t                       set,
+        const grfx::SampledImageView*  pView);
+
+    virtual void PushComputeStorageImage(
+        const grfx::PipelineInterface* pInterface,
+        uint32_t                       binding,
+        uint32_t                       set,
+        const grfx::StorageImageView*  pView);
+
+    virtual void PushComputeSampler(
+        const grfx::PipelineInterface* pInterface,
+        uint32_t                       binding,
+        uint32_t                       set,
+        const grfx::Sampler*           pSampler);
 
     virtual void BindComputePipeline(const grfx::ComputePipeline* pPipeline) = 0;
 
@@ -474,6 +552,18 @@ public:
 private:
     virtual void BeginRenderPassImpl(const grfx::RenderPassBeginInfo* pBeginInfo) = 0;
     virtual void EndRenderPassImpl()                                              = 0;
+
+    virtual void PushDescriptorImpl(
+        grfx::CommandType              pipelineBindPoint,
+        const grfx::PipelineInterface* pInterface,
+        grfx::DescriptorType           descriptorType,
+        uint32_t                       binding,
+        uint32_t                       set,
+        uint32_t                       bufferOffset,
+        const grfx::Buffer*            pBuffer,
+        const grfx::SampledImageView*  pSampledImageView,
+        const grfx::StorageImageView*  pStorageImageView,
+        const grfx::Sampler*           pSampler) = 0;
 
     const grfx::RenderPass* mCurrentRenderPass = nullptr;
 };

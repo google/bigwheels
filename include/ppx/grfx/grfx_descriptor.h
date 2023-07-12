@@ -154,6 +154,7 @@ public:
 //!
 struct DescriptorSetLayoutCreateInfo
 {
+    grfx::DescriptorSetLayoutFlags       flags;
     std::vector<grfx::DescriptorBinding> bindings;
 };
 
@@ -167,13 +168,13 @@ public:
     DescriptorSetLayout() {}
     virtual ~DescriptorSetLayout() {}
 
+    bool IsPushable() const { return mCreateInfo.flags.bits.pushable; }
+
     const std::vector<grfx::DescriptorBinding>& GetBindings() const { return mCreateInfo.bindings; }
 
 protected:
     virtual Result Create(const grfx::DescriptorSetLayoutCreateInfo* pCreateInfo) override;
     friend class grfx::Device;
-
-private:
 };
 
 } // namespace grfx

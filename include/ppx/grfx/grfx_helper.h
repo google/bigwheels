@@ -105,7 +105,41 @@ struct ColorComponentFlags
     }
 
     static ColorComponentFlags RGBA();
-}; // -------------------------------------------------------------------------------------------------
+};
+
+// -------------------------------------------------------------------------------------------------
+
+struct DescriptorSetLayoutFlags
+{
+    union
+    {
+        struct
+        {
+            bool pushable : 1;
+
+        } bits;
+        uint32_t flags;
+    };
+
+    DescriptorSetLayoutFlags()
+        : flags(0) {}
+
+    DescriptorSetLayoutFlags(uint32_t flags_)
+        : flags(flags_) {}
+
+    DescriptorSetLayoutFlags& operator=(uint32_t rhs)
+    {
+        this->flags = rhs;
+        return *this;
+    }
+
+    operator uint32_t() const
+    {
+        return flags;
+    }
+};
+
+// -------------------------------------------------------------------------------------------------
 
 struct DrawPassClearFlags
 {
