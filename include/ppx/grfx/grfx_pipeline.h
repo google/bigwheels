@@ -269,8 +269,8 @@ protected:
     friend class grfx::Device;
 
 private:
-    bool                                                           mHasConsecutiveSetNumbers = false;
-    std::vector<uint32_t>                                          mSetNumbers               = {};
+    bool                  mHasConsecutiveSetNumbers = false;
+    std::vector<uint32_t> mSetNumbers               = {};
 };
 
 } // namespace grfx
