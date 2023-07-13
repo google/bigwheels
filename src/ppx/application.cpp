@@ -1535,7 +1535,7 @@ void Application::StartMetricsRun(const std::string& name)
     // Add default metrics to every single run
     {
         metrics::MetricMetadata metadata = {};
-        metadata.type                    = metrics::MetricType::kGauge;
+        metadata.type                    = metrics::MetricType::GAUGE;
         metadata.name                    = "cpu_frame_time";
         metadata.unit                    = "ms";
         metadata.interpretation          = metrics::MetricInterpretation::LOWER_IS_BETTER;
@@ -1544,7 +1544,7 @@ void Application::StartMetricsRun(const std::string& name)
     }
     {
         metrics::MetricMetadata metadata = {};
-        metadata.type                    = metrics::MetricType::kGauge;
+        metadata.type                    = metrics::MetricType::GAUGE;
         metadata.name                    = "framerate";
         metadata.unit                    = "";
         metadata.interpretation          = metrics::MetricInterpretation::HIGHER_IS_BETTER;
@@ -1553,7 +1553,7 @@ void Application::StartMetricsRun(const std::string& name)
     }
     {
         metrics::MetricMetadata metadata = {};
-        metadata.type                    = metrics::MetricType::kCounter;
+        metadata.type                    = metrics::MetricType::COUNTER;
         metadata.name                    = "frame_count";
         metadata.unit                    = "";
         metadata.interpretation          = metrics::MetricInterpretation::NONE;
@@ -1586,7 +1586,7 @@ void Application::UpdateMetrics()
 {
     // This data is the same for every call to increase the frame count.
     static const metrics::MetricData frameCountData = {
-        .type    = metrics::MetricType::kCounter,
+        .type    = metrics::MetricType::COUNTER,
         .counter = {
             .increment = 1},
     };
@@ -1598,7 +1598,7 @@ void Application::UpdateMetrics()
     const double seconds = GetElapsedSeconds();
 
     // Record default metrics
-    metrics::MetricData frameTimeData = {metrics::MetricType::kGauge};
+    metrics::MetricData frameTimeData = {metrics::MetricType::GAUGE};
     frameTimeData.gauge.seconds       = seconds;
     frameTimeData.gauge.value         = mPreviousFrameTime;
     mMetrics.manager.RecordMetricData(mMetrics.cpuFrameTimeId, frameTimeData);
@@ -1618,7 +1618,7 @@ void Application::UpdateMetrics()
         constexpr double FRAMERATE_RECORD_PERIOD = 1.0;
         if (framerateSecondsDiff >= FRAMERATE_RECORD_PERIOD) {
             const double framerate = mMetrics.framerateFrameCount / framerateSecondsDiff;
-            metrics::MetricData framerateData = {metrics::MetricType::kGauge};
+            metrics::MetricData framerateData = {metrics::MetricType::GAUGE};
             framerateData.gauge.seconds       = seconds;
             framerateData.gauge.value         = framerate;
             mMetrics.manager.RecordMetricData(mMetrics.framerateId, framerateData);

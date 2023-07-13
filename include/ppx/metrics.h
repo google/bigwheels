@@ -41,8 +41,8 @@ static constexpr MetricID kInvalidMetricID = 0;
 
 enum class MetricType
 {
-    kGauge   = 1,
-    kCounter = 2,
+    GAUGE   = 1,
+    COUNTER = 2,
 };
 
 enum class MetricInterpretation
@@ -130,7 +130,7 @@ public:
 
     MetricType GetType() const override
     {
-        return MetricType::kGauge;
+        return MetricType::GAUGE;
     }
 
 private:
@@ -163,7 +163,7 @@ private:
     MetricGauge(const MetricMetadata& metadata)
         : mMetadata(metadata)
     {
-        PPX_ASSERT_MSG(mMetadata.type == MetricType::kGauge, "Gauge must be instantiated with gauge-type metadata!");
+        PPX_ASSERT_MSG(mMetadata.type == MetricType::GAUGE, "Gauge must be instantiated with gauge-type metadata!");
     }
     METRICS_NO_COPY(MetricGauge)
 
@@ -194,14 +194,14 @@ public:
 
     MetricType GetType() const override
     {
-        return MetricType::kCounter;
+        return MetricType::COUNTER;
     }
 
 private:
     MetricCounter(const MetricMetadata& metadata)
         : mMetadata(metadata)
     {
-        PPX_ASSERT_MSG(mMetadata.type == MetricType::kCounter, "Counter must be instantiated with counter-type metadata!");
+        PPX_ASSERT_MSG(mMetadata.type == MetricType::COUNTER, "Counter must be instantiated with counter-type metadata!");
     }
     METRICS_NO_COPY(MetricCounter)
 
@@ -259,7 +259,7 @@ public:
     // Failure to add a metric returns kInvalidMetricID.
     MetricID AddMetric(const MetricMetadata& metadata);
 
-    // Record data for the given metric ID. Metrics for completed runs will be discarded.
+    // Records data for the given metric ID. Metrics for completed runs will be discarded.
     bool RecordMetricData(MetricID id, const MetricData& data);
 
     // Exports all the runs and metrics information into a report to disk. Does NOT close

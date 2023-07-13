@@ -38,7 +38,7 @@ nlohmann::json MetricMetadata::Export() const
 
 bool MetricGauge::RecordEntry(const MetricData& data)
 {
-    if (data.type != MetricType::kGauge) {
+    if (data.type != MetricType::GAUGE) {
         PPX_LOG_ERROR("Provided metric was not correct type; ignoring. Provided type: " << static_cast<uint32_t>(data.type));
         return false;
     }
@@ -147,7 +147,7 @@ nlohmann::json MetricGauge::Export() const
 
 bool MetricCounter::RecordEntry(const MetricData& data)
 {
-    if (data.type != MetricType::kCounter) {
+    if (data.type != MetricType::COUNTER) {
         PPX_LOG_ERROR("Provided metric was not correct type! Provided type: " << static_cast<uint32_t>(data.type));
         return false;
     }
@@ -182,10 +182,10 @@ Metric* Run::AddMetric(const MetricMetadata& metadata)
 
     Metric* pMetric = nullptr;
     switch (metadata.type) {
-        case MetricType::kGauge:
+        case MetricType::GAUGE:
             pMetric = new MetricGauge(metadata);
             break;
-        case MetricType::kCounter:
+        case MetricType::COUNTER:
             pMetric = new MetricCounter(metadata);
             break;
         default:
@@ -211,10 +211,10 @@ nlohmann::json Run::Export() const
     for (const auto& metric : mMetrics) {
         std::string typeString;
         switch (metric->GetType()) {
-            case MetricType::kGauge:
+            case MetricType::GAUGE:
                 typeString = "gauges";
                 break;
-            case MetricType::kCounter:
+            case MetricType::COUNTER:
                 typeString = "counters";
                 break;
             default:

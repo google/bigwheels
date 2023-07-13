@@ -1175,7 +1175,7 @@ void FishTornadoApp::DrawGui()
         if (mSettings.outputMetrics) {
             auto now              = GetElapsedSeconds();
             auto prevCpuFrameTime = GetPrevFrameTime();
-            ppx::metrics::MetricData data             = {ppx::metrics::MetricType::kGauge};
+            ppx::metrics::MetricData data             = {ppx::metrics::MetricType::GAUGE};
             data.gauge.seconds                        = now;
 
             data.gauge.value = prevGpuFrameTime;
@@ -1272,35 +1272,35 @@ void FishTornadoApp::SetupMetrics()
 
     mMetricsData.manager.StartRun("FishTornado Metrics");
 
-    ppx::metrics::MetricMetadata metadata                = {ppx::metrics::MetricType::kGauge, "GPU Frame Time", "ms", ppx::metrics::MetricInterpretation::LOWER_IS_BETTER, {0.f, 60000.f}};
+    ppx::metrics::MetricMetadata metadata                = {ppx::metrics::MetricType::GAUGE, "GPU Frame Time", "ms", ppx::metrics::MetricInterpretation::LOWER_IS_BETTER, {0.f, 60000.f}};
     mMetricsData.metrics[MetricsData::kTypeGpuFrameTime] = mMetricsData.manager.AddMetric(metadata);
     PPX_ASSERT_MSG(mMetricsData.metrics[MetricsData::kTypeGpuFrameTime] != ppx::metrics::kInvalidMetricID, "Failed to add GPU Frame Time metric");
 
-    metadata                                             = {ppx::metrics::MetricType::kGauge, "Total (CPU) Frame Time", "ms", ppx::metrics::MetricInterpretation::LOWER_IS_BETTER, {0.f, 60000.f}};
+    metadata                                             = {ppx::metrics::MetricType::GAUGE, "Total (CPU) Frame Time", "ms", ppx::metrics::MetricInterpretation::LOWER_IS_BETTER, {0.f, 60000.f}};
     mMetricsData.metrics[MetricsData::kTypeCpuFrameTime] = mMetricsData.manager.AddMetric(metadata);
     PPX_ASSERT_MSG(mMetricsData.metrics[MetricsData::kTypeCpuFrameTime] != ppx::metrics::kInvalidMetricID, "Failed to add CPU Frame Time metric");
 
-    metadata                                           = {ppx::metrics::MetricType::kGauge, "IA Vertices", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}};
+    metadata                                           = {ppx::metrics::MetricType::GAUGE, "IA Vertices", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}};
     mMetricsData.metrics[MetricsData::kTypeIAVertices] = mMetricsData.manager.AddMetric(metadata);
     PPX_ASSERT_MSG(mMetricsData.metrics[MetricsData::kTypeIAVertices] != ppx::metrics::kInvalidMetricID, "Failed to add IA Vertices metric");
 
-    metadata                                             = {ppx::metrics::MetricType::kGauge, "IA Primitives", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}};
+    metadata                                             = {ppx::metrics::MetricType::GAUGE, "IA Primitives", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}};
     mMetricsData.metrics[MetricsData::kTypeIAPrimitives] = mMetricsData.manager.AddMetric(metadata);
     PPX_ASSERT_MSG(mMetricsData.metrics[MetricsData::kTypeIAPrimitives] != ppx::metrics::kInvalidMetricID, "Failed to add IA Primitives metric");
 
-    metadata                                              = {ppx::metrics::MetricType::kGauge, "VS Invocations", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}};
+    metadata                                              = {ppx::metrics::MetricType::GAUGE, "VS Invocations", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}};
     mMetricsData.metrics[MetricsData::kTypeVSInvocations] = mMetricsData.manager.AddMetric(metadata);
     PPX_ASSERT_MSG(mMetricsData.metrics[MetricsData::kTypeVSInvocations] != ppx::metrics::kInvalidMetricID, "Failed to add VS Invocations metric");
 
-    metadata                                             = {ppx::metrics::MetricType::kGauge, "C Invocations", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}};
+    metadata                                             = {ppx::metrics::MetricType::GAUGE, "C Invocations", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}};
     mMetricsData.metrics[MetricsData::kTypeCInvocations] = mMetricsData.manager.AddMetric(metadata);
     PPX_ASSERT_MSG(mMetricsData.metrics[MetricsData::kTypeCInvocations] != ppx::metrics::kInvalidMetricID, "Failed to add C Invocations metric");
 
-    metadata                                            = {ppx::metrics::MetricType::kGauge, "C Primitives", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}};
+    metadata                                            = {ppx::metrics::MetricType::GAUGE, "C Primitives", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}};
     mMetricsData.metrics[MetricsData::kTypeCPrimitives] = mMetricsData.manager.AddMetric(metadata);
     PPX_ASSERT_MSG(mMetricsData.metrics[MetricsData::kTypeCPrimitives] != ppx::metrics::kInvalidMetricID, "Failed to add C Primitives metric");
 
-    metadata                                              = {ppx::metrics::MetricType::kGauge, "PS Invocations", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}};
+    metadata                                              = {ppx::metrics::MetricType::GAUGE, "PS Invocations", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}};
     mMetricsData.metrics[MetricsData::kTypePSInvocations] = mMetricsData.manager.AddMetric(metadata);
     PPX_ASSERT_MSG(mMetricsData.metrics[MetricsData::kTypePSInvocations] != ppx::metrics::kInvalidMetricID, "Failed to add PS Invocations metric");
 }

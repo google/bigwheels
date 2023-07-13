@@ -123,7 +123,7 @@ TEST(MetricsTest, ManagerAddMetricWithNoRun)
 {
     metrics::Manager manager;
     metrics::MetricMetadata metadata = {};
-    metadata.type                    = metrics::MetricType::kCounter;
+    metadata.type                    = metrics::MetricType::COUNTER;
     metadata.name                    = "metric";
     auto metricId                    = manager.AddMetric(metadata);
     EXPECT_EQ(metricId, metrics::kInvalidMetricID);
@@ -132,7 +132,7 @@ TEST(MetricsTest, ManagerAddMetricWithNoRun)
 TEST_F(MetricsTestFixture, ManagerAddSingleMetricCounter)
 {
     metrics::MetricMetadata metadata = {};
-    metadata.type                    = metrics::MetricType::kCounter;
+    metadata.type                    = metrics::MetricType::COUNTER;
     metadata.name                    = "metric";
     auto metricId                    = pManager->AddMetric(metadata);
     EXPECT_NE(metricId, metrics::kInvalidMetricID);
@@ -141,7 +141,7 @@ TEST_F(MetricsTestFixture, ManagerAddSingleMetricCounter)
 TEST_F(MetricsTestFixture, ManagerAddSingleMetricGauge)
 {
     metrics::MetricMetadata metadata = {};
-    metadata.type                    = metrics::MetricType::kGauge;
+    metadata.type                    = metrics::MetricType::GAUGE;
     metadata.name                    = "metric";
     auto metricId                    = pManager->AddMetric(metadata);
     EXPECT_NE(metricId, metrics::kInvalidMetricID);
@@ -150,7 +150,7 @@ TEST_F(MetricsTestFixture, ManagerAddSingleMetricGauge)
 TEST_F(MetricsTestFixture, ManagerAddMultipleMetrics)
 {
     metrics::MetricMetadata metadata = {};
-    metadata.type                    = metrics::MetricType::kCounter;
+    metadata.type                    = metrics::MetricType::COUNTER;
     metadata.name                    = "metric1";
     auto metricId1                   = pManager->AddMetric(metadata);
     // Change the name to guarantee this is JUST about the name.
@@ -164,13 +164,13 @@ TEST_F(MetricsTestFixture, ManagerAddMultipleMetrics)
 TEST_F(MetricsTestFixture, ManagerAddManyTypesOfMetrics)
 {
     metrics::MetricMetadata metadata = {};
-    metadata.type                    = metrics::MetricType::kCounter;
+    metadata.type                    = metrics::MetricType::COUNTER;
     metadata.name                    = "metric1";
     auto metricId1                   = pManager->AddMetric(metadata);
-    metadata.type                    = metrics::MetricType::kGauge;
+    metadata.type                    = metrics::MetricType::GAUGE;
     metadata.name                    = "metric2";
     auto metricId2                   = pManager->AddMetric(metadata);
-    metadata.type                    = metrics::MetricType::kCounter;
+    metadata.type                    = metrics::MetricType::COUNTER;
     metadata.name                    = "metric3";
     auto metricId3                   = pManager->AddMetric(metadata);
     EXPECT_NE(metricId1, metrics::kInvalidMetricID);
@@ -184,7 +184,7 @@ TEST_F(MetricsTestFixture, ManagerAddManyTypesOfMetrics)
 TEST_F(MetricsTestFixture, ManagerAddMetricWithEmptyName)
 {
     metrics::MetricMetadata metadata = {};
-    metadata.type                    = metrics::MetricType::kCounter;
+    metadata.type                    = metrics::MetricType::COUNTER;
     auto metricId                    = pManager->AddMetric(metadata);
     EXPECT_EQ(metricId, metrics::kInvalidMetricID);
 }
@@ -200,12 +200,12 @@ TEST_F(MetricsTestFixture, ManagerAddMetricWithInvalidType)
 TEST_F(MetricsTestFixture, ManagerAddDuplicateMetricName)
 {
     metrics::MetricMetadata metadata = {};
-    metadata.type                    = metrics::MetricType::kCounter;
+    metadata.type                    = metrics::MetricType::COUNTER;
     metadata.name                    = "metric";
     auto metricId1                   = pManager->AddMetric(metadata);
     ASSERT_NE(metricId1, metrics::kInvalidMetricID);
     // Change the type to guarantee this is JUST about the name.
-    metadata.type  = metrics::MetricType::kGauge;
+    metadata.type  = metrics::MetricType::GAUGE;
     auto metricId2 = pManager->AddMetric(metadata);
     EXPECT_EQ(metricId2, metrics::kInvalidMetricID);
 }
@@ -229,7 +229,7 @@ TEST_F(MetricsTestFixture, ReportEmptyRun)
 TEST_F(MetricsTestFixture, ReportEmptyCounter)
 {
     metrics::MetricMetadata metadata;
-    metadata.type = metrics::MetricType::kCounter;
+    metadata.type = metrics::MetricType::COUNTER;
     metadata.name = "counter1";
     auto metricId = pManager->AddMetric(metadata);
     ASSERT_NE(metricId, metrics::kInvalidMetricID);
@@ -248,7 +248,7 @@ TEST_F(MetricsTestFixture, ReportEmptyCounter)
 TEST_F(MetricsTestFixture, ReportEmptyGauge)
 {
     metrics::MetricMetadata metadata;
-    metadata.type = metrics::MetricType::kGauge;
+    metadata.type = metrics::MetricType::GAUGE;
     metadata.name = "gauge1";
     auto metricId = pManager->AddMetric(metadata);
     ASSERT_NE(metricId, metrics::kInvalidMetricID);
@@ -283,7 +283,7 @@ TEST_F(MetricsTestFixture, ReportEmptyGauge)
 TEST_F(MetricsTestFixture, MetricsBasicCounter)
 {
     metrics::MetricMetadata metadata;
-    metadata.type = metrics::MetricType::kCounter;
+    metadata.type = metrics::MetricType::COUNTER;
     metadata.name = "counter";
     auto metricId = pManager->AddMetric(metadata);
     ASSERT_NE(metricId, metrics::kInvalidMetricID);
@@ -294,7 +294,7 @@ TEST_F(MetricsTestFixture, MetricsBasicCounter)
     EXPECT_EQ(counter["value"], 0);
     EXPECT_EQ(counter["entry_count"], 0);
 
-    metrics::MetricData data = {metrics::MetricType::kCounter};
+    metrics::MetricData data = {metrics::MetricType::COUNTER};
     data.counter.increment   = 1;
     pManager->RecordMetricData(metricId, data);
 
@@ -317,7 +317,7 @@ TEST_F(MetricsTestFixture, MetricsBasicCounter)
 TEST_F(MetricsTestFixture, MetricsCounterIgnoresGaugeData)
 {
     metrics::MetricMetadata metadata;
-    metadata.type = metrics::MetricType::kCounter;
+    metadata.type = metrics::MetricType::COUNTER;
     metadata.name = "counter";
     auto metricId = pManager->AddMetric(metadata);
     ASSERT_NE(metricId, metrics::kInvalidMetricID);
@@ -328,7 +328,7 @@ TEST_F(MetricsTestFixture, MetricsCounterIgnoresGaugeData)
     EXPECT_EQ(counter["value"], 0);
     EXPECT_EQ(counter["entry_count"], 0);
 
-    metrics::MetricData data = {metrics::MetricType::kGauge};
+    metrics::MetricData data = {metrics::MetricType::GAUGE};
     data.counter.increment   = 1;
     EXPECT_FALSE(pManager->RecordMetricData(metricId, data));
 
@@ -342,7 +342,7 @@ TEST_F(MetricsTestFixture, MetricsCounterIgnoresGaugeData)
 TEST_F(MetricsTestFixture, MetricsBasicGauge)
 {
     metrics::MetricMetadata metadata;
-    metadata.type = metrics::MetricType::kGauge;
+    metadata.type = metrics::MetricType::GAUGE;
     metadata.name = "gauge";
     auto metricId = pManager->AddMetric(metadata);
     ASSERT_NE(metricId, metrics::kInvalidMetricID);
@@ -352,7 +352,7 @@ TEST_F(MetricsTestFixture, MetricsBasicGauge)
     auto           gauge  = parsed["runs"][0]["gauges"][0];
     EXPECT_EQ(gauge["time_series"].size(), 0);
 
-    metrics::MetricData data = {metrics::MetricType::kGauge};
+    metrics::MetricData data = {metrics::MetricType::GAUGE};
     data.gauge.seconds       = 0.0;
     data.gauge.value         = 10.0;
     pManager->RecordMetricData(metricId, data);
@@ -416,7 +416,7 @@ TEST_F(MetricsTestFixture, MetricsBasicGauge)
 TEST_F(MetricsTestFixture, MetricsGaugeIgnoresNegativeSeconds)
 {
     metrics::MetricMetadata metadata;
-    metadata.type = metrics::MetricType::kGauge;
+    metadata.type = metrics::MetricType::GAUGE;
     metadata.name = "gauge";
     auto metricId = pManager->AddMetric(metadata);
     ASSERT_NE(metricId, metrics::kInvalidMetricID);
@@ -426,7 +426,7 @@ TEST_F(MetricsTestFixture, MetricsGaugeIgnoresNegativeSeconds)
     auto           gauge  = parsed["runs"][0]["gauges"][0];
     EXPECT_EQ(gauge["time_series"].size(), 0);
 
-    metrics::MetricData data = {metrics::MetricType::kGauge};
+    metrics::MetricData data = {metrics::MetricType::GAUGE};
     data.gauge.seconds       = -1.000;
     data.gauge.value         = 10.0;
     pManager->RecordMetricData(metricId, data);
@@ -441,7 +441,7 @@ TEST_F(MetricsTestFixture, MetricsGaugeIgnoresNegativeSeconds)
 TEST_F(MetricsTestFixture, MetricsGaugeIgnoresDecreasingSeconds)
 {
     metrics::MetricMetadata metadata;
-    metadata.type = metrics::MetricType::kGauge;
+    metadata.type = metrics::MetricType::GAUGE;
     metadata.name = "gauge";
     auto metricId = pManager->AddMetric(metadata);
     ASSERT_NE(metricId, metrics::kInvalidMetricID);
@@ -451,7 +451,7 @@ TEST_F(MetricsTestFixture, MetricsGaugeIgnoresDecreasingSeconds)
     auto           gauge  = parsed["runs"][0]["gauges"][0];
     EXPECT_EQ(gauge["time_series"].size(), 0);
 
-    metrics::MetricData data = {metrics::MetricType::kGauge};
+    metrics::MetricData data = {metrics::MetricType::GAUGE};
     data.gauge.seconds       = 0.000;
     data.gauge.value         = 10.0;
     EXPECT_TRUE(pManager->RecordMetricData(metricId, data));
@@ -476,7 +476,7 @@ TEST_F(MetricsTestFixture, MetricsGaugeIgnoresDecreasingSeconds)
 TEST_F(MetricsTestFixture, MetricsGaugeIgnoresSameSeconds)
 {
     metrics::MetricMetadata metadata;
-    metadata.type = metrics::MetricType::kGauge;
+    metadata.type = metrics::MetricType::GAUGE;
     metadata.name = "gauge";
     auto metricId = pManager->AddMetric(metadata);
     ASSERT_NE(metricId, metrics::kInvalidMetricID);
@@ -486,7 +486,7 @@ TEST_F(MetricsTestFixture, MetricsGaugeIgnoresSameSeconds)
     auto           gauge  = parsed["runs"][0]["gauges"][0];
     EXPECT_EQ(gauge["time_series"].size(), 0);
 
-    metrics::MetricData data = {metrics::MetricType::kGauge};
+    metrics::MetricData data = {metrics::MetricType::GAUGE};
     data.gauge.seconds       = 0.000;
     data.gauge.value         = 10.0;
     EXPECT_TRUE(pManager->RecordMetricData(metricId, data));
