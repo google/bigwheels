@@ -243,6 +243,36 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// A report contains runs and metrics information meant to be saved to disk.
+// Because the json object at its core relies on strings-as-pointers, the
+// lifecycle of a report is tied to the lifecycle of the runs and metrics
+// owned by the Manager. But this is opaque. To protect misuse, the class
+// is a private member.
+class Report final
+{
+public:
+    // Copy constructor for content.
+    Report(const nlohmann::json& content, const std::string& reportPath);
+    // Move constructor for content.
+    Report(nlohmann::json&& content, const std::string& reportPath);
+
+    void WriteToDisk(bool overwriteExisting = false) const;
+
+    std::string GetContentString() const;
+
+private:
+    static constexpr const char* kFileExtension     = ".json";
+    static constexpr const char* kDefaultReportPath = "report_@";
+
+private:
+    void SetReportPath(const std::string& reportPath);
+
+    nlohmann::json        mContent;
+    std::filesystem::path mFilePath;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+
 class Manager final
 {
 public:
@@ -262,45 +292,12 @@ public:
     // Records data for the given metric ID. Metrics for completed runs will be discarded.
     bool RecordMetricData(MetricID id, const MetricData& data);
 
-    // Exports all the runs and metrics information into a report to disk. Does NOT close
-    // the current run.
-    void ExportToDisk(const std::string& reportPath, bool overwriteExisting = false) const;
-
-    // Exports all current data to a string.
-    std::string ExportToString(const std::string& reportPath) const;
+    // Exports all the runs and metrics information into a report. Does NOT close the
+    // current run.
+    Report CreateReport(const std::string& reportPath) const;
 
 private:
     METRICS_NO_COPY(Manager)
-
-    // A report contains runs and metrics information meant to be saved to disk.
-    // Because the json object at its core relies on strings-as-pointers, the
-    // lifecycle of a report is tied to the lifecycle of the runs and metrics
-    // owned by the Manager. But this is opaque. To protect misuse, the class
-    // is a private member.
-    class Report final
-    {
-    public:
-        static constexpr const char* kFileExtension = ".json";
-        static constexpr const char* kDefaultReportPath = "report_@";
-
-    public:
-        // Copy constructor for content.
-        Report(const nlohmann::json& content, const std::string& reportPath);
-        // Move constructor for content.
-        Report(nlohmann::json&& content, const std::string& reportPath);
-
-        void WriteToDisk(bool overwriteExisting) const;
-
-        std::string GetContentString() const;
-
-    private:
-        void SetReportPath(const std::string& reportPath);
-
-        nlohmann::json        mContent;
-        std::filesystem::path mFilePath;
-    };
-
-    Report CreateReport(const std::string& reportPath) const;
 
 private:
     std::unordered_map<std::string, std::unique_ptr<Run>> mRuns;

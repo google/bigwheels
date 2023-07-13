@@ -473,7 +473,8 @@ void FishTornadoApp::Shutdown()
     // TODO(slumpwuffle): Replace these one-off metrics with the new metrics system when it arrives.
     if (mSettings.outputMetrics) {
         mMetricsData.manager.EndRun();
-        mMetricsData.manager.ExportToDisk(kMetricsFilename);
+        auto report = mMetricsData.manager.CreateReport(kMetricsFilename);
+        report.WriteToDisk(/* overwrwiteExisting= */ true);
     }
 }
 

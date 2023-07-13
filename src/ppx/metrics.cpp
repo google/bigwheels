@@ -283,19 +283,7 @@ bool Manager::RecordMetricData(MetricID id, const MetricData& data)
     return findResult->second->RecordEntry(data);
 }
 
-void Manager::ExportToDisk(const std::string& reportPath, bool overwriteExisting) const
-{
-    auto report = CreateReport(reportPath);
-    report.WriteToDisk(overwriteExisting);
-}
-
-std::string Manager::ExportToString(const std::string& reportPath) const
-{
-    auto report = CreateReport(reportPath);
-    return report.GetContentString();
-}
-
-Manager::Report Manager::CreateReport(const std::string& reportPath) const
+Report Manager::CreateReport(const std::string& reportPath) const
 {
     nlohmann::json content;
     content["runs"] = nlohmann::json::array();
@@ -308,19 +296,19 @@ Manager::Report Manager::CreateReport(const std::string& reportPath) const
 
 ////////////////////////////////////////////////////////////////////////////////
 
-Manager::Report::Report(const nlohmann::json& content, const std::string& reportPath)
+Report::Report(const nlohmann::json& content, const std::string& reportPath)
     : mContent(content)
 {
     SetReportPath(reportPath);
 }
 
-Manager::Report::Report(nlohmann::json&& content, const std::string& reportPath)
+Report::Report(nlohmann::json&& content, const std::string& reportPath)
     : mContent(content)
 {
     SetReportPath(reportPath);
 }
 
-void Manager::Report::WriteToDisk(bool overwriteExisting) const
+void Report::WriteToDisk(bool overwriteExisting) const
 {
     PPX_ASSERT_MSG(!mFilePath.empty(), "Filepath must not be empty!");
 
@@ -341,12 +329,12 @@ void Manager::Report::WriteToDisk(bool overwriteExisting) const
     PPX_LOG_INFO("Metrics report written to path [" << mFilePath << "]");
 }
 
-std::string Manager::Report::GetContentString() const
+std::string Report::GetContentString() const
 {
     return mContent.dump(4);
 }
 
-void Manager::Report::SetReportPath(const std::string& reportPath)
+void Report::SetReportPath(const std::string& reportPath)
 {
     std::filesystem::path path(reportPath.empty() ? std::string(kDefaultReportPath) : reportPath);
     auto                  filename   = path.filename().string();

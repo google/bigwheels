@@ -694,7 +694,8 @@ void Application::SaveMetricsReportToDisk()
     }
 
     // Export the report from the metrics manager to the disk.
-    mMetrics.manager.ExportToDisk(mSettings.reportPath, mSettings.overwriteMetricsFile);
+    auto report = mMetrics.manager.CreateReport(mSettings.reportPath);
+    report.WriteToDisk(mSettings.overwriteMetricsFile);
 }
 
 void Application::DispatchShutdown()

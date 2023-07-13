@@ -20,6 +20,7 @@
 
 #include <memory>
 #include <limits>
+#include <regex>
 
 #if !defined(NDEBUG)
 #define PERFORM_DEATH_TESTS
@@ -216,7 +217,7 @@ TEST_F(MetricsTestFixture, ManagerAddDuplicateMetricName)
 
 TEST_F(MetricsTestFixture, ReportEmptyRun)
 {
-    auto           result = pManager->ExportToString("report1");
+    auto           result = pManager->CreateReport("report1").GetContentString();
     nlohmann::json parsed = nlohmann::json::parse(result);
     EXPECT_EQ(parsed["filename"], "report1.json");
     ASSERT_EQ(parsed["runs"].size(), 1);
@@ -224,6 +225,26 @@ TEST_F(MetricsTestFixture, ReportEmptyRun)
     EXPECT_EQ(run["name"], "default_run");
     EXPECT_EQ(run["gauges"].size(), 0);
     EXPECT_EQ(run["counters"].size(), 0);
+}
+
+TEST_F(MetricsTestFixture, ReportDoesNotAddJsonIfNotNeeded)
+{
+    auto           result = pManager->CreateReport("report2.json").GetContentString();
+    nlohmann::json parsed = nlohmann::json::parse(result);
+    EXPECT_EQ(parsed["filename"], "report2.json");
+}
+
+TEST_F(MetricsTestFixture, ReportAddsTimestampWithAt)
+{
+    auto           result   = pManager->CreateReport("re_@_port_@").GetContentString();
+    nlohmann::json parsed   = nlohmann::json::parse(result);
+    std::string    filename = parsed["filename"];
+    std::regex     regex("re_([\\d]+)_port_([\\d]+).json");
+    std::smatch    match;
+    ASSERT_TRUE(std::regex_match(filename, match, regex));
+    ASSERT_EQ(match.size(), 3);
+    // The timestamps should be the same.
+    EXPECT_EQ(match[1].str(), match[2].str());
 }
 
 TEST_F(MetricsTestFixture, ReportEmptyCounter)
@@ -234,7 +255,7 @@ TEST_F(MetricsTestFixture, ReportEmptyCounter)
     auto metricId = pManager->AddMetric(metadata);
     ASSERT_NE(metricId, metrics::kInvalidMetricID);
 
-    auto           result = pManager->ExportToString("report");
+    auto           result = pManager->CreateReport("report").GetContentString();
     nlohmann::json parsed = nlohmann::json::parse(result);
     ASSERT_EQ(parsed["runs"].size(), 1);
     auto run = parsed["runs"][0];
@@ -253,7 +274,7 @@ TEST_F(MetricsTestFixture, ReportEmptyGauge)
     auto metricId = pManager->AddMetric(metadata);
     ASSERT_NE(metricId, metrics::kInvalidMetricID);
 
-    auto           result = pManager->ExportToString("report");
+    auto           result = pManager->CreateReport("report").GetContentString();
     nlohmann::json parsed = nlohmann::json::parse(result);
     ASSERT_EQ(parsed["runs"].size(), 1);
     auto run = parsed["runs"][0];
@@ -288,7 +309,7 @@ TEST_F(MetricsTestFixture, MetricsBasicCounter)
     auto metricId = pManager->AddMetric(metadata);
     ASSERT_NE(metricId, metrics::kInvalidMetricID);
 
-    auto           result  = pManager->ExportToString("report");
+    auto           result  = pManager->CreateReport("report").GetContentString();
     nlohmann::json parsed  = nlohmann::json::parse(result);
     auto           counter = parsed["runs"][0]["counters"][0];
     EXPECT_EQ(counter["value"], 0);
@@ -298,7 +319,7 @@ TEST_F(MetricsTestFixture, MetricsBasicCounter)
     data.counter.increment   = 1;
     pManager->RecordMetricData(metricId, data);
 
-    result  = pManager->ExportToString("report");
+    result  = pManager->CreateReport("report").GetContentString();
     parsed  = nlohmann::json::parse(result);
     counter = parsed["runs"][0]["counters"][0];
     EXPECT_EQ(counter["value"], 1);
@@ -307,7 +328,7 @@ TEST_F(MetricsTestFixture, MetricsBasicCounter)
     data.counter.increment = 4;
     pManager->RecordMetricData(metricId, data);
 
-    result  = pManager->ExportToString("report");
+    result  = pManager->CreateReport("report").GetContentString();
     parsed  = nlohmann::json::parse(result);
     counter = parsed["runs"][0]["counters"][0];
     EXPECT_EQ(counter["value"], 5);
@@ -322,7 +343,7 @@ TEST_F(MetricsTestFixture, MetricsCounterIgnoresGaugeData)
     auto metricId = pManager->AddMetric(metadata);
     ASSERT_NE(metricId, metrics::kInvalidMetricID);
 
-    auto           result  = pManager->ExportToString("report");
+    auto           result  = pManager->CreateReport("report").GetContentString();
     nlohmann::json parsed  = nlohmann::json::parse(result);
     auto           counter = parsed["runs"][0]["counters"][0];
     EXPECT_EQ(counter["value"], 0);
@@ -332,7 +353,7 @@ TEST_F(MetricsTestFixture, MetricsCounterIgnoresGaugeData)
     data.counter.increment   = 1;
     EXPECT_FALSE(pManager->RecordMetricData(metricId, data));
 
-    result  = pManager->ExportToString("report");
+    result  = pManager->CreateReport("report").GetContentString();
     parsed  = nlohmann::json::parse(result);
     counter = parsed["runs"][0]["counters"][0];
     EXPECT_EQ(counter["value"], 0);
@@ -347,7 +368,7 @@ TEST_F(MetricsTestFixture, MetricsBasicGauge)
     auto metricId = pManager->AddMetric(metadata);
     ASSERT_NE(metricId, metrics::kInvalidMetricID);
 
-    auto           result = pManager->ExportToString("report");
+    auto           result = pManager->CreateReport("report").GetContentString();
     nlohmann::json parsed = nlohmann::json::parse(result);
     auto           gauge  = parsed["runs"][0]["gauges"][0];
     EXPECT_EQ(gauge["time_series"].size(), 0);
@@ -387,7 +408,7 @@ TEST_F(MetricsTestFixture, MetricsBasicGauge)
     data.gauge.value   = 12.0;
     pManager->RecordMetricData(metricId, data);
 
-    result = pManager->ExportToString("report");
+    result = pManager->CreateReport("report").GetContentString();
     parsed = nlohmann::json::parse(result);
     gauge  = parsed["runs"][0]["gauges"][0];
     EXPECT_EQ(gauge["time_series"].size(), 11);
@@ -421,7 +442,7 @@ TEST_F(MetricsTestFixture, MetricsGaugeIgnoresNegativeSeconds)
     auto metricId = pManager->AddMetric(metadata);
     ASSERT_NE(metricId, metrics::kInvalidMetricID);
 
-    auto           result = pManager->ExportToString("report");
+    auto           result = pManager->CreateReport("report").GetContentString();
     nlohmann::json parsed = nlohmann::json::parse(result);
     auto           gauge  = parsed["runs"][0]["gauges"][0];
     EXPECT_EQ(gauge["time_series"].size(), 0);
@@ -432,7 +453,7 @@ TEST_F(MetricsTestFixture, MetricsGaugeIgnoresNegativeSeconds)
     pManager->RecordMetricData(metricId, data);
 
     // Invalid data point should be ignored.
-    result = pManager->ExportToString("report");
+    result = pManager->CreateReport("report").GetContentString();
     parsed = nlohmann::json::parse(result);
     gauge  = parsed["runs"][0]["gauges"][0];
     EXPECT_EQ(gauge["time_series"].size(), 0);
@@ -446,7 +467,7 @@ TEST_F(MetricsTestFixture, MetricsGaugeIgnoresDecreasingSeconds)
     auto metricId = pManager->AddMetric(metadata);
     ASSERT_NE(metricId, metrics::kInvalidMetricID);
 
-    auto           result = pManager->ExportToString("report");
+    auto           result = pManager->CreateReport("report").GetContentString();
     nlohmann::json parsed = nlohmann::json::parse(result);
     auto           gauge  = parsed["runs"][0]["gauges"][0];
     EXPECT_EQ(gauge["time_series"].size(), 0);
@@ -463,7 +484,7 @@ TEST_F(MetricsTestFixture, MetricsGaugeIgnoresDecreasingSeconds)
     EXPECT_FALSE(pManager->RecordMetricData(metricId, data));
 
     // Invalid data point should be ignored.
-    result = pManager->ExportToString("report");
+    result = pManager->CreateReport("report").GetContentString();
     parsed = nlohmann::json::parse(result);
     gauge  = parsed["runs"][0]["gauges"][0];
     EXPECT_EQ(gauge["time_series"].size(), 2);
@@ -481,7 +502,7 @@ TEST_F(MetricsTestFixture, MetricsGaugeIgnoresSameSeconds)
     auto metricId = pManager->AddMetric(metadata);
     ASSERT_NE(metricId, metrics::kInvalidMetricID);
 
-    auto           result = pManager->ExportToString("report");
+    auto           result = pManager->CreateReport("report").GetContentString();
     nlohmann::json parsed = nlohmann::json::parse(result);
     auto           gauge  = parsed["runs"][0]["gauges"][0];
     EXPECT_EQ(gauge["time_series"].size(), 0);
@@ -498,7 +519,7 @@ TEST_F(MetricsTestFixture, MetricsGaugeIgnoresSameSeconds)
     EXPECT_FALSE(pManager->RecordMetricData(metricId, data));
 
     // Invalid data point should be ignored.
-    result = pManager->ExportToString("report");
+    result = pManager->CreateReport("report").GetContentString();
     parsed = nlohmann::json::parse(result);
     gauge  = parsed["runs"][0]["gauges"][0];
     EXPECT_EQ(gauge["time_series"].size(), 2);
