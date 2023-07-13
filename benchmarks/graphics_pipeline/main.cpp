@@ -22,6 +22,7 @@
 #include "ppx/knob.h"
 #include "ppx/timer.h"
 #include "ppx/camera.h"
+#include "ppx/math_util.h"
 #include "ppx/graphics_util.h"
 #include "ppx/grfx/grfx_scope.h"
 #define CGLTF_IMPLEMENTATION
@@ -29,6 +30,30 @@
 #include "glm/gtc/type_ptr.hpp"
 
 using namespace ppx;
+
+static constexpr float kCameraSpeed = 0.2f;
+
+class FreeCamera
+    : public ppx::PerspCamera
+{
+public:
+    enum class MovementDirection
+    {
+        FORWARD,
+        LEFT,
+        RIGHT,
+        BACKWARD
+    };
+
+    FreeCamera(float3 eyePosition, float3 target)
+    {
+        mEyePosition = eyePosition;
+        mTarget      = target;
+    }
+
+    // Moves the location of the camera in dir direction for distance units.
+    void Move(MovementDirection dir, float distance);
+};
 
 #if defined(USE_DX12)
 const grfx::Api kApi = grfx::API_DX_12_0;
@@ -69,10 +94,14 @@ class ProjApp
     : public ppx::Application
 {
 public:
+    ProjApp()
+        : mCamera(float3(0, 0, -5), float3(0, 0, -4)) {}
     virtual void InitKnobs() override;
     virtual void Config(ppx::ApplicationSettings& settings) override;
     virtual void Setup() override;
     virtual void Render() override;
+    virtual void KeyDown(ppx::KeyCode key) override;
+    virtual void KeyUp(ppx::KeyCode key) override;
 
 private:
     struct PerFrame
@@ -138,10 +167,11 @@ private:
     grfx::DescriptorSetLayoutPtr                                  mSetLayout;
     std::array<grfx::ShaderModulePtr, kAvailableVsShaders.size()> mVsShaders;
     std::array<grfx::ShaderModulePtr, kAvailablePsShaders.size()> mPsShaders;
-    PerspCamera                                                   mCamera;
+    FreeCamera                                                    mCamera;
     float3                                                        mLightPosition = float3(10, 100, 10);
     std::array<Scene, kAvailableScenes.size()>                    mScenes;
     size_t                                                        mCurrentSceneIndex;
+    std::array<bool, TOTAL_KEY_COUNT>                             mPressedKeys = {0};
     uint64_t                                                      mGpuWorkDuration;
 
     TextureCache mTextureCache;
@@ -201,10 +231,32 @@ private:
         std::vector<Primitive>*                                   pPrimitives,
         std::vector<Material>*                                    pMaterials) const;
 
+    void ProcessInput();
+
     void UpdateGUI();
 
     void DrawExtraInfo();
 };
+
+void FreeCamera::Move(MovementDirection dir, float distance)
+{
+    switch (dir) {
+        case MovementDirection::FORWARD:
+            mEyePosition += float3(0, 0, distance);
+            break;
+        case MovementDirection::LEFT:
+            mEyePosition += float3(distance, 0, 0);
+            break;
+        case MovementDirection::RIGHT:
+            mEyePosition += float3(-distance, 0, 0);
+            break;
+        case MovementDirection::BACKWARD:
+            mEyePosition += float3(0, 0, -distance);
+            break;
+    }
+    mTarget = mEyePosition + float3(0, 0, 1);
+    LookAt(GetEyePosition(), GetTarget());
+}
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
 {
@@ -671,7 +723,8 @@ void ProjApp::Setup()
 {
     // Cameras
     {
-        mCamera = PerspCamera(60.0f, GetWindowAspect());
+        mCamera.LookAt(mCamera.GetEyePosition(), mCamera.GetTarget());
+        mCamera.SetPerspective(60.f, GetWindowAspect());
     }
 
     // Create descriptor pool large enough for this project
@@ -793,6 +846,37 @@ void ProjApp::Setup()
     }
 }
 
+void ProjApp::KeyDown(ppx::KeyCode key)
+{
+    mPressedKeys[key] = true;
+}
+
+void ProjApp::KeyUp(ppx::KeyCode key)
+{
+    mPressedKeys[key] = false;
+}
+
+void ProjApp::ProcessInput()
+{
+    float deltaTime = GetPrevFrameTime();
+
+    if (mPressedKeys[KEY_W]) {
+        mCamera.Move(FreeCamera::MovementDirection::FORWARD, kCameraSpeed * deltaTime);
+    }
+
+    if (mPressedKeys[KEY_A]) {
+        mCamera.Move(FreeCamera::MovementDirection::LEFT, kCameraSpeed * deltaTime);
+    }
+
+    if (mPressedKeys[KEY_S]) {
+        mCamera.Move(FreeCamera::MovementDirection::BACKWARD, kCameraSpeed * deltaTime);
+    }
+
+    if (mPressedKeys[KEY_D]) {
+        mCamera.Move(FreeCamera::MovementDirection::RIGHT, kCameraSpeed * deltaTime);
+    }
+}
+
 void ProjApp::Render()
 {
     // This is important: If we directly passed mCurrentSceneIndex to ImGUI, the value would change during
@@ -818,8 +902,7 @@ void ProjApp::Render()
     // Reset query
     frame.timestampQuery->Reset(/* firstQuery= */ 0, frame.timestampQuery->GetCount());
 
-    // Update camera(s)
-    mCamera.LookAt(float3(2, 2, 2), float3(0, 0, 0));
+    ProcessInput();
 
     // Update uniform buffers
     for (auto& object : mScenes[mCurrentSceneIndex].objects) {
