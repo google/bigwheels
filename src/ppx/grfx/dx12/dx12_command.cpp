@@ -256,10 +256,11 @@ void CommandBuffer::PushDescriptorImpl(
     const grfx::Sampler*           pSampler)
 {
     auto pLayout = pInterface->GetSetLayout(set);
-    PPX_ASSERT_MSG((pLayout != nullptr), "set=" << set << " does not match a set in the pipeline interface");
-    PPX_ASSERT_MSG((pLayout->IsPushable() == true), "set=" << set << " refers set that is not pushable");
-    PPX_ASSERT_MSG((pBuffer != nullptr), "set=" << set << " does not match a set in the pipeline interface")
+    PPX_ASSERT_MSG((pLayout != nullptr), "set=" << set << " does not match a set layout in the pipeline interface");
+    PPX_ASSERT_MSG(pLayout->IsPushable(), "set=" << set << " refers set layout that is not pushable");
+    PPX_ASSERT_MSG((pBuffer != nullptr), "pBuffer is null");
 
+    // void these out so compiler doesn't complain about unused varaiables.
     (void)pSampledImageView;
     (void)pStorageImageView;
     (void)pSampler;

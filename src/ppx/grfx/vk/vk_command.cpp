@@ -135,8 +135,8 @@ void CommandBuffer::PushDescriptorImpl(
     const grfx::Sampler*           pSampler)
 {
     auto pLayout = pInterface->GetSetLayout(set);
-    PPX_ASSERT_MSG((pLayout != nullptr), "set=" << set << " does not match a set in the pipeline interface");
-    PPX_ASSERT_MSG((pLayout->IsPushable() == true), "set=" << set << " refers set that is not pushable");
+    PPX_ASSERT_MSG((pLayout != nullptr), "set=" << set << " does not match a set layout in the pipeline interface");
+    PPX_ASSERT_MSG(pLayout->IsPushable(), "set=" << set << " refers set layout that is not pushable");
 
     // Determine pipeline bind point
     VkPipelineBindPoint vulkanPipelineBindPoint = InvalidValue<VkPipelineBindPoint>();
