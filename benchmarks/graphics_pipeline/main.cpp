@@ -57,14 +57,13 @@ public:
     void Move(MovementDirection dir, float distance);
 
     // Changes the location where the camera is looking at by turning `deltaTheta`
-    // radians and looking up `deltaPhi` radians. `deltaTheta` is an angle in
-    // the range [0, 2pi] and `deltaPhi` is an angle in the range [0, pi].
+    // (longitude) radians and looking up `deltaPhi` (latitude) radians.
     void Turn(float deltaTheta, float deltaPhi);
 
 private:
     // Spherical coordinates in world space where the camera is looking at.
-    // `mTheta` is an angle in the range [0, 2pi].
-    // `mPhi` is an angle in the range [0, pi].
+    // `mTheta` (longitude) is an angle in the range [0, 2pi].
+    // `mPhi` (latitude) is an angle in the range [-pi/2, pi/2].
     float mTheta;
     float mPhi;
 };
@@ -302,12 +301,7 @@ void FreeCamera::Turn(float deltaTheta, float deltaPhi)
     }
 
     // mPhi is saturated by making it stop, so the world doesn't turn upside down.
-    if (mPhi < 0) {
-        mPhi = 0;
-    }
-    else if (mPhi > pi<float>()) {
-        mPhi = pi<float>();
-    }
+    mPhi = std::clamp(mPhi, -pi<float>() / 2.0f, pi<float>() / 2.0f);
 
     mTarget = mEyePosition + SphericalToCartesian(mTheta, mPhi);
     LookAt(mEyePosition, mTarget);
