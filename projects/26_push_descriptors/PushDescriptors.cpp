@@ -17,10 +17,10 @@
 #include "ppx/graphics_util.h"
 using namespace ppx;
 
-#if defined(USE_DX12)
-const grfx::Api kApi = grfx::API_DX_12_0;
-#elif defined(USE_VK)
+#if defined(USE_VK)
 const grfx::Api kApi = grfx::API_VK_1_1;
+#else
+#error "This application requires Vulkan"
 #endif
 
 const uint32_t kUniformBufferStride = 256;
