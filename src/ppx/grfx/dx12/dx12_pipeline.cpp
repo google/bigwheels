@@ -289,30 +289,67 @@ Result PipelineInterface::CreateApiObjects(const grfx::PipelineInterfaceCreateIn
         for (size_t bindingIndex = 0; bindingIndex < bindings.size(); ++bindingIndex) {
             const grfx::DescriptorBinding& binding = bindings[bindingIndex];
 
-            // Allocate unique range
-            std::unique_ptr<D3D12_DESCRIPTOR_RANGE1> range = std::make_unique<D3D12_DESCRIPTOR_RANGE1>();
-            if (!range) {
-                PPX_ASSERT_MSG(false, "allocation for descriptor range failed for set=" << set << ", binding=" << binding.binding);
-                return ppx::ERROR_ALLOCATION_FAILED;
-            }
-            // Fill out range
-            range->RangeType                         = ToD3D12RangeType(binding.type);
-            range->NumDescriptors                    = static_cast<UINT>(binding.arrayCount);
-            range->BaseShaderRegister                = static_cast<UINT>(binding.binding);
-            range->RegisterSpace                     = static_cast<UINT>(set);
-            range->Flags                             = (range->RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV) ? D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE : D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
-            range->OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+            // If set is pushable then add as root descriptor...
+            if (pLayout->IsPushable()) {
+                // Figure out which root descriptor parameter type
+                D3D12_ROOT_PARAMETER_TYPE parameterType = InvalidValue<D3D12_ROOT_PARAMETER_TYPE>();
+                switch (binding.type) {
+                    default: {
+                        PPX_ASSERT_MSG(false, "Descriptor binding type is not pushable in Direct3D 12");
+                        return ppx::ERROR_GRFX_INVALID_DESCRIPTOR_TYPE;
+                    } break;
+                    // CBV root descriptor
+                    case grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+                        parameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+                        break;
+                    // SRV root descriptor
+                    case grfx::DESCRIPTOR_TYPE_RO_STRUCTURED_BUFFER:
+                        parameterType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+                    // UAV root descriptor
+                    case grfx::DESCRIPTOR_TYPE_RAW_STORAGE_BUFFER:
+                    case grfx::DESCRIPTOR_TYPE_RW_STRUCTURED_BUFFER:
+                        parameterType = D3D12_ROOT_PARAMETER_TYPE_UAV;
+                        break;
+                }
 
-            // Fill out parameter
-            D3D12_ROOT_PARAMETER1 parameter               = {};
-            parameter.ParameterType                       = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-            parameter.DescriptorTable.NumDescriptorRanges = 1;
-            parameter.DescriptorTable.pDescriptorRanges   = range.get();
-            parameter.ShaderVisibility                    = ToD3D12ShaderVisibliity(binding.shaderVisiblity);
-            // Store parameter
-            parameters.push_back(parameter);
-            // Store ranges
-            parameterRanges.push_back(std::move(range));
+                // Fill out parameter
+                D3D12_ROOT_PARAMETER1 parameter     = {};
+                parameter.ParameterType             = parameterType;
+                parameter.Descriptor.ShaderRegister = static_cast<UINT>(binding.binding);
+                parameter.Descriptor.RegisterSpace  = static_cast<UINT>(set);
+                parameter.Descriptor.Flags          = D3D12_ROOT_DESCRIPTOR_FLAG_NONE; // NONE =  SRV/CBV: DATA_STATIC_WHILE_SET_AT_EXECUTE, UAV: DATA_VOLATILE
+                parameter.ShaderVisibility          = ToD3D12ShaderVisibliity(binding.shaderVisiblity);
+                // Store parameter
+                parameters.push_back(parameter);
+            }
+            // ...otherwise use descriptor tables
+            else {
+                // Allocate unique range
+                std::unique_ptr<D3D12_DESCRIPTOR_RANGE1> range = std::make_unique<D3D12_DESCRIPTOR_RANGE1>();
+                if (!range) {
+                    PPX_ASSERT_MSG(false, "allocation for descriptor range failed for set=" << set << ", binding=" << binding.binding);
+                    return ppx::ERROR_ALLOCATION_FAILED;
+                }
+                // Fill out range
+                range->RangeType                         = ToD3D12RangeType(binding.type);
+                range->NumDescriptors                    = static_cast<UINT>(binding.arrayCount);
+                range->BaseShaderRegister                = static_cast<UINT>(binding.binding);
+                range->RegisterSpace                     = static_cast<UINT>(set);
+                range->Flags                             = (range->RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV) ? D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE : D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
+                range->OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+                // Fill out parameter
+                D3D12_ROOT_PARAMETER1 parameter               = {};
+                parameter.ParameterType                       = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+                parameter.DescriptorTable.NumDescriptorRanges = 1;
+                parameter.DescriptorTable.pDescriptorRanges   = range.get();
+                parameter.ShaderVisibility                    = ToD3D12ShaderVisibliity(binding.shaderVisiblity);
+                // Store parameter
+                parameters.push_back(parameter);
+                // Store ranges
+                parameterRanges.push_back(std::move(range));
+            }
+
             // Store parameter index
             ParameterIndex paramIndex = {};
             paramIndex.set            = set;

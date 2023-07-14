@@ -257,5 +257,239 @@ void CommandBuffer::Draw(const grfx::FullscreenQuad* pQuad, uint32_t setCount, c
     Draw(3, 1);
 }
 
+void CommandBuffer::PushGraphicsUniformBuffer(
+    const grfx::PipelineInterface* pInterface,
+    uint32_t                       binding,
+    uint32_t                       set,
+    uint32_t                       bufferOffset,
+    const grfx::Buffer*            pBuffer)
+{
+    PushDescriptorImpl(
+        grfx::COMMAND_TYPE_GRAPHICS,          // pipelineBindPoint
+        pInterface,                           // pInterface
+        grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, // descriptorType
+        binding,                              // binding
+        set,                                  // set
+        bufferOffset,                         // bufferOffset
+        pBuffer,                              // pBuffer
+        nullptr,                              // pSampledImageView
+        nullptr,                              // pStorageImageView
+        nullptr);                             // pSampler
+}
+
+void CommandBuffer::PushGraphicsStructuredBuffer(
+    const grfx::PipelineInterface* pInterface,
+    uint32_t                       binding,
+    uint32_t                       set,
+    uint32_t                       bufferOffset,
+    const grfx::Buffer*            pBuffer)
+{
+    PushDescriptorImpl(
+        grfx::COMMAND_TYPE_GRAPHICS,                // pipelineBindPoint
+        pInterface,                                 // pInterface
+        grfx::DESCRIPTOR_TYPE_RO_STRUCTURED_BUFFER, // descriptorType
+        binding,                                    // binding
+        set,                                        // set
+        bufferOffset,                               // bufferOffset
+        pBuffer,                                    // pBuffer
+        nullptr,                                    // pSampledImageView
+        nullptr,                                    // pStorageImageView
+        nullptr);                                   // pSampler
+}
+
+void CommandBuffer::PushGraphicsStorageBuffer(
+    const grfx::PipelineInterface* pInterface,
+    uint32_t                       binding,
+    uint32_t                       set,
+    uint32_t                       bufferOffset,
+    const grfx::Buffer*            pBuffer)
+{
+    PushDescriptorImpl(
+        grfx::COMMAND_TYPE_GRAPHICS,                // pipelineBindPoint
+        pInterface,                                 // pInterface
+        grfx::DESCRIPTOR_TYPE_RW_STRUCTURED_BUFFER, // descriptorType
+        binding,                                    // binding
+        set,                                        // set
+        bufferOffset,                               // bufferOffset
+        pBuffer,                                    // pBuffer
+        nullptr,                                    // pSampledImageView
+        nullptr,                                    // pStorageImageView
+        nullptr);                                   // pSampler
+}
+
+void CommandBuffer::PushGraphicsSampledImage(
+    const grfx::PipelineInterface* pInterface,
+    uint32_t                       binding,
+    uint32_t                       set,
+    const grfx::SampledImageView*  pView)
+{
+    PushDescriptorImpl(
+        grfx::COMMAND_TYPE_GRAPHICS,         // pipelineBindPoint
+        pInterface,                          // pInterface
+        grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, // descriptorType
+        binding,                             // binding
+        set,                                 // set
+        0,                                   // bufferOffset
+        nullptr,                             // pBuffer
+        pView,                               // pSampledImageView
+        nullptr,                             // pStorageImageView
+        nullptr);                            // pSampler
+}
+
+void CommandBuffer::PushGraphicsStorageImage(
+    const grfx::PipelineInterface* pInterface,
+    uint32_t                       binding,
+    uint32_t                       set,
+    const grfx::StorageImageView*  pView)
+{
+    PushDescriptorImpl(
+        grfx::COMMAND_TYPE_GRAPHICS,         // pipelineBindPoint
+        pInterface,                          // pInterface
+        grfx::DESCRIPTOR_TYPE_STORAGE_IMAGE, // descriptorType
+        binding,                             // binding
+        set,                                 // set
+        0,                                   // bufferOffset
+        nullptr,                             // pBuffer
+        nullptr,                             // pSampledImageView
+        pView,                               // pStorageImageView
+        nullptr);                            // pSampler
+}
+
+void CommandBuffer::PushGraphicsSampler(
+    const grfx::PipelineInterface* pInterface,
+    uint32_t                       binding,
+    uint32_t                       set,
+    const grfx::Sampler*           pSampler)
+{
+    PushDescriptorImpl(
+        grfx::COMMAND_TYPE_GRAPHICS,   // pipelineBindPoint
+        pInterface,                    // pInterface
+        grfx::DESCRIPTOR_TYPE_SAMPLER, // descriptorType
+        binding,                       // binding
+        set,                           // set
+        0,                             // bufferOffset
+        nullptr,                       // pBuffer
+        nullptr,                       // pSampledImageView
+        nullptr,                       // pStorageImageView
+        pSampler);                     // pSampler
+}
+
+void CommandBuffer::PushComputeUniformBuffer(
+    const grfx::PipelineInterface* pInterface,
+    uint32_t                       binding,
+    uint32_t                       set,
+    uint32_t                       bufferOffset,
+    const grfx::Buffer*            pBuffer)
+{
+    PushDescriptorImpl(
+        grfx::COMMAND_TYPE_COMPUTE,           // pipelineBindPoint
+        pInterface,                           // pInterface
+        grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, // descriptorType
+        binding,                              // binding
+        set,                                  // set
+        bufferOffset,                         // bufferOffset
+        pBuffer,                              // pBuffer
+        nullptr,                              // pSampledImageView
+        nullptr,                              // pStorageImageView
+        nullptr);                             // pSampler
+}
+
+void CommandBuffer::PushComputeStructuredBuffer(
+    const grfx::PipelineInterface* pInterface,
+    uint32_t                       binding,
+    uint32_t                       set,
+    uint32_t                       bufferOffset,
+    const grfx::Buffer*            pBuffer)
+{
+    PushDescriptorImpl(
+        grfx::COMMAND_TYPE_COMPUTE,                 // pipelineBindPoint
+        pInterface,                                 // pInterface
+        grfx::DESCRIPTOR_TYPE_RO_STRUCTURED_BUFFER, // descriptorType
+        binding,                                    // binding
+        set,                                        // set
+        bufferOffset,                               // bufferOffset
+        pBuffer,                                    // pBuffer
+        nullptr,                                    // pSampledImageView
+        nullptr,                                    // pStorageImageView
+        nullptr);                                   // pSampler
+}
+
+void CommandBuffer::PushComputeStorageBuffer(
+    const grfx::PipelineInterface* pInterface,
+    uint32_t                       binding,
+    uint32_t                       set,
+    uint32_t                       bufferOffset,
+    const grfx::Buffer*            pBuffer)
+{
+    PushDescriptorImpl(
+        grfx::COMMAND_TYPE_COMPUTE,                 // pipelineBindPoint
+        pInterface,                                 // pInterface
+        grfx::DESCRIPTOR_TYPE_RW_STRUCTURED_BUFFER, // descriptorType
+        binding,                                    // binding
+        set,                                        // set
+        bufferOffset,                               // bufferOffset
+        pBuffer,                                    // pBuffer
+        nullptr,                                    // pSampledImageView
+        nullptr,                                    // pStorageImageView
+        nullptr);                                   // pSampler
+}
+
+void CommandBuffer::PushComputeSampledImage(
+    const grfx::PipelineInterface* pInterface,
+    uint32_t                       binding,
+    uint32_t                       set,
+    const grfx::SampledImageView*  pView)
+{
+    PushDescriptorImpl(
+        grfx::COMMAND_TYPE_COMPUTE,          // pipelineBindPoint
+        pInterface,                          // pInterface
+        grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, // descriptorType
+        binding,                             // binding
+        set,                                 // set
+        0,                                   // bufferOffset
+        nullptr,                             // pBuffer
+        pView,                               // pSampledImageView
+        nullptr,                             // pStorageImageView
+        nullptr);                            // pSampler
+}
+
+void CommandBuffer::PushComputeStorageImage(
+    const grfx::PipelineInterface* pInterface,
+    uint32_t                       binding,
+    uint32_t                       set,
+    const grfx::StorageImageView*  pView)
+{
+    PushDescriptorImpl(
+        grfx::COMMAND_TYPE_COMPUTE,          // pipelineBindPoint
+        pInterface,                          // pInterface
+        grfx::DESCRIPTOR_TYPE_STORAGE_IMAGE, // descriptorType
+        binding,                             // binding
+        set,                                 // set
+        0,                                   // bufferOffset
+        nullptr,                             // pBuffer
+        nullptr,                             // pSampledImageView
+        pView,                               // pStorageImageView
+        nullptr);                            // pSampler
+}
+
+void CommandBuffer::PushComputeSampler(
+    const grfx::PipelineInterface* pInterface,
+    uint32_t                       binding,
+    uint32_t                       set,
+    const grfx::Sampler*           pSampler)
+{
+    PushDescriptorImpl(
+        grfx::COMMAND_TYPE_COMPUTE,    // pipelineBindPoint
+        pInterface,                    // pInterface
+        grfx::DESCRIPTOR_TYPE_SAMPLER, // descriptorType
+        binding,                       // binding
+        set,                           // set
+        0,                             // bufferOffset
+        nullptr,                       // pBuffer
+        nullptr,                       // pSampledImageView
+        nullptr,                       // pStorageImageView
+        pSampler);                     // pSampler
+}
+
 } // namespace grfx
 } // namespace ppx

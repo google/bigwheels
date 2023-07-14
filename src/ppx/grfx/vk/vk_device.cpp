@@ -36,6 +36,8 @@ namespace ppx {
 namespace grfx {
 namespace vk {
 
+PFN_vkCmdPushDescriptorSetKHR CmdPushDescriptorSetKHR = nullptr;
+
 Result Device::ConfigureQueueInfo(const grfx::DeviceCreateInfo* pCreateInfo, std::vector<float>& queuePriorities, std::vector<VkDeviceQueueCreateInfo>& queueCreateInfos)
 {
     VkPhysicalDevicePtr gpu = ToApi(pCreateInfo->pGpu)->GetVkGpu();
@@ -175,6 +177,10 @@ Result Device::ConfigureExtensions(const grfx::DeviceCreateInfo* pCreateInfo)
         mHasDynamicRendering = true;
     }
 #endif
+
+    if (ElementExists(std::string(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME), mFoundExtensions)) {
+        mExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
+    }
 
     // Add additional extensions and uniquify
     AppendElements(pCreateInfo->vulkanExtensions, mExtensions);
@@ -402,6 +408,21 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
 
     // Depth clip enabled
     mHasUnrestrictedDepthRange = ElementExists(std::string(VK_EXT_DEPTH_RANGE_UNRESTRICTED_EXTENSION_NAME), mExtensions);
+
+    // Get maxPushDescriptors property and load function
+    if (ElementExists(std::string(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME), mExtensions)) {
+        VkPhysicalDevicePushDescriptorPropertiesKHR pushDescriptorProperties = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PUSH_DESCRIPTOR_PROPERTIES_KHR};
+
+        VkPhysicalDeviceProperties2 properties = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+        properties.pNext                       = &pushDescriptorProperties;
+
+        vkGetPhysicalDeviceProperties2(ToApi(pCreateInfo->pGpu)->GetVkGpu(), &properties);
+
+        mMaxPushDescriptors = pushDescriptorProperties.maxPushDescriptors;
+        PPX_LOG_INFO("Vulkan maxPushDescriptors: " << mMaxPushDescriptors);
+
+        CmdPushDescriptorSetKHR = (PFN_vkCmdPushDescriptorSetKHR)vkGetDeviceProcAddr(mDevice, "vkCmdPushDescriptorSetKHR");
+    }
 
     // VMA
     {
@@ -699,6 +720,11 @@ void Device::ResetQueryPoolEXT(
     uint32_t    queryCount) const
 {
     mFnResetQueryPoolEXT(mDevice, queryPool, firstQuery, queryCount);
+}
+
+std::array<uint32_t, 3> Device::GetAllQueueFamilyIndices() const
+{
+    return {mGraphicsQueueFamilyIndex, mComputeQueueFamilyIndex, mTransferQueueFamilyIndex};
 }
 
 } // namespace vk

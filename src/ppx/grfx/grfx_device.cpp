@@ -635,6 +635,11 @@ Result Device::AllocateDescriptorSet(grfx::DescriptorPool* pPool, const grfx::De
     PPX_ASSERT_NULL_ARG(pLayout);
     PPX_ASSERT_NULL_ARG(ppSet);
 
+    // Prevent allocation using layouts that are pushable
+    if (pLayout->IsPushable()) {
+        return ppx::ERROR_GRFX_OPERATION_NOT_PERMITTED;
+    }
+
     grfx::internal::DescriptorSetCreateInfo createInfo = {};
     createInfo.pPool                                   = pPool;
     createInfo.pLayout                                 = pLayout;

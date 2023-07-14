@@ -199,7 +199,7 @@ Result ComputePipeline::Create(const grfx::ComputePipelineCreateInfo* pCreateInf
 {
     if (IsNull(pCreateInfo->pPipelineInterface)) {
         PPX_ASSERT_MSG(false, "pipeline interface is null (compute pipeline)");
-        return ppx::ERROR_INVALID_PIPELINE_INTERFACE;
+        return ppx::ERROR_GRFX_OPERATION_NOT_PERMITTED;
     }
 
     Result ppxres = grfx::DeviceObject<grfx::ComputePipelineCreateInfo>::Create(pCreateInfo);
@@ -273,7 +273,7 @@ Result GraphicsPipeline::Create(const grfx::GraphicsPipelineCreateInfo* pCreateI
 
     if (IsNull(pCreateInfo->pPipelineInterface)) {
         PPX_ASSERT_MSG(false, "pipeline interface is null (graphics pipeline)");
-        return ppx::ERROR_INVALID_PIPELINE_INTERFACE;
+        return ppx::ERROR_GRFX_OPERATION_NOT_PERMITTED;
     }
 
     Result ppxres = grfx::DeviceObject<grfx::GraphicsPipelineCreateInfo>::Create(pCreateInfo);
@@ -294,7 +294,7 @@ Result PipelineInterface::Create(const grfx::PipelineInterfaceCreateInfo* pCreat
         return ppx::ERROR_LIMIT_EXCEEDED;
     }
 
-    // If we have more thane one set...we need to do some checks
+    // If we have more than one set...we need to do some checks
     if (pCreateInfo->setCount > 0) {
         // Paranoid clear
         mSetNumbers.clear();
@@ -379,6 +379,18 @@ Result PipelineInterface::Create(const grfx::PipelineInterfaceCreateInfo* pCreat
     }
 
     return ppx::SUCCESS;
+}
+
+const grfx::DescriptorSetLayout* PipelineInterface::GetSetLayout(uint32_t setNumber) const
+{
+    const grfx::DescriptorSetLayout* pLayout = nullptr;
+    for (uint32_t i = 0; i < mCreateInfo.setCount; ++i) {
+        if (mCreateInfo.sets[i].set == setNumber) {
+            pLayout = mCreateInfo.sets[i].pLayout;
+            break;
+        }
+    }
+    return pLayout;
 }
 
 } // namespace grfx

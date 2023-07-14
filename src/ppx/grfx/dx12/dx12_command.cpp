@@ -243,6 +243,82 @@ void CommandBuffer::EndRenderPassImpl()
     // Nothing to do here for now
 }
 
+void CommandBuffer::PushDescriptorImpl(
+    grfx::CommandType              pipelineBindPoint,
+    const grfx::PipelineInterface* pInterface,
+    grfx::DescriptorType           descriptorType,
+    uint32_t                       binding,
+    uint32_t                       set,
+    uint32_t                       bufferOffset,
+    const grfx::Buffer*            pBuffer,
+    const grfx::SampledImageView*  pSampledImageView,
+    const grfx::StorageImageView*  pStorageImageView,
+    const grfx::Sampler*           pSampler)
+{
+    auto pLayout = pInterface->GetSetLayout(set);
+    PPX_ASSERT_MSG((pLayout != nullptr), "set=" << set << " does not match a set layout in the pipeline interface");
+    PPX_ASSERT_MSG(pLayout->IsPushable(), "set=" << set << " refers to a set layout that is not pushable");
+    PPX_ASSERT_MSG((pBuffer != nullptr), "pBuffer is null");
+
+    // void these out so compiler doesn't complain about unused varaiables.
+    (void)pSampledImageView;
+    (void)pStorageImageView;
+    (void)pSampler;
+
+    // Find root parameter index
+    UINT rootParameterIndex = ToApi(pInterface)->FindParameterIndex(set, binding);
+    PPX_ASSERT_MSG((rootParameterIndex != PPX_VALUE_IGNORED), "root parameter index not found for binding=" << binding << ", set=" << set);
+
+    // Calculate GPU virtual address location for buffer
+    D3D12_GPU_VIRTUAL_ADDRESS bufferLocation = ToApi(pBuffer)->GetDxResource()->GetGPUVirtualAddress();
+    bufferLocation += static_cast<D3D12_GPU_VIRTUAL_ADDRESS>(bufferOffset);
+
+    // Call appropriate function based on pipeline bind point
+    if (pipelineBindPoint == grfx::COMMAND_TYPE_GRAPHICS) {
+        SetGraphicsPipelineInterface(pInterface);
+
+        switch (descriptorType) {
+            default: PPX_ASSERT_MSG(false, "descriptor is not of pushable type binding=" << binding << ", set=" << set); break;
+
+            case grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER: {
+                mCommandList->SetGraphicsRootConstantBufferView(rootParameterIndex, bufferLocation);
+            } break;
+
+            case grfx::DESCRIPTOR_TYPE_RO_STRUCTURED_BUFFER: {
+                mCommandList->SetGraphicsRootShaderResourceView(rootParameterIndex, bufferLocation);
+            } break;
+
+            case grfx::DESCRIPTOR_TYPE_RAW_STORAGE_BUFFER:
+            case grfx::DESCRIPTOR_TYPE_RW_STRUCTURED_BUFFER: {
+                mCommandList->SetGraphicsRootUnorderedAccessView(rootParameterIndex, bufferLocation);
+            } break;
+        }
+    }
+    else if (pipelineBindPoint == grfx::COMMAND_TYPE_COMPUTE) {
+        SetComputePipelineInterface(pInterface);
+
+        switch (descriptorType) {
+            default: PPX_ASSERT_MSG(false, "descriptor is not of pushable type binding=" << binding << ", set=" << set); break;
+
+            case grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER: {
+                mCommandList->SetComputeRootConstantBufferView(rootParameterIndex, bufferLocation);
+            } break;
+
+            case grfx::DESCRIPTOR_TYPE_RO_STRUCTURED_BUFFER: {
+                mCommandList->SetComputeRootShaderResourceView(rootParameterIndex, bufferLocation);
+            } break;
+
+            case grfx::DESCRIPTOR_TYPE_RAW_STORAGE_BUFFER:
+            case grfx::DESCRIPTOR_TYPE_RW_STRUCTURED_BUFFER: {
+                mCommandList->SetComputeRootUnorderedAccessView(rootParameterIndex, bufferLocation);
+            } break;
+        }
+    }
+    else {
+        PPX_ASSERT_MSG(false, "invalid pipeline bindpoint");
+    }
+}
+
 void CommandBuffer::TransitionImageLayout(
     const grfx::Image*  pImage,
     uint32_t            mipLevel,

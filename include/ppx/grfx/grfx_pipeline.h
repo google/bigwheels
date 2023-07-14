@@ -262,6 +262,8 @@ public:
     bool                         HasConsecutiveSetNumbers() const { return mHasConsecutiveSetNumbers; }
     const std::vector<uint32_t>& GetSetNumbers() const { return mSetNumbers; }
 
+    const grfx::DescriptorSetLayout* GetSetLayout(uint32_t setNumber) const;
+
 protected:
     virtual Result Create(const grfx::PipelineInterfaceCreateInfo* pCreateInfo) override;
     friend class grfx::Device;
