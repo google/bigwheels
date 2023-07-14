@@ -517,7 +517,7 @@ void CommandBuffer::BindGraphicsDescriptorSets(
     BindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, pInterface, setCount, ppSets);
 }
 
-void CommandBuffer::SetPushConstants(
+void CommandBuffer::PushConstants(
     const grfx::PipelineInterface* pInterface,
     uint32_t                       count,
     const void*                    pValues,
@@ -540,7 +540,7 @@ void CommandBuffer::SetPushConstants(
         pValues);
 }
 
-void CommandBuffer::SetGraphicsPushConstants(
+void CommandBuffer::PushGraphicsConstants(
     const grfx::PipelineInterface* pInterface,
     uint32_t                       count,
     const void*                    pValues,
@@ -553,7 +553,7 @@ void CommandBuffer::SetGraphicsPushConstants(
         PPX_ASSERT_MSG(false, "push constants shader visibility flags in pInterface does not have any graphics stages");
     }
 
-    SetPushConstants(pInterface, count, pValues, dstOffset);
+    PushConstants(pInterface, count, pValues, dstOffset);
 }
 
 void CommandBuffer::BindGraphicsPipeline(const grfx::GraphicsPipeline* pPipeline)
@@ -574,7 +574,7 @@ void CommandBuffer::BindComputeDescriptorSets(
     BindDescriptorSets(VK_PIPELINE_BIND_POINT_COMPUTE, pInterface, setCount, ppSets);
 }
 
-void CommandBuffer::SetComputePushConstants(
+void CommandBuffer::PushComputeConstants(
     const grfx::PipelineInterface* pInterface,
     uint32_t                       count,
     const void*                    pValues,
@@ -587,7 +587,7 @@ void CommandBuffer::SetComputePushConstants(
         PPX_ASSERT_MSG(false, "push constants shader visibility flags in pInterface does not have compute stage");
     }
 
-    SetPushConstants(pInterface, count, pValues, dstOffset);
+    PushConstants(pInterface, count, pValues, dstOffset);
 }
 
 void CommandBuffer::BindComputePipeline(const grfx::ComputePipeline* pPipeline)

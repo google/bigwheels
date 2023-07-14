@@ -311,7 +311,7 @@ public:
     //     with a different compiler or source language. The contents pointed to
     //     by pValues must respect the packing rules in effect.
     //
-    virtual void SetGraphicsPushConstants(
+    virtual void PushGraphicsConstants(
         const grfx::PipelineInterface* pInterface,
         uint32_t                       count,
         const void*                    pValues,
@@ -364,7 +364,7 @@ public:
         const grfx::DescriptorSet* const* ppSets) = 0;
 
     // See comments at SetGraphicsPushConstants for explanation about count, pValues and dstOffset.
-    virtual void SetComputePushConstants(
+    virtual void PushComputeConstants(
         const grfx::PipelineInterface* pInterface,
         uint32_t                       count,
         const void*                    pValues,
