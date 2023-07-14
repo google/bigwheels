@@ -244,10 +244,6 @@ private:
 ////////////////////////////////////////////////////////////////////////////////
 
 // A report contains runs and metrics information meant to be saved to disk.
-// Because the json object at its core relies on strings-as-pointers, the
-// lifecycle of a report is tied to the lifecycle of the runs and metrics
-// owned by the Manager. But this is opaque. To protect misuse, the class
-// is a private member.
 class Report final
 {
 public:
