@@ -17,12 +17,6 @@
 #include "ppx/graphics_util.h"
 using namespace ppx;
 
-#if defined(USE_VK)
-const grfx::Api kApi = grfx::API_VK_1_1;
-#else
-#error "This application requires Vulkan"
-#endif
-
 const uint32_t kUniformBufferStride = 256;
 
 struct DrawParams
@@ -34,7 +28,7 @@ void PushDescriptorsApp::Config(ppx::ApplicationSettings& settings)
 {
     settings.appName                    = "26_push_descriptors";
     settings.enableImGui                = true;
-    settings.grfx.api                   = kApi;
+    settings.grfx.api                   = grfx::API_VK_1_1;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
     settings.grfx.enableDebug           = false;
 }

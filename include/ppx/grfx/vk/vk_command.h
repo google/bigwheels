@@ -82,7 +82,7 @@ public:
         uint32_t                          setCount,
         const grfx::DescriptorSet* const* ppSets) override;
 
-    virtual void SetGraphicsPushConstants(
+    virtual void PushGraphicsConstants(
         const grfx::PipelineInterface* pInterface,
         uint32_t                       count,
         const void*                    pValues,
@@ -95,7 +95,7 @@ public:
         uint32_t                          setCount,
         const grfx::DescriptorSet* const* ppSets) override;
 
-    virtual void SetComputePushConstants(
+    virtual void PushComputeConstants(
         const grfx::PipelineInterface* pInterface,
         uint32_t                       count,
         const void*                    pValues,
@@ -181,7 +181,7 @@ private:
         uint32_t                          setCount,
         const grfx::DescriptorSet* const* ppSets);
 
-    void SetPushConstants(
+    void PushConstants(
         const grfx::PipelineInterface* pInterface,
         uint32_t                       count,
         const void*                    pValues,
