@@ -306,10 +306,10 @@ void PushConstantsApp::Render()
                 float4x4 M   = T * R;
                 float4x4 mat = P * V * M;
                 // Set MVP push constants
-                frame.cmd->SetGraphicsPushConstants(mPipelineInterface, 16, &mat);
+                frame.cmd->PushGraphicsConstants(mPipelineInterface, 16, &mat);
                 // Set texture index push constant at dstOffset=16
                 uint32_t textureIndex = 0;
-                frame.cmd->SetGraphicsPushConstants(mPipelineInterface, 1, &textureIndex, 16);
+                frame.cmd->PushGraphicsConstants(mPipelineInterface, 1, &textureIndex, 16);
             }
             frame.cmd->Draw(36, 1, 0, 0);
 
@@ -321,10 +321,10 @@ void PushConstantsApp::Render()
                 float4x4 M   = T * R;
                 float4x4 mat = P * V * M;
                 // Set MVP push constants
-                frame.cmd->SetGraphicsPushConstants(mPipelineInterface, 16, &mat);
+                frame.cmd->PushGraphicsConstants(mPipelineInterface, 16, &mat);
                 // Set texture index push constant at offset=16
                 uint32_t textureIndex = 1;
-                frame.cmd->SetGraphicsPushConstants(mPipelineInterface, 1, &textureIndex, 16);
+                frame.cmd->PushGraphicsConstants(mPipelineInterface, 1, &textureIndex, 16);
             }
             frame.cmd->Draw(36, 1, 0, 0);
 
@@ -336,10 +336,10 @@ void PushConstantsApp::Render()
                 float4x4 M   = T * R;
                 float4x4 mat = P * V * M;
                 // Set MVP push constants
-                frame.cmd->SetGraphicsPushConstants(mPipelineInterface, 16, &mat);
+                frame.cmd->PushGraphicsConstants(mPipelineInterface, 16, &mat);
                 // Set texture index push constant at offset=16
                 uint32_t textureIndex = 2;
-                frame.cmd->SetGraphicsPushConstants(mPipelineInterface, 1, &textureIndex, 16);
+                frame.cmd->PushGraphicsConstants(mPipelineInterface, 1, &textureIndex, 16);
             }
             frame.cmd->Draw(36, 1, 0, 0);
 

@@ -592,7 +592,7 @@ void CommandBuffer::BindGraphicsDescriptorSets(
     }
 }
 
-void CommandBuffer::SetGraphicsPushConstants(
+void CommandBuffer::PushGraphicsConstants(
     const grfx::PipelineInterface* pInterface,
     uint32_t                       count,
     const void*                    pValues,
@@ -643,7 +643,7 @@ void CommandBuffer::BindComputeDescriptorSets(
     }
 }
 
-void CommandBuffer::SetComputePushConstants(
+void CommandBuffer::PushComputeConstants(
     const grfx::PipelineInterface* pInterface,
     uint32_t                       count,
     const void*                    pValues,
