@@ -301,7 +301,7 @@ void FreeCamera::Turn(float deltaTheta, float deltaPhi)
     }
 
     // mPhi is saturated by making it stop, so the world doesn't turn upside down.
-    mPhi = std::clamp(mPhi, -pi<float>() / 2.0f, pi<float>() / 2.0f);
+    mPhi = std::clamp(mPhi, 0.1f, pi<float>() - 0.1f);
 
     mTarget = mEyePosition + SphericalToCartesian(mTheta, mPhi);
     LookAt(mEyePosition, mTarget);
