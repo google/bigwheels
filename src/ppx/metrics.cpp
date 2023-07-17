@@ -36,45 +36,50 @@ nlohmann::json MetricMetadata::Export() const
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void MetricGauge::RecordEntry(double seconds, double value)
+bool MetricGauge::RecordEntry(const MetricData& data)
 {
-    PPX_ASSERT_MSG(seconds >= 0.0, "The entries' seconds must always be positive");
-    PPX_ASSERT_MSG(mTimeSeries.size() == 0 || seconds > mTimeSeries.back().seconds, "The entries' seconds must form a stricly increasing function");
+    if (data.type != MetricType::GAUGE) {
+        PPX_LOG_ERROR("Provided metric was not correct type; ignoring. Provided type: " << static_cast<uint32_t>(data.type));
+        return false;
+    }
+
+    if (data.gauge.seconds < 0.0) {
+        PPX_LOG_ERROR("Provided gauge metric had negative seconds value; ignoring.");
+        return false;
+    }
+
+    auto entryCount = mTimeSeries.size();
+    if (entryCount > 0 && data.gauge.seconds <= mTimeSeries.back().seconds) {
+        PPX_LOG_ERROR("Provided gauge metric had old seconds value; ignoring.");
+        return false;
+    }
 
     TimeSeriesEntry entry;
-    entry.seconds = seconds;
-    entry.value   = value;
-    mTimeSeries.push_back(entry);
+    entry.seconds = data.gauge.seconds;
+    entry.value   = data.gauge.value;
+    // This entry will be added at the end; update the count now for calculations.
+    ++entryCount;
 
-    UpdateBasicStatistics(seconds, value);
+    // Update the basic stats.
+    mAccumulatedValue += entry.value;
+    mBasicStats.min     = std::min(mBasicStats.min, entry.value);
+    mBasicStats.max     = std::max(mBasicStats.max, entry.value);
+    mBasicStats.average = mAccumulatedValue / entryCount;
+    // Above checks guarantee the 'seconds' field monotonically increases with each entry.
+    mBasicStats.timeRatio = (entryCount > 1)
+                                ? mAccumulatedValue / (entry.seconds - mTimeSeries.front().seconds)
+                                : entry.value;
+
+    mTimeSeries.emplace_back(std::move(entry));
+    return true;
 }
 
-size_t MetricGauge::GetEntriesCount() const
+MetricGauge::Stats MetricGauge::ComputeStats() const
 {
-    return mTimeSeries.size();
-}
-
-void MetricGauge::GetEntry(size_t index, double* pSeconds, double* pValue) const
-{
-    PPX_ASSERT_MSG(index < mTimeSeries.size(), "The entry index is invalid");
-    PPX_ASSERT_NULL_ARG(pSeconds);
-    PPX_ASSERT_NULL_ARG(pValue);
-    const TimeSeriesEntry entry = mTimeSeries[index];
-    *pSeconds                   = entry.seconds;
-    *pValue                     = entry.value;
-}
-
-const GaugeBasicStatistics MetricGauge::GetBasicStatistics() const
-{
-    return mBasicStatistics;
-}
-
-const GaugeComplexStatistics MetricGauge::ComputeComplexStatistics() const
-{
-    GaugeComplexStatistics statistics   = {};
-    const size_t           entriesCount = mTimeSeries.size();
-    if (entriesCount == 0) {
-        return statistics;
+    Stats  stats      = mBasicStats;
+    size_t entryCount = mTimeSeries.size();
+    if (entryCount == 0) {
+        return stats;
     }
 
     std::vector<TimeSeriesEntry> sorted = mTimeSeries;
@@ -83,76 +88,54 @@ const GaugeComplexStatistics MetricGauge::ComputeComplexStatistics() const
             return lhs.value < rhs.value;
         });
 
-    if (entriesCount % 2 == 0) {
-        const size_t medianIndex = entriesCount / 2;
-        PPX_ASSERT_MSG(medianIndex > 0, "Unexpected median index");
-        statistics.median = (sorted[medianIndex - 1].value + sorted[medianIndex].value) * 0.5;
+    auto medianIndex = entryCount / 2;
+    // medianIndex is guaranteed to be > 0 when even from above check.
+    stats.median = (entryCount % 2 == 0)
+                       ? (sorted[medianIndex - 1].value + sorted[medianIndex].value) * 0.5
+                       : sorted[medianIndex].value;
+
+    double squareDiffSum = 0.0;
+    for (const auto& entry : mTimeSeries) {
+        double diff = entry.value - stats.average;
+        squareDiffSum += (diff * diff);
     }
-    else {
-        const size_t medianIndex = entriesCount / 2;
-        statistics.median        = sorted[medianIndex].value;
-    }
+    double variance         = squareDiffSum / entryCount;
+    stats.standardDeviation = sqrt(variance);
 
-    {
-        double squareDiffSum = 0.0;
-        for (auto entry : mTimeSeries) {
-            const double diff = entry.value - mBasicStatistics.average;
-            squareDiffSum += (diff * diff);
-        }
-        const double variance        = squareDiffSum / entriesCount;
-        statistics.standardDeviation = sqrt(variance);
-    }
+    stats.percentile01 = sorted[entryCount * 1 / 100].value;
+    stats.percentile05 = sorted[entryCount * 5 / 100].value;
+    stats.percentile10 = sorted[entryCount * 10 / 100].value;
+    stats.percentile90 = sorted[entryCount * 90 / 100].value;
+    stats.percentile95 = sorted[entryCount * 95 / 100].value;
+    stats.percentile99 = sorted[entryCount * 99 / 100].value;
 
-    const size_t percentileIndex90 = entriesCount * 90 / 100;
-    statistics.percentile90        = sorted[percentileIndex90].value;
-    const size_t percentileIndex95 = entriesCount * 95 / 100;
-    statistics.percentile95        = sorted[percentileIndex95].value;
-    const size_t percentileIndex99 = entriesCount * 99 / 100;
-    statistics.percentile99        = sorted[percentileIndex99].value;
-
-    return statistics;
-}
-
-void MetricGauge::UpdateBasicStatistics(double seconds, double value)
-{
-    mAccumulatedValue += value;
-
-    mBasicStatistics.min = std::min(mBasicStatistics.min, value);
-    mBasicStatistics.max = std::max(mBasicStatistics.max, value);
-
-    const size_t entriesCount = mTimeSeries.size();
-    mBasicStatistics.average  = mAccumulatedValue / entriesCount;
-    if (entriesCount > 1) {
-        const double timeSpan      = mTimeSeries.back().seconds - mTimeSeries.front().seconds;
-        mBasicStatistics.timeRatio = mAccumulatedValue / timeSpan;
-    }
-    else {
-        mBasicStatistics.timeRatio = mTimeSeries.front().value;
-    }
+    return stats;
 }
 
 nlohmann::json MetricGauge::Export() const
 {
     nlohmann::json metricObject;
-    nlohmann::json statisticsObject;
+    nlohmann::json statsObject;
 
     metricObject["metadata"] = mMetadata.Export();
 
-    const GaugeBasicStatistics basicStatistics = GetBasicStatistics();
-    statisticsObject["min"]                    = basicStatistics.min;
-    statisticsObject["max"]                    = basicStatistics.max;
-    statisticsObject["average"]                = basicStatistics.average;
-    statisticsObject["time_ratio"]             = basicStatistics.timeRatio;
+    Stats stats                       = ComputeStats();
+    statsObject["min"]                = stats.min;
+    statsObject["max"]                = stats.max;
+    statsObject["average"]            = stats.average;
+    statsObject["time_ratio"]         = stats.timeRatio;
+    statsObject["median"]             = stats.median;
+    statsObject["standard_deviation"] = stats.standardDeviation;
+    statsObject["percentile_01"]      = stats.percentile01;
+    statsObject["percentile_05"]      = stats.percentile05;
+    statsObject["percentile_10"]      = stats.percentile10;
+    statsObject["percentile_90"]      = stats.percentile90;
+    statsObject["percentile_95"]      = stats.percentile95;
+    statsObject["percentile_99"]      = stats.percentile99;
 
-    const GaugeComplexStatistics complexStatistics = ComputeComplexStatistics();
-    statisticsObject["median"]                     = complexStatistics.median;
-    statisticsObject["standard_deviation"]         = complexStatistics.standardDeviation;
-    statisticsObject["percentile_90"]              = complexStatistics.percentile90;
-    statisticsObject["percentile_95"]              = complexStatistics.percentile95;
-    statisticsObject["percentile_99"]              = complexStatistics.percentile99;
+    metricObject["statistics"] = statsObject;
 
-    metricObject["statistics"] = statisticsObject;
-
+    metricObject["time_series"] = nlohmann::json::array();
     for (const auto& entry : mTimeSeries) {
         metricObject["time_series"] += nlohmann::json::array({entry.seconds, entry.value});
     }
@@ -162,14 +145,16 @@ nlohmann::json MetricGauge::Export() const
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void MetricCounter::Increment(uint64_t add)
+bool MetricCounter::RecordEntry(const MetricData& data)
 {
-    mCounter += add;
-}
+    if (data.type != MetricType::COUNTER) {
+        PPX_LOG_ERROR("Provided metric was not correct type! Provided type: " << static_cast<uint32_t>(data.type));
+        return false;
+    }
 
-uint64_t MetricCounter::Get() const
-{
-    return mCounter;
+    mCounter += data.counter.increment;
+    ++mEntryCount;
+    return true;
 }
 
 nlohmann::json MetricCounter::Export() const
@@ -177,84 +162,153 @@ nlohmann::json MetricCounter::Export() const
     nlohmann::json metricObject;
     metricObject["metadata"] = mMetadata.Export();
     metricObject["value"]    = mCounter;
+    metricObject["entry_count"] = mEntryCount;
     return metricObject;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void Run::AddMetric(std::unique_ptr<MetricGauge>&& metric)
+Metric* Run::AddMetric(const MetricMetadata& metadata)
 {
-    mGauges.emplace(metric->GetName(), std::move(metric));
-}
+    if (metadata.name.empty()) {
+        PPX_LOG_ERROR("Metric name must not be empty; dropping.");
+        return nullptr;
+    }
 
-void Run::AddMetric(std::unique_ptr<MetricCounter>&& metric)
-{
-    mCounters.emplace(metric->GetName(), std::move(metric));
+    if (mMetricNames.count(metadata.name) > 0) {
+        PPX_LOG_ERROR("Duplicate metric name provided: " << metadata.name << "; dropping.");
+        return nullptr;
+    }
+
+    Metric* pMetric = nullptr;
+    switch (metadata.type) {
+        case MetricType::GAUGE:
+            pMetric = new MetricGauge(metadata);
+            break;
+        case MetricType::COUNTER:
+            pMetric = new MetricCounter(metadata);
+            break;
+        default:
+            return nullptr;
+    }
+    auto metric = std::unique_ptr<Metric>(pMetric);
+    mMetrics.emplace_back(std::move(metric));
+    mMetricNames.insert(metadata.name);
+    return pMetric;
 }
 
 bool Run::HasMetric(const std::string& name) const
 {
-    return mGauges.find(name) != mGauges.end() || mCounters.find(name) != mCounters.end();
+    return (mMetricNames.count(name) != 0);
 }
 
 nlohmann::json Run::Export() const
 {
     nlohmann::json object;
     object["name"] = mName;
-    for (const auto& [name, pMetric] : mGauges) {
-        object["gauges"] += pMetric->Export();
-    }
-    for (const auto& [name, pMetric] : mCounters) {
-        object["counters"] += pMetric->Export();
+    object["gauges"]   = nlohmann::json::array();
+    object["counters"] = nlohmann::json::array();
+    for (const auto& metric : mMetrics) {
+        std::string typeString;
+        switch (metric->GetType()) {
+            case MetricType::GAUGE:
+                typeString = "gauges";
+                break;
+            case MetricType::COUNTER:
+                typeString = "counters";
+                break;
+            default:
+                PPX_LOG_ERROR("Unrecognized metric type at export: " << static_cast<uint32_t>(metric->GetType()));
+                continue;
+        }
+        object[typeString] += metric->Export();
     }
     return object;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// TODO(slumpwuffle): The lifetime of the pointer returned by this function is not well-defined
-// to the caller, and its expiration cannot be known directly. Instead, we may want to use either
-// strong/weak pointers or functional access to help prevent unexpected use-after-free situations.
-Run* Manager::AddRun(const std::string& name)
+void Manager::StartRun(const std::string& name)
 {
     PPX_ASSERT_MSG(!name.empty(), "A run name must not be empty");
-    PPX_ASSERT_MSG(mRuns.find(name) == mRuns.end(), "Runs must have unique names (duplicate name detected)");
+    PPX_ASSERT_MSG(mRuns.find(name) == mRuns.end(), "All runs must have unique names (duplicate name detected)");
+    PPX_ASSERT_MSG(mActiveRun == nullptr, "Only one run may be active at a time!");
 
-    auto* pRun = new Run(name);
-    auto  run  = std::unique_ptr<Run>(pRun);
+    mActiveRun = new Run(name);
+    auto run   = std::unique_ptr<Run>(mActiveRun);
     mRuns.emplace(name, std::move(run));
-    return pRun;
 }
 
-void Manager::ExportToDisk(const std::string& reportPath, bool overwriteExisting) const
+void Manager::EndRun()
+{
+    if (mActiveRun == nullptr) {
+        PPX_LOG_ERROR("Requested to end run with no active run!");
+    }
+
+    mActiveRun = nullptr;
+    mActiveMetrics.clear();
+}
+
+bool Manager::HasActiveRun() const
+{
+    return (mActiveRun != nullptr);
+}
+
+MetricID Manager::AddMetric(const MetricMetadata& metadata)
+{
+    if (mActiveRun == nullptr) {
+        return kInvalidMetricID;
+    }
+
+    auto* metric = mActiveRun->AddMetric(metadata);
+    if (metric == nullptr) {
+        return kInvalidMetricID;
+    }
+    auto metricID = mNextMetricID++;
+    mActiveMetrics.emplace(metricID, metric);
+    return metricID;
+}
+
+bool Manager::RecordMetricData(MetricID id, const MetricData& data)
+{
+    if (mActiveRun == nullptr) {
+        PPX_LOG_WARN("Attempted to record a metric entry with no active run.");
+        return false;
+    }
+    auto findResult = mActiveMetrics.find(id);
+    if (findResult == mActiveMetrics.end()) {
+        PPX_LOG_ERROR("Attempted to record a metric entry against an invalid ID.");
+        return false;
+    }
+    return findResult->second->RecordEntry(data);
+}
+
+Report Manager::CreateReport(const std::string& reportPath) const
 {
     nlohmann::json content;
+    content["runs"] = nlohmann::json::array();
     for (const auto& [name, pRun] : mRuns) {
         content["runs"] += pRun->Export();
     }
 
-    // Keep the report internal to this function.
-    // Since the json library relies on strings-as-pointers rather than self-allocated objects,
-    // the lifecycle of the report is tied to the lifecycle of the runs and metrics owned by
-    // the manager. But this is opaque.
-    Report(std::move(content), reportPath).WriteToDisk(overwriteExisting);
+    return Report(std::move(content), reportPath);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 
-Manager::Report::Report(const nlohmann::json& content, const std::string& reportPath)
+Report::Report(const nlohmann::json& content, const std::string& reportPath)
     : mContent(content)
 {
     SetReportPath(reportPath);
 }
 
-Manager::Report::Report(nlohmann::json&& content, const std::string& reportPath)
+Report::Report(nlohmann::json&& content, const std::string& reportPath)
     : mContent(content)
 {
     SetReportPath(reportPath);
 }
 
-void Manager::Report::WriteToDisk(bool overwriteExisting) const
+void Report::WriteToDisk(bool overwriteExisting) const
 {
     PPX_ASSERT_MSG(!mFilePath.empty(), "Filepath must not be empty!");
 
@@ -269,13 +323,18 @@ void Manager::Report::WriteToDisk(bool overwriteExisting) const
         PPX_LOG_ERROR("Failed to open metrics file at path [" << mFilePath << "] for writing!");
         return;
     }
-    outputFile << mContent.dump(4) << std::endl;
+    outputFile << GetContentString() << std::endl;
     outputFile.close();
 
     PPX_LOG_INFO("Metrics report written to path [" << mFilePath << "]");
 }
 
-void Manager::Report::SetReportPath(const std::string& reportPath)
+std::string Report::GetContentString() const
+{
+    return mContent.dump(4);
+}
+
+void Report::SetReportPath(const std::string& reportPath)
 {
     std::filesystem::path path(reportPath.empty() ? std::string(kDefaultReportPath) : reportPath);
     auto                  filename   = path.filename().string();

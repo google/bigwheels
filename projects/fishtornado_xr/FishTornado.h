@@ -138,7 +138,7 @@ private:
         static constexpr size_t kCount             = 8;
 
         ppx::metrics::Manager      manager;
-        ppx::metrics::MetricGauge* metrics[kCount]      = {};
+        ppx::metrics::MetricID     metrics[kCount]      = {};
         float                      lastMetricsWriteTime = 0;
     };
 
