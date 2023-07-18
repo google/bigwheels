@@ -26,7 +26,12 @@ class LogTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        Log::Initialize(LOG_MODE_CONSOLE, nullptr, &mOut);
+        bool initialized = Log::Initialize(LOG_MODE_CONSOLE, nullptr, &mOut);
+        if (!initialized) {
+            // Shut down the existing logging to capture the log output in the stream.
+            Log::Shutdown();
+            Log::Initialize(LOG_MODE_CONSOLE, nullptr, &mOut);
+        }
         mOut.str(std::string());
         mOut.clear();
     }
