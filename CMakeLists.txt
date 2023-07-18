@@ -123,6 +123,7 @@ else()
         -Wno-deprecated-copy \
         -Wno-deprecated-enum-enum-conversion \
         -Wno-pointer-bool-conversion \
+        -Wno-format-security \
     ")
 
     if (NOT PPX_BUILD_XR)
