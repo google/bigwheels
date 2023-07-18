@@ -17,6 +17,7 @@
 #include <queue>
 #include <unordered_set>
 #include <array>
+#include <random>
 
 #include "ppx/ppx.h"
 #include "ppx/knob.h"
@@ -88,14 +89,15 @@ static constexpr std::array<const char*, kAvailableScenes.size()> kAvailableScen
     "basic/models/spheres/sphere_4.gltf",
     "basic/models/spheres/sphere_5.gltf"};
 
-static constexpr uint32_t kPipelineCount = kAvailablePsShaders.size() * kAvailableVsShaders.size();
+static constexpr uint32_t kPipelineCount          = kAvailablePsShaders.size() * kAvailableVsShaders.size();
+static constexpr uint32_t kMaxSphereInstanceCount = 3000;
 
 class ProjApp
     : public ppx::Application
 {
 public:
     ProjApp()
-        : mCamera(float3(0, 0, -5), float3(0, 0, -4)) {}
+        : mCamera(float3(0, 0, -100), float3(0, 0, -4)) {}
     virtual void InitKnobs() override;
     virtual void Config(ppx::ApplicationSettings& settings) override;
     virtual void Setup() override;
@@ -159,11 +161,26 @@ private:
         std::vector<Primitive> primitives;
     };
 
+    struct Point
+    {
+        float x;
+        float y;
+    };
+
+    struct Grid
+    {
+        uint32_t rows;
+        uint32_t columns;
+        float    step;
+        Point    center;
+    };
+
     using RenderList   = std::unordered_map<Material*, std::vector<Object*>>;
     using TextureCache = std::unordered_map<std::string, grfx::ImagePtr>;
 
     std::vector<PerFrame>                                         mPerFrame;
     grfx::DescriptorPoolPtr                                       mDescriptorPool;
+    std::array<grfx::DescriptorPoolPtr, kAvailableScenes.size()>  mSceneDescriptorPools;
     grfx::DescriptorSetLayoutPtr                                  mSetLayout;
     std::array<grfx::ShaderModulePtr, kAvailableVsShaders.size()> mVsShaders;
     std::array<grfx::ShaderModulePtr, kAvailablePsShaders.size()> mPsShaders;
@@ -171,6 +188,12 @@ private:
     float3                                                        mLightPosition = float3(10, 100, 10);
     std::array<Scene, kAvailableScenes.size()>                    mScenes;
     size_t                                                        mCurrentSceneIndex;
+    std::vector<std::array<Object, kMaxSphereInstanceCount + 1>>  mSphereInstances;
+    size_t                                                        mPreviousSphereCount;
+    size_t                                                        mCurrentSphereCount;
+    std::vector<size_t>                                           mIndices;
+    size_t                                                        mSkyDomeIndex;
+    Grid                                                          mGrid;
     std::array<bool, TOTAL_KEY_COUNT>                             mPressedKeys = {0};
     uint64_t                                                      mGpuWorkDuration;
 
@@ -180,6 +203,7 @@ private:
     std::shared_ptr<KnobDropdown<std::string>> pKnobVs;
     std::shared_ptr<KnobDropdown<std::string>> pKnobPs;
     std::shared_ptr<KnobDropdown<std::string>> pCurrentScene;
+    std::shared_ptr<KnobSlider<int>>           pSphereInstanceCount;
 
 private:
     void LoadScene(
@@ -281,8 +305,12 @@ void ProjApp::InitKnobs()
     pKnobPs = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("ps", 0, kAvailablePsShaders);
     pKnobPs->SetDisplayName("Pixel Shader");
 
-    pCurrentScene = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("scene", 0, kAvailableScenes);
+    pCurrentScene = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("scene", 1, kAvailableScenes);
     pCurrentScene->SetDisplayName("Scene");
+
+    mPreviousSphereCount = 0;
+    pSphereInstanceCount = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("sphere count", 50, 1, kMaxSphereInstanceCount);
+    pSphereInstanceCount->SetDisplayName("Sphere Instance Count");
 }
 
 void ProjApp::LoadTexture(
@@ -734,6 +762,15 @@ void ProjApp::Setup()
         poolCreateInfo.sampledImage                   = 1024;
         poolCreateInfo.sampler                        = 1024;
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&poolCreateInfo, &mDescriptorPool));
+
+        // Create a descriptor pool for each scene.
+        for (size_t i = 0; i < kAvailableScenes.size(); i++) {
+            grfx::DescriptorPoolCreateInfo poolCreateInfo = {};
+            poolCreateInfo.uniformBuffer                  = 1024;
+            poolCreateInfo.sampledImage                   = 1024;
+            poolCreateInfo.sampler                        = 1024;
+            PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&poolCreateInfo, &mSceneDescriptorPools[i]));
+        }
     }
 
     for (size_t i = 0; i < kAvailableVsShaders.size(); i++) {
@@ -812,6 +849,53 @@ void ProjApp::Setup()
             &mScenes[i].materials);
     }
 
+    // Setup the grid for sphere instances
+    {
+        mGrid.rows     = static_cast<uint32_t>(std::sqrt(kMaxSphereInstanceCount));
+        mGrid.columns  = static_cast<uint32_t>(std::ceil(static_cast<float>(kMaxSphereInstanceCount) / mGrid.rows));
+        mGrid.step     = 5.0f;
+        mGrid.center.x = static_cast<float>(mGrid.rows - 1) / 2.0f;
+        mGrid.center.y = static_cast<float>(mGrid.columns - 1) / 2.0f;
+    }
+
+    // Create sphere instances
+    {
+        // It assumes we have scenes with 2 objects where skydome_object_index = 0 and sphere_object_index = 1.
+        constexpr size_t SKYDOME_OBJECT_INDEX = 0;
+        constexpr size_t SPHERE_OBJECT_INDEX  = 1;
+        // Reserve the index `kMaxSphereInstanceCount` to instance the SkyDome since it is always rendered.
+        mSkyDomeIndex = kMaxSphereInstanceCount;
+        mSphereInstances.resize(kAvailableScenes.size());
+        for (uint32_t i = 0; i < kAvailableScenes.size(); i++) {
+            for (uint32_t j = 0; j < kMaxSphereInstanceCount; j++) {
+                mSphereInstances[i][j] = mScenes[i].objects[SPHERE_OBJECT_INDEX];
+                auto& object           = mSphereInstances[i][j];
+
+                // Create an uniform buffer for the sphere instance.
+                grfx::BufferCreateInfo bufferCreateInfo        = {};
+                bufferCreateInfo.size                          = RoundUp(512, PPX_CONSTANT_BUFFER_ALIGNMENT);
+                bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
+                bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
+                PPX_CHECKED_CALL(GetGraphicsQueue()->GetDevice()->CreateBuffer(&bufferCreateInfo, &object.pUniformBuffer));
+
+                // Allocate descriptor sets for renderables.
+                for (auto& renderable : object.renderables) {
+                    PPX_CHECKED_CALL(GetGraphicsQueue()->GetDevice()->AllocateDescriptorSet(mSceneDescriptorPools[i], mSetLayout, &renderable.pDescriptorSet));
+                }
+
+                // Locate the sphere instance in the grid.
+                uint32_t  row        = j / mGrid.columns;
+                uint32_t  col        = j % mGrid.columns;
+                Point     location   = {.x = (row - mGrid.center.x) * mGrid.step, .y = (col - mGrid.center.y) * mGrid.step};
+                glm::mat4 T          = glm::translate(glm::mat4(1.0f), glm::vec3(location.x, 0.0f, location.y));
+                object.modelMatrix   = object.modelMatrix * T;
+                object.ITModelMatrix = glm::inverse(glm::transpose(object.modelMatrix));
+            }
+            // Add the SkyDome instance.
+            mSphereInstances[i][mSkyDomeIndex] = mScenes[i].objects[SKYDOME_OBJECT_INDEX];
+        }
+    }
+
     // Per frame data
     {
         PerFrame frame = {};
@@ -877,12 +961,30 @@ void ProjApp::ProcessInput()
     }
 }
 
+// Generates `m` random indices without repetition from [0, 1, ..., `n`-2, `n`-1]
+std::vector<size_t> GenerateRandomIndices(size_t m, size_t n)
+{
+    PPX_ASSERT_MSG(m <= n, "Invalid values. `m` must be less or equal to `n`.");
+    std::vector<size_t> indices(n);
+    std::iota(indices.begin(), indices.end(), 0);
+    std::shuffle(indices.begin(), indices.end(), std::random_device{});
+    return {indices.begin(), indices.begin() + m};
+}
+
 void ProjApp::Render()
 {
     // This is important: If we directly passed mCurrentSceneIndex to ImGUI, the value would change during
     // the drawing pass, meaning we would change descriptors while drawing.
     // That's why we delay the change to the next frame (now).
     mCurrentSceneIndex = pCurrentScene->GetIndex();
+
+    mCurrentSphereCount = pSphereInstanceCount->GetValue();
+    if (mCurrentSphereCount != mPreviousSphereCount) {
+        mIndices = GenerateRandomIndices(mCurrentSphereCount, kMaxSphereInstanceCount);
+        // Add the SkyDome instance in the rendering.
+        mIndices.push_back(mSkyDomeIndex);
+        mPreviousSphereCount = mCurrentSphereCount;
+    }
 
     PerFrame&          frame      = mPerFrame[0];
     grfx::SwapchainPtr swapchain  = GetSwapchain();
@@ -905,7 +1007,8 @@ void ProjApp::Render()
     ProcessInput();
 
     // Update uniform buffers
-    for (auto& object : mScenes[mCurrentSceneIndex].objects) {
+    for (size_t index : mIndices) {
+        auto& object = mSphereInstances[mCurrentSceneIndex][index];
         struct FrameData
         {
             float4x4 modelMatrix;                // Transforms object space to world space
@@ -932,7 +1035,8 @@ void ProjApp::Render()
         constexpr size_t                                    TEXTURE_COUNT    = 3;
         constexpr size_t                                    DESCRIPTOR_COUNT = 1 + TEXTURE_COUNT * 2 /* uniform + 3 * (sampler + texture) */;
         std::array<grfx::WriteDescriptor, DESCRIPTOR_COUNT> write;
-        for (auto& object : mScenes[mCurrentSceneIndex].objects) {
+        for (size_t index : mIndices) {
+            auto& object = mSphereInstances[mCurrentSceneIndex][index];
             for (auto& renderable : object.renderables) {
                 auto* pPrimitive     = renderable.pPrimitive;
                 auto* pMaterial      = renderable.pMaterial;
@@ -979,7 +1083,8 @@ void ProjApp::Render()
 
             size_t pipeline_index = pKnobVs->GetIndex() * kAvailablePsShaders.size() + pKnobPs->GetIndex();
             // Draw entities
-            for (auto& object : mScenes[mCurrentSceneIndex].objects) {
+            for (size_t index : mIndices) {
+                auto& object = mSphereInstances[mCurrentSceneIndex][index];
                 for (auto& renderable : object.renderables) {
                     frame.cmd->BindGraphicsPipeline(renderable.pMaterial->mPipelines[pipeline_index]);
                     frame.cmd->BindGraphicsDescriptorSets(renderable.pMaterial->pInterface, 1, &renderable.pDescriptorSet);

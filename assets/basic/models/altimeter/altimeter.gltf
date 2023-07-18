@@ -21,6 +21,15 @@
     ],
     "nodes" : [
         {
+            "mesh" : 1,
+            "name" : "skybox",
+            "scale" : [
+                100,
+                100,
+                100
+            ]
+        },
+        {
             "mesh" : 0,
             "name" : "altimeter-body",
             "rotation" : [
@@ -28,15 +37,6 @@
                 0,
                 0,
                 0.2589210271835327
-            ]
-        },
-        {
-            "mesh" : 1,
-            "name" : "skybox",
-            "scale" : [
-                100,
-                100,
-                100
             ]
         }
     ],

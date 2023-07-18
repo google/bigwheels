@@ -34,7 +34,7 @@
 #define PPX_MAX_VIEWPORTS                       16
 #define PPX_MAX_SCISSORS                        16
 
-#define PPX_MAX_SETS_PER_POOL                   1024
+#define PPX_MAX_SETS_PER_POOL                   4096
 #define PPX_MAX_BOUND_DESCRIPTOR_SETS           32
 
 #define PPX_WHOLE_SIZE                          UINT64_MAX
