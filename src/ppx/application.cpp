@@ -1029,7 +1029,7 @@ int Application::Run(int argc, char** argv)
         PPX_ASSERT_MSG(false, "Unable to parse command line arguments");
         return EXIT_FAILURE;
     }
-    mStandardOptions = mCommandLineParser.GetOptions().GetStandardOptions();
+    mStandardOptions = mCommandLineParser.GetStandardOptions();
 
     // Knobs need to be set up before commandline parsing.
     DispatchInitKnobs();
@@ -1038,7 +1038,7 @@ int Application::Run(int argc, char** argv)
         mCommandLineParser.AppendUsageMsg(mKnobManager.GetUsageMsg());
     }
 
-    if (mStandardOptions.help) {
+    if (mCommandLineParser.GetPrintHelp()) {
         PPX_LOG_INFO(mCommandLineParser.GetUsageMsg());
         return EXIT_SUCCESS;
     }
@@ -1676,7 +1676,7 @@ void Application::UpdateAppMetrics()
         const double     framerateSecondsDiff    = seconds - mMetrics.framerateRecordTimer;
         constexpr double FRAMERATE_RECORD_PERIOD = 1.0;
         if (framerateSecondsDiff >= FRAMERATE_RECORD_PERIOD) {
-            const double framerate = mMetrics.framerateFrameCount / framerateSecondsDiff;
+            const double        framerate     = mMetrics.framerateFrameCount / framerateSecondsDiff;
             metrics::MetricData framerateData = {metrics::MetricType::GAUGE};
             framerateData.gauge.seconds       = seconds;
             framerateData.gauge.value         = framerate;
