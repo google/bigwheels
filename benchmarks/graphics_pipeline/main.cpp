@@ -45,12 +45,16 @@ public:
         BACKWARD
     };
 
-    FreeCamera(float3 eyePosition, float3 target, float theta, float phi)
+    // Initializes a FreeCamera located at `eyePosition` and looking at the
+    // spherical coordinates in world space defined by `theta` and `phi`.
+    // `mTheta` (longitude) is an angle in the range [0, 2pi].
+    // `mPhi` (latitude) is an angle in the range [0, pi].
+    FreeCamera(float3 eyePosition, float theta, float phi)
     {
         mEyePosition = eyePosition;
-        mTarget      = target;
         mTheta       = theta;
         mPhi         = phi;
+        mTarget      = eyePosition + SphericalToCartesian(theta, phi);
     }
 
     // Moves the location of the camera in dir direction for distance units.
@@ -63,7 +67,7 @@ public:
 private:
     // Spherical coordinates in world space where the camera is looking at.
     // `mTheta` (longitude) is an angle in the range [0, 2pi].
-    // `mPhi` (latitude) is an angle in the range [-pi/2, pi/2].
+    // `mPhi` (latitude) is an angle in the range [0, pi].
     float mTheta;
     float mPhi;
 };
@@ -108,7 +112,7 @@ class ProjApp
 {
 public:
     ProjApp()
-        : mCamera(float3(0, 0, -5), float3(0, 0, -4), pi<float>() / 2.0f, pi<float>() / 2.0f) {}
+        : mCamera(float3(0, 0, -5), pi<float>() / 2.0f, pi<float>() / 2.0f) {}
     virtual void InitKnobs() override;
     virtual void Config(ppx::ApplicationSettings& settings) override;
     virtual void Setup() override;
