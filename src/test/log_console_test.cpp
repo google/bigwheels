@@ -26,12 +26,13 @@ class LogTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        bool initialized = Log::Initialize(LOG_MODE_CONSOLE, nullptr, &mOut);
-        if (!initialized) {
-            // Shut down the existing logging to capture the log output in the stream.
-            Log::Shutdown();
-            Log::Initialize(LOG_MODE_CONSOLE, nullptr, &mOut);
-        }
+        // Since we share global state for all tests, some other unrelated tests
+        // might have run before the logging tests and already initialized logging.
+        // Shut down the existing logging to capture the log output in the stream.
+        // This is requierd to run all tests in the same process.
+        // If the logging was not initialized this operation is a no-op.
+        Log::Shutdown();
+        Log::Initialize(LOG_MODE_CONSOLE, nullptr, &mOut);
         mOut.str(std::string());
         mOut.clear();
     }
