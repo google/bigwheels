@@ -26,6 +26,11 @@ class LogTest : public ::testing::Test
 protected:
     void SetUp() override
     {
+        // Some other unrelated tests might have run before the logging tests and
+        // already initialized logging. Since we share global state and run all
+        // tests in a single process, we need to shut down any existing logging.
+        // If the logging was not initialized this operation is a no-op.
+        Log::Shutdown();
         Log::Initialize(LOG_MODE_CONSOLE, nullptr, &mOut);
         mOut.str(std::string());
         mOut.clear();
