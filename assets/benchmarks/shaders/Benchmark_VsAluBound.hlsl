@@ -15,7 +15,7 @@
 #include "Benchmark.hlsli"
 
 VSOutput vsmain(
-    float4 position : POSITION,
+    float3 position : POSITION,
     float2 uv       : TEXCOORD,
     float3 normal   : NORMAL,
     float3 tangent   : TANGENT)
@@ -47,7 +47,7 @@ VSOutput vsmain(
     jointWeights.z * jointMat[int(jointIndices.z)] +
     jointWeights.w * jointMat[int(jointIndices.w)];
 
-  result.world_position = mul(Scene.ModelMatrix, position);
+  result.world_position = mul(Scene.ModelMatrix, float4(position, 1));
   result.position = mul(Scene.CameraViewProjectionMatrix, result.world_position);
   result.position = mul(skinMat, result.position);
   result.uv = uv;
