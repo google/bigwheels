@@ -85,3 +85,13 @@ generate_rules_for_shader("shader_benchmark_ps_mem_bound"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_PsMemBound.hlsl"
     INCLUDES ${INCLUDE_FILES}
     STAGES "ps")
+
+generate_rules_for_shader("shader_benchmark_vs_skybox"
+    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_VsSkyBox.hlsl"
+    INCLUDES ${INCLUDE_FILES}
+    STAGES "vs")
+
+generate_rules_for_shader("shader_benchmark_ps_skybox"
+    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_PsSkyBox.hlsl"
+    INCLUDES ${INCLUDE_FILES}
+    STAGES "ps")

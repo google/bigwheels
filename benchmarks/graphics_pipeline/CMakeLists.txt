@@ -23,4 +23,6 @@ add_samples_for_all_apis(
       "shader_benchmark_vs_alu_bound"
       "shader_benchmark_ps_simple"
       "shader_benchmark_ps_alu_bound"
-      "shader_benchmark_ps_mem_bound")
+      "shader_benchmark_ps_mem_bound"
+      "shader_benchmark_vs_skybox"
+      "shader_benchmark_ps_skybox")

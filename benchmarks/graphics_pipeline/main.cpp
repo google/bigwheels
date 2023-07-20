@@ -102,10 +102,27 @@ private:
         grfx::QueryPtr         timestampQuery;
     };
 
+    struct Entity
+    {
+        grfx::MeshPtr          mesh;
+        grfx::DescriptorSetPtr descriptorSet;
+        grfx::BufferPtr        uniformBuffer;
+    };
+
     std::vector<PerFrame>             mPerFrame;
     FreeCamera                        mCamera;
     std::array<bool, TOTAL_KEY_COUNT> mPressedKeys = {0};
     uint64_t                          mGpuWorkDuration;
+    grfx::ShaderModulePtr             mVS;
+    grfx::ShaderModulePtr             mPS;
+    grfx::PipelineInterfacePtr        mPipelineInterface;
+    grfx::DescriptorPoolPtr           mDescriptorPool;
+    grfx::DescriptorSetLayoutPtr      mDescriptorSetLayout;
+    grfx::GraphicsPipelinePtr         mSkyBoxPipeline;
+    Entity                            mSkyBox;
+    ppx::grfx::ImagePtr               mCubeMapImage;
+    ppx::grfx::SampledImageViewPtr    mCubeMapImageView;
+    ppx::grfx::SamplerPtr             mCubeMapSampler;
 
 private:
     void ProcessInput();
@@ -113,6 +130,8 @@ private:
     void UpdateGUI();
 
     void DrawExtraInfo();
+
+    void SetupSkyBox(const TriMesh& mesh, const GeometryOptions& createInfo, Entity* pEntity);
 };
 
 void FreeCamera::Move(MovementDirection dir, float distance)
@@ -181,12 +200,129 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
 }
 
+void ProjApp::SetupSkyBox(const TriMesh& mesh, const GeometryOptions& createInfo, Entity* pEntity)
+{
+    Geometry geo;
+    PPX_CHECKED_CALL(Geometry::Create(createInfo, mesh, &geo));
+    PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &pEntity->mesh));
+
+    grfx::BufferCreateInfo bufferCreateInfo        = {};
+    bufferCreateInfo.size                          = PPX_MINIMUM_UNIFORM_BUFFER_SIZE;
+    bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
+    bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
+    PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &pEntity->uniformBuffer));
+
+    PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mDescriptorSetLayout, &pEntity->descriptorSet));
+
+    grfx::WriteDescriptor write = {};
+    write.binding               = 0;
+    write.type                  = grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    write.bufferOffset          = 0;
+    write.bufferRange           = PPX_WHOLE_SIZE;
+    write.pBuffer               = pEntity->uniformBuffer;
+    PPX_CHECKED_CALL(pEntity->descriptorSet->UpdateDescriptors(1, &write));
+
+    write            = {};
+    write.binding    = 1;
+    write.type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    write.pImageView = mCubeMapImageView;
+    PPX_CHECKED_CALL(pEntity->descriptorSet->UpdateDescriptors(1, &write));
+
+    write          = {};
+    write.binding  = 2;
+    write.type     = grfx::DESCRIPTOR_TYPE_SAMPLER;
+    write.pSampler = mCubeMapSampler;
+    PPX_CHECKED_CALL(pEntity->descriptorSet->UpdateDescriptors(1, &write));
+}
+
 void ProjApp::Setup()
 {
     // Cameras
     {
         mCamera.LookAt(mCamera.GetEyePosition(), mCamera.GetTarget());
         mCamera.SetPerspective(60.f, GetWindowAspect());
+    }
+
+    // Create descriptor pool large enough for this project
+    {
+        grfx::DescriptorPoolCreateInfo poolCreateInfo = {};
+        poolCreateInfo.uniformBuffer                  = 1024;
+        poolCreateInfo.sampledImage                   = 1024;
+        poolCreateInfo.sampler                        = 1024;
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&poolCreateInfo, &mDescriptorPool));
+    }
+
+    // Texture image, view,  and sampler for the SkyBox
+    {
+        grfx_util::CubeMapCreateInfo createInfo = {};
+        createInfo.layout                       = grfx_util::CUBE_IMAGE_LAYOUT_CROSS_HORIZONTAL;
+        createInfo.posX                         = PPX_ENCODE_CUBE_FACE(3, grfx_util::CUBE_FACE_OP_NONE, grfx_util::CUBE_FACE_OP_NONE);
+        createInfo.negX                         = PPX_ENCODE_CUBE_FACE(1, grfx_util::CUBE_FACE_OP_NONE, grfx_util::CUBE_FACE_OP_NONE);
+        createInfo.posY                         = PPX_ENCODE_CUBE_FACE(0, grfx_util::CUBE_FACE_OP_NONE, grfx_util::CUBE_FACE_OP_NONE);
+        createInfo.negY                         = PPX_ENCODE_CUBE_FACE(5, grfx_util::CUBE_FACE_OP_NONE, grfx_util::CUBE_FACE_OP_NONE);
+        createInfo.posZ                         = PPX_ENCODE_CUBE_FACE(2, grfx_util::CUBE_FACE_OP_NONE, grfx_util::CUBE_FACE_OP_NONE);
+        createInfo.negZ                         = PPX_ENCODE_CUBE_FACE(4, grfx_util::CUBE_FACE_OP_NONE, grfx_util::CUBE_FACE_OP_NONE);
+
+        PPX_CHECKED_CALL(grfx_util::CreateCubeMapFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("basic/models/hilly_terrain.png"), &createInfo, &mCubeMapImage));
+
+        grfx::SampledImageViewCreateInfo viewCreateInfo = grfx::SampledImageViewCreateInfo::GuessFromImage(mCubeMapImage);
+        PPX_CHECKED_CALL(GetDevice()->CreateSampledImageView(&viewCreateInfo, &mCubeMapImageView));
+
+        grfx::SamplerCreateInfo samplerCreateInfo = {};
+        PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &mCubeMapSampler));
+    }
+
+    // Descriptor layout
+    {
+        grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{0, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{1, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{2, grfx::DESCRIPTOR_TYPE_SAMPLER, 1, grfx::SHADER_STAGE_ALL_GRAPHICS});
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mDescriptorSetLayout));
+    }
+
+    // Entities
+    {
+        TriMesh mesh = TriMesh::CreateCube(float3(8, 8, 8));
+        SetupSkyBox(mesh, GeometryOptions::InterleavedU16().AddColor(), &mSkyBox);
+    }
+
+    // SkyBox pipeline
+    {
+        std::vector<char> bytecode = LoadShader("benchmarks/shaders", "Benchmark_VsSkyBox.vs");
+        PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
+        grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mVS));
+
+        bytecode = LoadShader("benchmarks/shaders", "Benchmark_PsSkyBox.ps");
+        PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
+        shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPS));
+
+        grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
+        piCreateInfo.setCount                          = 1;
+        piCreateInfo.sets[0].set                       = 0;
+        piCreateInfo.sets[0].pLayout                   = mDescriptorSetLayout;
+        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mPipelineInterface));
+
+        grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
+        gpCreateInfo.VS                                 = {mVS.Get(), "vsmain"};
+        gpCreateInfo.PS                                 = {mPS.Get(), "psmain"};
+        gpCreateInfo.vertexInputState.bindingCount      = 1;
+        gpCreateInfo.vertexInputState.bindings[0]       = mSkyBox.mesh->GetDerivedVertexBindings()[0];
+        gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
+        gpCreateInfo.cullMode                           = grfx::CULL_MODE_FRONT;
+        gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
+        gpCreateInfo.depthReadEnable                    = true;
+        gpCreateInfo.depthWriteEnable                   = true;
+        gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
+        gpCreateInfo.outputState.renderTargetCount      = 1;
+        gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
+        gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
+        gpCreateInfo.pPipelineInterface                 = mPipelineInterface;
+
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mSkyBoxPipeline));
     }
 
     // Per frame data
@@ -285,6 +421,19 @@ void ProjApp::Render()
 
     UpdateGUI();
 
+    // Update uniform buffers
+    {
+        struct SceneData
+        {
+            float4x4 modelMatrix;                // Transforms object space to world space
+            float4x4 cameraViewProjectionMatrix; // Camera's view projection matrix
+        };
+        SceneData data                  = {};
+        data.modelMatrix                = glm::scale(float3(50.0f, 50.0f, 50.0f));
+        data.cameraViewProjectionMatrix = mCamera.GetViewProjectionMatrix();
+        mSkyBox.uniformBuffer->CopyFromSource(sizeof(data), &data);
+    }
+
     // Build command buffer
     PPX_CHECKED_CALL(frame.cmd->Begin());
     {
@@ -303,7 +452,12 @@ void ProjApp::Render()
             frame.cmd->SetScissors(GetScissor());
             frame.cmd->SetViewports(GetViewport());
 
-            // Draw entities
+            // Draw the SkyBox
+            frame.cmd->BindGraphicsPipeline(mSkyBoxPipeline);
+            frame.cmd->BindGraphicsDescriptorSets(mPipelineInterface, 1, &mSkyBox.descriptorSet);
+            frame.cmd->BindIndexBuffer(mSkyBox.mesh);
+            frame.cmd->BindVertexBuffers(mSkyBox.mesh);
+            frame.cmd->DrawIndexed(mSkyBox.mesh->GetIndexCount());
 
             DrawImGui(frame.cmd);
         }
