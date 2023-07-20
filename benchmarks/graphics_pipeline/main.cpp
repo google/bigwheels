@@ -118,6 +118,13 @@ private:
         grfx::QueryPtr         timestampQuery;
     };
 
+    struct Texture
+    {
+        grfx::ImagePtr            image;
+        grfx::SampledImageViewPtr sampledImageView;
+        grfx::SamplerPtr          sampler;
+    };
+
     struct Entity
     {
         grfx::MeshPtr                mesh;
@@ -142,9 +149,10 @@ private:
     uint64_t                                                      mGpuWorkDuration;
     grfx::ShaderModulePtr                                         mVS;
     grfx::ShaderModulePtr                                         mPS;
-    grfx::ImagePtr                                                mImage;
-    grfx::SampledImageViewPtr                                     mSampledImageView;
-    grfx::SamplerPtr                                              mSampler;
+    Texture                                                       mSkyBoxTexture;
+    Texture                                                       mAlbedoTexture;
+    Texture                                                       mNormalMapTexture;
+    Texture                                                       mMetalRoughnessTexture;
     Entity                                                        mSkyBox;
     Entity                                                        mSphere;
     bool                                                          mEnableMouseMovement = true;
@@ -268,22 +276,67 @@ void ProjApp::Setup()
     // Texture image, view, and sampler
     {
         // SkyBox
-        {
-            grfx_util::ImageOptions options = grfx_util::ImageOptions().MipLevelCount(PPX_REMAINING_MIP_LEVELS);
-            PPX_CHECKED_CALL(grfx_util::CreateImageFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("basic/models/spheres/basic-skybox.jpg"), &mImage, options, true));
+        grfx_util::ImageOptions options = grfx_util::ImageOptions().MipLevelCount(PPX_REMAINING_MIP_LEVELS);
+        PPX_CHECKED_CALL(grfx_util::CreateImageFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("basic/models/spheres/basic-skybox.jpg"), &mSkyBoxTexture.image, options, true));
 
-            grfx::SampledImageViewCreateInfo viewCreateInfo = grfx::SampledImageViewCreateInfo::GuessFromImage(mImage);
-            PPX_CHECKED_CALL(GetDevice()->CreateSampledImageView(&viewCreateInfo, &mSampledImageView));
-        }
+        grfx::SampledImageViewCreateInfo viewCreateInfo = grfx::SampledImageViewCreateInfo::GuessFromImage(mSkyBoxTexture.image);
+        PPX_CHECKED_CALL(GetDevice()->CreateSampledImageView(&viewCreateInfo, &mSkyBoxTexture.sampledImageView));
 
-        // Sampler
         grfx::SamplerCreateInfo samplerCreateInfo = {};
         samplerCreateInfo.magFilter               = grfx::FILTER_LINEAR;
         samplerCreateInfo.minFilter               = grfx::FILTER_LINEAR;
         samplerCreateInfo.mipmapMode              = grfx::SAMPLER_MIPMAP_MODE_LINEAR;
         samplerCreateInfo.minLod                  = 0;
         samplerCreateInfo.maxLod                  = FLT_MAX;
-        PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &mSampler));
+        PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &mSkyBoxTexture.sampler));
+    }
+    {
+        // Albedo
+        grfx_util::ImageOptions options = grfx_util::ImageOptions().MipLevelCount(PPX_REMAINING_MIP_LEVELS);
+        PPX_CHECKED_CALL(grfx_util::CreateImageFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("basic/models/altimeter/albedo.png"), &mAlbedoTexture.image, options, true));
+
+        grfx::SampledImageViewCreateInfo viewCreateInfo = grfx::SampledImageViewCreateInfo::GuessFromImage(mAlbedoTexture.image);
+        PPX_CHECKED_CALL(GetDevice()->CreateSampledImageView(&viewCreateInfo, &mAlbedoTexture.sampledImageView));
+
+        grfx::SamplerCreateInfo samplerCreateInfo = {};
+        samplerCreateInfo.magFilter               = grfx::FILTER_LINEAR;
+        samplerCreateInfo.minFilter               = grfx::FILTER_LINEAR;
+        samplerCreateInfo.mipmapMode              = grfx::SAMPLER_MIPMAP_MODE_LINEAR;
+        samplerCreateInfo.minLod                  = 0;
+        samplerCreateInfo.maxLod                  = FLT_MAX;
+        PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &mAlbedoTexture.sampler));
+    }
+    {
+        // NormalMap
+        grfx_util::ImageOptions options = grfx_util::ImageOptions().MipLevelCount(PPX_REMAINING_MIP_LEVELS);
+        PPX_CHECKED_CALL(grfx_util::CreateImageFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("basic/models/altimeter/normal.png"), &mNormalMapTexture.image, options, true));
+
+        grfx::SampledImageViewCreateInfo viewCreateInfo = grfx::SampledImageViewCreateInfo::GuessFromImage(mNormalMapTexture.image);
+        PPX_CHECKED_CALL(GetDevice()->CreateSampledImageView(&viewCreateInfo, &mNormalMapTexture.sampledImageView));
+
+        grfx::SamplerCreateInfo samplerCreateInfo = {};
+        samplerCreateInfo.magFilter               = grfx::FILTER_LINEAR;
+        samplerCreateInfo.minFilter               = grfx::FILTER_LINEAR;
+        samplerCreateInfo.mipmapMode              = grfx::SAMPLER_MIPMAP_MODE_LINEAR;
+        samplerCreateInfo.minLod                  = 0;
+        samplerCreateInfo.maxLod                  = FLT_MAX;
+        PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &mNormalMapTexture.sampler));
+    }
+    {
+        // MetalRoughness
+        grfx_util::ImageOptions options = grfx_util::ImageOptions().MipLevelCount(PPX_REMAINING_MIP_LEVELS);
+        PPX_CHECKED_CALL(grfx_util::CreateImageFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("basic/models/altimeter/metalness-roughness.png"), &mMetalRoughnessTexture.image, options, true));
+
+        grfx::SampledImageViewCreateInfo viewCreateInfo = grfx::SampledImageViewCreateInfo::GuessFromImage(mMetalRoughnessTexture.image);
+        PPX_CHECKED_CALL(GetDevice()->CreateSampledImageView(&viewCreateInfo, &mMetalRoughnessTexture.sampledImageView));
+
+        grfx::SamplerCreateInfo samplerCreateInfo = {};
+        samplerCreateInfo.magFilter               = grfx::FILTER_LINEAR;
+        samplerCreateInfo.minFilter               = grfx::FILTER_LINEAR;
+        samplerCreateInfo.mipmapMode              = grfx::SAMPLER_MIPMAP_MODE_LINEAR;
+        samplerCreateInfo.minLod                  = 0;
+        samplerCreateInfo.maxLod                  = FLT_MAX;
+        PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &mMetalRoughnessTexture.sampler));
     }
 
     // Meshes
@@ -607,8 +660,8 @@ void ProjApp::Render()
                 mSkyBox.uniformBuffer->CopyFromSource(sizeof(data), &data);
 
                 frame.cmd->PushGraphicsUniformBuffer(mSkyBox.pipelineInterface, /* binding = */ 0, /* set = */ 0, /* bufferOffset = */ 0, mSkyBox.uniformBuffer);
-                frame.cmd->PushGraphicsSampledImage(mSkyBox.pipelineInterface, /* binding = */ 1, /* set = */ 0, mSampledImageView);
-                frame.cmd->PushGraphicsSampler(mSkyBox.pipelineInterface, /* binding = */ 2, /* set = */ 0, mSampler);
+                frame.cmd->PushGraphicsSampledImage(mSkyBox.pipelineInterface, /* binding = */ 1, /* set = */ 0, mSkyBoxTexture.sampledImageView);
+                frame.cmd->PushGraphicsSampler(mSkyBox.pipelineInterface, /* binding = */ 2, /* set = */ 0, mSkyBoxTexture.sampler);
             }
             frame.cmd->DrawIndexed(mSkyBox.mesh->GetIndexCount());
 
@@ -634,6 +687,12 @@ void ProjApp::Render()
                     mSphereInstanceUniformBuffers[index]->CopyFromSource(sizeof(data), &data);
 
                     frame.cmd->PushGraphicsUniformBuffer(mSphere.pipelineInterface, /* binding = */ 0, /* set = */ 0, /* bufferOffset = */ 0, mSphereInstanceUniformBuffers[index]);
+                    frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 1, /* set = */ 0, mAlbedoTexture.sampledImageView);
+                    frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 2, /* set = */ 0, mAlbedoTexture.sampler);
+                    frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 3, /* set = */ 0, mNormalMapTexture.sampledImageView);
+                    frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 4, /* set = */ 0, mNormalMapTexture.sampler);
+                    frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 5, /* set = */ 0, mMetalRoughnessTexture.sampledImageView);
+                    frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 6, /* set = */ 0, mMetalRoughnessTexture.sampler);
                     frame.cmd->DrawIndexed(mSphere.mesh->GetIndexCount());
                 }
             }
