@@ -358,7 +358,7 @@ private:
         std::stringstream ss;
         ss << mFlagName << ": " << mValue;
         std::string flagText = ss.str();
-        ImGui::Text(flagText.c_str());
+        ImGui::Text("%s", flagText.c_str());
     }
     void ResetToDefault() override {} // KnobFlag is always the "default" value
 
