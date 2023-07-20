@@ -82,6 +82,17 @@ const grfx::Api kApi = grfx::API_VK_1_1;
 static constexpr uint32_t kMaxSphereInstanceCount = 3000;
 static constexpr uint32_t kSeed                   = 89977;
 
+static constexpr std::array<const char*, 2> kAvailableVsShaders = {
+    "Benchmark_VsSimple",
+    "Benchmark_VsAluBound"};
+
+static constexpr std::array<const char*, 3> kAvailablePsShaders = {
+    "Benchmark_PsSimple",
+    "Benchmark_PsAluBound",
+    "Benchmark_PsMemBound"};
+
+static constexpr uint32_t kPipelineCount = kAvailablePsShaders.size() * kAvailableVsShaders.size();
+
 class ProjApp
     : public ppx::Application
 {
@@ -124,24 +135,31 @@ private:
         float    step;
     };
 
-    std::vector<PerFrame>             mPerFrame;
-    FreeCamera                        mCamera;
-    float3                            mLightPosition = float3(10, 250, 10);
-    std::array<bool, TOTAL_KEY_COUNT> mPressedKeys   = {0};
-    uint64_t                          mGpuWorkDuration;
-    grfx::ShaderModulePtr             mVS;
-    grfx::ShaderModulePtr             mPS;
-    grfx::ImagePtr                    mImage;
-    grfx::SampledImageViewPtr         mSampledImageView;
-    grfx::SamplerPtr                  mSampler;
-    Entity                            mSkyBox;
-    Entity                            mSphere;
-    bool                              mEnableMouseMovement = true;
-    Grid                              mSphereGrid;
-    std::vector<grfx::BufferPtr>      mSphereInstanceUniformBuffers;
-    std::vector<uint32_t>             mSphereIndices;
-    uint32_t                          mCurrentSphereCount;
-    std::shared_ptr<KnobSlider<int>>  pSphereInstanceCount;
+    std::vector<PerFrame>                                         mPerFrame;
+    FreeCamera                                                    mCamera;
+    float3                                                        mLightPosition = float3(10, 250, 10);
+    std::array<bool, TOTAL_KEY_COUNT>                             mPressedKeys   = {0};
+    uint64_t                                                      mGpuWorkDuration;
+    grfx::ShaderModulePtr                                         mVS;
+    grfx::ShaderModulePtr                                         mPS;
+    grfx::ImagePtr                                                mImage;
+    grfx::SampledImageViewPtr                                     mSampledImageView;
+    grfx::SamplerPtr                                              mSampler;
+    Entity                                                        mSkyBox;
+    Entity                                                        mSphere;
+    bool                                                          mEnableMouseMovement = true;
+    Grid                                                          mSphereGrid;
+    std::vector<grfx::BufferPtr>                                  mSphereInstanceUniformBuffers;
+    std::vector<uint32_t>                                         mSphereIndices;
+    uint32_t                                                      mCurrentSphereCount;
+    std::array<grfx::GraphicsPipelinePtr, kPipelineCount>         mPipelines;
+    std::array<grfx::ShaderModulePtr, kAvailableVsShaders.size()> mVsShaders;
+    std::array<grfx::ShaderModulePtr, kAvailablePsShaders.size()> mPsShaders;
+
+private:
+    std::shared_ptr<KnobDropdown<std::string>> pKnobVs;
+    std::shared_ptr<KnobDropdown<std::string>> pKnobPs;
+    std::shared_ptr<KnobSlider<int>>           pSphereInstanceCount;
 
 private:
     void ProcessInput();
@@ -208,6 +226,12 @@ void FreeCamera::Turn(float deltaTheta, float deltaPhi)
 
 void ProjApp::InitKnobs()
 {
+    pKnobVs = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("vs", 0, kAvailableVsShaders);
+    pKnobVs->SetDisplayName("Vertex Shader");
+
+    pKnobPs = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("ps", 0, kAvailablePsShaders);
+    pKnobPs->SetDisplayName("Pixel Shader");
+
     pSphereInstanceCount = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("sphere count", 50, 1, kMaxSphereInstanceCount);
     pSphereInstanceCount->SetDisplayName("Sphere Count");
 }
@@ -223,7 +247,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
 }
 
-// Shuffles [`begin`, `end`] using function `f`.
+// Shuffles [`begin`, `end`) using function `f`.
 template <class Iter, class F>
 void Shuffle(Iter begin, Iter end, F&& f)
 {
@@ -386,41 +410,53 @@ void ProjApp::Setup()
         PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mSkyBox.pipeline));
     }
 
-    // Sphere Pipeline
-    {
-        std::vector<char> bytecode = LoadShader("benchmarks/shaders", "Benchmark_VsSimple.vs");
+    // Vertex Shaders
+    for (size_t i = 0; i < kAvailableVsShaders.size(); i++) {
+        const std::string vsShaderBaseName = kAvailableVsShaders[i];
+        std::vector<char> bytecode         = LoadShader("benchmarks/shaders", vsShaderBaseName + ".vs");
         PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
         grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mVS));
-
-        bytecode = LoadShader("benchmarks/shaders", "Benchmark_PsSimple.ps");
+        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mVsShaders[i]));
+    }
+    // Pixel Shaders
+    for (size_t j = 0; j < kAvailablePsShaders.size(); j++) {
+        const std::string psShaderBaseName = kAvailablePsShaders[j];
+        std::vector<char> bytecode         = LoadShader("benchmarks/shaders", psShaderBaseName + ".ps");
         PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
-        shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPS));
+        grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPsShaders[j]));
+    }
 
+    // Sphere Pipelines
+    {
         grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
         piCreateInfo.setCount                          = 1;
         piCreateInfo.sets[0].set                       = 0;
         piCreateInfo.sets[0].pLayout                   = mSphere.descriptorSetLayout;
         PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mSphere.pipelineInterface));
 
-        grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
-        gpCreateInfo.VS                                 = {mVS.Get(), "vsmain"};
-        gpCreateInfo.PS                                 = {mPS.Get(), "psmain"};
-        gpCreateInfo.vertexInputState.bindingCount      = 1;
-        gpCreateInfo.vertexInputState.bindings[0]       = mSphere.mesh->GetDerivedVertexBindings()[0];
-        gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
-        gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
-        gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
-        gpCreateInfo.depthReadEnable                    = true;
-        gpCreateInfo.depthWriteEnable                   = true;
-        gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
-        gpCreateInfo.outputState.renderTargetCount      = 1;
-        gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
-        gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
-        gpCreateInfo.pPipelineInterface                 = mSphere.pipelineInterface;
-        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mSphere.pipeline));
+        uint32_t pipeline_index = 0;
+        for (size_t i = 0; i < kAvailableVsShaders.size(); i++) {
+            for (size_t j = 0; j < kAvailablePsShaders.size(); j++) {
+                grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
+                gpCreateInfo.VS                                 = {mVsShaders[i].Get(), "vsmain"};
+                gpCreateInfo.PS                                 = {mPsShaders[j].Get(), "psmain"};
+                gpCreateInfo.vertexInputState.bindingCount      = 1;
+                gpCreateInfo.vertexInputState.bindings[0]       = mSphere.mesh->GetDerivedVertexBindings()[0];
+                gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+                gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
+                gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
+                gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
+                gpCreateInfo.depthReadEnable                    = true;
+                gpCreateInfo.depthWriteEnable                   = true;
+                gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
+                gpCreateInfo.outputState.renderTargetCount      = 1;
+                gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
+                gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
+                gpCreateInfo.pPipelineInterface                 = mSphere.pipelineInterface;
+                PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mPipelines[pipeline_index++]));
+            }
+        }
     }
 
     // Per frame data
@@ -577,7 +613,8 @@ void ProjApp::Render()
             frame.cmd->DrawIndexed(mSkyBox.mesh->GetIndexCount());
 
             // Draw sphere instances
-            frame.cmd->BindGraphicsPipeline(mSphere.pipeline);
+            uint32_t pipeline_index = pKnobVs->GetIndex() * kAvailablePsShaders.size() + pKnobPs->GetIndex();
+            frame.cmd->BindGraphicsPipeline(mPipelines[pipeline_index]);
             frame.cmd->BindIndexBuffer(mSphere.mesh);
             frame.cmd->BindVertexBuffers(mSphere.mesh);
             {

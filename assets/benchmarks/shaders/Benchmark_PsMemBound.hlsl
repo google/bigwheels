@@ -98,5 +98,5 @@ float4 psmain(VSOutput input) : SV_TARGET
 
     float3 result = (ambient + diffuse ) * albedo.rgb + specular;
     
-    return float4(result.rgb, 1.0);
+    return float4(result.rgb, 0.5);
 }

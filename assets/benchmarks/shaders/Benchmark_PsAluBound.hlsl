@@ -87,5 +87,5 @@ float4 psmain(VSOutput input) : SV_TARGET
     const float3 specularBRDF = (F * D * G) / max(0.00001, 4.0 * cosLi * cosLo);
     const float3 Co = (diffuseBRDF + specularBRDF) * Lrad * cosLi + Scene.Ambient.rrr * albedo.rgb;
 
-    return float4(Co / (Co + 1.f), 1);
+    return float4(Co / (Co + 1.f), 0.5);
 }
