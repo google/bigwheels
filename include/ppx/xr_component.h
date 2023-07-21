@@ -92,6 +92,8 @@ struct XrComponentCreateInfo
 class XrComponent
 {
 public:
+    virtual ~XrComponent() = default;
+
     void InitializeBeforeGrfxDeviceInit(const XrComponentCreateInfo& createInfo);
     void InitializeAfterGrfxDeviceInit(const grfx::InstancePtr pGrfxInstance);
     void Destroy();
