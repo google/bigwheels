@@ -154,9 +154,9 @@ public:
     bool IsSessionRunning() const { return mIsSessionRunning; }
     bool ShouldRender() const { return mShouldRender; }
 
-    void BeginPassthrough();
-    void EndPassthrough();
-    void TogglePassthrough();
+    virtual void BeginPassthrough();
+    virtual void EndPassthrough();
+    virtual void TogglePassthrough();
 
 private:
     const XrEventDataBaseHeader* TryReadNextEvent();
