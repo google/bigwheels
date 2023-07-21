@@ -684,24 +684,15 @@ void Application::DispatchConfig()
 
 void Application::DispatchSetup()
 {
+    SetupMetrics();
     Setup();
-}
-
-void Application::SaveMetricsReportToDisk()
-{
-    if (!mSettings.enableMetrics) {
-        return;
-    }
-
-    // Export the report from the metrics manager to the disk.
-    auto report = mMetrics.manager.CreateReport(mSettings.reportPath);
-    report.WriteToDisk(mSettings.overwriteMetricsFile);
 }
 
 void Application::DispatchShutdown()
 {
     Shutdown();
 
+    ShutdownMetrics();
     SaveMetricsReportToDisk();
 
     PPX_LOG_INFO("Number of frames drawn: " << GetFrameCount());
@@ -762,6 +753,51 @@ void Application::DispatchScroll(float dx, float dy)
 void Application::DispatchRender()
 {
     Render();
+}
+
+void Application::DispatchUpdateMetrics()
+{
+    // NOTE: This function is dispatched once per frame for both recorded AND displayed
+    // metrics, thus it should always be called regardless of whether there's an active
+    // recorded metrics run. Called functions with functionality tied to recorded
+    // metrics must use HasActiveMetricsRun to gate their operations appropriately.
+
+    // Update shared, app-level metrics first.
+    UpdateAppMetrics();
+
+    // Then update custom app metrics.
+    UpdateMetrics();
+}
+
+void Application::SetupMetrics()
+{
+    if (!mSettings.enableMetrics) {
+        return;
+    }
+
+    // Default behavior for this function is to start a single run at setup, and stop it at shutdown.
+    // This enables all applications to get a minimum of functionality from enabling metrics.
+    StartMetricsRun("Default Run");
+}
+
+void Application::ShutdownMetrics()
+{
+    if (!mSettings.enableMetrics) {
+        return;
+    }
+
+    StopMetricsRun();
+}
+
+void Application::SaveMetricsReportToDisk()
+{
+    if (!mSettings.enableMetrics) {
+        return;
+    }
+
+    // Export the report from the metrics manager to the disk.
+    auto report = mMetrics.manager.CreateReport(mSettings.reportPath);
+    report.WriteToDisk(mSettings.overwriteMetricsFile);
 }
 
 void Application::TakeScreenshot()
@@ -1284,13 +1320,12 @@ int Application::Run(int argc, char** argv)
             TakeScreenshot();
         }
 
-        // Frame end
+        // Frame end general metrics data, used for recorded metrics, display, screenshots, and pacing.
         double nowMs       = mTimer.MillisSinceStart();
         mFrameCount        = mFrameCount + 1;
         mPreviousFrameTime = static_cast<float>(nowMs) - mFrameStartTime;
 
-        // Keep a rolling window of frame times to calculate stats,
-        // if requested.
+        // Keep a rolling window of frame times to calculate stats, if requested.
         if (mStandardOptions.stats_frame_window > 0) {
             mFrameTimesMs.push_back(mPreviousFrameTime);
             if (mFrameTimesMs.size() > mStandardOptions.stats_frame_window) {
@@ -1305,8 +1340,9 @@ int Application::Run(int argc, char** argv)
             mAverageFrameTime = static_cast<float>(nowMs / mFrameCount);
         }
 
-        // Update the metrics.
-        UpdateMetrics();
+        // Update the metrics. This can be used for both recorded AND displayed metrics,
+        // and therefore should always be called.
+        DispatchUpdateMetrics();
 
         // Pace frames - if needed
         if (mSettings.grfx.pacedFrameRate > 0) {
@@ -1525,11 +1561,8 @@ float2 Application::GetNormalizedDeviceCoordinates(int32_t x, int32_t y) const
 
 void Application::StartMetricsRun(const std::string& name)
 {
-    PPX_ASSERT_MSG(mSettings.enableMetrics, "Application::Settings::enableMetrics must be set to true before using the metrics capabilities");
-    if (!mSettings.enableMetrics) {
-        return;
-    }
-
+    // Callers should check mSettings.enableMetrics before making this call.
+    PPX_ASSERT_MSG(mSettings.enableMetrics, "Metrics must be enabled to use metrics capabilities");
     PPX_ASSERT_MSG(!mMetrics.manager.HasActiveRun(), "A run is already active; stop it before starting another one");
     mMetrics.manager.StartRun(name.c_str());
 
@@ -1567,9 +1600,12 @@ void Application::StartMetricsRun(const std::string& name)
 
 void Application::StopMetricsRun()
 {
-    PPX_ASSERT_MSG(mSettings.enableMetrics, "Application::Settings::enableMetrics must be set to true before using the metrics capabilities");
-    if (!mSettings.enableMetrics) {
-        return;
+    // Callers should check mSettings.enableMetrics before making this call.
+    PPX_ASSERT_MSG(mSettings.enableMetrics, "Metrics must be enabled to use metrics capabilities");
+
+    if (!mMetrics.manager.HasActiveRun()) {
+        // If no run is in progress, this is likely a bad code path. But this won't harm anything.
+        PPX_LOG_WARN("Attempt to stop metrics without a run in progress!");
     }
 
     mMetrics.manager.EndRun();
@@ -1583,7 +1619,29 @@ bool Application::HasActiveMetricsRun() const
     return mSettings.enableMetrics && mMetrics.manager.HasActiveRun();
 }
 
-void Application::UpdateMetrics()
+metrics::MetricID Application::AddMetric(const metrics::MetricMetadata& metadata)
+{
+    if (!mSettings.enableMetrics) {
+        PPX_LOG_ERROR("Attempting to add a metric with metrics disabled; ignoring.");
+        return metrics::kInvalidMetricID;
+    }
+
+    // This function already covers all other cases.
+    return mMetrics.manager.AddMetric(metadata);
+}
+
+bool Application::RecordMetricData(metrics::MetricID id, const metrics::MetricData& data)
+{
+    if (!mSettings.enableMetrics) {
+        PPX_LOG_ERROR("Attempting to record metric dta with metrics disabled; ignoring.");
+        return false;
+    }
+
+    // This function already covers all other cases.
+    return mMetrics.manager.RecordMetricData(id, data);
+}
+
+void Application::UpdateAppMetrics()
 {
     // This data is the same for every call to increase the frame count.
     static const metrics::MetricData frameCountData = {
