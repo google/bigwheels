@@ -23,7 +23,8 @@ namespace string_util {
 void TrimLeft(std::string& s);
 void TrimRight(std::string& s);
 
-std::string TrimCopy(const std::string& s);
+std::string      TrimCopy(const std::string& s);
+std::string_view TrimBothEnds(std::string_view s, std::string_view c = " \t");
 
 } // namespace string_util
 } // namespace ppx

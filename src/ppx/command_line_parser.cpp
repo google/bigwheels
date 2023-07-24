@@ -20,14 +20,14 @@
 #include <cctype>
 
 #include "ppx/command_line_parser.h"
+#include "ppx/log.h"
 #include "ppx/string_util.h"
 
 namespace {
 
-// Whether this is an option or flag (CLI argument starting with '--').
-bool IsOptionOrFlag(const std::string& s)
+bool StartsWithDoubleDash(std::string_view s)
 {
-    if (s.size() > 3) {
+    if (s.size() >= 3) {
         return s.substr(0, 2) == "--";
     }
     return false;
@@ -37,50 +37,42 @@ bool IsOptionOrFlag(const std::string& s)
 
 namespace ppx {
 
-std::pair<int, int> CliOptions::GetOptionValueOrDefault(const std::string& optionName, const std::pair<int, int>& defaultValue) const
+std::pair<int, int> CliOptions::GetOptionValueOrDefault(std::string_view optionName, const std::pair<int, int>& defaultValue) const
 {
-    if (allOptions.find(optionName) == allOptions.cend()) {
+    auto it = allOptions.find(static_cast<std::string>(optionName));
+    if (it == allOptions.cend()) {
         return defaultValue;
     }
-    auto   valueStr = allOptions.at(optionName).back();
+    auto   valueStr = it->second.back();
     size_t xIndex   = valueStr.find("x");
-    if (xIndex == std::string::npos) {
-        // valueStr not in expected format "NxM"
+    if (xIndex == std::string_view::npos) {
+        PPX_LOG_ERROR("resolution flag must be in format <Width>x<Height>: " << valueStr);
         return defaultValue;
     }
-    std::string substringN = valueStr.substr(0, xIndex);
-    std::string substringM = valueStr.substr(xIndex + 1);
-    int         N          = GetParsedNumberOrDefault(substringN, defaultValue.first);
-    int         M          = GetParsedNumberOrDefault(substringM, defaultValue.second);
+    std::string_view substringN = valueStr.substr(0, xIndex);
+    std::string_view substringM = valueStr.substr(xIndex + 1);
+    int              N          = GetParsedOrDefault(substringN, defaultValue.first);
+    int              M          = GetParsedOrDefault(substringM, defaultValue.second);
     return std::make_pair(N, M);
 }
 
-void CliOptions::AddOption(const std::string& key, const std::string& valueStr)
+void CliOptions::AddOption(std::string_view key, std::string_view valueStr)
 {
-    // If valueStr contains commas, split into separate elements to store
-    std::vector<std::string> elements;
-    std::string              remainingValueStr = valueStr;
-    std::string              elementSubstring;
-    size_t                   commaIndex = 0;
-    while (commaIndex != std::string::npos) {
-        commaIndex = remainingValueStr.find(",");
-        elements.push_back(remainingValueStr.substr(0, commaIndex));
-        remainingValueStr = remainingValueStr.substr(commaIndex + 1);
-    }
-
-    if (allOptions.find(key) != allOptions.cend()) {
-        allOptions[key].insert(allOptions[key].end(), elements.begin(), elements.end());
+    auto it = allOptions.find(key);
+    if (it == allOptions.cend()) {
+        std::vector<std::string_view> v{valueStr};
+        allOptions.emplace(key, v);
         return;
     }
-    allOptions.emplace(key, elements);
+    it->second.push_back(valueStr);
 }
 
-bool CliOptions::GetParsedBoolOrDefault(const std::string& valueStr, bool defaultValue) const
+bool CliOptions::Parse(std::string_view valueStr, bool defaultValue) const
 {
     if (valueStr == "") {
         return true;
     }
-    std::stringstream ss{valueStr};
+    std::stringstream ss{static_cast<std::string>(valueStr)};
     bool              valueAsBool;
     ss >> valueAsBool;
     if (ss.fail()) {
@@ -101,13 +93,16 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
     }
 
     // Split flag and parameters connected with '='
-    std::vector<std::string> args;
+    std::vector<std::string_view> args;
     for (size_t i = 1; i < argc; ++i) {
-        std::string argString(argv[i]);
-        size_t      delimeterIndex = argString.find("=");
-        if (delimeterIndex == std::string::npos) {
-            args.emplace_back(argv[i]);
+        std::string_view argString(argv[i]);
+        size_t           delimeterIndex = argString.find("=");
+        if (delimeterIndex == std::string_view::npos) {
+            args.emplace_back(argString);
             continue;
+        }
+        if (delimeterIndex != argString.rfind("=")) {
+            return "Unexpected number of '=' symbols in following string: \"" + static_cast<std::string>(argString) + "\"";
         }
         args.emplace_back(argString.substr(0, delimeterIndex));
         args.emplace_back(argString.substr(delimeterIndex + 1));
@@ -115,49 +110,47 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
 
     // Process arguments into either standalone flags or options with parameters.
     for (size_t i = 0; i < args.size(); ++i) {
-        std::string name = ppx::string_util::TrimCopy(args[i]);
-        if (!IsOptionOrFlag(name)) {
-            return "Invalid command-line option " + name;
+        std::string_view name = ppx::string_util::TrimBothEnds(args[i]);
+        if (!StartsWithDoubleDash(name)) {
+            return "Invalid command-line option: \"" + static_cast<std::string>(name) + "\"";
         }
         name = name.substr(2);
-        if (name == "help") {
-            mPrintHelp = true;
-            return std::nullopt;
-        }
 
-        std::string nextElem = (i + 1 < args.size()) ? ppx::string_util::TrimCopy(args[i + 1]) : "";
-        if (nextElem.size() > 0 && !IsOptionOrFlag(nextElem)) {
-            // We found an option with a parameter.
-            mOpts.AddOption(name, nextElem);
-            ++i;
+        if (i + 1 < args.size()) {
+            std::string_view nextElem = ppx::string_util::TrimBothEnds(args[i + 1]);
+            if (!StartsWithDoubleDash(nextElem)) {
+                // We found an option with a parameter.
+                mOpts.AddOption(name, nextElem);
+                ++i;
+                continue;
+            }
         }
-        else if (name.substr(0, 3) == "no-") {
-            // Option does not have a parameter, check if it has a no- prefix
+        // There is no parameter so it's likely a flag
+        if (name.substr(0, 3) == "no-") {
             mOpts.AddOption(name.substr(3), "0");
         }
         else {
-            // Option has no parameter, likely a boolean flag but do not assign "true"
-            // in case it is a non-boolean string flag that is missing a parameter
+            // Do not assign "1" in case it's an option lacking a parameter
             mOpts.AddOption(name, "");
         }
     }
 
     // Fill out standard options.
-    mStandardOpts.assets_paths            = mOpts.GetOptionValueOrDefault("assets-path", mStandardOpts.assets_paths);
-    mStandardOpts.deterministic           = mOpts.GetOptionValueOrDefault("deterministic", mStandardOpts.deterministic);
-    mStandardOpts.enable_metrics          = mOpts.GetOptionValueOrDefault("enable-metrics", mStandardOpts.enable_metrics);
-    mStandardOpts.frame_count             = mOpts.GetOptionValueOrDefault("frame-count", mStandardOpts.frame_count);
-    mStandardOpts.gpu_index               = mOpts.GetOptionValueOrDefault("gpu", mStandardOpts.gpu_index);
-    mStandardOpts.headless                = mOpts.GetOptionValueOrDefault("headless", mStandardOpts.headless);
-    mStandardOpts.list_gpus               = mOpts.GetOptionValueOrDefault("list-gpus", mStandardOpts.list_gpus);
-    mStandardOpts.metrics_filename        = mOpts.GetOptionValueOrDefault("metrics-filename", mStandardOpts.metrics_filename);
-    mStandardOpts.overwrite_metrics_file  = mOpts.GetOptionValueOrDefault("overwrite-metrics-file", mStandardOpts.overwrite_metrics_file);
+    mStandardOpts.assets_paths            = mOpts.GetOptionValueOrDefault<std::string>("assets-path", mStandardOpts.assets_paths);
+    mStandardOpts.deterministic           = mOpts.GetOptionValueOrDefault<bool>("deterministic", mStandardOpts.deterministic);
+    mStandardOpts.enable_metrics          = mOpts.GetOptionValueOrDefault<bool>("enable-metrics", mStandardOpts.enable_metrics);
+    mStandardOpts.frame_count             = mOpts.GetOptionValueOrDefault<int>("frame-count", mStandardOpts.frame_count);
+    mStandardOpts.gpu_index               = mOpts.GetOptionValueOrDefault<int>("gpu", mStandardOpts.gpu_index);
+    mStandardOpts.headless                = mOpts.GetOptionValueOrDefault<bool>("headless", mStandardOpts.headless);
+    mStandardOpts.list_gpus               = mOpts.GetOptionValueOrDefault<bool>("list-gpus", mStandardOpts.list_gpus);
+    mStandardOpts.metrics_filename        = mOpts.GetOptionValueOrDefault<std::string>("metrics-filename", mStandardOpts.metrics_filename);
+    mStandardOpts.overwrite_metrics_file  = mOpts.GetOptionValueOrDefault<bool>("overwrite-metrics-file", mStandardOpts.overwrite_metrics_file);
     mStandardOpts.resolution              = mOpts.GetOptionValueOrDefault("resolution", mStandardOpts.resolution);
-    mStandardOpts.run_time_ms             = mOpts.GetOptionValueOrDefault("run-time-ms", mStandardOpts.run_time_ms);
-    mStandardOpts.stats_frame_window      = mOpts.GetOptionValueOrDefault("stats-frame-window", mStandardOpts.stats_frame_window);
-    mStandardOpts.screenshot_frame_number = mOpts.GetOptionValueOrDefault("screenshot-frame-number", mStandardOpts.screenshot_frame_number);
-    mStandardOpts.screenshot_path         = mOpts.GetOptionValueOrDefault("screenshot-path", mStandardOpts.screenshot_path);
-    mStandardOpts.use_software_renderer   = mOpts.GetOptionValueOrDefault("use-software-renderer", mStandardOpts.use_software_renderer);
+    mStandardOpts.run_time_ms             = mOpts.GetOptionValueOrDefault<int>("run-time-ms", mStandardOpts.run_time_ms);
+    mStandardOpts.stats_frame_window      = mOpts.GetOptionValueOrDefault<int>("stats-frame-window", mStandardOpts.stats_frame_window);
+    mStandardOpts.screenshot_frame_number = mOpts.GetOptionValueOrDefault<int>("screenshot-frame-number", mStandardOpts.screenshot_frame_number);
+    mStandardOpts.screenshot_path         = mOpts.GetOptionValueOrDefault<std::string>("screenshot-path", mStandardOpts.screenshot_path);
+    mStandardOpts.use_software_renderer   = mOpts.GetOptionValueOrDefault<bool>("use-software-renderer", mStandardOpts.use_software_renderer);
 #if defined(PPX_BUILD_XR)
     mStandardOpts.xrUIResolution = mOpts.GetOptionValueOrDefault("xr-ui-resolution", mStandardOpts.xrUIResolution);
 #endif

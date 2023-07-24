@@ -43,5 +43,16 @@ std::string TrimCopy(const std::string& s)
     return sc;
 }
 
+std::string_view TrimBothEnds(std::string_view s, std::string_view c)
+{
+    if (s.size() == 0) {
+        return s;
+    }
+    const auto strBegin = s.find_first_not_of(c);
+    const auto strEnd   = s.find_last_not_of(c);
+    const auto strRange = strEnd - strBegin + 1;
+    return s.substr(strBegin, strRange);
+}
+
 } // namespace string_util
 } // namespace ppx

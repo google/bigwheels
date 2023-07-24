@@ -1038,7 +1038,7 @@ int Application::Run(int argc, char** argv)
         mCommandLineParser.AppendUsageMsg(mKnobManager.GetUsageMsg());
     }
 
-    if (mCommandLineParser.GetPrintHelp()) {
+    if (mCommandLineParser.GetOptions().GetOptionValueOrDefault("help", false)) {
         PPX_LOG_INFO(mCommandLineParser.GetUsageMsg());
         return EXIT_SUCCESS;
     }
