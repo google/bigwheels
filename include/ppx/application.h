@@ -444,7 +444,7 @@ public:
     bool RecordMetricData(metrics::MetricID id, const metrics::MetricData& data);
 
 #if defined(PPX_BUILD_XR)
-    XrComponent& GetXrComponent()
+    virtual XrComponent& GetXrComponent()
     {
         return mXrComponent;
     }
