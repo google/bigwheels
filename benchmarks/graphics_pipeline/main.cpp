@@ -193,6 +193,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
 {
     settings.appName                    = "graphics_pipeline";
     settings.enableImGui                = true;
+    settings.allowThirdPartyAssets      = true;
     settings.window.width               = 1920;
     settings.window.height              = 1080;
     settings.grfx.api                   = kApi;
@@ -263,7 +264,7 @@ void ProjApp::Setup()
         createInfo.posZ                         = PPX_ENCODE_CUBE_FACE(2, grfx_util::CUBE_FACE_OP_NONE, grfx_util::CUBE_FACE_OP_NONE);
         createInfo.negZ                         = PPX_ENCODE_CUBE_FACE(4, grfx_util::CUBE_FACE_OP_NONE, grfx_util::CUBE_FACE_OP_NONE);
 
-        PPX_CHECKED_CALL(grfx_util::CreateCubeMapFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("basic/models/hilly_terrain.png"), &createInfo, &mCubeMapImage));
+        PPX_CHECKED_CALL(grfx_util::CreateCubeMapFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("poly_haven/textures/hilly_terrain.png"), &createInfo, &mCubeMapImage));
 
         grfx::SampledImageViewCreateInfo viewCreateInfo = grfx::SampledImageViewCreateInfo::GuessFromImage(mCubeMapImage);
         PPX_CHECKED_CALL(GetDevice()->CreateSampledImageView(&viewCreateInfo, &mCubeMapImageView));
