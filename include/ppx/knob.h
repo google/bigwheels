@@ -124,14 +124,23 @@ class KnobSlider final
     : public Knob
 {
 public:
-    static_assert(std::is_same_v<T, int>, "KnobSlider must be created with type: int");
+    static_assert(std::is_same_v<T, int> || std::is_same_v<T, float>, "KnobSlider must be created with type: int, float");
 
     KnobSlider(const std::string& flagName, T defaultValue, T minValue, T maxValue)
         : Knob(flagName, true), mValue(defaultValue), mDefaultValue(defaultValue), mMinValue(minValue), mMaxValue(maxValue)
     {
         PPX_ASSERT_MSG(minValue < maxValue, "invalid range to initialize slider");
         PPX_ASSERT_MSG(minValue <= defaultValue && defaultValue <= maxValue, "defaultValue is out of range");
-        SetFlagParameters("<" + std::to_string(mMinValue) + "~" + std::to_string(mMaxValue) + ">");
+        if constexpr (std::is_same_v<T, int>) {
+            SetFlagParameters("<" + std::to_string(mMinValue) + "~" + std::to_string(mMaxValue) + ">");
+        }
+        else if constexpr (std::is_same_v<T, float>) {
+            std::stringstream ss;
+            ss.precision(1);
+            ss << std::fixed << "<" << mMinValue << "~" << mMaxValue << ">";
+            SetFlagParameters(ss.str());
+        }
+
         RaiseUpdatedFlag();
     }
 
@@ -155,7 +164,13 @@ public:
 private:
     void Draw() override
     {
-        ImGui::SliderInt(mDisplayName.c_str(), &mValue, mMinValue, mMaxValue, NULL, ImGuiSliderFlags_AlwaysClamp);
+        if constexpr (std::is_same_v<T, int>) {
+            ImGui::SliderInt(mDisplayName.c_str(), &mValue, mMinValue, mMaxValue, NULL, ImGuiSliderFlags_AlwaysClamp);
+        }
+        else if constexpr (std::is_same_v<T, float>) {
+            ImGui::SliderFloat(mDisplayName.c_str(), &mValue, mMinValue, mMaxValue, "%.3f", ImGuiSliderFlags_AlwaysClamp);
+        }
+
         if (ImGui::IsItemDeactivatedAfterEdit()) {
             RaiseUpdatedFlag();
         }
@@ -412,7 +427,7 @@ public:
     template <typename T, typename... ArgsT>
     std::shared_ptr<T> CreateKnob(const std::string& flagName, ArgsT... args)
     {
-        PPX_ASSERT_MSG(mFlagNames.count(flagName) == 0, "knob with this name already exists");
+        PPX_ASSERT_MSG(mFlagNames.count(flagName) == 0, "knob with this name already exists: " + flagName);
 
         std::shared_ptr<T> knobPtr(new T(flagName, std::forward<ArgsT>(args)...));
         RegisterKnob(flagName, knobPtr);

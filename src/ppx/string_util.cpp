@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <iostream>
 
 namespace ppx {
 namespace string_util {
@@ -66,6 +67,38 @@ std::optional<std::pair<std::string_view, std::string_view>> SplitInTwo(std::str
     std::string_view firstSubstring  = s.substr(0, delimeterIndex);
     std::string_view secondSubstring = s.substr(delimeterIndex + 1);
     return std::make_pair(firstSubstring, secondSubstring);
+}
+
+std::string WrapText(const std::string& s, size_t width, size_t indent = 0)
+{
+    auto remainingString = TrimCopy(s);
+    if (indent >= width) {
+        return s;
+    }
+    size_t      textWidth   = width - indent;
+    std::string wrappedText = "";
+
+    while (remainingString != "") {
+        std::string newLine = remainingString.substr(0, textWidth);
+
+        auto nextChar = ' ';
+        if (remainingString.length() > textWidth) {
+            nextChar = remainingString.at(textWidth);
+        }
+
+        auto lastSpace = newLine.find_last_of(" \t");
+
+        if ((nextChar != ' ') && (lastSpace != std::string::npos)) {
+            // The line break is interrupting a word that can go onto the next line
+            newLine = remainingString.substr(0, lastSpace);
+        }
+
+        remainingString = remainingString.substr(newLine.length());
+        TrimRight(newLine);
+        wrappedText += std::string(indent, ' ') + newLine + "\n";
+        TrimLeft(remainingString);
+    }
+    return wrappedText;
 }
 
 } // namespace string_util

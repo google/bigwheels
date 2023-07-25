@@ -94,3 +94,73 @@ TEST(StringUtilTest, SplitInTwoMultipleDelimiter)
     EXPECT_EQ(res->first, "Apple");
     EXPECT_EQ(res->second, "Banana,Orange");
 }
+
+TEST(StringUtilTest, WrapTextEmptyString)
+{
+    std::string toWrap  = "";
+    std::string wrapped = WrapText(toWrap, 10, 0);
+    EXPECT_EQ(wrapped, "");
+    EXPECT_EQ(toWrap, "");
+}
+
+TEST(StringUtilTest, WrapTextIndentLargerThanWidth)
+{
+    std::string toWrap  = "Some text.";
+    std::string wrapped = WrapText(toWrap, 5, 8);
+    EXPECT_EQ(wrapped, toWrap);
+}
+
+TEST(StringUtilTest, WrapTextNoIndent)
+{
+    std::string toWrap   = "The quick brown fox jumps over the lazy dog.";
+    std::string wantWrap = R"(The quick
+brown fox
+jumps over
+the lazy
+dog.
+)";
+    std::string wrapped  = WrapText(toWrap, 10, 0);
+    EXPECT_EQ(wrapped, wantWrap);
+}
+
+TEST(StringUtilTest, WrapTextWithIndent)
+{
+    std::string toWrap   = "The quick brown fox jumps over the lazy dog.";
+    std::string wantWrap = R"(   The quick
+   brown fox
+   jumps over
+   the lazy
+   dog.
+)";
+    std::string wrapped  = WrapText(toWrap, 13, 3);
+    EXPECT_EQ(wrapped, wantWrap);
+}
+
+TEST(StringUtilTest, WrapTextLeadingTrailingSpaces)
+{
+    std::string toWrap   = "    The quick brown fox jumps over the lazy dog.    ";
+    std::string wantWrap = R"(The quick
+brown fox
+jumps over
+the lazy
+dog.
+)";
+    std::string wrapped  = WrapText(toWrap, 10, 0);
+    EXPECT_EQ(wrapped, wantWrap);
+}
+
+TEST(StringUtilTest, WrapTextLongWord)
+{
+    std::string toWrap   = "The quick brown fox jumps over the extremely-long-word-here lazy dog.";
+    std::string wantWrap = R"(The quick
+brown fox
+jumps over
+the
+extremely-
+long-word-
+here lazy
+dog.
+)";
+    std::string wrapped  = WrapText(toWrap, 10, 0);
+    EXPECT_EQ(wrapped, wantWrap);
+}
