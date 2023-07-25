@@ -56,7 +56,7 @@ std::string_view TrimBothEnds(std::string_view s, std::string_view c)
 
 std::optional<std::pair<std::string_view, std::string_view>> SplitInTwo(std::string_view s, char delimiter)
 {
-    if (s.size() == 0 || delimiter == '\0') {
+    if (s.size() == 0) {
         return std::nullopt;
     }
     size_t delimeterIndex = s.find(delimiter);

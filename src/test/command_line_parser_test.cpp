@@ -169,13 +169,22 @@ TEST(CommandLineParserTest, EqualSignsSuccessfullyParsed)
     EXPECT_EQ(gotOptions.GetOptionValueOrDefault<int>("d", 0), 11);
 }
 
-TEST(CommandLineParserTest, EqualSignsFailedParsed)
+TEST(CommandLineParserTest, EqualSignsMultipleFailedParsed)
 {
     CommandLineParser parser;
     const char*       args[] = {"/path/to/executable", "--a", "--b=5=8", "--c", "--d", "11"};
     auto              error  = parser.Parse(sizeof(args) / sizeof(args[0]), args);
     EXPECT_TRUE(error);
-    EXPECT_THAT(error->errorMsg, HasSubstr("Unexpected number of '=' symbols in following string"));
+    EXPECT_THAT(error->errorMsg, HasSubstr("Unexpected number of '=' symbols in the following string"));
+}
+
+TEST(CommandLineParserTest, EqualSignsMalformedFailedParsed)
+{
+    CommandLineParser parser;
+    const char*       args[] = {"/path/to/executable", "--a", "--b=", "--c", "--d", "11"};
+    auto              error  = parser.Parse(sizeof(args) / sizeof(args[0]), args);
+    EXPECT_TRUE(error);
+    EXPECT_THAT(error->errorMsg, HasSubstr("Malformed flag with '='"));
 }
 
 TEST(CommandLineParserTest, LeadingParameterFailedParsed)

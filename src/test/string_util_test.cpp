@@ -77,13 +77,6 @@ TEST(StringUtilTest, SplitInTwoEmptyString)
     EXPECT_EQ(res, std::nullopt);
 }
 
-TEST(StringUtilTest, SplitInTwoNullDelimiter)
-{
-    std::string_view toSplit = "Apple,Banana";
-    auto             res     = SplitInTwo(toSplit, '\0');
-    EXPECT_EQ(res, std::nullopt);
-}
-
 TEST(StringUtilTest, SplitInTwoOneDelimiter)
 {
     std::string_view toSplit = "Apple,Banana";

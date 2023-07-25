@@ -70,7 +70,7 @@ bool CliOptions::Parse(std::string_view valueStr, bool defaultValue) const
     if (valueStr == "") {
         return true;
     }
-    std::stringstream ss{static_cast<std::string>(valueStr)};
+    std::stringstream ss{std::string(valueStr)};
     bool              valueAsBool;
     ss >> valueAsBool;
     if (ss.fail()) {
@@ -85,7 +85,7 @@ bool CliOptions::Parse(std::string_view valueStr, bool defaultValue) const
 
 std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc, const char* argv[])
 {
-    // argc is always >= 1 and argv[0] is the name of the executable.
+    // argc should be >= 1 and argv[0] the name of the executable.
     if (argc < 2) {
         return std::nullopt;
     }
@@ -99,8 +99,11 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
             args.emplace_back(argString);
             continue;
         }
-        if (res->second.find('=') != std::string_view::npos) {
-            return "Unexpected number of '=' symbols in following string: \"" + static_cast<std::string>(argString) + "\"";
+        if (res->first.empty() || res->second.empty()) {
+            return "Malformed flag with '=': \"" + std::string(argString) + "\"";
+        }
+        else if (res->second.find('=') != std::string_view::npos) {
+            return "Unexpected number of '=' symbols in the following string: \"" + std::string(argString) + "\"";
         }
         args.emplace_back(res->first);
         args.emplace_back(res->second);
@@ -110,7 +113,7 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
     for (size_t i = 0; i < args.size(); ++i) {
         std::string_view name = ppx::string_util::TrimBothEnds(args[i]);
         if (!StartsWithDoubleDash(name)) {
-            return "Invalid command-line option: \"" + static_cast<std::string>(name) + "\"";
+            return "Invalid command-line option: \"" + std::string(name) + "\"";
         }
         name = name.substr(2);
 

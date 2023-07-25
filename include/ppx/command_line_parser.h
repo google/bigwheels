@@ -75,10 +75,14 @@ public:
 
     bool HasExtraOption(std::string_view option) const { return allOptions.contains(option); }
 
+    // Returns the number of unique options and flags that were specified on the commandline,
+    // not counting multiple appearances of the same flag such as: --assets-path a --assets-path b
     size_t GetNumUniqueOptions() const { return allOptions.size(); }
 
     // Try to parse option string into the type of the default value and return it.
     // If the value fails to be converted, return the specified default value.
+    // Warning: If this is called instead of the vector overload for multiple-value flags,
+    //          only the last value will be returned.
     template <typename T>
     T GetOptionValueOrDefault(std::string_view optionName, const T& defaultValue) const
     {
@@ -90,7 +94,8 @@ public:
         return GetParsedOrDefault<T>(valueStr, defaultValue);
     }
 
-    // Intended for list flags, specified on command line with multiple instances of the same flag
+    // Same as above, but intended for list flags that are specified on the command line
+    // with multiple instances of the same flag
     template <typename T>
     std::vector<T> GetOptionValueOrDefault(std::string_view optionName, const std::vector<T>& defaultValues) const
     {
@@ -106,7 +111,8 @@ public:
         return parsedValues;
     }
 
-    // Intended for resolution flags, specified on command line with <Width>x<Height>
+    // Same as above, but intended for resolution flags that are specified on command line
+    // with <Width>x<Height>
     std::pair<int, int> GetOptionValueOrDefault(std::string_view optionName, const std::pair<int, int>& defaultValue) const;
 
     // (WILL BE DEPRECATED, USE KNOBS INSTEAD)
