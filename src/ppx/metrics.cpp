@@ -351,7 +351,7 @@ void Report::SetReportPath(const std::string& reportPath)
         path += kFileExtension;
     }
 #if defined(PPX_ANDROID)
-    mFilePath = ppx::fs::GetInternalDataPath();
+    mFilePath = ppx::fs::GetExternalDataPath();
 #endif
     mFilePath /= path;
     mContent["filename"]     = mFilePath.filename().string();
