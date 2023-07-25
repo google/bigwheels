@@ -53,3 +53,51 @@ TEST(StringUtilTest, TrimCopyLeftAndRightSpaces)
     EXPECT_EQ(trimmed, "Some spaces");
     EXPECT_EQ(toTrim, "  Some spaces  ");
 }
+
+TEST(StringUtilTest, TrimBothEndsNothingToTrim)
+{
+    std::string_view toTrim  = "No spaces";
+    std::string_view trimmed = TrimBothEnds(toTrim);
+    EXPECT_EQ(trimmed, "No spaces");
+    EXPECT_EQ(toTrim, "No spaces");
+}
+
+TEST(StringUtilTest, TrimBothEndsLeftAndRightSpaces)
+{
+    std::string_view toTrim  = "  Some spaces  ";
+    std::string_view trimmed = TrimBothEnds(toTrim);
+    EXPECT_EQ(trimmed, "Some spaces");
+    EXPECT_EQ(toTrim, "  Some spaces  ");
+}
+
+TEST(StringUtilTest, SplitInTwoEmptyString)
+{
+    std::string_view toSplit = "";
+    auto             res     = SplitInTwo(toSplit, ',');
+    EXPECT_EQ(res, std::nullopt);
+}
+
+TEST(StringUtilTest, SplitInTwoNullDelimiter)
+{
+    std::string_view toSplit = "Apple,Banana";
+    auto             res     = SplitInTwo(toSplit, '\0');
+    EXPECT_EQ(res, std::nullopt);
+}
+
+TEST(StringUtilTest, SplitInTwoOneDelimiter)
+{
+    std::string_view toSplit = "Apple,Banana";
+    auto             res     = SplitInTwo(toSplit, ',');
+    EXPECT_NE(res, std::nullopt);
+    EXPECT_EQ(res->first, "Apple");
+    EXPECT_EQ(res->second, "Banana");
+}
+
+TEST(StringUtilTest, SplitInTwoMultipleDelimiter)
+{
+    std::string_view toSplit = "Apple,Banana,Orange";
+    auto             res     = SplitInTwo(toSplit, ',');
+    EXPECT_NE(res, std::nullopt);
+    EXPECT_EQ(res->first, "Apple");
+    EXPECT_EQ(res->second, "Banana,Orange");
+}

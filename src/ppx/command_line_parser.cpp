@@ -39,20 +39,18 @@ namespace ppx {
 
 std::pair<int, int> CliOptions::GetOptionValueOrDefault(std::string_view optionName, const std::pair<int, int>& defaultValue) const
 {
-    auto it = allOptions.find(static_cast<std::string>(optionName));
+    auto it = allOptions.find(optionName);
     if (it == allOptions.cend()) {
         return defaultValue;
     }
-    auto   valueStr = it->second.back();
-    size_t xIndex   = valueStr.find("x");
-    if (xIndex == std::string_view::npos) {
+    auto valueStr = it->second.back();
+    auto res      = ppx::string_util::SplitInTwo(valueStr, 'x');
+    if (res == std::nullopt) {
         PPX_LOG_ERROR("resolution flag must be in format <Width>x<Height>: " << valueStr);
         return defaultValue;
     }
-    std::string_view substringN = valueStr.substr(0, xIndex);
-    std::string_view substringM = valueStr.substr(xIndex + 1);
-    int              N          = GetParsedOrDefault(substringN, defaultValue.first);
-    int              M          = GetParsedOrDefault(substringM, defaultValue.second);
+    int N = GetParsedOrDefault(res->first, defaultValue.first);
+    int M = GetParsedOrDefault(res->second, defaultValue.second);
     return std::make_pair(N, M);
 }
 
@@ -96,16 +94,16 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
     std::vector<std::string_view> args;
     for (size_t i = 1; i < argc; ++i) {
         std::string_view argString(argv[i]);
-        size_t           delimeterIndex = argString.find("=");
-        if (delimeterIndex == std::string_view::npos) {
+        auto             res = ppx::string_util::SplitInTwo(argString, '=');
+        if (res == std::nullopt) {
             args.emplace_back(argString);
             continue;
         }
-        if (delimeterIndex != argString.rfind("=")) {
+        if (res->second.find('=') != std::string_view::npos) {
             return "Unexpected number of '=' symbols in following string: \"" + static_cast<std::string>(argString) + "\"";
         }
-        args.emplace_back(argString.substr(0, delimeterIndex));
-        args.emplace_back(argString.substr(delimeterIndex + 1));
+        args.emplace_back(res->first);
+        args.emplace_back(res->second);
     }
 
     // Process arguments into either standalone flags or options with parameters.

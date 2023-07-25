@@ -16,6 +16,7 @@
 #define PPX_STRING_UTIL_H
 
 #include <string>
+#include <optional>
 
 namespace ppx {
 namespace string_util {
@@ -25,6 +26,10 @@ void TrimRight(std::string& s);
 
 std::string      TrimCopy(const std::string& s);
 std::string_view TrimBothEnds(std::string_view s, std::string_view c = " \t");
+
+// Splits s at the first instance of delimeter and returns two substrings
+// Returns std::nullopt if s does not contain the delimeter
+std::optional<std::pair<std::string_view, std::string_view>> SplitInTwo(std::string_view s, char delimiter);
 
 } // namespace string_util
 } // namespace ppx
