@@ -140,7 +140,7 @@ bool path_exists(const std::filesystem::path& path);
 std::filesystem::path GetInternalDataPath();
 
 // Returns a path to the application's external data directory (can be used for output).
-std::filesystem::path GetInternalDataPath();
+std::filesystem::path GetExternalDataPath();
 #endif
 
 } // namespace ppx::fs
