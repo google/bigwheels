@@ -21,10 +21,13 @@
 
 namespace ppx {
 
+class VertexDataProcessorBase;
+
 enum GeometryVertexAttributeLayout
 {
-    GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_INTERLEAVED = 1,
-    GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_PLANAR      = 2,
+    GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_INTERLEAVED     = 1,
+    GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_PLANAR          = 2,
+    GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_POSITION_PLANAR = 3,
 };
 
 //! @struct GeometryOptions
@@ -63,11 +66,14 @@ struct GeometryOptions
     static GeometryOptions InterleavedU32();
     static GeometryOptions PlanarU16();
     static GeometryOptions PlanarU32();
+    static GeometryOptions PositionPlanarU16();
+    static GeometryOptions PositionPlanarU32();
 
     // Create a create info with a position vertex attribute.
     //
     static GeometryOptions Interleaved();
     static GeometryOptions Planar();
+    static GeometryOptions PositionPlanar();
 
     GeometryOptions& IndexType(grfx::IndexType indexType_);
     GeometryOptions& IndexTypeU16();
@@ -106,13 +112,14 @@ private:
 //!
 class Geometry
 {
-public:
+    friend class VertexDataProcessorBase;
     enum BufferType
     {
         BUFFER_TYPE_VERTEX = 1,
         BUFFER_TYPE_INDEX  = 2,
     };
 
+public:
     //! @class Buffer
     //!
     //! Element count is data size divided by element size.
@@ -232,27 +239,9 @@ public:
     void AppendTriangle(const TriMeshVertexData& vtx0, const TriMeshVertexData& vtx1, const TriMeshVertexData& vtx2);
     void AppendEdge(const WireMeshVertexData& vtx0, const WireMeshVertexData& vtx1);
 
-    // Append individual attributes
-    //
-    // For attribute layout GEOMETRY_ATTRIBUTE_LAYOUT_PLANAR only, will NOOP
-    // otherwise.
-    //
-    // Missing attributes will also result in NOOP. For instance if a geomtry
-    // object was not created with color, calling AppendColor() will NOOP.
-    //
-    uint32_t AppendPosition(const float3& value);
-    void     AppendNormal(const float3& value);
-    void     AppendColor(const float3& value);
-    void     AppendTexCoord(const float2& value);
-    void     AppendTangent(const float4& value);
-    void     AppendBitangent(const float3& value);
-
 private:
-    uint32_t AppendVertexInterleaved(const TriMeshVertexData& vtx);
-    uint32_t AppendVertexInterleaved(const WireMeshVertexData& vtx);
-
-private:
-    GeometryOptions               mCreateInfo = {};
+    VertexDataProcessorBase*      mVDProcessor = nullptr;
+    GeometryOptions               mCreateInfo  = {};
     Geometry::Buffer              mIndexBuffer;
     std::vector<Geometry::Buffer> mVertexBuffers;
     uint32_t                      mPositionBufferIndex  = PPX_VALUE_IGNORED;
