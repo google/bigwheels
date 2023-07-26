@@ -43,5 +43,30 @@ std::string TrimCopy(const std::string& s)
     return sc;
 }
 
+std::string_view TrimBothEnds(std::string_view s, std::string_view c)
+{
+    if (s.size() == 0) {
+        return s;
+    }
+    auto strBegin = s.find_first_not_of(c);
+    auto strEnd   = s.find_last_not_of(c);
+    auto strRange = strEnd - strBegin + 1;
+    return s.substr(strBegin, strRange);
+}
+
+std::optional<std::pair<std::string_view, std::string_view>> SplitInTwo(std::string_view s, char delimiter)
+{
+    if (s.size() == 0) {
+        return std::nullopt;
+    }
+    size_t delimeterIndex = s.find(delimiter);
+    if (delimeterIndex == std::string_view::npos) {
+        return std::nullopt;
+    }
+    std::string_view firstSubstring  = s.substr(0, delimeterIndex);
+    std::string_view secondSubstring = s.substr(delimeterIndex + 1);
+    return std::make_pair(firstSubstring, secondSubstring);
+}
+
 } // namespace string_util
 } // namespace ppx
