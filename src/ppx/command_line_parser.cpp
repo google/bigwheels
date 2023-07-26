@@ -39,8 +39,8 @@ namespace ppx {
 
 std::pair<int, int> CliOptions::GetOptionValueOrDefault(std::string_view optionName, const std::pair<int, int>& defaultValue) const
 {
-    auto it = allOptions.find(optionName);
-    if (it == allOptions.cend()) {
+    auto it = mAllOptions.find(optionName);
+    if (it == mAllOptions.cend()) {
         return defaultValue;
     }
     auto valueStr = it->second.back();
@@ -54,12 +54,12 @@ std::pair<int, int> CliOptions::GetOptionValueOrDefault(std::string_view optionN
     return std::make_pair(N, M);
 }
 
-void CliOptions::AddOption(std::string_view key, std::string_view valueStr)
+void CliOptions::AddOption(std::string_view optionName, std::string_view valueStr)
 {
-    auto it = allOptions.find(key);
-    if (it == allOptions.cend()) {
+    auto it = mAllOptions.find(optionName);
+    if (it == mAllOptions.cend()) {
         std::vector<std::string_view> v{valueStr};
-        allOptions.emplace(key, v);
+        mAllOptions.emplace(optionName, v);
         return;
     }
     it->second.push_back(valueStr);
@@ -77,6 +77,7 @@ bool CliOptions::Parse(std::string_view valueStr, bool defaultValue) const
         ss.clear();
         ss >> std::boolalpha >> valueAsBool;
         if (ss.fail()) {
+            PPX_LOG_ERROR("could not be parsed as bool: " << valueStr);
             return defaultValue;
         }
     }

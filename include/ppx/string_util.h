@@ -24,7 +24,9 @@ namespace string_util {
 void TrimLeft(std::string& s);
 void TrimRight(std::string& s);
 
-std::string      TrimCopy(const std::string& s);
+std::string TrimCopy(const std::string& s);
+
+// Trims all characters specified in c from both the left and right sides of s
 std::string_view TrimBothEnds(std::string_view s, std::string_view c = " \t");
 
 // Splits s at the first instance of delimeter and returns two substrings

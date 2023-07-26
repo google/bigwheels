@@ -73,21 +73,21 @@ class CliOptions
 public:
     CliOptions() = default;
 
-    bool HasExtraOption(std::string_view option) const { return allOptions.contains(option); }
+    bool HasExtraOption(std::string_view option) const { return mAllOptions.contains(option); }
 
     // Returns the number of unique options and flags that were specified on the commandline,
     // not counting multiple appearances of the same flag such as: --assets-path a --assets-path b
-    size_t GetNumUniqueOptions() const { return allOptions.size(); }
+    size_t GetNumUniqueOptions() const { return mAllOptions.size(); }
 
-    // Try to parse option string into the type of the default value and return it.
+    // Tries to parse the option string into the type of the default value and return it.
     // If the value fails to be converted, return the specified default value.
     // Warning: If this is called instead of the vector overload for multiple-value flags,
     //          only the last value will be returned.
     template <typename T>
     T GetOptionValueOrDefault(std::string_view optionName, const T& defaultValue) const
     {
-        auto it = allOptions.find(optionName);
-        if (it == allOptions.cend()) {
+        auto it = mAllOptions.find(optionName);
+        if (it == mAllOptions.cend()) {
             return defaultValue;
         }
         auto valueStr = it->second.back();
@@ -99,8 +99,8 @@ public:
     template <typename T>
     std::vector<T> GetOptionValueOrDefault(std::string_view optionName, const std::vector<T>& defaultValues) const
     {
-        auto it = allOptions.find(optionName);
-        if (it == allOptions.cend()) {
+        auto it = mAllOptions.find(optionName);
+        if (it == mAllOptions.cend()) {
             return defaultValues;
         }
         std::vector<T> parsedValues;
@@ -131,7 +131,7 @@ private:
     // Adds new option if the option does not already exist
     // Otherwise, the new value is appended to the end of the vector of stored parameters for this option
     void
-    AddOption(std::string_view key, std::string_view value);
+    AddOption(std::string_view optionName, std::string_view value);
 
     template <typename T>
     T GetParsedOrDefault(std::string_view valueStr, const T& defaultValue) const
@@ -162,7 +162,7 @@ private:
 
 private:
     // All flag names (string) and parameters (vector of strings) specified on the command line
-    std::unordered_map<std::string_view, std::vector<std::string_view>> allOptions;
+    std::unordered_map<std::string_view, std::vector<std::string_view>> mAllOptions;
 
     friend class CommandLineParser;
 };
