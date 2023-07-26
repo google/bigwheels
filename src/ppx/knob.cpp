@@ -19,6 +19,15 @@
 
 namespace ppx {
 
+// Spacing:
+//
+// --flag_name <params>    description...
+//                         continued description...
+// |usageMsgIndentWidth---|
+// |usageMsgTotalWidth-----------------------------|
+size_t usageMsgIndentWidth = 20;
+size_t usageMsgTotalWidth  = 80;
+
 // -------------------------------------------------------------------------------------------------
 // Knob
 // -------------------------------------------------------------------------------------------------
@@ -112,15 +121,7 @@ void KnobManager::DrawAllKnobs(bool inExistingWindow)
 
 std::string KnobManager::GetUsageMsg()
 {
-    std::string usageMsg    = "\nApplication-Specific Flags:\n";
-    size_t      indentWidth = 20;
-    size_t      totalWidth  = 80;
-    // Spacing:
-    //
-    // --flag_name <params>    description...
-    //                         continued description...
-    // |indentWidth-----------|
-    // |totalWidth--------------------------------------|
+    std::string usageMsg = "\nApplication-Specific Flags:\n";
     for (const auto& knobPtr : mKnobs) {
         std::string knobMsg = "--" + knobPtr->mFlagName;
         if (knobPtr->mFlagParameters != "") {
@@ -128,7 +129,7 @@ std::string KnobManager::GetUsageMsg()
         }
         if (knobPtr->mFlagDescription != "") {
             knobMsg += "\n";
-            knobMsg += ppx::string_util::WrapText(knobPtr->mFlagDescription, totalWidth, indentWidth);
+            knobMsg += ppx::string_util::WrapText(knobPtr->mFlagDescription, usageMsgTotalWidth, usageMsgIndentWidth);
         }
         usageMsg += knobMsg + "\n";
     }
