@@ -12,26 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-struct SceneData
+struct TransformData
 {
-    float4x4 ModelMatrix;                // Transforms object space to world space.
-    float4x4 CameraViewProjectionMatrix; // Camera's view projection matrix.
+    float4x4 MVP;
 };
 
-ConstantBuffer<SceneData> Scene    : register(b0);
-TextureCube               Tex0     : register(t1);
-SamplerState              Sampler0 : register(s2);
+ConstantBuffer<TransformData> Transform : register(b0, space1);
+Texture2D                     Tex0      : register(t1);
+SamplerState                  Sampler0  : register(s2);
 
 struct VSOutput {
 	float4 Position : SV_POSITION;
-	float3 TexCoord : TEXCOORD;
+	float2 TexCoord : TEXCOORD;
 };
 
-VSOutput vsmain(float4 Position : POSITION)
+VSOutput vsmain(float4 Position : POSITION, float2 TexCoord : TEXCOORD0)
 {
 	VSOutput result;
-	result.Position = mul(Scene.CameraViewProjectionMatrix, mul(Scene.ModelMatrix, Position));
-	result.TexCoord = Position.xyz;
+	result.Position = mul(Transform.MVP, Position);
+	result.TexCoord = TexCoord;
 	return result;
 }
 
