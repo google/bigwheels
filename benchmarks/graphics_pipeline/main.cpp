@@ -310,10 +310,10 @@ void ProjApp::Setup()
         gpCreateInfo.vertexInputState.bindings[0]       = mVertexBinding;
         gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
-        gpCreateInfo.cullMode                           = grfx::CULL_MODE_NONE;
+        gpCreateInfo.cullMode                           = grfx::CULL_MODE_FRONT;
         gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
         gpCreateInfo.depthReadEnable                    = true;
-        gpCreateInfo.depthWriteEnable                   = true;
+        gpCreateInfo.depthWriteEnable                   = false;
         gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
         gpCreateInfo.outputState.renderTargetCount      = 1;
         gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
