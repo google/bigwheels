@@ -149,6 +149,22 @@ dog.
     EXPECT_EQ(wrapped, wantWrap);
 }
 
+TEST(StringUtilTest, WrapTextWithTabs)
+{
+    std::string toWrap   = "\t\tThe quick brown \tfox jumps over \tthe lazy dog.\t";
+    std::string wantWrap = "The quick\nbrown \tfox\njumps over\nthe lazy\ndog.\n";
+    std::string wrapped  = WrapText(toWrap, 10, 0);
+    EXPECT_EQ(wrapped, wantWrap);
+}
+
+TEST(StringUtilTest, WrapTextMixedTabsAndSpaces)
+{
+    std::string toWrap   = "    \t\tThe quick brown \tfox       jumps over \tthe lazy dog. \t  ";
+    std::string wantWrap = "The quick\nbrown \tfox\njumps over\nthe lazy\ndog.\n";
+    std::string wrapped  = WrapText(toWrap, 10, 0);
+    EXPECT_EQ(wrapped, wantWrap);
+}
+
 TEST(StringUtilTest, WrapTextLongWord)
 {
     std::string toWrap   = "The quick brown fox jumps over the extremely-long-word-here lazy dog.";

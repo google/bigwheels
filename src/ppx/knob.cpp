@@ -25,8 +25,8 @@ namespace ppx {
 //                         continued description...
 // |usageMsgIndentWidth---|
 // |usageMsgTotalWidth-----------------------------|
-size_t usageMsgIndentWidth = 20;
-size_t usageMsgTotalWidth  = 80;
+constexpr size_t usageMsgIndentWidth = 20;
+constexpr size_t usageMsgTotalWidth  = 80;
 
 // -------------------------------------------------------------------------------------------------
 // Knob
