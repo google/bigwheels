@@ -188,13 +188,17 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
 {
     settings.appName                    = "graphics_pipeline";
     settings.enableImGui                = true;
-    settings.allowThirdPartyAssets      = true;
     settings.window.width               = 1920;
     settings.window.height              = 1080;
     settings.grfx.api                   = kApi;
     settings.grfx.enableDebug           = false;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
 }
+
+struct TransformData
+{
+    float4x4 MVP;
+};
 
 void ProjApp::Setup()
 {
@@ -238,9 +242,9 @@ void ProjApp::Setup()
     // Descriptor
     {
         grfx::DescriptorPoolCreateInfo poolCreateInfo = {};
-        poolCreateInfo.uniformBuffer                  = 1024;
-        poolCreateInfo.sampledImage                   = 1024;
-        poolCreateInfo.sampler                        = 1024;
+        poolCreateInfo.uniformBuffer                  = 8;
+        poolCreateInfo.sampledImage                   = 8;
+        poolCreateInfo.sampler                        = 8;
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&poolCreateInfo, &mDescriptorPool));
 
         // Descriptor set layout for buffers
@@ -505,11 +509,6 @@ void ProjApp::Render()
 
             // Draw SkyBox
             {
-                struct TransformData
-                {
-                    float4x4 MVP;
-                };
-
                 TransformData data;
                 data.MVP = mCamera.GetViewProjectionMatrix() * glm::scale(float3(500.0f, 500.0f, 500.0f));
                 mUniformBuffer->CopyFromSource(sizeof(data), &data);
