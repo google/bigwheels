@@ -211,7 +211,7 @@ void ProjApp::Setup()
     // Uniform buffers
     {
         grfx::BufferCreateInfo createInfo        = {};
-        createInfo.size                          = 256;
+        createInfo.size                          = PPX_MINIMUM_UNIFORM_BUFFER_SIZE;
         createInfo.usageFlags.bits.uniformBuffer = true;
         createInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
 
