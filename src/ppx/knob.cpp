@@ -23,10 +23,10 @@ namespace ppx {
 //
 // --flag_name <params>    description...
 //                         continued description...
-// |usageMsgIndentWidth---|
-// |usageMsgTotalWidth-----------------------------|
-constexpr size_t usageMsgIndentWidth = 20;
-constexpr size_t usageMsgTotalWidth  = 80;
+// |kUsageMsgIndentWidth--|
+// |kUsageMsgTotalWidth-----------------------------|
+constexpr size_t kUsageMsgIndentWidth = 20;
+constexpr size_t kUsageMsgTotalWidth  = 80;
 
 // -------------------------------------------------------------------------------------------------
 // Knob
@@ -129,7 +129,7 @@ std::string KnobManager::GetUsageMsg()
         }
         if (knobPtr->mFlagDescription != "") {
             knobMsg += "\n";
-            knobMsg += ppx::string_util::WrapText(knobPtr->mFlagDescription, usageMsgTotalWidth, usageMsgIndentWidth);
+            knobMsg += ppx::string_util::WrapText(knobPtr->mFlagDescription, kUsageMsgTotalWidth, kUsageMsgIndentWidth);
         }
         usageMsg += knobMsg + "\n";
     }

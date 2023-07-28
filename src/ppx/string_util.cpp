@@ -69,7 +69,7 @@ std::optional<std::pair<std::string_view, std::string_view>> SplitInTwo(std::str
     return std::make_pair(firstSubstring, secondSubstring);
 }
 
-std::string WrapText(const std::string& s, size_t width, size_t indent = 0)
+std::string WrapText(const std::string& s, size_t width, size_t indent)
 {
     if (indent >= width) {
         return s;

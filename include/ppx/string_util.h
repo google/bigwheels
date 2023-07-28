@@ -37,7 +37,7 @@ std::optional<std::pair<std::string_view, std::string_view>> SplitInTwo(std::str
 // Words will be pushed to the subsequent line to avoid line breaks in the
 // middle of a word if possible.
 // Leading and trailing whitespace is trimmed from each line.
-std::string WrapText(const std::string& s, size_t width, size_t indent);
+std::string WrapText(const std::string& s, size_t width, size_t indent = 0);
 
 } // namespace string_util
 } // namespace ppx

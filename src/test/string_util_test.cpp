@@ -98,7 +98,7 @@ TEST(StringUtilTest, SplitInTwoMultipleDelimiter)
 TEST(StringUtilTest, WrapTextEmptyString)
 {
     std::string toWrap  = "";
-    std::string wrapped = WrapText(toWrap, 10, 0);
+    std::string wrapped = WrapText(toWrap, 10);
     EXPECT_EQ(wrapped, "");
     EXPECT_EQ(toWrap, "");
 }
@@ -119,7 +119,7 @@ jumps over
 the lazy
 dog.
 )";
-    std::string wrapped  = WrapText(toWrap, 10, 0);
+    std::string wrapped  = WrapText(toWrap, 10);
     EXPECT_EQ(wrapped, wantWrap);
 }
 
@@ -145,7 +145,7 @@ jumps over
 the lazy
 dog.
 )";
-    std::string wrapped  = WrapText(toWrap, 10, 0);
+    std::string wrapped  = WrapText(toWrap, 10);
     EXPECT_EQ(wrapped, wantWrap);
 }
 
@@ -153,7 +153,7 @@ TEST(StringUtilTest, WrapTextWithTabs)
 {
     std::string toWrap   = "\t\tThe quick brown \tfox jumps over \tthe lazy dog.\t";
     std::string wantWrap = "The quick\nbrown \tfox\njumps over\nthe lazy\ndog.\n";
-    std::string wrapped  = WrapText(toWrap, 10, 0);
+    std::string wrapped  = WrapText(toWrap, 10);
     EXPECT_EQ(wrapped, wantWrap);
 }
 
