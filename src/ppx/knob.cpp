@@ -13,10 +13,20 @@
 // limitations under the License.
 
 #include "ppx/knob.h"
+#include "ppx/string_util.h"
 
 #include <cstring>
 
 namespace ppx {
+
+// Spacing:
+//
+// --flag_name <params>    description...
+//                         continued description...
+// |kUsageMsgIndentWidth--|
+// |kUsageMsgTotalWidth-----------------------------|
+constexpr size_t kUsageMsgIndentWidth = 20;
+constexpr size_t kUsageMsgTotalWidth  = 80;
 
 // -------------------------------------------------------------------------------------------------
 // Knob
@@ -112,17 +122,16 @@ void KnobManager::DrawAllKnobs(bool inExistingWindow)
 std::string KnobManager::GetUsageMsg()
 {
     std::string usageMsg = "\nApplication-Specific Flags:\n";
-    // Tends to have longer params, do not attempt to align description
-    // --flag_name <params> : description
     for (const auto& knobPtr : mKnobs) {
-        usageMsg += "--" + knobPtr->mFlagName;
+        std::string knobMsg = "--" + knobPtr->mFlagName;
         if (knobPtr->mFlagParameters != "") {
-            usageMsg += " " + knobPtr->mFlagParameters;
+            knobMsg += " " + knobPtr->mFlagParameters;
         }
         if (knobPtr->mFlagDescription != "") {
-            usageMsg += " : " + knobPtr->mFlagDescription;
+            knobMsg += "\n";
+            knobMsg += ppx::string_util::WrapText(knobPtr->mFlagDescription, kUsageMsgTotalWidth, kUsageMsgIndentWidth);
         }
-        usageMsg += "\n";
+        usageMsg += knobMsg + "\n";
     }
     return usageMsg;
 }

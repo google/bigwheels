@@ -58,6 +58,7 @@ protected:
         k5 = km.CreateKnob<ppx::KnobFlag<bool>>("flag_name5", true);
         k6 = km.CreateKnob<ppx::KnobFlag<float>>("flag_name6", 6.6f, 0.0f, 10.0f);
         k7 = km.CreateKnob<ppx::KnobFlag<int>>("flag_name7", 8, 0, INT_MAX);
+        k8 = km.CreateKnob<ppx::KnobSlider<float>>("flag_name8", 5.0f, 0.0f, 10.0f);
     }
 
 protected:
@@ -69,6 +70,7 @@ protected:
     std::shared_ptr<ppx::KnobFlag<bool>>            k5;
     std::shared_ptr<ppx::KnobFlag<float>>           k6;
     std::shared_ptr<ppx::KnobFlag<int>>             k7;
+    std::shared_ptr<ppx::KnobSlider<float>>         k8;
 };
 
 namespace ppx {
@@ -117,36 +119,69 @@ TEST_F(KnobTestFixture, KnobCheckbox_ResetToDefault)
 // KnobSlider
 // -------------------------------------------------------------------------------------------------
 
-TEST_F(KnobTestFixture, KnobSlider_CreateAndSetBasicMembers)
+TEST_F(KnobTestFixture, KnobSlider_CreateIntAndSetBasicMembers)
 {
-    KnobSlider<int> intKnob = KnobSlider<int>("flag_name1", 5, 0, 10);
-    EXPECT_EQ(intKnob.GetValue(), 5);
+    KnobSlider<int> k = KnobSlider<int>("flag_name1", 5, 0, 10);
+    EXPECT_EQ(k.GetValue(), 5);
+}
+
+TEST_F(KnobTestFixture, KnobSlider_CreateFloatAndSetBasicMembers)
+{
+    KnobSlider<float> k = KnobSlider<float>("flag_name1", 5.0f, 0.0f, 10.0f);
+    EXPECT_EQ(k.GetValue(), 5.0f);
 }
 
 #if defined(PERFORM_DEATH_TESTS)
-TEST_F(KnobTestFixture, KnobSlider_CreateInvalidRangeTooSmall)
+TEST_F(KnobTestFixture, KnobSlider_CreateIntInvalidRangeTooSmall)
 {
     EXPECT_DEATH(
         {
-            KnobSlider<int> intKnob = KnobSlider<int>("flag_name1", 10, 10, 10);
+            KnobSlider<int> k = KnobSlider<int>("flag_name1", 10, 10, 10);
         },
         "");
 }
 
-TEST_F(KnobTestFixture, KnobSlider_CreateInvalidDefaultTooLow)
+TEST_F(KnobTestFixture, KnobSlider_CreateFloatInvalidRangeTooSmall)
 {
     EXPECT_DEATH(
         {
-            KnobSlider<int> intKnob = KnobSlider<int>("flag_name1", -1, 0, 10);
+            KnobSlider<float> k = KnobSlider<float>("flag_name1", 10.0f, 10.0f, 10.0f);
         },
         "");
 }
 
-TEST_F(KnobTestFixture, KnobSlider_CreateInvalidDefaultTooHigh)
+TEST_F(KnobTestFixture, KnobSlider_CreateIntInvalidDefaultTooLow)
 {
     EXPECT_DEATH(
         {
-            KnobSlider<int> intKnob = KnobSlider<int>("flag_name1", 11, 0, 10);
+            KnobSlider<int> k = KnobSlider<int>("flag_name1", -1, 0, 10);
+        },
+        "");
+}
+
+TEST_F(KnobTestFixture, KnobSlider_CreateFloatInvalidDefaultTooLow)
+{
+    EXPECT_DEATH(
+        {
+            KnobSlider<float> k = KnobSlider<float>("flag_name1", -1.0f, 0.0f, 10.0f);
+        },
+        "");
+}
+
+TEST_F(KnobTestFixture, KnobSlider_CreateIntInvalidDefaultTooHigh)
+{
+    EXPECT_DEATH(
+        {
+            KnobSlider<int> k = KnobSlider<int>("flag_name1", 11, 0, 10);
+        },
+        "");
+}
+
+TEST_F(KnobTestFixture, KnobSlider_CreateFloatInvalidDefaultTooHigh)
+{
+    EXPECT_DEATH(
+        {
+            KnobSlider<float> k = KnobSlider<float>("flag_name1", 11.0f, 0.0f, 10.0f);
         },
         "");
 }
@@ -154,46 +189,80 @@ TEST_F(KnobTestFixture, KnobSlider_CreateInvalidDefaultTooHigh)
 
 TEST_F(KnobTestFixture, KnobSlider_CanSetIntValue)
 {
-    KnobSlider<int> intKnob = KnobSlider<int>("flag_name1", 5, 0, 10);
-    EXPECT_EQ(intKnob.GetValue(), 5);
-    intKnob.SetValue(10);
-    EXPECT_EQ(intKnob.GetValue(), 10);
+    KnobSlider<int> k = KnobSlider<int>("flag_name1", 5, 0, 10);
+    EXPECT_EQ(k.GetValue(), 5);
+    k.SetValue(10);
+    EXPECT_EQ(k.GetValue(), 10);
+}
+
+TEST_F(KnobTestFixture, KnobSlider_CanSetFloatValue)
+{
+    KnobSlider<float> k = KnobSlider<float>("flag_name1", 5.0f, 0.0f, 10.0f);
+    EXPECT_EQ(k.GetValue(), 5.0f);
+    k.SetValue(5.5f);
+    EXPECT_EQ(k.GetValue(), 5.5f);
 }
 
 TEST_F(KnobTestFixture, KnobSlider_CanDigestIntValueUpdate)
 {
-    KnobSlider<int> intKnob = KnobSlider<int>("flag_name1", 5, 0, 10);
-    EXPECT_TRUE(intKnob.DigestUpdate());
-    EXPECT_EQ(intKnob.GetValue(), 5);
+    KnobSlider<int> k = KnobSlider<int>("flag_name1", 5, 0, 10);
+    EXPECT_TRUE(k.DigestUpdate());
+    EXPECT_EQ(k.GetValue(), 5);
 
-    EXPECT_FALSE(intKnob.DigestUpdate());
-    intKnob.SetValue(10);
-    EXPECT_EQ(intKnob.GetValue(), 10);
-    EXPECT_TRUE(intKnob.DigestUpdate());
+    EXPECT_FALSE(k.DigestUpdate());
+    k.SetValue(10);
+    EXPECT_EQ(k.GetValue(), 10);
+    EXPECT_TRUE(k.DigestUpdate());
+}
+
+TEST_F(KnobTestFixture, KnobSlider_CanDigestFloatValueUpdate)
+{
+    KnobSlider<float> k = KnobSlider<float>("flag_name1", 5, 0, 10);
+    EXPECT_TRUE(k.DigestUpdate());
+    EXPECT_EQ(k.GetValue(), 5);
+
+    EXPECT_FALSE(k.DigestUpdate());
+    k.SetValue(10);
+    EXPECT_EQ(k.GetValue(), 10);
+    EXPECT_TRUE(k.DigestUpdate());
 }
 
 TEST_F(KnobTestFixture, KnobSlider_MinIntValueClamped)
 {
-    KnobSlider<int> intKnob = KnobSlider<int>("flag_name1", 5, 0, 10);
-    intKnob.SetValue(-3);
-    EXPECT_EQ(intKnob.GetValue(), 5);
+    KnobSlider<int> k = KnobSlider<int>("flag_name1", 5, 0, 10);
+    k.SetValue(-3);
+    EXPECT_EQ(k.GetValue(), 5);
+}
+
+TEST_F(KnobTestFixture, KnobSlider_MinFloatValueClamped)
+{
+    KnobSlider<float> k = KnobSlider<float>("flag_name1", 5.0f, 0.0f, 10.0f);
+    k.SetValue(-3.0f);
+    EXPECT_EQ(k.GetValue(), 5.0f);
 }
 
 TEST_F(KnobTestFixture, KnobSlider_MaxIntValueClamped)
 {
-    KnobSlider<int> intKnob = KnobSlider<int>("flag_name1", 5, 0, 10);
-    intKnob.SetValue(22);
-    EXPECT_EQ(intKnob.GetValue(), 5);
+    KnobSlider<int> k = KnobSlider<int>("flag_name1", 5, 0, 10);
+    k.SetValue(22);
+    EXPECT_EQ(k.GetValue(), 5);
+}
+
+TEST_F(KnobTestFixture, KnobSlider_MaxFloatValueClamped)
+{
+    KnobSlider<float> k = KnobSlider<float>("flag_name1", 5.0f, 0.0f, 10.0f);
+    k.SetValue(22.0f);
+    EXPECT_EQ(k.GetValue(), 5.0f);
 }
 
 TEST_F(KnobTestFixture, KnobSlider_ResetToDefault)
 {
-    KnobSlider<int> intKnob = KnobSlider<int>("flag_name1", 5, 0, 10);
-    EXPECT_EQ(intKnob.GetValue(), 5);
-    intKnob.SetValue(8);
-    EXPECT_EQ(intKnob.GetValue(), 8);
-    intKnob.ResetToDefault();
-    EXPECT_EQ(intKnob.GetValue(), 5);
+    KnobSlider<int> k = KnobSlider<int>("flag_name1", 5, 0, 10);
+    EXPECT_EQ(k.GetValue(), 5);
+    k.SetValue(8);
+    EXPECT_EQ(k.GetValue(), 8);
+    k.ResetToDefault();
+    EXPECT_EQ(k.GetValue(), 5);
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -375,8 +444,14 @@ TEST_F(KnobManagerTestFixture, KnobManager_CreateBoolCheckbox)
 
 TEST_F(KnobManagerTestFixture, KnobManager_CreateIntSlider)
 {
-    std::shared_ptr<KnobSlider<int>> intKnobPtr(km.CreateKnob<KnobSlider<int>>("flag_name1", 5, 0, 10));
-    EXPECT_EQ(intKnobPtr->GetValue(), 5);
+    std::shared_ptr<KnobSlider<int>> k(km.CreateKnob<KnobSlider<int>>("flag_name1", 5, 0, 10));
+    EXPECT_EQ(k->GetValue(), 5);
+}
+
+TEST_F(KnobManagerTestFixture, KnobManager_CreateFloatSlider)
+{
+    std::shared_ptr<KnobSlider<float>> k(km.CreateKnob<KnobSlider<float>>("flag_name1", 5.0f, 0.0f, 10.0f));
+    EXPECT_EQ(k->GetValue(), 5.0f);
 }
 
 TEST_F(KnobManagerTestFixture, KnobManager_CreateStrDropdown)
@@ -445,6 +520,7 @@ Application-Specific Flags:
 --flag_name5
 --flag_name6
 --flag_name7
+--flag_name8 <0.0~10.0>
 )";
     EXPECT_EQ(km.GetUsageMsg(), usageMsg);
 }
@@ -460,16 +536,26 @@ TEST_F(KnobManagerWithKnobsTestFixture, KnobManager_GetCustomizedUsageMsg)
     k6->SetFlagParameters("<0.0~10.0>");
     k6->SetFlagDescription("description6");
     k7->SetFlagParameters("<0~INT_MAX>");
+    k8->SetFlagParameters("<0.000~10.000>");
 
     std::string usageMsg = R"(
 Application-Specific Flags:
---flag_name1 <bool> : description1
+--flag_name1 <bool>
+                    description1
+
 --flag_name2 <true|false>
---flag_name3 <N> : description3
---flag_name4 <c1|c2|"c3 and more"> : description4
+--flag_name3 <N>
+                    description3
+
+--flag_name4 <c1|c2|"c3 and more">
+                    description4
+
 --flag_name5 <0|1>
---flag_name6 <0.0~10.0> : description6
+--flag_name6 <0.0~10.0>
+                    description6
+
 --flag_name7 <0~INT_MAX>
+--flag_name8 <0.000~10.000>
 )";
     EXPECT_EQ(km.GetUsageMsg(), usageMsg);
 }
@@ -485,12 +571,14 @@ TEST_F(KnobManagerWithKnobsTestFixture, KnobManager_ResetAllToDefault)
     EXPECT_EQ(k3->GetValue(), 8);
     k4->SetIndex(0);
     EXPECT_EQ(k4->GetIndex(), 0);
+    k8->SetValue(8.0f);
 
     km.ResetAllToDefault();
     EXPECT_TRUE(k1->GetValue());
     EXPECT_TRUE(k2->GetValue());
     EXPECT_EQ(k3->GetValue(), 5);
     EXPECT_EQ(k4->GetIndex(), 1);
+    EXPECT_EQ(k8->GetValue(), 5.0f);
 }
 
 void UpdateDependentKnobs(std::shared_ptr<KnobCheckbox> p1, std::shared_ptr<KnobSlider<int>> p2, std::shared_ptr<KnobDropdown<std::string>> p3)
