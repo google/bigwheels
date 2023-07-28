@@ -79,19 +79,16 @@ std::string WrapText(const std::string& s, size_t width, size_t indent)
     size_t      textWidth   = width - indent;
     std::string wrappedText = "";
     while (remainingString != "") {
+        // Section off the next line from the remaining string, format it, and append it to wrappedText
         size_t lineLength = remainingString.find_last_of(" \t", textWidth);
         if (lineLength == std::string::npos) {
-            lineLength = textWidth;
+            lineLength = std::min(textWidth, remainingString.length());
         }
-
         std::string newLine = remainingString.substr(0, lineLength);
         TrimRight(newLine);
-
         wrappedText += std::string(indent, ' ') + newLine + "\n";
-        if (lineLength >= remainingString.length()) {
-            break;
-        }
 
+        // Update the remaining string
         remainingString = remainingString.substr(lineLength);
         TrimLeft(remainingString);
     }
