@@ -25,23 +25,19 @@ using ::testing::HasSubstr;
 TEST(CommandLineParserTest, ZeroArguments)
 {
     CommandLineParser parser;
-    StandardOptions   defaultOptions;
     if (auto error = parser.Parse(0, nullptr)) {
         FAIL() << error->errorMsg;
     }
-    EXPECT_EQ(parser.GetStandardOptions(), defaultOptions);
     EXPECT_EQ(parser.GetOptions().GetNumUniqueOptions(), 0);
 }
 
 TEST(CommandLineParserTest, FirstArgumentIgnored)
 {
     CommandLineParser parser;
-    StandardOptions   defaultOptions;
     const char*       args[] = {"/path/to/executable"};
     if (auto error = parser.Parse(sizeof(args) / sizeof(args[0]), args)) {
         FAIL() << error->errorMsg;
     }
-    EXPECT_EQ(parser.GetStandardOptions(), defaultOptions);
     EXPECT_EQ(parser.GetOptions().GetNumUniqueOptions(), 0);
 }
 
@@ -218,74 +214,14 @@ TEST(CommandLineParserTest, LastValueIsTaken)
     EXPECT_EQ(gotOptions.GetOptionValueOrDefault<int>("b", 0), 1);
 }
 
-TEST(CommandLineParserTest, StandardOptionsSuccessfullyParsed)
-{
-    CommandLineParser parser;
-    const char*       args[] = {
-        "/path/to/executable",
-        "--list-gpus",
-        "--deterministic",
-        "1",
-        "--enable-metrics",
-        "true",
-        "--no-use-software-renderer",
-        "--headless",
-        "0",
-        "--overwrite_metrics_file",
-        "false",
-        "--metrics-filename",
-        "filename with spaces",
-        "--screenshot-path",
-        "filenameWithoutSpaces",
-        "--frame-count",
-        "0",
-        "--gpu",
-        "5",
-        "--run-time-ms",
-        "300",
-        "--screenshot-frame-number",
-        "0",
-        "--stats-frame-window",
-        "1000",
-        "--assets-path",
-        "foo1",
-        "--assets-path",
-        "foo2",
-        "--resolution",
-        "100x200"};
-    if (auto error = parser.Parse(sizeof(args) / sizeof(args[0]), args)) {
-        FAIL() << error->errorMsg;
-    }
-    EXPECT_EQ(parser.GetOptions().GetNumUniqueOptions(), 15);
-    StandardOptions gotStandardOptions = parser.GetStandardOptions();
-    EXPECT_EQ(gotStandardOptions.list_gpus, true);
-    EXPECT_EQ(gotStandardOptions.deterministic, true);
-    EXPECT_EQ(gotStandardOptions.enable_metrics, true);
-    EXPECT_EQ(gotStandardOptions.use_software_renderer, false);
-    EXPECT_EQ(gotStandardOptions.headless, false);
-    EXPECT_EQ(gotStandardOptions.overwrite_metrics_file, false);
-    EXPECT_EQ(gotStandardOptions.metrics_filename, "filename with spaces");
-    EXPECT_EQ(gotStandardOptions.screenshot_path, "filenameWithoutSpaces");
-    EXPECT_EQ(gotStandardOptions.frame_count, 0);
-    EXPECT_EQ(gotStandardOptions.gpu_index, 5);
-    EXPECT_EQ(gotStandardOptions.run_time_ms, 300);
-    EXPECT_EQ(gotStandardOptions.screenshot_frame_number, 0);
-    EXPECT_EQ(gotStandardOptions.stats_frame_window, 1000);
-    std::vector<std::string> assetsPaths{"foo1", "foo2"};
-    EXPECT_EQ(gotStandardOptions.assets_paths, assetsPaths);
-    EXPECT_EQ(gotStandardOptions.resolution, std::make_pair(100, 200));
-}
-
 TEST(CommandLineParserTest, ExtraOptionsSuccessfullyParsed)
 {
     CommandLineParser parser;
-    StandardOptions   defaultOptions;
     const char*       args[] = {"/path/to/executable", "--extra-option-bool", "true", "--extra-option-int", "123", "--extra-option-no-param", "--extra-option-str", "option string value"};
     if (auto error = parser.Parse(sizeof(args) / sizeof(args[0]), args)) {
         FAIL() << error->errorMsg;
     }
     auto opts = parser.GetOptions();
-    EXPECT_EQ(parser.GetStandardOptions(), defaultOptions);
     EXPECT_EQ(opts.GetNumUniqueOptions(), 4);
     EXPECT_EQ(opts.GetExtraOptionValueOrDefault("extra-option-bool", false), true);
     EXPECT_EQ(opts.GetExtraOptionValueOrDefault("extra-option-int", 0), 123);
