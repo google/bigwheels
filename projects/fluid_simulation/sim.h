@@ -228,7 +228,7 @@ public:
     const SimulationConfig& GetSimulationConfig() const { return mConfig; }
 
     // Knob visibility logic
-    void UpdateKnobs();
+    void UpdateKnobVisibility();
 
 private:
     // Configuration parameters to the simulator.

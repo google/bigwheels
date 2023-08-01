@@ -211,7 +211,7 @@ void ProjApp::Render()
 
     // Draw Knobs window
     if (GetSettings()->enableImGui) {
-        UpdateKnobs();
+        UpdateKnobVisibility();
         GetKnobManager().DrawAllKnobs();
     }
 
@@ -258,7 +258,7 @@ void ProjApp::Render()
     mSim->FreeGraphicsShaderResources();
 }
 
-void ProjApp::UpdateKnobs()
+void ProjApp::UpdateKnobVisibility()
 {
     if (mConfig.pEnableBloom->DigestUpdate()) {
         bool bloomEnabled = mConfig.pEnableBloom->GetValue();
