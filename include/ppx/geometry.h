@@ -240,6 +240,8 @@ public:
     void AppendEdge(const WireMeshVertexData& vtx0, const WireMeshVertexData& vtx1);
 
 private:
+    // This is intialized to point to a static var of derived class of VertexDataProcessorBase
+    // which is shared by geometry objects, it is not supposed to be deleted
     VertexDataProcessorBase*      mVDProcessor = nullptr;
     GeometryOptions               mCreateInfo  = {};
     Geometry::Buffer              mIndexBuffer;

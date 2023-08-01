@@ -31,17 +31,17 @@ namespace ppx {
 class VertexDataProcessorBase
 {
 public:
-    // validates the layout
+    // Validates the layout
     // returns false if the validation fails
     virtual bool Validate(Geometry* pGeom) = 0;
-    // update the vertex buffer and the vertex buffer index
+    // Updates the vertex buffer and the vertex buffer index
     // returns Result::ERROR_GEOMETRY_INVALID_VERTEX_SEMANTIC if the sematic is invalid
     virtual Result UpdateVertexBuffer(Geometry* pGeom) = 0;
-    // fetch vertex data from vtx and append it to the geometry
-    // returns 0 if the appending fails
+    // Fetches vertex data from vtx and append it to the geometry
+    // Returns 0 if the appending fails
     virtual uint32_t AppendVertexData(Geometry* pGeom, const TriMeshVertexData& vtx)  = 0;
     virtual uint32_t AppendVertexData(Geometry* pGeom, const WireMeshVertexData& vtx) = 0;
-    // get the vertex count of the geometry
+    // Gets the vertex count of the geometry
     virtual uint32_t GetVertexCount(const Geometry* pGeom) = 0;
 
 protected:
@@ -1041,8 +1041,8 @@ uint32_t Geometry::GetIndexCount() const
 
 uint32_t Geometry::GetVertexCount() const
 {
-    uint32_t count = (mVDProcessor != nullptr) ? mVDProcessor->GetVertexCount(this) : 0;
-    return count;
+    PPX_ASSERT_MSG(mVDProcessor != nullptr, "Geometry is not initialized");
+    return mVDProcessor->GetVertexCount(this);
 }
 
 const Geometry::Buffer* Geometry::GetVertexBuffer(uint32_t index) const
