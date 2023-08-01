@@ -427,6 +427,31 @@ TEST_F(KnobTestFixture, KnobFlag_CreateFloatWithRange)
     EXPECT_EQ(k.GetValue(), 1.5f);
 }
 
+TEST_F(KnobTestFixture, KnobFlag_CreatePairInts)
+{
+    KnobFlag<std::pair<int, int>> k = KnobFlag<std::pair<int, int>>("flag_name1", std::make_pair(1, 2));
+    EXPECT_EQ(k.GetValue().first, 1);
+    EXPECT_EQ(k.GetValue().second, 2);
+}
+
+TEST_F(KnobTestFixture, KnobFlag_CreateListStrings)
+{
+    KnobFlag<std::vector<std::string>> k = KnobFlag<std::vector<std::string>>("flag_name1", {"hi1", "hi2", "hi3"});
+    EXPECT_EQ(k.GetValue().size(), 3);
+    EXPECT_EQ(k.GetValue().at(0), "hi1");
+    EXPECT_EQ(k.GetValue().at(1), "hi2");
+    EXPECT_EQ(k.GetValue().at(2), "hi3");
+}
+
+TEST_F(KnobTestFixture, KnobFlag_CreateListInts)
+{
+    KnobFlag<std::vector<int>> k = KnobFlag<std::vector<int>>("flag_name1", {1, 2, 3});
+    EXPECT_EQ(k.GetValue().size(), 3);
+    EXPECT_EQ(k.GetValue().at(0), 1);
+    EXPECT_EQ(k.GetValue().at(1), 2);
+    EXPECT_EQ(k.GetValue().at(2), 3);
+}
+
 // -------------------------------------------------------------------------------------------------
 // KnobManager
 // -------------------------------------------------------------------------------------------------
@@ -495,6 +520,31 @@ TEST_F(KnobManagerTestFixture, KnobManager_CreateKnobFlagFloatWithRange)
 {
     std::shared_ptr<KnobFlag<float>> knobPtr(km.CreateKnob<KnobFlag<float>>("flag_name1", 1.5f, 0.0f, 3.0f));
     EXPECT_EQ(knobPtr->GetValue(), 1.5f);
+}
+
+TEST_F(KnobManagerTestFixture, KnobManager_CreateKnobFlagPairInts)
+{
+    std::shared_ptr<KnobFlag<std::pair<int, int>>> knobPtr(km.CreateKnob<KnobFlag<std::pair<int, int>>>("flag_name1", std::make_pair(1, 2)));
+    EXPECT_EQ(knobPtr->GetValue().first, 1);
+    EXPECT_EQ(knobPtr->GetValue().second, 2);
+}
+
+TEST_F(KnobManagerTestFixture, KnobManager_CreateKnobFlagListStrings)
+{
+    std::shared_ptr<KnobFlag<std::vector<std::string>>> knobPtr(km.CreateKnob<KnobFlag<std::vector<std::string>>>("flag_name1", {"hi1", "hi2", "hi3"}));
+    EXPECT_EQ(knobPtr->GetValue().size(), 3);
+    EXPECT_EQ(knobPtr->GetValue().at(0), "hi1");
+    EXPECT_EQ(knobPtr->GetValue().at(1), "hi2");
+    EXPECT_EQ(knobPtr->GetValue().at(2), "hi3");
+}
+
+TEST_F(KnobManagerTestFixture, KnobManager_CreateKnobFlagListInts)
+{
+    std::shared_ptr<KnobFlag<std::vector<int>>> knobPtr(km.CreateKnob<KnobFlag<std::vector<int>>>("flag_name1", {1, 2, 3}));
+    EXPECT_EQ(knobPtr->GetValue().size(), 3);
+    EXPECT_EQ(knobPtr->GetValue().at(0), 1);
+    EXPECT_EQ(knobPtr->GetValue().at(1), 2);
+    EXPECT_EQ(knobPtr->GetValue().at(2), 3);
 }
 
 #if defined(PERFORM_DEATH_TESTS)
