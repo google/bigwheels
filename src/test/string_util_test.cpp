@@ -180,3 +180,29 @@ dog.
     std::string wrapped  = WrapText(toWrap, 10, 0);
     EXPECT_EQ(wrapped, wantWrap);
 }
+
+TEST(StringUtilTest, WrapTextLongTextWithIndent)
+{
+    std::string toWrap   = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. \
+Cras dapibus finibus nibh, id volutpat odio porta eget. Curabitur lacus urna, \
+placerat tempus consequat id, vulputate eget urna. Suspendisse et massa eget erat \
+pretium convallis elementum quis nunc. Suspendisse lacinia justo tellus, a fermentum \
+metus cursus sed. Phasellus rhoncus ante nec augue rhoncus, id interdum nunc condimentum. \
+Pellentesque vel urna ac tellus euismod finibus quis ac magna. Cras sit amet sapien id \
+neque lobortis aliquam. Vivamus porttitor neque eu eros mollis imperdiet. Vivamus \
+blandit neque sed nisl pretium, quis volutpat dui pharetra.";
+    std::string wantWrap = R"(                    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                    Cras dapibus finibus nibh, id volutpat odio porta eget.
+                    Curabitur lacus urna, placerat tempus consequat id,
+                    vulputate eget urna. Suspendisse et massa eget erat pretium
+                    convallis elementum quis nunc. Suspendisse lacinia justo
+                    tellus, a fermentum metus cursus sed. Phasellus rhoncus ante
+                    nec augue rhoncus, id interdum nunc condimentum.
+                    Pellentesque vel urna ac tellus euismod finibus quis ac
+                    magna. Cras sit amet sapien id neque lobortis aliquam.
+                    Vivamus porttitor neque eu eros mollis imperdiet. Vivamus
+                    blandit neque sed nisl pretium, quis volutpat dui pharetra.
+)";
+    std::string wrapped  = WrapText(toWrap, 80, 20);
+    EXPECT_EQ(wrapped, wantWrap);
+}

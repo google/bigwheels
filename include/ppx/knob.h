@@ -19,6 +19,7 @@
 #include "ppx/config.h"
 #include "ppx/imgui_impl.h"
 #include "ppx/log.h"
+#include "ppx/string_util.h"
 
 #include <iostream>
 #include <memory>
@@ -70,7 +71,8 @@ protected:
 
 private:
     // Only called from KnobManager
-    virtual void Draw() = 0;
+    virtual void        Draw()        = 0;
+    virtual std::string ValueString() = 0;
 
     // Updates knob value from commandline flag
     virtual void UpdateFromFlags(const CliOptions& opts) = 0;
@@ -104,7 +106,8 @@ public:
     void SetValue(bool newValue);
 
 private:
-    void Draw() override;
+    void        Draw() override;
+    std::string ValueString() override;
 
     // Expected commandline flag format:
     // --flag_name <true|false>
@@ -176,11 +179,16 @@ private:
         }
     }
 
+    std::string ValueString() override
+    {
+        return ppx::string_util::ToString(mValue);
+    }
+
     // Expected commandline flag format:
     // --flag_name <int>
     void UpdateFromFlags(const CliOptions& opts) override
     {
-        SetDefaultAndValue(opts.GetExtraOptionValueOrDefault(mFlagName, mValue));
+        SetDefaultAndValue(opts.GetOptionValueOrDefault(mFlagName, mValue));
     }
 
     bool IsValidValue(T val)
@@ -297,11 +305,16 @@ private:
         ImGui::EndCombo();
     }
 
+    std::string ValueString() override
+    {
+        return mChoices[mIndex];
+    }
+
     // Expected commandline flag format:
     // --flag_name <str>
     void UpdateFromFlags(const CliOptions& opts) override
     {
-        SetDefaultAndIndex(opts.GetExtraOptionValueOrDefault(mFlagName, GetValue()));
+        SetDefaultAndIndex(opts.GetOptionValueOrDefault(mFlagName, GetValue()));
     }
 
     bool IsValidIndex(size_t index)
@@ -370,16 +383,20 @@ public:
 private:
     void Draw() override
     {
-        std::stringstream ss;
-        ss << mFlagName << ": " << mValue;
-        std::string flagText = ss.str();
+        std::string flagText = mFlagName + ": " + ValueString();
         ImGui::Text("%s", flagText.c_str());
     }
+
+    std::string ValueString() override
+    {
+        return ppx::string_util::ToString(mValue);
+    }
+
     void ResetToDefault() override {} // KnobFlag is always the "default" value
 
     void UpdateFromFlags(const CliOptions& opts) override
     {
-        SetValue(opts.GetExtraOptionValueOrDefault(mFlagName, mValue));
+        SetValue(opts.GetOptionValueOrDefault(mFlagName, mValue));
     }
 
     bool IsValidValue(T val)
