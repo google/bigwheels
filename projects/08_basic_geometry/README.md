@@ -15,4 +15,4 @@ Cube geometry data (vertices, indices and vertex colors) is generated at setup t
 
 Shader              | Purpose for this project
 ------------------- | ----------------------------------------------
-`VertexColors.hlsl` | Transform and draw a cube using vertex colors.
+`VertexLayoutTest.hlsl` | Transform and draw a cube using vertex colors and normal as input.
