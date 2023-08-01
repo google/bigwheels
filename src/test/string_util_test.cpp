@@ -207,48 +207,59 @@ blandit neque sed nisl pretium, quis volutpat dui pharetra.";
     EXPECT_EQ(wrapped, wantWrap);
 }
 
-TEST(StringUtilTest, ToString_Bool)
+TEST(StringUtilTest, ToString_BoolTrue)
+{
+    bool        b          = true;
+    std::string wantString = "true";
+    std::string gotString  = ToString(b);
+    EXPECT_EQ(gotString, wantString);
+}
+
+TEST(StringUtilTest, ToString_BoolFalse)
 {
     bool        b          = false;
     std::string wantString = "false";
     std::string gotString  = ToString(b);
     EXPECT_EQ(gotString, wantString);
-
-    b          = true;
-    wantString = "true";
-    gotString  = ToString(b);
-    EXPECT_EQ(gotString, wantString);
 }
 
-TEST(StringUtilTest, ToString_Int)
+TEST(StringUtilTest, ToString_IntPositive)
 {
     int         i          = 4;
     std::string wantString = "4";
     std::string gotString  = ToString(i);
     EXPECT_EQ(gotString, wantString);
+}
 
-    i          = -10;
-    wantString = "-10";
-    gotString  = ToString(i);
+TEST(StringUtilTest, ToString_IntNegative)
+{
+    int         i          = -10;
+    std::string wantString = "-10";
+    std::string gotString  = ToString(i);
     EXPECT_EQ(gotString, wantString);
 }
 
-TEST(StringUtilTest, ToString_Float)
+TEST(StringUtilTest, ToString_FloatPositive)
 {
     float       f          = 4.5f;
     std::string wantString = "4.5";
     std::string gotString  = ToString(f);
     EXPECT_EQ(gotString, wantString);
+}
 
-    f          = -3.1415f;
-    wantString = "-3.1415";
-    gotString  = ToString(f);
+TEST(StringUtilTest, ToString_FloatNegative)
+{
+    float       f          = -3.1415f;
+    std::string wantString = "-3.1415";
+    std::string gotString  = ToString(f);
     EXPECT_EQ(gotString, wantString);
+}
 
-    // Trims trailing zeros
-    f          = 80.000f;
-    wantString = "80";
-    gotString  = ToString(f);
+TEST(StringUtilTest, ToString_FloatNoTrailingZeroes)
+{
+    float       f          = 80.8000f;
+    std::string wantString = "80.8";
+    std::string gotString  = ToString(f);
     EXPECT_EQ(gotString, wantString);
 }
 
