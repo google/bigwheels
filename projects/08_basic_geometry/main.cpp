@@ -61,6 +61,10 @@ private:
     Entity                       mPlanarU16;
     Entity                       mPlanarU32;
     Entity                       mPlanar;
+    grfx::GraphicsPipelinePtr    mPositionPlanarPipeline;
+    Entity                       mPositionPlanarU16;
+    Entity                       mPositionPlanarU32;
+    Entity                       mPositionPlanar;
 
 private:
     void SetupEntity(const TriMesh& mesh, const GeometryOptions& createInfo, Entity* pEntity);
@@ -113,23 +117,26 @@ void ProjApp::Setup()
 
     // Entities
     {
-        TriMesh mesh = TriMesh::CreateCube(float3(2, 2, 2), TriMeshOptions().VertexColors());
-        SetupEntity(mesh, GeometryOptions::InterleavedU16().AddColor(), &mInterleavedU16);
-        SetupEntity(mesh, GeometryOptions::InterleavedU32().AddColor(), &mInterleavedU32);
-        SetupEntity(mesh, GeometryOptions::Interleaved().AddColor(), &mInterleaved);
-        SetupEntity(mesh, GeometryOptions::PlanarU16().AddColor(), &mPlanarU16);
-        SetupEntity(mesh, GeometryOptions::PlanarU32().AddColor(), &mPlanarU32);
-        SetupEntity(mesh, GeometryOptions::Planar().AddColor(), &mPlanar);
+        TriMesh mesh = TriMesh::CreateCube(float3(2, 2, 2), TriMeshOptions().VertexColors().Normals());
+        SetupEntity(mesh, GeometryOptions::InterleavedU16().AddColor().AddNormal(), &mInterleavedU16);
+        SetupEntity(mesh, GeometryOptions::InterleavedU32().AddColor().AddNormal(), &mInterleavedU32);
+        SetupEntity(mesh, GeometryOptions::Interleaved().AddColor().AddNormal(), &mInterleaved);
+        SetupEntity(mesh, GeometryOptions::PlanarU16().AddColor().AddNormal(), &mPlanarU16);
+        SetupEntity(mesh, GeometryOptions::PlanarU32().AddColor().AddNormal(), &mPlanarU32);
+        SetupEntity(mesh, GeometryOptions::Planar().AddColor().AddNormal(), &mPlanar);
+        SetupEntity(mesh, GeometryOptions::PositionPlanarU16().AddColor().AddNormal(), &mPositionPlanarU16);
+        SetupEntity(mesh, GeometryOptions::PositionPlanarU32().AddColor().AddNormal(), &mPositionPlanarU32);
+        SetupEntity(mesh, GeometryOptions::PositionPlanar().AddColor().AddNormal(), &mPositionPlanar);
     }
 
     // Pipelines
     {
-        std::vector<char> bytecode = LoadShader("basic/shaders", "VertexColors.vs");
+        std::vector<char> bytecode = LoadShader("basic/shaders", "VertexLayoutTest.vs");
         PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
         grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
         PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mVS));
 
-        bytecode = LoadShader("basic/shaders", "VertexColors.ps");
+        bytecode = LoadShader("basic/shaders", "VertexLayoutTest.ps");
         PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
         shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
         PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPS));
@@ -169,10 +176,23 @@ void ProjApp::Setup()
 
         auto planarVertexBindings = mPlanarU16.mesh->GetDerivedVertexBindings();
 
-        gpCreateInfo.vertexInputState.bindingCount = 2;
+        PPX_ASSERT_MSG(mPlanarU16.mesh->GetVertexBufferCount() == 3, "vertex buffer count should be 3: position, color, normal");
+        gpCreateInfo.vertexInputState.bindingCount = 3;
         gpCreateInfo.vertexInputState.bindings[0]  = planarVertexBindings[0];
         gpCreateInfo.vertexInputState.bindings[1]  = planarVertexBindings[1];
+        gpCreateInfo.vertexInputState.bindings[2]  = planarVertexBindings[2];
         PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mPlanarPipeline));
+
+        // -----------------------------------------------------------------------------------------
+        // Planar pipeline
+
+        auto positionPlanarVertexBindings = mPositionPlanarU16.mesh->GetDerivedVertexBindings();
+
+        PPX_ASSERT_MSG(mPositionPlanarU16.mesh->GetVertexBufferCount() == 2, "vertex buffer count should be 2: position, non-position");
+        gpCreateInfo.vertexInputState.bindingCount = 2;
+        gpCreateInfo.vertexInputState.bindings[0]  = positionPlanarVertexBindings[0];
+        gpCreateInfo.vertexInputState.bindings[1]  = positionPlanarVertexBindings[1];
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mPositionPlanarPipeline));
     }
 
     // Per frame data
@@ -231,18 +251,31 @@ void ProjApp::Render()
         mat = P * V * T * M;
         mInterleaved.uniformBuffer->CopyFromSource(sizeof(mat), &mat);
 
-        // Bottom 3 cubes are planar
-        T   = glm::translate(float3(-4, -2, 0));
+        // Middle 3 cubes are planar
+        T   = glm::translate(float3(-4, 0, 0));
         mat = P * V * T * M;
         mPlanarU16.uniformBuffer->CopyFromSource(sizeof(mat), &mat);
 
-        T   = glm::translate(float3(0, -2, 0));
+        T   = glm::translate(float3(0, 0, 0));
         mat = P * V * T * M;
         mPlanarU32.uniformBuffer->CopyFromSource(sizeof(mat), &mat);
 
-        T   = glm::translate(float3(4, -2, 0));
+        T   = glm::translate(float3(4, 0, 0));
         mat = P * V * T * M;
         mPlanar.uniformBuffer->CopyFromSource(sizeof(mat), &mat);
+
+        // Bottom 3 cubes are position planar
+        T   = glm::translate(float3(-4, -2, 0));
+        mat = P * V * T * M;
+        mPositionPlanarU16.uniformBuffer->CopyFromSource(sizeof(mat), &mat);
+
+        T   = glm::translate(float3(0, -2, 0));
+        mat = P * V * T * M;
+        mPositionPlanarU32.uniformBuffer->CopyFromSource(sizeof(mat), &mat);
+
+        T   = glm::translate(float3(4, -2, 0));
+        mat = P * V * T * M;
+        mPositionPlanar.uniformBuffer->CopyFromSource(sizeof(mat), &mat);
     }
 
     // Build command buffer
@@ -305,6 +338,28 @@ void ProjApp::Render()
             frame.cmd->BindGraphicsDescriptorSets(mPipelineInterface, 1, &mPlanar.descriptorSet);
             frame.cmd->BindVertexBuffers(mPlanar.mesh);
             frame.cmd->Draw(mPlanar.mesh->GetVertexCount());
+
+            // -------------------------------------------------------------------------------------
+
+            // Position Planar pipeline
+            frame.cmd->BindGraphicsPipeline(mPositionPlanarPipeline);
+
+            // Position Planar U16
+            frame.cmd->BindGraphicsDescriptorSets(mPipelineInterface, 1, &mPositionPlanarU16.descriptorSet);
+            frame.cmd->BindIndexBuffer(mPositionPlanarU16.mesh);
+            frame.cmd->BindVertexBuffers(mPositionPlanarU16.mesh);
+            frame.cmd->DrawIndexed(mPositionPlanarU16.mesh->GetIndexCount());
+
+            // Position Planar U32
+            frame.cmd->BindGraphicsDescriptorSets(mPipelineInterface, 1, &mPositionPlanarU32.descriptorSet);
+            frame.cmd->BindIndexBuffer(mPositionPlanarU32.mesh);
+            frame.cmd->BindVertexBuffers(mPositionPlanarU32.mesh);
+            frame.cmd->DrawIndexed(mPositionPlanarU32.mesh->GetIndexCount());
+
+            // Position Planar
+            frame.cmd->BindGraphicsDescriptorSets(mPipelineInterface, 1, &mPositionPlanar.descriptorSet);
+            frame.cmd->BindVertexBuffers(mPositionPlanar.mesh);
+            frame.cmd->Draw(mPositionPlanar.mesh->GetVertexCount());
 
             // Draw ImGui
             DrawDebugInfo();
