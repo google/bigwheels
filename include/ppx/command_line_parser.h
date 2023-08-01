@@ -21,6 +21,7 @@
 #include <set>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
@@ -35,7 +36,6 @@ struct StandardOptions
     bool deterministic          = false;
     bool enable_metrics         = false;
     bool headless               = false;
-    bool help                   = false;
     bool list_gpus              = false;
     bool overwrite_metrics_file = false;
     bool use_software_renderer  = false;
@@ -54,100 +54,115 @@ struct StandardOptions
     std::pair<int, int> xrUIResolution = {-1, -1};
 #endif
 
-    bool        operator==(const StandardOptions&) const = default;
+    bool operator==(const StandardOptions&) const = default;
 };
 
 // -------------------------------------------------------------------------------------------------
 // CliOptions
 // -------------------------------------------------------------------------------------------------
-struct CliOptions
+
+// All commandline flags are stored as key-value pairs (string, list of strings)
+// Value syntax:
+// - strings cannot contain "="
+// - boolean values stored as "0" "false" "1" "true"
+//
+// GetOptionValueOrDefault() can be used to access value of specified type.
+// If requesting a single element from a list, will use the last one.
+class CliOptions
 {
-    struct Option
-    {
-    public:
-        Option(const std::string& name, const std::string& value)
-            : name(name), value(value) {}
-
-        const std::string& GetName() const { return name; }
-        bool               HasValue() const { return !value.empty(); }
-
-        // Get the option value after converting it into the desired integral,
-        // floating-point, or boolean type. If the value fails to be converted,
-        // return the specified default value.
-        template <typename T>
-        T GetValueOrDefault(const T& defaultValue) const
-        {
-            static_assert(std::is_integral_v<T> || std::is_floating_point_v<T> || std::is_same_v<T, std::string>, "GetValueOrDefault must be called with an integral, floating-point, boolean, or std::string type");
-            if constexpr (std::is_same_v<T, std::string>) {
-                return value;
-            }
-            else if constexpr (std::is_same_v<T, bool>) {
-                return GetValueAsBool(defaultValue);
-            }
-
-            std::stringstream ss{value};
-            T                 val;
-            ss >> val;
-            if (ss.fail()) {
-                return defaultValue;
-            }
-            return val;
-        }
-
-    private:
-        // For boolean options, accept "true" and "false" as well as numeric values.
-        bool GetValueAsBool(bool defaultValue) const
-        {
-            std::stringstream ss{value};
-            bool              val;
-            ss >> val;
-            if (ss.fail()) {
-                ss.clear();
-                ss >> std::boolalpha >> val;
-                if (ss.fail()) {
-                    return defaultValue;
-                }
-            }
-            return val;
-        }
-
-        std::string name;
-        std::string value;
-    };
-
 public:
-    const StandardOptions& GetStandardOptions() const
-    {
-        return standardOptions;
-    }
+    CliOptions() = default;
 
-    bool HasExtraOption(const std::string& option) const
-    {
-        return extraOptions.find(option) != extraOptions.end();
-    }
+    bool HasExtraOption(std::string_view option) const { return mAllOptions.contains(option); }
 
-    size_t GetNumExtraOptions() const { return extraOptions.size(); }
+    // Returns the number of unique options and flags that were specified on the commandline,
+    // not counting multiple appearances of the same flag such as: --assets-path a --assets-path b
+    size_t GetNumUniqueOptions() const { return mAllOptions.size(); }
 
-    // Get the option value after converting it into the desired integral,
-    // floating-point, or boolean type. If the option does not exist or the
-    // value fails to be converted, return the specified default value.
+    // Tries to parse the option string into the type of the default value and return it.
+    // If the value fails to be converted, return the specified default value.
+    // Warning: If this is called instead of the vector overload for multiple-value flags,
+    //          only the last value will be returned.
     template <typename T>
-    T GetExtraOptionValueOrDefault(const std::string& option, const T& defaultValue) const
+    T GetOptionValueOrDefault(std::string_view optionName, const T& defaultValue) const
     {
-        if (!HasExtraOption(option)) {
+        auto it = mAllOptions.find(optionName);
+        if (it == mAllOptions.cend()) {
             return defaultValue;
         }
-        return extraOptions.at(option).GetValueOrDefault<T>(defaultValue);
+        auto valueStr = it->second.back();
+        return GetParsedOrDefault<T>(valueStr, defaultValue);
+    }
+
+    // Same as above, but intended for list flags that are specified on the command line
+    // with multiple instances of the same flag
+    template <typename T>
+    std::vector<T> GetOptionValueOrDefault(std::string_view optionName, const std::vector<T>& defaultValues) const
+    {
+        auto it = mAllOptions.find(optionName);
+        if (it == mAllOptions.cend()) {
+            return defaultValues;
+        }
+        std::vector<T> parsedValues;
+        T              nullValue{};
+        for (size_t i = 0; i < it->second.size(); ++i) {
+            parsedValues.emplace_back(GetParsedOrDefault<T>(it->second.at(i), nullValue));
+        }
+        return parsedValues;
+    }
+
+    // Same as above, but intended for resolution flags that are specified on command line
+    // with <Width>x<Height>
+    std::pair<int, int> GetOptionValueOrDefault(std::string_view optionName, const std::pair<int, int>& defaultValue) const;
+
+    // (WILL BE DEPRECATED, USE KNOBS INSTEAD)
+    // Get the parameter value after converting it into the desired integral,
+    // floating-point, or boolean type. If the value fails to be converted,
+    // return the specified default value.
+    template <typename T>
+    T GetExtraOptionValueOrDefault(std::string_view optionName, const T& defaultValue) const
+    {
+        static_assert(std::is_integral_v<T> || std::is_floating_point_v<T> || std::is_same_v<T, std::string>, "GetExtraOptionValueOrDefault must be called with an integral, floating-point, boolean, or std::string type");
+
+        return GetOptionValueOrDefault<T>(optionName, defaultValue);
     }
 
 private:
-    void AddExtraOption(const Option& opt)
+    // Adds new option if the option does not already exist
+    // Otherwise, the new value is appended to the end of the vector of stored parameters for this option
+    void
+    AddOption(std::string_view optionName, std::string_view value);
+
+    template <typename T>
+    T GetParsedOrDefault(std::string_view valueStr, const T& defaultValue) const
     {
-        extraOptions.insert(std::make_pair(opt.GetName(), opt));
+        static_assert(std::is_integral_v<T> || std::is_floating_point_v<T> || std::is_same_v<T, std::string>, "GetParsedOrDefault must be called with an integral, floating-point, boolean, or std::string type");
+        return Parse(valueStr, defaultValue);
     }
 
-    std::unordered_map<std::string, Option> extraOptions;
-    StandardOptions                         standardOptions;
+    // For boolean parameters
+    //   interpreted as true: "true", 1, ""
+    //   interpreted as false: "false", 0
+    bool Parse(std::string_view valueStr, bool defaultValue) const;
+
+    template <typename T>
+    T Parse(std::string_view valueStr, const T defaultValue) const
+    {
+        if constexpr (std::is_same_v<T, std::string>) {
+            return static_cast<std::string>(valueStr);
+        }
+        std::stringstream ss{static_cast<std::string>(valueStr)};
+        T                 valueAsNum;
+        ss >> valueAsNum;
+        if (ss.fail()) {
+            return defaultValue;
+        }
+        return valueAsNum;
+    }
+
+private:
+    // All flag names (string) and parameters (vector of strings) specified on the command line
+    std::unordered_map<std::string_view, std::vector<std::string_view>> mAllOptions;
 
     friend class CommandLineParser;
 };
@@ -170,15 +185,21 @@ public:
     // and write the error to `out_error`.
     std::optional<ParsingError> Parse(int argc, const char* argv[]);
     const CliOptions&           GetOptions() const { return mOpts; }
+    const StandardOptions&      GetStandardOptions() const { return mStandardOpts; }
     std::string                 GetUsageMsg() const { return mUsageMsg; }
-    void                        AppendUsageMsg(const std::string& additionalMsg)
-    {
-        mUsageMsg += additionalMsg;
-    }
+    void                        AppendUsageMsg(const std::string& additionalMsg) { mUsageMsg += additionalMsg; }
 
 private:
-    CliOptions  mOpts;
-    std::string mUsageMsg = R"(
+    CliOptions      mOpts;
+    StandardOptions mStandardOpts;
+    std::string     mUsageMsg = R"(
+USAGE
+==============================
+Boolean options can be turned on with:
+  --flag-name true, --flag-name 1, --flag-name
+And turned off with:
+  --flag-name false, --flag-name 0, --no-flag-name
+==============================
 --help              Prints this help message and exits.
 
 --assets-path       Add a path in front of the assets search path list (Can be
