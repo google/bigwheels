@@ -59,7 +59,7 @@ std::string ToString(std::vector<T> values)
 {
     std::stringstream ss;
     for (const auto& value : values) {
-        ss << value << ", ";
+        ss << ToString<T>(value) << ", ";
     }
     std::string valueStr = ss.str();
     return valueStr.substr(0, valueStr.length() - 2);
@@ -70,7 +70,7 @@ template <typename T>
 std::string ToString(std::pair<T, T> values)
 {
     std::stringstream ss;
-    ss << values.first << ", " << values.second;
+    ss << ToString<T>(values.first) << ", " << ToString<T>(values.second);
     return ss.str();
 }
 

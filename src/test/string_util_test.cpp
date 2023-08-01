@@ -18,35 +18,35 @@
 
 using namespace ppx::string_util;
 
-TEST(StringUtilTest, TrimLeftNothingToTrim)
+TEST(StringUtilTest, TrimLeft_NothingToTrim)
 {
     std::string toTrim = "No left space  ";
     TrimLeft(toTrim);
     EXPECT_EQ(toTrim, "No left space  ");
 }
 
-TEST(StringUtilTest, TrimLeftSpaces)
+TEST(StringUtilTest, TrimLeft_Spaces)
 {
     std::string toTrim = "  Some left spaces  ";
     TrimLeft(toTrim);
     EXPECT_EQ(toTrim, "Some left spaces  ");
 }
 
-TEST(StringUtilTest, TrimRightNothingToTrim)
+TEST(StringUtilTest, TrimRight_NothingToTrim)
 {
     std::string toTrim = "    No right space";
     TrimRight(toTrim);
     EXPECT_EQ(toTrim, "    No right space");
 }
 
-TEST(StringUtilTest, TrimRightSpaces)
+TEST(StringUtilTest, TrimRight_Spaces)
 {
     std::string toTrim = "  Some right spaces  ";
     TrimRight(toTrim);
     EXPECT_EQ(toTrim, "  Some right spaces");
 }
 
-TEST(StringUtilTest, TrimCopyLeftAndRightSpaces)
+TEST(StringUtilTest, TrimCopy_LeftAndRightSpaces)
 {
     std::string toTrim  = "  Some spaces  ";
     std::string trimmed = TrimCopy(toTrim);
@@ -54,7 +54,7 @@ TEST(StringUtilTest, TrimCopyLeftAndRightSpaces)
     EXPECT_EQ(toTrim, "  Some spaces  ");
 }
 
-TEST(StringUtilTest, TrimBothEndsNothingToTrim)
+TEST(StringUtilTest, TrimBothEnds_NothingToTrim)
 {
     std::string_view toTrim  = "No spaces";
     std::string_view trimmed = TrimBothEnds(toTrim);
@@ -62,7 +62,7 @@ TEST(StringUtilTest, TrimBothEndsNothingToTrim)
     EXPECT_EQ(toTrim, "No spaces");
 }
 
-TEST(StringUtilTest, TrimBothEndsLeftAndRightSpaces)
+TEST(StringUtilTest, TrimBothEnds_LeftAndRightSpaces)
 {
     std::string_view toTrim  = "  Some spaces  ";
     std::string_view trimmed = TrimBothEnds(toTrim);
@@ -70,14 +70,14 @@ TEST(StringUtilTest, TrimBothEndsLeftAndRightSpaces)
     EXPECT_EQ(toTrim, "  Some spaces  ");
 }
 
-TEST(StringUtilTest, SplitInTwoEmptyString)
+TEST(StringUtilTest, SplitInTwo_EmptyString)
 {
     std::string_view toSplit = "";
     auto             res     = SplitInTwo(toSplit, ',');
     EXPECT_EQ(res, std::nullopt);
 }
 
-TEST(StringUtilTest, SplitInTwoOneDelimiter)
+TEST(StringUtilTest, SplitInTwo_OneDelimiter)
 {
     std::string_view toSplit = "Apple,Banana";
     auto             res     = SplitInTwo(toSplit, ',');
@@ -86,7 +86,7 @@ TEST(StringUtilTest, SplitInTwoOneDelimiter)
     EXPECT_EQ(res->second, "Banana");
 }
 
-TEST(StringUtilTest, SplitInTwoMultipleDelimiter)
+TEST(StringUtilTest, SplitInTwo_MultipleDelimiter)
 {
     std::string_view toSplit = "Apple,Banana,Orange";
     auto             res     = SplitInTwo(toSplit, ',');
@@ -95,7 +95,7 @@ TEST(StringUtilTest, SplitInTwoMultipleDelimiter)
     EXPECT_EQ(res->second, "Banana,Orange");
 }
 
-TEST(StringUtilTest, WrapTextEmptyString)
+TEST(StringUtilTest, WrapText_EmptyString)
 {
     std::string toWrap  = "";
     std::string wrapped = WrapText(toWrap, 10);
@@ -103,14 +103,14 @@ TEST(StringUtilTest, WrapTextEmptyString)
     EXPECT_EQ(toWrap, "");
 }
 
-TEST(StringUtilTest, WrapTextIndentLargerThanWidth)
+TEST(StringUtilTest, WrapText_IndentLargerThanWidth)
 {
     std::string toWrap  = "Some text.";
     std::string wrapped = WrapText(toWrap, 5, 8);
     EXPECT_EQ(wrapped, toWrap);
 }
 
-TEST(StringUtilTest, WrapTextNoIndent)
+TEST(StringUtilTest, WrapText_NoIndent)
 {
     std::string toWrap   = "The quick brown fox jumps over the lazy dog.";
     std::string wantWrap = R"(The quick
@@ -123,7 +123,7 @@ dog.
     EXPECT_EQ(wrapped, wantWrap);
 }
 
-TEST(StringUtilTest, WrapTextWithIndent)
+TEST(StringUtilTest, WrapText_WithIndent)
 {
     std::string toWrap   = "The quick brown fox jumps over the lazy dog.";
     std::string wantWrap = R"(   The quick
@@ -136,7 +136,7 @@ TEST(StringUtilTest, WrapTextWithIndent)
     EXPECT_EQ(wrapped, wantWrap);
 }
 
-TEST(StringUtilTest, WrapTextLeadingTrailingSpaces)
+TEST(StringUtilTest, WrapText_LeadingTrailingSpaces)
 {
     std::string toWrap   = "    The quick brown fox jumps over the lazy dog.    ";
     std::string wantWrap = R"(The quick
@@ -149,7 +149,7 @@ dog.
     EXPECT_EQ(wrapped, wantWrap);
 }
 
-TEST(StringUtilTest, WrapTextWithTabs)
+TEST(StringUtilTest, WrapText_WithTabs)
 {
     std::string toWrap   = "\t\tThe quick brown \tfox jumps over \tthe lazy dog.\t";
     std::string wantWrap = "The quick\nbrown \tfox\njumps over\nthe lazy\ndog.\n";
@@ -157,7 +157,7 @@ TEST(StringUtilTest, WrapTextWithTabs)
     EXPECT_EQ(wrapped, wantWrap);
 }
 
-TEST(StringUtilTest, WrapTextMixedTabsAndSpaces)
+TEST(StringUtilTest, WrapText_MixedTabsAndSpaces)
 {
     std::string toWrap   = "    \t\tThe quick brown \tfox       jumps over \tthe lazy dog. \t  ";
     std::string wantWrap = "The quick\nbrown \tfox\njumps over\nthe lazy\ndog.\n";
@@ -165,7 +165,7 @@ TEST(StringUtilTest, WrapTextMixedTabsAndSpaces)
     EXPECT_EQ(wrapped, wantWrap);
 }
 
-TEST(StringUtilTest, WrapTextLongWord)
+TEST(StringUtilTest, WrapText_LongWord)
 {
     std::string toWrap   = "The quick brown fox jumps over the extremely-long-word-here lazy dog.";
     std::string wantWrap = R"(The quick
@@ -181,7 +181,7 @@ dog.
     EXPECT_EQ(wrapped, wantWrap);
 }
 
-TEST(StringUtilTest, WrapTextLongTextWithIndent)
+TEST(StringUtilTest, WrapText_LongTextWithIndent)
 {
     std::string toWrap   = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. \
 Cras dapibus finibus nibh, id volutpat odio porta eget. Curabitur lacus urna, \
@@ -205,4 +205,73 @@ blandit neque sed nisl pretium, quis volutpat dui pharetra.";
 )";
     std::string wrapped  = WrapText(toWrap, 80, 20);
     EXPECT_EQ(wrapped, wantWrap);
+}
+
+TEST(StringUtilTest, ToString_Bool)
+{
+    bool        b          = false;
+    std::string wantString = "false";
+    std::string gotString  = ToString(b);
+    EXPECT_EQ(gotString, wantString);
+
+    b          = true;
+    wantString = "true";
+    gotString  = ToString(b);
+    EXPECT_EQ(gotString, wantString);
+}
+
+TEST(StringUtilTest, ToString_Int)
+{
+    int         i          = 4;
+    std::string wantString = "4";
+    std::string gotString  = ToString(i);
+    EXPECT_EQ(gotString, wantString);
+
+    i          = -10;
+    wantString = "-10";
+    gotString  = ToString(i);
+    EXPECT_EQ(gotString, wantString);
+}
+
+TEST(StringUtilTest, ToString_Float)
+{
+    float       f          = 4.5f;
+    std::string wantString = "4.5";
+    std::string gotString  = ToString(f);
+    EXPECT_EQ(gotString, wantString);
+
+    f          = -3.1415f;
+    wantString = "-3.1415";
+    gotString  = ToString(f);
+    EXPECT_EQ(gotString, wantString);
+
+    // Trims trailing zeros
+    f          = 80.000f;
+    wantString = "80";
+    gotString  = ToString(f);
+    EXPECT_EQ(gotString, wantString);
+}
+
+TEST(StringUtilTest, ToString_PairInt)
+{
+    std::pair<int, int> pi         = std::make_pair(10, 20);
+    std::string         wantString = "10, 20";
+    std::string         gotString  = ToString(pi);
+    EXPECT_EQ(gotString, wantString);
+}
+
+TEST(StringUtilTest, ToString_VectorString)
+{
+    std::vector<std::string> vs         = {"hello", "world", "!"};
+    std::string              wantString = "hello, world, !";
+    std::string              gotString  = ToString(vs);
+    EXPECT_EQ(gotString, wantString);
+}
+
+TEST(StringUtilTest, ToString_VectorBool)
+{
+    std::vector<bool> vb         = {true, false, true, true, false};
+    std::string       wantString = "true, false, true, true, false";
+    std::string       gotString  = ToString(vb);
+    EXPECT_EQ(gotString, wantString);
 }
