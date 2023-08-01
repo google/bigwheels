@@ -461,15 +461,32 @@ Result GraphicsPipeline::CreateApiObjects(const grfx::GraphicsPipelineCreateInfo
         return ppxres;
     }
 
-    // Create temporary render pass
-    //
     VkRenderPassPtr renderPass = VK_NULL_HANDLE;
-    {
-        std::vector<VkFormat> renderTargetFormats;
-        for (uint32_t i = 0; i < pCreateInfo->outputState.renderTargetCount; ++i) {
-            renderTargetFormats.push_back(ToVkFormat(pCreateInfo->outputState.renderTargetFormats[i]));
+    std::vector<VkFormat> renderTargetFormats;
+    for (uint32_t i = 0; i < pCreateInfo->outputState.renderTargetCount; ++i) {
+        renderTargetFormats.push_back(ToVkFormat(pCreateInfo->outputState.renderTargetFormats[i]));
+    }
+    VkFormat depthStencilFormat = ToVkFormat(pCreateInfo->outputState.depthStencilFormat);
+
+#if defined(VK_KHR_dynamic_rendering)
+    VkPipelineRenderingCreateInfo renderingCreateInfo = {VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO};
+
+    if (pCreateInfo->dynamicRenderPass) {
+        renderingCreateInfo.viewMask                = 0;
+        renderingCreateInfo.colorAttachmentCount    = CountU32(renderTargetFormats);
+        renderingCreateInfo.pColorAttachmentFormats = DataPtr(renderTargetFormats);
+        renderingCreateInfo.depthAttachmentFormat   = depthStencilFormat;
+        if (GetFormatDescription(pCreateInfo->outputState.depthStencilFormat)->aspect & FORMAT_ASPECT_STENCIL) {
+            renderingCreateInfo.stencilAttachmentFormat = depthStencilFormat;
         }
-        VkFormat depthStencilFormat = ToVkFormat(pCreateInfo->outputState.depthStencilFormat);
+
+        vkci.pNext = &renderingCreateInfo;
+    }
+    else
+#endif
+    {
+        // Create temporary render pass
+        //
 
         VkResult vkres = vk::CreateTransientRenderPass(
             ToApi(GetDevice())->GetVkDevice(),

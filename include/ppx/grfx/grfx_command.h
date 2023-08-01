@@ -177,6 +177,21 @@ struct RenderPassBeginInfo
     grfx::DepthStencilClearValue DSVClearValue                          = {1.0f, 0xFF};
 };
 
+// RenderingInfo is used to start dynamic render passes.
+struct RenderingInfo
+{
+    grfx::BeginRenderingFlags flags;
+    grfx::Rect                renderArea = {};
+
+    uint32_t                renderTargetCount                          = 0;
+    grfx::RenderTargetView* pRenderTargetViews[PPX_MAX_RENDER_TARGETS] = {};
+    grfx::DepthStencilView* pDepthStencilView                          = nullptr;
+
+    uint32_t                     RTVClearCount                          = 0;
+    grfx::RenderTargetClearValue RTVClearValues[PPX_MAX_RENDER_TARGETS] = {0.0f, 0.0f, 0.0f, 0.0f};
+    grfx::DepthStencilClearValue DSVClearValue                          = {1.0f, 0xFF};
+};
+
 // -------------------------------------------------------------------------------------------------
 
 //! @struct CommandPoolCreateInfo
@@ -253,12 +268,17 @@ public:
     void BeginRenderPass(const grfx::RenderPassBeginInfo* pBeginInfo);
     void EndRenderPass();
 
+    void BeginRendering(const grfx::RenderingInfo* pRenderingInfo);
+    void EndRendering();
+
     const grfx::RenderPass* GetCurrentRenderPass() const { return mCurrentRenderPass; }
 
     //
     // Clear functions must be called between BeginRenderPass and EndRenderPass.
     // Arg for pImage must be an image in the current render pass.
     //
+    // TODO: add support for calling inside a dynamic render pass
+    // (i.e., BeginRendering and EndRendering).
     virtual void ClearRenderTarget(
         grfx::Image*                        pImage,
         const grfx::RenderTargetClearValue& clearValue) = 0;
@@ -567,6 +587,9 @@ private:
     virtual void BeginRenderPassImpl(const grfx::RenderPassBeginInfo* pBeginInfo) = 0;
     virtual void EndRenderPassImpl()                                              = 0;
 
+    virtual void BeginRenderingImpl(const grfx::RenderingInfo* pRenderingInfo) = 0;
+    virtual void EndRenderingImpl()                                            = 0;
+
     virtual void PushDescriptorImpl(
         grfx::CommandType              pipelineBindPoint,
         const grfx::PipelineInterface* pInterface,
@@ -579,7 +602,10 @@ private:
         const grfx::StorageImageView*  pStorageImageView,
         const grfx::Sampler*           pSampler) = 0;
 
+    bool HasActiveRenderPass() const;
+
     const grfx::RenderPass* mCurrentRenderPass = nullptr;
+    bool                    mDynamicRenderPassActive = false;
 };
 
 } // namespace grfx

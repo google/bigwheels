@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "ppx/grfx/grfx_device.h"
 #include "ppx/grfx/grfx_pipeline.h"
 #include "ppx/grfx/grfx_descriptor.h"
 
@@ -107,6 +108,8 @@ void FillOutGraphicsPipelineCreateInfo(
 {
     // Set to default values
     *pDstCreateInfo = {};
+
+    pDstCreateInfo->dynamicRenderPass = pSrcCreateInfo->dynamicRenderPass;
 
     // Shaders
     pDstCreateInfo->VS = pSrcCreateInfo->VS;
@@ -273,6 +276,11 @@ Result GraphicsPipeline::Create(const grfx::GraphicsPipelineCreateInfo* pCreateI
 
     if (IsNull(pCreateInfo->pPipelineInterface)) {
         PPX_ASSERT_MSG(false, "pipeline interface is null (graphics pipeline)");
+        return ppx::ERROR_GRFX_OPERATION_NOT_PERMITTED;
+    }
+
+    if (pCreateInfo->dynamicRenderPass && !GetDevice()->DynamicRenderingSupported()) {
+        PPX_ASSERT_MSG(false, "Cannot create a pipeline with dynamic render pass, dynamic rendering is not supported.");
         return ppx::ERROR_GRFX_OPERATION_NOT_PERMITTED;
     }
 

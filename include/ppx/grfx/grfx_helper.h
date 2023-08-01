@@ -175,6 +175,38 @@ struct DrawPassClearFlags
 
 // -------------------------------------------------------------------------------------------------
 
+struct BeginRenderingFlags
+{
+    union
+    {
+        struct
+        {
+            bool suspending : 1;
+            bool resuming   : 1;
+        } bits;
+        uint32_t flags;
+    };
+
+    BeginRenderingFlags()
+        : flags(0) {}
+
+    BeginRenderingFlags(uint32_t flags_)
+        : flags(flags_) {}
+
+    BeginRenderingFlags& operator=(uint32_t rhs)
+    {
+        this->flags = rhs;
+        return *this;
+    }
+
+    operator uint32_t() const
+    {
+        return flags;
+    }
+};
+
+// -------------------------------------------------------------------------------------------------
+
 struct ImageUsageFlags
 {
     union

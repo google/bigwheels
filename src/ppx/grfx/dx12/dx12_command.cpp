@@ -243,6 +243,95 @@ void CommandBuffer::EndRenderPassImpl()
     // Nothing to do here for now
 }
 
+D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE ToBeginningAccessType(grfx::AttachmentLoadOp loadOp)
+{
+    D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE accessType;
+    switch (loadOp) {
+        default:
+            PPX_ASSERT_MSG(false, "Unsupported access type " << loadOp);
+            break;
+        case grfx::ATTACHMENT_LOAD_OP_CLEAR:
+            accessType = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
+            break;
+        case grfx::ATTACHMENT_LOAD_OP_LOAD:
+            accessType = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+            break;
+        case grfx::ATTACHMENT_LOAD_OP_DONT_CARE:
+            accessType = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS;
+            break;
+    }
+    return accessType;
+}
+
+D3D12_RENDER_PASS_ENDING_ACCESS_TYPE ToEndingAccessType(grfx::AttachmentStoreOp storeOp)
+{
+    D3D12_RENDER_PASS_ENDING_ACCESS_TYPE accessType;
+    switch (storeOp) {
+        default:
+            PPX_ASSERT_MSG(false, "Unsupported access type" << storeOp);
+            break;
+        case grfx::ATTACHMENT_STORE_OP_DONT_CARE:
+            accessType = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS;
+            break;
+        case grfx::ATTACHMENT_STORE_OP_STORE:
+            accessType = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+            break;
+    }
+    return accessType;
+}
+
+void CommandBuffer::BeginRenderingImpl(const grfx::RenderingInfo* pRenderingInfo)
+{
+    const grfx::RenderTargetClearValue& cv = pRenderingInfo->RTVClearValues[0];
+    D3D12_CLEAR_VALUE                   clearValue{DXGI_FORMAT_R32G32B32A32_FLOAT};
+    clearValue.Color[0]           = cv.r;
+    clearValue.Color[1]           = cv.g;
+    clearValue.Color[2]           = cv.b;
+    clearValue.Color[3]           = cv.a;
+    clearValue.DepthStencil.Depth = 1.0f;
+
+    D3D12_RENDER_PASS_RENDER_TARGET_DESC renderTargetDescs[PPX_MAX_RENDER_TARGETS];
+    for (size_t i = 0; i < pRenderingInfo->renderTargetCount; i++) {
+        dx12::RenderTargetView*            pRTV                   = ToApi(pRenderingInfo->pRenderTargetViews[i]);
+        D3D12_CPU_DESCRIPTOR_HANDLE        rtvCPUDescriptorHandle = pRTV->GetCpuDescriptorHandle();
+        D3D12_RENDER_PASS_BEGINNING_ACCESS rtvBeginningAccess     = {ToBeginningAccessType(pRTV->GetLoadOp())};
+        D3D12_RENDER_PASS_ENDING_ACCESS    rtvEndingAccess        = {ToEndingAccessType(pRTV->GetStoreOp())};
+        if (pRenderingInfo->pRenderTargetViews[0]->GetLoadOp() == grfx::ATTACHMENT_LOAD_OP_CLEAR) {
+            rtvBeginningAccess.Clear = {clearValue};
+        }
+        renderTargetDescs[i] = {rtvCPUDescriptorHandle, rtvBeginningAccess, rtvEndingAccess};
+    }
+
+    D3D12_RENDER_PASS_DEPTH_STENCIL_DESC* pDSDesc = nullptr;
+    D3D12_RENDER_PASS_DEPTH_STENCIL_DESC  renderDepthStencilDesc;
+    if (pRenderingInfo->pDepthStencilView) {
+        D3D12_CPU_DESCRIPTOR_HANDLE        dsvCPUDescriptorHandle = ToApi(pRenderingInfo->pDepthStencilView)->GetCpuDescriptorHandle();
+        D3D12_RENDER_PASS_BEGINNING_ACCESS depthBeginningAccess{ToBeginningAccessType(pRenderingInfo->pDepthStencilView->GetDepthLoadOp()), {}};
+        D3D12_RENDER_PASS_ENDING_ACCESS    depthEndingAccess{ToEndingAccessType(pRenderingInfo->pDepthStencilView->GetDepthStoreOp()), {}};
+        D3D12_RENDER_PASS_BEGINNING_ACCESS stencilBeginningAccess{ToBeginningAccessType(pRenderingInfo->pDepthStencilView->GetStencilLoadOp()), {}};
+        D3D12_RENDER_PASS_ENDING_ACCESS    stencilEndingAccess{ToEndingAccessType(pRenderingInfo->pDepthStencilView->GetStencilStoreOp()), {}};
+        if (pRenderingInfo->pDepthStencilView->GetDepthLoadOp() == grfx::ATTACHMENT_LOAD_OP_CLEAR) {
+            depthBeginningAccess.Clear = {clearValue};
+        }
+        renderDepthStencilDesc = {dsvCPUDescriptorHandle, depthBeginningAccess, stencilBeginningAccess, depthEndingAccess, stencilEndingAccess};
+        pDSDesc                = &renderDepthStencilDesc;
+    }
+    D3D12_RENDER_PASS_FLAGS flags = D3D12_RENDER_PASS_FLAG_NONE;
+    if (pRenderingInfo->flags.bits.suspending) {
+        flags |= D3D12_RENDER_PASS_FLAG_SUSPENDING_PASS;
+    }
+    if (pRenderingInfo->flags.bits.resuming) {
+        flags |= D3D12_RENDER_PASS_FLAG_RESUMING_PASS;
+    }
+
+    mCommandList->BeginRenderPass(pRenderingInfo->renderTargetCount, renderTargetDescs, pDSDesc, flags);
+}
+
+void CommandBuffer::EndRenderingImpl()
+{
+    mCommandList->EndRenderPass();
+}
+
 void CommandBuffer::PushDescriptorImpl(
     grfx::CommandType              pipelineBindPoint,
     const grfx::PipelineInterface* pInterface,

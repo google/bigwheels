@@ -164,11 +164,7 @@ Result Instance::ConfigureLayersAndExtensions(const grfx::InstanceCreateInfo* pC
         }
     }
 
-#if defined(PPX_BUILD_XR)
-    if (isXREnabled()) {
-        mExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-    }
-#endif
+    mExtensions.push_back(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 
     // Debug layer and extension
     if (pCreateInfo->enableDebug) {

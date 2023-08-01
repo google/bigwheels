@@ -38,6 +38,11 @@ namespace vk {
 
 PFN_vkCmdPushDescriptorSetKHR CmdPushDescriptorSetKHR = nullptr;
 
+#if defined(VK_KHR_dynamic_rendering)
+PFN_vkCmdBeginRenderingKHR CmdBeginRenderingKHR = nullptr;
+PFN_vkCmdEndRenderingKHR   CmdEndRenderingKHR   = nullptr;
+#endif
+
 Result Device::ConfigureQueueInfo(const grfx::DeviceCreateInfo* pCreateInfo, std::vector<float>& queuePriorities, std::vector<VkDeviceQueueCreateInfo>& queueCreateInfos)
 {
     VkPhysicalDevicePtr gpu = ToApi(pCreateInfo->pGpu)->GetVkGpu();
@@ -169,6 +174,23 @@ Result Device::ConfigureExtensions(const grfx::DeviceCreateInfo* pCreateInfo)
     if (ElementExists(std::string(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME), mFoundExtensions)) {
         mExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
     }
+
+    // Dynamic rendering - if present. It also requires
+    // VK_KHR_depth_stencil_resolve and VK_KHR_create_renderpass2.
+#if defined(VK_KHR_dynamic_rendering)
+    if (ElementExists(std::string(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME), mFoundExtensions) &&
+        ElementExists(std::string(VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME), mFoundExtensions) &&
+        ElementExists(std::string(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME), mFoundExtensions) &&
+        ElementExists(std::string(VK_KHR_MULTIVIEW_EXTENSION_NAME), mFoundExtensions) &&
+        ElementExists(std::string(VK_KHR_MAINTENANCE2_EXTENSION_NAME), mFoundExtensions)) {
+        mExtensions.push_back(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
+        mExtensions.push_back(VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME);
+        mExtensions.push_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+        mExtensions.push_back(VK_KHR_MULTIVIEW_EXTENSION_NAME);
+        mExtensions.push_back(VK_KHR_MAINTENANCE2_EXTENSION_NAME);
+        mHasDynamicRendering = true;
+    }
+#endif
 
     // Add additional extensions and uniquify
     AppendElements(pCreateInfo->vulkanExtensions, mExtensions);
@@ -363,6 +385,15 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
         extensionStructs.push_back(reinterpret_cast<VkBaseOutStructure*>(&queryResetFeatures));
     }
 
+#if defined(VK_KHR_dynamic_rendering)
+    VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRenderingFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR};
+    if ((GetInstance()->GetApi() >= grfx::API_VK_1_3) || ElementExists(std::string(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME), mExtensions)) {
+        dynamicRenderingFeatures.dynamicRendering = VK_TRUE;
+
+        extensionStructs.push_back(reinterpret_cast<VkBaseOutStructure*>(&dynamicRenderingFeatures));
+    }
+#endif
+
     // Chain pNexts
     for (size_t i = 1; i < extensionStructs.size(); ++i) {
         extensionStructs[i - 1]->pNext = extensionStructs[i];
@@ -454,6 +485,16 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
     }
     PPX_LOG_INFO("Vulkan timeline semaphore is present: " << mHasTimelineSemaphore);
 
+#if defined(VK_KHR_dynamic_rendering)
+    if (GetInstance()->GetApi() == grfx::API_VK_1_3) {
+        mHasDynamicRendering = true;
+    }
+    else {
+        mHasDynamicRendering = ElementExists(std::string(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME), mExtensions);
+    }
+#endif
+    PPX_LOG_INFO("Vulkan dynamic rendering is present: " << mHasDynamicRendering);
+
 #if defined(PPX_VK_EXTENDED_DYNAMIC_STATE)
     mExtendedDynamicStateAvailable = ElementExists(std::string(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME), mFoundExtensions));
 #endif // defined(PPX_VK_EXTENDED_DYNAMIC_STATE)
@@ -475,6 +516,13 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
 
         CmdPushDescriptorSetKHR = (PFN_vkCmdPushDescriptorSetKHR)vkGetDeviceProcAddr(mDevice, "vkCmdPushDescriptorSetKHR");
     }
+
+#if defined(VK_KHR_dynamic_rendering)
+    if (mHasDynamicRendering) {
+        CmdBeginRenderingKHR = (PFN_vkCmdBeginRenderingKHR)vkGetDeviceProcAddr(mDevice, "vkCmdBeginRenderingKHR");
+        CmdEndRenderingKHR   = (PFN_vkCmdEndRenderingKHR)vkGetDeviceProcAddr(mDevice, "vkCmdEndRenderingKHR");
+    }
+#endif
 
     // VMA
     {
