@@ -112,10 +112,7 @@ private:
     grfx::GraphicsPipelinePtr         mPipeline;
     grfx::BufferPtr                   mVertexBuffer;
     grfx::VertexBinding               mVertexBinding;
-    grfx::DescriptorPoolPtr           mDescriptorPool;
     grfx::DescriptorSetLayoutPtr      mDescriptorSetLayout;
-    grfx::DescriptorSetLayoutPtr      mDescriptorSetLayoutBuffers;
-    grfx::DescriptorSetPtr            mDescriptorSet;
     grfx::BufferPtr                   mUniformBuffer;
     grfx::ImagePtr                    mImage;
     grfx::SampledImageViewPtr         mSampledImageView;
@@ -239,49 +236,14 @@ void ProjApp::Setup()
         PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &mSampler));
     }
 
-    // Descriptor
+    // Descriptor set layout
     {
-        grfx::DescriptorPoolCreateInfo poolCreateInfo = {};
-        poolCreateInfo.uniformBuffer                  = 8;
-        poolCreateInfo.sampledImage                   = 8;
-        poolCreateInfo.sampler                        = 8;
-        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&poolCreateInfo, &mDescriptorPool));
-
-        // Descriptor set layout for buffers
-        {
-            grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-            layoutCreateInfo.flags.bits.pushable                 = true;
-            layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(0, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER));
-            PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mDescriptorSetLayoutBuffers));
-        }
-
-        // Descriptor set layout for textures and samplers
-        {
-            grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-            layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(1, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
-            layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(2, grfx::DESCRIPTOR_TYPE_SAMPLER));
-            PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mDescriptorSetLayout));
-        }
-
-        // Allocate descriptor set and write descriptors
-        {
-            PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mDescriptorSetLayout, &mDescriptorSet));
-
-            grfx::WriteDescriptor write = {};
-            // SkyBox
-            write            = {};
-            write.binding    = 1;
-            write.type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-            write.pImageView = mSampledImageView;
-            PPX_CHECKED_CALL(mDescriptorSet->UpdateDescriptors(1, &write));
-
-            // Sampler
-            write          = {};
-            write.binding  = 2;
-            write.type     = grfx::DESCRIPTOR_TYPE_SAMPLER;
-            write.pSampler = mSampler;
-            PPX_CHECKED_CALL(mDescriptorSet->UpdateDescriptors(1, &write));
-        }
+        grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
+        layoutCreateInfo.flags.bits.pushable                 = true;
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(0, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(1, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(2, grfx::DESCRIPTOR_TYPE_SAMPLER));
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mDescriptorSetLayout));
     }
 
     // Pipeline
@@ -297,11 +259,9 @@ void ProjApp::Setup()
         PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPS));
 
         grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
-        piCreateInfo.setCount                          = 2;
+        piCreateInfo.setCount                          = 1;
         piCreateInfo.sets[0].set                       = 0;
         piCreateInfo.sets[0].pLayout                   = mDescriptorSetLayout;
-        piCreateInfo.sets[1].set                       = 1;
-        piCreateInfo.sets[1].pLayout                   = mDescriptorSetLayoutBuffers;
         PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mPipelineInterface));
 
         mVertexBinding.AppendAttribute({"POSITION", 0, grfx::FORMAT_R32G32B32_FLOAT, 0, PPX_APPEND_OFFSET_ALIGNED, grfx::VERTEX_INPUT_RATE_VERTEX});
@@ -504,16 +464,15 @@ void ProjApp::Render()
             frame.cmd->BindGraphicsPipeline(mPipeline);
             frame.cmd->BindVertexBuffers(1, &mVertexBuffer, &mVertexBinding.GetStride());
 
-            // Bind descriptor set
-            frame.cmd->BindGraphicsDescriptorSets(mPipelineInterface, 1, &mDescriptorSet);
-
             // Draw SkyBox
             {
                 TransformData data;
                 data.MVP = mCamera.GetViewProjectionMatrix() * glm::scale(float3(500.0f, 500.0f, 500.0f));
                 mUniformBuffer->CopyFromSource(sizeof(data), &data);
                 // Push uniform buffer
-                frame.cmd->PushGraphicsUniformBuffer(mPipelineInterface, /* binding = */ 0, /* set = */ 1, /* bufferOffset = */ 0, mUniformBuffer);
+                frame.cmd->PushGraphicsUniformBuffer(mPipelineInterface, /* binding = */ 0, /* set = */ 0, /* bufferOffset = */ 0, mUniformBuffer);
+                frame.cmd->PushGraphicsSampledImage(mPipelineInterface, /* binding= */ 1, /* set= */ 0, mSampledImageView);
+                frame.cmd->PushGraphicsSampler(mPipelineInterface, /* binding= */ 2, /* set=*/0, mSampler);
             }
             frame.cmd->Draw(/* vertexCount = */ 36);
 

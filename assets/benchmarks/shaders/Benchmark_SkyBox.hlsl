@@ -17,7 +17,7 @@ struct TransformData
     float4x4 MVP;
 };
 
-ConstantBuffer<TransformData> Transform : register(b0, space1);
+ConstantBuffer<TransformData> Transform : register(b0);
 Texture2D                     Tex0      : register(t1);
 SamplerState                  Sampler0  : register(s2);
 
