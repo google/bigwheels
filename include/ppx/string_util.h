@@ -33,6 +33,12 @@ std::string_view TrimBothEnds(std::string_view s, std::string_view c = " \t");
 // Returns std::nullopt if s does not contain the delimeter
 std::optional<std::pair<std::string_view, std::string_view>> SplitInTwo(std::string_view s, char delimiter);
 
+// Formats string for printing with the specified width and left indent.
+// Words will be pushed to the subsequent line to avoid line breaks in the
+// middle of a word if possible.
+// Leading and trailing whitespace is trimmed from each line.
+std::string WrapText(const std::string& s, size_t width, size_t indent = 0);
+
 } // namespace string_util
 } // namespace ppx
 

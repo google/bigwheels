@@ -11,6 +11,7 @@
 #include "shaders.h"
 
 #include "ppx/application.h"
+#include "ppx/knob.h"
 #include "ppx/math_config.h"
 #include "ppx/random.h"
 
@@ -20,33 +21,37 @@ namespace FluidSim {
 
 struct SimulationConfig
 {
-    bool        bloom                = true;
-    float       bloomIntensity       = 0.8f;
-    uint32_t    bloomIterations      = 8;
-    uint32_t    bloomResolution      = 256;
-    float       bloomSoftKnee        = 0.7f;
-    float       bloomThreshold       = 0.6f;
-    float       colorUpdateFrequency = 0.9f;
-    float       curl                 = 30.0f;
-    float       densityDissipation   = 1.0f;
-    uint32_t    dyeResolution        = 1024;
-    bool        marble               = true;
-    float       marbleDropFrequency  = 0.9f;
-    uint32_t    numSplats            = 0;
-    float       pressure             = 0.8f;
-    uint32_t    pressureIterations   = 20;
-    uint32_t    simResolution        = 128;
-    float       splatForce           = 6000.0f;
-    float       splatFrequency       = 0.4f;
-    float       splatRadius          = 0.25f;
-    bool        sunrays              = true;
-    uint32_t    sunraysResolution    = 196;
-    float       sunraysWeight        = 1.0f;
-    bool        transparent          = false;
-    float       velocityDissipation  = 0.2f;
-    ppx::float4 backColor            = {0.0f, 0.0f, 0.0f, 1.0f};
+    // Fluid
+    std::shared_ptr<ppx::KnobSlider<float>> pCurl;
+    std::shared_ptr<ppx::KnobSlider<float>> pDensityDissipation;
+    std::shared_ptr<ppx::KnobSlider<int>>   pDyeResolution;
+    std::shared_ptr<ppx::KnobSlider<float>> pPressure;
+    std::shared_ptr<ppx::KnobSlider<int>>   pPressureIterations;
+    std::shared_ptr<ppx::KnobSlider<float>> pVelocityDissipation;
+    // Bloom
+    std::shared_ptr<ppx::KnobCheckbox>      pEnableBloom;
+    std::shared_ptr<ppx::KnobSlider<float>> pBloomIntensity;
+    std::shared_ptr<ppx::KnobSlider<int>>   pBloomIterations;
+    std::shared_ptr<ppx::KnobSlider<int>>   pBloomResolution;
+    std::shared_ptr<ppx::KnobSlider<float>> pBloomSoftKnee;
+    std::shared_ptr<ppx::KnobSlider<float>> pBloomThreshold;
+    // Marble
+    std::shared_ptr<ppx::KnobCheckbox>      pEnableMarble;
+    std::shared_ptr<ppx::KnobSlider<float>> pColorUpdateFrequency;
+    std::shared_ptr<ppx::KnobSlider<float>> pMarbleDropFrequency;
+    // Splats
+    std::shared_ptr<ppx::KnobSlider<int>>   pNumSplats;
+    std::shared_ptr<ppx::KnobSlider<float>> pSplatForce;
+    std::shared_ptr<ppx::KnobSlider<float>> pSplatFrequency;
+    std::shared_ptr<ppx::KnobSlider<float>> pSplatRadius;
+    // Sunrays
+    std::shared_ptr<ppx::KnobCheckbox>      pEnableSunrays;
+    std::shared_ptr<ppx::KnobSlider<int>>   pSunraysResolution;
+    std::shared_ptr<ppx::KnobSlider<float>> pSunraysWeight;
+    // Misc
+    std::shared_ptr<ppx::KnobSlider<int>> pSimResolution;
 
-    SimulationConfig() {}
+    ppx::float4 backColor = {0.0f, 0.0f, 0.0f, 1.0f};
 };
 
 /// @brief Represents a virtual object bouncing around the field.
@@ -216,10 +221,14 @@ private:
 class ProjApp : public ppx::Application
 {
 public:
+    virtual void            InitKnobs() override;
     virtual void            Config(ppx::ApplicationSettings& settings) override;
     virtual void            Setup() override;
     virtual void            Render() override;
     const SimulationConfig& GetSimulationConfig() const { return mConfig; }
+
+    // Knob visibility logic
+    void UpdateKnobVisibility();
 
 private:
     // Configuration parameters to the simulator.
