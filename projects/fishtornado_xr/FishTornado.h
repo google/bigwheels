@@ -139,8 +139,8 @@ private:
         static constexpr size_t kTypePSInvocations = 6;
         static constexpr size_t kCount             = 7;
 
-        ppx::metrics::MetricID metrics[kCount]      = {};
-        uint64_t               data[kCount]         = {};
+        ppx::metrics::MetricID metrics[kCount] = {};
+        uint64_t               data[kCount]    = {};
     };
 
     grfx::DescriptorPoolPtr               mDescriptorPool;
