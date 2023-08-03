@@ -80,9 +80,19 @@ std::string WrapText(const std::string& s, size_t width, size_t indent)
     std::string wrappedText = "";
     while (remainingString != "") {
         // Section off the next line from the remaining string, format it, and append it to wrappedText
-        size_t lineLength = remainingString.find_last_of(" \t", textWidth);
-        if (lineLength == std::string::npos) {
-            lineLength = std::min(textWidth, remainingString.length());
+        size_t lineLength = remainingString.length();
+        if (lineLength > textWidth) {
+            // Break the line at textWidth
+            lineLength = textWidth;
+            // If the character after the line break is not empty, the line break will interrupt a word
+            // so try to insert the line break at the last empty space on this line
+            if (!std::isspace(remainingString[textWidth])) {
+                lineLength = remainingString.find_last_of(" \t", textWidth);
+                // In case there is no empty space on this entire line, go back to breaking the word at textWidth
+                if (lineLength == std::string::npos) {
+                    lineLength = textWidth;
+                }
+            }
         }
         std::string newLine = remainingString.substr(0, lineLength);
         TrimRight(newLine);
