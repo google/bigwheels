@@ -140,7 +140,6 @@ private:
         static constexpr size_t kCount             = 7;
 
         ppx::metrics::MetricID metrics[kCount]      = {};
-        float                  lastMetricsWriteTime = 0;
         uint64_t               data[kCount]         = {};
     };
 
