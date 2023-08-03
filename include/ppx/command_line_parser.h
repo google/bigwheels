@@ -73,7 +73,7 @@ class CliOptions
 public:
     CliOptions() = default;
 
-    bool HasExtraOption(std::string_view option) const { return mAllOptions.contains(option); }
+    bool HasExtraOption(std::string_view option) const;
 
     // Returns the number of unique options and flags that were specified on the commandline,
     // not counting multiple appearances of the same flag such as: --assets-path a --assets-path b

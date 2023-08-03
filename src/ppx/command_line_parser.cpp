@@ -37,6 +37,11 @@ bool StartsWithDoubleDash(std::string_view s)
 
 namespace ppx {
 
+bool CliOptions::HasExtraOption(std::string_view option) const
+{
+    return mAllOptions.contains(option);
+}
+
 std::pair<int, int> CliOptions::GetOptionValueOrDefault(std::string_view optionName, const std::pair<int, int>& defaultValue) const
 {
     auto it = mAllOptions.find(optionName);
