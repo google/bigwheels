@@ -15,8 +15,10 @@
 #ifndef PPX_STRING_UTIL_H
 #define PPX_STRING_UTIL_H
 
-#include <string>
 #include <optional>
+#include <sstream>
+#include <string>
+#include <vector>
 
 namespace ppx {
 namespace string_util {
@@ -38,6 +40,39 @@ std::optional<std::pair<std::string_view, std::string_view>> SplitInTwo(std::str
 // middle of a word if possible.
 // Leading and trailing whitespace is trimmed from each line.
 std::string WrapText(const std::string& s, size_t width, size_t indent = 0);
+
+// Provides string representation of value for printing or display
+template <typename T>
+std::string ToString(T value)
+{
+    std::stringstream ss;
+    if constexpr (std::is_same_v<T, bool>) {
+        ss << std::boolalpha;
+    }
+    ss << value;
+    return ss.str();
+}
+
+// Same as above, for vectors
+template <typename T>
+std::string ToString(std::vector<T> values)
+{
+    std::stringstream ss;
+    for (const auto& value : values) {
+        ss << ToString<T>(value) << ", ";
+    }
+    std::string valueStr = ss.str();
+    return valueStr.substr(0, valueStr.length() - 2);
+}
+
+// Same as above, for pairs
+template <typename T>
+std::string ToString(std::pair<T, T> values)
+{
+    std::stringstream ss;
+    ss << ToString<T>(values.first) << ", " << ToString<T>(values.second);
+    return ss.str();
+}
 
 } // namespace string_util
 } // namespace ppx
