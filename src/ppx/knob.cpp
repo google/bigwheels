@@ -60,9 +60,14 @@ void KnobCheckbox::Draw()
     RaiseUpdatedFlag();
 }
 
+std::string KnobCheckbox::ValueString()
+{
+    return ppx::string_util::ToString(mValue);
+}
+
 void KnobCheckbox::UpdateFromFlags(const CliOptions& opts)
 {
-    SetDefaultAndValue(opts.GetExtraOptionValueOrDefault(mFlagName, mValue));
+    SetDefaultAndValue(opts.GetOptionValueOrDefault(mFlagName, mValue));
 }
 
 void KnobCheckbox::SetValue(bool newValue)
@@ -121,7 +126,7 @@ void KnobManager::DrawAllKnobs(bool inExistingWindow)
 
 std::string KnobManager::GetUsageMsg()
 {
-    std::string usageMsg = "\nApplication-Specific Flags:\n";
+    std::string usageMsg = "\nFlags:\n";
     for (const auto& knobPtr : mKnobs) {
         std::string knobMsg = "--" + knobPtr->mFlagName;
         if (knobPtr->mFlagParameters != "") {
@@ -140,6 +145,7 @@ void KnobManager::UpdateFromFlags(const CliOptions& opts)
 {
     for (auto& knobPtr : mKnobs) {
         knobPtr->UpdateFromFlags(opts);
+        PPX_LOG_INFO("KNOB: " << knobPtr->mFlagName << " : (" << knobPtr->ValueString() << ")");
     }
 }
 
