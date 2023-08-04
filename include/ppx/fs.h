@@ -138,6 +138,9 @@ bool path_exists(const std::filesystem::path& path);
 // Returns a path to the application's internal data directory (can be used for output).
 // NOTE: The internal data path on Android is extremely limited in terms of filesize!
 std::filesystem::path GetInternalDataPath();
+
+// Returns a path to the application's external data directory (can be used for output).
+std::filesystem::path GetExternalDataPath();
 #endif
 
 } // namespace ppx::fs

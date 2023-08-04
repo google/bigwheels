@@ -183,6 +183,11 @@ std::filesystem::path GetInternalDataPath()
 {
     return std::filesystem::path(gAndroidContext->activity->internalDataPath);
 }
+
+std::filesystem::path GetExternalDataPath()
+{
+    return std::filesystem::path(gAndroidContext->activity->externalDataPath);
+}
 #endif
 
 } // namespace ppx::fs
