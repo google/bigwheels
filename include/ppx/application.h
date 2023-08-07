@@ -29,6 +29,7 @@
 #include <deque>
 #include <filesystem>
 #include <cinttypes>
+#include <vector>
 
 // clang-format off
 #if !defined(PPX_ANDROID)
@@ -221,6 +222,39 @@ struct KeyState
 };
 
 // -------------------------------------------------------------------------------------------------
+// StandardOptions
+// -------------------------------------------------------------------------------------------------
+struct StandardOptions
+{
+    // Flags
+    std::shared_ptr<KnobFlag<bool>> pListGpus;
+    std::shared_ptr<KnobFlag<bool>> pUseSoftwareRenderer;
+#if not defined(PPX_LINUX_HEADLESS)
+    std::shared_ptr<KnobFlag<bool>> pHeadless;
+#endif
+    std::shared_ptr<KnobFlag<bool>> pDeterministic;
+    std::shared_ptr<KnobFlag<bool>> pEnableMetrics;
+    std::shared_ptr<KnobFlag<bool>> pOverwriteMetricsFile;
+
+    // Options
+    std::shared_ptr<KnobFlag<int>>      pGpuIndex;
+    std::shared_ptr<KnobFlag<uint64_t>> pFrameCount;
+    std::shared_ptr<KnobFlag<int>>      pRunTimeMs;
+    std::shared_ptr<KnobFlag<int>>      pStatsFrameWindow;
+    std::shared_ptr<KnobFlag<int>>      pScreenshotFrameNumber;
+
+    std::shared_ptr<KnobFlag<std::string>> pScreenshotPath;
+    std::shared_ptr<KnobFlag<std::string>> pMetricsFilename;
+
+    std::shared_ptr<KnobFlag<std::pair<int, int>>> pResolution;
+#if defined(PPX_BUILD_XR)
+    std::shared_ptr<KnobFlag<std::pair<int, int>>> pXrUiResolution;
+#endif
+
+    std::shared_ptr<KnobFlag<std::vector<std::string>>> pAssetsPaths;
+};
+
+// -------------------------------------------------------------------------------------------------
 // Application
 // -------------------------------------------------------------------------------------------------
 
@@ -233,10 +267,6 @@ struct ApplicationSettings
     bool        headless              = false;
     bool        enableImGui           = false;
     bool        allowThirdPartyAssets = false;
-    // Set to true to opt-in for metrics.
-    bool        enableMetrics        = false;
-    bool        overwriteMetricsFile = false;
-    std::string reportPath           = "";
 
     struct
     {
@@ -359,10 +389,10 @@ public:
     void Quit();
 
     std::vector<const char*> GetCommandLineArgs() const;
-    const StandardOptions    GetStandardOptions() const;
     const CliOptions&        GetExtraOptions() const;
 
     const ApplicationSettings* GetSettings() const { return &mSettings; }
+    const StandardOptions&     GetStandardOptions() const { return mStandardOpts; }
     uint32_t                   GetWindowWidth() const { return mSettings.window.width; }
     uint32_t                   GetWindowHeight() const { return mSettings.window.height; }
     bool                       IsWindowIconified() const;
@@ -486,6 +516,9 @@ private:
     // Saves the metrics data to a file on disk.
     void SaveMetricsReportToDisk();
 
+    // Initializes standard knobs
+    void InitStandardKnobs();
+
 private:
     friend struct WindowEvents;
     //
@@ -506,8 +539,7 @@ private:
 
 private:
     CommandLineParser               mCommandLineParser;
-    StandardOptions                 mStandardOptions;
-    uint64_t                        mMaxFrames;
+    StandardOptions                 mStandardOpts;
     float                           mRunTimeSeconds;
     ApplicationSettings             mSettings = {};
     std::string                     mDecoratedApiName;
@@ -537,10 +569,10 @@ private:
     // Metrics
     struct
     {
-        metrics::Manager        manager;
-        metrics::MetricID       cpuFrameTimeId = metrics::kInvalidMetricID;
-        metrics::MetricID       framerateId    = metrics::kInvalidMetricID;
-        metrics::MetricID       frameCountId   = metrics::kInvalidMetricID;
+        metrics::Manager  manager;
+        metrics::MetricID cpuFrameTimeId = metrics::kInvalidMetricID;
+        metrics::MetricID framerateId    = metrics::kInvalidMetricID;
+        metrics::MetricID frameCountId   = metrics::kInvalidMetricID;
 
         double   framerateRecordTimer   = 0.0;
         uint64_t framerateFrameCount    = 0;

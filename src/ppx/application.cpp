@@ -326,7 +326,7 @@ Result Application::InitializeGrfxDevice()
         ci.enableSwapchain          = true;
         ci.applicationName          = mSettings.appName;
         ci.engineName               = mSettings.appName;
-        ci.useSoftwareRenderer      = mStandardOptions.use_software_renderer;
+        ci.useSoftwareRenderer      = mStandardOpts.pUseSoftwareRenderer->GetValue();
 #if defined(PPX_BUILD_XR)
         ci.pXrComponent = mSettings.xr.enable ? &mXrComponent : nullptr;
         // Disable original swapchain when XR is enabled as the XR swapchain will be coming from OpenXR.
@@ -352,13 +352,8 @@ Result Application::InitializeGrfxDevice()
             return ppx::ERROR_SINGLE_INIT_ONLY;
         }
 
-        uint32_t gpuIndex = 0;
-        if (!mStandardOptions.use_software_renderer && mStandardOptions.gpu_index != -1) {
-            gpuIndex = mStandardOptions.gpu_index;
-        }
-
         grfx::GpuPtr gpu;
-        Result       ppxres = mInstance->GetGpu(gpuIndex, &gpu);
+        Result       ppxres = mInstance->GetGpu(mStandardOpts.pGpuIndex->GetValue(), &gpu);
         if (Failed(ppxres)) {
             PPX_ASSERT_MSG(false, "grfx::Instance::GetGpu failed");
             return ppxres;
@@ -650,6 +645,7 @@ void Application::DestroyPlatformWindow()
 
 void Application::DispatchInitKnobs()
 {
+    InitStandardKnobs();
     InitKnobs();
 }
 
@@ -674,9 +670,10 @@ void Application::DispatchConfig()
         AddAssetDir(path / "third_party/assets");
     }
 
-    if (!mStandardOptions.assets_paths.empty()) {
+    auto assetPaths = mStandardOpts.pAssetsPaths->GetValue();
+    if (!assetPaths.empty()) {
         // Insert at front, in reverse order, so we respect the command line ordering for priority.
-        for (auto it = mStandardOptions.assets_paths.rbegin(); it < mStandardOptions.assets_paths.rend(); it++) {
+        for (auto it = assetPaths.rbegin(); it < assetPaths.rend(); it++) {
             AddAssetDir(*it, /* insert_at_front= */ true);
         }
     }
@@ -771,7 +768,7 @@ void Application::DispatchUpdateMetrics()
 
 void Application::SetupMetrics()
 {
-    if (!mSettings.enableMetrics) {
+    if (!mStandardOpts.pEnableMetrics->GetValue()) {
         return;
     }
 
@@ -782,7 +779,7 @@ void Application::SetupMetrics()
 
 void Application::ShutdownMetrics()
 {
-    if (!mSettings.enableMetrics) {
+    if (!mStandardOpts.pEnableMetrics->GetValue()) {
         return;
     }
 
@@ -791,13 +788,128 @@ void Application::ShutdownMetrics()
 
 void Application::SaveMetricsReportToDisk()
 {
-    if (!mSettings.enableMetrics) {
+    if (!mStandardOpts.pEnableMetrics->GetValue()) {
         return;
     }
 
     // Export the report from the metrics manager to the disk.
-    auto report = mMetrics.manager.CreateReport(mSettings.reportPath);
-    report.WriteToDisk(mSettings.overwriteMetricsFile);
+    auto report = mMetrics.manager.CreateReport(mStandardOpts.pMetricsFilename->GetValue());
+    report.WriteToDisk(mStandardOpts.pOverwriteMetricsFile->GetValue());
+}
+
+void Application::InitStandardKnobs()
+{
+    // Flag names in alphabetical order
+    std::vector<std::string> defaultAssetsPaths = {};
+    mStandardOpts.pAssetsPaths =
+        mKnobManager.CreateKnob<KnobFlag<std::vector<std::string>>>("assets-path", defaultAssetsPaths);
+    mStandardOpts.pAssetsPaths->SetFlagDescription(
+        "Add a path in front of the assets search path list.");
+    mStandardOpts.pAssetsPaths->SetFlagParameters("<path>");
+
+    mStandardOpts.pDeterministic =
+        mKnobManager.CreateKnob<KnobFlag<bool>>("deterministic", false);
+    mStandardOpts.pDeterministic->SetFlagDescription(
+        "Disable non-deterministic behaviors, like clocks.");
+
+    mStandardOpts.pEnableMetrics =
+        mKnobManager.CreateKnob<KnobFlag<bool>>("enable-metrics", false);
+    mStandardOpts.pEnableMetrics->SetFlagDescription(
+        "Enable metrics report output. See also: `--metrics-filename` and `--overwrite-metrics-file`.");
+
+    mStandardOpts.pFrameCount =
+        mKnobManager.CreateKnob<KnobFlag<uint64_t>>("frame-count", 0, 0, UINT64_MAX);
+    mStandardOpts.pFrameCount->SetFlagDescription(
+        "Shutdown the application after successfully rendering N frames. "
+        "Default: 0 (infinite)");
+
+    mStandardOpts.pGpuIndex =
+        mKnobManager.CreateKnob<KnobFlag<int>>("gpu", 0, 0, INT_MAX);
+    mStandardOpts.pGpuIndex->SetFlagDescription(
+        "Select the gpu with the given index. To determine the set of valid "
+        "indices use --list-gpus.");
+
+#if not defined(PPX_LINUX_HEADLESS)
+    mStandardOpts.pHeadless =
+        mKnobManager.CreateKnob<KnobFlag<bool>>("headless", false);
+    mStandardOpts.pHeadless->SetFlagDescription(
+        "Run the sample without creating windows.");
+#endif
+
+    mStandardOpts.pListGpus =
+        mKnobManager.CreateKnob<KnobFlag<bool>>("list-gpus", false);
+    mStandardOpts.pListGpus->SetFlagDescription(
+        "Prints a list of the available GPUs on the current system with their "
+        "index and exits (see --gpu).");
+
+    mStandardOpts.pOverwriteMetricsFile =
+        mKnobManager.CreateKnob<KnobFlag<bool>>("overwrite-metrics-file", false);
+    mStandardOpts.pOverwriteMetricsFile->SetFlagDescription(
+        "Only applies if metrics are enabled with `--enable-metrics`. "
+        "If an existing file at the path set with `--metrics-filename` is found, it will be overwritten. "
+        "Default: false. See also: `--enable-metrics` and `--metrics-filename`.");
+
+    mStandardOpts.pResolution =
+        mKnobManager.CreateKnob<KnobFlag<std::pair<int, int>>>(
+            "resolution", std::make_pair(0, 0));
+    mStandardOpts.pResolution->SetFlagDescription(
+        "Specify the main window resolution in pixels. Width and Height must be "
+        "two positive integers greater or equal to 1. (Default: Window dimensions)");
+#if defined(PPX_BUILD_XR)
+    mStandardOpts.pResolution->SetFlagDescription(
+        "Specify the per-eye resolution in pixels. Width and Height must be two "
+        "positive integers greater or equal to 1. (Default: Window dimensions)");
+#endif
+    mStandardOpts.pResolution->SetFlagParameters("<width>x<height>");
+    mStandardOpts.pResolution->SetValidator([](std::pair<int, int> res) {
+        return res.first >= 0 && res.second >= 0;
+    });
+
+    mStandardOpts.pRunTimeMs =
+        mKnobManager.CreateKnob<KnobFlag<int>>("run-time-ms", 0, 0, INT_MAX);
+    mStandardOpts.pRunTimeMs->SetFlagDescription(
+        "Shutdown the application after N milliseconds. Default: 0 (infinite).");
+
+    mStandardOpts.pScreenshotFrameNumber =
+        mKnobManager.CreateKnob<KnobFlag<int>>("screenshot-frame-number", -1, -1, INT_MAX);
+    mStandardOpts.pScreenshotFrameNumber->SetFlagDescription(
+        "Take a screenshot of frame number N and save it in PPM format. See also "
+        "`--screenshot-path`.");
+
+    mStandardOpts.pScreenshotPath =
+        mKnobManager.CreateKnob<KnobFlag<std::string>>("screenshot-path", "");
+    mStandardOpts.pScreenshotPath->SetFlagDescription(
+        "Save the screenshot to this path. Default: \"screenshot_frame<N>.ppm\" "
+        "in the current working directory.");
+    mStandardOpts.pScreenshotPath->SetFlagParameters("<path>");
+
+    mStandardOpts.pStatsFrameWindow = mKnobManager.CreateKnob<KnobFlag<int>>(
+        "stats-frame-window", -1, -1, INT_MAX);
+    mStandardOpts.pStatsFrameWindow->SetFlagDescription(
+        "Calculate frame statistics over the last N frames only. Set to 0 to use "
+        "all frames since the beginning of the application.");
+
+    mStandardOpts.pUseSoftwareRenderer =
+        mKnobManager.CreateKnob<KnobFlag<bool>>("use-software-renderer", false);
+    mStandardOpts.pUseSoftwareRenderer->SetFlagDescription(
+        "Use a software renderer instead of a hardware device, if available.");
+    mStandardOpts.pUseSoftwareRenderer->SetValidator([gpuIndex{mStandardOpts.pGpuIndex->GetValue()}](bool useSoftwareRenderer) {
+        // GPU index must be 0 if software renderer is used.
+        return useSoftwareRenderer ? gpuIndex == 0 : true;
+    });
+
+#if defined(PPX_BUILD_XR)
+    mStandardOpts.pXrUiResolution =
+        mKnobManager.CreateKnob<KnobFlag<std::pair<int, int>>>(
+            "xr-ui-resolution", std::make_pair(0, 0));
+    mStandardOpts.pXrUiResolution->SetFlagDescription(
+        "Specify the UI quad resolution in pixels. Width and Height must be two "
+        "positive integers greater or equal to 1.");
+    mStandardOpts.pXrUiResolution->SetFlagParameters("<width>x<height>");
+    mStandardOpts.pXrUiResolution->SetValidator([](std::pair<int, int> res) {
+        return res.first >= 0 && res.second >= 0;
+    });
+#endif
 }
 
 void Application::TakeScreenshot()
@@ -856,9 +968,10 @@ void Application::TakeScreenshot()
     unsigned char* texels = nullptr;
     screenshotBuf->MapMemory(0, (void**)&texels);
 
-    std::string filepath = mStandardOptions.screenshot_path.empty()
-                               ? "screenshot_frame" + std::to_string(mFrameCount) + ".ppm"
-                               : mStandardOptions.screenshot_path;
+    std::string filepath = mStandardOpts.pScreenshotPath->GetValue();
+    if (filepath == "") {
+        filepath = "screenshot_frame" + std::to_string(mFrameCount) + ".ppm";
+    }
     PPX_CHECKED_CALL(ExportToPPM(filepath, swapchainImg->GetFormat(), texels, width, height, outPitch.rowPitch));
 
     screenshotBuf->UnmapMemory();
@@ -1029,7 +1142,6 @@ int Application::Run(int argc, char** argv)
         PPX_ASSERT_MSG(false, "Unable to parse command line arguments");
         return EXIT_FAILURE;
     }
-    mStandardOptions = mCommandLineParser.GetStandardOptions();
 
     // Knobs need to be set up before commandline parsing.
     DispatchInitKnobs();
@@ -1052,14 +1164,11 @@ int Application::Run(int argc, char** argv)
     // Put this early because it might disable the display.
     DispatchConfig();
 
-    // If command line argument specified headless.
-    if (mStandardOptions.headless) {
-        mSettings.headless = true;
-    }
-
 #if defined(PPX_LINUX_HEADLESS)
     // Force headless if BigWheels was built without surface support.
     mSettings.headless = true;
+#else
+    mSettings.headless = mStandardOpts.pHeadless->GetValue();
 #endif
 
     if (!mWindow) {
@@ -1076,43 +1185,31 @@ int Application::Run(int argc, char** argv)
     }
 
     // If command line argument provided width and height
-    bool hasResolutionFlag = (mStandardOptions.resolution.first > 0 && mStandardOptions.resolution.second > 0);
+    auto resolution        = mStandardOpts.pResolution->GetValue();
+    bool hasResolutionFlag = (resolution.first > 0 && resolution.second > 0);
     if (hasResolutionFlag) {
-        mSettings.window.width  = mStandardOptions.resolution.first;
-        mSettings.window.height = mStandardOptions.resolution.second;
+        mSettings.window.width  = resolution.first;
+        mSettings.window.height = resolution.second;
     }
 
 #if defined(PPX_BUILD_XR)
-    if (mStandardOptions.xrUIResolution.first > 0 && mStandardOptions.xrUIResolution.second > 0) {
-        mSettings.xr.uiWidth  = mStandardOptions.xrUIResolution.first;
-        mSettings.xr.uiHeight = mStandardOptions.xrUIResolution.second;
+    resolution = mStandardOpts.pXrUiResolution->GetValue();
+    if (resolution.first > 0 && resolution.second > 0) {
+        mSettings.xr.uiWidth  = resolution.first;
+        mSettings.xr.uiHeight = resolution.second;
     }
 #endif
 
-    mMaxFrames = UINT64_MAX;
-    // If command line provided a maximum number of frames to draw.
-    if (mStandardOptions.frame_count > 0) {
-        mMaxFrames = mStandardOptions.frame_count;
-    }
-
-    mRunTimeSeconds = std::numeric_limits<float>::max();
-    // If command line provides a maximum number of milliseconds to run.
-    if (mStandardOptions.run_time_ms > 0) {
-        mRunTimeSeconds = mStandardOptions.run_time_ms / 1000.f;
+    mRunTimeSeconds = mStandardOpts.pRunTimeMs->GetValue() / 1000.f;
+    if (mRunTimeSeconds == 0) {
+        mRunTimeSeconds = std::numeric_limits<float>::max();
     }
 
     // Disable ImGui in headless or deterministic mode.
     // ImGUI is not non-deterministic, but the visible informations (stats, timers) are.
-    if ((mSettings.headless || mStandardOptions.deterministic) && mSettings.enableImGui) {
+    if ((mSettings.headless || mStandardOpts.pDeterministic->GetValue()) && mSettings.enableImGui) {
         mSettings.enableImGui = false;
         PPX_LOG_WARN("Headless or deterministic mode: disabling ImGui");
-    }
-
-    if (mStandardOptions.enable_metrics) {
-        mSettings.enableMetrics = true;
-        // An empty reportPath will be replaced with the default.
-        mSettings.reportPath           = mStandardOptions.metrics_filename;
-        mSettings.overwriteMetricsFile = mStandardOptions.overwrite_metrics_file;
     }
 
     // Initialize the platform
@@ -1164,7 +1261,7 @@ int Application::Run(int argc, char** argv)
 #endif
 
     // List gpus
-    if (mStandardOptions.list_gpus) {
+    if (mStandardOpts.pListGpus->GetValue()) {
         uint32_t          count = GetInstance()->GetGpuCount();
         std::stringstream ss;
         for (uint32_t i = 0; i < count; ++i) {
@@ -1316,7 +1413,7 @@ int Application::Run(int argc, char** argv)
         }
 
         // Take screenshot if this is the requested frame.
-        if (mFrameCount == static_cast<uint64_t>(mStandardOptions.screenshot_frame_number)) {
+        if (mFrameCount == static_cast<uint64_t>(mStandardOpts.pScreenshotFrameNumber->GetValue())) {
             TakeScreenshot();
         }
 
@@ -1326,9 +1423,9 @@ int Application::Run(int argc, char** argv)
         mPreviousFrameTime = static_cast<float>(nowMs) - mFrameStartTime;
 
         // Keep a rolling window of frame times to calculate stats, if requested.
-        if (mStandardOptions.stats_frame_window > 0) {
+        if (mStandardOpts.pStatsFrameWindow->GetValue() > 0) {
             mFrameTimesMs.push_back(mPreviousFrameTime);
-            if (mFrameTimesMs.size() > mStandardOptions.stats_frame_window) {
+            if (mFrameTimesMs.size() > mStandardOpts.pStatsFrameWindow->GetValue()) {
                 mFrameTimesMs.pop_front();
             }
             float totalFrameTimeMs = std::accumulate(mFrameTimesMs.begin(), mFrameTimesMs.end(), 0.f);
@@ -1360,7 +1457,8 @@ int Application::Run(int argc, char** argv)
             }
         }
         // If we reach the maximum number of frames allowed
-        if (mFrameCount >= mMaxFrames || (nowMs / 1000.f) > mRunTimeSeconds) {
+        if ((mStandardOpts.pFrameCount->GetValue() > 0 && mFrameCount >= mStandardOpts.pFrameCount->GetValue()) ||
+            (nowMs / 1000.f) > mRunTimeSeconds) {
             Quit();
         }
     }
@@ -1399,11 +1497,6 @@ int Application::Run(int argc, char** argv)
 void Application::Quit()
 {
     mWindow->Quit();
-}
-
-const StandardOptions Application::GetStandardOptions() const
-{
-    return mStandardOptions;
 }
 
 const CliOptions& Application::GetExtraOptions() const
@@ -1537,7 +1630,7 @@ Result Application::Present(
 
 float Application::GetElapsedSeconds() const
 {
-    if (mStandardOptions.deterministic) {
+    if (mStandardOpts.pDeterministic->GetValue()) {
         return static_cast<float>(mFrameCount * (1.f / 60.f));
     }
     return static_cast<float>(mTimer.SecondsSinceStart());
@@ -1562,7 +1655,7 @@ float2 Application::GetNormalizedDeviceCoordinates(int32_t x, int32_t y) const
 void Application::StartMetricsRun(const std::string& name)
 {
     // Callers should check mSettings.enableMetrics before making this call.
-    PPX_ASSERT_MSG(mSettings.enableMetrics, "Metrics must be enabled to use metrics capabilities");
+    PPX_ASSERT_MSG(mStandardOpts.pEnableMetrics->GetValue(), "Metrics must be enabled to use metrics capabilities");
     PPX_ASSERT_MSG(!mMetrics.manager.HasActiveRun(), "A run is already active; stop it before starting another one");
     mMetrics.manager.StartRun(name.c_str());
 
@@ -1601,7 +1694,7 @@ void Application::StartMetricsRun(const std::string& name)
 void Application::StopMetricsRun()
 {
     // Callers should check mSettings.enableMetrics before making this call.
-    PPX_ASSERT_MSG(mSettings.enableMetrics, "Metrics must be enabled to use metrics capabilities");
+    PPX_ASSERT_MSG(mStandardOpts.pEnableMetrics->GetValue(), "Metrics must be enabled to use metrics capabilities");
 
     if (!mMetrics.manager.HasActiveRun()) {
         // If no run is in progress, this is likely a bad code path. But this won't harm anything.
@@ -1616,12 +1709,12 @@ void Application::StopMetricsRun()
 
 bool Application::HasActiveMetricsRun() const
 {
-    return mSettings.enableMetrics && mMetrics.manager.HasActiveRun();
+    return mStandardOpts.pEnableMetrics->GetValue() && mMetrics.manager.HasActiveRun();
 }
 
 metrics::MetricID Application::AddMetric(const metrics::MetricMetadata& metadata)
 {
-    if (!mSettings.enableMetrics) {
+    if (!mStandardOpts.pEnableMetrics->GetValue()) {
         PPX_LOG_ERROR("Attempting to add a metric with metrics disabled; ignoring.");
         return metrics::kInvalidMetricID;
     }
@@ -1632,7 +1725,7 @@ metrics::MetricID Application::AddMetric(const metrics::MetricMetadata& metadata
 
 bool Application::RecordMetricData(metrics::MetricID id, const metrics::MetricData& data)
 {
-    if (!mSettings.enableMetrics) {
+    if (!mStandardOpts.pEnableMetrics->GetValue()) {
         PPX_LOG_ERROR("Attempting to record metric dta with metrics disabled; ignoring.");
         return false;
     }
