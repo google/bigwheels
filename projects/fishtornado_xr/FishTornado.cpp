@@ -27,8 +27,6 @@ constexpr uint32_t kShadowRes          = 1024;
 constexpr uint32_t kCausticsImageCount = 32;
 constexpr float3   kFogColor           = float3(15.0f, 86.0f, 107.0f) / 255.0f;
 constexpr float3   kFloorColor         = float3(145.0f, 189.0f, 155.0f) / 255.0f;
-constexpr float    kMetricsWritePeriod = 5.f;
-constexpr char     kMetricsFilename[]  = "ft_metrics";
 
 } // namespace
 
@@ -423,7 +421,6 @@ void FishTornadoApp::Setup()
     mSettings.renderOcean              = !(clOptions.HasExtraOption("ft-disable-ocean") && clOptions.GetExtraOptionValueOrDefault<bool>("ft-disable-ocean", true));
     mSettings.renderShark              = !(clOptions.HasExtraOption("ft-disable-shark") && clOptions.GetExtraOptionValueOrDefault<bool>("ft-disable-shark", true));
     mSettings.useTracking              = !(clOptions.HasExtraOption("ft-disable-tracking") && clOptions.GetExtraOptionValueOrDefault<bool>("ft-disable-tracking", true));
-    mSettings.outputMetrics            = (clOptions.HasExtraOption("ft-enable-metrics") && clOptions.GetExtraOptionValueOrDefault<bool>("ft-enable-metrics", true));
 
     mSettings.fishResX = clOptions.GetExtraOptionValueOrDefault<uint32_t>("ft-fish-res-x", kDefaultFishResX);
     PPX_ASSERT_MSG(mSettings.fishResX < 65536, "Fish X resolution out-of-range.");
@@ -442,7 +439,7 @@ void FishTornadoApp::Setup()
     SetupPerFrame();
     SetupCaustics();
     SetupDebug();
-    SetupMetrics();
+    SetupFtMetrics();
 
     const uint32_t numFramesInFlight = GetNumFramesInFlight();
     // Always setup all elements of the scene, even if they're not in use.
@@ -468,13 +465,6 @@ void FishTornadoApp::Shutdown()
     for (size_t i = 0; i < mPerFrame.size(); ++i) {
         PerFrame& frame = mPerFrame[i];
         frame.sceneConstants.Destroy();
-    }
-
-    // TODO(slumpwuffle): Replace these one-off metrics with the new metrics system when it arrives.
-    if (mSettings.outputMetrics) {
-        mMetricsData.manager.EndRun();
-        auto report = mMetricsData.manager.CreateReport(kMetricsFilename);
-        report.WriteToDisk(/* overwrwiteExisting= */ true);
     }
 }
 
@@ -1142,60 +1132,64 @@ void FishTornadoApp::Render()
     }
 }
 
+void FishTornadoApp::UpdateMetrics()
+{
+    // Calculate the info, both for display and for records.
+    mMetricsData.data[MetricsData::kTypeGpuFrameTime]  = 0;
+    mMetricsData.data[MetricsData::kTypeIAVertices]    = 0;
+    mMetricsData.data[MetricsData::kTypeIAPrimitives]  = 0;
+    mMetricsData.data[MetricsData::kTypeVSInvocations] = 0;
+    mMetricsData.data[MetricsData::kTypeCInvocations]  = 0;
+    mMetricsData.data[MetricsData::kTypeCPrimitives]   = 0;
+    mMetricsData.data[MetricsData::kTypePSInvocations] = 0;
+
+    for (int i = 0; i < mViewCount; i++) {
+        mMetricsData.data[MetricsData::kTypeGpuFrameTime] += mViewGpuFrameTime[i];
+        mMetricsData.data[MetricsData::kTypeIAVertices] += mViewPipelineStatistics[i].IAVertices;
+        mMetricsData.data[MetricsData::kTypeIAPrimitives] += mViewPipelineStatistics[i].IAPrimitives;
+        mMetricsData.data[MetricsData::kTypeVSInvocations] += mViewPipelineStatistics[i].VSInvocations;
+        mMetricsData.data[MetricsData::kTypeCInvocations] += mViewPipelineStatistics[i].CInvocations;
+        mMetricsData.data[MetricsData::kTypeCPrimitives] += mViewPipelineStatistics[i].CPrimitives;
+        mMetricsData.data[MetricsData::kTypePSInvocations] += mViewPipelineStatistics[i].PSInvocations;
+    }
+
+    uint64_t frequency = 0;
+    GetGraphicsQueue()->GetTimestampFrequency(&frequency);
+    float prevGpuFrameTime = static_cast<float>(mMetricsData.data[MetricsData::kTypeGpuFrameTime] / static_cast<double>(frequency)) * 1000.0f;
+
+    // Record the info, if available.
+    if (HasActiveMetricsRun()) {
+        auto                     now  = GetElapsedSeconds();
+        ppx::metrics::MetricData data = {ppx::metrics::MetricType::GAUGE};
+        data.gauge.seconds            = now;
+
+        data.gauge.value = prevGpuFrameTime;
+        RecordMetricData(mMetricsData.metrics[MetricsData::kTypeGpuFrameTime], data);
+        data.gauge.value = mMetricsData.data[MetricsData::kTypeIAVertices];
+        RecordMetricData(mMetricsData.metrics[MetricsData::kTypeIAVertices], data);
+        data.gauge.value = mMetricsData.data[MetricsData::kTypeIAPrimitives];
+        RecordMetricData(mMetricsData.metrics[MetricsData::kTypeIAPrimitives], data);
+        data.gauge.value = mMetricsData.data[MetricsData::kTypeVSInvocations];
+        RecordMetricData(mMetricsData.metrics[MetricsData::kTypeVSInvocations], data);
+        data.gauge.value = mMetricsData.data[MetricsData::kTypeCInvocations];
+        RecordMetricData(mMetricsData.metrics[MetricsData::kTypeCInvocations], data);
+        data.gauge.value = mMetricsData.data[MetricsData::kTypeCPrimitives];
+        RecordMetricData(mMetricsData.metrics[MetricsData::kTypeCPrimitives], data);
+        data.gauge.value = mMetricsData.data[MetricsData::kTypePSInvocations];
+        RecordMetricData(mMetricsData.metrics[MetricsData::kTypePSInvocations], data);
+    }
+}
+
 void FishTornadoApp::DrawGui()
 {
     ImGui::Separator();
 
     {
-        uint64_t totalGpuFrameTime  = 0;
-        uint64_t totalIAVertices    = 0;
-        uint64_t totalIAPrimitives  = 0;
-        uint64_t totalVSInvocations = 0;
-        uint64_t totalCInvocations  = 0;
-        uint64_t totalCPrimitives   = 0;
-        uint64_t totalPSInvocations = 0;
-
-        for (int i = 0; i < mViewCount; i++) {
-            totalGpuFrameTime += mViewGpuFrameTime[i];
-            totalIAVertices += mViewPipelineStatistics[i].IAVertices;
-            totalIAPrimitives += mViewPipelineStatistics[i].IAPrimitives;
-            totalVSInvocations += mViewPipelineStatistics[i].VSInvocations;
-            totalCInvocations += mViewPipelineStatistics[i].CInvocations;
-            totalCPrimitives += mViewPipelineStatistics[i].CPrimitives;
-            totalPSInvocations += mViewPipelineStatistics[i].PSInvocations;
-        }
-
         uint64_t frequency = 0;
         GetGraphicsQueue()->GetTimestampFrequency(&frequency);
-
-        float frameCount = static_cast<float>(GetFrameCount());
+        float prevGpuFrameTime = static_cast<float>(mMetricsData.data[MetricsData::kTypeGpuFrameTime] / static_cast<double>(frequency)) * 1000.0f;
 
         ImGui::Columns(2);
-
-        float prevGpuFrameTime = static_cast<float>(totalGpuFrameTime / static_cast<double>(frequency)) * 1000.0f;
-        if (mSettings.outputMetrics) {
-            auto now              = GetElapsedSeconds();
-            auto prevCpuFrameTime = GetPrevFrameTime();
-            ppx::metrics::MetricData data             = {ppx::metrics::MetricType::GAUGE};
-            data.gauge.seconds                        = now;
-
-            data.gauge.value = prevGpuFrameTime;
-            mMetricsData.manager.RecordMetricData(mMetricsData.metrics[MetricsData::kTypeGpuFrameTime], data);
-            data.gauge.value = prevCpuFrameTime;
-            mMetricsData.manager.RecordMetricData(mMetricsData.metrics[MetricsData::kTypeCpuFrameTime], data);
-            data.gauge.value = totalIAVertices;
-            mMetricsData.manager.RecordMetricData(mMetricsData.metrics[MetricsData::kTypeIAVertices], data);
-            data.gauge.value = totalIAPrimitives;
-            mMetricsData.manager.RecordMetricData(mMetricsData.metrics[MetricsData::kTypeIAPrimitives], data);
-            data.gauge.value = totalVSInvocations;
-            mMetricsData.manager.RecordMetricData(mMetricsData.metrics[MetricsData::kTypeVSInvocations], data);
-            data.gauge.value = totalCInvocations;
-            mMetricsData.manager.RecordMetricData(mMetricsData.metrics[MetricsData::kTypeCInvocations], data);
-            data.gauge.value = totalCPrimitives;
-            mMetricsData.manager.RecordMetricData(mMetricsData.metrics[MetricsData::kTypeCPrimitives], data);
-            data.gauge.value = totalPSInvocations;
-            mMetricsData.manager.RecordMetricData(mMetricsData.metrics[MetricsData::kTypePSInvocations], data);
-        }
 
         ImGui::Text("Previous GPU Frame Time");
         ImGui::NextColumn();
@@ -1206,32 +1200,32 @@ void FishTornadoApp::DrawGui()
 
         ImGui::Text("Fish IAVertices");
         ImGui::NextColumn();
-        ImGui::Text("%" PRIu64, totalIAVertices);
+        ImGui::Text("%" PRIu64, mMetricsData.data[MetricsData::kTypeIAVertices]);
         ImGui::NextColumn();
 
         ImGui::Text("Fish IAPrimitives");
         ImGui::NextColumn();
-        ImGui::Text("%" PRIu64, totalIAPrimitives);
+        ImGui::Text("%" PRIu64, mMetricsData.data[MetricsData::kTypeIAPrimitives]);
         ImGui::NextColumn();
 
         ImGui::Text("Fish VSInvocations");
         ImGui::NextColumn();
-        ImGui::Text("%" PRIu64, totalVSInvocations);
+        ImGui::Text("%" PRIu64, mMetricsData.data[MetricsData::kTypeVSInvocations]);
         ImGui::NextColumn();
 
         ImGui::Text("Fish CInvocations");
         ImGui::NextColumn();
-        ImGui::Text("%" PRIu64, totalCInvocations);
+        ImGui::Text("%" PRIu64, mMetricsData.data[MetricsData::kTypeCInvocations]);
         ImGui::NextColumn();
 
         ImGui::Text("Fish CPrimitives");
         ImGui::NextColumn();
-        ImGui::Text("%" PRIu64, totalCPrimitives);
+        ImGui::Text("%" PRIu64, mMetricsData.data[MetricsData::kTypeCPrimitives]);
         ImGui::NextColumn();
 
         ImGui::Text("Fish PSInvocations");
         ImGui::NextColumn();
-        ImGui::Text("%" PRIu64, totalPSInvocations);
+        ImGui::Text("%" PRIu64, mMetricsData.data[MetricsData::kTypePSInvocations]);
         ImGui::NextColumn();
 
         ImGui::Columns(1);
@@ -1264,44 +1258,37 @@ void FishTornadoApp::DrawGui()
     }
 }
 
-// TODO(slumpwuffle): Replace these one-off metrics with the new metrics system when it arrives.
-void FishTornadoApp::SetupMetrics()
+void FishTornadoApp::SetupFtMetrics()
 {
-    if (!mSettings.outputMetrics) {
+    if (!HasActiveMetricsRun()) {
         return;
     }
 
-    mMetricsData.manager.StartRun("FishTornado Metrics");
-
     ppx::metrics::MetricMetadata metadata                = {ppx::metrics::MetricType::GAUGE, "GPU Frame Time", "ms", ppx::metrics::MetricInterpretation::LOWER_IS_BETTER, {0.f, 60000.f}};
-    mMetricsData.metrics[MetricsData::kTypeGpuFrameTime] = mMetricsData.manager.AddMetric(metadata);
+    mMetricsData.metrics[MetricsData::kTypeGpuFrameTime] = AddMetric(metadata);
     PPX_ASSERT_MSG(mMetricsData.metrics[MetricsData::kTypeGpuFrameTime] != ppx::metrics::kInvalidMetricID, "Failed to add GPU Frame Time metric");
 
-    metadata                                             = {ppx::metrics::MetricType::GAUGE, "Total (CPU) Frame Time", "ms", ppx::metrics::MetricInterpretation::LOWER_IS_BETTER, {0.f, 60000.f}};
-    mMetricsData.metrics[MetricsData::kTypeCpuFrameTime] = mMetricsData.manager.AddMetric(metadata);
-    PPX_ASSERT_MSG(mMetricsData.metrics[MetricsData::kTypeCpuFrameTime] != ppx::metrics::kInvalidMetricID, "Failed to add CPU Frame Time metric");
-
     metadata                                           = {ppx::metrics::MetricType::GAUGE, "IA Vertices", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}};
-    mMetricsData.metrics[MetricsData::kTypeIAVertices] = mMetricsData.manager.AddMetric(metadata);
+    mMetricsData.metrics[MetricsData::kTypeIAVertices] = AddMetric(metadata);
     PPX_ASSERT_MSG(mMetricsData.metrics[MetricsData::kTypeIAVertices] != ppx::metrics::kInvalidMetricID, "Failed to add IA Vertices metric");
 
     metadata                                             = {ppx::metrics::MetricType::GAUGE, "IA Primitives", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}};
-    mMetricsData.metrics[MetricsData::kTypeIAPrimitives] = mMetricsData.manager.AddMetric(metadata);
+    mMetricsData.metrics[MetricsData::kTypeIAPrimitives] = AddMetric(metadata);
     PPX_ASSERT_MSG(mMetricsData.metrics[MetricsData::kTypeIAPrimitives] != ppx::metrics::kInvalidMetricID, "Failed to add IA Primitives metric");
 
     metadata                                              = {ppx::metrics::MetricType::GAUGE, "VS Invocations", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}};
-    mMetricsData.metrics[MetricsData::kTypeVSInvocations] = mMetricsData.manager.AddMetric(metadata);
+    mMetricsData.metrics[MetricsData::kTypeVSInvocations] = AddMetric(metadata);
     PPX_ASSERT_MSG(mMetricsData.metrics[MetricsData::kTypeVSInvocations] != ppx::metrics::kInvalidMetricID, "Failed to add VS Invocations metric");
 
     metadata                                             = {ppx::metrics::MetricType::GAUGE, "C Invocations", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}};
-    mMetricsData.metrics[MetricsData::kTypeCInvocations] = mMetricsData.manager.AddMetric(metadata);
+    mMetricsData.metrics[MetricsData::kTypeCInvocations] = AddMetric(metadata);
     PPX_ASSERT_MSG(mMetricsData.metrics[MetricsData::kTypeCInvocations] != ppx::metrics::kInvalidMetricID, "Failed to add C Invocations metric");
 
     metadata                                            = {ppx::metrics::MetricType::GAUGE, "C Primitives", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}};
-    mMetricsData.metrics[MetricsData::kTypeCPrimitives] = mMetricsData.manager.AddMetric(metadata);
+    mMetricsData.metrics[MetricsData::kTypeCPrimitives] = AddMetric(metadata);
     PPX_ASSERT_MSG(mMetricsData.metrics[MetricsData::kTypeCPrimitives] != ppx::metrics::kInvalidMetricID, "Failed to add C Primitives metric");
 
     metadata                                              = {ppx::metrics::MetricType::GAUGE, "PS Invocations", "", ppx::metrics::MetricInterpretation::NONE, {0.f, 1000000000.f}};
-    mMetricsData.metrics[MetricsData::kTypePSInvocations] = mMetricsData.manager.AddMetric(metadata);
+    mMetricsData.metrics[MetricsData::kTypePSInvocations] = AddMetric(metadata);
     PPX_ASSERT_MSG(mMetricsData.metrics[MetricsData::kTypePSInvocations] != ppx::metrics::kInvalidMetricID, "Failed to add PS Invocations metric");
 }
