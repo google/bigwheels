@@ -27,35 +27,6 @@
 #include <vector>
 
 namespace ppx {
-// -------------------------------------------------------------------------------------------------
-// StandardOptions
-// -------------------------------------------------------------------------------------------------
-struct StandardOptions
-{
-    // Flags
-    bool deterministic          = false;
-    bool enable_metrics         = false;
-    bool headless               = false;
-    bool list_gpus              = false;
-    bool overwrite_metrics_file = false;
-    bool use_software_renderer  = false;
-
-    // Options
-    std::vector<std::string> assets_paths            = {};
-    int                      frame_count             = 0;
-    int                      gpu_index               = -1;
-    std::string              metrics_filename        = "";
-    std::pair<int, int>      resolution              = {-1, -1};
-    int                      run_time_ms             = 0;
-    int                      screenshot_frame_number = -1;
-    std::string              screenshot_path         = "";
-    uint32_t                 stats_frame_window      = 300;
-#if defined(PPX_BUILD_XR)
-    std::pair<int, int> xrUIResolution = {-1, -1};
-#endif
-
-    bool operator==(const StandardOptions&) const = default;
-};
 
 // -------------------------------------------------------------------------------------------------
 // CliOptions
@@ -184,100 +155,25 @@ public:
     // succeeded. Otherwise, return true if an error occurred,
     // and write the error to `out_error`.
     std::optional<ParsingError> Parse(int argc, const char* argv[]);
-    const CliOptions&           GetOptions() const { return mOpts; }
-    const StandardOptions&      GetStandardOptions() const { return mStandardOpts; }
-    std::string                 GetUsageMsg() const { return mUsageMsg; }
-    void                        AppendUsageMsg(const std::string& additionalMsg) { mUsageMsg += additionalMsg; }
+
+    const CliOptions& GetOptions() const { return mOpts; }
+    std::string       GetUsageMsg() const { return mUsageMsg; }
+    void              AppendUsageMsg(const std::string& additionalMsg) { mUsageMsg += additionalMsg; }
 
 private:
-    CliOptions      mOpts;
-    StandardOptions mStandardOpts;
-    std::string     mUsageMsg = R"(
+    CliOptions mOpts;
+
+    std::string mUsageMsg = R"(
 USAGE
 ==============================
 Boolean options can be turned on with:
   --flag-name true, --flag-name 1, --flag-name
 And turned off with:
   --flag-name false, --flag-name 0, --no-flag-name
+
+--help : Prints this help message and exits.
 ==============================
---help              Prints this help message and exits.
-
---assets-path       Add a path in front of the assets search path list (Can be
-                    specified multiple times).
-
---deterministic     Disable non-deterministic behaviors, like clocks and
-                    diagnostic display.
-
---enable-metrics    Enable metrics report output. See also:
-                    `--metrics-filename` and `--overwrite-metrics-file`.
-
---frame-count <N>   Shutdown the application after successfully rendering N
-                    frames. Default: 0 (infinite).
-
---run-time-ms <N>   Shutdown the application after N milliseconds. Default: 0
-                    (infinite).
-
---gpu <index>       Select the gpu with the given index. To determine the set
-                    of valid indices use --list-gpus.
-
---headless          Run the sample without creating windows.
-
---list-gpus         Prints a list of the available GPUs on the current system
-                    with their index and exits (see --gpu).
-
---metrics-filename  If metrics are enabled, save the metrics report to the
-                    provided filename (including path). If used, any "@"
-                    symbols in the filename (not the path) will be replaced
-                    with the current timestamp. If the filename does not end in
-                    .json, it will be appended. Default: "report_@". See also:
-                    `--enable-metrics` and `--overwrite-metrics-file`.
-
---overwrite-metrics-file
-                    Only applies if metrics are enabled with
-                    `--enable-metrics`. If an existing file at the path set
-                    with `--metrics-filename` is found, it will be overwritten.
-                    Default: false. See also: `--enable-metrics` and
-                    `--metrics-filename`.
-)"
-#if defined(PPX_BUILD_XR)
-                            R"(
---resolution <Width>x<Height>
-                    Specify the per-eye resolution in pixels. Width and Height
-                    must be two positive integers greater or equal to 1.
-)"
-#else
-                            R"(
---resolution <Width>x<Height>
-                    Specify the main window resolution in pixels. Width and
-                    Height must be two positive integers greater or equal to 1.
-)"
-#endif
-                            R"(
---screenshot-frame-number <N>
-                    Take a screenshot of frame number N and save it in PPM
-                    format. See also `--screenshot-path`.
-
---screenshot-path   Save the screenshot to this destination. If not specified,
-                    BigWheels will create a "screenshot_frameN" file in the
-                    current working directory.
-
---stats-frame-window <N>
-                    Calculate frame statistics over the last N frames only.
-                    Default: 0 (use all frames since the beginning of the
-                    application).
-
---use-software-renderer
-                    Use a software renderer instead of a hardware device, if
-                    available.
-)"
-#if defined(PPX_BUILD_XR)
-                            R"(
---xr-ui-resolution <Width>x<Height>
-                    Specify the UI quad resolution in pixels. Width and Height
-                    must be two positive integers greater or equal to 1.
-)"
-#endif
-        ; // mUsageMsg
+)";
 };
 
 } // namespace ppx

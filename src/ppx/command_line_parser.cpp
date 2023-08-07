@@ -137,25 +137,6 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
         }
     }
 
-    // Fill out standard options.
-    mStandardOpts.assets_paths            = mOpts.GetOptionValueOrDefault<std::string>("assets-path", mStandardOpts.assets_paths);
-    mStandardOpts.deterministic           = mOpts.GetOptionValueOrDefault<bool>("deterministic", mStandardOpts.deterministic);
-    mStandardOpts.enable_metrics          = mOpts.GetOptionValueOrDefault<bool>("enable-metrics", mStandardOpts.enable_metrics);
-    mStandardOpts.frame_count             = mOpts.GetOptionValueOrDefault<int>("frame-count", mStandardOpts.frame_count);
-    mStandardOpts.gpu_index               = mOpts.GetOptionValueOrDefault<int>("gpu", mStandardOpts.gpu_index);
-    mStandardOpts.headless                = mOpts.GetOptionValueOrDefault<bool>("headless", mStandardOpts.headless);
-    mStandardOpts.list_gpus               = mOpts.GetOptionValueOrDefault<bool>("list-gpus", mStandardOpts.list_gpus);
-    mStandardOpts.metrics_filename        = mOpts.GetOptionValueOrDefault<std::string>("metrics-filename", mStandardOpts.metrics_filename);
-    mStandardOpts.overwrite_metrics_file  = mOpts.GetOptionValueOrDefault<bool>("overwrite-metrics-file", mStandardOpts.overwrite_metrics_file);
-    mStandardOpts.resolution              = mOpts.GetOptionValueOrDefault("resolution", mStandardOpts.resolution);
-    mStandardOpts.run_time_ms             = mOpts.GetOptionValueOrDefault<int>("run-time-ms", mStandardOpts.run_time_ms);
-    mStandardOpts.stats_frame_window      = mOpts.GetOptionValueOrDefault<int>("stats-frame-window", mStandardOpts.stats_frame_window);
-    mStandardOpts.screenshot_frame_number = mOpts.GetOptionValueOrDefault<int>("screenshot-frame-number", mStandardOpts.screenshot_frame_number);
-    mStandardOpts.screenshot_path         = mOpts.GetOptionValueOrDefault<std::string>("screenshot-path", mStandardOpts.screenshot_path);
-    mStandardOpts.use_software_renderer   = mOpts.GetOptionValueOrDefault<bool>("use-software-renderer", mStandardOpts.use_software_renderer);
-#if defined(PPX_BUILD_XR)
-    mStandardOpts.xrUIResolution = mOpts.GetOptionValueOrDefault("xr-ui-resolution", mStandardOpts.xrUIResolution);
-#endif
     return std::nullopt;
 }
 
