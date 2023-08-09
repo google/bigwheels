@@ -123,6 +123,7 @@ private:
     grfx::SamplerPtr                  mSampler;
     Entity                            mSkyBox;
     Entity                            mSphere;
+    bool                              mEnableMouseMovement = true;
 
 private:
     void ProcessInput();
@@ -388,6 +389,10 @@ void ProjApp::Setup()
 
 void ProjApp::MouseMove(int32_t x, int32_t y, int32_t dx, int32_t dy, uint32_t buttons)
 {
+    if (!mEnableMouseMovement) {
+        return;
+    }
+
     float2 prevPos  = GetNormalizedDeviceCoordinates(x - dx, y - dy);
     float2 currPos  = GetNormalizedDeviceCoordinates(x, y);
     float2 deltaPos = currPos - prevPos;
@@ -408,6 +413,9 @@ void ProjApp::KeyDown(ppx::KeyCode key)
 void ProjApp::KeyUp(ppx::KeyCode key)
 {
     mPressedKeys[key] = false;
+    if (key == KEY_SPACE) {
+        mEnableMouseMovement = !mEnableMouseMovement;
+    }
 }
 
 void ProjApp::ProcessInput()
