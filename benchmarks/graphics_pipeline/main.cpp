@@ -102,21 +102,27 @@ private:
         grfx::QueryPtr         timestampQuery;
     };
 
+    struct Entity
+    {
+        grfx::MeshPtr                mesh;
+        grfx::BufferPtr              uniformBuffer;
+        grfx::DescriptorSetLayoutPtr descriptorSetLayout;
+        grfx::PipelineInterfacePtr   pipelineInterface;
+        grfx::GraphicsPipelinePtr    pipeline;
+    };
+
     std::vector<PerFrame>             mPerFrame;
     FreeCamera                        mCamera;
-    std::array<bool, TOTAL_KEY_COUNT> mPressedKeys = {0};
+    float3                            mLightPosition = float3(10, 250, 10);
+    std::array<bool, TOTAL_KEY_COUNT> mPressedKeys   = {0};
     uint64_t                          mGpuWorkDuration;
     grfx::ShaderModulePtr             mVS;
     grfx::ShaderModulePtr             mPS;
-    grfx::PipelineInterfacePtr        mPipelineInterface;
-    grfx::GraphicsPipelinePtr         mPipeline;
-    grfx::BufferPtr                   mVertexBuffer;
-    grfx::VertexBinding               mVertexBinding;
-    grfx::DescriptorSetLayoutPtr      mDescriptorSetLayout;
-    grfx::BufferPtr                   mUniformBuffer;
     grfx::ImagePtr                    mImage;
     grfx::SampledImageViewPtr         mSampledImageView;
     grfx::SamplerPtr                  mSampler;
+    Entity                            mSkyBox;
+    Entity                            mSphere;
 
 private:
     void ProcessInput();
@@ -192,27 +198,12 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
 }
 
-struct TransformData
-{
-    float4x4 MVP;
-};
-
 void ProjApp::Setup()
 {
     // Cameras
     {
         mCamera.LookAt(mCamera.GetEyePosition(), mCamera.GetTarget());
         mCamera.SetPerspective(60.f, GetWindowAspect());
-    }
-
-    // Uniform buffers
-    {
-        grfx::BufferCreateInfo createInfo        = {};
-        createInfo.size                          = PPX_MINIMUM_UNIFORM_BUFFER_SIZE;
-        createInfo.usageFlags.bits.uniformBuffer = true;
-        createInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
-
-        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&createInfo, &mUniformBuffer));
     }
 
     // Texture image, view, and sampler
@@ -236,17 +227,65 @@ void ProjApp::Setup()
         PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &mSampler));
     }
 
+    // Meshes
+    {
+        // SkyBox
+        TriMesh  mesh = TriMesh::CreateCube(float3(1, 1, 1), TriMeshOptions().TexCoords());
+        Geometry geo;
+        PPX_CHECKED_CALL(Geometry::Create(GeometryOptions::InterleavedU16().AddTexCoord(), mesh, &geo));
+        PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mSkyBox.mesh));
+    }
+    {
+        // Sphere
+        TriMesh  mesh = TriMesh::CreateSphere(/* radius = */ 1, /* longitudeSegments = */ 10, /* latitudeSegments = */ 10, TriMeshOptions().TexCoords().Normals().Tangents());
+        Geometry geo;
+        PPX_CHECKED_CALL(Geometry::Create(GeometryOptions::InterleavedU16().AddTexCoord().AddNormal().AddTangent(), mesh, &geo));
+        PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mSphere.mesh));
+    }
+
+    // Uniform buffers
+    {
+        // SkyBox
+        grfx::BufferCreateInfo bufferCreateInfo        = {};
+        bufferCreateInfo.size                          = PPX_MINIMUM_UNIFORM_BUFFER_SIZE;
+        bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
+        bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
+        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mSkyBox.uniformBuffer));
+    }
+    {
+        // Sphere
+        grfx::BufferCreateInfo bufferCreateInfo        = {};
+        bufferCreateInfo.size                          = PPX_MINIMUM_UNIFORM_BUFFER_SIZE;
+        bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
+        bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
+        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mSphere.uniformBuffer));
+    }
+
     // Descriptor set layout
     {
+        // SkyBox
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
         layoutCreateInfo.flags.bits.pushable                 = true;
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(0, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER));
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(1, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(2, grfx::DESCRIPTOR_TYPE_SAMPLER));
-        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mDescriptorSetLayout));
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mSkyBox.descriptorSetLayout));
+    }
+    {
+        // Sphere
+        grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
+        layoutCreateInfo.flags.bits.pushable                 = true;
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(0, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(1, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(2, grfx::DESCRIPTOR_TYPE_SAMPLER));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(3, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(4, grfx::DESCRIPTOR_TYPE_SAMPLER));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(5, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(6, grfx::DESCRIPTOR_TYPE_SAMPLER));
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mSphere.descriptorSetLayout));
     }
 
-    // Pipeline
+    // SkyBox Pipeline
     {
         std::vector<char> bytecode = LoadShader("benchmarks/shaders", "Benchmark_SkyBox.vs");
         PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
@@ -261,17 +300,14 @@ void ProjApp::Setup()
         grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
         piCreateInfo.setCount                          = 1;
         piCreateInfo.sets[0].set                       = 0;
-        piCreateInfo.sets[0].pLayout                   = mDescriptorSetLayout;
-        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mPipelineInterface));
-
-        mVertexBinding.AppendAttribute({"POSITION", 0, grfx::FORMAT_R32G32B32_FLOAT, 0, PPX_APPEND_OFFSET_ALIGNED, grfx::VERTEX_INPUT_RATE_VERTEX});
-        mVertexBinding.AppendAttribute({"TEXCOORD", 1, grfx::FORMAT_R32G32_FLOAT, 0, PPX_APPEND_OFFSET_ALIGNED, grfx::VERTEX_INPUT_RATE_VERTEX});
+        piCreateInfo.sets[0].pLayout                   = mSkyBox.descriptorSetLayout;
+        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mSkyBox.pipelineInterface));
 
         grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
         gpCreateInfo.VS                                 = {mVS.Get(), "vsmain"};
         gpCreateInfo.PS                                 = {mPS.Get(), "psmain"};
         gpCreateInfo.vertexInputState.bindingCount      = 1;
-        gpCreateInfo.vertexInputState.bindings[0]       = mVertexBinding;
+        gpCreateInfo.vertexInputState.bindings[0]       = mSkyBox.mesh->GetDerivedVertexBindings()[0];
         gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
         gpCreateInfo.cullMode                           = grfx::CULL_MODE_FRONT;
@@ -282,8 +318,45 @@ void ProjApp::Setup()
         gpCreateInfo.outputState.renderTargetCount      = 1;
         gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
         gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
-        gpCreateInfo.pPipelineInterface                 = mPipelineInterface;
-        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mPipeline));
+        gpCreateInfo.pPipelineInterface                 = mSkyBox.pipelineInterface;
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mSkyBox.pipeline));
+    }
+
+    // Sphere Pipeline
+    {
+        std::vector<char> bytecode = LoadShader("benchmarks/shaders", "Benchmark_VsSimple.vs");
+        PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
+        grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mVS));
+
+        bytecode = LoadShader("benchmarks/shaders", "Benchmark_PsSimple.ps");
+        PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
+        shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPS));
+
+        grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
+        piCreateInfo.setCount                          = 1;
+        piCreateInfo.sets[0].set                       = 0;
+        piCreateInfo.sets[0].pLayout                   = mSphere.descriptorSetLayout;
+        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mSphere.pipelineInterface));
+
+        grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
+        gpCreateInfo.VS                                 = {mVS.Get(), "vsmain"};
+        gpCreateInfo.PS                                 = {mPS.Get(), "psmain"};
+        gpCreateInfo.vertexInputState.bindingCount      = 1;
+        gpCreateInfo.vertexInputState.bindings[0]       = mSphere.mesh->GetDerivedVertexBindings()[0];
+        gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
+        gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
+        gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
+        gpCreateInfo.depthReadEnable                    = true;
+        gpCreateInfo.depthWriteEnable                   = true;
+        gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
+        gpCreateInfo.outputState.renderTargetCount      = 1;
+        gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
+        gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
+        gpCreateInfo.pPipelineInterface                 = mSphere.pipelineInterface;
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mSphere.pipeline));
     }
 
     // Per frame data
@@ -310,68 +383,6 @@ void ProjApp::Setup()
         PPX_CHECKED_CALL(GetDevice()->CreateQuery(&queryCreateInfo, &frame.timestampQuery));
 
         mPerFrame.push_back(frame);
-    }
-
-    // Vertex buffer and geometry data
-    {
-        // clang-format off
-        std::vector<float> vertexData = {
-            -1.0f,-1.0f,-1.0f,   1.0f, 1.0f,  // -Z side
-             1.0f, 1.0f,-1.0f,   0.0f, 0.0f,
-             1.0f,-1.0f,-1.0f,   0.0f, 1.0f,
-            -1.0f,-1.0f,-1.0f,   1.0f, 1.0f,
-            -1.0f, 1.0f,-1.0f,   1.0f, 0.0f,
-             1.0f, 1.0f,-1.0f,   0.0f, 0.0f,
-
-            -1.0f, 1.0f, 1.0f,   0.0f, 0.0f,  // +Z side
-            -1.0f,-1.0f, 1.0f,   0.0f, 1.0f,
-             1.0f, 1.0f, 1.0f,   1.0f, 0.0f,
-            -1.0f,-1.0f, 1.0f,   0.0f, 1.0f,
-             1.0f,-1.0f, 1.0f,   1.0f, 1.0f,
-             1.0f, 1.0f, 1.0f,   1.0f, 0.0f,
-
-            -1.0f,-1.0f,-1.0f,   0.0f, 1.0f,  // -X side
-            -1.0f,-1.0f, 1.0f,   1.0f, 1.0f,
-            -1.0f, 1.0f, 1.0f,   1.0f, 0.0f,
-            -1.0f, 1.0f, 1.0f,   1.0f, 0.0f,
-            -1.0f, 1.0f,-1.0f,   0.0f, 0.0f,
-            -1.0f,-1.0f,-1.0f,   0.0f, 1.0f,
-
-             1.0f, 1.0f,-1.0f,   0.0f, 1.0f,  // +X side
-             1.0f, 1.0f, 1.0f,   1.0f, 1.0f,
-             1.0f,-1.0f, 1.0f,   1.0f, 0.0f,
-             1.0f,-1.0f, 1.0f,   1.0f, 0.0f,
-             1.0f,-1.0f,-1.0f,   0.0f, 0.0f,
-             1.0f, 1.0f,-1.0f,   0.0f, 1.0f,
-
-            -1.0f,-1.0f,-1.0f,   1.0f, 0.0f,  // -Y side
-             1.0f,-1.0f,-1.0f,   1.0f, 1.0f,
-             1.0f,-1.0f, 1.0f,   0.0f, 1.0f,
-            -1.0f,-1.0f,-1.0f,   1.0f, 0.0f,
-             1.0f,-1.0f, 1.0f,   0.0f, 1.0f,
-            -1.0f,-1.0f, 1.0f,   0.0f, 0.0f,
-
-            -1.0f, 1.0f,-1.0f,   1.0f, 0.0f,  // +Y side
-            -1.0f, 1.0f, 1.0f,   0.0f, 0.0f,
-             1.0f, 1.0f, 1.0f,   0.0f, 1.0f,
-            -1.0f, 1.0f,-1.0f,   1.0f, 0.0f,
-             1.0f, 1.0f, 1.0f,   0.0f, 1.0f,
-             1.0f, 1.0f,-1.0f,   1.0f, 1.0f,
-        };
-        // clang-format on
-        uint32_t dataSize = ppx::SizeInBytesU32(vertexData);
-
-        grfx::BufferCreateInfo bufferCreateInfo       = {};
-        bufferCreateInfo.size                         = dataSize;
-        bufferCreateInfo.usageFlags.bits.vertexBuffer = true;
-        bufferCreateInfo.memoryUsage                  = grfx::MEMORY_USAGE_CPU_TO_GPU;
-
-        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mVertexBuffer));
-
-        void* pAddr = nullptr;
-        PPX_CHECKED_CALL(mVertexBuffer->MapMemory(0, &pAddr));
-        memcpy(pAddr, vertexData.data(), dataSize);
-        mVertexBuffer->UnmapMemory();
     }
 }
 
@@ -420,6 +431,21 @@ void ProjApp::ProcessInput()
     }
 }
 
+struct SkyBoxData
+{
+    float4x4 MVP;
+};
+
+struct SphereData
+{
+    float4x4 modelMatrix;                // Transforms object space to world space.
+    float4x4 ITModelMatrix;              // Inverse transpose of the ModelMatrix.
+    float4   ambient;                    // Object's ambient intensity.
+    float4x4 cameraViewProjectionMatrix; // Camera's view projection matrix.
+    float4   lightPosition;              // Light's position.
+    float4   eyePosition;                // Eye (camera) position.
+};
+
 void ProjApp::Render()
 {
     PerFrame&          frame      = mPerFrame[0];
@@ -461,20 +487,39 @@ void ProjApp::Render()
         {
             frame.cmd->SetScissors(GetScissor());
             frame.cmd->SetViewports(GetViewport());
-            frame.cmd->BindGraphicsPipeline(mPipeline);
-            frame.cmd->BindVertexBuffers(1, &mVertexBuffer, &mVertexBinding.GetStride());
 
             // Draw SkyBox
+            frame.cmd->BindGraphicsPipeline(mSkyBox.pipeline);
+            frame.cmd->BindIndexBuffer(mSkyBox.mesh);
+            frame.cmd->BindVertexBuffers(mSkyBox.mesh);
             {
-                TransformData data;
-                data.MVP = mCamera.GetViewProjectionMatrix() * glm::scale(float3(500.0f, 500.0f, 500.0f));
-                mUniformBuffer->CopyFromSource(sizeof(data), &data);
-                // Push uniform buffer
-                frame.cmd->PushGraphicsUniformBuffer(mPipelineInterface, /* binding = */ 0, /* set = */ 0, /* bufferOffset = */ 0, mUniformBuffer);
-                frame.cmd->PushGraphicsSampledImage(mPipelineInterface, /* binding= */ 1, /* set= */ 0, mSampledImageView);
-                frame.cmd->PushGraphicsSampler(mPipelineInterface, /* binding= */ 2, /* set=*/0, mSampler);
+                SkyBoxData data = {};
+                data.MVP        = mCamera.GetViewProjectionMatrix() * glm::scale(float3(500.0f, 500.0f, 500.0f));
+                mSkyBox.uniformBuffer->CopyFromSource(sizeof(data), &data);
+
+                frame.cmd->PushGraphicsUniformBuffer(mSkyBox.pipelineInterface, /* binding = */ 0, /* set = */ 0, /* bufferOffset = */ 0, mSkyBox.uniformBuffer);
+                frame.cmd->PushGraphicsSampledImage(mSkyBox.pipelineInterface, /* binding = */ 1, /* set = */ 0, mSampledImageView);
+                frame.cmd->PushGraphicsSampler(mSkyBox.pipelineInterface, /* binding = */ 2, /* set = */ 0, mSampler);
             }
-            frame.cmd->Draw(/* vertexCount = */ 36);
+            frame.cmd->DrawIndexed(mSkyBox.mesh->GetIndexCount());
+
+            // Draw Sphere
+            frame.cmd->BindGraphicsPipeline(mSphere.pipeline);
+            frame.cmd->BindIndexBuffer(mSphere.mesh);
+            frame.cmd->BindVertexBuffers(mSphere.mesh);
+            {
+                SphereData data                 = {};
+                data.modelMatrix                = glm::scale(float3(1.0f, 1.0f, 1.0f));
+                data.ITModelMatrix              = glm::inverse(glm::transpose(data.modelMatrix));
+                data.ambient                    = float4(0.3f);
+                data.cameraViewProjectionMatrix = mCamera.GetViewProjectionMatrix();
+                data.lightPosition              = float4(mLightPosition, 0.0f);
+                data.eyePosition                = float4(mCamera.GetEyePosition(), 0.0f);
+                mSphere.uniformBuffer->CopyFromSource(sizeof(data), &data);
+
+                frame.cmd->PushGraphicsUniformBuffer(mSphere.pipelineInterface, /* binding = */ 0, /* set = */ 0, /* bufferOffset = */ 0, mSphere.uniformBuffer);
+            }
+            frame.cmd->DrawIndexed(mSphere.mesh->GetIndexCount());
 
             DrawImGui(frame.cmd);
         }
