@@ -348,9 +348,10 @@ void ProjApp::Setup()
         const std::filesystem::path path = kSphereIndicesFilePath;
         if (std::filesystem::exists(path)) {
             mSphereIndices = ReadSphereIndicesFromJson(kSphereIndicesFilePath);
-            PPX_ASSERT_MSG(mSphereIndices.size() == kMaxSphereInstanceCount, "Size of mSphereIndices must be " << kMaxSphereInstanceCount);
         }
-        else {
+
+        // When `kMaxSphereInstanceCount` changes, new random sphere indices are generated
+        if (mSphereIndices.size() != kMaxSphereInstanceCount) {
             mSphereIndices.resize(kMaxSphereInstanceCount);
             std::iota(mSphereIndices.begin(), mSphereIndices.end(), 0);
             std::shuffle(mSphereIndices.begin(), mSphereIndices.end(), std::random_device{});
