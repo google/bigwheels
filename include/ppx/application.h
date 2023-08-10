@@ -252,6 +252,7 @@ struct StandardOptions
 #endif
 
     std::shared_ptr<KnobFlag<std::vector<std::string>>> pAssetsPaths;
+    std::shared_ptr<KnobFlag<std::vector<std::string>>> pConfigJsonPath;
 };
 
 // -------------------------------------------------------------------------------------------------

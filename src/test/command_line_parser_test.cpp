@@ -230,5 +230,91 @@ TEST(CommandLineParserTest, ExtraOptionsSuccessfullyParsed)
     EXPECT_TRUE(opts.HasExtraOption("extra-option-no-param"));
 }
 
+TEST(CommandLineParserTest, JsonEmptyParsedSuccessfully)
+{
+    CommandLineParser parser;
+    nlohmann::json    jsonConfig;
+    if (auto error = parser.AddJsonOptions(jsonConfig)) {
+        FAIL() << error->errorMsg;
+    }
+    auto opts = parser.GetOptions();
+    EXPECT_EQ(opts.GetNumUniqueOptions(), 0);
+}
+
+TEST(CommandLineParserTest, JsonSimpleParsedSuccessfully)
+{
+    CommandLineParser parser;
+    std::string       jsonText   = R"(
+  {
+    "a": true,
+    "b": false,
+    "c": 1.234,
+    "d": 5,
+    "e": "hello world"
+  }
+)";
+    nlohmann::json    jsonConfig = nlohmann::json::parse(jsonText);
+    if (auto error = parser.AddJsonOptions(jsonConfig)) {
+        FAIL() << error->errorMsg;
+    }
+    auto opts = parser.GetOptions();
+    EXPECT_EQ(opts.GetNumUniqueOptions(), 5);
+    EXPECT_EQ(opts.GetOptionValueOrDefault<bool>("a", false), true);
+    EXPECT_EQ(opts.GetOptionValueOrDefault<bool>("b", true), false);
+    EXPECT_FLOAT_EQ(opts.GetOptionValueOrDefault<float>("c", 6.0f), 1.234f);
+    EXPECT_EQ(opts.GetOptionValueOrDefault<int>("d", 0), 5);
+    EXPECT_EQ(opts.GetOptionValueOrDefault<std::string>("e", "foo"), "hello world");
+}
+
+TEST(CommandLineParserTest, JsonWithIntArray)
+{
+    CommandLineParser parser;
+    std::string       jsonText   = R"(
+  {
+    "a": true,
+    "b": [1, 2, 3]
+  }
+)";
+    nlohmann::json    jsonConfig = nlohmann::json::parse(jsonText);
+    if (auto error = parser.AddJsonOptions(jsonConfig)) {
+        FAIL() << error->errorMsg;
+    }
+    auto opts = parser.GetOptions();
+    EXPECT_EQ(opts.GetNumUniqueOptions(), 2);
+    EXPECT_EQ(opts.GetOptionValueOrDefault<bool>("a", false), true);
+    EXPECT_TRUE(opts.HasExtraOption("b"));
+    std::vector<int> defaultB = {100};
+    std::vector<int> gotB     = opts.GetOptionValueOrDefault<int>("b", defaultB);
+    EXPECT_EQ(gotB.size(), 3);
+    EXPECT_EQ(gotB.at(0), 1);
+    EXPECT_EQ(gotB.at(1), 2);
+    EXPECT_EQ(gotB.at(2), 3);
+}
+
+TEST(CommandLineParserTest, JsonWithNestedStructure)
+{
+    CommandLineParser parser;
+    std::string       jsonText   = R"(
+  {
+    "a": true,
+    "b": {
+        "c" : 1,
+        "d" : 2
+    }
+  }
+)";
+    nlohmann::json    jsonConfig = nlohmann::json::parse(jsonText);
+    if (auto error = parser.AddJsonOptions(jsonConfig)) {
+        FAIL() << error->errorMsg;
+    }
+    auto opts = parser.GetOptions();
+    EXPECT_EQ(opts.GetNumUniqueOptions(), 2);
+    EXPECT_EQ(opts.GetOptionValueOrDefault<bool>("a", false), true);
+    EXPECT_TRUE(opts.HasExtraOption("b"));
+    EXPECT_EQ(opts.GetOptionValueOrDefault<std::string>("b", "default"), "{\"c\":1,\"d\":2}");
+    EXPECT_FALSE(opts.HasExtraOption("c"));
+    EXPECT_FALSE(opts.HasExtraOption("d"));
+}
+
 } // namespace
 } // namespace ppx

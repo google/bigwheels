@@ -15,6 +15,8 @@
 #ifndef ppx_command_line_parser_h
 #define ppx_command_line_parser_h
 
+#include "nlohmann/json.hpp"
+
 #include <cstdint>
 #include <ios>
 #include <optional>
@@ -101,8 +103,10 @@ public:
 private:
     // Adds new option if the option does not already exist
     // Otherwise, the new value is appended to the end of the vector of stored parameters for this option
-    void
-    AddOption(std::string_view optionName, std::string_view value);
+    void AddOption(std::string_view optionName, std::string_view valueStr);
+
+    // Same as above, but appends an array of values at the same key
+    void AddOption(std::string_view optionName, const std::vector<std::string>& valueArray);
 
     template <typename T>
     T GetParsedOrDefault(std::string_view valueStr, const T& defaultValue) const
@@ -132,8 +136,18 @@ private:
     }
 
 private:
+    struct string_hash
+    {
+        using hash_type      = std::hash<std::string_view>;
+        using is_transparent = void;
+
+        size_t operator()(const char* str) const { return hash_type{}(str); }
+        size_t operator()(std::string_view str) const { return hash_type{}(str); }
+        size_t operator()(std::string const& str) const { return hash_type{}(str); }
+    };
+
     // All flag names (string) and parameters (vector of strings) specified on the command line
-    std::unordered_map<std::string_view, std::vector<std::string_view>> mAllOptions;
+    std::unordered_map<std::string, std::vector<std::string>, string_hash, std::equal_to<>> mAllOptions;
 
     friend class CommandLineParser;
 };
@@ -156,13 +170,19 @@ public:
     // and write the error to `out_error`.
     std::optional<ParsingError> Parse(int argc, const char* argv[]);
 
+    // Adds all options specified within jsonConfig to mOpts.
+    std::optional<ParsingError> AddJsonOptions(const nlohmann::json& jsonConfig);
+
     const CliOptions& GetOptions() const { return mOpts; }
     std::string       GetUsageMsg() const { return mUsageMsg; }
     void              AppendUsageMsg(const std::string& additionalMsg) { mUsageMsg += additionalMsg; }
 
 private:
-    CliOptions mOpts;
+    // Adds an option to mOpts and handles the special --no-flag-name case.
+    // Expects option names without the "--" prefix.
+    std::optional<ParsingError> AddOption(std::string_view optionName, std::string_view valueStr);
 
+    CliOptions  mOpts;
     std::string mUsageMsg = R"(
 USAGE
 ==============================

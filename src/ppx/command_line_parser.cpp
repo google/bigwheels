@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <algorithm>
+#include <fstream>
 #include <iostream>
 #include <locale>
 #include <vector>
@@ -58,11 +59,22 @@ void CliOptions::AddOption(std::string_view optionName, std::string_view valueSt
 {
     auto it = mAllOptions.find(optionName);
     if (it == mAllOptions.cend()) {
-        std::vector<std::string_view> v{valueStr};
-        mAllOptions.emplace(optionName, v);
+        std::vector<std::string> v{std::string(valueStr)};
+        mAllOptions.emplace(std::string(optionName), v);
         return;
     }
-    it->second.push_back(valueStr);
+    it->second.push_back(std::string(valueStr));
+}
+
+void CliOptions::AddOption(std::string_view optionName, const std::vector<std::string>& valueArray)
+{
+    auto it = mAllOptions.find(optionName);
+    if (it == mAllOptions.cend()) {
+        mAllOptions.emplace(std::string(optionName), valueArray);
+        return;
+    }
+    auto storedValueArray = it->second;
+    storedValueArray.insert(storedValueArray.end(), valueArray.cbegin(), valueArray.cend());
 }
 
 bool CliOptions::Parse(std::string_view valueStr, bool defaultValue) const
@@ -118,25 +130,70 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
         }
         name = name.substr(2);
 
+        std::string_view value = "";
         if (i + 1 < args.size()) {
-            std::string_view nextElem = ppx::string_util::TrimBothEnds(args[i + 1]);
+            auto nextElem = ppx::string_util::TrimBothEnds(args[i + 1]);
             if (!StartsWithDoubleDash(nextElem)) {
-                // We found an option with a parameter.
-                mOpts.AddOption(name, nextElem);
+                // The next element is a parameter for the current option
+                value = nextElem;
                 ++i;
-                continue;
             }
         }
-        // There is no parameter so it's likely a flag
-        if (name.substr(0, 3) == "no-") {
-            mOpts.AddOption(name.substr(3), "0");
-        }
-        else {
-            // Do not assign "1" in case it's an option lacking a parameter
-            mOpts.AddOption(name, "");
+
+        if (auto error = AddOption(name, value)) {
+            return error;
         }
     }
 
+    std::vector<std::string> configJsonPaths;
+    configJsonPaths = mOpts.GetOptionValueOrDefault("config-json-path", configJsonPaths);
+    for (const auto& jsonPath : configJsonPaths) {
+        std::ifstream  f(jsonPath);
+        nlohmann::json data = nlohmann::json::parse(f);
+        if (auto error = AddJsonOptions(data)) {
+            return error;
+        }
+    }
+
+    return std::nullopt;
+}
+
+std::optional<CommandLineParser::ParsingError> CommandLineParser::AddJsonOptions(const nlohmann::json& jsonConfig)
+{
+    std::stringstream ss;
+    for (auto it = jsonConfig.cbegin(); it != jsonConfig.cend(); ++it) {
+        ss << it.value();
+        std::string value = ss.str();
+        ss.str("");
+
+        if (value.length() > 0 && value.substr(0, 1) == "[") {
+            // Special case, arrays specified in JSON are added directly to mOpts to avoid inserting element by element
+            std::vector<std::string> jsonStringArray;
+            for (const auto& elem : it.value()) {
+                ss << elem;
+                jsonStringArray.push_back(ss.str());
+                ss.str("");
+            }
+            mOpts.AddOption(it.key(), jsonStringArray);
+        }
+        else if (auto error = AddOption(it.key(), ppx::string_util::TrimBothEnds(value, " \t\""))) {
+            return error;
+        }
+    }
+    return std::nullopt;
+}
+
+std::optional<CommandLineParser::ParsingError> CommandLineParser::AddOption(std::string_view optionName, std::string_view valueStr)
+{
+    if (optionName.length() > 2 && optionName.substr(0, 3) == "no-") {
+        // Special case where "no-flag-name" syntax is used
+        if (valueStr.length() > 0) {
+            return "invalid prefix no- for option \"" + std::string(optionName) + "\" and value \"" + std::string(valueStr) + "\"";
+        }
+        optionName = optionName.substr(3);
+        valueStr   = "0";
+    }
+    mOpts.AddOption(optionName, valueStr);
     return std::nullopt;
 }
 

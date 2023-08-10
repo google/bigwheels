@@ -806,11 +806,16 @@ void Application::SaveMetricsReportToDisk()
 void Application::InitStandardKnobs()
 {
     // Flag names in alphabetical order
-    std::vector<std::string> defaultAssetsPaths = {};
+    std::vector<std::string> defaultEmptyList = {};
     mStandardOpts.pAssetsPaths =
-        mKnobManager.CreateKnob<KnobFlag<std::vector<std::string>>>("assets-path", defaultAssetsPaths);
+        mKnobManager.CreateKnob<KnobFlag<std::vector<std::string>>>("assets-path", defaultEmptyList);
     mStandardOpts.pAssetsPaths->SetFlagDescription(
         "Add a path in front of the assets search path list.");
+    mStandardOpts.pAssetsPaths->SetFlagParameters("<path>");
+
+    mStandardOpts.pConfigJsonPath = mKnobManager.CreateKnob<KnobFlag<std::vector<std::string>>>("config-json-path", defaultEmptyList);
+    mStandardOpts.pAssetsPaths->SetFlagDescription(
+        "Additional commandline flags specified in a JSON file.");
     mStandardOpts.pAssetsPaths->SetFlagParameters("<path>");
 
     mStandardOpts.pDeterministic =
