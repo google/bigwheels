@@ -38,7 +38,7 @@ bool StartsWithDoubleDash(std::string_view s)
 
 namespace ppx {
 
-std::pair<int, int> CliOptions::GetOptionValueOrDefault(std::string_view optionName, const std::pair<int, int>& defaultValue) const
+std::pair<int, int> CliOptions::GetOptionValueOrDefault(const std::string& optionName, const std::pair<int, int>& defaultValue) const
 {
     auto it = mAllOptions.find(optionName);
     if (it == mAllOptions.cend()) {
@@ -55,22 +55,25 @@ std::pair<int, int> CliOptions::GetOptionValueOrDefault(std::string_view optionN
     return std::make_pair(N, M);
 }
 
-void CliOptions::AddOption(std::string_view optionName, std::string_view valueStr)
+void CliOptions::AddOption(std::string_view optionName, std::string_view value)
 {
-    auto it = mAllOptions.find(optionName);
+    std::string optionNameStr{optionName};
+    std::string valueStr{value};
+    auto        it = mAllOptions.find(optionNameStr);
     if (it == mAllOptions.cend()) {
-        std::vector<std::string> v{std::string(valueStr)};
-        mAllOptions.emplace(std::string(optionName), v);
+        std::vector<std::string> v{valueStr};
+        mAllOptions.emplace(optionName, v);
         return;
     }
-    it->second.push_back(std::string(valueStr));
+    it->second.push_back(valueStr);
 }
 
 void CliOptions::AddOption(std::string_view optionName, const std::vector<std::string>& valueArray)
 {
-    auto it = mAllOptions.find(optionName);
+    std::string optionNameStr{optionName};
+    auto        it = mAllOptions.find(optionNameStr);
     if (it == mAllOptions.cend()) {
-        mAllOptions.emplace(std::string(optionName), valueArray);
+        mAllOptions.emplace(optionNameStr, valueArray);
         return;
     }
     auto storedValueArray = it->second;

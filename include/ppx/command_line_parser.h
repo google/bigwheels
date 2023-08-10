@@ -46,7 +46,7 @@ class CliOptions
 public:
     CliOptions() = default;
 
-    bool HasExtraOption(std::string_view option) const { return mAllOptions.contains(option); }
+    bool HasExtraOption(const std::string& option) const { return mAllOptions.contains(option); }
 
     // Returns the number of unique options and flags that were specified on the commandline,
     // not counting multiple appearances of the same flag such as: --assets-path a --assets-path b
@@ -57,7 +57,7 @@ public:
     // Warning: If this is called instead of the vector overload for multiple-value flags,
     //          only the last value will be returned.
     template <typename T>
-    T GetOptionValueOrDefault(std::string_view optionName, const T& defaultValue) const
+    T GetOptionValueOrDefault(const std::string& optionName, const T& defaultValue) const
     {
         auto it = mAllOptions.find(optionName);
         if (it == mAllOptions.cend()) {
@@ -70,7 +70,7 @@ public:
     // Same as above, but intended for list flags that are specified on the command line
     // with multiple instances of the same flag
     template <typename T>
-    std::vector<T> GetOptionValueOrDefault(std::string_view optionName, const std::vector<T>& defaultValues) const
+    std::vector<T> GetOptionValueOrDefault(const std::string& optionName, const std::vector<T>& defaultValues) const
     {
         auto it = mAllOptions.find(optionName);
         if (it == mAllOptions.cend()) {
@@ -86,14 +86,14 @@ public:
 
     // Same as above, but intended for resolution flags that are specified on command line
     // with <Width>x<Height>
-    std::pair<int, int> GetOptionValueOrDefault(std::string_view optionName, const std::pair<int, int>& defaultValue) const;
+    std::pair<int, int> GetOptionValueOrDefault(const std::string& optionName, const std::pair<int, int>& defaultValue) const;
 
     // (WILL BE DEPRECATED, USE KNOBS INSTEAD)
     // Get the parameter value after converting it into the desired integral,
     // floating-point, or boolean type. If the value fails to be converted,
     // return the specified default value.
     template <typename T>
-    T GetExtraOptionValueOrDefault(std::string_view optionName, const T& defaultValue) const
+    T GetExtraOptionValueOrDefault(const std::string& optionName, const T& defaultValue) const
     {
         static_assert(std::is_integral_v<T> || std::is_floating_point_v<T> || std::is_same_v<T, std::string>, "GetExtraOptionValueOrDefault must be called with an integral, floating-point, boolean, or std::string type");
 
@@ -103,7 +103,7 @@ public:
 private:
     // Adds new option if the option does not already exist
     // Otherwise, the new value is appended to the end of the vector of stored parameters for this option
-    void AddOption(std::string_view optionName, std::string_view valueStr);
+    void AddOption(std::string_view optionName, std::string_view value);
 
     // Same as above, but appends an array of values at the same key
     void AddOption(std::string_view optionName, const std::vector<std::string>& valueArray);
@@ -136,18 +136,8 @@ private:
     }
 
 private:
-    struct string_hash
-    {
-        using hash_type      = std::hash<std::string_view>;
-        using is_transparent = void;
-
-        size_t operator()(const char* str) const { return hash_type{}(str); }
-        size_t operator()(std::string_view str) const { return hash_type{}(str); }
-        size_t operator()(std::string const& str) const { return hash_type{}(str); }
-    };
-
     // All flag names (string) and parameters (vector of strings) specified on the command line
-    std::unordered_map<std::string, std::vector<std::string>, string_hash, std::equal_to<>> mAllOptions;
+    std::unordered_map<std::string, std::vector<std::string>> mAllOptions;
 
     friend class CommandLineParser;
 };
