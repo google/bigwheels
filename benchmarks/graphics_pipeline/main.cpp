@@ -18,7 +18,6 @@
 #include <unordered_set>
 #include <array>
 #include <random>
-#include <nlohmann/json.hpp>
 
 #include "ppx/ppx.h"
 #include "ppx/knob.h"
@@ -80,8 +79,8 @@ const grfx::Api kApi = grfx::API_DX_12_0;
 const grfx::Api kApi = grfx::API_VK_1_1;
 #endif
 
-static constexpr uint32_t    kMaxSphereInstanceCount = 3000;
-static constexpr const char* kSphereIndicesFilePath  = "assets/benchmarks/sphere_indices.json";
+static constexpr uint32_t kMaxSphereInstanceCount = 3000;
+static constexpr uint32_t kSeed                   = 89977;
 
 class ProjApp
     : public ppx::Application
@@ -225,27 +224,13 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
 }
 
-void WriteSphereIndicesToJson(const std::vector<uint32_t>& sphereIndices, const std::string& filePath)
+template <class Iter, class F>
+void Shuffle(Iter begin, Iter end, F&& f)
 {
-    nlohmann::json data;
-    data["sphere_indices"] = sphereIndices;
-
-    std::ofstream outfile(filePath);
-    outfile << data.dump(4);
-    outfile.close();
-    PPX_LOG_INFO("Wrote sphere indices to " << filePath);
-}
-
-std::vector<uint32_t> ReadSphereIndicesFromJson(const std::string& filePath)
-{
-    std::ifstream  infile(filePath);
-    nlohmann::json data;
-    infile >> data;
-    infile.close();
-
-    std::vector<uint32_t> sphereIndices = data["sphere_indices"];
-    PPX_LOG_INFO("Read sphere indices from " << filePath);
-    return sphereIndices;
+    size_t count = end - begin;
+    for (size_t i = 0; i < count; i++) {
+        std::swap(begin[i], begin[f() % (count - i) + i]);
+    }
 }
 
 void ProjApp::Setup()
@@ -343,20 +328,13 @@ void ProjApp::Setup()
         mSphereGrid.step  = 10.0f;
     }
 
-    // Read/Generate sphere indices
+    // Get sphere indices
     {
-        const std::filesystem::path path = kSphereIndicesFilePath;
-        if (std::filesystem::exists(path)) {
-            mSphereIndices = ReadSphereIndicesFromJson(kSphereIndicesFilePath);
-        }
-
-        // When `kMaxSphereInstanceCount` changes, new random sphere indices are generated
-        if (mSphereIndices.size() != kMaxSphereInstanceCount) {
-            mSphereIndices.resize(kMaxSphereInstanceCount);
-            std::iota(mSphereIndices.begin(), mSphereIndices.end(), 0);
-            std::shuffle(mSphereIndices.begin(), mSphereIndices.end(), std::random_device{});
-            WriteSphereIndicesToJson(mSphereIndices, kSphereIndicesFilePath);
-        }
+        mSphereIndices.resize(kMaxSphereInstanceCount);
+        std::iota(mSphereIndices.begin(), mSphereIndices.end(), 0);
+        // Shuffle using the `mersenne_twister` deterministic random number generator to obtain
+        // the same sphere indices for a given `kMaxSphereInstanceCount`.
+        Shuffle(mSphereIndices.begin(), mSphereIndices.end(), std::mt19937(kSeed));
     }
 
     // Uniform buffers for sphere instances
