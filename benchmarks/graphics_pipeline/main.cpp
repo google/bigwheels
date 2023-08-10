@@ -224,6 +224,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
 }
 
+// Shuffles [`begin`, `end`) using function `f`.
 template <class Iter, class F>
 void Shuffle(Iter begin, Iter end, F&& f)
 {
