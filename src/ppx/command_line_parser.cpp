@@ -151,7 +151,10 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
     std::vector<std::string> configJsonPaths;
     configJsonPaths = mOpts.GetOptionValueOrDefault("config-json-path", configJsonPaths);
     for (const auto& jsonPath : configJsonPaths) {
-        std::ifstream  f(jsonPath);
+        std::ifstream f(jsonPath);
+        if (f.fail()) {
+            return "Invalid --config-json-path: " + jsonPath;
+        }
         nlohmann::json data = nlohmann::json::parse(f);
         if (auto error = AddJsonOptions(data)) {
             return error;
