@@ -17,6 +17,7 @@
 #include <queue>
 #include <unordered_set>
 #include <array>
+#include <random>
 
 #include "ppx/ppx.h"
 #include "ppx/knob.h"
@@ -78,12 +79,16 @@ const grfx::Api kApi = grfx::API_DX_12_0;
 const grfx::Api kApi = grfx::API_VK_1_1;
 #endif
 
+static constexpr uint32_t kMaxSphereInstanceCount = 3000;
+static constexpr uint32_t kSeed                   = 89977;
+
 class ProjApp
     : public ppx::Application
 {
 public:
     ProjApp()
         : mCamera(float3(0, 0, -5), pi<float>() / 2.0f, pi<float>() / 2.0f) {}
+    virtual void InitKnobs() override;
     virtual void Config(ppx::ApplicationSettings& settings) override;
     virtual void Setup() override;
     virtual void MouseMove(int32_t x, int32_t y, int32_t dx, int32_t dy, uint32_t buttons) override;
@@ -111,6 +116,14 @@ private:
         grfx::GraphicsPipelinePtr    pipeline;
     };
 
+    struct Grid
+    {
+        uint32_t xSize;
+        uint32_t ySize;
+        uint32_t zSize;
+        float    step;
+    };
+
     std::vector<PerFrame>             mPerFrame;
     FreeCamera                        mCamera;
     float3                            mLightPosition = float3(10, 250, 10);
@@ -124,6 +137,11 @@ private:
     Entity                            mSkyBox;
     Entity                            mSphere;
     bool                              mEnableMouseMovement = true;
+    Grid                              mSphereGrid;
+    std::vector<grfx::BufferPtr>      mSphereInstanceUniformBuffers;
+    std::vector<uint32_t>             mSphereIndices;
+    uint32_t                          mCurrentSphereCount;
+    std::shared_ptr<KnobSlider<int>>  pSphereInstanceCount;
 
 private:
     void ProcessInput();
@@ -188,6 +206,12 @@ void FreeCamera::Turn(float deltaTheta, float deltaPhi)
     LookAt(mEyePosition, mTarget);
 }
 
+void ProjApp::InitKnobs()
+{
+    pSphereInstanceCount = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("sphere count", 50, 1, kMaxSphereInstanceCount);
+    pSphereInstanceCount->SetDisplayName("Sphere Count");
+}
+
 void ProjApp::Config(ppx::ApplicationSettings& settings)
 {
     settings.appName                    = "graphics_pipeline";
@@ -197,6 +221,16 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.api                   = kApi;
     settings.grfx.enableDebug           = false;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
+}
+
+// Shuffles [`begin`, `end`] using function `f`.
+template <class Iter, class F>
+void Shuffle(Iter begin, Iter end, F&& f)
+{
+    size_t count = end - begin;
+    for (size_t i = 0; i < count; i++) {
+        std::swap(begin[i], begin[f() % (count - i) + i]);
+    }
 }
 
 void ProjApp::Setup()
@@ -284,6 +318,35 @@ void ProjApp::Setup()
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(5, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(6, grfx::DESCRIPTOR_TYPE_SAMPLER));
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mSphere.descriptorSetLayout));
+    }
+
+    // Grid for sphere instances
+    {
+        mSphereGrid.xSize = static_cast<uint32_t>(std::pow(kMaxSphereInstanceCount, 1.0f / 3.0f));
+        mSphereGrid.ySize = mSphereGrid.xSize;
+        mSphereGrid.zSize = static_cast<uint32_t>(std::ceil(kMaxSphereInstanceCount / static_cast<float>(mSphereGrid.xSize * mSphereGrid.ySize)));
+        mSphereGrid.step  = 10.0f;
+    }
+
+    // Get sphere indices
+    {
+        mSphereIndices.resize(kMaxSphereInstanceCount);
+        std::iota(mSphereIndices.begin(), mSphereIndices.end(), 0);
+        // Shuffle using the `mersenne_twister` deterministic random number generator to obtain
+        // the same sphere indices for a given `kMaxSphereInstanceCount`.
+        Shuffle(mSphereIndices.begin(), mSphereIndices.end(), std::mt19937(kSeed));
+    }
+
+    // Uniform buffers for sphere instances
+    {
+        mSphereInstanceUniformBuffers.resize(kMaxSphereInstanceCount);
+        for (uint32_t i = 0; i < kMaxSphereInstanceCount; i++) {
+            grfx::BufferCreateInfo bufferCreateInfo        = {};
+            bufferCreateInfo.size                          = PPX_MINIMUM_UNIFORM_BUFFER_SIZE;
+            bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
+            bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
+            PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mSphereInstanceUniformBuffers[i]));
+        }
     }
 
     // SkyBox Pipeline
@@ -456,6 +519,8 @@ struct SphereData
 
 void ProjApp::Render()
 {
+    mCurrentSphereCount = pSphereInstanceCount->GetValue();
+
     PerFrame&          frame      = mPerFrame[0];
     grfx::SwapchainPtr swapchain  = GetSwapchain();
     uint32_t           imageIndex = UINT32_MAX;
@@ -511,23 +576,30 @@ void ProjApp::Render()
             }
             frame.cmd->DrawIndexed(mSkyBox.mesh->GetIndexCount());
 
-            // Draw Sphere
+            // Draw sphere instances
             frame.cmd->BindGraphicsPipeline(mSphere.pipeline);
             frame.cmd->BindIndexBuffer(mSphere.mesh);
             frame.cmd->BindVertexBuffers(mSphere.mesh);
             {
-                SphereData data                 = {};
-                data.modelMatrix                = glm::scale(float3(1.0f, 1.0f, 1.0f));
-                data.ITModelMatrix              = glm::inverse(glm::transpose(data.modelMatrix));
-                data.ambient                    = float4(0.3f);
-                data.cameraViewProjectionMatrix = mCamera.GetViewProjectionMatrix();
-                data.lightPosition              = float4(mLightPosition, 0.0f);
-                data.eyePosition                = float4(mCamera.GetEyePosition(), 0.0f);
-                mSphere.uniformBuffer->CopyFromSource(sizeof(data), &data);
+                for (uint32_t i = 0; i < mCurrentSphereCount; i++) {
+                    uint32_t index = mSphereIndices[i];
+                    uint32_t x     = (index % (mSphereGrid.xSize * mSphereGrid.ySize)) / mSphereGrid.ySize;
+                    uint32_t y     = index % mSphereGrid.ySize;
+                    uint32_t z     = index / (mSphereGrid.xSize * mSphereGrid.ySize);
 
-                frame.cmd->PushGraphicsUniformBuffer(mSphere.pipelineInterface, /* binding = */ 0, /* set = */ 0, /* bufferOffset = */ 0, mSphere.uniformBuffer);
+                    SphereData data                 = {};
+                    data.modelMatrix                = glm::translate(float3(x * mSphereGrid.step, y * mSphereGrid.step, z * mSphereGrid.step));
+                    data.ITModelMatrix              = glm::inverse(glm::transpose(data.modelMatrix));
+                    data.ambient                    = float4(0.3f);
+                    data.cameraViewProjectionMatrix = mCamera.GetViewProjectionMatrix();
+                    data.lightPosition              = float4(mLightPosition, 0.0f);
+                    data.eyePosition                = float4(mCamera.GetEyePosition(), 0.0f);
+                    mSphereInstanceUniformBuffers[index]->CopyFromSource(sizeof(data), &data);
+
+                    frame.cmd->PushGraphicsUniformBuffer(mSphere.pipelineInterface, /* binding = */ 0, /* set = */ 0, /* bufferOffset = */ 0, mSphereInstanceUniformBuffers[index]);
+                    frame.cmd->DrawIndexed(mSphere.mesh->GetIndexCount());
+                }
             }
-            frame.cmd->DrawIndexed(mSphere.mesh->GetIndexCount());
 
             DrawImGui(frame.cmd);
         }
