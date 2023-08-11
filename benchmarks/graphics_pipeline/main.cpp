@@ -136,13 +136,12 @@ private:
     grfx::SamplerPtr                  mSampler;
     Entity                            mSkyBox;
     Entity                            mSphere;
+    bool                              mEnableMouseMovement = true;
     Grid                              mSphereGrid;
     std::vector<grfx::BufferPtr>      mSphereInstanceUniformBuffers;
     std::vector<uint32_t>             mSphereIndices;
     uint32_t                          mCurrentSphereCount;
-
-private:
-    std::shared_ptr<KnobSlider<int>> pSphereInstanceCount;
+    std::shared_ptr<KnobSlider<int>>  pSphereInstanceCount;
 
 private:
     void ProcessInput();
@@ -224,7 +223,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
 }
 
-// Shuffles [`begin`, `end`) using function `f`.
+// Shuffles [`begin`, `end`] using function `f`.
 template <class Iter, class F>
 void Shuffle(Iter begin, Iter end, F&& f)
 {
@@ -453,6 +452,10 @@ void ProjApp::Setup()
 
 void ProjApp::MouseMove(int32_t x, int32_t y, int32_t dx, int32_t dy, uint32_t buttons)
 {
+    if (!mEnableMouseMovement) {
+        return;
+    }
+
     float2 prevPos  = GetNormalizedDeviceCoordinates(x - dx, y - dy);
     float2 currPos  = GetNormalizedDeviceCoordinates(x, y);
     float2 deltaPos = currPos - prevPos;
@@ -473,6 +476,9 @@ void ProjApp::KeyDown(ppx::KeyCode key)
 void ProjApp::KeyUp(ppx::KeyCode key)
 {
     mPressedKeys[key] = false;
+    if (key == KEY_SPACE) {
+        mEnableMouseMovement = !mEnableMouseMovement;
+    }
 }
 
 void ProjApp::ProcessInput()
