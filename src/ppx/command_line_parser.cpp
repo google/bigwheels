@@ -73,7 +73,7 @@ void CliOptions::AddOption(std::string_view optionName, const std::vector<std::s
     std::string optionNameStr(optionName);
     auto        it = mAllOptions.find(optionNameStr);
     if (it == mAllOptions.cend()) {
-        mAllOptions.emplace(optionNameStr, valueArray);
+        mAllOptions.emplace(std::move(optionNameStr), valueArray);
         return;
     }
     auto storedValueArray = it->second;
@@ -106,38 +106,41 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
         return std::nullopt;
     }
 
-    // Split flag and parameters connected with '='
+    // Initial pass:
+    // - Split flag and parameters connected with '='
+    // - Identify JSON config files, add the option, and remove from argument list
     std::vector<std::string_view> args;
     for (size_t i = 1; i < argc; ++i) {
         std::string_view argString(argv[i]);
         auto             res = ppx::string_util::SplitInTwo(argString, '=');
+
+        // Argument does not contain '='
         if (res == std::nullopt) {
+            if (StartsWithDoubleDash(argString) &&
+                argString == "--" + mJsonConfigFlagName &&
+                i + 1 < argc &&
+                !StartsWithDoubleDash(argv[i + 1])) {
+                mOpts.AddOption(mJsonConfigFlagName, ppx::string_util::TrimBothEnds(argv[i + 1]));
+                ++i;
+                continue;
+            }
             args.emplace_back(argString);
             continue;
         }
+
+        // Argument contains '='
         if (res->first.empty() || res->second.empty()) {
             return "Malformed flag with '=': \"" + std::string(argString) + "\"";
         }
-        else if (res->second.find('=') != std::string_view::npos) {
+        if (res->second.find('=') != std::string_view::npos) {
             return "Unexpected number of '=' symbols in the following string: \"" + std::string(argString) + "\"";
+        }
+        if (StartsWithDoubleDash(res->first) && res->first == "--" + mJsonConfigFlagName) {
+            mOpts.AddOption(mJsonConfigFlagName, ppx::string_util::TrimBothEnds(res->second));
+            continue;
         }
         args.emplace_back(res->first);
         args.emplace_back(res->second);
-    }
-
-    // Special initial pass to identify JSON config files
-    for (size_t i = 0; i < args.size() - 1; ++i) {
-        std::string_view name = ppx::string_util::TrimBothEnds(args[i]);
-        if (name != "--" + mJsonConfigFlagName) {
-            continue;
-        }
-        name                   = name.substr(2);
-        std::string_view value = ppx::string_util::TrimBothEnds(args[i + 1]);
-        ++i;
-
-        if (auto error = AddOption(name, value)) {
-            return error;
-        }
     }
 
     // Flags inside JSON files are processed first
@@ -188,11 +191,6 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
                 value = nextElem;
                 ++i;
             }
-        }
-
-        // Avoid re-adding option for JSON config file
-        if (name == mJsonConfigFlagName) {
-            continue;
         }
 
         if (auto error = AddOption(name, value)) {
