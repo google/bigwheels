@@ -106,15 +106,13 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
         return std::nullopt;
     }
 
-    // Initial pass:
-    // - Split flag and parameters connected with '='
-    // - Identify JSON config files, add the option, and remove from argument list
+    // With one initial pass:
+    // - Split any flag and parameters that are connected with '='
+    // - Identify JSON config files, add that option, and remove it from the argument list
     std::vector<std::string_view> args;
     for (size_t i = 1; i < argc; ++i) {
         std::string_view argString(argv[i]);
         auto             res = ppx::string_util::SplitInTwo(argString, '=');
-
-        // Argument does not contain '='
         if (res == std::nullopt) {
             if (StartsWithDoubleDash(argString) &&
                 argString == "--" + mJsonConfigFlagName &&
@@ -127,8 +125,6 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
             args.emplace_back(argString);
             continue;
         }
-
-        // Argument contains '='
         if (res->first.empty() || res->second.empty()) {
             return "Malformed flag with '=': \"" + std::string(argString) + "\"";
         }
@@ -144,17 +140,15 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
     }
 
     // Flags inside JSON files are processed first
-    // These are always lower priority than flags on the command-line, will be "overwritten"
+    // These are always lower priority than flags on the command-line
     std::vector<std::string> configJsonPaths;
     configJsonPaths = mOpts.GetOptionValueOrDefault(mJsonConfigFlagName, configJsonPaths);
     for (const auto& jsonPath : configJsonPaths) {
-        // Attempt to open JSON file at specified path
         std::ifstream f(jsonPath);
         if (f.fail()) {
             return "Cannot locate file --" + mJsonConfigFlagName + ": " + jsonPath;
         }
 
-        // Expect that JSON file specifies a valid JSON object
         PPX_LOG_INFO("Parsing JSON config file: " << jsonPath);
         nlohmann::json data;
         try {
@@ -169,7 +163,6 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
             return "The following config file could not be parsed as a JSON object: " + jsonPath;
         }
 
-        // Attempt to add all options specified in this JSON object
         if (auto error = AddJsonOptions(data)) {
             return error;
         }
@@ -205,10 +198,6 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::AddJsonOptions
 {
     std::stringstream ss;
     for (auto it = jsonConfig.cbegin(); it != jsonConfig.cend(); ++it) {
-        ss << it.value();
-        std::string value = ss.str();
-        ss.str("");
-
         if ((it.value()).is_array()) {
             // Special case, arrays specified in JSON are added directly to mOpts to avoid inserting element by element
             std::vector<std::string> jsonStringArray;
@@ -218,8 +207,13 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::AddJsonOptions
                 ss.str("");
             }
             mOpts.AddOption(it.key(), jsonStringArray);
+            continue;
         }
-        else if (auto error = AddOption(it.key(), ppx::string_util::TrimBothEnds(value, " \t\""))) {
+
+        ss << it.value();
+        std::string value = ss.str();
+        ss.str("");
+        if (auto error = AddOption(it.key(), ppx::string_util::TrimBothEnds(value, " \t\""))) {
             return error;
         }
     }
@@ -229,7 +223,6 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::AddJsonOptions
 std::optional<CommandLineParser::ParsingError> CommandLineParser::AddOption(std::string_view optionName, std::string_view valueStr)
 {
     if (optionName.length() > 2 && optionName.substr(0, 3) == "no-") {
-        // Special case where "no-flag-name" syntax is used
         if (valueStr.length() > 0) {
             return "invalid prefix no- for option \"" + std::string(optionName) + "\" and value \"" + std::string(valueStr) + "\"";
         }
