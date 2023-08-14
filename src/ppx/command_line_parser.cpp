@@ -57,12 +57,12 @@ std::pair<int, int> CliOptions::GetOptionValueOrDefault(const std::string& optio
 
 void CliOptions::AddOption(std::string_view optionName, std::string_view value)
 {
-    std::string optionNameStr{optionName};
-    std::string valueStr{value};
+    std::string optionNameStr(optionName);
+    std::string valueStr(value);
     auto        it = mAllOptions.find(optionNameStr);
     if (it == mAllOptions.cend()) {
-        std::vector<std::string> v{valueStr};
-        mAllOptions.emplace(optionName, v);
+        std::vector<std::string> v{std::move(valueStr)};
+        mAllOptions.emplace(std::move(optionNameStr), std::move(v));
         return;
     }
     it->second.push_back(valueStr);
@@ -70,7 +70,7 @@ void CliOptions::AddOption(std::string_view optionName, std::string_view value)
 
 void CliOptions::AddOption(std::string_view optionName, const std::vector<std::string>& valueArray)
 {
-    std::string optionNameStr{optionName};
+    std::string optionNameStr(optionName);
     auto        it = mAllOptions.find(optionNameStr);
     if (it == mAllOptions.cend()) {
         mAllOptions.emplace(optionNameStr, valueArray);
@@ -125,7 +125,54 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
         args.emplace_back(res->second);
     }
 
-    // Process arguments into either standalone flags or options with parameters.
+    // Special initial pass to identify JSON config files
+    for (size_t i = 0; i < args.size() - 1; ++i) {
+        std::string_view name = ppx::string_util::TrimBothEnds(args[i]);
+        if (name != "--" + mJsonConfigFlagName) {
+            continue;
+        }
+        name                   = name.substr(2);
+        std::string_view value = ppx::string_util::TrimBothEnds(args[i + 1]);
+        ++i;
+
+        if (auto error = AddOption(name, value)) {
+            return error;
+        }
+    }
+
+    // Flags inside JSON files are processed first
+    // These are always lower priority than flags on the command-line, will be "overwritten"
+    std::vector<std::string> configJsonPaths;
+    configJsonPaths = mOpts.GetOptionValueOrDefault(mJsonConfigFlagName, configJsonPaths);
+    for (const auto& jsonPath : configJsonPaths) {
+        // Attempt to open JSON file at specified path
+        std::ifstream f(jsonPath);
+        if (f.fail()) {
+            return "Cannot locate file --" + mJsonConfigFlagName + ": " + jsonPath;
+        }
+
+        // Expect that JSON file specifies a valid JSON object
+        PPX_LOG_INFO("Parsing JSON config file: " << jsonPath);
+        nlohmann::json data;
+        try {
+            data = nlohmann::json::parse(f);
+        }
+        catch (nlohmann::json::parse_error& e) {
+            PPX_LOG_ERROR("nlohmann::json::parse error: " << e.what() << '\n'
+                                                          << "exception id: " << e.id << '\n'
+                                                          << "byte position of error: " << e.byte);
+        }
+        if (!(data.is_object())) {
+            return "The following config file could not be parsed as a JSON object: " + jsonPath;
+        }
+
+        // Attempt to add all options specified in this JSON object
+        if (auto error = AddJsonOptions(data)) {
+            return error;
+        }
+    }
+
+    // Main pass, process arguments into either standalone flags or options with parameters.
     for (size_t i = 0; i < args.size(); ++i) {
         std::string_view name = ppx::string_util::TrimBothEnds(args[i]);
         if (!StartsWithDoubleDash(name)) {
@@ -143,20 +190,12 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
             }
         }
 
-        if (auto error = AddOption(name, value)) {
-            return error;
+        // Avoid re-adding option for JSON config file
+        if (name == mJsonConfigFlagName) {
+            continue;
         }
-    }
 
-    std::vector<std::string> configJsonPaths;
-    configJsonPaths = mOpts.GetOptionValueOrDefault("config-json-path", configJsonPaths);
-    for (const auto& jsonPath : configJsonPaths) {
-        std::ifstream f(jsonPath);
-        if (f.fail()) {
-            return "Invalid --config-json-path: " + jsonPath;
-        }
-        nlohmann::json data = nlohmann::json::parse(f);
-        if (auto error = AddJsonOptions(data)) {
+        if (auto error = AddOption(name, value)) {
             return error;
         }
     }
@@ -172,12 +211,12 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::AddJsonOptions
         std::string value = ss.str();
         ss.str("");
 
-        if (value.length() > 0 && value.substr(0, 1) == "[") {
+        if ((it.value()).is_array()) {
             // Special case, arrays specified in JSON are added directly to mOpts to avoid inserting element by element
             std::vector<std::string> jsonStringArray;
             for (const auto& elem : it.value()) {
                 ss << elem;
-                jsonStringArray.push_back(ss.str());
+                jsonStringArray.push_back(std::string(ppx::string_util::TrimBothEnds(ss.str(), " \t\"")));
                 ss.str("");
             }
             mOpts.AddOption(it.key(), jsonStringArray);

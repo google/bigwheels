@@ -124,9 +124,9 @@ private:
     T Parse(std::string_view valueStr, const T defaultValue) const
     {
         if constexpr (std::is_same_v<T, std::string>) {
-            return static_cast<std::string>(valueStr);
+            return std::string(valueStr);
         }
-        std::stringstream ss{static_cast<std::string>(valueStr)};
+        std::stringstream ss((std::string(valueStr)));
         T                 valueAsNum;
         ss >> valueAsNum;
         if (ss.fail()) {
@@ -163,9 +163,11 @@ public:
     // Adds all options specified within jsonConfig to mOpts.
     std::optional<ParsingError> AddJsonOptions(const nlohmann::json& jsonConfig);
 
+    std::string       GetJsonConfigFlagName() const { return mJsonConfigFlagName; }
     const CliOptions& GetOptions() const { return mOpts; }
     std::string       GetUsageMsg() const { return mUsageMsg; }
-    void              AppendUsageMsg(const std::string& additionalMsg) { mUsageMsg += additionalMsg; }
+
+    void AppendUsageMsg(const std::string& additionalMsg) { mUsageMsg += additionalMsg; }
 
 private:
     // Adds an option to mOpts and handles the special --no-flag-name case.
@@ -173,7 +175,8 @@ private:
     std::optional<ParsingError> AddOption(std::string_view optionName, std::string_view valueStr);
 
     CliOptions  mOpts;
-    std::string mUsageMsg = R"(
+    std::string mJsonConfigFlagName = "config-json-path";
+    std::string mUsageMsg           = R"(
 USAGE
 ==============================
 Boolean options can be turned on with:
