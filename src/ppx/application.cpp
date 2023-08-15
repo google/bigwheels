@@ -842,6 +842,16 @@ void Application::InitStandardKnobs()
         "Prints a list of the available GPUs on the current system with their "
         "index and exits (see --gpu).");
 
+    mStandardOpts.pMetricsFilename =
+        mKnobManager.CreateKnob<KnobFlag<std::string>>("metrics-filename", "report_@");
+    mStandardOpts.pMetricsFilename->SetFlagDescription(
+        "If metrics are enabled, save the metrics report to the "
+        "provided filename (including path). If used, any `@` "
+        "symbols in the filename (not the path) will be replaced "
+        "with the current timestamp. If the filename does not end in "
+        "`.json`, it will be appended. Default: `report_@`. See also: "
+        "`--enable-metrics` and `--overwrite-metrics-file`.");
+
     mStandardOpts.pOverwriteMetricsFile =
         mKnobManager.CreateKnob<KnobFlag<bool>>("overwrite-metrics-file", false);
     mStandardOpts.pOverwriteMetricsFile->SetFlagDescription(
