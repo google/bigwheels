@@ -21,6 +21,10 @@
 namespace ppx {
 namespace string_util {
 
+// -------------------------------------------------------------------------------------------------
+// Misc
+// -------------------------------------------------------------------------------------------------
+
 void TrimLeft(std::string& s)
 {
     s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
@@ -55,19 +59,50 @@ std::string_view TrimBothEnds(std::string_view s, std::string_view c)
     return s.substr(strBegin, strRange);
 }
 
+std::optional<std::vector<std::string_view>> Split(std::string_view s, char delimiter)
+{
+    if (s.size() == 0) {
+        return std::nullopt;
+    }
+
+    std::vector<std::string_view> substrings;
+    std::string_view              remainingString = s;
+    while (remainingString != "") {
+        size_t delimeterIndex = remainingString.find(delimiter);
+        if (delimeterIndex == std::string_view::npos) {
+            substrings.push_back(remainingString);
+            break;
+        }
+
+        std::string_view element = remainingString.substr(0, delimeterIndex);
+        if (element.length() == 0) {
+            return std::nullopt;
+        }
+        substrings.push_back(element);
+
+        if (delimeterIndex == remainingString.length() - 1) {
+            return std::nullopt;
+        }
+        remainingString = remainingString.substr(delimeterIndex + 1);
+    }
+    return substrings;
+}
+
 std::optional<std::pair<std::string_view, std::string_view>> SplitInTwo(std::string_view s, char delimiter)
 {
     if (s.size() == 0) {
         return std::nullopt;
     }
-    size_t delimeterIndex = s.find(delimiter);
-    if (delimeterIndex == std::string_view::npos) {
+    auto splitResult = Split(s, delimiter);
+    if (splitResult == std::nullopt || splitResult->size() != 2) {
         return std::nullopt;
     }
-    std::string_view firstSubstring  = s.substr(0, delimeterIndex);
-    std::string_view secondSubstring = s.substr(delimeterIndex + 1);
-    return std::make_pair(firstSubstring, secondSubstring);
+    return std::make_pair(splitResult->at(0), splitResult->at(1));
 }
+
+// -------------------------------------------------------------------------------------------------
+// Formatting Strings
+// -------------------------------------------------------------------------------------------------
 
 std::string WrapText(const std::string& s, size_t width, size_t indent)
 {
@@ -103,6 +138,55 @@ std::string WrapText(const std::string& s, size_t width, size_t indent)
         TrimLeft(remainingString);
     }
     return wrappedText;
+}
+
+// -------------------------------------------------------------------------------------------------
+// Parsing Strings
+// -------------------------------------------------------------------------------------------------
+
+std::pair<std::pair<int, int>, std::optional<ParsingError>> ParseOrDefault(std::string_view valueStr, const std::pair<int, int>& defaultValue)
+{
+    auto parseResolution = SplitInTwo(valueStr, 'x');
+    if (parseResolution == std::nullopt) {
+        return std::make_pair(defaultValue, "resolution flag must be in format <Width>x<Height>: " + std::string(valueStr));
+    }
+    auto parseNResult = ParseOrDefault(parseResolution->first, defaultValue.first);
+    if (parseNResult.second != std::nullopt) {
+        return std::make_pair(defaultValue, "width cannot be parsed: " + parseNResult.second->errorMsg);
+    }
+    auto parseMResult = ParseOrDefault(parseResolution->second, defaultValue.first);
+    if (parseMResult.second != std::nullopt) {
+        return std::make_pair(defaultValue, "height cannot be parsed: " + parseMResult.second->errorMsg);
+    }
+    return std::make_pair(std::make_pair(parseNResult.first, parseMResult.first), std::nullopt);
+}
+
+std::pair<std::string, std::optional<ParsingError>> ParseOrDefault(std::string_view valueStr, const std::string& defaultValue)
+{
+    return std::make_pair(std::string(valueStr), std::nullopt);
+}
+
+std::pair<std::string, std::optional<ParsingError>> ParseOrDefault(std::string_view valueStr, std::string_view defaultValue)
+{
+    return std::make_pair(std::string(valueStr), std::nullopt);
+}
+
+std::pair<bool, std::optional<ParsingError>> ParseOrDefault(std::string_view valueStr, bool defaultValue)
+{
+    if (valueStr == "") {
+        return std::make_pair(true, std::nullopt);
+    }
+    std::stringstream ss{std::string(valueStr)};
+    bool              valueAsBool;
+    ss >> valueAsBool;
+    if (ss.fail()) {
+        ss.clear();
+        ss >> std::boolalpha >> valueAsBool;
+        if (ss.fail()) {
+            return std::make_pair(defaultValue, "could not be parsed as bool: " + std::string(valueStr));
+        }
+    }
+    return std::make_pair(valueAsBool, std::nullopt);
 }
 
 } // namespace string_util

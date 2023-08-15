@@ -21,8 +21,6 @@
 #include <cctype>
 
 #include "ppx/command_line_parser.h"
-#include "ppx/log.h"
-#include "ppx/string_util.h"
 
 namespace {
 
@@ -43,23 +41,6 @@ void CliOptions::OverwriteOptions(const CliOptions& newOptions)
     for (auto& it : newOptions.mAllOptions) {
         mAllOptions[it.first] = it.second;
     }
-}
-
-std::pair<int, int> CliOptions::GetOptionValueOrDefault(const std::string& optionName, const std::pair<int, int>& defaultValue) const
-{
-    auto it = mAllOptions.find(optionName);
-    if (it == mAllOptions.cend()) {
-        return defaultValue;
-    }
-    auto valueStr = it->second.back();
-    auto res      = ppx::string_util::SplitInTwo(valueStr, 'x');
-    if (res == std::nullopt) {
-        PPX_LOG_ERROR("resolution flag must be in format <Width>x<Height>: " << valueStr);
-        return defaultValue;
-    }
-    int N = GetParsedOrDefault(res->first, defaultValue.first);
-    int M = GetParsedOrDefault(res->second, defaultValue.second);
-    return std::make_pair(N, M);
 }
 
 void CliOptions::AddOption(std::string_view optionName, std::string_view value)
@@ -87,26 +68,7 @@ void CliOptions::AddOption(std::string_view optionName, const std::vector<std::s
     storedValueArray.insert(storedValueArray.end(), valueArray.cbegin(), valueArray.cend());
 }
 
-bool CliOptions::Parse(std::string_view valueStr, bool defaultValue) const
-{
-    if (valueStr == "") {
-        return true;
-    }
-    std::stringstream ss{std::string(valueStr)};
-    bool              valueAsBool;
-    ss >> valueAsBool;
-    if (ss.fail()) {
-        ss.clear();
-        ss >> std::boolalpha >> valueAsBool;
-        if (ss.fail()) {
-            PPX_LOG_ERROR("could not be parsed as bool: " << valueStr);
-            return defaultValue;
-        }
-    }
-    return valueAsBool;
-}
-
-std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc, const char* argv[])
+std::optional<ppx::string_util::ParsingError> CommandLineParser::Parse(int argc, const char* argv[])
 {
     // argc should be >= 1 and argv[0] the name of the executable.
     if (argc < 2) {
@@ -117,19 +79,15 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
     std::vector<std::string_view> args;
     for (size_t i = 1; i < argc; ++i) {
         std::string_view argString(argv[i]);
-        auto             res = ppx::string_util::SplitInTwo(argString, '=');
-        if (res == std::nullopt) {
-            args.emplace_back(argString);
-            continue;
+        if (argString.find('=') != std::string_view::npos) {
+            auto res = ppx::string_util::SplitInTwo(argString, '=');
+            if (res == std::nullopt) {
+                return "Malformed flag with '=': \"" + std::string(argString) + "\"";
+            }
+            args.emplace_back(res->first);
+            args.emplace_back(res->second);
         }
-        if (res->first.empty() || res->second.empty()) {
-            return "Malformed flag with '=': \"" + std::string(argString) + "\"";
-        }
-        if (res->second.find('=') != std::string_view::npos) {
-            return "Unexpected number of '=' symbols in the following string: \"" + std::string(argString) + "\"";
-        }
-        args.emplace_back(res->first);
-        args.emplace_back(res->second);
+        args.emplace_back(argString);
     }
 
     // Another pass to identify JSON config files, add that option, and remove it from the argument list
@@ -205,7 +163,7 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
     return std::nullopt;
 }
 
-std::optional<CommandLineParser::ParsingError> CommandLineParser::ParseJson(CliOptions& cliOptions, const nlohmann::json& jsonConfig)
+std::optional<ppx::string_util::ParsingError> CommandLineParser::ParseJson(CliOptions& cliOptions, const nlohmann::json& jsonConfig)
 {
     std::stringstream ss;
     for (auto it = jsonConfig.cbegin(); it != jsonConfig.cend(); ++it) {
@@ -231,7 +189,7 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::ParseJson(CliO
     return std::nullopt;
 }
 
-std::optional<CommandLineParser::ParsingError> CommandLineParser::ParseOption(CliOptions& cliOptions, std::string_view optionName, std::string_view valueStr)
+std::optional<ppx::string_util::ParsingError> CommandLineParser::ParseOption(CliOptions& cliOptions, std::string_view optionName, std::string_view valueStr)
 {
     if (optionName.length() > 2 && optionName.substr(0, 3) == "no-") {
         if (valueStr.length() > 0) {
@@ -240,6 +198,18 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::ParseOption(Cl
         optionName = optionName.substr(3);
         valueStr   = "0";
     }
+
+    if (valueStr.find(',') != std::string_view::npos) {
+        auto substringArray = ppx::string_util::Split(valueStr, ',');
+        if (substringArray == std::nullopt) {
+            return "invalid comma use for option \"" + std::string(optionName) + "\" and value \"" + std::string(valueStr) + "\"";
+        }
+        // Special case, comma-separated value lists specified on the commandline are added directly to cliOptions to avoid inserting element by element
+        std::vector<std::string> substringStringArray(substringArray->cbegin(), substringArray->cend());
+        cliOptions.AddOption(optionName, substringStringArray);
+        return std::nullopt;
+    }
+
     cliOptions.AddOption(optionName, valueStr);
     return std::nullopt;
 }
