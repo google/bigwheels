@@ -813,13 +813,13 @@ void Application::InitStandardKnobs()
         "Add a path in front of the assets search path list.");
     mStandardOpts.pAssetsPaths->SetFlagParameters("<path>");
 
-    mStandardOpts.pConfigJsonPath = mKnobManager.CreateKnob<KnobFlag<std::vector<std::string>>>(mCommandLineParser.GetJsonConfigFlagName(), defaultEmptyList);
-    mStandardOpts.pConfigJsonPath->SetFlagDescription(
+    mStandardOpts.pConfigJsonPaths = mKnobManager.CreateKnob<KnobFlag<std::vector<std::string>>>(mCommandLineParser.GetJsonConfigFlagName(), defaultEmptyList);
+    mStandardOpts.pConfigJsonPaths->SetFlagDescription(
         "Additional commandline flags specified in a JSON file. Values specified in JSON files are "
         "always lower priority than those specified on the command line. Between different files, the "
         "later ones take priority. For lists, the JSON values will come earlier in the array than the "
         "command-line values");
-    mStandardOpts.pConfigJsonPath->SetFlagParameters("<path>");
+    mStandardOpts.pConfigJsonPaths->SetFlagParameters("<path>");
 
     mStandardOpts.pDeterministic =
         mKnobManager.CreateKnob<KnobFlag<bool>>("deterministic", false);

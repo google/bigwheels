@@ -106,22 +106,12 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
         return std::nullopt;
     }
 
-    // With one initial pass:
-    // - Split any flag and parameters that are connected with '='
-    // - Identify JSON config files, add that option, and remove it from the argument list
+    // Initial pass to trim the name of executable and to split any flag and parameters that are connected with '='
     std::vector<std::string_view> args;
     for (size_t i = 1; i < argc; ++i) {
         std::string_view argString(argv[i]);
         auto             res = ppx::string_util::SplitInTwo(argString, '=');
         if (res == std::nullopt) {
-            if (StartsWithDoubleDash(argString) &&
-                argString == "--" + mJsonConfigFlagName &&
-                i + 1 < argc &&
-                !StartsWithDoubleDash(argv[i + 1])) {
-                mOpts.AddOption(mJsonConfigFlagName, ppx::string_util::TrimBothEnds(argv[i + 1]));
-                ++i;
-                continue;
-            }
             args.emplace_back(argString);
             continue;
         }
@@ -131,13 +121,23 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
         if (res->second.find('=') != std::string_view::npos) {
             return "Unexpected number of '=' symbols in the following string: \"" + std::string(argString) + "\"";
         }
-        if (StartsWithDoubleDash(res->first) && res->first == "--" + mJsonConfigFlagName) {
-            mOpts.AddOption(mJsonConfigFlagName, ppx::string_util::TrimBothEnds(res->second));
-            continue;
-        }
         args.emplace_back(res->first);
         args.emplace_back(res->second);
     }
+
+    // Another pass to identify JSON config files, add that option, and remove it from the argument list
+    std::vector<std::string_view> argsFiltered;
+    for (size_t i = 0; i < args.size(); ++i) {
+        bool nextArgumentIsParameter = (i + 1 < args.size()) && !StartsWithDoubleDash(args[i + 1]);
+        if ((args[i] == "--" + mJsonConfigFlagName) && nextArgumentIsParameter) {
+            mOpts.AddOption(mJsonConfigFlagName, ppx::string_util::TrimBothEnds(args[i + 1]));
+            ++i;
+            continue;
+        }
+        argsFiltered.emplace_back(args[i]);
+    }
+    args = argsFiltered;
+    argsFiltered.clear();
 
     // Flags inside JSON files are processed first
     // These are always lower priority than flags on the command-line
