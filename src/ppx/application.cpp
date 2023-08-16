@@ -788,13 +788,18 @@ void Application::ShutdownMetrics()
 
 void Application::SaveMetricsReportToDisk()
 {
-    if (!mStandardOpts.pEnableMetrics->GetValue()) {
+    if (mStandardOpts.pEnableMetrics == nullptr || !mStandardOpts.pEnableMetrics->GetValue()) {
         return;
     }
 
+    std::string metricsFilename;
+    if (mStandardOpts.pMetricsFilename != nullptr) {
+        metricsFilename = mStandardOpts.pMetricsFilename->GetValue();
+    }
+
     // Export the report from the metrics manager to the disk.
-    auto report = mMetrics.manager.CreateReport(mStandardOpts.pMetricsFilename->GetValue());
-    report.WriteToDisk(mStandardOpts.pOverwriteMetricsFile->GetValue());
+    auto report = mMetrics.manager.CreateReport(metricsFilename);
+    report.WriteToDisk(mStandardOpts.pOverwriteMetricsFile != nullptr && mStandardOpts.pOverwriteMetricsFile->GetValue());
 }
 
 void Application::InitStandardKnobs()
