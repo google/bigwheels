@@ -79,15 +79,16 @@ std::optional<ppx::string_util::ParsingError> CommandLineParser::Parse(int argc,
     std::vector<std::string_view> args;
     for (size_t i = 1; i < argc; ++i) {
         std::string_view argString(argv[i]);
-        if (argString.find('=') != std::string_view::npos) {
-            auto res = ppx::string_util::SplitInTwo(argString, '=');
-            if (res == std::nullopt) {
-                return "Malformed flag with '=': \"" + std::string(argString) + "\"";
-            }
-            args.emplace_back(res->first);
-            args.emplace_back(res->second);
+        if (argString.find('=') == std::string_view::npos) {
+            args.emplace_back(argString);
+            continue;
         }
-        args.emplace_back(argString);
+        auto res = ppx::string_util::SplitInTwo(argString, '=');
+        if (res == std::nullopt) {
+            return "Malformed flag with '=': \"" + std::string(argString) + "\"";
+        }
+        args.emplace_back(res->first);
+        args.emplace_back(res->second);
     }
 
     // Another pass to identify JSON config files, add that option, and remove it from the argument list
@@ -182,9 +183,7 @@ std::optional<ppx::string_util::ParsingError> CommandLineParser::ParseJson(CliOp
         ss << it.value();
         std::string value = ss.str();
         ss.str("");
-        if (auto error = ParseOption(cliOptions, it.key(), ppx::string_util::TrimBothEnds(value, " \t\""))) {
-            return error;
-        }
+        cliOptions.AddOption(it.key(), ppx::string_util::TrimBothEnds(value, " \t\""));
     }
     return std::nullopt;
 }
