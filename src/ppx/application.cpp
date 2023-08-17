@@ -849,7 +849,7 @@ void Application::InitStandardKnobs()
         "index and exits (see --gpu).");
 
     mStandardOpts.pMetricsFilename =
-        mKnobManager.CreateKnob<KnobFlag<std::string>>("metrics-filename", "report_@");
+        mKnobManager.CreateKnob<KnobFlag<std::string>>("metrics-filename", "");
     mStandardOpts.pMetricsFilename->SetFlagDescription(
         "If metrics are enabled, save the metrics report to the "
         "provided filename (including path). If used, any `@` "
