@@ -1,8 +1,3 @@
-ext {
-    assetsPath = "${rootProject.projectDir}/assets"
-    thirdPartyAssetsPath = "${rootProject.projectDir}/third_party/assets"
-}
-
 subprojects {
     repositories {
         mavenCentral()
@@ -20,6 +15,36 @@ subprojects {
     }
 
     buildDir = "${rootProject.buildDir}/android/${project.name}"
+
+    ext {
+        assets = []
+        thirdPartyAssets = []
+    }
+
+    // copyTask copies project specific assets into a build asset folder,
+    // so they can be packaged into the APK.
+    task copyTask {
+        // doLast to make sure we get subproject assets value, and
+        // execute in execution phase.
+        doLast {
+            project.assets.each {
+                def fromFile = "${rootProject.projectDir}/assets/${it}"
+                def intoFile = "${buildDir}/assets/${it}"
+                copy {
+                    from fromFile
+                    into intoFile
+                }
+            }
+            project.thirdPartyAssets.each {
+                def fromFile = "${rootProject.projectDir}/third_party/assets/${it}"
+                def intoFile = "${buildDir}/assets/${it}"
+                copy {
+                    from fromFile
+                    into intoFile
+                }
+            }
+        }
+    }
 
     android {
         namespace 'com.google.bigwheels'
@@ -97,7 +122,6 @@ subprojects {
             it.buildConfigField "String", "sample_library_name", '"vk_' + project.name + '"'
             sourceSets.main {
                 java.srcDirs = [ "${rootProject.projectDir}/src/android" ]
-                assets.srcDirs = [ "assets" ]
                 if (project.name.contains("_xr")) {
                     manifest.srcFile "${rootProject.projectDir}/src/android/AndroidManifest.XR.xml"
                 } else {
@@ -105,9 +129,17 @@ subprojects {
                 }
             }
         }
-    }
 
-    // Each sample project must define copyTask for copying assets
-    // that are used in the project.
-    preBuild.dependsOn ":" + project.name + ":copyTask"
+        sourceSets.main.assets.srcDirs += new File("${buildDir}/assets")
+
+        applicationVariants.all { variant ->
+            // copyTask copies generated shaders, so it must be run after
+            // they are built. mustRunAfter only makes sure copyTask executes
+            // after the task if that task is already supposed to execute,
+            // but does not force it to be executed.
+            tasks["copyTask"].mustRunAfter("externalNativeBuild${variant.name.capitalize()}")
+            tasks["generate${variant.name.capitalize()}Assets"]
+              .dependsOn(copyTask)
+        }
+    }
 }
