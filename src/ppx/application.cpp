@@ -788,18 +788,19 @@ void Application::ShutdownMetrics()
 
 void Application::SaveMetricsReportToDisk()
 {
-    if (mStandardOpts.pEnableMetrics == nullptr || !mStandardOpts.pEnableMetrics->GetValue()) {
+    // Ensure the base metrics knob was initialized by the KnobManager.
+    PPX_ASSERT_MSG(mStandardOpts.pEnableMetrics != nullptr, "The --enable-metrics knob was not initialized.");
+    if (!mStandardOpts.pEnableMetrics->GetValue()) {
         return;
     }
 
-    std::string metricsFilename;
-    if (mStandardOpts.pMetricsFilename != nullptr) {
-        metricsFilename = mStandardOpts.pMetricsFilename->GetValue();
-    }
+    // Ensure the needed knobs were initialized by the KnobManager.
+    PPX_ASSERT_MSG(mStandardOpts.pMetricsFilename != nullptr, "The --metrics-filename knob was not initialized.");
+    PPX_ASSERT_MSG(mStandardOpts.pOverwriteMetricsFile != nullptr, "The --overwrite-metrics-file knob was not initialized.");
 
     // Export the report from the metrics manager to the disk.
-    auto report = mMetrics.manager.CreateReport(metricsFilename);
-    report.WriteToDisk(mStandardOpts.pOverwriteMetricsFile != nullptr && mStandardOpts.pOverwriteMetricsFile->GetValue());
+    auto report = mMetrics.manager.CreateReport(mStandardOpts.pMetricsFilename->GetValue());
+    report.WriteToDisk(mStandardOpts.pOverwriteMetricsFile->GetValue());
 }
 
 void Application::InitStandardKnobs()
