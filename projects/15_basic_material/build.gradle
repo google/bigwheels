@@ -2,7 +2,7 @@ ArrayList projectAssets = [
     "basic/models",
     "basic/shaders/spv",
     "common/textures",
-    "materials/shaders",
+    "materials/shaders/spv",
 ]
 
 ArrayList projectThirdPartyAssets = [
