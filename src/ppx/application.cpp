@@ -788,9 +788,15 @@ void Application::ShutdownMetrics()
 
 void Application::SaveMetricsReportToDisk()
 {
+    // Ensure the base metrics knob was initialized by the KnobManager.
+    PPX_ASSERT_MSG(mStandardOpts.pEnableMetrics != nullptr, "The --enable-metrics knob was not initialized.");
     if (!mStandardOpts.pEnableMetrics->GetValue()) {
         return;
     }
+
+    // Ensure the needed knobs were initialized by the KnobManager.
+    PPX_ASSERT_MSG(mStandardOpts.pMetricsFilename != nullptr, "The --metrics-filename knob was not initialized.");
+    PPX_ASSERT_MSG(mStandardOpts.pOverwriteMetricsFile != nullptr, "The --overwrite-metrics-file knob was not initialized.");
 
     // Export the report from the metrics manager to the disk.
     auto report = mMetrics.manager.CreateReport(mStandardOpts.pMetricsFilename->GetValue());
@@ -841,6 +847,16 @@ void Application::InitStandardKnobs()
     mStandardOpts.pListGpus->SetFlagDescription(
         "Prints a list of the available GPUs on the current system with their "
         "index and exits (see --gpu).");
+
+    mStandardOpts.pMetricsFilename =
+        mKnobManager.CreateKnob<KnobFlag<std::string>>("metrics-filename", "");
+    mStandardOpts.pMetricsFilename->SetFlagDescription(
+        "If metrics are enabled, save the metrics report to the "
+        "provided filename (including path). If used, any `@` "
+        "symbols in the filename (not the path) will be replaced "
+        "with the current timestamp. If the filename does not end in "
+        "`.json`, it will be appended. Default: `report_@`. See also: "
+        "`--enable-metrics` and `--overwrite-metrics-file`.");
 
     mStandardOpts.pOverwriteMetricsFile =
         mKnobManager.CreateKnob<KnobFlag<bool>>("overwrite-metrics-file", false);
