@@ -672,8 +672,8 @@ void Application::DispatchConfig()
 
     auto assetPaths = mStandardOpts.pAssetsPaths->GetValue();
     if (!assetPaths.empty()) {
-        // Insert at front, in reverse order, so we respect the command line ordering for priority.
-        for (auto it = assetPaths.rbegin(); it < assetPaths.rend(); it++) {
+        // Asset directories specified later have higher priority
+        for (auto it = assetPaths.begin(); it < assetPaths.end(); it++) {
             AddAssetDir(*it, /* insert_at_front= */ true);
         }
     }
