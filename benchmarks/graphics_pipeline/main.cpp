@@ -18,6 +18,7 @@
 #include <unordered_set>
 #include <array>
 #include <random>
+#include <cmath>
 
 #include "ppx/ppx.h"
 #include "ppx/knob.h"
@@ -156,18 +157,17 @@ private:
     Entity                                                        mSkyBox;
     Entity                                                        mSphere;
     bool                                                          mEnableMouseMovement = true;
-    Grid                                                          mSphereGrid;
-    std::vector<grfx::BufferPtr>                                  mSphereInstanceUniformBuffers;
-    std::vector<uint32_t>                                         mSphereIndices;
-    uint32_t                                                      mCurrentSphereCount;
+    std::vector<grfx::BufferPtr>                                  mDrawCallUniformBuffers;
     std::array<grfx::GraphicsPipelinePtr, kPipelineCount>         mPipelines;
     std::array<grfx::ShaderModulePtr, kAvailableVsShaders.size()> mVsShaders;
     std::array<grfx::ShaderModulePtr, kAvailablePsShaders.size()> mPsShaders;
+    uint32_t                                                      mSphereIndexCount;
 
 private:
     std::shared_ptr<KnobDropdown<std::string>> pKnobVs;
     std::shared_ptr<KnobDropdown<std::string>> pKnobPs;
     std::shared_ptr<KnobSlider<int>>           pSphereInstanceCount;
+    std::shared_ptr<KnobSlider<int>>           pDrawCallCount;
 
 private:
     void ProcessInput();
@@ -246,9 +246,13 @@ void ProjApp::InitKnobs()
     pKnobPs->SetDisplayName("Pixel Shader");
     pKnobPs->SetFlagDescription("Select the pixel shader for the graphics pipeline.");
 
-    pSphereInstanceCount = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("sphere-count", 50, 1, kMaxSphereInstanceCount);
+    pSphereInstanceCount = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("sphere-count", /* defaultValue = */ 50, /* minValue = */ 1, kMaxSphereInstanceCount);
     pSphereInstanceCount->SetDisplayName("Sphere Count");
     pSphereInstanceCount->SetFlagDescription("Select the number of spheres to draw on the screen.");
+
+    pDrawCallCount = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("drawcall-count", /* defaultValue = */ 1, /* minValue = */ 1, kMaxSphereInstanceCount);
+    pDrawCallCount->SetDisplayName("DrawCall Count");
+    pDrawCallCount->SetFlagDescription("Select the number of draw calls to be used to draw the `sphere-count` spheres.");
 }
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
@@ -346,19 +350,65 @@ void ProjApp::Setup()
         PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &mMetalRoughnessTexture.sampler));
     }
 
-    // Meshes
+    // SkyBox mesh
     {
-        // SkyBox
         TriMesh  mesh = TriMesh::CreateCube(float3(1, 1, 1), TriMeshOptions().TexCoords());
         Geometry geo;
         PPX_CHECKED_CALL(Geometry::Create(GeometryOptions::InterleavedU16().AddTexCoord(), mesh, &geo));
         PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mSkyBox.mesh));
     }
+
+    // Meshes for sphere instances
     {
-        // Sphere
-        TriMesh  mesh = TriMesh::CreateSphere(/* radius = */ 1, /* longitudeSegments = */ 10, /* latitudeSegments = */ 10, TriMeshOptions().TexCoords().Normals().Tangents());
+        // 3D grid
+        Grid grid;
+        grid.xSize = static_cast<uint32_t>(std::cbrt(kMaxSphereInstanceCount));
+        grid.ySize = grid.xSize;
+        grid.zSize = static_cast<uint32_t>(std::ceil(kMaxSphereInstanceCount / static_cast<float>(grid.xSize * grid.ySize)));
+        grid.step  = 10.0f;
+
+        // Get sphere indices
+        std::vector<uint32_t> sphereIndices(kMaxSphereInstanceCount);
+        std::iota(sphereIndices.begin(), sphereIndices.end(), 0);
+        // Shuffle using the `mersenne_twister` deterministic random number generator to obtain
+        // the same sphere indices for a given `kMaxSphereInstanceCount`.
+        Shuffle(sphereIndices.begin(), sphereIndices.end(), std::mt19937(kSeed));
+
+        TriMesh mesh                     = TriMesh::CreateSphere(/* radius = */ 1, /* longitudeSegments = */ 10, /* latitudeSegments = */ 10, TriMeshOptions().Indices().TexCoords().Normals().Tangents());
+        mSphereIndexCount                = mesh.GetCountIndices();
+        const uint32_t sphereVertexCount = mesh.GetCountPositions();
+        const uint32_t sphereTriCount    = mesh.GetCountTriangles();
+
         Geometry geo;
-        PPX_CHECKED_CALL(Geometry::Create(GeometryOptions::InterleavedU16().AddTexCoord().AddNormal().AddTangent(), mesh, &geo));
+        PPX_CHECKED_CALL(Geometry::Create(GeometryOptions::InterleavedU32().AddTexCoord().AddNormal().AddTangent(), &geo));
+
+        for (uint32_t i = 0; i < kMaxSphereInstanceCount; i++) {
+            uint32_t index = sphereIndices[i];
+            uint32_t x     = (index % (grid.xSize * grid.ySize)) / grid.ySize;
+            uint32_t y     = index % grid.ySize;
+            uint32_t z     = index / (grid.xSize * grid.ySize);
+
+            // Model matrix to be applied to the sphere mesh
+            float4x4 modelMatrix = glm::translate(float3(x * grid.step, y * grid.step, z * grid.step));
+
+            // Copy a sphere mesh to create a giant vertex buffer
+            // Iterate through the meshes vertx data and add it to the geometry
+            for (uint32_t vertexIndex = 0; vertexIndex < sphereVertexCount; ++vertexIndex) {
+                TriMeshVertexData vertexData = {};
+                mesh.GetVertexData(vertexIndex, &vertexData);
+                vertexData.position = modelMatrix * float4(vertexData.position, 1);
+                geo.AppendVertexData(vertexData);
+            }
+            // Iterate the meshes triangles and add the vertex indices
+            for (uint32_t triIndex = 0; triIndex < sphereTriCount; ++triIndex) {
+                uint32_t v0 = PPX_VALUE_IGNORED;
+                uint32_t v1 = PPX_VALUE_IGNORED;
+                uint32_t v2 = PPX_VALUE_IGNORED;
+                mesh.GetTriangle(triIndex, v0, v1, v2);
+                geo.AppendIndicesTriangle(v0 + i * sphereVertexCount, v1 + i * sphereVertexCount, v2 + i * sphereVertexCount);
+            }
+        }
+        // Create a giant vertex buffer to accommodate all copies of the sphere mesh
         PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mSphere.mesh));
     }
 
@@ -404,32 +454,15 @@ void ProjApp::Setup()
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mSphere.descriptorSetLayout));
     }
 
-    // Grid for sphere instances
+    // Uniform buffers for draw calls
     {
-        mSphereGrid.xSize = static_cast<uint32_t>(std::pow(kMaxSphereInstanceCount, 1.0f / 3.0f));
-        mSphereGrid.ySize = mSphereGrid.xSize;
-        mSphereGrid.zSize = static_cast<uint32_t>(std::ceil(kMaxSphereInstanceCount / static_cast<float>(mSphereGrid.xSize * mSphereGrid.ySize)));
-        mSphereGrid.step  = 10.0f;
-    }
-
-    // Get sphere indices
-    {
-        mSphereIndices.resize(kMaxSphereInstanceCount);
-        std::iota(mSphereIndices.begin(), mSphereIndices.end(), 0);
-        // Shuffle using the `mersenne_twister` deterministic random number generator to obtain
-        // the same sphere indices for a given `kMaxSphereInstanceCount`.
-        Shuffle(mSphereIndices.begin(), mSphereIndices.end(), std::mt19937(kSeed));
-    }
-
-    // Uniform buffers for sphere instances
-    {
-        mSphereInstanceUniformBuffers.resize(kMaxSphereInstanceCount);
+        mDrawCallUniformBuffers.resize(kMaxSphereInstanceCount);
         for (uint32_t i = 0; i < kMaxSphereInstanceCount; i++) {
             grfx::BufferCreateInfo bufferCreateInfo        = {};
             bufferCreateInfo.size                          = PPX_MINIMUM_UNIFORM_BUFFER_SIZE;
             bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
             bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
-            PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mSphereInstanceUniformBuffers[i]));
+            PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mDrawCallUniformBuffers[i]));
         }
     }
 
@@ -615,7 +648,15 @@ struct SphereData
 
 void ProjApp::Render()
 {
-    mCurrentSphereCount = pSphereInstanceCount->GetValue();
+    uint32_t currentSphereCount   = pSphereInstanceCount->GetValue();
+    uint32_t currentDrawCallCount = pDrawCallCount->GetValue();
+    // TODO: Ideally, the `maxValue` of the drawcall-count slider knob should be changed at runtime.
+    // Currently, the value of the drawcall-count is adjusted to the sphere-count in case the
+    // former exceeds the value of the sphere-count.
+    if (currentDrawCallCount > currentSphereCount) {
+        pDrawCallCount->SetValue(currentSphereCount);
+        currentDrawCallCount = currentSphereCount;
+    }
 
     PerFrame&          frame      = mPerFrame[0];
     grfx::SwapchainPtr swapchain  = GetSwapchain();
@@ -678,29 +719,32 @@ void ProjApp::Render()
             frame.cmd->BindIndexBuffer(mSphere.mesh);
             frame.cmd->BindVertexBuffers(mSphere.mesh);
             {
-                for (uint32_t i = 0; i < mCurrentSphereCount; i++) {
-                    uint32_t index = mSphereIndices[i];
-                    uint32_t x     = (index % (mSphereGrid.xSize * mSphereGrid.ySize)) / mSphereGrid.ySize;
-                    uint32_t y     = index % mSphereGrid.ySize;
-                    uint32_t z     = index / (mSphereGrid.xSize * mSphereGrid.ySize);
-
+                uint32_t spheresPerDrawCall = currentSphereCount / currentDrawCallCount;
+                for (uint32_t i = 0; i < currentDrawCallCount; i++) {
                     SphereData data                 = {};
-                    data.modelMatrix                = glm::translate(float3(x * mSphereGrid.step, y * mSphereGrid.step, z * mSphereGrid.step));
+                    data.modelMatrix                = float4x4(1.0f);
                     data.ITModelMatrix              = glm::inverse(glm::transpose(data.modelMatrix));
                     data.ambient                    = float4(0.3f);
                     data.cameraViewProjectionMatrix = mCamera.GetViewProjectionMatrix();
                     data.lightPosition              = float4(mLightPosition, 0.0f);
                     data.eyePosition                = float4(mCamera.GetEyePosition(), 0.0f);
-                    mSphereInstanceUniformBuffers[index]->CopyFromSource(sizeof(data), &data);
+                    mDrawCallUniformBuffers[i]->CopyFromSource(sizeof(data), &data);
 
-                    frame.cmd->PushGraphicsUniformBuffer(mSphere.pipelineInterface, /* binding = */ 0, /* set = */ 0, /* bufferOffset = */ 0, mSphereInstanceUniformBuffers[index]);
+                    frame.cmd->PushGraphicsUniformBuffer(mSphere.pipelineInterface, /* binding = */ 0, /* set = */ 0, /* bufferOffset = */ 0, mDrawCallUniformBuffers[i]);
                     frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 1, /* set = */ 0, mAlbedoTexture.sampledImageView);
                     frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 2, /* set = */ 0, mAlbedoTexture.sampler);
                     frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 3, /* set = */ 0, mNormalMapTexture.sampledImageView);
                     frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 4, /* set = */ 0, mNormalMapTexture.sampler);
                     frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 5, /* set = */ 0, mMetalRoughnessTexture.sampledImageView);
                     frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 6, /* set = */ 0, mMetalRoughnessTexture.sampler);
-                    frame.cmd->DrawIndexed(mSphere.mesh->GetIndexCount());
+
+                    uint32_t indexCount = mSphereIndexCount * spheresPerDrawCall;
+                    // Add the remaining spheres to the last drawcall
+                    if (i == currentDrawCallCount - 1) {
+                        indexCount += mSphereIndexCount * (currentSphereCount % currentDrawCallCount);
+                    }
+                    uint32_t firstIndex = mSphereIndexCount * i * spheresPerDrawCall;
+                    frame.cmd->DrawIndexed(indexCount, /* instanceCount = */ 1, firstIndex);
                 }
             }
 
