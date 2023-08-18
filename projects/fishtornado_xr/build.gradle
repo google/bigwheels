@@ -1,11 +1,6 @@
-task copyTask {
-    copy {
-        from rootProject.ext.assetsPath + '/basic/shaders/spv'
-        into 'assets/basic/shaders/spv'
-        include '*.spv'
-    }
-    copy {
-        from rootProject.ext.assetsPath + '/fishtornado'
-        into 'assets/fishtornado'
-    }
-}
+ArrayList projectAssets = [
+    "basic/shaders/spv",
+    "fishtornado"
+]
+
+project.assets = projectAssets

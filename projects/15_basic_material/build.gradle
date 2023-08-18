@@ -1,23 +1,13 @@
-task copyTask {
-    copy {
-        from rootProject.ext.assetsPath + '/basic/models'
-        into 'assets/basic/models'
-    }
-    copy {
-        from rootProject.ext.assetsPath + '/basic/shaders/spv'
-        into 'assets/basic/shaders/spv'
-        include '*.spv'
-    }
-    copy {
-        from rootProject.ext.assetsPath + '/common/textures'
-        into 'assets/common/textures'
-    }
-    copy {
-        from rootProject.ext.assetsPath + '/materials/shaders'
-        into 'assets/materials/shaders'
-    }
-    copy {
-        from rootProject.ext.thirdPartyAssetsPath + '/poly_haven'
-        into 'assets/poly_haven'
-    }
-}
+ArrayList projectAssets = [
+    "basic/models",
+    "basic/shaders/spv",
+    "common/textures",
+    "materials/shaders/spv",
+]
+
+ArrayList projectThirdPartyAssets = [
+    "poly_haven"
+]
+
+project.assets = projectAssets
+project.thirdPartyAssets = projectThirdPartyAssets
