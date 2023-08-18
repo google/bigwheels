@@ -38,6 +38,13 @@ bool StartsWithDoubleDash(std::string_view s)
 
 namespace ppx {
 
+void CliOptions::OverwriteOptions(const CliOptions& newOptions)
+{
+    for (auto& it : newOptions.mAllOptions) {
+        mAllOptions[it.first] = it.second;
+    }
+}
+
 std::pair<int, int> CliOptions::GetOptionValueOrDefault(const std::string& optionName, const std::pair<int, int>& defaultValue) const
 {
     auto it = mAllOptions.find(optionName);
@@ -163,11 +170,14 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
             return "The following config file could not be parsed as a JSON object: " + jsonPath;
         }
 
-        if (auto error = AddJsonOptions(data)) {
+        CliOptions jsonOptions;
+        if (auto error = ParseJson(jsonOptions, data)) {
             return error;
         }
+        mOpts.OverwriteOptions(jsonOptions);
     }
 
+    CliOptions commandlineOptions;
     // Main pass, process arguments into either standalone flags or options with parameters.
     for (size_t i = 0; i < args.size(); ++i) {
         std::string_view name = ppx::string_util::TrimBothEnds(args[i]);
@@ -186,41 +196,42 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::Parse(int argc
             }
         }
 
-        if (auto error = AddOption(name, value)) {
+        if (auto error = ParseOption(commandlineOptions, name, value)) {
             return error;
         }
     }
+    mOpts.OverwriteOptions(commandlineOptions);
 
     return std::nullopt;
 }
 
-std::optional<CommandLineParser::ParsingError> CommandLineParser::AddJsonOptions(const nlohmann::json& jsonConfig)
+std::optional<CommandLineParser::ParsingError> CommandLineParser::ParseJson(CliOptions& cliOptions, const nlohmann::json& jsonConfig)
 {
     std::stringstream ss;
     for (auto it = jsonConfig.cbegin(); it != jsonConfig.cend(); ++it) {
         if ((it.value()).is_array()) {
-            // Special case, arrays specified in JSON are added directly to mOpts to avoid inserting element by element
+            // Special case, arrays specified in JSON are added directly to cliOptions to avoid inserting element by element
             std::vector<std::string> jsonStringArray;
             for (const auto& elem : it.value()) {
                 ss << elem;
                 jsonStringArray.push_back(std::string(ppx::string_util::TrimBothEnds(ss.str(), " \t\"")));
                 ss.str("");
             }
-            mOpts.AddOption(it.key(), jsonStringArray);
+            cliOptions.AddOption(it.key(), jsonStringArray);
             continue;
         }
 
         ss << it.value();
         std::string value = ss.str();
         ss.str("");
-        if (auto error = AddOption(it.key(), ppx::string_util::TrimBothEnds(value, " \t\""))) {
+        if (auto error = ParseOption(cliOptions, it.key(), ppx::string_util::TrimBothEnds(value, " \t\""))) {
             return error;
         }
     }
     return std::nullopt;
 }
 
-std::optional<CommandLineParser::ParsingError> CommandLineParser::AddOption(std::string_view optionName, std::string_view valueStr)
+std::optional<CommandLineParser::ParsingError> CommandLineParser::ParseOption(CliOptions& cliOptions, std::string_view optionName, std::string_view valueStr)
 {
     if (optionName.length() > 2 && optionName.substr(0, 3) == "no-") {
         if (valueStr.length() > 0) {
@@ -229,7 +240,7 @@ std::optional<CommandLineParser::ParsingError> CommandLineParser::AddOption(std:
         optionName = optionName.substr(3);
         valueStr   = "0";
     }
-    mOpts.AddOption(optionName, valueStr);
+    cliOptions.AddOption(optionName, valueStr);
     return std::nullopt;
 }
 

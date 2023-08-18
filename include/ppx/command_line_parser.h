@@ -108,6 +108,9 @@ private:
     // Same as above, but appends an array of values at the same key
     void AddOption(std::string_view optionName, const std::vector<std::string>& valueArray);
 
+    // For all options existing in newOptions, current entries in mAllOptions will be replaced by them
+    void OverwriteOptions(const CliOptions& newOptions);
+
     template <typename T>
     T GetParsedOrDefault(std::string_view valueStr, const T& defaultValue) const
     {
@@ -160,8 +163,12 @@ public:
     // and write the error to `out_error`.
     std::optional<ParsingError> Parse(int argc, const char* argv[]);
 
-    // Adds all options specified within jsonConfig to mOpts.
-    std::optional<ParsingError> AddJsonOptions(const nlohmann::json& jsonConfig);
+    // Parses all options specified within jsonConfig and adds them to cliOptions.
+    std::optional<ParsingError> ParseJson(CliOptions& cliOptions, const nlohmann::json& jsonConfig);
+
+    // Parses an option, handles the special --no-flag-name case, then adds the option to cliOptions
+    // Expects option names without the "--" prefix.
+    std::optional<ParsingError> ParseOption(CliOptions& cliOptions, std::string_view optionName, std::string_view valueStr);
 
     std::string       GetJsonConfigFlagName() const { return mJsonConfigFlagName; }
     const CliOptions& GetOptions() const { return mOpts; }
@@ -170,10 +177,6 @@ public:
     void AppendUsageMsg(const std::string& additionalMsg) { mUsageMsg += additionalMsg; }
 
 private:
-    // Adds an option to mOpts and handles the special --no-flag-name case.
-    // Expects option names without the "--" prefix.
-    std::optional<ParsingError> AddOption(std::string_view optionName, std::string_view valueStr);
-
     CliOptions  mOpts;
     std::string mJsonConfigFlagName = "config-json-path";
     std::string mUsageMsg           = R"(

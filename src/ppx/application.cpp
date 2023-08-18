@@ -672,8 +672,8 @@ void Application::DispatchConfig()
 
     auto assetPaths = mStandardOpts.pAssetsPaths->GetValue();
     if (!assetPaths.empty()) {
-        // Asset directories specified later have higher priority
-        for (auto it = assetPaths.begin(); it < assetPaths.end(); it++) {
+        // Insert at front, in reverse order, so we respect the command line ordering for priority.
+        for (auto it = assetPaths.rbegin(); it < assetPaths.rend(); it++) {
             AddAssetDir(*it, /* insert_at_front= */ true);
         }
     }
@@ -810,15 +810,14 @@ void Application::InitStandardKnobs()
     mStandardOpts.pAssetsPaths =
         mKnobManager.CreateKnob<KnobFlag<std::vector<std::string>>>("assets-path", defaultEmptyList);
     mStandardOpts.pAssetsPaths->SetFlagDescription(
-        "Add a path in front of the assets search path list.");
+        "Add a path before the default assets folder in the search list.");
     mStandardOpts.pAssetsPaths->SetFlagParameters("<path>");
 
     mStandardOpts.pConfigJsonPaths = mKnobManager.CreateKnob<KnobFlag<std::vector<std::string>>>(mCommandLineParser.GetJsonConfigFlagName(), defaultEmptyList);
     mStandardOpts.pConfigJsonPaths->SetFlagDescription(
         "Additional commandline flags specified in a JSON file. Values specified in JSON files are "
-        "always lower priority than those specified on the command line. Between different files, the "
-        "later ones take priority. For lists, the JSON values will come earlier in the array than the "
-        "command-line values");
+        "always overwritten by those specified on the command line. Between different files, the "
+        "later ones take priority.");
     mStandardOpts.pConfigJsonPaths->SetFlagParameters("<path>");
 
     mStandardOpts.pDeterministic =
