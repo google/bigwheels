@@ -107,7 +107,8 @@ void ProjApp::Setup()
     // Descriptor stuff
     {
         grfx::DescriptorPoolCreateInfo poolCreateInfo = {};
-        poolCreateInfo.uniformBuffer                  = 6;
+        // For the 9 entities created below.
+        poolCreateInfo.uniformBuffer = 9;
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&poolCreateInfo, &mDescriptorPool));
 
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
@@ -118,6 +119,8 @@ void ProjApp::Setup()
     // Entities
     {
         TriMesh mesh = TriMesh::CreateCube(float3(2, 2, 2), TriMeshOptions().VertexColors().Normals());
+        // 9 total entities. Each uses a descriptor with a uniform buffer
+        // allocated from the descriptor pool created above.
         SetupEntity(mesh, GeometryOptions::InterleavedU16().AddColor().AddNormal(), &mInterleavedU16);
         SetupEntity(mesh, GeometryOptions::InterleavedU32().AddColor().AddNormal(), &mInterleavedU32);
         SetupEntity(mesh, GeometryOptions::Interleaved().AddColor().AddNormal(), &mInterleaved);
