@@ -61,7 +61,7 @@ TEST(CommandLineParserTest, Parse_Booleans)
 TEST(CommandLineParserTest, Parse_Strings)
 {
     CommandLineParser parser;
-    const char*       args[] = {"/path/to/executable", "--a", "filename with spaces", "--b", "filenameWithoutSpaces", "--c", "filename,with/.punctuation,", "--d", "", "--e"};
+    const char*       args[] = {"/path/to/executable", "--a", "filename with spaces", "--b", "filenameWithoutSpaces", "--c", "filename\\with/.punctuation", "--d", "", "--e"};
     if (auto error = parser.Parse(sizeof(args) / sizeof(args[0]), args)) {
         FAIL() << error->errorMsg;
     }
@@ -69,7 +69,7 @@ TEST(CommandLineParserTest, Parse_Strings)
     EXPECT_EQ(parser.GetOptions().GetNumUniqueOptions(), 5);
     EXPECT_EQ(gotOptions.GetOptionValueOrDefault<std::string>("a", ""), "filename with spaces");
     EXPECT_EQ(gotOptions.GetOptionValueOrDefault<std::string>("b", ""), "filenameWithoutSpaces");
-    EXPECT_EQ(gotOptions.GetOptionValueOrDefault<std::string>("c", ""), "filename,with/.punctuation,");
+    EXPECT_EQ(gotOptions.GetOptionValueOrDefault<std::string>("c", ""), "filename\\with/.punctuation");
     EXPECT_EQ(gotOptions.GetOptionValueOrDefault<std::string>("d", "foo"), "");
     EXPECT_EQ(gotOptions.GetOptionValueOrDefault<std::string>("e", "foo"), "");
 }
@@ -108,6 +108,24 @@ TEST(CommandLineParserTest, Parse_StringList)
 {
     CommandLineParser parser;
     const char*       args[] = {"/path/to/executable", "--a", "some-path", "--a", "some-other-path", "--a", "last-path"};
+    if (auto error = parser.Parse(sizeof(args) / sizeof(args[0]), args)) {
+        FAIL() << error->errorMsg;
+    }
+    CliOptions gotOptions = parser.GetOptions();
+    EXPECT_EQ(parser.GetOptions().GetNumUniqueOptions(), 1);
+    auto paths = gotOptions.GetOptionValueOrDefault<std::string>("a", {"a-path"});
+    EXPECT_EQ(paths.size(), 3);
+    if (paths.size() == 3) {
+        EXPECT_EQ(paths[0], "some-path");
+        EXPECT_EQ(paths[1], "some-other-path");
+        EXPECT_EQ(paths[2], "last-path");
+    }
+}
+
+TEST(CommandLineParserTest, Parse_StringListCommaSeparated)
+{
+    CommandLineParser parser;
+    const char*       args[] = {"/path/to/executable", "--a", "some-path,some-other-path,last-path"};
     if (auto error = parser.Parse(sizeof(args) / sizeof(args[0]), args)) {
         FAIL() << error->errorMsg;
     }
@@ -171,7 +189,7 @@ TEST(CommandLineParserTest, Parse_EqualSignsMultipleFail)
     const char*       args[] = {"/path/to/executable", "--a", "--b=5=8", "--c", "--d", "11"};
     auto              error  = parser.Parse(sizeof(args) / sizeof(args[0]), args);
     EXPECT_TRUE(error);
-    EXPECT_THAT(error->errorMsg, HasSubstr("Unexpected number of '=' symbols in the following string"));
+    EXPECT_THAT(error->errorMsg, HasSubstr("Malformed flag with '='"));
 }
 
 TEST(CommandLineParserTest, Parse_EqualSignsMalformedFail)
