@@ -106,14 +106,16 @@ include(GraphicsSample)
 # ------------------------------------------------------------------------------
 
 if(MSVC)
+    set(CMAKE_CXX_STANDARD 20)
     # Disable the following warnings:
     # 26812: unscoped enums are widely used by the project and dependencies.
     set(MSVC_DISABLED_WARNINGS "/wd26812")
     set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} ${MSVC_DISABLED_WARNINGS} /MP")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MSVC_DISABLED_WARNINGS} /MP /Zc:__cplusplus /std:c++20")
 else()
+    set(CMAKE_CXX_STANDARD 17)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-        -std=c++20 \
+        -std=c++17 \
         -fdiagnostics-color=always \
         -Wno-nullability-completeness \
         -Wno-deprecated-anon-enum-enum-conversion \
@@ -132,8 +134,6 @@ else()
         ")
     endif ()
 endif()
-
-set(CMAKE_CXX_STANDARD 20)
 
 # ------------------------------------------------------------------------------
 # Configure PPX directories.

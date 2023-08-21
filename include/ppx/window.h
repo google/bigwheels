@@ -43,7 +43,7 @@ struct WindowSize
     WindowSize(uint32_t width_, uint32_t height_)
         : width(width_), height(height_) {}
 
-    bool operator==(const WindowSize&) const = default;
+    bool operator==(const WindowSize& other) const { return width == other.width && height == other.height; };
 };
 
 class Window
