@@ -105,11 +105,11 @@ subprojects {
                                   '-DPPX_BUILD_TESTS=FALSE'
                     }
                     if (project.name.contains("_xr")) {
-                        cppFlags '-std=c++20',
+                        cppFlags '-std=c++17',
                                  '-DXR_USE_PLATFORM_ANDROID'
                     }
                     else {
-                        cppFlags '-std=c++20'
+                        cppFlags '-std=c++17'
                     }
 
                     if (project.hasProperty('DXC_PATH')) {

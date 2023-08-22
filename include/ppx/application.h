@@ -229,7 +229,7 @@ struct StandardOptions
     // Flags
     std::shared_ptr<KnobFlag<bool>> pListGpus;
     std::shared_ptr<KnobFlag<bool>> pUseSoftwareRenderer;
-#if not defined(PPX_LINUX_HEADLESS)
+#if !defined(PPX_LINUX_HEADLESS)
     std::shared_ptr<KnobFlag<bool>> pHeadless;
 #endif
     std::shared_ptr<KnobFlag<bool>> pDeterministic;
