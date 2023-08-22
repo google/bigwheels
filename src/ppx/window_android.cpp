@@ -60,9 +60,17 @@ public:
     void OnResizeEvent();
 
 private:
+    // Processes an input event to emulate a mouse.
+    void ProcessInputEvent(AInputEvent* pEvent);
+
     android_app* mAndroidApp  = nullptr;
     bool         mWindowReady = false;
     WindowSize   mSize        = {};
+
+    // Pointer ID of the first touch event when touch events began,
+    // it is reset to -1 when that first touch event has ended, even
+    // if other touch events are still active.
+    int32_t mFirstTouchId = -1;
 };
 
 std::unique_ptr<Window> Window::GetImplAndroid(Application* pApp)
@@ -154,8 +162,69 @@ void WindowImplAndroid::OnAppCmd(int32_t cmd)
     }
 }
 
+void WindowImplAndroid::ProcessInputEvent(AInputEvent* pEvent)
+{
+    int32_t eventType = AInputEvent_getType(pEvent);
+    if (eventType == AINPUT_EVENT_TYPE_MOTION) {
+        int32_t  eventAction = AMotionEvent_getAction(pEvent);
+        uint32_t flags       = eventAction & AMOTION_EVENT_ACTION_MASK;
+
+        switch (flags) {
+            case AMOTION_EVENT_ACTION_DOWN: {
+                // First touch event becomes the primary touch we track.
+                mFirstTouchId = AMotionEvent_getPointerId(pEvent, 0);
+                float x       = AMotionEvent_getX(pEvent, 0);
+                float y       = AMotionEvent_getY(pEvent, 0);
+                // Call MouseMoveCallback first without any buttons "pressed",
+                // to update the mouse location, since it is not tracked otherwise.
+                App()->MouseMoveCallback(x, y, 0);
+                App()->MouseDownCallback(x, y, MOUSE_BUTTON_LEFT);
+                break;
+            }
+            case AMOTION_EVENT_ACTION_UP: {
+                // Last touch event is up, if this was the first touch
+                // that went up, end mouse down event.
+                if (mFirstTouchId > 0) {
+                    mFirstTouchId = -1;
+                    float x       = AMotionEvent_getX(pEvent, 0);
+                    float y       = AMotionEvent_getY(pEvent, 0);
+                    App()->MouseUpCallback(x, y, MOUSE_BUTTON_LEFT);
+                }
+                break;
+            }
+            case AMOTION_EVENT_ACTION_POINTER_UP: {
+                int32_t pointerIndex = (eventAction & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK) >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
+                int32_t pointerId    = AMotionEvent_getPointerId(pEvent, pointerIndex);
+                // Only issue mouse up event, if the first registered touch has ended.
+                if (pointerId == mFirstTouchId) {
+                    mFirstTouchId = -1;
+                    float x       = AMotionEvent_getX(pEvent, pointerIndex);
+                    float y       = AMotionEvent_getY(pEvent, pointerIndex);
+                    App()->MouseUpCallback(x, y, MOUSE_BUTTON_LEFT);
+                }
+                break;
+            }
+            case AMOTION_EVENT_ACTION_MOVE: {
+                if (mFirstTouchId != -1) {
+                    // Only track the first registered touch event.
+                    float x = AMotionEvent_getX(pEvent, 0);
+                    float y = AMotionEvent_getY(pEvent, 0);
+                    App()->MouseMoveCallback(x, y, MOUSE_BUTTON_LEFT);
+                }
+                break;
+            }
+            default:
+                break;
+        }
+    }
+}
+
 int32_t WindowImplAndroid::OnInputEvent(AInputEvent* pEvent)
 {
+    if (App()->GetSettings()->emulateMouseAndroid) {
+        ProcessInputEvent(pEvent);
+    }
+
     if (App()->GetSettings()->enableImGui) {
         return ImGui_ImplAndroid_HandleInputEvent(pEvent);
     }
