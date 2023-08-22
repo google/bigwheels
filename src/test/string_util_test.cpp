@@ -385,253 +385,242 @@ TEST(StringUtilTest, ToString_VectorBool)
 // Parsing Strings
 // -------------------------------------------------------------------------------------------------
 
-TEST(StringUtilTest, ParseOrDefault_String)
+TEST(StringUtilTest, Parse_String)
 {
-    std::string toParse      = "foo";
-    std::string defaultValue = "default";
-    std::string wantValue    = "foo";
+    std::string toParse     = "foo";
+    std::string parsedValue = "default";
+    std::string wantValue   = "foo";
 
-    auto result = ParseOrDefault(toParse, defaultValue);
-    EXPECT_EQ(result.second, std::nullopt);
-    EXPECT_EQ(result.first, wantValue);
+    auto error = Parse(toParse, parsedValue);
+    EXPECT_EQ(error, std::nullopt);
+    EXPECT_EQ(parsedValue, wantValue);
 }
 
-TEST(StringUtilTest, ParseOrDefault_StringWithSpace)
+TEST(StringUtilTest, Parse_StringWithSpace)
 {
-    std::string toParse      = "foo bar";
-    std::string defaultValue = "default";
-    std::string wantValue    = "foo bar";
+    std::string toParse     = "foo bar";
+    std::string parsedValue = "default";
+    std::string wantValue   = "foo bar";
 
-    auto result = ParseOrDefault(toParse, defaultValue);
-    EXPECT_EQ(result.second, std::nullopt);
-    EXPECT_EQ(result.first, wantValue);
+    auto error = Parse(toParse, parsedValue);
+    EXPECT_EQ(error, std::nullopt);
+    EXPECT_EQ(parsedValue, wantValue);
 }
 
-TEST(StringUtilTest, ParseOrDefault_StringView)
+TEST(StringUtilTest, Parse_BoolTrueText)
 {
-    std::string      toParse      = "foo bar";
-    std::string_view defaultValue = "default";
-    std::string_view wantValue    = "foo bar";
+    std::string toParse     = "true";
+    bool        parsedValue = false;
+    bool        wantValue   = true;
 
-    auto result = ParseOrDefault(toParse, defaultValue);
-    EXPECT_EQ(result.second, std::nullopt);
-    EXPECT_EQ(result.first, wantValue);
+    auto error = Parse(toParse, parsedValue);
+    EXPECT_EQ(error, std::nullopt);
+    EXPECT_EQ(parsedValue, wantValue);
 }
 
-TEST(StringUtilTest, ParseOrDefault_BoolTrueText)
+TEST(StringUtilTest, Parse_BoolTrueOne)
 {
-    std::string toParse      = "true";
-    bool        defaultValue = false;
-    bool        wantValue    = true;
+    std::string toParse     = "1";
+    bool        parsedValue = false;
+    bool        wantValue   = true;
 
-    auto result = ParseOrDefault(toParse, defaultValue);
-    EXPECT_EQ(result.second, std::nullopt);
-    EXPECT_EQ(result.first, wantValue);
+    auto error = Parse(toParse, parsedValue);
+    EXPECT_EQ(error, std::nullopt);
+    EXPECT_EQ(parsedValue, wantValue);
 }
 
-TEST(StringUtilTest, ParseOrDefault_BoolTrueOne)
+TEST(StringUtilTest, Parse_BoolTrueEmpty)
 {
-    std::string toParse      = "1";
-    bool        defaultValue = false;
-    bool        wantValue    = true;
+    std::string toParse     = "";
+    bool        parsedValue = false;
+    bool        wantValue   = true;
 
-    auto result = ParseOrDefault(toParse, defaultValue);
-    EXPECT_EQ(result.second, std::nullopt);
-    EXPECT_EQ(result.first, wantValue);
+    auto error = Parse(toParse, parsedValue);
+    EXPECT_EQ(error, std::nullopt);
+    EXPECT_EQ(parsedValue, wantValue);
 }
 
-TEST(StringUtilTest, ParseOrDefault_BoolTrueEmpty)
+TEST(StringUtilTest, Parse_BoolFalseText)
 {
-    std::string toParse      = "";
-    bool        defaultValue = false;
-    bool        wantValue    = true;
+    std::string toParse     = "false";
+    bool        parsedValue = true;
+    bool        wantValue   = false;
 
-    auto result = ParseOrDefault(toParse, defaultValue);
-    EXPECT_EQ(result.second, std::nullopt);
-    EXPECT_EQ(result.first, wantValue);
+    auto error = Parse(toParse, parsedValue);
+    EXPECT_EQ(error, std::nullopt);
+    EXPECT_EQ(parsedValue, wantValue);
 }
 
-TEST(StringUtilTest, ParseOrDefault_BoolFalseText)
+TEST(StringUtilTest, Parse_BoolFalseZero)
 {
-    std::string toParse      = "false";
-    bool        defaultValue = true;
-    bool        wantValue    = false;
+    std::string toParse     = "0";
+    bool        parsedValue = true;
+    bool        wantValue   = false;
 
-    auto result = ParseOrDefault(toParse, defaultValue);
-    EXPECT_EQ(result.second, std::nullopt);
-    EXPECT_EQ(result.first, wantValue);
+    auto error = Parse(toParse, parsedValue);
+    EXPECT_EQ(error, std::nullopt);
+    EXPECT_EQ(parsedValue, wantValue);
 }
 
-TEST(StringUtilTest, ParseOrDefault_BoolFalseZero)
+TEST(StringUtilTest, Parse_BoolFail)
 {
-    std::string toParse      = "0";
-    bool        defaultValue = true;
-    bool        wantValue    = false;
+    std::string toParse     = "foo";
+    bool        parsedValue = true;
+    bool        wantValue   = true;
 
-    auto result = ParseOrDefault(toParse, defaultValue);
-    EXPECT_EQ(result.second, std::nullopt);
-    EXPECT_EQ(result.first, wantValue);
+    auto error = Parse(toParse, parsedValue);
+    EXPECT_NE(error, std::nullopt);
+    EXPECT_THAT(error->errorMsg, ::testing::HasSubstr("could not be parsed as bool"));
+    EXPECT_EQ(parsedValue, wantValue);
 }
 
-TEST(StringUtilTest, ParseOrDefault_BoolFail)
+TEST(StringUtilTest, Parse_IntegerPass)
 {
-    std::string toParse      = "foo";
-    bool        defaultValue = true;
-    bool        wantValue    = true;
+    std::string toParse     = "-10";
+    int         parsedValue = 0;
+    int         wantValue   = -10;
 
-    auto result = ParseOrDefault(toParse, defaultValue);
-    EXPECT_NE(result.second, std::nullopt);
-    EXPECT_THAT(result.second->errorMsg, ::testing::HasSubstr("could not be parsed as bool"));
-    EXPECT_EQ(result.first, wantValue);
+    auto error = Parse(toParse, parsedValue);
+    EXPECT_EQ(error, std::nullopt);
+    EXPECT_EQ(parsedValue, wantValue);
 }
 
-TEST(StringUtilTest, ParseOrDefault_IntegerPass)
+TEST(StringUtilTest, Parse_IntegerFail)
 {
-    std::string toParse      = "-10";
-    int         defaultValue = 0;
-    int         wantValue    = -10;
+    std::string toParse     = "foo";
+    int         parsedValue = 0;
+    int         wantValue   = 0;
 
-    auto result = ParseOrDefault(toParse, defaultValue);
-    EXPECT_EQ(result.second, std::nullopt);
-    EXPECT_EQ(result.first, wantValue);
+    auto error = Parse(toParse, parsedValue);
+    EXPECT_NE(error, std::nullopt);
+    EXPECT_THAT(error->errorMsg, ::testing::HasSubstr("could not be parsed as integral or float"));
+    EXPECT_EQ(parsedValue, wantValue);
 }
 
-TEST(StringUtilTest, ParseOrDefault_IntegerFail)
+TEST(StringUtilTest, Parse_IntegerEmptyFail)
 {
-    std::string toParse      = "foo";
-    int         defaultValue = 0;
-    int         wantValue    = 0;
+    std::string toParse     = "";
+    int         parsedValue = 1;
+    int         wantValue   = 1;
 
-    auto result = ParseOrDefault(toParse, defaultValue);
-    EXPECT_NE(result.second, std::nullopt);
-    EXPECT_THAT(result.second->errorMsg, ::testing::HasSubstr("could not be parsed as integral or float"));
-    EXPECT_EQ(result.first, wantValue);
+    auto error = Parse(toParse, parsedValue);
+    EXPECT_NE(error, std::nullopt);
+    EXPECT_THAT(error->errorMsg, ::testing::HasSubstr("could not be parsed as integral or float"));
+    EXPECT_EQ(parsedValue, wantValue);
 }
 
-TEST(StringUtilTest, ParseOrDefault_IntegerEmptyFail)
+TEST(StringUtilTest, Parse_SizetPass)
 {
-    std::string toParse      = "";
-    int         defaultValue = 1;
-    int         wantValue    = 1;
+    std::string toParse     = "5";
+    size_t      parsedValue = 0;
+    size_t      wantValue   = 5;
 
-    auto result = ParseOrDefault(toParse, defaultValue);
-    EXPECT_NE(result.second, std::nullopt);
-    EXPECT_THAT(result.second->errorMsg, ::testing::HasSubstr("could not be parsed as integral or float"));
-    EXPECT_EQ(result.first, wantValue);
+    auto error = Parse(toParse, parsedValue);
+    EXPECT_EQ(error, std::nullopt);
+    EXPECT_EQ(parsedValue, wantValue);
 }
 
-TEST(StringUtilTest, ParseOrDefault_SizetPass)
+TEST(StringUtilTest, Parse_SizetFail)
 {
-    std::string toParse      = "5";
-    size_t      defaultValue = 0;
-    size_t      wantValue    = 5;
+    std::string toParse     = "foo";
+    size_t      parsedValue = 0;
+    size_t      wantValue   = 0;
 
-    auto result = ParseOrDefault(toParse, defaultValue);
-    EXPECT_EQ(result.second, std::nullopt);
-    EXPECT_EQ(result.first, wantValue);
+    auto error = Parse(toParse, parsedValue);
+    EXPECT_NE(error, std::nullopt);
+    EXPECT_THAT(error->errorMsg, ::testing::HasSubstr("could not be parsed as integral or float"));
+    EXPECT_EQ(parsedValue, wantValue);
 }
 
-TEST(StringUtilTest, ParseOrDefault_SizetFail)
+TEST(StringUtilTest, Parse_FloatPass)
 {
-    std::string toParse      = "foo";
-    size_t      defaultValue = 0;
-    size_t      wantValue    = 0;
+    std::string toParse     = "5.6";
+    float       parsedValue = 0.0f;
+    float       wantValue   = 5.6f;
 
-    auto result = ParseOrDefault(toParse, defaultValue);
-    EXPECT_NE(result.second, std::nullopt);
-    EXPECT_THAT(result.second->errorMsg, ::testing::HasSubstr("could not be parsed as integral or float"));
-    EXPECT_EQ(result.first, wantValue);
+    auto error = Parse(toParse, parsedValue);
+    EXPECT_EQ(error, std::nullopt);
+    EXPECT_EQ(parsedValue, wantValue);
 }
 
-TEST(StringUtilTest, ParseOrDefault_FloatPass)
+TEST(StringUtilTest, Parse_FloatFail)
 {
-    std::string toParse      = "5.6";
-    float       defaultValue = 0.0f;
-    float       wantValue    = 5.6f;
+    std::string toParse     = "foo";
+    float       parsedValue = 0.0f;
+    float       wantValue   = 0.0f;
 
-    auto result = ParseOrDefault(toParse, defaultValue);
-    EXPECT_EQ(result.second, std::nullopt);
-    EXPECT_EQ(result.first, wantValue);
+    auto error = Parse(toParse, parsedValue);
+    EXPECT_NE(error, std::nullopt);
+    EXPECT_THAT(error->errorMsg, ::testing::HasSubstr("could not be parsed as integral or float"));
+    EXPECT_EQ(parsedValue, wantValue);
 }
 
-TEST(StringUtilTest, ParseOrDefault_FloatFail)
-{
-    std::string toParse      = "foo";
-    float       defaultValue = 0.0f;
-    float       wantValue    = 0.0f;
-
-    auto result = ParseOrDefault(toParse, defaultValue);
-    EXPECT_NE(result.second, std::nullopt);
-    EXPECT_THAT(result.second->errorMsg, ::testing::HasSubstr("could not be parsed as integral or float"));
-    EXPECT_EQ(result.first, wantValue);
-}
-
-TEST(StringUtilTest, ParseOrDefault_ListIntPass)
+TEST(StringUtilTest, Parse_ListIntPass)
 {
     std::string      toParse = "1,2,3";
-    std::vector<int> defaultValue;
+    std::vector<int> parsedValue;
     std::vector<int> wantValue = {1, 2, 3};
 
-    auto result = ParseOrDefault(toParse, defaultValue);
-    EXPECT_EQ(result.second, std::nullopt);
-    EXPECT_EQ(result.first, wantValue);
+    auto error = Parse(toParse, parsedValue);
+    EXPECT_EQ(error, std::nullopt);
+    EXPECT_EQ(parsedValue, wantValue);
 }
 
-TEST(StringUtilTest, ParseOrDefault_ListIntFail)
+TEST(StringUtilTest, Parse_ListIntFail)
 {
-    std::string      toParse      = "foo";
-    std::vector<int> defaultValue = {2, 3};
-    std::vector<int> wantValue    = {2, 3};
+    std::string      toParse     = "foo";
+    std::vector<int> parsedValue = {2, 3};
+    std::vector<int> wantValue   = {2, 3};
 
-    auto result = ParseOrDefault(toParse, defaultValue);
-    EXPECT_NE(result.second, std::nullopt);
-    EXPECT_THAT(result.second->errorMsg, ::testing::HasSubstr("could not be parsed as integral or float"));
-    EXPECT_EQ(result.first, wantValue);
+    auto error = Parse(toParse, parsedValue);
+    EXPECT_NE(error, std::nullopt);
+    EXPECT_THAT(error->errorMsg, ::testing::HasSubstr("could not be parsed as integral or float"));
+    EXPECT_EQ(parsedValue, wantValue);
 }
 
-TEST(StringUtilTest, ParseOrDefault_ResolutionPass)
+TEST(StringUtilTest, Parse_ResolutionPass)
 {
-    std::string         toParse      = "100x200";
-    std::pair<int, int> defaultValue = std::make_pair(-1, -1);
-    std::pair<int, int> wantValue    = std::make_pair(100, 200);
+    std::string         toParse     = "100x200";
+    std::pair<int, int> parsedValue = std::make_pair(-1, -1);
+    std::pair<int, int> wantValue   = std::make_pair(100, 200);
 
-    auto result = ParseOrDefault(toParse, defaultValue);
-    EXPECT_EQ(result.second, std::nullopt);
-    EXPECT_EQ(result.first, wantValue);
+    auto error = Parse(toParse, parsedValue);
+    EXPECT_EQ(error, std::nullopt);
+    EXPECT_EQ(parsedValue, wantValue);
 }
 
-TEST(StringUtilTest, ParseOrDefault_ResolutionNoDelimeterFail)
+TEST(StringUtilTest, Parse_ResolutionNoDelimeterFail)
 {
-    std::string         toParse      = "100X200";
-    std::pair<int, int> defaultValue = std::make_pair(-1, -1);
-    std::pair<int, int> wantValue    = std::make_pair(-1, -1);
+    std::string         toParse     = "100X200";
+    std::pair<int, int> parsedValue = std::make_pair(-1, -1);
+    std::pair<int, int> wantValue   = std::make_pair(-1, -1);
 
-    auto result = ParseOrDefault(toParse, defaultValue);
-    EXPECT_NE(result.second, std::nullopt);
-    EXPECT_THAT(result.second->errorMsg, ::testing::HasSubstr("resolution string must be in format <Width>x<Height>"));
-    EXPECT_EQ(result.first, wantValue);
+    auto error = Parse(toParse, parsedValue);
+    EXPECT_NE(error, std::nullopt);
+    EXPECT_THAT(error->errorMsg, ::testing::HasSubstr("resolution string must be in format <Width>x<Height>"));
+    EXPECT_EQ(parsedValue, wantValue);
 }
 
-TEST(StringUtilTest, ParseOrDefault_ResolutionWidthFail)
+TEST(StringUtilTest, Parse_ResolutionWidthFail)
 {
-    std::string         toParse      = "foox200";
-    std::pair<int, int> defaultValue = std::make_pair(-1, -1);
-    std::pair<int, int> wantValue    = std::make_pair(-1, -1);
+    std::string         toParse     = "foox200";
+    std::pair<int, int> parsedValue = std::make_pair(-1, -1);
+    std::pair<int, int> wantValue   = std::make_pair(-1, -1);
 
-    auto result = ParseOrDefault(toParse, defaultValue);
-    EXPECT_NE(result.second, std::nullopt);
-    EXPECT_THAT(result.second->errorMsg, ::testing::HasSubstr("width cannot be parsed"));
-    EXPECT_EQ(result.first, wantValue);
+    auto error = Parse(toParse, parsedValue);
+    EXPECT_NE(error, std::nullopt);
+    EXPECT_THAT(error->errorMsg, ::testing::HasSubstr("width cannot be parsed"));
+    EXPECT_EQ(parsedValue, wantValue);
 }
 
-TEST(StringUtilTest, ParseOrDefault_ResolutionHeightFail)
+TEST(StringUtilTest, Parse_ResolutionHeightFail)
 {
-    std::string         toParse      = "100xfoo";
-    std::pair<int, int> defaultValue = std::make_pair(-1, -1);
-    std::pair<int, int> wantValue    = std::make_pair(-1, -1);
+    std::string         toParse     = "100xfoo";
+    std::pair<int, int> parsedValue = std::make_pair(-1, -1);
+    std::pair<int, int> wantValue   = std::make_pair(-1, -1);
 
-    auto result = ParseOrDefault(toParse, defaultValue);
-    EXPECT_NE(result.second, std::nullopt);
-    EXPECT_THAT(result.second->errorMsg, ::testing::HasSubstr("height cannot be parsed"));
-    EXPECT_EQ(result.first, wantValue);
+    auto error = Parse(toParse, parsedValue);
+    EXPECT_NE(error, std::nullopt);
+    EXPECT_THAT(error->errorMsg, ::testing::HasSubstr("height cannot be parsed"));
+    EXPECT_EQ(parsedValue, wantValue);
 }

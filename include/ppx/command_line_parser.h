@@ -66,11 +66,13 @@ public:
             return defaultValue;
         }
         auto valueStr = it->second.back();
-        auto result   = ppx::string_util::ParseOrDefault(valueStr, defaultValue);
-        if (result.second != std::nullopt) {
-            PPX_LOG_ERROR(result.second->errorMsg);
+        T    parsedValue;
+        auto error = ppx::string_util::Parse(valueStr, parsedValue);
+        if (error != std::nullopt) {
+            PPX_LOG_ERROR(error->errorMsg);
+            return defaultValue;
         }
-        return result.first;
+        return parsedValue;
     }
 
     // Same as above, but intended for list flags that are specified on the command line
@@ -83,13 +85,14 @@ public:
             return defaultValues;
         }
         std::vector<T> parsedValues;
-        T              nullValue{};
         for (size_t i = 0; i < it->second.size(); ++i) {
-            auto result = ppx::string_util::ParseOrDefault(it->second.at(i), nullValue);
-            if (result.second != std::nullopt) {
-                PPX_LOG_ERROR(result.second->errorMsg);
+            T    parsedValue{};
+            auto error = ppx::string_util::Parse(it->second.at(i), parsedValue);
+            if (error != std::nullopt) {
+                PPX_LOG_ERROR(error->errorMsg);
+                return parsedValues;
             }
-            parsedValues.emplace_back(result.first);
+            parsedValues.emplace_back(parsedValue);
         }
         return parsedValues;
     }

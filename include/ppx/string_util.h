@@ -97,70 +97,71 @@ struct ParsingError
     std::string errorMsg;
 };
 
-// ParseOrDefault() attempts to parse valueStr into the same type as defaultValue
-// If successful, returns the parsed value and std::nullopt
-// If unsucessful, returns defaultValue and ParsingError
+// Parse() attempts to parse valueStr into the specified type
+// If successful, overwrites parsedValue and returns std::nullopt
+// If unsucessful, does not overwrite parsedValue and returns ParsingError instead
 
 // For strings
 // e.g. "a string" -> "a string"
-std::pair<std::string, std::optional<ParsingError>> ParseOrDefault(std::string_view valueStr, const std::string& defaultValue);
-std::pair<std::string, std::optional<ParsingError>> ParseOrDefault(std::string_view valueStr, std::string_view defaultValue);
+std::optional<ParsingError> Parse(std::string_view valueStr, std::string& parsedValue);
 
 // For bool
 // e.g. "true", "1", "" -> true
 // e.g. "false", "0" -> false
-std::pair<bool, std::optional<ParsingError>> ParseOrDefault(std::string_view valueStr, bool defaultValue);
+std::optional<ParsingError> Parse(std::string_view valueStr, bool& parsedValue);
 
 // For integers, chars and floats
 // e.g. "1.0" -> 1.0f
 // e.g. "-20" -> -20
 // e.g. "c" -> 'c'
 template <typename T>
-std::pair<T, std::optional<ParsingError>> ParseOrDefault(std::string_view valueStr, T defaultValue)
+std::optional<ParsingError> Parse(std::string_view valueStr, T& parsedValue)
 {
-    static_assert(std::is_integral_v<T> || std::is_floating_point_v<T>, "Attempted to parse invalid type for ParseOrDefault");
+    static_assert(std::is_integral_v<T> || std::is_floating_point_v<T>, "attempting to parse unsupported type");
 
     std::stringstream ss((std::string(valueStr)));
     T                 valueAsNum;
     ss >> valueAsNum;
     if (ss.fail()) {
-        return std::make_pair(defaultValue, "could not be parsed as integral or float: " + std::string(valueStr));
+        return "could not be parsed as integral or float: " + std::string(valueStr);
     }
-    return std::make_pair(valueAsNum, std::nullopt);
+    parsedValue = valueAsNum;
+    return std::nullopt;
 }
 
 // For lists with comma-separated string representation
 // e.g. "i1,i2,i3 with spaces,i4" -> {"i1", "i2", "i3 with spaces", "i4"}
 template <typename T>
-std::pair<typename std::vector<T>, std::optional<ParsingError>> ParseOrDefault(std::string_view valueStr, const std::vector<T>& defaultValues)
+std::optional<ParsingError> Parse(std::string_view valueStr, std::vector<T>& parsedValues)
 {
-    std::vector<std::string> splitStrings;
-    auto                     res = Split(valueStr, ',');
-    if (res == std::nullopt) {
+    std::vector<std::string>                     splitStrings;
+    std::optional<std::vector<std::string_view>> splitStringViews = Split(valueStr, ',');
+    if (splitStringViews == std::nullopt) {
         // String contains no commas
         splitStrings.emplace_back(valueStr);
     }
     else {
-        for (const auto sv : res.value()) {
+        for (const auto sv : splitStringViews.value()) {
             splitStrings.emplace_back(std::string(sv));
         }
     }
 
-    std::vector<T> parsedValues;
-    T              nullValue{};
+    std::vector<T> tempParsedValues;
     for (const auto& singleStr : splitStrings) {
-        auto res = ParseOrDefault(singleStr, nullValue);
-        if (res.second != std::nullopt) {
-            return std::make_pair(defaultValues, res.second);
+        T    parsedValue{};
+        auto error = Parse(singleStr, parsedValue);
+        if (error != std::nullopt) {
+            return error;
         }
-        parsedValues.emplace_back(res.first);
+        tempParsedValues.emplace_back(parsedValue);
     }
-    return std::make_pair(parsedValues, std::nullopt);
+    parsedValues = tempParsedValues;
+    return std::nullopt;
 }
 
 // For resolution with x-separated string representation
 // e.g. "600x800" -> (600, 800)
-std::pair<std::pair<int, int>, std::optional<ParsingError>> ParseOrDefault(std::string_view valueStr, const std::pair<int, int>& defaultValue);
+std::optional<ParsingError> Parse(std::string_view valueStr, std::pair<int, int>& parsedValues);
 
 } // namespace string_util
 } // namespace ppx

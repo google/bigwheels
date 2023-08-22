@@ -144,37 +144,17 @@ std::string WrapText(const std::string& s, size_t width, size_t indent)
 // Parsing Strings
 // -------------------------------------------------------------------------------------------------
 
-std::pair<std::pair<int, int>, std::optional<ParsingError>> ParseOrDefault(std::string_view valueStr, const std::pair<int, int>& defaultValue)
+std::optional<ParsingError> Parse(std::string_view valueStr, std::string& parsedValue)
 {
-    auto parseResolution = SplitInTwo(valueStr, 'x');
-    if (parseResolution == std::nullopt) {
-        return std::make_pair(defaultValue, "resolution string must be in format <Width>x<Height>: " + std::string(valueStr));
-    }
-    auto parseNResult = ParseOrDefault(parseResolution->first, defaultValue.first);
-    if (parseNResult.second != std::nullopt) {
-        return std::make_pair(defaultValue, "width cannot be parsed: " + parseNResult.second->errorMsg);
-    }
-    auto parseMResult = ParseOrDefault(parseResolution->second, defaultValue.first);
-    if (parseMResult.second != std::nullopt) {
-        return std::make_pair(defaultValue, "height cannot be parsed: " + parseMResult.second->errorMsg);
-    }
-    return std::make_pair(std::make_pair(parseNResult.first, parseMResult.first), std::nullopt);
+    parsedValue = std::string(valueStr);
+    return std::nullopt;
 }
 
-std::pair<std::string, std::optional<ParsingError>> ParseOrDefault(std::string_view valueStr, const std::string& defaultValue)
-{
-    return std::make_pair(std::string(valueStr), std::nullopt);
-}
-
-std::pair<std::string, std::optional<ParsingError>> ParseOrDefault(std::string_view valueStr, std::string_view defaultValue)
-{
-    return std::make_pair(std::string(valueStr), std::nullopt);
-}
-
-std::pair<bool, std::optional<ParsingError>> ParseOrDefault(std::string_view valueStr, bool defaultValue)
+std::optional<ParsingError> Parse(std::string_view valueStr, bool& parsedValue)
 {
     if (valueStr == "") {
-        return std::make_pair(true, std::nullopt);
+        parsedValue = true;
+        return std::nullopt;
     }
     std::stringstream ss{std::string(valueStr)};
     bool              valueAsBool;
@@ -183,10 +163,31 @@ std::pair<bool, std::optional<ParsingError>> ParseOrDefault(std::string_view val
         ss.clear();
         ss >> std::boolalpha >> valueAsBool;
         if (ss.fail()) {
-            return std::make_pair(defaultValue, "could not be parsed as bool: " + std::string(valueStr));
+            return "could not be parsed as bool: " + std::string(valueStr);
         }
     }
-    return std::make_pair(valueAsBool, std::nullopt);
+    parsedValue = valueAsBool;
+    return std::nullopt;
+}
+
+std::optional<ParsingError> Parse(std::string_view valueStr, std::pair<int, int>& parsedValues)
+{
+    std::optional<std::pair<std::string_view, std::string_view>> parseResolution = SplitInTwo(valueStr, 'x');
+    if (parseResolution == std::nullopt) {
+        return "resolution string must be in format <Width>x<Height>: " + std::string(valueStr);
+    }
+    int  N, M;
+    auto error = Parse(parseResolution->first, N);
+    if (error != std::nullopt) {
+        return "width cannot be parsed: " + error->errorMsg;
+    }
+    error = Parse(parseResolution->second, M);
+    if (error != std::nullopt) {
+        return "height cannot be parsed: " + error->errorMsg;
+    }
+    parsedValues.first  = N;
+    parsedValues.second = M;
+    return std::nullopt;
 }
 
 } // namespace string_util
