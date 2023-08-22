@@ -1,5 +1,0 @@
-ArrayList projectAssets = [
-    "basic/shaders/spv"
-]
-
-project.assets = projectAssets
