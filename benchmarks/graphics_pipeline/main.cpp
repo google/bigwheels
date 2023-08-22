@@ -234,14 +234,21 @@ void FreeCamera::Turn(float deltaTheta, float deltaPhi)
 
 void ProjApp::InitKnobs()
 {
+    const auto& cl_options = GetExtraOptions();
+    PPX_ASSERT_MSG(!cl_options.HasExtraOption("vs-shader-index"), "--vs-shader-index flag has been replaced, instead use --vs and specify the name of the vertex shader");
+    PPX_ASSERT_MSG(!cl_options.HasExtraOption("ps-shader-index"), "--ps-shader-index flag has been replaced, instead use --ps and specify the name of the pixel shader");
+
     pKnobVs = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("vs", 0, kAvailableVsShaders);
     pKnobVs->SetDisplayName("Vertex Shader");
+    pKnobVs->SetFlagDescription("Select the vertex shader for the graphics pipeline.");
 
     pKnobPs = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("ps", 0, kAvailablePsShaders);
     pKnobPs->SetDisplayName("Pixel Shader");
+    pKnobPs->SetFlagDescription("Select the pixel shader for the graphics pipeline.");
 
-    pSphereInstanceCount = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("sphere count", 50, 1, kMaxSphereInstanceCount);
+    pSphereInstanceCount = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("sphere-count", 50, 1, kMaxSphereInstanceCount);
     pSphereInstanceCount->SetDisplayName("Sphere Count");
+    pSphereInstanceCount->SetFlagDescription("Select the number of spheres to draw on the screen.");
 }
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
