@@ -1160,8 +1160,7 @@ int Application::Run(int argc, char** argv)
     }
 
     // Parse args.
-    if (auto error = mCommandLineParser.Parse(argc, const_cast<const char**>(argv))) {
-        PPX_LOG_ERROR(error->errorMsg);
+    if (Failed(mCommandLineParser.Parse(argc, const_cast<const char**>(argv)))) {
         PPX_ASSERT_MSG(false, "Unable to parse command line arguments");
         return EXIT_FAILURE;
     }

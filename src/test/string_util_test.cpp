@@ -77,112 +77,119 @@ TEST(StringUtilTest, TrimBothEnds_LeftAndRightSpaces)
 
 TEST(StringUtilTest, Split_EmptyString)
 {
-    std::string_view toSplit = "";
-    auto             res     = Split(toSplit, ',');
-    EXPECT_EQ(res, std::nullopt);
+    std::string_view              toSplit = "";
+    std::vector<std::string_view> want    = {};
+    std::vector<std::string_view> got     = Split(toSplit, ',');
+    EXPECT_EQ(got, want);
 }
 
 TEST(StringUtilTest, Split_NoDelimiter)
 {
-    std::string_view toSplit = "Apple";
-    auto             res     = Split(toSplit, ',');
-    EXPECT_NE(res, std::nullopt);
-    EXPECT_EQ(res->size(), 1);
-    EXPECT_EQ(res->at(0), "Apple");
+    std::string_view              toSplit = "Apple";
+    std::vector<std::string_view> want    = {"Apple"};
+    std::vector<std::string_view> got     = Split(toSplit, ',');
+    EXPECT_EQ(got.size(), want.size());
+    EXPECT_EQ(got, want);
 }
 
 TEST(StringUtilTest, Split_OneDelimiter)
 {
-    std::string_view toSplit = "Apple,Banana";
-    auto             res     = Split(toSplit, ',');
-    EXPECT_NE(res, std::nullopt);
-    EXPECT_EQ(res->size(), 2);
-    EXPECT_EQ(res->at(0), "Apple");
-    EXPECT_EQ(res->at(1), "Banana");
+    std::string_view              toSplit = "Apple,Banana";
+    std::vector<std::string_view> want    = {"Apple", "Banana"};
+    std::vector<std::string_view> got     = Split(toSplit, ',');
+    EXPECT_EQ(got.size(), want.size());
+    EXPECT_EQ(got, want);
 }
 
 TEST(StringUtilTest, Split_MultipleElements)
 {
-    std::string_view toSplit = "Apple,Banana,Orange,Pear";
-    auto             res     = Split(toSplit, ',');
-    EXPECT_NE(res, std::nullopt);
-    EXPECT_EQ(res->size(), 4);
-    EXPECT_EQ(res->at(0), "Apple");
-    EXPECT_EQ(res->at(1), "Banana");
-    EXPECT_EQ(res->at(2), "Orange");
-    EXPECT_EQ(res->at(3), "Pear");
+    std::string_view              toSplit = "Apple,Banana,Orange,Pear";
+    std::vector<std::string_view> want    = {"Apple", "Banana", "Orange", "Pear"};
+    std::vector<std::string_view> got     = Split(toSplit, ',');
+    EXPECT_EQ(got.size(), want.size());
+    EXPECT_EQ(got, want);
 }
 
 TEST(StringUtilTest, Split_LeadingTrailingDelimiter)
 {
-    std::string_view toSplit = ",Apple,";
-    auto             res     = Split(toSplit, ',');
-    EXPECT_EQ(res, std::nullopt);
+    std::string_view              toSplit = ",Apple,";
+    std::vector<std::string_view> want    = {"", "Apple", ""};
+    std::vector<std::string_view> got     = Split(toSplit, ',');
+    EXPECT_EQ(got.size(), want.size());
+    EXPECT_EQ(got, want);
 }
 
 TEST(StringUtilTest, Split_ConsecutiveDelimiters)
 {
-    std::string_view toSplit = "Apple,,,Banana";
-    auto             res     = Split(toSplit, ',');
-    EXPECT_EQ(res, std::nullopt);
+    std::string_view              toSplit = "Apple,,,Banana";
+    std::vector<std::string_view> want    = {"Apple", "", "", "Banana"};
+    std::vector<std::string_view> got     = Split(toSplit, ',');
+    EXPECT_EQ(got.size(), want.size());
+    EXPECT_EQ(got, want);
 }
 
 TEST(StringUtilTest, SplitInTwo_EmptyString)
 {
-    std::string_view toSplit = "";
-    auto             res     = SplitInTwo(toSplit, ',');
-    EXPECT_EQ(res, std::nullopt);
+    std::string_view                              toSplit = "";
+    std::pair<std::string_view, std::string_view> want    = std::make_pair("", "");
+    std::pair<std::string_view, std::string_view> got     = SplitInTwo(toSplit, ',');
+    EXPECT_EQ(got, want);
 }
 
 TEST(StringUtilTest, SplitInTwo_Pass)
 {
-    std::string_view toSplit = "Apple,Banana";
-    auto             res     = SplitInTwo(toSplit, ',');
-    EXPECT_NE(res, std::nullopt);
-    EXPECT_EQ(res->first, "Apple");
-    EXPECT_EQ(res->second, "Banana");
+    std::string_view                              toSplit = "Apple,Banana";
+    std::pair<std::string_view, std::string_view> want    = std::make_pair("Apple", "Banana");
+    std::pair<std::string_view, std::string_view> got     = SplitInTwo(toSplit, ',');
+    EXPECT_EQ(got, want);
 }
 
 TEST(StringUtilTest, SplitInTwo_NoDelimiter)
 {
-    std::string_view toSplit = "Apple";
-    auto             res     = SplitInTwo(toSplit, ',');
-    EXPECT_EQ(res, std::nullopt);
+    std::string_view                              toSplit = "Apple";
+    std::pair<std::string_view, std::string_view> want    = std::make_pair("", "");
+    std::pair<std::string_view, std::string_view> got     = SplitInTwo(toSplit, ',');
+    EXPECT_EQ(got, want);
 }
 
 TEST(StringUtilTest, SplitInTwo_MissingFirstHalf)
 {
-    std::string_view toSplit = ",Banana";
-    auto             res     = SplitInTwo(toSplit, ',');
-    EXPECT_EQ(res, std::nullopt);
+    std::string_view                              toSplit = ",Banana";
+    std::pair<std::string_view, std::string_view> want    = std::make_pair("", "");
+    std::pair<std::string_view, std::string_view> got     = SplitInTwo(toSplit, ',');
+    EXPECT_EQ(got, want);
 }
 
 TEST(StringUtilTest, SplitInTwo_MissingSecondHalf)
 {
-    std::string_view toSplit = "Apple,";
-    auto             res     = SplitInTwo(toSplit, ',');
-    EXPECT_EQ(res, std::nullopt);
+    std::string_view                              toSplit = "Apple,";
+    std::pair<std::string_view, std::string_view> want    = std::make_pair("", "");
+    std::pair<std::string_view, std::string_view> got     = SplitInTwo(toSplit, ',');
+    EXPECT_EQ(got, want);
 }
 
 TEST(StringUtilTest, SplitInTwo_MoreThanTwoElements)
 {
-    std::string_view toSplit = "Apple,Banana,Orange";
-    auto             res     = SplitInTwo(toSplit, ',');
-    EXPECT_EQ(res, std::nullopt);
+    std::string_view                              toSplit = "Apple,Banana,Orange";
+    std::pair<std::string_view, std::string_view> want    = std::make_pair("", "");
+    std::pair<std::string_view, std::string_view> got     = SplitInTwo(toSplit, ',');
+    EXPECT_EQ(got, want);
 }
 
 TEST(StringUtilTest, SplitInTwo_TwoElementsWithLeadingTrailingDelimeters)
 {
-    std::string_view toSplit = ",Apple,Banana,";
-    auto             res     = SplitInTwo(toSplit, ',');
-    EXPECT_EQ(res, std::nullopt);
+    std::string_view                              toSplit = ",Apple,Banana,";
+    std::pair<std::string_view, std::string_view> want    = std::make_pair("", "");
+    std::pair<std::string_view, std::string_view> got     = SplitInTwo(toSplit, ',');
+    EXPECT_EQ(got, want);
 }
 
 TEST(StringUtilTest, SplitInTwo_TwoElementsWithConsecutiveDelimeters)
 {
-    std::string_view toSplit = "Apple,,Banana";
-    auto             res     = SplitInTwo(toSplit, ',');
-    EXPECT_EQ(res, std::nullopt);
+    std::string_view                              toSplit = "Apple,,Banana";
+    std::pair<std::string_view, std::string_view> want    = std::make_pair("", "");
+    std::pair<std::string_view, std::string_view> got     = SplitInTwo(toSplit, ',');
+    EXPECT_EQ(got, want);
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -391,8 +398,8 @@ TEST(StringUtilTest, Parse_String)
     std::string parsedValue = "default";
     std::string wantValue   = "foo";
 
-    auto error = Parse(toParse, parsedValue);
-    EXPECT_EQ(error, std::nullopt);
+    auto res = Parse(toParse, parsedValue);
+    EXPECT_TRUE(ppx::Success(res));
     EXPECT_EQ(parsedValue, wantValue);
 }
 
@@ -402,8 +409,8 @@ TEST(StringUtilTest, Parse_StringWithSpace)
     std::string parsedValue = "default";
     std::string wantValue   = "foo bar";
 
-    auto error = Parse(toParse, parsedValue);
-    EXPECT_EQ(error, std::nullopt);
+    auto res = Parse(toParse, parsedValue);
+    EXPECT_TRUE(ppx::Success(res));
     EXPECT_EQ(parsedValue, wantValue);
 }
 
@@ -413,8 +420,8 @@ TEST(StringUtilTest, Parse_BoolTrueText)
     bool        parsedValue = false;
     bool        wantValue   = true;
 
-    auto error = Parse(toParse, parsedValue);
-    EXPECT_EQ(error, std::nullopt);
+    auto res = Parse(toParse, parsedValue);
+    EXPECT_TRUE(ppx::Success(res));
     EXPECT_EQ(parsedValue, wantValue);
 }
 
@@ -424,8 +431,8 @@ TEST(StringUtilTest, Parse_BoolTrueOne)
     bool        parsedValue = false;
     bool        wantValue   = true;
 
-    auto error = Parse(toParse, parsedValue);
-    EXPECT_EQ(error, std::nullopt);
+    auto res = Parse(toParse, parsedValue);
+    EXPECT_TRUE(ppx::Success(res));
     EXPECT_EQ(parsedValue, wantValue);
 }
 
@@ -435,8 +442,8 @@ TEST(StringUtilTest, Parse_BoolTrueEmpty)
     bool        parsedValue = false;
     bool        wantValue   = true;
 
-    auto error = Parse(toParse, parsedValue);
-    EXPECT_EQ(error, std::nullopt);
+    auto res = Parse(toParse, parsedValue);
+    EXPECT_TRUE(ppx::Success(res));
     EXPECT_EQ(parsedValue, wantValue);
 }
 
@@ -446,8 +453,8 @@ TEST(StringUtilTest, Parse_BoolFalseText)
     bool        parsedValue = true;
     bool        wantValue   = false;
 
-    auto error = Parse(toParse, parsedValue);
-    EXPECT_EQ(error, std::nullopt);
+    auto res = Parse(toParse, parsedValue);
+    EXPECT_TRUE(ppx::Success(res));
     EXPECT_EQ(parsedValue, wantValue);
 }
 
@@ -457,8 +464,8 @@ TEST(StringUtilTest, Parse_BoolFalseZero)
     bool        parsedValue = true;
     bool        wantValue   = false;
 
-    auto error = Parse(toParse, parsedValue);
-    EXPECT_EQ(error, std::nullopt);
+    auto res = Parse(toParse, parsedValue);
+    EXPECT_TRUE(ppx::Success(res));
     EXPECT_EQ(parsedValue, wantValue);
 }
 
@@ -468,9 +475,8 @@ TEST(StringUtilTest, Parse_BoolFail)
     bool        parsedValue = true;
     bool        wantValue   = true;
 
-    auto error = Parse(toParse, parsedValue);
-    EXPECT_NE(error, std::nullopt);
-    EXPECT_THAT(error->errorMsg, ::testing::HasSubstr("could not be parsed as bool"));
+    auto res = Parse(toParse, parsedValue);
+    EXPECT_TRUE(ppx::Failed(res));
     EXPECT_EQ(parsedValue, wantValue);
 }
 
@@ -480,8 +486,8 @@ TEST(StringUtilTest, Parse_IntegerPass)
     int         parsedValue = 0;
     int         wantValue   = -10;
 
-    auto error = Parse(toParse, parsedValue);
-    EXPECT_EQ(error, std::nullopt);
+    auto res = Parse(toParse, parsedValue);
+    EXPECT_TRUE(ppx::Success(res));
     EXPECT_EQ(parsedValue, wantValue);
 }
 
@@ -491,9 +497,8 @@ TEST(StringUtilTest, Parse_IntegerFail)
     int         parsedValue = 0;
     int         wantValue   = 0;
 
-    auto error = Parse(toParse, parsedValue);
-    EXPECT_NE(error, std::nullopt);
-    EXPECT_THAT(error->errorMsg, ::testing::HasSubstr("could not be parsed as integral or float"));
+    auto res = Parse(toParse, parsedValue);
+    EXPECT_TRUE(ppx::Failed(res));
     EXPECT_EQ(parsedValue, wantValue);
 }
 
@@ -503,9 +508,8 @@ TEST(StringUtilTest, Parse_IntegerEmptyFail)
     int         parsedValue = 1;
     int         wantValue   = 1;
 
-    auto error = Parse(toParse, parsedValue);
-    EXPECT_NE(error, std::nullopt);
-    EXPECT_THAT(error->errorMsg, ::testing::HasSubstr("could not be parsed as integral or float"));
+    auto res = Parse(toParse, parsedValue);
+    EXPECT_TRUE(ppx::Failed(res));
     EXPECT_EQ(parsedValue, wantValue);
 }
 
@@ -515,8 +519,8 @@ TEST(StringUtilTest, Parse_SizetPass)
     size_t      parsedValue = 0;
     size_t      wantValue   = 5;
 
-    auto error = Parse(toParse, parsedValue);
-    EXPECT_EQ(error, std::nullopt);
+    auto res = Parse(toParse, parsedValue);
+    EXPECT_TRUE(ppx::Success(res));
     EXPECT_EQ(parsedValue, wantValue);
 }
 
@@ -526,9 +530,8 @@ TEST(StringUtilTest, Parse_SizetFail)
     size_t      parsedValue = 0;
     size_t      wantValue   = 0;
 
-    auto error = Parse(toParse, parsedValue);
-    EXPECT_NE(error, std::nullopt);
-    EXPECT_THAT(error->errorMsg, ::testing::HasSubstr("could not be parsed as integral or float"));
+    auto res = Parse(toParse, parsedValue);
+    EXPECT_TRUE(ppx::Failed(res));
     EXPECT_EQ(parsedValue, wantValue);
 }
 
@@ -538,8 +541,8 @@ TEST(StringUtilTest, Parse_FloatPass)
     float       parsedValue = 0.0f;
     float       wantValue   = 5.6f;
 
-    auto error = Parse(toParse, parsedValue);
-    EXPECT_EQ(error, std::nullopt);
+    auto res = Parse(toParse, parsedValue);
+    EXPECT_TRUE(ppx::Success(res));
     EXPECT_EQ(parsedValue, wantValue);
 }
 
@@ -549,32 +552,8 @@ TEST(StringUtilTest, Parse_FloatFail)
     float       parsedValue = 0.0f;
     float       wantValue   = 0.0f;
 
-    auto error = Parse(toParse, parsedValue);
-    EXPECT_NE(error, std::nullopt);
-    EXPECT_THAT(error->errorMsg, ::testing::HasSubstr("could not be parsed as integral or float"));
-    EXPECT_EQ(parsedValue, wantValue);
-}
-
-TEST(StringUtilTest, Parse_ListIntPass)
-{
-    std::string      toParse = "1,2,3";
-    std::vector<int> parsedValue;
-    std::vector<int> wantValue = {1, 2, 3};
-
-    auto error = Parse(toParse, parsedValue);
-    EXPECT_EQ(error, std::nullopt);
-    EXPECT_EQ(parsedValue, wantValue);
-}
-
-TEST(StringUtilTest, Parse_ListIntFail)
-{
-    std::string      toParse     = "foo";
-    std::vector<int> parsedValue = {2, 3};
-    std::vector<int> wantValue   = {2, 3};
-
-    auto error = Parse(toParse, parsedValue);
-    EXPECT_NE(error, std::nullopt);
-    EXPECT_THAT(error->errorMsg, ::testing::HasSubstr("could not be parsed as integral or float"));
+    auto res = Parse(toParse, parsedValue);
+    EXPECT_TRUE(ppx::Failed(res));
     EXPECT_EQ(parsedValue, wantValue);
 }
 
@@ -584,8 +563,8 @@ TEST(StringUtilTest, Parse_ResolutionPass)
     std::pair<int, int> parsedValue = std::make_pair(-1, -1);
     std::pair<int, int> wantValue   = std::make_pair(100, 200);
 
-    auto error = Parse(toParse, parsedValue);
-    EXPECT_EQ(error, std::nullopt);
+    auto res = Parse(toParse, parsedValue);
+    EXPECT_TRUE(ppx::Success(res));
     EXPECT_EQ(parsedValue, wantValue);
 }
 
@@ -595,9 +574,8 @@ TEST(StringUtilTest, Parse_ResolutionNoDelimeterFail)
     std::pair<int, int> parsedValue = std::make_pair(-1, -1);
     std::pair<int, int> wantValue   = std::make_pair(-1, -1);
 
-    auto error = Parse(toParse, parsedValue);
-    EXPECT_NE(error, std::nullopt);
-    EXPECT_THAT(error->errorMsg, ::testing::HasSubstr("resolution string must be in format <Width>x<Height>"));
+    auto res = Parse(toParse, parsedValue);
+    EXPECT_TRUE(ppx::Failed(res));
     EXPECT_EQ(parsedValue, wantValue);
 }
 
@@ -607,9 +585,8 @@ TEST(StringUtilTest, Parse_ResolutionWidthFail)
     std::pair<int, int> parsedValue = std::make_pair(-1, -1);
     std::pair<int, int> wantValue   = std::make_pair(-1, -1);
 
-    auto error = Parse(toParse, parsedValue);
-    EXPECT_NE(error, std::nullopt);
-    EXPECT_THAT(error->errorMsg, ::testing::HasSubstr("width cannot be parsed"));
+    auto res = Parse(toParse, parsedValue);
+    EXPECT_TRUE(ppx::Failed(res));
     EXPECT_EQ(parsedValue, wantValue);
 }
 
@@ -619,8 +596,7 @@ TEST(StringUtilTest, Parse_ResolutionHeightFail)
     std::pair<int, int> parsedValue = std::make_pair(-1, -1);
     std::pair<int, int> wantValue   = std::make_pair(-1, -1);
 
-    auto error = Parse(toParse, parsedValue);
-    EXPECT_NE(error, std::nullopt);
-    EXPECT_THAT(error->errorMsg, ::testing::HasSubstr("height cannot be parsed"));
+    auto res = Parse(toParse, parsedValue);
+    EXPECT_TRUE(ppx::Failed(res));
     EXPECT_EQ(parsedValue, wantValue);
 }

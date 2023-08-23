@@ -68,11 +68,11 @@ void CliOptions::AddOption(std::string_view optionName, const std::vector<std::s
     storedValueArray.insert(storedValueArray.end(), valueArray.cbegin(), valueArray.cend());
 }
 
-std::optional<ppx::string_util::ParsingError> CommandLineParser::Parse(int argc, const char* argv[])
+Result CommandLineParser::Parse(int argc, const char* argv[])
 {
     // argc should be >= 1 and argv[0] the name of the executable.
     if (argc < 2) {
-        return std::nullopt;
+        return SUCCESS;
     }
 
     // Initial pass to trim the name of executable and to split any flag and parameters that are connected with '='
@@ -80,12 +80,13 @@ std::optional<ppx::string_util::ParsingError> CommandLineParser::Parse(int argc,
     for (size_t i = 1; i < argc; ++i) {
         std::string_view argString(argv[i]);
         if (argString.find('=') != std::string_view::npos) {
-            auto res = ppx::string_util::SplitInTwo(argString, '=');
-            if (res == std::nullopt) {
-                return "Malformed flag with '=': \"" + std::string(argString) + "\"";
+            std::pair<std::string_view, std::string_view> optionAndValue = ppx::string_util::SplitInTwo(argString, '=');
+            if (optionAndValue.first == "") {
+                PPX_LOG_ERROR("Malformed flag with '=': \"" << argString << "\"");
+                return ERROR_FAILED;
             }
-            args.emplace_back(res->first);
-            args.emplace_back(res->second);
+            args.emplace_back(optionAndValue.first);
+            args.emplace_back(optionAndValue.second);
             continue;
         }
         args.emplace_back(argString);
@@ -112,7 +113,8 @@ std::optional<ppx::string_util::ParsingError> CommandLineParser::Parse(int argc,
     for (const auto& jsonPath : configJsonPaths) {
         std::ifstream f(jsonPath);
         if (f.fail()) {
-            return "Cannot locate file --" + mJsonConfigFlagName + ": " + jsonPath;
+            PPX_LOG_ERROR("Cannot locate file --" << mJsonConfigFlagName << ": " << jsonPath);
+            return ERROR_FAILED;
         }
 
         PPX_LOG_INFO("Parsing JSON config file: " << jsonPath);
@@ -126,12 +128,14 @@ std::optional<ppx::string_util::ParsingError> CommandLineParser::Parse(int argc,
                                                           << "byte position of error: " << e.byte);
         }
         if (!(data.is_object())) {
-            return "The following config file could not be parsed as a JSON object: " + jsonPath;
+            PPX_LOG_ERROR("The following config file could not be parsed as a JSON object: " << jsonPath);
+            return ERROR_FAILED;
         }
 
         CliOptions jsonOptions;
-        if (auto error = ParseJson(jsonOptions, data)) {
-            return error;
+        auto       res = ParseJson(jsonOptions, data);
+        if (Failed(res)) {
+            return res;
         }
         mOpts.OverwriteOptions(jsonOptions);
     }
@@ -141,7 +145,8 @@ std::optional<ppx::string_util::ParsingError> CommandLineParser::Parse(int argc,
     for (size_t i = 0; i < args.size(); ++i) {
         std::string_view name = ppx::string_util::TrimBothEnds(args[i]);
         if (!StartsWithDoubleDash(name)) {
-            return "Invalid command-line option: \"" + std::string(name) + "\"";
+            PPX_LOG_ERROR("Invalid command-line option: \"" << name << "\"");
+            return ERROR_FAILED;
         }
         name = name.substr(2);
 
@@ -154,17 +159,17 @@ std::optional<ppx::string_util::ParsingError> CommandLineParser::Parse(int argc,
                 ++i;
             }
         }
-
-        if (auto error = ParseOption(commandlineOptions, name, value)) {
-            return error;
+        auto res = ParseOption(commandlineOptions, name, value);
+        if (Failed(res)) {
+            return res;
         }
     }
     mOpts.OverwriteOptions(commandlineOptions);
 
-    return std::nullopt;
+    return SUCCESS;
 }
 
-std::optional<ppx::string_util::ParsingError> CommandLineParser::ParseJson(CliOptions& cliOptions, const nlohmann::json& jsonConfig)
+Result CommandLineParser::ParseJson(CliOptions& cliOptions, const nlohmann::json& jsonConfig)
 {
     std::stringstream ss;
     for (auto it = jsonConfig.cbegin(); it != jsonConfig.cend(); ++it) {
@@ -185,32 +190,22 @@ std::optional<ppx::string_util::ParsingError> CommandLineParser::ParseJson(CliOp
         ss.str("");
         cliOptions.AddOption(it.key(), ppx::string_util::TrimBothEnds(value, " \t\""));
     }
-    return std::nullopt;
+    return SUCCESS;
 }
 
-std::optional<ppx::string_util::ParsingError> CommandLineParser::ParseOption(CliOptions& cliOptions, std::string_view optionName, std::string_view valueStr)
+Result CommandLineParser::ParseOption(CliOptions& cliOptions, std::string_view optionName, std::string_view valueStr)
 {
     if (optionName.length() > 2 && optionName.substr(0, 3) == "no-") {
         if (valueStr.length() > 0) {
-            return "invalid prefix no- for option \"" + std::string(optionName) + "\" and value \"" + std::string(valueStr) + "\"";
+            PPX_LOG_ERROR("invalid prefix no- for option \"" << optionName << "\" and value \"" << valueStr << "\"");
+            return ERROR_FAILED;
         }
         optionName = optionName.substr(3);
         valueStr   = "0";
     }
 
-    if (valueStr.find(',') != std::string_view::npos) {
-        auto substringArray = ppx::string_util::Split(valueStr, ',');
-        if (substringArray == std::nullopt) {
-            return "invalid comma use for option \"" + std::string(optionName) + "\" and value \"" + std::string(valueStr) + "\"";
-        }
-        // Special case, comma-separated value lists specified on the commandline are added directly to cliOptions to avoid inserting element by element
-        std::vector<std::string> substringStringArray(substringArray->cbegin(), substringArray->cend());
-        cliOptions.AddOption(optionName, substringStringArray);
-        return std::nullopt;
-    }
-
     cliOptions.AddOption(optionName, valueStr);
-    return std::nullopt;
+    return SUCCESS;
 }
 
 } // namespace ppx

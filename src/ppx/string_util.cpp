@@ -59,10 +59,10 @@ std::string_view TrimBothEnds(std::string_view s, std::string_view c)
     return s.substr(strBegin, strRange);
 }
 
-std::optional<std::vector<std::string_view>> Split(std::string_view s, char delimiter)
+std::vector<std::string_view> Split(std::string_view s, char delimiter)
 {
     if (s.size() == 0) {
-        return std::nullopt;
+        return {};
     }
 
     std::vector<std::string_view> substrings;
@@ -75,29 +75,28 @@ std::optional<std::vector<std::string_view>> Split(std::string_view s, char deli
         }
 
         std::string_view element = remainingString.substr(0, delimeterIndex);
-        if (element.length() == 0) {
-            return std::nullopt;
-        }
         substrings.push_back(element);
 
         if (delimeterIndex == remainingString.length() - 1) {
-            return std::nullopt;
+            substrings.push_back("");
+            break;
         }
         remainingString = remainingString.substr(delimeterIndex + 1);
     }
     return substrings;
 }
 
-std::optional<std::pair<std::string_view, std::string_view>> SplitInTwo(std::string_view s, char delimiter)
+std::pair<std::string_view, std::string_view> SplitInTwo(std::string_view s, char delimiter)
 {
+    std::pair<std::string_view, std::string_view> stringViewPair;
     if (s.size() == 0) {
-        return std::nullopt;
+        return stringViewPair;
     }
     auto splitResult = Split(s, delimiter);
-    if (splitResult == std::nullopt || splitResult->size() != 2) {
-        return std::nullopt;
+    if (splitResult.size() != 2 || splitResult.at(0) == "" || splitResult.at(1) == "") {
+        return stringViewPair;
     }
-    return std::make_pair(splitResult->at(0), splitResult->at(1));
+    return std::make_pair(splitResult.at(0), splitResult.at(1));
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -140,21 +139,23 @@ std::string WrapText(const std::string& s, size_t width, size_t indent)
     return wrappedText;
 }
 
+} // namespace string_util
+
 // -------------------------------------------------------------------------------------------------
 // Parsing Strings
 // -------------------------------------------------------------------------------------------------
 
-std::optional<ParsingError> Parse(std::string_view valueStr, std::string& parsedValue)
+Result string_util::Parse(std::string_view valueStr, std::string& parsedValue)
 {
     parsedValue = std::string(valueStr);
-    return std::nullopt;
+    return SUCCESS;
 }
 
-std::optional<ParsingError> Parse(std::string_view valueStr, bool& parsedValue)
+Result string_util::Parse(std::string_view valueStr, bool& parsedValue)
 {
     if (valueStr == "") {
         parsedValue = true;
-        return std::nullopt;
+        return SUCCESS;
     }
     std::stringstream ss{std::string(valueStr)};
     bool              valueAsBool;
@@ -163,32 +164,35 @@ std::optional<ParsingError> Parse(std::string_view valueStr, bool& parsedValue)
         ss.clear();
         ss >> std::boolalpha >> valueAsBool;
         if (ss.fail()) {
-            return "could not be parsed as bool: " + std::string(valueStr);
+            PPX_LOG_ERROR("could not be parsed as bool: " << valueStr);
+            return ERROR_FAILED;
         }
     }
     parsedValue = valueAsBool;
-    return std::nullopt;
+    return SUCCESS;
 }
 
-std::optional<ParsingError> Parse(std::string_view valueStr, std::pair<int, int>& parsedValues)
+Result string_util::Parse(std::string_view valueStr, std::pair<int, int>& parsedValues)
 {
-    std::optional<std::pair<std::string_view, std::string_view>> parseResolution = SplitInTwo(valueStr, 'x');
-    if (parseResolution == std::nullopt) {
-        return "resolution string must be in format <Width>x<Height>: " + std::string(valueStr);
+    std::pair<std::string_view, std::string_view> parseResolution = SplitInTwo(valueStr, 'x');
+    if (parseResolution.first == "") {
+        PPX_LOG_ERROR("resolution string must be in format <Width>x<Height>: " << valueStr);
+        return ERROR_FAILED;
     }
     int  N, M;
-    auto error = Parse(parseResolution->first, N);
-    if (error != std::nullopt) {
-        return "width cannot be parsed: " + error->errorMsg;
+    auto res = Parse(parseResolution.first, N);
+    if (Failed(res)) {
+        PPX_LOG_ERROR("width cannot be parsed");
+        return res;
     }
-    error = Parse(parseResolution->second, M);
-    if (error != std::nullopt) {
-        return "height cannot be parsed: " + error->errorMsg;
+    res = Parse(parseResolution.second, M);
+    if (Failed(res)) {
+        PPX_LOG_ERROR("height cannot be parsed");
+        return res;
     }
     parsedValues.first  = N;
     parsedValues.second = M;
-    return std::nullopt;
+    return SUCCESS;
 }
 
-} // namespace string_util
 } // namespace ppx

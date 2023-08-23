@@ -16,6 +16,7 @@
 #define ppx_command_line_parser_h
 
 #include "nlohmann/json.hpp"
+#include "ppx/config.h"
 #include "ppx/log.h"
 #include "ppx/string_util.h"
 
@@ -38,7 +39,7 @@ namespace ppx {
 
 // All commandline flags are stored as key-value pairs (string, list of strings)
 // Value syntax:
-// - strings cannot contain "=" or ","
+// - strings cannot contain "="
 // - boolean values stored as "0" "false" "1" "true"
 //
 // GetOptionValueOrDefault() can be used to access value of specified type.
@@ -67,16 +68,16 @@ public:
         }
         auto valueStr = it->second.back();
         T    parsedValue;
-        auto error = ppx::string_util::Parse(valueStr, parsedValue);
-        if (error != std::nullopt) {
-            PPX_LOG_ERROR(error->errorMsg);
+        auto res = ppx::string_util::Parse(valueStr, parsedValue);
+        if (Failed(res)) {
+            PPX_LOG_ERROR("option " << optionName << " could not be parsed");
             return defaultValue;
         }
         return parsedValue;
     }
 
     // Same as above, but intended for list flags that are specified on the command line
-    // with multiple instances of the same flag, or with comma-separated values
+    // with multiple instances of the same flag
     template <typename T>
     std::vector<T> GetOptionValueOrDefault(const std::string& optionName, const std::vector<T>& defaultValues) const
     {
@@ -87,9 +88,9 @@ public:
         std::vector<T> parsedValues;
         for (size_t i = 0; i < it->second.size(); ++i) {
             T    parsedValue{};
-            auto error = ppx::string_util::Parse(it->second.at(i), parsedValue);
-            if (error != std::nullopt) {
-                PPX_LOG_ERROR(error->errorMsg);
+            auto res = ppx::string_util::Parse(it->second.at(i), parsedValue);
+            if (Failed(res)) {
+                PPX_LOG_ERROR("list option " << optionName << " could not be parsed");
                 return parsedValues;
             }
             parsedValues.emplace_back(parsedValue);
@@ -136,14 +137,14 @@ public:
     // Parse the given arguments into options. Return false if parsing
     // succeeded. Otherwise, return true if an error occurred,
     // and write the error to `out_error`.
-    std::optional<ppx::string_util::ParsingError> Parse(int argc, const char* argv[]);
+    Result Parse(int argc, const char* argv[]);
 
     // Parses all options specified within jsonConfig and adds them to cliOptions.
-    std::optional<ppx::string_util::ParsingError> ParseJson(CliOptions& cliOptions, const nlohmann::json& jsonConfig);
+    Result ParseJson(CliOptions& cliOptions, const nlohmann::json& jsonConfig);
 
     // Parses an option, handles the special --no-flag-name case, then adds the option to cliOptions
     // Expects option names without the "--" prefix.
-    std::optional<ppx::string_util::ParsingError> ParseOption(CliOptions& cliOptions, std::string_view optionName, std::string_view valueStr);
+    Result ParseOption(CliOptions& cliOptions, std::string_view optionName, std::string_view valueStr);
 
     std::string       GetJsonConfigFlagName() const { return mJsonConfigFlagName; }
     const CliOptions& GetOptions() const { return mOpts; }
