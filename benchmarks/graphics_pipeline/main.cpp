@@ -719,7 +719,10 @@ void ProjApp::Render()
             frame.cmd->BindIndexBuffer(mSphere.mesh);
             frame.cmd->BindVertexBuffers(mSphere.mesh);
             {
-                uint32_t spheresPerDrawCall = currentSphereCount / currentDrawCallCount;
+                uint32_t indicesPerDrawCall = (currentSphereCount * mSphereIndexCount) / currentDrawCallCount;
+                // Make `indicesPerDrawCall` multiple of 3 given that each consecutive three vertices (3*i + 0, 3*i + 1, 3*i + 2)
+                // defines a single triangle primitive (PRIMITIVE_TOPOLOGY_TRIANGLE_LIST).
+                indicesPerDrawCall -= indicesPerDrawCall % 3;
                 for (uint32_t i = 0; i < currentDrawCallCount; i++) {
                     SphereData data                 = {};
                     data.modelMatrix                = float4x4(1.0f);
@@ -738,12 +741,12 @@ void ProjApp::Render()
                     frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 5, /* set = */ 0, mMetalRoughnessTexture.sampledImageView);
                     frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 6, /* set = */ 0, mMetalRoughnessTexture.sampler);
 
-                    uint32_t indexCount = mSphereIndexCount * spheresPerDrawCall;
-                    // Add the remaining spheres to the last drawcall
+                    uint32_t indexCount = indicesPerDrawCall;
+                    // Add the remaining indices to the last drawcall
                     if (i == currentDrawCallCount - 1) {
-                        indexCount += mSphereIndexCount * (currentSphereCount % currentDrawCallCount);
+                        indexCount += (currentSphereCount * mSphereIndexCount - currentDrawCallCount * indicesPerDrawCall);
                     }
-                    uint32_t firstIndex = mSphereIndexCount * i * spheresPerDrawCall;
+                    uint32_t firstIndex = i * indicesPerDrawCall;
                     frame.cmd->DrawIndexed(indexCount, /* instanceCount = */ 1, firstIndex);
                 }
             }
