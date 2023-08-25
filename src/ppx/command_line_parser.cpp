@@ -80,11 +80,11 @@ Result CommandLineParser::Parse(int argc, const char* argv[])
     for (size_t i = 1; i < argc; ++i) {
         std::string_view argString(argv[i]);
         if (argString.find('=') != std::string_view::npos) {
-            std::pair<std::string_view, std::string_view> optionAndValue = ppx::string_util::SplitInTwo(argString, '=');
-            if (optionAndValue.first == "") {
-                PPX_LOG_ERROR("Malformed flag with '=': \"" << argString << "\"");
+            if (std::count(argString.cbegin(), argString.cend(), '=') != 1) {
+                PPX_LOG_ERROR("invalid number of '=' in flag: \"" << argString << "\"");
                 return ERROR_FAILED;
             }
+            std::pair<std::string_view, std::string_view> optionAndValue = ppx::string_util::SplitInTwo(argString, '=');
             args.emplace_back(optionAndValue.first);
             args.emplace_back(optionAndValue.second);
             continue;

@@ -59,44 +59,22 @@ std::string_view TrimBothEnds(std::string_view s, std::string_view c)
     return s.substr(strBegin, strRange);
 }
 
-std::vector<std::string_view> Split(std::string_view s, char delimiter)
-{
-    if (s.size() == 0) {
-        return {};
-    }
-
-    std::vector<std::string_view> substrings;
-    std::string_view              remainingString = s;
-    while (remainingString != "") {
-        size_t delimeterIndex = remainingString.find(delimiter);
-        if (delimeterIndex == std::string_view::npos) {
-            substrings.push_back(remainingString);
-            break;
-        }
-
-        std::string_view element = remainingString.substr(0, delimeterIndex);
-        substrings.push_back(element);
-
-        if (delimeterIndex == remainingString.length() - 1) {
-            substrings.push_back("");
-            break;
-        }
-        remainingString = remainingString.substr(delimeterIndex + 1);
-    }
-    return substrings;
-}
-
 std::pair<std::string_view, std::string_view> SplitInTwo(std::string_view s, char delimiter)
 {
     std::pair<std::string_view, std::string_view> stringViewPair;
     if (s.size() == 0) {
         return stringViewPair;
     }
-    auto splitResult = Split(s, delimiter);
-    if (splitResult.size() != 2 || splitResult.at(0) == "" || splitResult.at(1) == "") {
+
+    size_t delimiterIndex = s.find(delimiter);
+    if (delimiterIndex == std::string_view::npos) {
+        stringViewPair.first = s;
         return stringViewPair;
     }
-    return std::make_pair(splitResult.at(0), splitResult.at(1));
+
+    stringViewPair.first  = s.substr(0, delimiterIndex);
+    stringViewPair.second = s.substr(delimiterIndex + 1);
+    return stringViewPair;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -174,9 +152,13 @@ Result string_util::Parse(std::string_view valueStr, bool& parsedValue)
 
 Result string_util::Parse(std::string_view valueStr, std::pair<int, int>& parsedValues)
 {
+    if (std::count(valueStr.cbegin(), valueStr.cend(), 'x') != 1) {
+        PPX_LOG_ERROR("invalid number of 'x', resolution string must be in format <Width>x<Height>: " << valueStr);
+        return ERROR_FAILED;
+    }
     std::pair<std::string_view, std::string_view> parseResolution = SplitInTwo(valueStr, 'x');
-    if (parseResolution.first == "") {
-        PPX_LOG_ERROR("resolution string must be in format <Width>x<Height>: " << valueStr);
+    if (parseResolution.first.length() == 0 || parseResolution.second.length() == 0) {
+        PPX_LOG_ERROR("both width and height must be defined, resolution string must be in format <Width>x<Height>: " << valueStr);
         return ERROR_FAILED;
     }
     int  N, M;

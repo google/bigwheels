@@ -75,59 +75,6 @@ TEST(StringUtilTest, TrimBothEnds_LeftAndRightSpaces)
     EXPECT_EQ(toTrim, "  Some spaces  ");
 }
 
-TEST(StringUtilTest, Split_EmptyString)
-{
-    std::string_view              toSplit = "";
-    std::vector<std::string_view> want    = {};
-    std::vector<std::string_view> got     = Split(toSplit, ',');
-    EXPECT_EQ(got, want);
-}
-
-TEST(StringUtilTest, Split_NoDelimiter)
-{
-    std::string_view              toSplit = "Apple";
-    std::vector<std::string_view> want    = {"Apple"};
-    std::vector<std::string_view> got     = Split(toSplit, ',');
-    EXPECT_EQ(got.size(), want.size());
-    EXPECT_EQ(got, want);
-}
-
-TEST(StringUtilTest, Split_OneDelimiter)
-{
-    std::string_view              toSplit = "Apple,Banana";
-    std::vector<std::string_view> want    = {"Apple", "Banana"};
-    std::vector<std::string_view> got     = Split(toSplit, ',');
-    EXPECT_EQ(got.size(), want.size());
-    EXPECT_EQ(got, want);
-}
-
-TEST(StringUtilTest, Split_MultipleElements)
-{
-    std::string_view              toSplit = "Apple,Banana,Orange,Pear";
-    std::vector<std::string_view> want    = {"Apple", "Banana", "Orange", "Pear"};
-    std::vector<std::string_view> got     = Split(toSplit, ',');
-    EXPECT_EQ(got.size(), want.size());
-    EXPECT_EQ(got, want);
-}
-
-TEST(StringUtilTest, Split_LeadingTrailingDelimiter)
-{
-    std::string_view              toSplit = ",Apple,";
-    std::vector<std::string_view> want    = {"", "Apple", ""};
-    std::vector<std::string_view> got     = Split(toSplit, ',');
-    EXPECT_EQ(got.size(), want.size());
-    EXPECT_EQ(got, want);
-}
-
-TEST(StringUtilTest, Split_ConsecutiveDelimiters)
-{
-    std::string_view              toSplit = "Apple,,,Banana";
-    std::vector<std::string_view> want    = {"Apple", "", "", "Banana"};
-    std::vector<std::string_view> got     = Split(toSplit, ',');
-    EXPECT_EQ(got.size(), want.size());
-    EXPECT_EQ(got, want);
-}
-
 TEST(StringUtilTest, SplitInTwo_EmptyString)
 {
     std::string_view                              toSplit = "";
@@ -147,7 +94,7 @@ TEST(StringUtilTest, SplitInTwo_Pass)
 TEST(StringUtilTest, SplitInTwo_NoDelimiter)
 {
     std::string_view                              toSplit = "Apple";
-    std::pair<std::string_view, std::string_view> want    = std::make_pair("", "");
+    std::pair<std::string_view, std::string_view> want    = std::make_pair("Apple", "");
     std::pair<std::string_view, std::string_view> got     = SplitInTwo(toSplit, ',');
     EXPECT_EQ(got, want);
 }
@@ -155,7 +102,7 @@ TEST(StringUtilTest, SplitInTwo_NoDelimiter)
 TEST(StringUtilTest, SplitInTwo_MissingFirstHalf)
 {
     std::string_view                              toSplit = ",Banana";
-    std::pair<std::string_view, std::string_view> want    = std::make_pair("", "");
+    std::pair<std::string_view, std::string_view> want    = std::make_pair("", "Banana");
     std::pair<std::string_view, std::string_view> got     = SplitInTwo(toSplit, ',');
     EXPECT_EQ(got, want);
 }
@@ -163,7 +110,7 @@ TEST(StringUtilTest, SplitInTwo_MissingFirstHalf)
 TEST(StringUtilTest, SplitInTwo_MissingSecondHalf)
 {
     std::string_view                              toSplit = "Apple,";
-    std::pair<std::string_view, std::string_view> want    = std::make_pair("", "");
+    std::pair<std::string_view, std::string_view> want    = std::make_pair("Apple", "");
     std::pair<std::string_view, std::string_view> got     = SplitInTwo(toSplit, ',');
     EXPECT_EQ(got, want);
 }
@@ -171,23 +118,23 @@ TEST(StringUtilTest, SplitInTwo_MissingSecondHalf)
 TEST(StringUtilTest, SplitInTwo_MoreThanTwoElements)
 {
     std::string_view                              toSplit = "Apple,Banana,Orange";
-    std::pair<std::string_view, std::string_view> want    = std::make_pair("", "");
+    std::pair<std::string_view, std::string_view> want    = std::make_pair("Apple", "Banana,Orange");
     std::pair<std::string_view, std::string_view> got     = SplitInTwo(toSplit, ',');
     EXPECT_EQ(got, want);
 }
 
-TEST(StringUtilTest, SplitInTwo_TwoElementsWithLeadingTrailingDelimeters)
+TEST(StringUtilTest, SplitInTwo_TwoElementsWithLeadingTrailingDelimiters)
 {
     std::string_view                              toSplit = ",Apple,Banana,";
-    std::pair<std::string_view, std::string_view> want    = std::make_pair("", "");
+    std::pair<std::string_view, std::string_view> want    = std::make_pair("", "Apple,Banana,");
     std::pair<std::string_view, std::string_view> got     = SplitInTwo(toSplit, ',');
     EXPECT_EQ(got, want);
 }
 
-TEST(StringUtilTest, SplitInTwo_TwoElementsWithConsecutiveDelimeters)
+TEST(StringUtilTest, SplitInTwo_TwoElementsWithConsecutiveDelimiters)
 {
     std::string_view                              toSplit = "Apple,,Banana";
-    std::pair<std::string_view, std::string_view> want    = std::make_pair("", "");
+    std::pair<std::string_view, std::string_view> want    = std::make_pair("Apple", ",Banana");
     std::pair<std::string_view, std::string_view> got     = SplitInTwo(toSplit, ',');
     EXPECT_EQ(got, want);
 }
@@ -568,7 +515,7 @@ TEST(StringUtilTest, Parse_ResolutionPass)
     EXPECT_EQ(parsedValue, wantValue);
 }
 
-TEST(StringUtilTest, Parse_ResolutionNoDelimeterFail)
+TEST(StringUtilTest, Parse_ResolutionNoDelimiterFail)
 {
     std::string         toParse     = "100X200";
     std::pair<int, int> parsedValue = std::make_pair(-1, -1);

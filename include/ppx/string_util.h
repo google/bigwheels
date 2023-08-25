@@ -37,12 +37,8 @@ std::string TrimCopy(const std::string& s);
 // Trims all characters specified in c from both the left and right sides of s
 std::string_view TrimBothEnds(std::string_view s, std::string_view c = " \t");
 
-// Splits s at every instance of delimeter and returns a vector of substrings
-// Return value will contain empty substrings if s has leading/trailing/consecutive delimiters
-std::vector<std::string_view> Split(std::string_view s, char delimiter);
-
-// Splits s at the first instance of delimeter and returns two substrings
-// Returns an empty pair if s does not have exactly one delimiter, or if either of the substrings are empty
+// Splits s at the first instance of delimiter and returns two substrings
+// Returns an empty second element if there is no delimiter
 std::pair<std::string_view, std::string_view> SplitInTwo(std::string_view s, char delimiter);
 
 // -------------------------------------------------------------------------------------------------
@@ -94,7 +90,7 @@ std::string ToString(std::pair<T, T> values)
 
 // Parse() attempts to parse valueStr into the specified type
 // If successful, overwrites parsedValue and returns std::nullopt
-// If unsucessful, does not overwrite parsedValuel, logs error and returns ERROR_FAILED instead
+// If unsucessful, does not overwrite parsedValue, logs error and returns ERROR_FAILED instead
 
 // For strings
 // e.g. "a string" -> "a string"

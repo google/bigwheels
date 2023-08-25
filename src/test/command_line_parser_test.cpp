@@ -152,11 +152,31 @@ TEST(CommandLineParserTest, Parse_EqualSignsMultipleFail)
     EXPECT_TRUE(Failed(parser.Parse(sizeof(args) / sizeof(args[0]), args)));
 }
 
-TEST(CommandLineParserTest, Parse_EqualSignsMalformedFail)
+TEST(CommandLineParserTest, Parse_EqualSignsNoNameFail)
+{
+    CommandLineParser parser;
+    const char*       args[] = {"/path/to/executable", "--a", "--=5", "--c", "--d", "11"};
+    EXPECT_TRUE(Failed(parser.Parse(sizeof(args) / sizeof(args[0]), args)));
+}
+
+TEST(CommandLineParserTest, Parse_EqualSignsNoFlagFail)
+{
+    CommandLineParser parser;
+    const char*       args[] = {"/path/to/executable", "--a", "=5", "--c", "--d", "11"};
+    EXPECT_TRUE(Failed(parser.Parse(sizeof(args) / sizeof(args[0]), args)));
+}
+
+TEST(CommandLineParserTest, Parse_EqualSignsEmptyValuePass)
 {
     CommandLineParser parser;
     const char*       args[] = {"/path/to/executable", "--a", "--b=", "--c", "--d", "11"};
-    EXPECT_TRUE(Failed(parser.Parse(sizeof(args) / sizeof(args[0]), args)));
+    EXPECT_TRUE(Success(parser.Parse(sizeof(args) / sizeof(args[0]), args)));
+    CliOptions gotOptions = parser.GetOptions();
+    EXPECT_EQ(parser.GetOptions().GetNumUniqueOptions(), 4);
+    EXPECT_EQ(gotOptions.GetOptionValueOrDefault<bool>("a", false), true);
+    EXPECT_EQ(gotOptions.GetOptionValueOrDefault<bool>("b", false), true);
+    EXPECT_EQ(gotOptions.GetOptionValueOrDefault<bool>("c", false), true);
+    EXPECT_EQ(gotOptions.GetOptionValueOrDefault<int>("d", 0), 11);
 }
 
 TEST(CommandLineParserTest, Parse_LeadingParameterFail)
