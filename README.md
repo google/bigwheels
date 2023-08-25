@@ -15,6 +15,7 @@ Supported graphics APIs:
 # Requirements
  * Software
    * Linux
+     * C++17 compliant compiler (clang 10+ or gcc 9+)
      * Visual Studio Code or CLI
      * Recent Vulkan SDK
        * 1.3.216.0 or later

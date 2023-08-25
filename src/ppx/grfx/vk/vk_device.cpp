@@ -72,7 +72,7 @@ Result Device::ConfigureQueueInfo(const grfx::DeviceCreateInfo* pCreateInfo, std
             createdQueues.insert(mGraphicsQueueFamilyIndex);
         }
         // Compute
-        if (mComputeQueueFamilyIndex != PPX_VALUE_IGNORED && !createdQueues.contains(mComputeQueueFamilyIndex)) {
+        if (mComputeQueueFamilyIndex != PPX_VALUE_IGNORED && createdQueues.find(mComputeQueueFamilyIndex) == createdQueues.end()) {
             VkDeviceQueueCreateInfo vkci = {VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
             vkci.queueFamilyIndex        = mComputeQueueFamilyIndex;
             vkci.queueCount              = pCreateInfo->pGpu->GetComputeQueueCount();
@@ -80,11 +80,11 @@ Result Device::ConfigureQueueInfo(const grfx::DeviceCreateInfo* pCreateInfo, std
             queueCreateInfos.push_back(vkci);
             createdQueues.insert(mComputeQueueFamilyIndex);
         }
-        else if (createdQueues.contains(mComputeQueueFamilyIndex)) {
+        else if (createdQueues.find(mComputeQueueFamilyIndex) != createdQueues.end()) {
             PPX_LOG_WARN("Graphics queue will be shared with compute queue.");
         }
         // Transfer
-        if (mTransferQueueFamilyIndex != PPX_VALUE_IGNORED && !createdQueues.contains(mTransferQueueFamilyIndex)) {
+        if (mTransferQueueFamilyIndex != PPX_VALUE_IGNORED && createdQueues.find(mTransferQueueFamilyIndex) == createdQueues.end()) {
             VkDeviceQueueCreateInfo vkci = {VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
             vkci.queueFamilyIndex        = mTransferQueueFamilyIndex;
             vkci.queueCount              = pCreateInfo->pGpu->GetTransferQueueCount();
@@ -92,7 +92,7 @@ Result Device::ConfigureQueueInfo(const grfx::DeviceCreateInfo* pCreateInfo, std
             queueCreateInfos.push_back(vkci);
             createdQueues.insert(mTransferQueueFamilyIndex);
         }
-        else if (createdQueues.contains(mTransferQueueFamilyIndex)) {
+        else if (createdQueues.find(mTransferQueueFamilyIndex) != createdQueues.end()) {
             PPX_LOG_WARN("Transfer queue will be shared with graphics or compute queue.");
         }
     }

@@ -52,6 +52,7 @@ your changes:
 *   Ensure the code follows the
     [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html).
     Running `clang-format -style=file -i [modified-files]` can help.
+*   Code should target C++17
 *   Create a pull request (PR) with your patch.
 *   1 PR = 1 change. If you want to add 3 features, that's 3 PRs.
 *   If your PR brings a non-trivial performance improvement, do provide proof.
