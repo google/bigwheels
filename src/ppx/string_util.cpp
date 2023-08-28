@@ -21,6 +21,10 @@
 namespace ppx {
 namespace string_util {
 
+// -------------------------------------------------------------------------------------------------
+// Misc
+// -------------------------------------------------------------------------------------------------
+
 void TrimLeft(std::string& s)
 {
     s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
@@ -55,19 +59,27 @@ std::string_view TrimBothEnds(std::string_view s, std::string_view c)
     return s.substr(strBegin, strRange);
 }
 
-std::optional<std::pair<std::string_view, std::string_view>> SplitInTwo(std::string_view s, char delimiter)
+std::pair<std::string_view, std::string_view> SplitInTwo(std::string_view s, char delimiter)
 {
+    std::pair<std::string_view, std::string_view> stringViewPair;
     if (s.size() == 0) {
-        return std::nullopt;
+        return stringViewPair;
     }
-    size_t delimeterIndex = s.find(delimiter);
-    if (delimeterIndex == std::string_view::npos) {
-        return std::nullopt;
+
+    size_t delimiterIndex = s.find(delimiter);
+    if (delimiterIndex == std::string_view::npos) {
+        stringViewPair.first = s;
+        return stringViewPair;
     }
-    std::string_view firstSubstring  = s.substr(0, delimeterIndex);
-    std::string_view secondSubstring = s.substr(delimeterIndex + 1);
-    return std::make_pair(firstSubstring, secondSubstring);
+
+    stringViewPair.first  = s.substr(0, delimiterIndex);
+    stringViewPair.second = s.substr(delimiterIndex + 1);
+    return stringViewPair;
 }
+
+// -------------------------------------------------------------------------------------------------
+// Formatting Strings
+// -------------------------------------------------------------------------------------------------
 
 std::string WrapText(const std::string& s, size_t width, size_t indent)
 {
@@ -106,4 +118,63 @@ std::string WrapText(const std::string& s, size_t width, size_t indent)
 }
 
 } // namespace string_util
+
+// -------------------------------------------------------------------------------------------------
+// Parsing Strings
+// -------------------------------------------------------------------------------------------------
+
+Result string_util::Parse(std::string_view valueStr, std::string& parsedValue)
+{
+    parsedValue = std::string(valueStr);
+    return SUCCESS;
+}
+
+Result string_util::Parse(std::string_view valueStr, bool& parsedValue)
+{
+    if (valueStr == "") {
+        parsedValue = true;
+        return SUCCESS;
+    }
+    std::stringstream ss{std::string(valueStr)};
+    bool              valueAsBool;
+    ss >> valueAsBool;
+    if (ss.fail()) {
+        ss.clear();
+        ss >> std::boolalpha >> valueAsBool;
+        if (ss.fail()) {
+            PPX_LOG_ERROR("could not be parsed as bool: " << valueStr);
+            return ERROR_FAILED;
+        }
+    }
+    parsedValue = valueAsBool;
+    return SUCCESS;
+}
+
+Result string_util::Parse(std::string_view valueStr, std::pair<int, int>& parsedValues)
+{
+    if (std::count(valueStr.cbegin(), valueStr.cend(), 'x') != 1) {
+        PPX_LOG_ERROR("invalid number of 'x', resolution string must be in format <Width>x<Height>: " << valueStr);
+        return ERROR_FAILED;
+    }
+    std::pair<std::string_view, std::string_view> parseResolution = SplitInTwo(valueStr, 'x');
+    if (parseResolution.first.length() == 0 || parseResolution.second.length() == 0) {
+        PPX_LOG_ERROR("both width and height must be defined, resolution string must be in format <Width>x<Height>: " << valueStr);
+        return ERROR_FAILED;
+    }
+    int  N, M;
+    auto res = Parse(parseResolution.first, N);
+    if (Failed(res)) {
+        PPX_LOG_ERROR("width cannot be parsed");
+        return res;
+    }
+    res = Parse(parseResolution.second, M);
+    if (Failed(res)) {
+        PPX_LOG_ERROR("height cannot be parsed");
+        return res;
+    }
+    parsedValues.first  = N;
+    parsedValues.second = M;
+    return SUCCESS;
+}
+
 } // namespace ppx

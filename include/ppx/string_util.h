@@ -15,6 +15,8 @@
 #ifndef PPX_STRING_UTIL_H
 #define PPX_STRING_UTIL_H
 
+#include "ppx/config.h"
+
 #include <optional>
 #include <sstream>
 #include <string>
@@ -22,6 +24,10 @@
 
 namespace ppx {
 namespace string_util {
+
+// -------------------------------------------------------------------------------------------------
+// Misc
+// -------------------------------------------------------------------------------------------------
 
 void TrimLeft(std::string& s);
 void TrimRight(std::string& s);
@@ -31,9 +37,13 @@ std::string TrimCopy(const std::string& s);
 // Trims all characters specified in c from both the left and right sides of s
 std::string_view TrimBothEnds(std::string_view s, std::string_view c = " \t");
 
-// Splits s at the first instance of delimeter and returns two substrings
-// Returns std::nullopt if s does not contain the delimeter
-std::optional<std::pair<std::string_view, std::string_view>> SplitInTwo(std::string_view s, char delimiter);
+// Splits s at the first instance of delimiter and returns two substrings
+// Returns an empty second element if there is no delimiter
+std::pair<std::string_view, std::string_view> SplitInTwo(std::string_view s, char delimiter);
+
+// -------------------------------------------------------------------------------------------------
+// Formatting Strings
+// -------------------------------------------------------------------------------------------------
 
 // Formats string for printing with the specified width and left indent.
 // Words will be pushed to the subsequent line to avoid line breaks in the
@@ -73,6 +83,47 @@ std::string ToString(std::pair<T, T> values)
     ss << ToString<T>(values.first) << ", " << ToString<T>(values.second);
     return ss.str();
 }
+
+// -------------------------------------------------------------------------------------------------
+// Parsing Strings
+// -------------------------------------------------------------------------------------------------
+
+// Parse() attempts to parse valueStr into the specified type
+// If successful, overwrites parsedValue and returns std::nullopt
+// If unsucessful, does not overwrite parsedValue, logs error and returns ERROR_FAILED instead
+
+// For strings
+// e.g. "a string" -> "a string"
+Result Parse(std::string_view valueStr, std::string& parsedValue);
+
+// For bool
+// e.g. "true", "1", "" -> true
+// e.g. "false", "0" -> false
+Result Parse(std::string_view valueStr, bool& parsedValue);
+
+// For integers, chars and floats
+// e.g. "1.0" -> 1.0f
+// e.g. "-20" -> -20
+// e.g. "c" -> 'c'
+template <typename T>
+Result Parse(std::string_view valueStr, T& parsedValue)
+{
+    static_assert(std::is_integral_v<T> || std::is_floating_point_v<T>, "attempting to parse unsupported type");
+
+    std::stringstream ss((std::string(valueStr)));
+    T                 valueAsNum;
+    ss >> valueAsNum;
+    if (ss.fail()) {
+        PPX_LOG_ERROR("could not be parsed as integral or float: " << valueStr);
+        return ERROR_FAILED;
+    }
+    parsedValue = valueAsNum;
+    return SUCCESS;
+}
+
+// For resolution with x-separated string representation
+// e.g. "600x800" -> (600, 800)
+Result Parse(std::string_view valueStr, std::pair<int, int>& parsedValues);
 
 } // namespace string_util
 } // namespace ppx

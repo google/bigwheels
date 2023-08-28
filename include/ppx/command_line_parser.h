@@ -16,6 +16,9 @@
 #define ppx_command_line_parser_h
 
 #include "nlohmann/json.hpp"
+#include "ppx/config.h"
+#include "ppx/log.h"
+#include "ppx/string_util.h"
 
 #include <cstdint>
 #include <ios>
@@ -64,7 +67,13 @@ public:
             return defaultValue;
         }
         auto valueStr = it->second.back();
-        return GetParsedOrDefault<T>(valueStr, defaultValue);
+        T    parsedValue;
+        auto res = ppx::string_util::Parse(valueStr, parsedValue);
+        if (Failed(res)) {
+            PPX_LOG_ERROR("option " << optionName << " could not be parsed");
+            return defaultValue;
+        }
+        return parsedValue;
     }
 
     // Same as above, but intended for list flags that are specified on the command line
@@ -77,16 +86,17 @@ public:
             return defaultValues;
         }
         std::vector<T> parsedValues;
-        T              nullValue{};
         for (size_t i = 0; i < it->second.size(); ++i) {
-            parsedValues.emplace_back(GetParsedOrDefault<T>(it->second.at(i), nullValue));
+            T    parsedValue{};
+            auto res = ppx::string_util::Parse(it->second.at(i), parsedValue);
+            if (Failed(res)) {
+                PPX_LOG_ERROR("list option " << optionName << " could not be parsed");
+                return parsedValues;
+            }
+            parsedValues.emplace_back(parsedValue);
         }
         return parsedValues;
     }
-
-    // Same as above, but intended for resolution flags that are specified on command line
-    // with <Width>x<Height>
-    std::pair<int, int> GetOptionValueOrDefault(const std::string& optionName, const std::pair<int, int>& defaultValue) const;
 
     // (WILL BE DEPRECATED, USE KNOBS INSTEAD)
     // Get the parameter value after converting it into the desired integral,
@@ -111,33 +121,6 @@ private:
     // For all options existing in newOptions, current entries in mAllOptions will be replaced by them
     void OverwriteOptions(const CliOptions& newOptions);
 
-    template <typename T>
-    T GetParsedOrDefault(std::string_view valueStr, const T& defaultValue) const
-    {
-        static_assert(std::is_integral_v<T> || std::is_floating_point_v<T> || std::is_same_v<T, std::string>, "GetParsedOrDefault must be called with an integral, floating-point, boolean, or std::string type");
-        return Parse(valueStr, defaultValue);
-    }
-
-    // For boolean parameters
-    //   interpreted as true: "true", 1, ""
-    //   interpreted as false: "false", 0
-    bool Parse(std::string_view valueStr, bool defaultValue) const;
-
-    template <typename T>
-    T Parse(std::string_view valueStr, const T defaultValue) const
-    {
-        if constexpr (std::is_same_v<T, std::string>) {
-            return std::string(valueStr);
-        }
-        std::stringstream ss((std::string(valueStr)));
-        T                 valueAsNum;
-        ss >> valueAsNum;
-        if (ss.fail()) {
-            return defaultValue;
-        }
-        return valueAsNum;
-    }
-
 private:
     // All flag names (string) and parameters (vector of strings) specified on the command line
     std::unordered_map<std::string, std::vector<std::string>> mAllOptions;
@@ -151,24 +134,17 @@ private:
 class CommandLineParser
 {
 public:
-    struct ParsingError
-    {
-        ParsingError(const std::string& error)
-            : errorMsg(error) {}
-        std::string errorMsg;
-    };
-
     // Parse the given arguments into options. Return false if parsing
     // succeeded. Otherwise, return true if an error occurred,
     // and write the error to `out_error`.
-    std::optional<ParsingError> Parse(int argc, const char* argv[]);
+    Result Parse(int argc, const char* argv[]);
 
     // Parses all options specified within jsonConfig and adds them to cliOptions.
-    std::optional<ParsingError> ParseJson(CliOptions& cliOptions, const nlohmann::json& jsonConfig);
+    Result ParseJson(CliOptions& cliOptions, const nlohmann::json& jsonConfig);
 
     // Parses an option, handles the special --no-flag-name case, then adds the option to cliOptions
     // Expects option names without the "--" prefix.
-    std::optional<ParsingError> ParseOption(CliOptions& cliOptions, std::string_view optionName, std::string_view valueStr);
+    Result ParseOption(CliOptions& cliOptions, std::string_view optionName, std::string_view valueStr);
 
     std::string       GetJsonConfigFlagName() const { return mJsonConfigFlagName; }
     const CliOptions& GetOptions() const { return mOpts; }

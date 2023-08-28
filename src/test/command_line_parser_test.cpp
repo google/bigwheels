@@ -25,9 +25,7 @@ using ::testing::HasSubstr;
 TEST(CommandLineParserTest, Parse_ZeroArguments)
 {
     CommandLineParser parser;
-    if (auto error = parser.Parse(0, nullptr)) {
-        FAIL() << error->errorMsg;
-    }
+    EXPECT_TRUE(Success(parser.Parse(0, nullptr)));
     EXPECT_EQ(parser.GetOptions().GetNumUniqueOptions(), 0);
 }
 
@@ -35,9 +33,7 @@ TEST(CommandLineParserTest, Parse_FirstArgumentIgnored)
 {
     CommandLineParser parser;
     const char*       args[] = {"/path/to/executable"};
-    if (auto error = parser.Parse(sizeof(args) / sizeof(args[0]), args)) {
-        FAIL() << error->errorMsg;
-    }
+    EXPECT_TRUE(Success(parser.Parse(sizeof(args) / sizeof(args[0]), args)));
     EXPECT_EQ(parser.GetOptions().GetNumUniqueOptions(), 0);
 }
 
@@ -45,9 +41,7 @@ TEST(CommandLineParserTest, Parse_Booleans)
 {
     CommandLineParser parser;
     const char*       args[] = {"/path/to/executable", "--a", "--b", "1", "--c", "true", "--no-d", "--e", "0", "--f", "false"};
-    if (auto error = parser.Parse(sizeof(args) / sizeof(args[0]), args)) {
-        FAIL() << error->errorMsg;
-    }
+    EXPECT_TRUE(Success(parser.Parse(sizeof(args) / sizeof(args[0]), args)));
     CliOptions gotOptions = parser.GetOptions();
     EXPECT_EQ(parser.GetOptions().GetNumUniqueOptions(), 6);
     EXPECT_EQ(gotOptions.GetOptionValueOrDefault<bool>("a", false), true);
@@ -62,9 +56,7 @@ TEST(CommandLineParserTest, Parse_Strings)
 {
     CommandLineParser parser;
     const char*       args[] = {"/path/to/executable", "--a", "filename with spaces", "--b", "filenameWithoutSpaces", "--c", "filename,with/.punctuation,", "--d", "", "--e"};
-    if (auto error = parser.Parse(sizeof(args) / sizeof(args[0]), args)) {
-        FAIL() << error->errorMsg;
-    }
+    EXPECT_TRUE(Success(parser.Parse(sizeof(args) / sizeof(args[0]), args)));
     CliOptions gotOptions = parser.GetOptions();
     EXPECT_EQ(parser.GetOptions().GetNumUniqueOptions(), 5);
     EXPECT_EQ(gotOptions.GetOptionValueOrDefault<std::string>("a", ""), "filename with spaces");
@@ -78,9 +70,7 @@ TEST(CommandLineParserTest, Parse_Integers)
 {
     CommandLineParser parser;
     const char*       args[] = {"/path/to/executable", "--a", "0", "--b", "-5", "--c", "300", "--d", "0", "--e", "1000"};
-    if (auto error = parser.Parse(sizeof(args) / sizeof(args[0]), args)) {
-        FAIL() << error->errorMsg;
-    }
+    EXPECT_TRUE(Success(parser.Parse(sizeof(args) / sizeof(args[0]), args)));
     CliOptions gotOptions = parser.GetOptions();
     EXPECT_EQ(parser.GetOptions().GetNumUniqueOptions(), 5);
     EXPECT_EQ(gotOptions.GetOptionValueOrDefault<int>("a", -1), 0);
@@ -94,9 +84,7 @@ TEST(CommandLineParserTest, Parse_Floats)
 {
     CommandLineParser parser;
     const char*       args[] = {"/path/to/executable", "--a", "1.0", "--b", "-6.5", "--c", "300"};
-    if (auto error = parser.Parse(sizeof(args) / sizeof(args[0]), args)) {
-        FAIL() << error->errorMsg;
-    }
+    EXPECT_TRUE(Success(parser.Parse(sizeof(args) / sizeof(args[0]), args)));
     CliOptions gotOptions = parser.GetOptions();
     EXPECT_EQ(parser.GetOptions().GetNumUniqueOptions(), 3);
     EXPECT_EQ(gotOptions.GetOptionValueOrDefault<float>("a", 0.0f), 1.0f);
@@ -108,9 +96,7 @@ TEST(CommandLineParserTest, Parse_StringList)
 {
     CommandLineParser parser;
     const char*       args[] = {"/path/to/executable", "--a", "some-path", "--a", "some-other-path", "--a", "last-path"};
-    if (auto error = parser.Parse(sizeof(args) / sizeof(args[0]), args)) {
-        FAIL() << error->errorMsg;
-    }
+    EXPECT_TRUE(Success(parser.Parse(sizeof(args) / sizeof(args[0]), args)));
     CliOptions gotOptions = parser.GetOptions();
     EXPECT_EQ(parser.GetOptions().GetNumUniqueOptions(), 1);
     auto paths = gotOptions.GetOptionValueOrDefault<std::string>("a", {"a-path"});
@@ -126,9 +112,7 @@ TEST(CommandLineParserTest, Parse_Resolution)
 {
     CommandLineParser parser;
     const char*       args[] = {"/path/to/executable", "--a", "1000x2000"};
-    if (auto error = parser.Parse(sizeof(args) / sizeof(args[0]), args)) {
-        FAIL() << error->errorMsg;
-    }
+    EXPECT_TRUE(Success(parser.Parse(sizeof(args) / sizeof(args[0]), args)));
     CliOptions gotOptions = parser.GetOptions();
     EXPECT_EQ(parser.GetOptions().GetNumUniqueOptions(), 1);
     auto res = gotOptions.GetOptionValueOrDefault("a", std::make_pair(0, 0));
@@ -140,9 +124,7 @@ TEST(CommandLineParserTest, Parse_ResolutionDefaulted)
 {
     CommandLineParser parser;
     const char*       args[] = {"/path/to/executable", "--a", "1000X2000"};
-    if (auto error = parser.Parse(sizeof(args) / sizeof(args[0]), args)) {
-        FAIL() << error->errorMsg;
-    }
+    EXPECT_TRUE(Success(parser.Parse(sizeof(args) / sizeof(args[0]), args)));
     CliOptions gotOptions = parser.GetOptions();
     EXPECT_EQ(parser.GetOptions().GetNumUniqueOptions(), 1);
     auto res = gotOptions.GetOptionValueOrDefault("a", std::make_pair(0, 0));
@@ -154,9 +136,7 @@ TEST(CommandLineParserTest, Parse_EqualSigns)
 {
     CommandLineParser parser;
     const char*       args[] = {"/path/to/executable", "--a", "--b=5", "--c", "--d", "11"};
-    if (auto error = parser.Parse(sizeof(args) / sizeof(args[0]), args)) {
-        FAIL() << error->errorMsg;
-    }
+    EXPECT_TRUE(Success(parser.Parse(sizeof(args) / sizeof(args[0]), args)));
     CliOptions gotOptions = parser.GetOptions();
     EXPECT_EQ(parser.GetOptions().GetNumUniqueOptions(), 4);
     EXPECT_EQ(gotOptions.GetOptionValueOrDefault<bool>("a", false), true);
@@ -169,45 +149,55 @@ TEST(CommandLineParserTest, Parse_EqualSignsMultipleFail)
 {
     CommandLineParser parser;
     const char*       args[] = {"/path/to/executable", "--a", "--b=5=8", "--c", "--d", "11"};
-    auto              error  = parser.Parse(sizeof(args) / sizeof(args[0]), args);
-    EXPECT_TRUE(error);
-    EXPECT_THAT(error->errorMsg, HasSubstr("Unexpected number of '=' symbols in the following string"));
+    EXPECT_TRUE(Failed(parser.Parse(sizeof(args) / sizeof(args[0]), args)));
 }
 
-TEST(CommandLineParserTest, Parse_EqualSignsMalformedFail)
+TEST(CommandLineParserTest, Parse_EqualSignsNoNameFail)
+{
+    CommandLineParser parser;
+    const char*       args[] = {"/path/to/executable", "--a", "--=5", "--c", "--d", "11"};
+    EXPECT_TRUE(Failed(parser.Parse(sizeof(args) / sizeof(args[0]), args)));
+}
+
+TEST(CommandLineParserTest, Parse_EqualSignsNoFlagFail)
+{
+    CommandLineParser parser;
+    const char*       args[] = {"/path/to/executable", "--a", "=5", "--c", "--d", "11"};
+    EXPECT_TRUE(Failed(parser.Parse(sizeof(args) / sizeof(args[0]), args)));
+}
+
+TEST(CommandLineParserTest, Parse_EqualSignsEmptyValuePass)
 {
     CommandLineParser parser;
     const char*       args[] = {"/path/to/executable", "--a", "--b=", "--c", "--d", "11"};
-    auto              error  = parser.Parse(sizeof(args) / sizeof(args[0]), args);
-    EXPECT_TRUE(error);
-    EXPECT_THAT(error->errorMsg, HasSubstr("Malformed flag with '='"));
+    EXPECT_TRUE(Success(parser.Parse(sizeof(args) / sizeof(args[0]), args)));
+    CliOptions gotOptions = parser.GetOptions();
+    EXPECT_EQ(parser.GetOptions().GetNumUniqueOptions(), 4);
+    EXPECT_EQ(gotOptions.GetOptionValueOrDefault<bool>("a", false), true);
+    EXPECT_EQ(gotOptions.GetOptionValueOrDefault<bool>("b", false), true);
+    EXPECT_EQ(gotOptions.GetOptionValueOrDefault<bool>("c", false), true);
+    EXPECT_EQ(gotOptions.GetOptionValueOrDefault<int>("d", 0), 11);
 }
 
 TEST(CommandLineParserTest, Parse_LeadingParameterFail)
 {
     CommandLineParser parser;
     const char*       args[] = {"/path/to/executable", "10", "--a", "--b", "5", "--c", "--d", "11"};
-    auto              error  = parser.Parse(sizeof(args) / sizeof(args[0]), args);
-    EXPECT_TRUE(error);
-    EXPECT_THAT(error->errorMsg, HasSubstr("Invalid command-line option"));
+    EXPECT_TRUE(Failed(parser.Parse(sizeof(args) / sizeof(args[0]), args)));
 }
 
 TEST(CommandLineParserTest, Parse_AdjacentParameterFail)
 {
     CommandLineParser parser;
     const char*       args[] = {"/path/to/executable", "--a", "--b", "5", "8", "--c", "--d", "11"};
-    auto              error  = parser.Parse(sizeof(args) / sizeof(args[0]), args);
-    EXPECT_TRUE(error);
-    EXPECT_THAT(error->errorMsg, HasSubstr("Invalid command-line option"));
+    EXPECT_TRUE(Failed(parser.Parse(sizeof(args) / sizeof(args[0]), args)));
 }
 
 TEST(CommandLineParserTest, Parse_LastValueIsTaken)
 {
     CommandLineParser parser;
     const char*       args[] = {"/path/to/executable", "--a", "1", "--b", "1", "--a", "2", "--a", "3"};
-    if (auto error = parser.Parse(sizeof(args) / sizeof(args[0]), args)) {
-        FAIL() << error->errorMsg;
-    }
+    EXPECT_TRUE(Success(parser.Parse(sizeof(args) / sizeof(args[0]), args)));
     CliOptions gotOptions = parser.GetOptions();
     EXPECT_EQ(parser.GetOptions().GetNumUniqueOptions(), 2);
     EXPECT_EQ(gotOptions.GetOptionValueOrDefault<int>("a", 0), 3);
@@ -218,9 +208,7 @@ TEST(CommandLineParserTest, Parse_ExtraOptions)
 {
     CommandLineParser parser;
     const char*       args[] = {"/path/to/executable", "--extra-option-bool", "true", "--extra-option-int", "123", "--extra-option-no-param", "--extra-option-str", "option string value"};
-    if (auto error = parser.Parse(sizeof(args) / sizeof(args[0]), args)) {
-        FAIL() << error->errorMsg;
-    }
+    EXPECT_TRUE(Success(parser.Parse(sizeof(args) / sizeof(args[0]), args)));
     auto opts = parser.GetOptions();
     EXPECT_EQ(opts.GetNumUniqueOptions(), 4);
     EXPECT_EQ(opts.GetExtraOptionValueOrDefault("extra-option-bool", false), true);
@@ -235,9 +223,7 @@ TEST(CommandLineParserTest, ParseJson_Empty)
     CommandLineParser parser;
     CliOptions        opts;
     nlohmann::json    jsonConfig;
-    if (auto error = parser.ParseJson(opts, jsonConfig)) {
-        FAIL() << error->errorMsg;
-    }
+    EXPECT_TRUE(Success(parser.ParseJson(opts, jsonConfig)));
     EXPECT_EQ(opts.GetNumUniqueOptions(), 0);
 }
 
@@ -257,9 +243,7 @@ TEST(CommandLineParserTest, ParseJson_Simple)
   }
 )";
     nlohmann::json    jsonConfig = nlohmann::json::parse(jsonText);
-    if (auto error = parser.ParseJson(opts, jsonConfig)) {
-        FAIL() << error->errorMsg;
-    }
+    EXPECT_TRUE(Success(parser.ParseJson(opts, jsonConfig)));
     EXPECT_EQ(opts.GetNumUniqueOptions(), 7);
     EXPECT_EQ(opts.GetOptionValueOrDefault<bool>("a", false), true);
     EXPECT_EQ(opts.GetOptionValueOrDefault<bool>("b", true), false);
@@ -286,9 +270,7 @@ TEST(CommandLineParserTest, ParseJson_NestedStructure)
   }
 )";
     nlohmann::json    jsonConfig = nlohmann::json::parse(jsonText);
-    if (auto error = parser.ParseJson(opts, jsonConfig)) {
-        FAIL() << error->errorMsg;
-    }
+    EXPECT_TRUE(Success(parser.ParseJson(opts, jsonConfig)));
     EXPECT_EQ(opts.GetNumUniqueOptions(), 2);
     EXPECT_EQ(opts.GetOptionValueOrDefault<bool>("a", false), true);
     EXPECT_TRUE(opts.HasExtraOption("b"));
@@ -308,9 +290,7 @@ TEST(CommandLineParserTest, ParseJson_IntArray)
   }
 )";
     nlohmann::json    jsonConfig = nlohmann::json::parse(jsonText);
-    if (auto error = parser.ParseJson(opts, jsonConfig)) {
-        FAIL() << error->errorMsg;
-    }
+    EXPECT_TRUE(Success(parser.ParseJson(opts, jsonConfig)));
     EXPECT_EQ(opts.GetNumUniqueOptions(), 2);
     EXPECT_EQ(opts.GetOptionValueOrDefault<bool>("a", false), true);
     EXPECT_TRUE(opts.HasExtraOption("b"));
@@ -333,9 +313,7 @@ TEST(CommandLineParserTest, ParseJson_StrArray)
   }
 )";
     nlohmann::json    jsonConfig = nlohmann::json::parse(jsonText);
-    if (auto error = parser.ParseJson(opts, jsonConfig)) {
-        FAIL() << error->errorMsg;
-    }
+    EXPECT_TRUE(Success(parser.ParseJson(opts, jsonConfig)));
     EXPECT_EQ(opts.GetNumUniqueOptions(), 2);
     EXPECT_EQ(opts.GetOptionValueOrDefault<bool>("a", false), true);
     EXPECT_TRUE(opts.HasExtraOption("b"));
@@ -358,9 +336,7 @@ TEST(CommandLineParserTest, ParseJson_HeterogeneousArray)
   }
 )";
     nlohmann::json    jsonConfig = nlohmann::json::parse(jsonText);
-    if (auto error = parser.ParseJson(opts, jsonConfig)) {
-        FAIL() << error->errorMsg;
-    }
+    EXPECT_TRUE(Success(parser.ParseJson(opts, jsonConfig)));
     EXPECT_EQ(opts.GetNumUniqueOptions(), 2);
     EXPECT_EQ(opts.GetOptionValueOrDefault<bool>("a", false), true);
     EXPECT_TRUE(opts.HasExtraOption("b"));
@@ -377,9 +353,7 @@ TEST(CommandLineParserTest, ParseOption_Simple)
 {
     CommandLineParser parser;
     CliOptions        opts;
-    if (auto error = parser.ParseOption(opts, "flag-name", "true")) {
-        FAIL() << error->errorMsg;
-    }
+    EXPECT_TRUE(Success(parser.ParseOption(opts, "flag-name", "true")));
     EXPECT_EQ(opts.GetNumUniqueOptions(), 1);
     EXPECT_TRUE(opts.HasExtraOption("flag-name"));
     EXPECT_EQ(opts.GetOptionValueOrDefault<bool>("flag-name", false), true);
@@ -389,12 +363,19 @@ TEST(CommandLineParserTest, ParseOption_NoPrefix)
 {
     CommandLineParser parser;
     CliOptions        opts;
-    if (auto error = parser.ParseOption(opts, "no-flag-name", "")) {
-        FAIL() << error->errorMsg;
-    }
+    EXPECT_TRUE(Success(parser.ParseOption(opts, "no-flag-name", "")));
     EXPECT_EQ(opts.GetNumUniqueOptions(), 1);
     EXPECT_TRUE(opts.HasExtraOption("flag-name"));
     EXPECT_EQ(opts.GetOptionValueOrDefault<bool>("flag-name", true), false);
+}
+
+TEST(CommandLineParserTest, ParseOption_NoPrefixWithValueFail)
+{
+    CommandLineParser parser;
+    CliOptions        opts;
+    EXPECT_TRUE(Failed(parser.ParseOption(opts, "no-flag-name", "value")));
+    EXPECT_EQ(opts.GetNumUniqueOptions(), 0);
+    EXPECT_FALSE(opts.HasExtraOption("flag-name"));
 }
 
 } // namespace
