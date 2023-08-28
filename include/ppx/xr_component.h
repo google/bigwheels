@@ -188,9 +188,7 @@ private:
     std::optional<float> mFarPlaneForFrame      = std::nullopt;
     bool                 mShouldSubmitDepthInfo = false;
 
-    XrFrameState mFrameState = {
-        .type = XR_TYPE_FRAME_STATE,
-    };
+    XrFrameState mFrameState = {XR_TYPE_FRAME_STATE};
 
     XrEventDataBuffer mEventDataBuffer;
 

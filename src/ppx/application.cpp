@@ -842,7 +842,7 @@ void Application::InitStandardKnobs()
         "Select the gpu with the given index. To determine the set of valid "
         "indices use --list-gpus.");
 
-#if not defined(PPX_LINUX_HEADLESS)
+#if !defined(PPX_LINUX_HEADLESS)
     mStandardOpts.pHeadless =
         mKnobManager.CreateKnob<KnobFlag<bool>>("headless", false);
     mStandardOpts.pHeadless->SetFlagDescription(
@@ -1760,11 +1760,12 @@ bool Application::RecordMetricData(metrics::MetricID id, const metrics::MetricDa
 void Application::UpdateAppMetrics()
 {
     // This data is the same for every call to increase the frame count.
-    static const metrics::MetricData frameCountData = {
-        .type    = metrics::MetricType::COUNTER,
-        .counter = {
-            .increment = 1},
-    };
+    static const metrics::MetricData frameCountData = []() {
+        metrics::MetricData data = {};
+        data.type                = metrics::MetricType::COUNTER;
+        data.counter.increment   = 1;
+        return data;
+    }();
 
     if (!HasActiveMetricsRun()) {
         return;

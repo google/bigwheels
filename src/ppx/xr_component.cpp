@@ -453,9 +453,7 @@ void XrComponent::HandleSessionStateChangedEvent(const XrEventDataSessionStateCh
 
 void XrComponent::BeginFrame()
 {
-    XrFrameWaitInfo frameWaitInfo = {
-        .type = XR_TYPE_FRAME_WAIT_INFO,
-    };
+    XrFrameWaitInfo frameWaitInfo = {XR_TYPE_FRAME_WAIT_INFO};
 
     CHECK_XR_CALL(xrWaitFrame(mSession, &frameWaitInfo, &mFrameState));
     mShouldRender = mFrameState.shouldRender;
@@ -465,16 +463,17 @@ void XrComponent::BeginFrame()
     mFarPlaneForFrame  = std::nullopt;
 
     // Create projection matrices and view matrices for each eye.
+
     XrViewLocateInfo viewLocateInfo = {
-        .type                  = XR_TYPE_VIEW_LOCATE_INFO,
-        .viewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO,
-        .displayTime           = mFrameState.predictedDisplayTime,
-        .space                 = mRefSpace,
+        XR_TYPE_VIEW_LOCATE_INFO,                  // type
+        nullptr,                                   // next
+        XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO, // viewConfigurationType
+        mFrameState.predictedDisplayTime,          // displayTime
+        mRefSpace,                                 // space
     };
 
-    XrViewState viewState = {
-        .type = XR_TYPE_VIEW_STATE,
-    };
+    XrViewState viewState = {XR_TYPE_VIEW_STATE};
+
     uint32_t viewCount = 0;
     CHECK_XR_CALL(xrLocateViews(mSession, &viewLocateInfo, &viewState, (uint32_t)mViews.size(), &viewCount, mViews.data()));
 
@@ -484,9 +483,7 @@ void XrComponent::BeginFrame()
     }
 
     // Begin frame.
-    XrFrameBeginInfo frameBeginInfo = {
-        .type = XR_TYPE_FRAME_BEGIN_INFO,
-    };
+    XrFrameBeginInfo frameBeginInfo = {XR_TYPE_FRAME_BEGIN_INFO};
 
     XrResult result = xrBeginFrame(mSession, &frameBeginInfo);
     if (result != XR_SUCCESS) {
@@ -590,11 +587,12 @@ void XrComponent::EndFrame(const std::vector<grfx::SwapchainPtr>& swapchains, ui
 
     // Submit layers and end frame.
     XrFrameEndInfo frameEndInfo = {
-        .type                 = XR_TYPE_FRAME_END_INFO,
-        .displayTime          = mFrameState.predictedDisplayTime,
-        .environmentBlendMode = blendMode,
-        .layerCount           = static_cast<uint32_t>(layers.size()),
-        .layers               = layers.data(),
+        XR_TYPE_FRAME_END_INFO,               // type
+        nullptr,                              // next
+        mFrameState.predictedDisplayTime,     // displayTime
+        blendMode,                            // environmentBlendMode
+        static_cast<uint32_t>(layers.size()), // layerCount
+        layers.data(),                        // layers
     };
 
     CHECK_XR_CALL(xrEndFrame(mSession, &frameEndInfo));
