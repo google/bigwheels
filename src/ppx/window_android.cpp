@@ -30,10 +30,17 @@ namespace ppx {
 
 struct WindowEvents
 {
-    static void ResizeCallback(Application* pApp, int width, int height)
-    {
-        pApp->ResizeCallback(width, height);
-    }
+    void ProcessInputEvent(Application* pApp, AInputEvent* pEvent);
+
+    int32_t InputCallback(Application* pApp, AInputEvent* pEvent);
+
+    void ResizeCallback(Application* pApp, int width, int height);
+
+private:
+    // Pointer ID of the first touch event when touch events began,
+    // it is reset to -1 when that first touch event has ended, even
+    // if other touch events are still active.
+    int32_t mFirstTouchId = -1;
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -66,11 +73,7 @@ private:
     android_app* mAndroidApp  = nullptr;
     bool         mWindowReady = false;
     WindowSize   mSize        = {};
-
-    // Pointer ID of the first touch event when touch events began,
-    // it is reset to -1 when that first touch event has ended, even
-    // if other touch events are still active.
-    int32_t mFirstTouchId = -1;
+    WindowEvents mEvents      = {};
 };
 
 std::unique_ptr<Window> Window::GetImplAndroid(Application* pApp)
@@ -162,7 +165,22 @@ void WindowImplAndroid::OnAppCmd(int32_t cmd)
     }
 }
 
-void WindowImplAndroid::ProcessInputEvent(AInputEvent* pEvent)
+int32_t WindowImplAndroid::OnInputEvent(AInputEvent* pEvent)
+{
+    return mEvents.InputCallback(App(), pEvent);
+}
+
+void WindowImplAndroid::OnResizeEvent()
+{
+    if (App()->IsXrEnabled()) {
+        // Do not send resize event on XR.
+        return;
+    }
+    WindowSize size = Size();
+    mEvents.ResizeCallback(App(), size.width, size.height);
+}
+
+void WindowEvents::ProcessInputEvent(Application* pApp, AInputEvent* pEvent)
 {
     int32_t eventType = AInputEvent_getType(pEvent);
     if (eventType == AINPUT_EVENT_TYPE_MOTION) {
@@ -177,8 +195,8 @@ void WindowImplAndroid::ProcessInputEvent(AInputEvent* pEvent)
                 float y       = AMotionEvent_getY(pEvent, 0);
                 // Call MouseMoveCallback first without any buttons "pressed",
                 // to update the mouse location, since it is not tracked otherwise.
-                App()->MouseMoveCallback(x, y, 0);
-                App()->MouseDownCallback(x, y, MOUSE_BUTTON_LEFT);
+                pApp->MouseMoveCallback(x, y, 0);
+                pApp->MouseDownCallback(x, y, MOUSE_BUTTON_LEFT);
                 break;
             }
             case AMOTION_EVENT_ACTION_UP: {
@@ -188,7 +206,7 @@ void WindowImplAndroid::ProcessInputEvent(AInputEvent* pEvent)
                     mFirstTouchId = -1;
                     float x       = AMotionEvent_getX(pEvent, 0);
                     float y       = AMotionEvent_getY(pEvent, 0);
-                    App()->MouseUpCallback(x, y, MOUSE_BUTTON_LEFT);
+                    pApp->MouseUpCallback(x, y, MOUSE_BUTTON_LEFT);
                 }
                 break;
             }
@@ -200,7 +218,7 @@ void WindowImplAndroid::ProcessInputEvent(AInputEvent* pEvent)
                     mFirstTouchId = -1;
                     float x       = AMotionEvent_getX(pEvent, pointerIndex);
                     float y       = AMotionEvent_getY(pEvent, pointerIndex);
-                    App()->MouseUpCallback(x, y, MOUSE_BUTTON_LEFT);
+                    pApp->MouseUpCallback(x, y, MOUSE_BUTTON_LEFT);
                 }
                 break;
             }
@@ -209,7 +227,7 @@ void WindowImplAndroid::ProcessInputEvent(AInputEvent* pEvent)
                     // Only track the first registered touch event.
                     float x = AMotionEvent_getX(pEvent, 0);
                     float y = AMotionEvent_getY(pEvent, 0);
-                    App()->MouseMoveCallback(x, y, MOUSE_BUTTON_LEFT);
+                    pApp->MouseMoveCallback(x, y, MOUSE_BUTTON_LEFT);
                 }
                 break;
             }
@@ -219,26 +237,21 @@ void WindowImplAndroid::ProcessInputEvent(AInputEvent* pEvent)
     }
 }
 
-int32_t WindowImplAndroid::OnInputEvent(AInputEvent* pEvent)
+int32_t WindowEvents::InputCallback(Application* pApp, AInputEvent* pEvent)
 {
-    if (App()->GetSettings()->emulateMouseAndroid) {
-        ProcessInputEvent(pEvent);
+    if (pApp->GetSettings()->emulateMouseAndroid) {
+        ProcessInputEvent(pApp, pEvent);
     }
 
-    if (App()->GetSettings()->enableImGui) {
+    if (pApp->GetSettings()->enableImGui) {
         return ImGui_ImplAndroid_HandleInputEvent(pEvent);
     }
     return 0;
 }
 
-void WindowImplAndroid::OnResizeEvent()
+void WindowEvents::ResizeCallback(Application* pApp, int width, int height)
 {
-    if (App()->IsXrEnabled()) {
-        // Do not send resize event on XR.
-        return;
-    }
-    WindowSize size = Size();
-    WindowEvents::ResizeCallback(App(), size.width, size.height);
+    pApp->ResizeCallback(width, height);
 }
 } // namespace ppx
 

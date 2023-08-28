@@ -526,7 +526,6 @@ private:
 
 private:
     friend struct WindowEvents;
-    friend class WindowImplAndroid;
     //
     // These functions exists so that applications can override the
     // corresponding Dispatch* methods without interfering with the
