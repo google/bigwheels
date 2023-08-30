@@ -82,6 +82,7 @@ const grfx::Api kApi = grfx::API_VK_1_1;
 
 static constexpr uint32_t kMaxSphereInstanceCount = 3000;
 static constexpr uint32_t kSeed                   = 89977;
+static constexpr uint32_t kMaxNoiseQuadsCount     = 1000;
 
 static constexpr std::array<const char*, 2> kAvailableVsShaders = {
     "Benchmark_VsSimple",
@@ -135,6 +136,14 @@ private:
         grfx::GraphicsPipelinePtr    pipeline;
     };
 
+    struct Entity2D
+    {
+        grfx::BufferPtr            vertexBuffer;
+        grfx::VertexBinding        vertexBinding;
+        grfx::PipelineInterfacePtr pipelineInterface;
+        grfx::GraphicsPipelinePtr  pipeline;
+    };
+
     struct Grid
     {
         uint32_t xSize;
@@ -150,12 +159,15 @@ private:
     uint64_t                                                      mGpuWorkDuration;
     grfx::ShaderModulePtr                                         mVS;
     grfx::ShaderModulePtr                                         mPS;
+    grfx::ShaderModulePtr                                         mVSNoise;
+    grfx::ShaderModulePtr                                         mPSNoise;
     Texture                                                       mSkyBoxTexture;
     Texture                                                       mAlbedoTexture;
     Texture                                                       mNormalMapTexture;
     Texture                                                       mMetalRoughnessTexture;
     Entity                                                        mSkyBox;
     Entity                                                        mSphere;
+    Entity2D                                                      mNoiseQuads;
     bool                                                          mEnableMouseMovement = true;
     std::vector<grfx::BufferPtr>                                  mDrawCallUniformBuffers;
     std::array<grfx::GraphicsPipelinePtr, kPipelineCount>         mPipelines;
@@ -168,6 +180,7 @@ private:
     std::shared_ptr<KnobDropdown<std::string>> pKnobPs;
     std::shared_ptr<KnobSlider<int>>           pSphereInstanceCount;
     std::shared_ptr<KnobSlider<int>>           pDrawCallCount;
+    std::shared_ptr<KnobSlider<int>>           pNoiseQuadsCount;
 
 private:
     void ProcessInput();
@@ -175,6 +188,8 @@ private:
     void UpdateGUI();
 
     void DrawExtraInfo();
+
+    void SetupNoiseQuads();
 };
 
 void FreeCamera::Move(MovementDirection dir, float distance)
@@ -253,6 +268,10 @@ void ProjApp::InitKnobs()
     pDrawCallCount = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("drawcall-count", /* defaultValue = */ 1, /* minValue = */ 1, kMaxSphereInstanceCount);
     pDrawCallCount->SetDisplayName("DrawCall Count");
     pDrawCallCount->SetFlagDescription("Select the number of draw calls to be used to draw the `sphere-count` spheres.");
+
+    pNoiseQuadsCount = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("noise-quads-count", /* defaultValue = */ 0, /* minValue = */ 0, kMaxNoiseQuadsCount);
+    pNoiseQuadsCount->SetDisplayName("Number of Fullscreen Noise Quads");
+    pNoiseQuadsCount->SetFlagDescription("Select the number of fullscreen noise quads to render.");
 }
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
@@ -552,6 +571,8 @@ void ProjApp::Setup()
         }
     }
 
+    SetupNoiseQuads();
+
     // Per frame data
     {
         PerFrame frame = {};
@@ -576,6 +597,79 @@ void ProjApp::Setup()
         PPX_CHECKED_CALL(GetDevice()->CreateQuery(&queryCreateInfo, &frame.timestampQuery));
 
         mPerFrame.push_back(frame);
+    }
+}
+
+void ProjApp::SetupNoiseQuads()
+{
+    // Vertex buffer
+    {
+        // clang-format off
+        std::vector<float> vertexData = {
+            // position       
+            -1.0f, -1.0f, 0.0f,
+             1.0f, -1.0f, 0.0f,
+            -1.0f,  1.0f, 0.0f,
+             1.0f,  1.0f, 0.0f
+        };
+        // clang-format on
+        uint32_t dataSize = SizeInBytesU32(vertexData);
+
+        grfx::BufferCreateInfo bufferCreateInfo       = {};
+        bufferCreateInfo.size                         = dataSize;
+        bufferCreateInfo.usageFlags.bits.vertexBuffer = true;
+        bufferCreateInfo.memoryUsage                  = grfx::MEMORY_USAGE_CPU_TO_GPU;
+        bufferCreateInfo.initialState                 = grfx::RESOURCE_STATE_VERTEX_BUFFER;
+
+        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mNoiseQuads.vertexBuffer));
+
+        void* pAddr = nullptr;
+        PPX_CHECKED_CALL(mNoiseQuads.vertexBuffer->MapMemory(0, &pAddr));
+        memcpy(pAddr, vertexData.data(), dataSize);
+        mNoiseQuads.vertexBuffer->UnmapMemory();
+    }
+
+    // Load shaders
+    {
+        std::vector<char> bytecode = LoadShader("benchmarks/shaders", "Benchmark_RandomNoise.vs");
+        PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
+        grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mVSNoise));
+
+        bytecode = LoadShader("benchmarks/shaders", "Benchmark_RandomNoise.ps");
+        PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
+        shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPSNoise));
+    }
+
+    // Noise quads: pipeline
+    {
+        grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
+        piCreateInfo.setCount                          = 0;
+        piCreateInfo.pushConstants.count               = 1;
+        piCreateInfo.pushConstants.binding             = 0;
+        piCreateInfo.pushConstants.set                 = 0;
+        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mNoiseQuads.pipelineInterface));
+
+        mNoiseQuads.vertexBinding.AppendAttribute({"POSITION", 0, grfx::FORMAT_R32G32B32_FLOAT, 0, PPX_APPEND_OFFSET_ALIGNED, grfx::VERTEX_INPUT_RATE_VERTEX});
+
+        grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
+        gpCreateInfo.VS                                 = {mVSNoise.Get(), "vsmain"};
+        gpCreateInfo.PS                                 = {mPSNoise.Get(), "psmain"};
+        gpCreateInfo.vertexInputState.bindingCount      = 1;
+        gpCreateInfo.vertexInputState.bindings[0]       = mNoiseQuads.vertexBinding;
+        gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+        gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
+        gpCreateInfo.cullMode                           = grfx::CULL_MODE_NONE;
+        gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CW;
+        gpCreateInfo.depthReadEnable                    = true;
+        gpCreateInfo.depthWriteEnable                   = false;
+        gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
+        gpCreateInfo.outputState.renderTargetCount      = 1;
+        gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
+        gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
+        gpCreateInfo.pPipelineInterface                 = mNoiseQuads.pipelineInterface;
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mNoiseQuads.pipeline));
     }
 }
 
@@ -748,6 +842,19 @@ void ProjApp::Render()
                     }
                     uint32_t firstIndex = i * indicesPerDrawCall;
                     frame.cmd->DrawIndexed(indexCount, /* instanceCount = */ 1, firstIndex);
+                }
+            }
+
+            // Noise Quads
+            if (pNoiseQuadsCount->GetValue() > 0) {
+                // Draw noise quads
+                frame.cmd->BindGraphicsPipeline(mNoiseQuads.pipeline);
+                frame.cmd->BindVertexBuffers(1, &mNoiseQuads.vertexBuffer, &mNoiseQuads.vertexBinding.GetStride());
+
+                for (size_t i = 0; i < pNoiseQuadsCount->GetValue(); ++i) {
+                    uint32_t noiseQuadRandomSeed = (uint32_t)i;
+                    frame.cmd->PushGraphicsConstants(mNoiseQuads.pipelineInterface, 1, &noiseQuadRandomSeed);
+                    frame.cmd->Draw(4, 1, 0, 0);
                 }
             }
 

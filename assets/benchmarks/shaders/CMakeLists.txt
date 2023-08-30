@@ -90,3 +90,8 @@ generate_rules_for_shader("shader_benchmark_skybox"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_SkyBox.hlsl"
     INCLUDES ${INCLUDE_FILES}
     STAGES "vs" "ps")
+
+generate_rules_for_shader("shader_benchmark_random_noise"
+    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_RandomNoise.hlsl"
+    INCLUDES ${INCLUDE_FILES}
+    STAGES "vs" "ps")
