@@ -28,6 +28,7 @@ namespace ppx {
 //     be careful when adding data members to any of these classes
 //     it could create problems for multithreaded cases for multiple geometry objects
 // -------------------------------------------------------------------------------------------------
+template <typename T>
 class VertexDataProcessorBase
 {
 public:
@@ -39,7 +40,7 @@ public:
     virtual Result UpdateVertexBuffer(Geometry* pGeom) = 0;
     // Fetches vertex data from vtx and append it to the geometry
     // Returns 0 if the appending fails
-    virtual uint32_t AppendVertexData(Geometry* pGeom, const TriMeshVertexData& vtx)  = 0;
+    virtual uint32_t AppendVertexData(Geometry* pGeom, const T& vtx)                  = 0;
     virtual uint32_t AppendVertexData(Geometry* pGeom, const WireMeshVertexData& vtx) = 0;
     // Gets the vertex count of the geometry
     virtual uint32_t GetVertexCount(const Geometry* pGeom) = 0;
@@ -128,7 +129,8 @@ protected:
 // VertexDataProcessor for Planar vertex attribute layout
 //     Planar: each attribute has its own vertex input binding
 // -------------------------------------------------------------------------------------------------
-class VertexDataProcessorPlanar : public VertexDataProcessorBase
+template <typename T>
+class VertexDataProcessorPlanar : public VertexDataProcessorBase<T>
 {
 public:
     virtual bool Validate(Geometry* pGeom) override
@@ -165,7 +167,7 @@ public:
         return ppx::SUCCESS;
     }
 
-    virtual uint32_t AppendVertexData(Geometry* pGeom, const TriMeshVertexData& vtx) override
+    virtual uint32_t AppendVertexData(Geometry* pGeom, const T& vtx) override
     {
         const uint32_t n = AppendDataToVertexBuffer(pGeom, GetPositionBufferIndex(pGeom), vtx.position);
         PPX_ASSERT_MSG(n > 0, "position should always available");
@@ -195,7 +197,8 @@ public:
 // VertexDataProcessor for Interleaved vertex attribute layout
 //     Interleaved: only has 1 vertex input binding, data is interleaved
 // -------------------------------------------------------------------------------------------------
-class VertexDataProcessorInterleaved : public VertexDataProcessorBase
+template <typename T>
+class VertexDataProcessorInterleaved : public VertexDataProcessorBase<T>
 {
 public:
     virtual bool Validate(Geometry* pGeom) override
@@ -214,7 +217,7 @@ public:
         return ppx::SUCCESS;
     }
 
-    virtual uint32_t AppendVertexData(Geometry* pGeom, const TriMeshVertexData& vtx) override
+    virtual uint32_t AppendVertexData(Geometry* pGeom, const T& vtx) override
     {
         uint32_t       startSize = GetVertexBufferSize(pGeom, kBufferIndex);
         const uint32_t attrCount = GetVertexBindingAttributeCount(pGeom, kBufferIndex);
@@ -224,9 +227,9 @@ public:
             // clang-format off
             switch (semantic) {
                 default: break;
-                case grfx::VERTEX_SEMANTIC_POSITION  : 
+                case grfx::VERTEX_SEMANTIC_POSITION  :
                     {
-                        const uint32_t n = AppendDataToVertexBuffer(pGeom, kBufferIndex, vtx.position); 
+                        const uint32_t n = AppendDataToVertexBuffer(pGeom, kBufferIndex, vtx.position);
                         PPX_ASSERT_MSG(n > 0, "position should always available");
                     }
                     break;
@@ -292,7 +295,8 @@ private:
 //        - Binding 0 only has Position data
 //        - Binding 1 contains all non-position data, interleaved
 // -------------------------------------------------------------------------------------------------
-class VertexDataProcessorPositionPlanar : public VertexDataProcessorBase
+template <typename T>
+class VertexDataProcessorPositionPlanar : public VertexDataProcessorBase<T>
 {
 public:
     virtual bool Validate(Geometry* pGeom) override
@@ -333,7 +337,7 @@ public:
         return ppx::SUCCESS;
     }
 
-    virtual uint32_t AppendVertexData(Geometry* pGeom, const TriMeshVertexData& vtx) override
+    virtual uint32_t AppendVertexData(Geometry* pGeom, const T& vtx) override
     {
         const uint32_t n = AppendDataToVertexBuffer(pGeom, GetPositionBufferIndex(pGeom), vtx.position);
         PPX_ASSERT_MSG(n > 0, "position should always available");
@@ -399,9 +403,12 @@ private:
     const uint32_t kNonPositionBufferIndex = 1;
 };
 
-static VertexDataProcessorPlanar         sVDProcessorPlanar;
-static VertexDataProcessorInterleaved    sVDProcessorInterleaved;
-static VertexDataProcessorPositionPlanar sVDProcessorPositionPlanar;
+static VertexDataProcessorPlanar<TriMeshVertexData>                   sVDProcessorPlanar;
+static VertexDataProcessorPlanar<TriMeshVertexDataCompressed>         sVDProcessorPlanarCompressed;
+static VertexDataProcessorInterleaved<TriMeshVertexData>              sVDProcessorInterleaved;
+static VertexDataProcessorInterleaved<TriMeshVertexDataCompressed>    sVDProcessorInterleavedCompressed;
+static VertexDataProcessorPositionPlanar<TriMeshVertexData>           sVDProcessorPositionPlanar;
+static VertexDataProcessorPositionPlanar<TriMeshVertexDataCompressed> sVDProcessorPositionPlanarCompressed;
 
 // -------------------------------------------------------------------------------------------------
 // GeometryOptions
@@ -625,13 +632,16 @@ Result Geometry::InternalCtor()
 {
     switch (mCreateInfo.vertexAttributeLayout) {
         case GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_INTERLEAVED:
-            mVDProcessor = &sVDProcessorInterleaved;
+            mVDProcessor           = &sVDProcessorInterleaved;
+            mVDProcessorCompressed = &sVDProcessorInterleavedCompressed;
             break;
         case GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_PLANAR:
-            mVDProcessor = &sVDProcessorPlanar;
+            mVDProcessor           = &sVDProcessorPlanar;
+            mVDProcessorCompressed = &sVDProcessorPlanarCompressed;
             break;
         case GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_POSITION_PLANAR:
-            mVDProcessor = &sVDProcessorPositionPlanar;
+            mVDProcessor           = &sVDProcessorPositionPlanar;
+            mVDProcessorCompressed = &sVDProcessorPositionPlanarCompressed;
             break;
         default:
             PPX_ASSERT_MSG(false, "unsupported vertex attribute layout type");
@@ -1092,6 +1102,11 @@ void Geometry::AppendIndicesEdge(uint32_t vtx0, uint32_t vtx1)
 uint32_t Geometry::AppendVertexData(const TriMeshVertexData& vtx)
 {
     return mVDProcessor->AppendVertexData(this, vtx);
+}
+
+uint32_t Geometry::AppendVertexData(const TriMeshVertexDataCompressed& vtx)
+{
+    return mVDProcessorCompressed->AppendVertexData(this, vtx);
 }
 
 uint32_t Geometry::AppendVertexData(const WireMeshVertexData& vtx)
