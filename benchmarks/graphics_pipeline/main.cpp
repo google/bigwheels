@@ -182,6 +182,7 @@ private:
     std::shared_ptr<KnobSlider<int>>           pDrawCallCount;
     std::shared_ptr<KnobSlider<int>>           pNoiseQuadsCount;
     std::shared_ptr<KnobCheckbox>              pAlphaBlend;
+    std::shared_ptr<KnobCheckbox>              pDepthTestWrite;
 
 private:
     void ProcessInput();
@@ -281,6 +282,10 @@ void ProjApp::InitKnobs()
     pAlphaBlend = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("alpha-blend", false);
     pAlphaBlend->SetDisplayName("Alpha Blend");
     pAlphaBlend->SetFlagDescription("Set blend mode of the spheres to alpha blending.");
+
+    pDepthTestWrite = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("depth-test-write", true);
+    pDepthTestWrite->SetDisplayName("Depth Test/Write");
+    pDepthTestWrite->SetFlagDescription("Enable depth test and depth write for spheres (Default: enabled).");
 }
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
@@ -599,8 +604,8 @@ void ProjApp::CreateSpherePipelines()
             gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
             gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
             gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
-            gpCreateInfo.depthReadEnable                    = true;
-            gpCreateInfo.depthWriteEnable                   = true;
+            gpCreateInfo.depthReadEnable                    = pDepthTestWrite->GetValue();
+            gpCreateInfo.depthWriteEnable                   = pDepthTestWrite->GetValue();
             gpCreateInfo.blendModes[0]                      = pAlphaBlend->GetValue() ? grfx::BLEND_MODE_ALPHA : grfx::BLEND_MODE_NONE;
             gpCreateInfo.outputState.renderTargetCount      = 1;
             gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
@@ -738,6 +743,8 @@ void ProjApp::ProcessInput()
 
 void ProjApp::ProcessKnobs()
 {
+    bool rebuildSpherePipeline = false;
+
     // TODO: Ideally, the `maxValue` of the drawcall-count slider knob should be changed at runtime.
     // Currently, the value of the drawcall-count is adjusted to the sphere-count in case the
     // former exceeds the value of the sphere-count.
@@ -746,6 +753,14 @@ void ProjApp::ProcessKnobs()
     }
 
     if (pAlphaBlend->DigestUpdate()) {
+        rebuildSpherePipeline = true;
+    }
+
+    if (pDepthTestWrite->DigestUpdate()) {
+        rebuildSpherePipeline = true;
+    }
+
+    if (rebuildSpherePipeline) {
         CreateSpherePipelines();
     }
 }
