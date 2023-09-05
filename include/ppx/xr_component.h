@@ -36,6 +36,9 @@
 #include <ppx/grfx/grfx_config.h>
 
 #include <optional>
+#include <unordered_map>
+
+#include "ppx/xr_composition_layers.h"
 
 #define CHECK_XR_CALL(CMD__)                                                                       \
     {                                                                                              \
@@ -87,6 +90,8 @@ struct XrComponentCreateInfo
     XrComponentResolution   resolution           = {0, 0};
     XrComponentResolution   uiResolution         = {0, 0};
 };
+
+typedef uint32_t LayerRef;
 
 //! @class XrComponent
 class XrComponent
@@ -160,6 +165,9 @@ public:
     virtual void EndPassthrough();
     virtual void TogglePassthrough();
 
+    LayerRef AddLayer(std::unique_ptr<XrLayerBase> layer);
+    bool     RemoveLayer(LayerRef layerRef);
+
 private:
     const XrEventDataBaseHeader* TryReadNextEvent();
     void                         HandleSessionStateChangedEvent(const XrEventDataSessionStateChanged& stateChangedEvent, bool& exitRenderLoop);
@@ -175,6 +183,9 @@ private:
     std::vector<XrView>                  mViews;
     std::vector<XrEnvironmentBlendMode>  mBlendModes;
     uint32_t                             mCurrentViewIndex = 0;
+
+    std::unordered_map<LayerRef, std::unique_ptr<XrLayerBase>> mLayers;
+    LayerRef                                                   mNextLayerRef = 0;
 
     XrSpace                  mRefSpace           = XR_NULL_HANDLE;
     XrSpace                  mUISpace            = XR_NULL_HANDLE;
