@@ -485,6 +485,8 @@ void ProjApp::Setup()
         }
     }
 
+    // Scene drawpass
+
     // SkyBox Pipeline
     {
         std::vector<char> bytecode = LoadShader("benchmarks/shaders", "Benchmark_SkyBox.vs");
@@ -602,6 +604,8 @@ void ProjApp::Setup()
 
 void ProjApp::SetupNoiseQuads()
 {
+    // Noise Quad drawpass
+
     // Vertex buffer
     {
         // clang-format off
@@ -780,12 +784,12 @@ void ProjApp::Render()
         // Write start timestamp
         frame.cmd->WriteTimestamp(frame.timestampQuery, grfx::PIPELINE_STAGE_TOP_OF_PIPE_BIT, /* queryIndex = */ 0);
 
+        // =====================================================================
+        // Scene renderpass
+        // =====================================================================
         grfx::RenderPassPtr renderPass = swapchain->GetRenderPass(imageIndex);
         PPX_ASSERT_MSG(!renderPass.IsNull(), "render pass object is null");
 
-        // =====================================================================
-        //  Render scene
-        // =====================================================================
         frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
         frame.cmd->BeginRenderPass(renderPass);
         {
@@ -844,27 +848,53 @@ void ProjApp::Render()
                     frame.cmd->DrawIndexed(indexCount, /* instanceCount = */ 1, firstIndex);
                 }
             }
+        }
+        frame.cmd->EndRenderPass();
 
-            // Noise Quads
-            if (pNoiseQuadsCount->GetValue() > 0) {
-                // Draw noise quads
-                frame.cmd->BindGraphicsPipeline(mNoiseQuads.pipeline);
-                frame.cmd->BindVertexBuffers(1, &mNoiseQuads.vertexBuffer, &mNoiseQuads.vertexBinding.GetStride());
+        // =====================================================================
+        // Fullscreen quads renderpasses
+        // =====================================================================
 
-                for (size_t i = 0; i < pNoiseQuadsCount->GetValue(); ++i) {
+        if (pNoiseQuadsCount->GetValue() > 0) {
+            for (size_t i = 0; i < pNoiseQuadsCount->GetValue(); ++i) {
+                renderPass = swapchain->GetRenderPass(imageIndex);
+                PPX_ASSERT_MSG(!renderPass.IsNull(), "render pass object is null");
+
+                frame.cmd->BeginRenderPass(renderPass);
+                {
+                    // Draw noise quads
+                    frame.cmd->BindGraphicsPipeline(mNoiseQuads.pipeline);
+                    frame.cmd->BindVertexBuffers(1, &mNoiseQuads.vertexBuffer, &mNoiseQuads.vertexBinding.GetStride());
+
                     uint32_t noiseQuadRandomSeed = (uint32_t)i;
                     frame.cmd->PushGraphicsConstants(mNoiseQuads.pipelineInterface, 1, &noiseQuadRandomSeed);
                     frame.cmd->Draw(4, 1, 0, 0);
                 }
-            }
+                frame.cmd->EndRenderPass();
 
-            DrawImGui(frame.cmd);
+                // Force resolve by transitioning image layout
+                frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_SHADER_RESOURCE);
+                frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_RENDER_TARGET);
+            }
         }
-        frame.cmd->EndRenderPass();
-        frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
 
         // Write end timestamp
         frame.cmd->WriteTimestamp(frame.timestampQuery, grfx::PIPELINE_STAGE_TOP_OF_PIPE_BIT, /* queryIndex = */ 1);
+
+        // =====================================================================
+        // ImGui renderpass
+        // =====================================================================
+
+        renderPass = swapchain->GetRenderPass(imageIndex, grfx::ATTACHMENT_LOAD_OP_LOAD);
+        PPX_ASSERT_MSG(!renderPass.IsNull(), "render pass object is null");
+
+        frame.cmd->BeginRenderPass(renderPass);
+        {
+            DrawImGui(frame.cmd);
+        }
+        frame.cmd->EndRenderPass();
+
+        frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
 
         // Resolve queries
         frame.cmd->ResolveQueryData(frame.timestampQuery, /* startIndex= */ 0, frame.timestampQuery->GetCount());
