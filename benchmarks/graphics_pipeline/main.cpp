@@ -284,7 +284,7 @@ void ProjApp::InitKnobs()
     pAlphaBlend->SetFlagDescription("Set blend mode of the spheres to alpha blending.");
 
     pDepthTestWrite = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("depth-test-write", true);
-    pDepthTestWrite->SetDisplayName("Depth Test/Write");
+    pDepthTestWrite->SetDisplayName("Depth Test & Write");
     pDepthTestWrite->SetFlagDescription("Enable depth test and depth write for spheres (Default: enabled).");
 }
 
