@@ -181,13 +181,18 @@ private:
     std::shared_ptr<KnobSlider<int>>           pSphereInstanceCount;
     std::shared_ptr<KnobSlider<int>>           pDrawCallCount;
     std::shared_ptr<KnobSlider<int>>           pNoiseQuadsCount;
+    std::shared_ptr<KnobCheckbox>              pAlphaBlend;
 
 private:
     void ProcessInput();
 
+    void ProcessKnobs();
+
     void UpdateGUI();
 
     void DrawExtraInfo();
+
+    void CreateSpherePipelines();
 
     void SetupNoiseQuads();
 };
@@ -272,6 +277,10 @@ void ProjApp::InitKnobs()
     pNoiseQuadsCount = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("noise-quads-count", /* defaultValue = */ 0, /* minValue = */ 0, kMaxNoiseQuadsCount);
     pNoiseQuadsCount->SetDisplayName("Number of Fullscreen Noise Quads");
     pNoiseQuadsCount->SetFlagDescription("Select the number of fullscreen noise quads to render.");
+
+    pAlphaBlend = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("alpha-blend", false);
+    pAlphaBlend->SetDisplayName("Alpha Blend");
+    pAlphaBlend->SetFlagDescription("Set blend mode of the spheres to alpha blending.");
 }
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
@@ -539,37 +548,7 @@ void ProjApp::Setup()
         PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPsShaders[j]));
     }
 
-    // Sphere Pipelines
-    {
-        grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
-        piCreateInfo.setCount                          = 1;
-        piCreateInfo.sets[0].set                       = 0;
-        piCreateInfo.sets[0].pLayout                   = mSphere.descriptorSetLayout;
-        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mSphere.pipelineInterface));
-
-        uint32_t pipeline_index = 0;
-        for (size_t i = 0; i < kAvailableVsShaders.size(); i++) {
-            for (size_t j = 0; j < kAvailablePsShaders.size(); j++) {
-                grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
-                gpCreateInfo.VS                                 = {mVsShaders[i].Get(), "vsmain"};
-                gpCreateInfo.PS                                 = {mPsShaders[j].Get(), "psmain"};
-                gpCreateInfo.vertexInputState.bindingCount      = 1;
-                gpCreateInfo.vertexInputState.bindings[0]       = mSphere.mesh->GetDerivedVertexBindings()[0];
-                gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-                gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
-                gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
-                gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
-                gpCreateInfo.depthReadEnable                    = true;
-                gpCreateInfo.depthWriteEnable                   = true;
-                gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
-                gpCreateInfo.outputState.renderTargetCount      = 1;
-                gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
-                gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
-                gpCreateInfo.pPipelineInterface                 = mSphere.pipelineInterface;
-                PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mPipelines[pipeline_index++]));
-            }
-        }
-    }
+    CreateSpherePipelines();
 
     SetupNoiseQuads();
 
@@ -597,6 +576,38 @@ void ProjApp::Setup()
         PPX_CHECKED_CALL(GetDevice()->CreateQuery(&queryCreateInfo, &frame.timestampQuery));
 
         mPerFrame.push_back(frame);
+    }
+}
+
+void ProjApp::CreateSpherePipelines()
+{
+    grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
+    piCreateInfo.setCount                          = 1;
+    piCreateInfo.sets[0].set                       = 0;
+    piCreateInfo.sets[0].pLayout                   = mSphere.descriptorSetLayout;
+    PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mSphere.pipelineInterface));
+
+    uint32_t pipeline_index = 0;
+    for (size_t i = 0; i < kAvailableVsShaders.size(); i++) {
+        for (size_t j = 0; j < kAvailablePsShaders.size(); j++) {
+            grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
+            gpCreateInfo.VS                                 = {mVsShaders[i].Get(), "vsmain"};
+            gpCreateInfo.PS                                 = {mPsShaders[j].Get(), "psmain"};
+            gpCreateInfo.vertexInputState.bindingCount      = 1;
+            gpCreateInfo.vertexInputState.bindings[0]       = mSphere.mesh->GetDerivedVertexBindings()[0];
+            gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+            gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
+            gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
+            gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
+            gpCreateInfo.depthReadEnable                    = true;
+            gpCreateInfo.depthWriteEnable                   = true;
+            gpCreateInfo.blendModes[0]                      = pAlphaBlend->GetValue() ? grfx::BLEND_MODE_ALPHA : grfx::BLEND_MODE_NONE;
+            gpCreateInfo.outputState.renderTargetCount      = 1;
+            gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
+            gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
+            gpCreateInfo.pPipelineInterface                 = mSphere.pipelineInterface;
+            PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mPipelines[pipeline_index++]));
+        }
     }
 }
 
@@ -725,6 +736,20 @@ void ProjApp::ProcessInput()
     }
 }
 
+void ProjApp::ProcessKnobs()
+{
+    // TODO: Ideally, the `maxValue` of the drawcall-count slider knob should be changed at runtime.
+    // Currently, the value of the drawcall-count is adjusted to the sphere-count in case the
+    // former exceeds the value of the sphere-count.
+    if (pDrawCallCount->GetValue() > pSphereInstanceCount->GetValue()) {
+        pDrawCallCount->SetValue(pSphereInstanceCount->GetValue());
+    }
+
+    if (pAlphaBlend->DigestUpdate()) {
+        CreateSpherePipelines();
+    }
+}
+
 struct SkyBoxData
 {
     float4x4 MVP;
@@ -742,16 +767,6 @@ struct SphereData
 
 void ProjApp::Render()
 {
-    uint32_t currentSphereCount   = pSphereInstanceCount->GetValue();
-    uint32_t currentDrawCallCount = pDrawCallCount->GetValue();
-    // TODO: Ideally, the `maxValue` of the drawcall-count slider knob should be changed at runtime.
-    // Currently, the value of the drawcall-count is adjusted to the sphere-count in case the
-    // former exceeds the value of the sphere-count.
-    if (currentDrawCallCount > currentSphereCount) {
-        pDrawCallCount->SetValue(currentSphereCount);
-        currentDrawCallCount = currentSphereCount;
-    }
-
     PerFrame&          frame      = mPerFrame[0];
     grfx::SwapchainPtr swapchain  = GetSwapchain();
     uint32_t           imageIndex = UINT32_MAX;
@@ -771,6 +786,12 @@ void ProjApp::Render()
     frame.timestampQuery->Reset(/* firstQuery= */ 0, frame.timestampQuery->GetCount());
 
     ProcessInput();
+
+    ProcessKnobs();
+
+    // Snapshot some valid values for current frame
+    uint32_t currentSphereCount   = pSphereInstanceCount->GetValue();
+    uint32_t currentDrawCallCount = pDrawCallCount->GetValue();
 
     UpdateGUI();
 
