@@ -655,8 +655,8 @@ void ProjApp::SetupFullscreenQuads()
         std::vector<float> vertexData = {
             // position       
             -1.0f, -1.0f, 0.0f,
-             1.0f, -1.0f, 0.0f,
             -1.0f,  1.0f, 0.0f,
+             1.0f, -1.0f, 0.0f,
              1.0f,  1.0f, 0.0f
         };
         // clang-format on
@@ -720,7 +720,7 @@ void ProjApp::CreateFullscreenQuadsPipelines()
     gpCreateInfo.vertexInputState.bindings[0]       = mFullscreenQuads.vertexBinding;
     gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
     gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
-    gpCreateInfo.cullMode                           = grfx::CULL_MODE_NONE;
+    gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
     gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CW;
     gpCreateInfo.depthReadEnable                    = true;
     gpCreateInfo.depthWriteEnable                   = false;
