@@ -464,15 +464,15 @@ public:
 
     // Returns true when a run is active, otherwise returns false.
     // See StartMetricsRun for why this wrapper is necessary.
-    bool HasActiveMetricsRun() const;
+    virtual bool HasActiveMetricsRun() const;
 
     // Adds a metric to the current run. If no run is active, returns metrics::kInvalidMetricID.
     // See StartMetricsRun for why this wrapper is necessary.
-    metrics::MetricID AddMetric(const metrics::MetricMetadata& metadata);
+    virtual metrics::MetricID AddMetric(const metrics::MetricMetadata& metadata);
 
     // Record data for the given metric ID. Metrics for completed runs will be discarded.
     // See StartMetricsRun for why this wrapper is necessary.
-    bool RecordMetricData(metrics::MetricID id, const metrics::MetricData& data);
+    virtual bool RecordMetricData(metrics::MetricID id, const metrics::MetricData& data);
 
 #if defined(PPX_BUILD_XR)
     virtual XrComponent& GetXrComponent()
