@@ -96,7 +96,7 @@ generate_rules_for_shader("shader_benchmark_random_noise"
     INCLUDES ${INCLUDE_FILES}
     STAGES "vs" "ps")
 
-generate_rules_for_shader("shader_benchmark_random_colour"
-    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_RandomColour.hlsl"
+generate_rules_for_shader("shader_benchmark_solid_colour"
+    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_SolidColour.hlsl"
     INCLUDES ${INCLUDE_FILES}
     STAGES "vs" "ps")

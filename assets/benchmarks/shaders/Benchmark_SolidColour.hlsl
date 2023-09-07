@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-struct RandomParams
+struct ColourParams
 {
-    uint32_t Seed;
+    float3 Value;
 };
 
 #if defined(__spirv__)
 [[vk::push_constant]]
 #endif
-ConstantBuffer<RandomParams> Random : register(b0);
+ConstantBuffer<ColourParams> Colour : register(b0);
 
 struct VSOutput {
     float4 position : SV_POSITION;
@@ -35,6 +35,5 @@ VSOutput vsmain(float4 Position : POSITION)
 
 float4 psmain(VSOutput input) : SV_TARGET
 {
-    float rnd = abs(cos(float(Random.Seed) / 10.0f));
-    return float4(0.0f, 0.0f, rnd, 1.0f);
+    return float4(Colour.Value, 1.0f);
 }
