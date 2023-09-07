@@ -306,6 +306,7 @@ void ProjApp::InitKnobs()
     pFullscreenQuadsColour = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("fullscreen-quads-colour", 0, kFullscreenQuadsColours);
     pFullscreenQuadsColour->SetDisplayName("Colour of Fullscreen Quads");
     pFullscreenQuadsColour->SetFlagDescription("Select the colour for the fullscreen quads (see --fullscreen-quads-count).");
+    pFullscreenQuadsColour->SetIndent(1);
 
     pAlphaBlend = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("alpha-blend", false);
     pAlphaBlend->SetDisplayName("Alpha Blend");
@@ -808,6 +809,13 @@ void ProjApp::ProcessKnobs()
     }
 
     if (pFullscreenQuadsCount->DigestUpdate()) {
+        if (pFullscreenQuadsCount->GetValue() > 0) {
+            pFullscreenQuadsColour->SetVisible(true);
+        }
+        else {
+            pFullscreenQuadsColour->SetVisible(false);
+        }
+
         rebuildFullscreenQuadsPipeline = true;
     }
 
