@@ -63,12 +63,12 @@ struct GeometryOptions
     // Creates a create info objects with a UINT16 or UINT32 index
     // type and position vertex attribute.
     //
-    static GeometryOptions InterleavedU16();
-    static GeometryOptions InterleavedU32();
-    static GeometryOptions PlanarU16();
-    static GeometryOptions PlanarU32();
-    static GeometryOptions PositionPlanarU16();
-    static GeometryOptions PositionPlanarU32();
+    static GeometryOptions InterleavedU16(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
+    static GeometryOptions InterleavedU32(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
+    static GeometryOptions PlanarU16(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
+    static GeometryOptions PlanarU32(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
+    static GeometryOptions PositionPlanarU16(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
+    static GeometryOptions PositionPlanarU32(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
 
     // Create a create info with a position vertex attribute.
     //
