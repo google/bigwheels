@@ -321,19 +321,6 @@ void Shuffle(Iter begin, Iter end, F&& f)
     }
 }
 
-// Converts a float to a IEEE-754 16-bit floating-point format (without infinity)
-uint16_t FloatToHalf(float x)
-{
-    // Round to nearest even. Add the last bit after truncating the mantissa.
-    const uint32_t b = (*reinterpret_cast<uint32_t*>(&x)) + 0x00001000;
-    // Exponent.
-    const uint32_t e = (b & 0x7F800000) >> 23;
-    // Mantissa.
-    const uint32_t m = b & 0x007FFFFF;
-    // Sign : normalized : denormalized : saturate.
-    return (b & 0x80000000) >> 16 | (e > 112) * ((((e - 112) << 10) & 0x7C00) | m >> 13) | ((e < 113) & (e > 101)) * ((((0x007FF000 + m) >> (125 - e)) + 1) >> 1) | (e > 143) * 0x7FFF;
-}
-
 // Maps a float between [-1, 1] to [-128, 127]
 int8_t MapFloatToInt8(float x)
 {
@@ -469,8 +456,8 @@ void ProjApp::Setup()
                 vertexData.position = modelMatrix * float4(vertexData.position, 1);
 
                 TriMeshVertexDataCompressed vertexDataCompressed;
-                vertexDataCompressed.position = half3(FloatToHalf(vertexData.position.x), FloatToHalf(vertexData.position.y), FloatToHalf(vertexData.position.z));
-                vertexDataCompressed.texCoord = half2(FloatToHalf(vertexData.texCoord.x), FloatToHalf(vertexData.texCoord.y));
+                vertexDataCompressed.position = half3(glm::packHalf1x16(vertexData.position.x), glm::packHalf1x16(vertexData.position.y), glm::packHalf1x16(vertexData.position.z));
+                vertexDataCompressed.texCoord = half2(glm::packHalf1x16(vertexData.texCoord.x), glm::packHalf1x16(vertexData.texCoord.y));
                 vertexDataCompressed.normal   = i8vec4(MapFloatToInt8(vertexData.normal.x), MapFloatToInt8(vertexData.normal.y), MapFloatToInt8(vertexData.normal.z), MapFloatToInt8(1.0f));
                 vertexDataCompressed.tangent  = i8vec4(MapFloatToInt8(vertexData.tangent.x), MapFloatToInt8(vertexData.tangent.y), MapFloatToInt8(vertexData.tangent.z), MapFloatToInt8(vertexData.tangent.a));
                 lowPrecision.AppendVertexData(vertexDataCompressed);
