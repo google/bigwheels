@@ -93,7 +93,13 @@ static constexpr std::array<const char*, 3> kAvailablePsShaders = {
     "Benchmark_PsAluBound",
     "Benchmark_PsMemBound"};
 
-static constexpr uint32_t kPipelineCount = kAvailablePsShaders.size() * kAvailableVsShaders.size();
+static constexpr std::array<const char*, 2> kAvailableVbFormats = {
+    "Low_Precision",
+    "High_Precision"};
+
+static constexpr uint32_t kPipelineCount = kAvailablePsShaders.size() * kAvailableVsShaders.size() * kAvailableVbFormats.size();
+
+static constexpr uint32_t kMeshCount = kAvailableVbFormats.size();
 
 class ProjApp
     : public ppx::Application
@@ -173,11 +179,13 @@ private:
     std::array<grfx::GraphicsPipelinePtr, kPipelineCount>         mPipelines;
     std::array<grfx::ShaderModulePtr, kAvailableVsShaders.size()> mVsShaders;
     std::array<grfx::ShaderModulePtr, kAvailablePsShaders.size()> mPsShaders;
+    std::array<grfx::MeshPtr, kMeshCount>                         mSphereMeshes;
     uint32_t                                                      mSphereIndexCount;
 
 private:
     std::shared_ptr<KnobDropdown<std::string>> pKnobVs;
     std::shared_ptr<KnobDropdown<std::string>> pKnobPs;
+    std::shared_ptr<KnobDropdown<std::string>> pKnobVbFormat;
     std::shared_ptr<KnobSlider<int>>           pSphereInstanceCount;
     std::shared_ptr<KnobSlider<int>>           pDrawCallCount;
     std::shared_ptr<KnobSlider<int>>           pNoiseQuadsCount;
@@ -267,6 +275,10 @@ void ProjApp::InitKnobs()
     pKnobPs->SetDisplayName("Pixel Shader");
     pKnobPs->SetFlagDescription("Select the pixel shader for the graphics pipeline.");
 
+    pKnobVbFormat = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("vb_format", 0, kAvailableVbFormats);
+    pKnobVbFormat->SetDisplayName("Vertex Buffer Format");
+    pKnobVbFormat->SetFlagDescription("Select the format for the vertex buffer.");
+
     pSphereInstanceCount = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("sphere-count", /* defaultValue = */ 50, /* minValue = */ 1, kMaxSphereInstanceCount);
     pSphereInstanceCount->SetDisplayName("Sphere Count");
     pSphereInstanceCount->SetFlagDescription("Select the number of spheres to draw on the screen.");
@@ -307,6 +319,13 @@ void Shuffle(Iter begin, Iter end, F&& f)
     for (size_t i = 0; i < count; i++) {
         std::swap(begin[i], begin[f() % (count - i) + i]);
     }
+}
+
+// Maps a float between [-1, 1] to [-128, 127]
+int8_t MapFloatToInt8(float x)
+{
+    PPX_ASSERT_MSG(-1.0f <= x && x <= 1.0f, "The value must be between -1.0 and 1.0");
+    return static_cast<int8_t>((x + 1.0f) * 127.5f - 128.0f);
 }
 
 void ProjApp::Setup()
@@ -412,8 +431,13 @@ void ProjApp::Setup()
         const uint32_t sphereVertexCount = mesh.GetCountPositions();
         const uint32_t sphereTriCount    = mesh.GetCountTriangles();
 
-        Geometry geo;
-        PPX_CHECKED_CALL(Geometry::Create(GeometryOptions::InterleavedU32().AddTexCoord().AddNormal().AddTangent(), &geo));
+        Geometry        lowPrecision;
+        GeometryOptions options;
+        options.IndexTypeU32().AddPosition(grfx::FORMAT_R16G16B16_FLOAT).AddTexCoord(grfx::FORMAT_R16G16_FLOAT).AddNormal(grfx::FORMAT_R8G8B8A8_SNORM).AddTangent(grfx::FORMAT_R8G8B8A8_SNORM);
+        PPX_CHECKED_CALL(Geometry::Create(options, &lowPrecision));
+
+        Geometry highPrecision;
+        PPX_CHECKED_CALL(Geometry::Create(GeometryOptions::InterleavedU32().AddTexCoord().AddNormal().AddTangent(), &highPrecision));
 
         for (uint32_t i = 0; i < kMaxSphereInstanceCount; i++) {
             uint32_t index = sphereIndices[i];
@@ -430,7 +454,15 @@ void ProjApp::Setup()
                 TriMeshVertexData vertexData = {};
                 mesh.GetVertexData(vertexIndex, &vertexData);
                 vertexData.position = modelMatrix * float4(vertexData.position, 1);
-                geo.AppendVertexData(vertexData);
+
+                TriMeshVertexDataCompressed vertexDataCompressed;
+                vertexDataCompressed.position = half3(glm::packHalf1x16(vertexData.position.x), glm::packHalf1x16(vertexData.position.y), glm::packHalf1x16(vertexData.position.z));
+                vertexDataCompressed.texCoord = half2(glm::packHalf1x16(vertexData.texCoord.x), glm::packHalf1x16(vertexData.texCoord.y));
+                vertexDataCompressed.normal   = i8vec4(MapFloatToInt8(vertexData.normal.x), MapFloatToInt8(vertexData.normal.y), MapFloatToInt8(vertexData.normal.z), MapFloatToInt8(1.0f));
+                vertexDataCompressed.tangent  = i8vec4(MapFloatToInt8(vertexData.tangent.x), MapFloatToInt8(vertexData.tangent.y), MapFloatToInt8(vertexData.tangent.z), MapFloatToInt8(vertexData.tangent.a));
+                lowPrecision.AppendVertexData(vertexDataCompressed);
+
+                highPrecision.AppendVertexData(vertexData);
             }
             // Iterate the meshes triangles and add the vertex indices
             for (uint32_t triIndex = 0; triIndex < sphereTriCount; ++triIndex) {
@@ -438,11 +470,15 @@ void ProjApp::Setup()
                 uint32_t v1 = PPX_VALUE_IGNORED;
                 uint32_t v2 = PPX_VALUE_IGNORED;
                 mesh.GetTriangle(triIndex, v0, v1, v2);
-                geo.AppendIndicesTriangle(v0 + i * sphereVertexCount, v1 + i * sphereVertexCount, v2 + i * sphereVertexCount);
+                lowPrecision.AppendIndicesTriangle(v0 + i * sphereVertexCount, v1 + i * sphereVertexCount, v2 + i * sphereVertexCount);
+                highPrecision.AppendIndicesTriangle(v0 + i * sphereVertexCount, v1 + i * sphereVertexCount, v2 + i * sphereVertexCount);
             }
         }
         // Create a giant vertex buffer to accommodate all copies of the sphere mesh
-        PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mSphere.mesh));
+        const uint32_t lowPrecisionIndex = 0;
+        PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &lowPrecision, &mSphereMeshes[lowPrecisionIndex]));
+        const uint32_t highPrecisionIndex = 1;
+        PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &highPrecision, &mSphereMeshes[highPrecisionIndex]));
     }
 
     // Uniform buffers
@@ -592,26 +628,28 @@ void ProjApp::CreateSpherePipelines()
     piCreateInfo.sets[0].pLayout                   = mSphere.descriptorSetLayout;
     PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mSphere.pipelineInterface));
 
-    uint32_t pipeline_index = 0;
+    uint32_t pipelineIndex = 0;
     for (size_t i = 0; i < kAvailableVsShaders.size(); i++) {
         for (size_t j = 0; j < kAvailablePsShaders.size(); j++) {
-            grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
-            gpCreateInfo.VS                                 = {mVsShaders[i].Get(), "vsmain"};
-            gpCreateInfo.PS                                 = {mPsShaders[j].Get(), "psmain"};
-            gpCreateInfo.vertexInputState.bindingCount      = 1;
-            gpCreateInfo.vertexInputState.bindings[0]       = mSphere.mesh->GetDerivedVertexBindings()[0];
-            gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-            gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
-            gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
-            gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
-            gpCreateInfo.depthReadEnable                    = pDepthTestWrite->GetValue();
-            gpCreateInfo.depthWriteEnable                   = pDepthTestWrite->GetValue();
-            gpCreateInfo.blendModes[0]                      = pAlphaBlend->GetValue() ? grfx::BLEND_MODE_ALPHA : grfx::BLEND_MODE_NONE;
-            gpCreateInfo.outputState.renderTargetCount      = 1;
-            gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
-            gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
-            gpCreateInfo.pPipelineInterface                 = mSphere.pipelineInterface;
-            PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mPipelines[pipeline_index++]));
+            for (size_t k = 0; k < kAvailableVbFormats.size(); k++) {
+                grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
+                gpCreateInfo.VS                                 = {mVsShaders[i].Get(), "vsmain"};
+                gpCreateInfo.PS                                 = {mPsShaders[j].Get(), "psmain"};
+                gpCreateInfo.vertexInputState.bindingCount      = 1;
+                gpCreateInfo.vertexInputState.bindings[0]       = mSphereMeshes[k]->GetDerivedVertexBindings()[0];
+                gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+                gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
+                gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
+                gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
+                gpCreateInfo.depthReadEnable                    = pDepthTestWrite->GetValue();
+                gpCreateInfo.depthWriteEnable                   = pDepthTestWrite->GetValue();
+                gpCreateInfo.blendModes[0]                      = pAlphaBlend->GetValue() ? grfx::BLEND_MODE_ALPHA : grfx::BLEND_MODE_NONE;
+                gpCreateInfo.outputState.renderTargetCount      = 1;
+                gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
+                gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
+                gpCreateInfo.pPipelineInterface                 = mSphere.pipelineInterface;
+                PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mPipelines[pipelineIndex++]));
+            }
         }
     }
 }
@@ -844,10 +882,11 @@ void ProjApp::Render()
             frame.cmd->DrawIndexed(mSkyBox.mesh->GetIndexCount());
 
             // Draw sphere instances
-            uint32_t pipeline_index = pKnobVs->GetIndex() * kAvailablePsShaders.size() + pKnobPs->GetIndex();
-            frame.cmd->BindGraphicsPipeline(mPipelines[pipeline_index]);
-            frame.cmd->BindIndexBuffer(mSphere.mesh);
-            frame.cmd->BindVertexBuffers(mSphere.mesh);
+            const size_t vbFormatIndex = pKnobVbFormat->GetIndex();
+            const size_t pipelineIndex = pKnobVs->GetIndex() * kAvailablePsShaders.size() * kAvailableVbFormats.size() + pKnobPs->GetIndex() * kAvailableVbFormats.size() + vbFormatIndex;
+            frame.cmd->BindGraphicsPipeline(mPipelines[pipelineIndex]);
+            frame.cmd->BindIndexBuffer(mSphereMeshes[vbFormatIndex]);
+            frame.cmd->BindVertexBuffers(mSphereMeshes[vbFormatIndex]);
             {
                 uint32_t indicesPerDrawCall = (currentSphereCount * mSphereIndexCount) / currentDrawCallCount;
                 // Make `indicesPerDrawCall` multiple of 3 given that each consecutive three vertices (3*i + 0, 3*i + 1, 3*i + 2)
