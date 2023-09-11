@@ -22,7 +22,6 @@
 #include "ppx/camera.h"
 #include "ppx/graphics_util.h"
 #include "ppx/grfx/grfx_scope.h"
-#define CGLTF_IMPLEMENTATION
 #include "cgltf.h"
 #include "glm/gtc/type_ptr.hpp"
 
@@ -424,7 +423,7 @@ void ProjApp::LoadPrimitive(const cgltf_primitive& primitive, grfx::BufferPtr pS
         for (size_t i = 0; i < accessors.size(); i++) {
             const auto& bufferView = *accessors[i]->buffer_view;
 
-            const auto&                  vertexBuffer = targetMesh->GetVertexBuffer(i);
+            const auto&                  vertexBuffer = targetMesh->GetVertexBuffer(static_cast<uint32_t>(i));
             grfx::BufferToBufferCopyInfo copyInfo     = {};
             copyInfo.size                             = vertexBuffer->GetSize();
             copyInfo.srcBuffer.offset                 = accessors[i]->offset + bufferView.offset;
@@ -484,7 +483,7 @@ void ProjApp::LoadScene(
 
         PPX_CHECKED_CALL(pQueue->GetDevice()->CreateBuffer(&ci, &stagingBuffer));
         SCOPED_DESTROYER.AddObject(stagingBuffer);
-        PPX_CHECKED_CALL(stagingBuffer->CopyFromSource(data->buffers[0].size, data->buffers[0].data));
+        PPX_CHECKED_CALL(stagingBuffer->CopyFromSource(static_cast<uint32_t>(data->buffers[0].size), data->buffers[0].data));
     }
     const double timerStagingBufferLoadingElapsed = timerStagingBufferLoading.SecondsSinceStart();
 
@@ -518,7 +517,7 @@ void ProjApp::LoadScene(
     LoadNodes(data, pQueue, pDescriptorPool, pObjects, primitiveToIndex, pPrimitives, pMaterials);
     const double timerNodeLoadingElapsed = timerNodeLoading.SecondsSinceStart();
 
-    printf("Scene loading time breakdown for '%s':\n", filename.c_str());
+    printf("Scene loading time breakdown for '%s':\n", filename.u8string().c_str());
     printf("\t             total: %lfs\n", timerGlobal.SecondsSinceStart());
     printf("\t      GLtf parsing: %lfs\n", timerModelLoadingElapsed);
     printf("\t    staging buffer: %lfs\n", timerStagingBufferLoadingElapsed);
@@ -766,14 +765,14 @@ void ProjApp::Render()
                 write[0].pBuffer      = object.pUniformBuffer;
 
                 for (size_t i = 0; i < TEXTURE_COUNT; i++) {
-                    write[1 + i * 2 + 0].binding    = 1 + i * 2 + 0;
+                    write[1 + i * 2 + 0].binding    = static_cast<uint32_t>(1 + i * 2 + 0);
                     write[1 + i * 2 + 0].type       = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
                     write[1 + i * 2 + 0].pImageView = pMaterial->textures[i].pTexture;
-                    write[1 + i * 2 + 1].binding    = 1 + i * 2 + 1;
+                    write[1 + i * 2 + 1].binding    = static_cast<uint32_t>(1 + i * 2 + 1);
                     write[1 + i * 2 + 1].type       = grfx::DESCRIPTOR_TYPE_SAMPLER;
                     write[1 + i * 2 + 1].pSampler   = pMaterial->textures[i].pSampler;
                 }
-                PPX_CHECKED_CALL(pDescriptorSet->UpdateDescriptors(write.size(), write.data()));
+                PPX_CHECKED_CALL(pDescriptorSet->UpdateDescriptors(static_cast<uint32_t>(write.size()), write.data()));
             }
         }
     }

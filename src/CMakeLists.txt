@@ -206,6 +206,7 @@ list(
     ${SRC_DIR}/ppx/platform.cpp
     ${SRC_DIR}/ppx/ppm_export.cpp
     ${SRC_DIR}/ppx/profiler.cpp
+    ${SRC_DIR}/ppx/single_header_libs_impl.cpp
     ${SRC_DIR}/ppx/string_util.cpp
     ${SRC_DIR}/ppx/timer.cpp
     ${SRC_DIR}/ppx/transform.cpp

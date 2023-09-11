@@ -27,7 +27,6 @@
 #include "ppx/math_util.h"
 #include "ppx/graphics_util.h"
 #include "ppx/grfx/grfx_scope.h"
-#define CGLTF_IMPLEMENTATION
 #include "cgltf.h"
 #include "glm/gtc/type_ptr.hpp"
 
