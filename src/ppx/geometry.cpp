@@ -413,59 +413,59 @@ static VertexDataProcessorPositionPlanar<TriMeshVertexDataCompressed> sVDProcess
 // -------------------------------------------------------------------------------------------------
 // GeometryOptions
 // -------------------------------------------------------------------------------------------------
-GeometryOptions GeometryOptions::InterleavedU16()
+GeometryOptions GeometryOptions::InterleavedU16(grfx::Format format)
 {
     GeometryOptions ci       = {};
     ci.vertexAttributeLayout = GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_INTERLEAVED;
     ci.indexType             = grfx::INDEX_TYPE_UINT16;
     ci.vertexBindingCount    = 1; // Interleave attribute layout always has 1 vertex binding
-    ci.AddPosition();
+    ci.AddPosition(format);
     return ci;
 }
 
-GeometryOptions GeometryOptions::InterleavedU32()
+GeometryOptions GeometryOptions::InterleavedU32(grfx::Format format)
 {
     GeometryOptions ci       = {};
     ci.vertexAttributeLayout = GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_INTERLEAVED;
     ci.indexType             = grfx::INDEX_TYPE_UINT32;
     ci.vertexBindingCount    = 1; // Interleave attribute layout always has 1 vertex binding
-    ci.AddPosition();
+    ci.AddPosition(format);
     return ci;
 }
 
-GeometryOptions GeometryOptions::PlanarU16()
+GeometryOptions GeometryOptions::PlanarU16(grfx::Format format)
 {
     GeometryOptions ci       = {};
     ci.vertexAttributeLayout = GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_PLANAR;
     ci.indexType             = grfx::INDEX_TYPE_UINT16;
-    ci.AddPosition();
+    ci.AddPosition(format);
     return ci;
 }
 
-GeometryOptions GeometryOptions::PlanarU32()
+GeometryOptions GeometryOptions::PlanarU32(grfx::Format format)
 {
     GeometryOptions ci       = {};
     ci.vertexAttributeLayout = GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_PLANAR;
     ci.indexType             = grfx::INDEX_TYPE_UINT32;
-    ci.AddPosition();
+    ci.AddPosition(format);
     return ci;
 }
 
-GeometryOptions GeometryOptions::PositionPlanarU16()
+GeometryOptions GeometryOptions::PositionPlanarU16(grfx::Format format)
 {
     GeometryOptions ci       = {};
     ci.vertexAttributeLayout = GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_POSITION_PLANAR;
     ci.indexType             = grfx::INDEX_TYPE_UINT16;
-    ci.AddPosition();
+    ci.AddPosition(format);
     return ci;
 }
 
-GeometryOptions GeometryOptions::PositionPlanarU32()
+GeometryOptions GeometryOptions::PositionPlanarU32(grfx::Format format)
 {
     GeometryOptions ci       = {};
     ci.vertexAttributeLayout = GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_POSITION_PLANAR;
     ci.indexType             = grfx::INDEX_TYPE_UINT32;
-    ci.AddPosition();
+    ci.AddPosition(format);
     return ci;
 }
 

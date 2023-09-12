@@ -96,9 +96,13 @@ static constexpr std::array<const char*, 2> kAvailableVbFormats = {
     "Low_Precision",
     "High_Precision"};
 
-static constexpr uint32_t kPipelineCount = kAvailablePsShaders.size() * kAvailableVsShaders.size() * kAvailableVbFormats.size();
+static constexpr std::array<const char*, 2> kAvailableVertexAttrLayouts = {
+    "Interleaved",
+    "Position_Planar"};
 
-static constexpr uint32_t kMeshCount = kAvailableVbFormats.size();
+static constexpr uint32_t kPipelineCount = kAvailablePsShaders.size() * kAvailableVsShaders.size() * kAvailableVbFormats.size() * kAvailableVertexAttrLayouts.size();
+
+static constexpr uint32_t kMeshCount = kAvailableVbFormats.size() * kAvailableVertexAttrLayouts.size();
 
 class ProjApp
     : public ppx::Application
@@ -185,6 +189,7 @@ private:
     std::shared_ptr<KnobDropdown<std::string>> pKnobVs;
     std::shared_ptr<KnobDropdown<std::string>> pKnobPs;
     std::shared_ptr<KnobDropdown<std::string>> pKnobVbFormat;
+    std::shared_ptr<KnobDropdown<std::string>> pKnobVertexAttrLayout;
     std::shared_ptr<KnobSlider<int>>           pSphereInstanceCount;
     std::shared_ptr<KnobSlider<int>>           pDrawCallCount;
     std::shared_ptr<KnobSlider<int>>           pNoiseQuadsCount;
@@ -274,9 +279,13 @@ void ProjApp::InitKnobs()
     pKnobPs->SetDisplayName("Pixel Shader");
     pKnobPs->SetFlagDescription("Select the pixel shader for the graphics pipeline.");
 
-    pKnobVbFormat = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("vb_format", 0, kAvailableVbFormats);
+    pKnobVbFormat = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("vertex-buffer-format", 0, kAvailableVbFormats);
     pKnobVbFormat->SetDisplayName("Vertex Buffer Format");
     pKnobVbFormat->SetFlagDescription("Select the format for the vertex buffer.");
+
+    pKnobVertexAttrLayout = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("vertex-attr-layout", 0, kAvailableVertexAttrLayouts);
+    pKnobVertexAttrLayout->SetDisplayName("Vertex Attribute Layout");
+    pKnobVertexAttrLayout->SetFlagDescription("Select the Vertex Attribute Layout for the graphics pipeline.");
 
     pSphereInstanceCount = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("sphere-count", /* defaultValue = */ 50, /* minValue = */ 1, kMaxSphereInstanceCount);
     pSphereInstanceCount->SetDisplayName("Sphere Count");
@@ -430,13 +439,17 @@ void ProjApp::Setup()
         const uint32_t sphereVertexCount = mesh.GetCountPositions();
         const uint32_t sphereTriCount    = mesh.GetCountTriangles();
 
-        Geometry        lowPrecision;
-        GeometryOptions options;
-        options.IndexTypeU32().AddPosition(grfx::FORMAT_R16G16B16_FLOAT).AddTexCoord(grfx::FORMAT_R16G16_FLOAT).AddNormal(grfx::FORMAT_R8G8B8A8_SNORM).AddTangent(grfx::FORMAT_R8G8B8A8_SNORM);
-        PPX_CHECKED_CALL(Geometry::Create(options, &lowPrecision));
+        Geometry lowPrecisionInterleaved;
+        PPX_CHECKED_CALL(Geometry::Create(GeometryOptions::InterleavedU32(grfx::FORMAT_R16G16B16_FLOAT).AddTexCoord(grfx::FORMAT_R16G16_FLOAT).AddNormal(grfx::FORMAT_R8G8B8A8_SNORM).AddTangent(grfx::FORMAT_R8G8B8A8_SNORM), &lowPrecisionInterleaved));
 
-        Geometry highPrecision;
-        PPX_CHECKED_CALL(Geometry::Create(GeometryOptions::InterleavedU32().AddTexCoord().AddNormal().AddTangent(), &highPrecision));
+        Geometry lowPrecisionPositionPlanar;
+        PPX_CHECKED_CALL(Geometry::Create(GeometryOptions::PositionPlanarU32(grfx::FORMAT_R16G16B16_FLOAT).AddTexCoord(grfx::FORMAT_R16G16_FLOAT).AddNormal(grfx::FORMAT_R8G8B8A8_SNORM).AddTangent(grfx::FORMAT_R8G8B8A8_SNORM), &lowPrecisionPositionPlanar));
+
+        Geometry highPrecisionInterleaved;
+        PPX_CHECKED_CALL(Geometry::Create(GeometryOptions::InterleavedU32().AddTexCoord().AddNormal().AddTangent(), &highPrecisionInterleaved));
+
+        Geometry highPrecisionPositionPlanar;
+        PPX_CHECKED_CALL(Geometry::Create(GeometryOptions::PositionPlanarU32().AddTexCoord().AddNormal().AddTangent(), &highPrecisionPositionPlanar));
 
         for (uint32_t i = 0; i < kMaxSphereInstanceCount; i++) {
             uint32_t index = sphereIndices[i];
@@ -459,9 +472,11 @@ void ProjApp::Setup()
                 vertexDataCompressed.texCoord = half2(glm::packHalf1x16(vertexData.texCoord.x), glm::packHalf1x16(vertexData.texCoord.y));
                 vertexDataCompressed.normal   = i8vec4(MapFloatToInt8(vertexData.normal.x), MapFloatToInt8(vertexData.normal.y), MapFloatToInt8(vertexData.normal.z), MapFloatToInt8(1.0f));
                 vertexDataCompressed.tangent  = i8vec4(MapFloatToInt8(vertexData.tangent.x), MapFloatToInt8(vertexData.tangent.y), MapFloatToInt8(vertexData.tangent.z), MapFloatToInt8(vertexData.tangent.a));
-                lowPrecision.AppendVertexData(vertexDataCompressed);
+                lowPrecisionInterleaved.AppendVertexData(vertexDataCompressed);
+                lowPrecisionPositionPlanar.AppendVertexData(vertexDataCompressed);
 
-                highPrecision.AppendVertexData(vertexData);
+                highPrecisionInterleaved.AppendVertexData(vertexData);
+                highPrecisionPositionPlanar.AppendVertexData(vertexData);
             }
             // Iterate the meshes triangles and add the vertex indices
             for (uint32_t triIndex = 0; triIndex < sphereTriCount; ++triIndex) {
@@ -469,15 +484,21 @@ void ProjApp::Setup()
                 uint32_t v1 = PPX_VALUE_IGNORED;
                 uint32_t v2 = PPX_VALUE_IGNORED;
                 mesh.GetTriangle(triIndex, v0, v1, v2);
-                lowPrecision.AppendIndicesTriangle(v0 + i * sphereVertexCount, v1 + i * sphereVertexCount, v2 + i * sphereVertexCount);
-                highPrecision.AppendIndicesTriangle(v0 + i * sphereVertexCount, v1 + i * sphereVertexCount, v2 + i * sphereVertexCount);
+                lowPrecisionInterleaved.AppendIndicesTriangle(v0 + i * sphereVertexCount, v1 + i * sphereVertexCount, v2 + i * sphereVertexCount);
+                lowPrecisionPositionPlanar.AppendIndicesTriangle(v0 + i * sphereVertexCount, v1 + i * sphereVertexCount, v2 + i * sphereVertexCount);
+                highPrecisionInterleaved.AppendIndicesTriangle(v0 + i * sphereVertexCount, v1 + i * sphereVertexCount, v2 + i * sphereVertexCount);
+                highPrecisionPositionPlanar.AppendIndicesTriangle(v0 + i * sphereVertexCount, v1 + i * sphereVertexCount, v2 + i * sphereVertexCount);
             }
         }
         // Create a giant vertex buffer to accommodate all copies of the sphere mesh
-        const uint32_t lowPrecisionIndex = 0;
-        PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &lowPrecision, &mSphereMeshes[lowPrecisionIndex]));
-        const uint32_t highPrecisionIndex = 1;
-        PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &highPrecision, &mSphereMeshes[highPrecisionIndex]));
+        const uint32_t lowPrecisionInterleavedIndex = 0;
+        PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &lowPrecisionInterleaved, &mSphereMeshes[lowPrecisionInterleavedIndex]));
+        const uint32_t lowPrecisionPositionPlanarIndex = 1;
+        PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &lowPrecisionPositionPlanar, &mSphereMeshes[lowPrecisionPositionPlanarIndex]));
+        const uint32_t highPrecisionInterleavedIndex = 2;
+        PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &highPrecisionInterleaved, &mSphereMeshes[highPrecisionInterleavedIndex]));
+        const uint32_t highPrecisionPositionPlanarIndex = 3;
+        PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &highPrecisionPositionPlanar, &mSphereMeshes[highPrecisionPositionPlanarIndex]));
     }
 
     // Uniform buffers
@@ -631,11 +652,12 @@ void ProjApp::CreateSpherePipelines()
     for (size_t i = 0; i < kAvailableVsShaders.size(); i++) {
         for (size_t j = 0; j < kAvailablePsShaders.size(); j++) {
             for (size_t k = 0; k < kAvailableVbFormats.size(); k++) {
+                // Interleaved pipeline
                 grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
                 gpCreateInfo.VS                                 = {mVsShaders[i].Get(), "vsmain"};
                 gpCreateInfo.PS                                 = {mPsShaders[j].Get(), "psmain"};
                 gpCreateInfo.vertexInputState.bindingCount      = 1;
-                gpCreateInfo.vertexInputState.bindings[0]       = mSphereMeshes[k]->GetDerivedVertexBindings()[0];
+                gpCreateInfo.vertexInputState.bindings[0]       = mSphereMeshes[2 * k + 0]->GetDerivedVertexBindings()[0];
                 gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
                 gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
                 gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
@@ -647,6 +669,12 @@ void ProjApp::CreateSpherePipelines()
                 gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
                 gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
                 gpCreateInfo.pPipelineInterface                 = mSphere.pipelineInterface;
+                PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mPipelines[pipelineIndex++]));
+
+                // Position Planar Pipeline
+                gpCreateInfo.vertexInputState.bindingCount = 2;
+                gpCreateInfo.vertexInputState.bindings[0]  = mSphereMeshes[2 * k + 1]->GetDerivedVertexBindings()[0];
+                gpCreateInfo.vertexInputState.bindings[1]  = mSphereMeshes[2 * k + 1]->GetDerivedVertexBindings()[1];
                 PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mPipelines[pipelineIndex++]));
             }
         }
@@ -882,10 +910,14 @@ void ProjApp::Render()
 
             // Draw sphere instances
             const size_t vbFormatIndex = pKnobVbFormat->GetIndex();
-            const size_t pipelineIndex = pKnobVs->GetIndex() * kAvailablePsShaders.size() * kAvailableVbFormats.size() + pKnobPs->GetIndex() * kAvailableVbFormats.size() + vbFormatIndex;
+            const size_t vaLayoutIndex = pKnobVertexAttrLayout->GetIndex();
+            const size_t psCount       = kAvailablePsShaders.size();
+            const size_t vbFormatCount = kAvailableVbFormats.size();
+            const size_t vaLayoutCount = kAvailableVertexAttrLayouts.size();
+            const size_t pipelineIndex = pKnobVs->GetIndex() * psCount * vbFormatCount * vaLayoutCount + pKnobPs->GetIndex() * vbFormatCount * vaLayoutCount + vbFormatIndex * vaLayoutCount + vaLayoutIndex;
             frame.cmd->BindGraphicsPipeline(mPipelines[pipelineIndex]);
-            frame.cmd->BindIndexBuffer(mSphereMeshes[vbFormatIndex]);
-            frame.cmd->BindVertexBuffers(mSphereMeshes[vbFormatIndex]);
+            frame.cmd->BindIndexBuffer(mSphereMeshes[vbFormatIndex * vaLayoutCount + vaLayoutIndex]);
+            frame.cmd->BindVertexBuffers(mSphereMeshes[vbFormatIndex * vaLayoutCount + vaLayoutIndex]);
             {
                 uint32_t indicesPerDrawCall = (currentSphereCount * mSphereIndexCount) / currentDrawCallCount;
                 // Make `indicesPerDrawCall` multiple of 3 given that each consecutive three vertices (3*i + 0, 3*i + 1, 3*i + 2)
