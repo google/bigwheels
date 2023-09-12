@@ -32,6 +32,22 @@
 
 using namespace ppx;
 
+class MultiDimensionalIndexer
+{
+public:
+    // Adds a new dimension with the given `size`.
+    void AddDimension(size_t size);
+
+    // Gets the index for the given dimension `indices`.
+    size_t GetIndex(const std::vector<size_t>& indices);
+
+private:
+    // `mSizes` are the sizes for each dimension.
+    std::vector<size_t> mSizes;
+    // `mMultipliers` are the multipliers for each dimension to get the index.
+    std::vector<size_t> mMultipliers;
+};
+
 static constexpr float kCameraSpeed = 0.2f;
 
 class FreeCamera
@@ -183,7 +199,8 @@ private:
     std::array<grfx::ShaderModulePtr, kAvailableVsShaders.size()> mVsShaders;
     std::array<grfx::ShaderModulePtr, kAvailablePsShaders.size()> mPsShaders;
     std::array<grfx::MeshPtr, kMeshCount>                         mSphereMeshes;
-    uint32_t                                                      mSphereIndexCount;
+    MultiDimensionalIndexer                                       mGraphicsPipelinesIndexer;
+    MultiDimensionalIndexer                                       mMeshesIndexer;
 
 private:
     std::shared_ptr<KnobDropdown<std::string>> pKnobVs;
@@ -209,6 +226,26 @@ private:
 
     void SetupNoiseQuads();
 };
+
+void MultiDimensionalIndexer::AddDimension(size_t size)
+{
+    for (size_t i = 0; i < mMultipliers.size(); i++) {
+        mMultipliers[i] *= size;
+    }
+    mSizes.push_back(size);
+    mMultipliers.push_back(1);
+}
+
+size_t MultiDimensionalIndexer::GetIndex(const std::vector<size_t>& indices)
+{
+    PPX_ASSERT_MSG(indices.size() == mSizes.size(), "The number of indices must be the same as the number of dimensions");
+    size_t index = 0;
+    for (size_t i = 0; i < indices.size(); i++) {
+        PPX_ASSERT_MSG(indices[i] < mSizes[i], "Index out of range");
+        index += indices[i] * mMultipliers[i];
+    }
+    return index;
+}
 
 void FreeCamera::Move(MovementDirection dir, float distance)
 {
@@ -434,8 +471,7 @@ void ProjApp::Setup()
         // the same sphere indices for a given `kMaxSphereInstanceCount`.
         Shuffle(sphereIndices.begin(), sphereIndices.end(), std::mt19937(kSeed));
 
-        TriMesh mesh                     = TriMesh::CreateSphere(/* radius = */ 1, /* longitudeSegments = */ 10, /* latitudeSegments = */ 10, TriMeshOptions().Indices().TexCoords().Normals().Tangents());
-        mSphereIndexCount                = mesh.GetCountIndices();
+        TriMesh        mesh              = TriMesh::CreateSphere(/* radius = */ 1, /* longitudeSegments = */ 10, /* latitudeSegments = */ 10, TriMeshOptions().Indices().TexCoords().Normals().Tangents());
         const uint32_t sphereVertexCount = mesh.GetCountPositions();
         const uint32_t sphereTriCount    = mesh.GetCountTriangles();
 
@@ -499,6 +535,12 @@ void ProjApp::Setup()
         PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &highPrecisionInterleaved, &mSphereMeshes[highPrecisionInterleavedIndex]));
         const uint32_t highPrecisionPositionPlanarIndex = 3;
         PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &highPrecisionPositionPlanar, &mSphereMeshes[highPrecisionPositionPlanarIndex]));
+    }
+
+    // Meshes indexer
+    {
+        mMeshesIndexer.AddDimension(kAvailableVbFormats.size());
+        mMeshesIndexer.AddDimension(kAvailableVertexAttrLayouts.size());
     }
 
     // Uniform buffers
@@ -610,6 +652,14 @@ void ProjApp::Setup()
     }
 
     CreateSpherePipelines();
+
+    // Graphics pipelines indexer
+    {
+        mGraphicsPipelinesIndexer.AddDimension(kAvailableVsShaders.size());
+        mGraphicsPipelinesIndexer.AddDimension(kAvailablePsShaders.size());
+        mGraphicsPipelinesIndexer.AddDimension(kAvailableVbFormats.size());
+        mGraphicsPipelinesIndexer.AddDimension(kAvailableVertexAttrLayouts.size());
+    }
 
     SetupNoiseQuads();
 
@@ -909,16 +959,13 @@ void ProjApp::Render()
             frame.cmd->DrawIndexed(mSkyBox.mesh->GetIndexCount());
 
             // Draw sphere instances
-            const size_t vbFormatIndex = pKnobVbFormat->GetIndex();
-            const size_t vaLayoutIndex = pKnobVertexAttrLayout->GetIndex();
-            const size_t psCount       = kAvailablePsShaders.size();
-            const size_t vbFormatCount = kAvailableVbFormats.size();
-            const size_t vaLayoutCount = kAvailableVertexAttrLayouts.size();
-            const size_t pipelineIndex = pKnobVs->GetIndex() * psCount * vbFormatCount * vaLayoutCount + pKnobPs->GetIndex() * vbFormatCount * vaLayoutCount + vbFormatIndex * vaLayoutCount + vaLayoutIndex;
+            const size_t pipelineIndex = mGraphicsPipelinesIndexer.GetIndex({pKnobVs->GetIndex(), pKnobPs->GetIndex(), pKnobVbFormat->GetIndex(), pKnobVertexAttrLayout->GetIndex()});
             frame.cmd->BindGraphicsPipeline(mPipelines[pipelineIndex]);
-            frame.cmd->BindIndexBuffer(mSphereMeshes[vbFormatIndex * vaLayoutCount + vaLayoutIndex]);
-            frame.cmd->BindVertexBuffers(mSphereMeshes[vbFormatIndex * vaLayoutCount + vaLayoutIndex]);
+            const size_t meshIndex = mMeshesIndexer.GetIndex({pKnobVbFormat->GetIndex(), pKnobVertexAttrLayout->GetIndex()});
+            frame.cmd->BindIndexBuffer(mSphereMeshes[meshIndex]);
+            frame.cmd->BindVertexBuffers(mSphereMeshes[meshIndex]);
             {
+                uint32_t mSphereIndexCount  = mSphereMeshes[meshIndex]->GetIndexCount() / kMaxSphereInstanceCount;
                 uint32_t indicesPerDrawCall = (currentSphereCount * mSphereIndexCount) / currentDrawCallCount;
                 // Make `indicesPerDrawCall` multiple of 3 given that each consecutive three vertices (3*i + 0, 3*i + 1, 3*i + 2)
                 // defines a single triangle primitive (PRIMITIVE_TOPOLOGY_TRIANGLE_LIST).
