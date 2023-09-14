@@ -269,6 +269,10 @@ struct ApplicationSettings
     bool        enableImGui           = false;
     bool        allowThirdPartyAssets = false;
 
+#if defined(PPX_ANDROID)
+    bool emulateMouseAndroid = true;
+#endif
+
     struct
     {
         bool enable             = false;

@@ -17,7 +17,6 @@
 #include "ppx/timer.h"
 #include "ppx/fs.h"
 
-#define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 
 namespace ppx {

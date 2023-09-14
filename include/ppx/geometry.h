@@ -21,6 +21,7 @@
 
 namespace ppx {
 
+template <typename T>
 class VertexDataProcessorBase;
 
 enum GeometryVertexAttributeLayout
@@ -62,12 +63,12 @@ struct GeometryOptions
     // Creates a create info objects with a UINT16 or UINT32 index
     // type and position vertex attribute.
     //
-    static GeometryOptions InterleavedU16();
-    static GeometryOptions InterleavedU32();
-    static GeometryOptions PlanarU16();
-    static GeometryOptions PlanarU32();
-    static GeometryOptions PositionPlanarU16();
-    static GeometryOptions PositionPlanarU32();
+    static GeometryOptions InterleavedU16(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
+    static GeometryOptions InterleavedU32(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
+    static GeometryOptions PlanarU16(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
+    static GeometryOptions PlanarU32(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
+    static GeometryOptions PositionPlanarU16(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
+    static GeometryOptions PositionPlanarU32(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
 
     // Create a create info with a position vertex attribute.
     //
@@ -112,6 +113,7 @@ private:
 //!
 class Geometry
 {
+    template <typename T>
     friend class VertexDataProcessorBase;
     enum BufferType
     {
@@ -231,6 +233,7 @@ public:
     // Append multiple attributes at once
     //
     uint32_t AppendVertexData(const TriMeshVertexData& vtx);
+    uint32_t AppendVertexData(const TriMeshVertexDataCompressed& vtx);
     uint32_t AppendVertexData(const WireMeshVertexData& vtx);
 
     // Appends triangle or edge vertex data and indices (if present)
@@ -242,16 +245,17 @@ public:
 private:
     // This is intialized to point to a static var of derived class of VertexDataProcessorBase
     // which is shared by geometry objects, it is not supposed to be deleted
-    VertexDataProcessorBase*      mVDProcessor = nullptr;
-    GeometryOptions               mCreateInfo  = {};
-    Geometry::Buffer              mIndexBuffer;
-    std::vector<Geometry::Buffer> mVertexBuffers;
-    uint32_t                      mPositionBufferIndex  = PPX_VALUE_IGNORED;
-    uint32_t                      mNormaBufferIndex     = PPX_VALUE_IGNORED;
-    uint32_t                      mColorBufferIndex     = PPX_VALUE_IGNORED;
-    uint32_t                      mTexCoordBufferIndex  = PPX_VALUE_IGNORED;
-    uint32_t                      mTangentBufferIndex   = PPX_VALUE_IGNORED;
-    uint32_t                      mBitangentBufferIndex = PPX_VALUE_IGNORED;
+    VertexDataProcessorBase<TriMeshVertexData>*           mVDProcessor           = nullptr;
+    VertexDataProcessorBase<TriMeshVertexDataCompressed>* mVDProcessorCompressed = nullptr;
+    GeometryOptions                                       mCreateInfo            = {};
+    Geometry::Buffer                                      mIndexBuffer;
+    std::vector<Geometry::Buffer>                         mVertexBuffers;
+    uint32_t                                              mPositionBufferIndex  = PPX_VALUE_IGNORED;
+    uint32_t                                              mNormaBufferIndex     = PPX_VALUE_IGNORED;
+    uint32_t                                              mColorBufferIndex     = PPX_VALUE_IGNORED;
+    uint32_t                                              mTexCoordBufferIndex  = PPX_VALUE_IGNORED;
+    uint32_t                                              mTangentBufferIndex   = PPX_VALUE_IGNORED;
+    uint32_t                                              mBitangentBufferIndex = PPX_VALUE_IGNORED;
 };
 
 } // namespace ppx
