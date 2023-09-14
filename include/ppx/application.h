@@ -374,11 +374,13 @@ protected:
     virtual void DrawGui(){}; // Draw additional project-related information to ImGui.
 
     // Override these methods in a derived class to change the default behavior of metrics.
+    // Virtual for unit testing purposes.
     virtual void SetupMetrics();
+    // Virtual for unit testing purposes.
     virtual void ShutdownMetrics();
 
     // NOTE: This function can be used for BOTH displayed AND recorded metrics.
-    // Thus it should always be called once per frame.
+    // Thus it should always be called once per frame. Virtual for unit testing purposes.
     virtual void UpdateMetrics() {}
 
     void TakeScreenshot();
