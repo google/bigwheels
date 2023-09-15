@@ -374,11 +374,13 @@ protected:
     virtual void DrawGui(){}; // Draw additional project-related information to ImGui.
 
     // Override these methods in a derived class to change the default behavior of metrics.
+    // Virtual for unit testing purposes.
     virtual void SetupMetrics();
+    // Virtual for unit testing purposes.
     virtual void ShutdownMetrics();
 
     // NOTE: This function can be used for BOTH displayed AND recorded metrics.
-    // Thus it should always be called once per frame.
+    // Thus it should always be called once per frame. Virtual for unit testing purposes.
     virtual void UpdateMetrics() {}
 
     void TakeScreenshot();
@@ -468,15 +470,15 @@ public:
 
     // Returns true when a run is active, otherwise returns false.
     // See StartMetricsRun for why this wrapper is necessary.
-    bool HasActiveMetricsRun() const;
+    virtual bool HasActiveMetricsRun() const;
 
     // Adds a metric to the current run. If no run is active, returns metrics::kInvalidMetricID.
     // See StartMetricsRun for why this wrapper is necessary.
-    metrics::MetricID AddMetric(const metrics::MetricMetadata& metadata);
+    virtual metrics::MetricID AddMetric(const metrics::MetricMetadata& metadata);
 
     // Record data for the given metric ID. Metrics for completed runs will be discarded.
     // See StartMetricsRun for why this wrapper is necessary.
-    bool RecordMetricData(metrics::MetricID id, const metrics::MetricData& data);
+    virtual bool RecordMetricData(metrics::MetricID id, const metrics::MetricData& data);
 
 #if defined(PPX_BUILD_XR)
     virtual XrComponent& GetXrComponent()
