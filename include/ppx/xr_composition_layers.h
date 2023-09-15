@@ -25,16 +25,22 @@
 
 namespace ppx {
 
-//! @class XrLayerBase
+// Wrapper interface around the OpenXr XrCompositionLayerBaseHeader struct.
+// Also adds z-index based layering, so that frames can be composed and re-structured without having to rebuild the layers vector manually.
 class XrLayerBase
 {
 public:
-    virtual ~XrLayerBase()                                = default;
+    virtual ~XrLayerBase() = default;
+
+    // Return the OpenXR composition layer cast to a pointer of the base struct.
     virtual XrCompositionLayerBaseHeader* basePtr() const = 0;
-    virtual uint32_t                      zIndex() const  = 0;
+
+    // Return the zIndex of this layer, higher zIndex values will be rendered in front of lower values.
+    virtual uint32_t zIndex() const = 0;
 };
 
-//! @class XrLayer
+// Base implementation of XrLayerBase for simple XrCompositionLayers.
+// The underlying OpenXR composition layer struct is managed through this class.
 template <typename T>
 class XrLayer : public XrLayerBase
 {
@@ -48,6 +54,7 @@ public:
         return reinterpret_cast<XrCompositionLayerBaseHeader*>(mLayer.get());
     }
 
+    // Return a reference to the owned OpenXR layer struct.
     T& layer()
     {
         return *mLayer;
@@ -67,12 +74,18 @@ private:
     std::unique_ptr<T> mLayer;
 };
 
-//! @class XrProjectionLayer
+// XrLayerBase implementation for XrCompositionLayerProjection layers.
+// Projection layers contain references to projection views and depth info, both of which
+// are managed within this class.
 class XrProjectionLayer : public XrLayer<XrCompositionLayerProjection>
 {
 public:
     XrProjectionLayer();
+    virtual ~XrProjectionLayer() override = default;
+
+    // Add a new projection view to this layer that has no depth info.
     void AddView(XrCompositionLayerProjectionView view);
+    // Add a new projection view to this layer that has associated depth info.
     void AddView(XrCompositionLayerProjectionView view, XrCompositionLayerDepthInfoKHR depthInfo);
 
 private:
@@ -80,8 +93,11 @@ private:
     std::vector<XrCompositionLayerDepthInfoKHR>   mDepthInfos;
 };
 
-typedef XrLayer<XrCompositionLayerQuad>          XrQuadLayer;
-typedef XrLayer<XrCompositionLayerPassthroughFB> XrPassthroughFbLayer;
+// XrLayerBase implementation for XrCompositionLayerQuad layers.
+using XrQuadLayer = XrLayer<XrCompositionLayerQuad>;
+
+// XrLayerBase implementation for XrCompositionLayerPassthroughFB layers.
+using XrPassthroughFbLayer = XrLayer<XrCompositionLayerPassthroughFB>;
 
 } // namespace ppx
 

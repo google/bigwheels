@@ -35,11 +35,11 @@ void XrProjectionLayer::AddView(XrCompositionLayerProjectionView view)
 
 void XrProjectionLayer::AddView(XrCompositionLayerProjectionView view, XrCompositionLayerDepthInfoKHR depthInfo)
 {
-    view.next = &depthInfo;
-    mViews.emplace_back(view);
     mDepthInfos.emplace_back(depthInfo);
-    layer().views     = mViews.data();
-    layer().viewCount = static_cast<uint32_t>(mViews.size());
+    mViews.emplace_back(view);
+    mViews.back().next = &mDepthInfos.back();
+    layer().views      = mViews.data();
+    layer().viewCount  = static_cast<uint32_t>(mViews.size());
 }
 
 } // namespace ppx

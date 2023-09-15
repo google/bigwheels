@@ -507,112 +507,41 @@ void XrComponent::EndFrame(const std::vector<grfx::SwapchainPtr>& swapchains, ui
     size_t viewCount = mViews.size();
     PPX_ASSERT_MSG(swapchains.size() >= viewCount, "Number of swapchains needs to be larger than or equal to the number of views!");
 
+    // Priority queue to order XrLayerBases according to their zIndex.
+    XrLayerBaseQueue layerQueue;
+
     XrProjectionLayer projectionLayer;
-    XrQuadLayer       quadLayer;
+    XrQuadLayer       imGuiLayer;
     // Used when mPassthroughSupported == XR_PASSTHROUGH_OCULUS
     XrPassthroughFbLayer passthroughFbLayer;
 
-    if (mShouldRender) {
-        // Projection and (optional) depth info layer from color+depth swapchains.
-        for (size_t i = 0; i < viewCount; ++i) {
-            XrCompositionLayerProjectionView view;
-
-            view                           = {XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW};
-            view.pose                      = mViews[i].pose;
-            view.fov                       = mViews[i].fov;
-            view.subImage.swapchain        = swapchains[layerProjStartIndex + i]->GetXrColorSwapchain();
-            view.subImage.imageRect.offset = {0, 0};
-            view.subImage.imageRect.extent = {static_cast<int>(GetWidth()), static_cast<int>(GetHeight())};
-
-            if (mShouldSubmitDepthInfo && swapchains[layerProjStartIndex + i]->GetXrDepthSwapchain() != XR_NULL_HANDLE) {
-                PPX_ASSERT_MSG(mNearPlaneForFrame.has_value() && mFarPlaneForFrame.has_value(), "Depth info layer cannot be submitted because near and far plane values are not set. "
-                                                                                                "Call GetProjectionMatrixForCurrentViewAndSetFrustumPlanes to set per-frame values.");
-                XrCompositionLayerDepthInfoKHR depthInfo;
-                depthInfo                           = {XR_TYPE_COMPOSITION_LAYER_DEPTH_INFO_KHR};
-                depthInfo.minDepth                  = 0.0f;
-                depthInfo.maxDepth                  = 1.0f;
-                depthInfo.nearZ                     = *mNearPlaneForFrame;
-                depthInfo.farZ                      = *mFarPlaneForFrame;
-                depthInfo.subImage.swapchain        = swapchains[layerProjStartIndex + i]->GetXrDepthSwapchain();
-                depthInfo.subImage.imageRect.offset = {0, 0};
-                depthInfo.subImage.imageRect.extent = {static_cast<int>(GetWidth()), static_cast<int>(GetHeight())};
-
-                projectionLayer.AddView(view, depthInfo);
-            }
-            else {
-                projectionLayer.AddView(view);
-            }
-        }
-
-        // Optional UI composition layer.
-        if (mCreateInfo.enableQuadLayer) {
-            quadLayer.layer().type                      = XR_TYPE_COMPOSITION_LAYER_QUAD;
-            quadLayer.layer().layerFlags                = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT;
-            quadLayer.layer().space                     = mUISpace;
-            quadLayer.layer().eyeVisibility             = XR_EYE_VISIBILITY_BOTH;
-            quadLayer.layer().subImage.swapchain        = swapchains[layerQuadStartIndex]->GetXrColorSwapchain();
-            quadLayer.layer().subImage.imageRect.offset = {0, 0};
-            quadLayer.layer().subImage.imageRect.extent = {static_cast<int>(GetUIWidth()), static_cast<int>(GetUIHeight())};
-            quadLayer.layer().pose                      = {{0, 0, 0, 1}, {0, 0, -0.5f}};
-            quadLayer.layer().size                      = {1, 1};
-        }
-
-        if (mPassthroughEnabled && mPassthroughSupported == XR_PASSTHROUGH_OCULUS) {
-            passthroughFbLayer.layer().type        = XR_TYPE_COMPOSITION_LAYER_PASSTHROUGH_FB;
-            passthroughFbLayer.layer().next        = nullptr;
-            passthroughFbLayer.layer().flags       = XrCompositionLayerFlags{};
-            passthroughFbLayer.layer().space       = XR_NULL_HANDLE;
-            passthroughFbLayer.layer().layerHandle = mPassthroughLayer;
-        }
-    }
-
-    XrEnvironmentBlendMode blendMode   = mBlendModes[0];
-    projectionLayer.layer().type       = XR_TYPE_COMPOSITION_LAYER_PROJECTION;
-    projectionLayer.layer().layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT;
-    projectionLayer.layer().space      = mRefSpace;
-
     // Set the order the default layers should be rendered in.
     // Higher numbers are rendered later, and space is purposefully provided
-    // between each layer.
+    // between each layer to allow for rendering additional content between the three default layers, such as a quad above the main projection, but below ImGui.
     passthroughFbLayer.SetZIndex(100);
     projectionLayer.SetZIndex(200);
-    quadLayer.SetZIndex(300);
+    imGuiLayer.SetZIndex(300);
 
-    auto cmp = [](XrLayerBase* left, XrLayerBase* right) { return left->zIndex() > right->zIndex(); };
+    // Populate data into the layers, and add them into the queue as needed.
+    PopulatePassthroughFbLayer(layerQueue, passthroughFbLayer);
+    PopulateProjectionLayer(swapchains, layerProjStartIndex, layerQueue, projectionLayer);
+    PopulateImGuiLayer(swapchains, layerQuadStartIndex, layerQueue, imGuiLayer);
 
-    std::priority_queue<XrLayerBase*, std::vector<XrLayerBase*>, decltype(cmp)> layerQueue(cmp);
-
-    if (mShouldRender) {
-        if (mPassthroughEnabled) {
-            switch (mPassthroughSupported) {
-                case XR_PASSTHROUGH_OCULUS: {
-                    if (mPassthroughLayer != XR_NULL_HANDLE) {
-                        layerQueue.push(&passthroughFbLayer);
-                    }
-                    break;
-                }
-                case XR_PASSTHROUGH_BLEND_MODE: {
-                    blendMode = XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND;
-                    break;
-                }
-                case XR_PASSTHROUGH_NONE:
-                default:
-                    break;
-            }
-        }
-        layerQueue.push(&projectionLayer);
-        if (mCreateInfo.enableQuadLayer) {
-            layerQueue.push(&quadLayer);
-        }
-    }
-
+    // Add any additional owned layers to the queue.
     for (const auto& [ref, layer] : mLayers) {
         layerQueue.push(layer.get());
     }
 
+    // Create an ordered vector of layers cast to the base struct.
     std::vector<XrCompositionLayerBaseHeader*> layers;
     for (; !layerQueue.empty(); layerQueue.pop()) {
         layers.push_back(layerQueue.top()->basePtr());
+    }
+
+    // Get the blend mode.
+    XrEnvironmentBlendMode blendMode = mBlendModes[0];
+    if (mShouldRender && mPassthroughEnabled && (mPassthroughSupported == XR_PASSTHROUGH_BLEND_MODE)) {
+        blendMode = XR_ENVIRONMENT_BLEND_MODE_ALPHA_BLEND;
     }
 
     // Submit layers and end frame.
@@ -628,10 +557,101 @@ void XrComponent::EndFrame(const std::vector<grfx::SwapchainPtr>& swapchains, ui
     CHECK_XR_CALL(xrEndFrame(mSession, &frameEndInfo));
 }
 
+void XrComponent::PopulateProjectionLayer(const std::vector<grfx::SwapchainPtr>& swapchains, uint32_t startIndex, XrLayerBaseQueue& layerQueue, XrProjectionLayer& projectionLayer)
+{
+    size_t viewCount = mViews.size();
+    PPX_ASSERT_MSG(swapchains.size() >= viewCount, "Number of swapchains needs to be larger than or equal to the number of views!");
+
+    if (!mShouldRender) {
+        return;
+    }
+
+    // Projection and (optional) depth info layer from color+depth swapchains.
+    for (size_t i = 0; i < viewCount; ++i) {
+        XrCompositionLayerProjectionView view = {XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW};
+        view.pose                             = mViews[i].pose;
+        view.fov                              = mViews[i].fov;
+        view.subImage.swapchain               = swapchains[startIndex + i]->GetXrColorSwapchain();
+        view.subImage.imageRect.offset        = {0, 0};
+        view.subImage.imageRect.extent        = {static_cast<int>(GetWidth()), static_cast<int>(GetHeight())};
+
+        if (mShouldSubmitDepthInfo && swapchains[startIndex + i]->GetXrDepthSwapchain() != XR_NULL_HANDLE) {
+            PPX_ASSERT_MSG(mNearPlaneForFrame.has_value() && mFarPlaneForFrame.has_value(), "Depth info layer cannot be submitted because near and far plane values are not set. "
+                                                                                            "Call GetProjectionMatrixForCurrentViewAndSetFrustumPlanes to set per-frame values.");
+            XrCompositionLayerDepthInfoKHR depthInfo = {XR_TYPE_COMPOSITION_LAYER_DEPTH_INFO_KHR};
+            depthInfo.minDepth                       = 0.0f;
+            depthInfo.maxDepth                       = 1.0f;
+            depthInfo.nearZ                          = *mNearPlaneForFrame;
+            depthInfo.farZ                           = *mFarPlaneForFrame;
+            depthInfo.subImage.swapchain             = swapchains[startIndex + i]->GetXrDepthSwapchain();
+            depthInfo.subImage.imageRect.offset      = {0, 0};
+            depthInfo.subImage.imageRect.extent      = {static_cast<int>(GetWidth()), static_cast<int>(GetHeight())};
+
+            projectionLayer.AddView(view, depthInfo);
+        }
+        else {
+            projectionLayer.AddView(view);
+        }
+    }
+
+    projectionLayer.layer().type       = XR_TYPE_COMPOSITION_LAYER_PROJECTION;
+    projectionLayer.layer().layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT;
+    projectionLayer.layer().space      = mRefSpace;
+
+    layerQueue.push(&projectionLayer);
+}
+
+void XrComponent::PopulateImGuiLayer(const std::vector<grfx::SwapchainPtr>& swapchains, uint32_t index, XrLayerBaseQueue& layerQueue, XrQuadLayer& quadLayer)
+{
+    if (!mShouldRender) {
+        return;
+    }
+    if (!mCreateInfo.enableQuadLayer) {
+        return;
+    }
+
+    quadLayer.layer().type                      = XR_TYPE_COMPOSITION_LAYER_QUAD;
+    quadLayer.layer().layerFlags                = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT;
+    quadLayer.layer().space                     = mUISpace;
+    quadLayer.layer().eyeVisibility             = XR_EYE_VISIBILITY_BOTH;
+    quadLayer.layer().subImage.swapchain        = swapchains[index]->GetXrColorSwapchain();
+    quadLayer.layer().subImage.imageRect.offset = {0, 0};
+    quadLayer.layer().subImage.imageRect.extent = {static_cast<int>(GetUIWidth()), static_cast<int>(GetUIHeight())};
+    quadLayer.layer().pose                      = {{0, 0, 0, 1}, {0, 0, -0.5f}};
+    quadLayer.layer().size                      = {1, 1};
+
+    layerQueue.push(&quadLayer);
+}
+
+void XrComponent::PopulatePassthroughFbLayer(XrLayerBaseQueue& layerQueue, XrPassthroughFbLayer& passthroughFbLayer)
+{
+    if (!mShouldRender) {
+        return;
+    }
+    if (!mPassthroughEnabled) {
+        return;
+    }
+    if (mPassthroughSupported != XR_PASSTHROUGH_OCULUS) {
+        return;
+    }
+    if (mPassthroughLayer == XR_NULL_HANDLE) {
+        return;
+    }
+
+    passthroughFbLayer.layer().type        = XR_TYPE_COMPOSITION_LAYER_PASSTHROUGH_FB;
+    passthroughFbLayer.layer().next        = nullptr;
+    passthroughFbLayer.layer().flags       = XrCompositionLayerFlags{};
+    passthroughFbLayer.layer().space       = XR_NULL_HANDLE;
+    passthroughFbLayer.layer().layerHandle = mPassthroughLayer;
+
+    layerQueue.push(&passthroughFbLayer);
+}
+
 LayerRef XrComponent::AddLayer(std::unique_ptr<XrLayerBase> layer)
 {
-    mLayers.insert(std::make_pair(++mNextLayerRef, std::move(layer)));
-    return mNextLayerRef;
+    const LayerRef ref = mNextLayerRef++;
+    mLayers.insert(std::make_pair(ref, std::move(layer)));
+    return ref;
 }
 
 bool XrComponent::RemoveLayer(LayerRef layerRef)
