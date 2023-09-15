@@ -60,6 +60,19 @@ struct TriMeshVertexData
     float3 bitangent;
 };
 
+//! @struct TriMeshVertexDataCompressed
+//!
+//!
+struct TriMeshVertexDataCompressed
+{
+    half3  position;
+    half3  color;
+    i8vec4 normal;
+    half2  texCoord;
+    i8vec4 tangent;
+    i8vec3 bitangent;
+};
+
 //! @class TriMeshOptions
 //!
 //!

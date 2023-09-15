@@ -28,6 +28,7 @@ namespace ppx {
 //     be careful when adding data members to any of these classes
 //     it could create problems for multithreaded cases for multiple geometry objects
 // -------------------------------------------------------------------------------------------------
+template <typename T>
 class VertexDataProcessorBase
 {
 public:
@@ -39,7 +40,7 @@ public:
     virtual Result UpdateVertexBuffer(Geometry* pGeom) = 0;
     // Fetches vertex data from vtx and append it to the geometry
     // Returns 0 if the appending fails
-    virtual uint32_t AppendVertexData(Geometry* pGeom, const TriMeshVertexData& vtx)  = 0;
+    virtual uint32_t AppendVertexData(Geometry* pGeom, const T& vtx)                  = 0;
     virtual uint32_t AppendVertexData(Geometry* pGeom, const WireMeshVertexData& vtx) = 0;
     // Gets the vertex count of the geometry
     virtual uint32_t GetVertexCount(const Geometry* pGeom) = 0;
@@ -55,8 +56,8 @@ protected:
     // Missing attributes will also result in NOOP.
     // returns the element count of the vertex buffer with the bufferIndex
     // 0 is returned if the bufferIndex is ignored
-    template <typename T>
-    uint32_t AppendDataToVertexBuffer(Geometry* pGeom, uint32_t bufferIndex, const T& data)
+    template <typename U>
+    uint32_t AppendDataToVertexBuffer(Geometry* pGeom, uint32_t bufferIndex, const U& data)
     {
         if (bufferIndex != PPX_VALUE_IGNORED) {
             PPX_ASSERT_MSG((bufferIndex >= 0) && (bufferIndex < pGeom->mVertexBuffers.size()), "buffer index is not valid");
@@ -128,14 +129,15 @@ protected:
 // VertexDataProcessor for Planar vertex attribute layout
 //     Planar: each attribute has its own vertex input binding
 // -------------------------------------------------------------------------------------------------
-class VertexDataProcessorPlanar : public VertexDataProcessorBase
+template <typename T>
+class VertexDataProcessorPlanar : public VertexDataProcessorBase<T>
 {
 public:
     virtual bool Validate(Geometry* pGeom) override
     {
-        const uint32_t vertexBindingCount = GetVertexBindingCount(pGeom);
+        const uint32_t vertexBindingCount = this->GetVertexBindingCount(pGeom);
         for (uint32_t i = 0; i < vertexBindingCount; ++i) {
-            if (GetVertexBindingAttributeCount(pGeom, i) != 1) {
+            if (this->GetVertexBindingAttributeCount(pGeom, i) != 1) {
                 PPX_ASSERT_MSG(false, "planar layout must have 1 attribute");
                 return false;
             }
@@ -146,48 +148,48 @@ public:
     virtual Result UpdateVertexBuffer(Geometry* pGeom) override
     {
         // Create buffers
-        const uint32_t vertexBindingCount = GetVertexBindingCount(pGeom);
+        const uint32_t vertexBindingCount = this->GetVertexBindingCount(pGeom);
         for (uint32_t i = 0; i < vertexBindingCount; ++i) {
-            AddVertexBuffer(pGeom, i);
-            const grfx::VertexSemantic semantic = GetVertexBindingAttributeSematic(pGeom, i, 0);
+            this->AddVertexBuffer(pGeom, i);
+            const grfx::VertexSemantic semantic = this->GetVertexBindingAttributeSematic(pGeom, i, 0);
             // clang-format off
             switch (semantic) {
                 default                              : return Result::ERROR_GEOMETRY_INVALID_VERTEX_SEMANTIC;
-                case grfx::VERTEX_SEMANTIC_POSITION  : SetPositionBufferIndex(pGeom, i); break;
-                case grfx::VERTEX_SEMANTIC_NORMAL    : SetNormalBufferIndex(pGeom, i); break;
-                case grfx::VERTEX_SEMANTIC_COLOR     : SetColorBufferIndex(pGeom, i); break;
-                case grfx::VERTEX_SEMANTIC_TANGENT   : SetTangentBufferIndex(pGeom, i); break;
-                case grfx::VERTEX_SEMANTIC_BITANGENT : SetBitangentBufferIndex(pGeom, i); break;
-                case grfx::VERTEX_SEMANTIC_TEXCOORD  : SetTexCoordBufferIndex(pGeom, i); break;
+                case grfx::VERTEX_SEMANTIC_POSITION  : this->SetPositionBufferIndex(pGeom, i); break;
+                case grfx::VERTEX_SEMANTIC_NORMAL    : this->SetNormalBufferIndex(pGeom, i); break;
+                case grfx::VERTEX_SEMANTIC_COLOR     : this->SetColorBufferIndex(pGeom, i); break;
+                case grfx::VERTEX_SEMANTIC_TANGENT   : this->SetTangentBufferIndex(pGeom, i); break;
+                case grfx::VERTEX_SEMANTIC_BITANGENT : this->SetBitangentBufferIndex(pGeom, i); break;
+                case grfx::VERTEX_SEMANTIC_TEXCOORD  : this->SetTexCoordBufferIndex(pGeom, i); break;
             }
             // clang-format on
         }
         return ppx::SUCCESS;
     }
 
-    virtual uint32_t AppendVertexData(Geometry* pGeom, const TriMeshVertexData& vtx) override
+    virtual uint32_t AppendVertexData(Geometry* pGeom, const T& vtx) override
     {
-        const uint32_t n = AppendDataToVertexBuffer(pGeom, GetPositionBufferIndex(pGeom), vtx.position);
+        const uint32_t n = this->AppendDataToVertexBuffer(pGeom, this->GetPositionBufferIndex(pGeom), vtx.position);
         PPX_ASSERT_MSG(n > 0, "position should always available");
-        AppendDataToVertexBuffer(pGeom, GetNormalBufferIndex(pGeom), vtx.normal);
-        AppendDataToVertexBuffer(pGeom, GetColorBufferIndex(pGeom), vtx.color);
-        AppendDataToVertexBuffer(pGeom, GetTexCoordBufferIndex(pGeom), vtx.texCoord);
-        AppendDataToVertexBuffer(pGeom, GetTangentBufferIndex(pGeom), vtx.tangent);
-        AppendDataToVertexBuffer(pGeom, GetBitangentBufferIndex(pGeom), vtx.bitangent);
+        this->AppendDataToVertexBuffer(pGeom, this->GetNormalBufferIndex(pGeom), vtx.normal);
+        this->AppendDataToVertexBuffer(pGeom, this->GetColorBufferIndex(pGeom), vtx.color);
+        this->AppendDataToVertexBuffer(pGeom, this->GetTexCoordBufferIndex(pGeom), vtx.texCoord);
+        this->AppendDataToVertexBuffer(pGeom, this->GetTangentBufferIndex(pGeom), vtx.tangent);
+        this->AppendDataToVertexBuffer(pGeom, this->GetBitangentBufferIndex(pGeom), vtx.bitangent);
         return n;
     }
 
     virtual uint32_t AppendVertexData(Geometry* pGeom, const WireMeshVertexData& vtx) override
     {
-        const uint32_t n = AppendDataToVertexBuffer(pGeom, GetPositionBufferIndex(pGeom), vtx.position);
+        const uint32_t n = this->AppendDataToVertexBuffer(pGeom, this->GetPositionBufferIndex(pGeom), vtx.position);
         PPX_ASSERT_MSG(n > 0, "position should always available");
-        AppendDataToVertexBuffer(pGeom, GetColorBufferIndex(pGeom), vtx.color);
+        this->AppendDataToVertexBuffer(pGeom, this->GetColorBufferIndex(pGeom), vtx.color);
         return n;
     }
 
     virtual uint32_t GetVertexCount(const Geometry* pGeom) override
     {
-        return GetVertexBufferElementCount(pGeom, GetPositionBufferIndex(pGeom));
+        return this->GetVertexBufferElementCount(pGeom, this->GetPositionBufferIndex(pGeom));
     }
 };
 
@@ -195,12 +197,13 @@ public:
 // VertexDataProcessor for Interleaved vertex attribute layout
 //     Interleaved: only has 1 vertex input binding, data is interleaved
 // -------------------------------------------------------------------------------------------------
-class VertexDataProcessorInterleaved : public VertexDataProcessorBase
+template <typename T>
+class VertexDataProcessorInterleaved : public VertexDataProcessorBase<T>
 {
 public:
     virtual bool Validate(Geometry* pGeom) override
     {
-        const uint32_t vertexBindingCount = GetVertexBindingCount(pGeom);
+        const uint32_t vertexBindingCount = this->GetVertexBindingCount(pGeom);
         if (vertexBindingCount != 1) {
             PPX_ASSERT_MSG(false, "interleaved layout must have 1 binding");
         }
@@ -209,76 +212,76 @@ public:
 
     virtual Result UpdateVertexBuffer(Geometry* pGeom) override
     {
-        PPX_ASSERT_MSG(1 == GetVertexBindingCount(pGeom), "there should be only 1 binding for planar");
-        AddVertexBuffer(pGeom, kBufferIndex);
+        PPX_ASSERT_MSG(1 == this->GetVertexBindingCount(pGeom), "there should be only 1 binding for planar");
+        this->AddVertexBuffer(pGeom, kBufferIndex);
         return ppx::SUCCESS;
     }
 
-    virtual uint32_t AppendVertexData(Geometry* pGeom, const TriMeshVertexData& vtx) override
+    virtual uint32_t AppendVertexData(Geometry* pGeom, const T& vtx) override
     {
-        uint32_t       startSize = GetVertexBufferSize(pGeom, kBufferIndex);
-        const uint32_t attrCount = GetVertexBindingAttributeCount(pGeom, kBufferIndex);
+        uint32_t       startSize = this->GetVertexBufferSize(pGeom, kBufferIndex);
+        const uint32_t attrCount = this->GetVertexBindingAttributeCount(pGeom, kBufferIndex);
         for (uint32_t attrIndex = 0; attrIndex < attrCount; ++attrIndex) {
-            const grfx::VertexSemantic semantic = GetVertexBindingAttributeSematic(pGeom, kBufferIndex, attrIndex);
+            const grfx::VertexSemantic semantic = this->GetVertexBindingAttributeSematic(pGeom, kBufferIndex, attrIndex);
 
             // clang-format off
             switch (semantic) {
                 default: break;
-                case grfx::VERTEX_SEMANTIC_POSITION  : 
+                case grfx::VERTEX_SEMANTIC_POSITION  :
                     {
-                        const uint32_t n = AppendDataToVertexBuffer(pGeom, kBufferIndex, vtx.position); 
+                        const uint32_t n = this->AppendDataToVertexBuffer(pGeom, kBufferIndex, vtx.position);
                         PPX_ASSERT_MSG(n > 0, "position should always available");
                     }
                     break;
-                case grfx::VERTEX_SEMANTIC_NORMAL    : AppendDataToVertexBuffer(pGeom, kBufferIndex, vtx.normal); break;
-                case grfx::VERTEX_SEMANTIC_COLOR     : AppendDataToVertexBuffer(pGeom, kBufferIndex, vtx.color); break;
-                case grfx::VERTEX_SEMANTIC_TANGENT   : AppendDataToVertexBuffer(pGeom, kBufferIndex, vtx.tangent); break;
-                case grfx::VERTEX_SEMANTIC_BITANGENT : AppendDataToVertexBuffer(pGeom, kBufferIndex, vtx.bitangent); break;
-                case grfx::VERTEX_SEMANTIC_TEXCOORD  : AppendDataToVertexBuffer(pGeom, kBufferIndex, vtx.texCoord); break;
+                case grfx::VERTEX_SEMANTIC_NORMAL    : this->AppendDataToVertexBuffer(pGeom, kBufferIndex, vtx.normal); break;
+                case grfx::VERTEX_SEMANTIC_COLOR     : this->AppendDataToVertexBuffer(pGeom, kBufferIndex, vtx.color); break;
+                case grfx::VERTEX_SEMANTIC_TANGENT   : this->AppendDataToVertexBuffer(pGeom, kBufferIndex, vtx.tangent); break;
+                case grfx::VERTEX_SEMANTIC_BITANGENT : this->AppendDataToVertexBuffer(pGeom, kBufferIndex, vtx.bitangent); break;
+                case grfx::VERTEX_SEMANTIC_TEXCOORD  : this->AppendDataToVertexBuffer(pGeom, kBufferIndex, vtx.texCoord); break;
             }
             // clang-format on
         }
-        uint32_t endSize = GetVertexBufferSize(pGeom, kBufferIndex);
+        uint32_t endSize = this->GetVertexBufferSize(pGeom, kBufferIndex);
 
         uint32_t       bytesWritten            = (endSize - startSize);
-        const uint32_t vertexBufferElementSize = GetVertexBufferElementSize(pGeom, kBufferIndex);
+        const uint32_t vertexBufferElementSize = this->GetVertexBufferElementSize(pGeom, kBufferIndex);
         PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
 
-        return GetVertexBufferElementCount(pGeom, kBufferIndex);
+        return this->GetVertexBufferElementCount(pGeom, kBufferIndex);
     }
 
     virtual uint32_t AppendVertexData(Geometry* pGeom, const WireMeshVertexData& vtx) override
     {
-        uint32_t       startSize = GetVertexBufferSize(pGeom, kBufferIndex);
-        const uint32_t attrCount = GetVertexBindingAttributeCount(pGeom, kBufferIndex);
+        uint32_t       startSize = this->GetVertexBufferSize(pGeom, kBufferIndex);
+        const uint32_t attrCount = this->GetVertexBindingAttributeCount(pGeom, kBufferIndex);
         for (uint32_t attrIndex = 0; attrIndex < attrCount; ++attrIndex) {
-            const grfx::VertexSemantic semantic = GetVertexBindingAttributeSematic(pGeom, kBufferIndex, attrIndex);
+            const grfx::VertexSemantic semantic = this->GetVertexBindingAttributeSematic(pGeom, kBufferIndex, attrIndex);
 
             // clang-format off
             switch (semantic) {
                 default: break;
                 case grfx::VERTEX_SEMANTIC_POSITION: 
                     {
-                        const uint32_t n = AppendDataToVertexBuffer(pGeom, kBufferIndex, vtx.position); 
+                        const uint32_t n = this->AppendDataToVertexBuffer(pGeom, kBufferIndex, vtx.position); 
                         PPX_ASSERT_MSG(n > 0, "position should always available");
                     }
                     break;
-                case grfx::VERTEX_SEMANTIC_COLOR   : AppendDataToVertexBuffer(pGeom, kBufferIndex, vtx.color); break;
+                case grfx::VERTEX_SEMANTIC_COLOR   : this->AppendDataToVertexBuffer(pGeom, kBufferIndex, vtx.color); break;
             }
             // clang-format on
         }
-        uint32_t endSize = GetVertexBufferSize(pGeom, kBufferIndex);
+        uint32_t endSize = this->GetVertexBufferSize(pGeom, kBufferIndex);
 
         uint32_t       bytesWritten            = (endSize - startSize);
-        const uint32_t vertexBufferElementSize = GetVertexBufferElementSize(pGeom, kBufferIndex);
+        const uint32_t vertexBufferElementSize = this->GetVertexBufferElementSize(pGeom, kBufferIndex);
         PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
 
-        return GetVertexBufferElementCount(pGeom, kBufferIndex);
+        return this->GetVertexBufferElementCount(pGeom, kBufferIndex);
     }
 
     virtual uint32_t GetVertexCount(const Geometry* pGeom) override
     {
-        return GetVertexBufferElementCount(pGeom, kBufferIndex);
+        return this->GetVertexBufferElementCount(pGeom, kBufferIndex);
     }
 
 private:
@@ -292,12 +295,13 @@ private:
 //        - Binding 0 only has Position data
 //        - Binding 1 contains all non-position data, interleaved
 // -------------------------------------------------------------------------------------------------
-class VertexDataProcessorPositionPlanar : public VertexDataProcessorBase
+template <typename T>
+class VertexDataProcessorPositionPlanar : public VertexDataProcessorBase<T>
 {
 public:
     virtual bool Validate(Geometry* pGeom) override
     {
-        const uint32_t vertexBindingCount = GetVertexBindingCount(pGeom);
+        const uint32_t vertexBindingCount = this->GetVertexBindingCount(pGeom);
         if (vertexBindingCount != 2) {
             PPX_ASSERT_MSG(false, "position planar layout must have 2 bindings");
         }
@@ -306,26 +310,26 @@ public:
 
     virtual Result UpdateVertexBuffer(Geometry* pGeom) override
     {
-        PPX_ASSERT_MSG(2 == GetVertexBindingCount(pGeom), "there should be 2 binding for position planar");
+        PPX_ASSERT_MSG(2 == this->GetVertexBindingCount(pGeom), "there should be 2 binding for position planar");
         // Position
-        AddVertexBuffer(pGeom, kPositionBufferIndex);
+        this->AddVertexBuffer(pGeom, kPositionBufferIndex);
         // Non-Position data
-        AddVertexBuffer(pGeom, kNonPositionBufferIndex);
+        this->AddVertexBuffer(pGeom, kNonPositionBufferIndex);
 
-        SetPositionBufferIndex(pGeom, kPositionBufferIndex);
+        this->SetPositionBufferIndex(pGeom, kPositionBufferIndex);
 
-        const uint32_t attributeCount = GetVertexBindingAttributeCount(pGeom, kNonPositionBufferIndex);
+        const uint32_t attributeCount = this->GetVertexBindingAttributeCount(pGeom, kNonPositionBufferIndex);
         for (uint32_t i = 0; i < attributeCount; ++i) {
-            const grfx::VertexSemantic semantic = GetVertexBindingAttributeSematic(pGeom, kNonPositionBufferIndex, i);
+            const grfx::VertexSemantic semantic = this->GetVertexBindingAttributeSematic(pGeom, kNonPositionBufferIndex, i);
             // clang-format off
             switch (semantic) {
                 default                              : return Result::ERROR_GEOMETRY_INVALID_VERTEX_SEMANTIC;
                 case grfx::VERTEX_SEMANTIC_POSITION  : PPX_ASSERT_MSG(false, "position should be in binding 0"); break;
-                case grfx::VERTEX_SEMANTIC_NORMAL    : SetNormalBufferIndex(pGeom, kNonPositionBufferIndex); break;
-                case grfx::VERTEX_SEMANTIC_COLOR     : SetColorBufferIndex(pGeom, kNonPositionBufferIndex); break;
-                case grfx::VERTEX_SEMANTIC_TANGENT   : SetTangentBufferIndex(pGeom, kNonPositionBufferIndex); break;
-                case grfx::VERTEX_SEMANTIC_BITANGENT : SetBitangentBufferIndex(pGeom, kNonPositionBufferIndex); break;
-                case grfx::VERTEX_SEMANTIC_TEXCOORD  : SetTexCoordBufferIndex(pGeom, kNonPositionBufferIndex); break;
+                case grfx::VERTEX_SEMANTIC_NORMAL    : this->SetNormalBufferIndex(pGeom, kNonPositionBufferIndex); break;
+                case grfx::VERTEX_SEMANTIC_COLOR     : this->SetColorBufferIndex(pGeom, kNonPositionBufferIndex); break;
+                case grfx::VERTEX_SEMANTIC_TANGENT   : this->SetTangentBufferIndex(pGeom, kNonPositionBufferIndex); break;
+                case grfx::VERTEX_SEMANTIC_BITANGENT : this->SetBitangentBufferIndex(pGeom, kNonPositionBufferIndex); break;
+                case grfx::VERTEX_SEMANTIC_TEXCOORD  : this->SetTexCoordBufferIndex(pGeom, kNonPositionBufferIndex); break;
             }
             // clang-format on
         }
@@ -333,65 +337,65 @@ public:
         return ppx::SUCCESS;
     }
 
-    virtual uint32_t AppendVertexData(Geometry* pGeom, const TriMeshVertexData& vtx) override
+    virtual uint32_t AppendVertexData(Geometry* pGeom, const T& vtx) override
     {
-        const uint32_t n = AppendDataToVertexBuffer(pGeom, GetPositionBufferIndex(pGeom), vtx.position);
+        const uint32_t n = this->AppendDataToVertexBuffer(pGeom, this->GetPositionBufferIndex(pGeom), vtx.position);
         PPX_ASSERT_MSG(n > 0, "position should always available");
 
-        uint32_t       startSize = GetVertexBufferSize(pGeom, kNonPositionBufferIndex);
-        const uint32_t attrCount = GetVertexBindingAttributeCount(pGeom, kNonPositionBufferIndex);
+        uint32_t       startSize = this->GetVertexBufferSize(pGeom, kNonPositionBufferIndex);
+        const uint32_t attrCount = this->GetVertexBindingAttributeCount(pGeom, kNonPositionBufferIndex);
         for (uint32_t attrIndex = 0; attrIndex < attrCount; ++attrIndex) {
-            const grfx::VertexSemantic semantic = GetVertexBindingAttributeSematic(pGeom, kNonPositionBufferIndex, attrIndex);
+            const grfx::VertexSemantic semantic = this->GetVertexBindingAttributeSematic(pGeom, kNonPositionBufferIndex, attrIndex);
 
             // clang-format off
             switch (semantic) {
                 default                              : PPX_ASSERT_MSG(false, "should not have other sematic"); break;
                 case grfx::VERTEX_SEMANTIC_POSITION  : PPX_ASSERT_MSG(false, "position should be in binding 0"); break;
-                case grfx::VERTEX_SEMANTIC_NORMAL    : AppendDataToVertexBuffer(pGeom, GetNormalBufferIndex(pGeom), vtx.normal); break;
-                case grfx::VERTEX_SEMANTIC_COLOR     : AppendDataToVertexBuffer(pGeom, GetColorBufferIndex(pGeom), vtx.color); break;
-                case grfx::VERTEX_SEMANTIC_TANGENT   : AppendDataToVertexBuffer(pGeom, GetTangentBufferIndex(pGeom), vtx.tangent); break;
-                case grfx::VERTEX_SEMANTIC_BITANGENT : AppendDataToVertexBuffer(pGeom, GetBitangentBufferIndex(pGeom), vtx.bitangent); break;
-                case grfx::VERTEX_SEMANTIC_TEXCOORD  : AppendDataToVertexBuffer(pGeom, GetTexCoordBufferIndex(pGeom), vtx.texCoord); break;
+                case grfx::VERTEX_SEMANTIC_NORMAL    : this->AppendDataToVertexBuffer(pGeom, this->GetNormalBufferIndex(pGeom), vtx.normal); break;
+                case grfx::VERTEX_SEMANTIC_COLOR     : this->AppendDataToVertexBuffer(pGeom, this->GetColorBufferIndex(pGeom), vtx.color); break;
+                case grfx::VERTEX_SEMANTIC_TANGENT   : this->AppendDataToVertexBuffer(pGeom, this->GetTangentBufferIndex(pGeom), vtx.tangent); break;
+                case grfx::VERTEX_SEMANTIC_BITANGENT : this->AppendDataToVertexBuffer(pGeom, this->GetBitangentBufferIndex(pGeom), vtx.bitangent); break;
+                case grfx::VERTEX_SEMANTIC_TEXCOORD  : this->AppendDataToVertexBuffer(pGeom, this->GetTexCoordBufferIndex(pGeom), vtx.texCoord); break;
             }
             // clang-format on
         }
-        uint32_t endSize = GetVertexBufferSize(pGeom, kNonPositionBufferIndex);
+        uint32_t endSize = this->GetVertexBufferSize(pGeom, kNonPositionBufferIndex);
 
         uint32_t       bytesWritten            = (endSize - startSize);
-        const uint32_t vertexBufferElementSize = GetVertexBufferElementSize(pGeom, kNonPositionBufferIndex);
+        const uint32_t vertexBufferElementSize = this->GetVertexBufferElementSize(pGeom, kNonPositionBufferIndex);
         PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
         return n;
     }
 
     virtual uint32_t AppendVertexData(Geometry* pGeom, const WireMeshVertexData& vtx) override
     {
-        const uint32_t n = AppendDataToVertexBuffer(pGeom, kPositionBufferIndex, vtx.position);
+        const uint32_t n = this->AppendDataToVertexBuffer(pGeom, kPositionBufferIndex, vtx.position);
         PPX_ASSERT_MSG(n > 0, "position should always available");
-        uint32_t       startSize = GetVertexBufferSize(pGeom, kNonPositionBufferIndex);
-        const uint32_t attrCount = GetVertexBindingAttributeCount(pGeom, kNonPositionBufferIndex);
+        uint32_t       startSize = this->GetVertexBufferSize(pGeom, kNonPositionBufferIndex);
+        const uint32_t attrCount = this->GetVertexBindingAttributeCount(pGeom, kNonPositionBufferIndex);
         for (uint32_t attrIndex = 0; attrIndex < attrCount; ++attrIndex) {
-            const grfx::VertexSemantic semantic = GetVertexBindingAttributeSematic(pGeom, kNonPositionBufferIndex, attrIndex);
+            const grfx::VertexSemantic semantic = this->GetVertexBindingAttributeSematic(pGeom, kNonPositionBufferIndex, attrIndex);
 
             // clang-format off
             switch (semantic) {
                 default                              : PPX_ASSERT_MSG(false, "should not have other sematic"); break;
                 case grfx::VERTEX_SEMANTIC_POSITION  : PPX_ASSERT_MSG(false, "position should be in binding 0"); break;
-                case grfx::VERTEX_SEMANTIC_COLOR     : AppendDataToVertexBuffer(pGeom, GetColorBufferIndex(pGeom), vtx.color); break;
+                case grfx::VERTEX_SEMANTIC_COLOR     : this->AppendDataToVertexBuffer(pGeom, this->GetColorBufferIndex(pGeom), vtx.color); break;
             }
             // clang-format on
         }
-        uint32_t endSize = GetVertexBufferSize(pGeom, kNonPositionBufferIndex);
+        uint32_t endSize = this->GetVertexBufferSize(pGeom, kNonPositionBufferIndex);
 
         uint32_t bytesWritten = (endSize - startSize);
 
-        const uint32_t vertexBufferElementSize = GetVertexBufferElementSize(pGeom, kNonPositionBufferIndex);
+        const uint32_t vertexBufferElementSize = this->GetVertexBufferElementSize(pGeom, kNonPositionBufferIndex);
         PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
         return n;
     }
 
     virtual uint32_t GetVertexCount(const Geometry* pGeom) override
     {
-        return GetVertexBufferElementCount(pGeom, GetPositionBufferIndex(pGeom));
+        return this->GetVertexBufferElementCount(pGeom, this->GetPositionBufferIndex(pGeom));
     }
 
 private:
@@ -399,66 +403,69 @@ private:
     const uint32_t kNonPositionBufferIndex = 1;
 };
 
-static VertexDataProcessorPlanar         sVDProcessorPlanar;
-static VertexDataProcessorInterleaved    sVDProcessorInterleaved;
-static VertexDataProcessorPositionPlanar sVDProcessorPositionPlanar;
+static VertexDataProcessorPlanar<TriMeshVertexData>                   sVDProcessorPlanar;
+static VertexDataProcessorPlanar<TriMeshVertexDataCompressed>         sVDProcessorPlanarCompressed;
+static VertexDataProcessorInterleaved<TriMeshVertexData>              sVDProcessorInterleaved;
+static VertexDataProcessorInterleaved<TriMeshVertexDataCompressed>    sVDProcessorInterleavedCompressed;
+static VertexDataProcessorPositionPlanar<TriMeshVertexData>           sVDProcessorPositionPlanar;
+static VertexDataProcessorPositionPlanar<TriMeshVertexDataCompressed> sVDProcessorPositionPlanarCompressed;
 
 // -------------------------------------------------------------------------------------------------
 // GeometryOptions
 // -------------------------------------------------------------------------------------------------
-GeometryOptions GeometryOptions::InterleavedU16()
+GeometryOptions GeometryOptions::InterleavedU16(grfx::Format format)
 {
     GeometryOptions ci       = {};
     ci.vertexAttributeLayout = GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_INTERLEAVED;
     ci.indexType             = grfx::INDEX_TYPE_UINT16;
     ci.vertexBindingCount    = 1; // Interleave attribute layout always has 1 vertex binding
-    ci.AddPosition();
+    ci.AddPosition(format);
     return ci;
 }
 
-GeometryOptions GeometryOptions::InterleavedU32()
+GeometryOptions GeometryOptions::InterleavedU32(grfx::Format format)
 {
     GeometryOptions ci       = {};
     ci.vertexAttributeLayout = GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_INTERLEAVED;
     ci.indexType             = grfx::INDEX_TYPE_UINT32;
     ci.vertexBindingCount    = 1; // Interleave attribute layout always has 1 vertex binding
-    ci.AddPosition();
+    ci.AddPosition(format);
     return ci;
 }
 
-GeometryOptions GeometryOptions::PlanarU16()
+GeometryOptions GeometryOptions::PlanarU16(grfx::Format format)
 {
     GeometryOptions ci       = {};
     ci.vertexAttributeLayout = GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_PLANAR;
     ci.indexType             = grfx::INDEX_TYPE_UINT16;
-    ci.AddPosition();
+    ci.AddPosition(format);
     return ci;
 }
 
-GeometryOptions GeometryOptions::PlanarU32()
+GeometryOptions GeometryOptions::PlanarU32(grfx::Format format)
 {
     GeometryOptions ci       = {};
     ci.vertexAttributeLayout = GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_PLANAR;
     ci.indexType             = grfx::INDEX_TYPE_UINT32;
-    ci.AddPosition();
+    ci.AddPosition(format);
     return ci;
 }
 
-GeometryOptions GeometryOptions::PositionPlanarU16()
+GeometryOptions GeometryOptions::PositionPlanarU16(grfx::Format format)
 {
     GeometryOptions ci       = {};
     ci.vertexAttributeLayout = GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_POSITION_PLANAR;
     ci.indexType             = grfx::INDEX_TYPE_UINT16;
-    ci.AddPosition();
+    ci.AddPosition(format);
     return ci;
 }
 
-GeometryOptions GeometryOptions::PositionPlanarU32()
+GeometryOptions GeometryOptions::PositionPlanarU32(grfx::Format format)
 {
     GeometryOptions ci       = {};
     ci.vertexAttributeLayout = GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_POSITION_PLANAR;
     ci.indexType             = grfx::INDEX_TYPE_UINT32;
-    ci.AddPosition();
+    ci.AddPosition(format);
     return ci;
 }
 
@@ -625,13 +632,16 @@ Result Geometry::InternalCtor()
 {
     switch (mCreateInfo.vertexAttributeLayout) {
         case GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_INTERLEAVED:
-            mVDProcessor = &sVDProcessorInterleaved;
+            mVDProcessor           = &sVDProcessorInterleaved;
+            mVDProcessorCompressed = &sVDProcessorInterleavedCompressed;
             break;
         case GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_PLANAR:
-            mVDProcessor = &sVDProcessorPlanar;
+            mVDProcessor           = &sVDProcessorPlanar;
+            mVDProcessorCompressed = &sVDProcessorPlanarCompressed;
             break;
         case GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_POSITION_PLANAR:
-            mVDProcessor = &sVDProcessorPositionPlanar;
+            mVDProcessor           = &sVDProcessorPositionPlanar;
+            mVDProcessorCompressed = &sVDProcessorPositionPlanarCompressed;
             break;
         default:
             PPX_ASSERT_MSG(false, "unsupported vertex attribute layout type");
@@ -1092,6 +1102,11 @@ void Geometry::AppendIndicesEdge(uint32_t vtx0, uint32_t vtx1)
 uint32_t Geometry::AppendVertexData(const TriMeshVertexData& vtx)
 {
     return mVDProcessor->AppendVertexData(this, vtx);
+}
+
+uint32_t Geometry::AppendVertexData(const TriMeshVertexDataCompressed& vtx)
+{
+    return mVDProcessorCompressed->AppendVertexData(this, vtx);
 }
 
 uint32_t Geometry::AppendVertexData(const WireMeshVertexData& vtx)
