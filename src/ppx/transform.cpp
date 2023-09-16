@@ -36,11 +36,21 @@ void Transform::SetTranslation(const float3& value)
     mDirty.concatenated = true;
 }
 
+void Transform::SetTranslation(float x, float y, float z)
+{
+    SetTranslation(float3(x, y, z));
+}
+
 void Transform::SetRotation(const float3& value)
 {
     mRotation           = value;
     mDirty.rotation     = true;
     mDirty.concatenated = true;
+}
+
+void Transform::SetRotation(float x, float y, float z)
+{
+    SetRotation(float3(x, y, z));
 }
 
 void Transform::SetScale(const float3& value)
@@ -49,7 +59,12 @@ void Transform::SetScale(const float3& value)
     mDirty.scale = true;
 }
 
-void Transform::SetRotationOrder(RotationOrder value)
+void Transform::SetScale(float x, float y, float z)
+{
+    SetScale(float3(x, y, z));
+}
+
+void Transform::SetRotationOrder(Transform::RotationOrder value)
 {
     mRotationOrder      = value;
     mDirty.rotation     = true;
@@ -99,9 +114,9 @@ const float4x4& Transform::GetScaleMatrix() const
 const float4x4& Transform::GetConcatenatedMatrix() const
 {
     if (mDirty.concatenated) {
-        const float4x4& T   = GetTranslationMatrix();
-        const float4x4& R   = GetRotationMatrix();
-        const float4x4& S   = GetScaleMatrix();
+        const float4x4& T = GetTranslationMatrix();
+        const float4x4& R = GetRotationMatrix();
+        const float4x4& S = GetScaleMatrix();
         // Matrices are column-major in GLM, so
         // we do not need to reverse the order.
         mConcatenatedMatrix = T * R * S;
