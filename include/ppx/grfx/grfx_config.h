@@ -176,7 +176,7 @@ struct Viewport
 //!
 //! If a member object's ownership is set to OWNERSHIP_EXCLUSIVE or
 //! OWNERSHIP_RESTRICTED, this means that the containing object must
-//! destroy it durnig the destruction process.
+//! destroy it during the destruction process.
 //!
 //! If the containing object fails to destroy OWNERSHIP_EXCLUSIVE and
 //! OWNERSHIP_RESTRICTED objects, then either grfx::Device or grfx::Instance
