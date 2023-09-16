@@ -44,11 +44,11 @@ public:
     RotationOrder GetRotationOrder() const { return mRotationOrder; }
 
     virtual void SetTranslation(const float3& value);
-            void SetTranslation(float x, float y, float z);
+    void         SetTranslation(float x, float y, float z);
     virtual void SetRotation(const float3& value);
-            void SetRotation(float x, float y, float z);
+    void         SetRotation(float x, float y, float z);
     virtual void SetScale(const float3& value);
-            void SetScale(float x, float y, float z);
+    void         SetScale(float x, float y, float z);
     virtual void SetRotationOrder(Transform::RotationOrder value);
 
     const float4x4& GetTranslationMatrix() const;
