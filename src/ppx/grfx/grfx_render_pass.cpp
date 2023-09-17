@@ -217,6 +217,8 @@ Result RenderPass::CreateImagesAndViewsV1(const grfx::internal::RenderPassCreate
 
         mRenderTargetViews.push_back(rtv);
         mRenderTargetImages.push_back(rtv->GetImage());
+
+        mHasLoadOpClear |= (rtv->GetLoadOp() == grfx::ATTACHMENT_LOAD_OP_CLEAR);
     }
     // Copy DSV and image
     if (!IsNull(pCreateInfo->V1.pDepthStencilView)) {
@@ -224,6 +226,9 @@ Result RenderPass::CreateImagesAndViewsV1(const grfx::internal::RenderPassCreate
 
         mDepthStencilView  = dsv;
         mDepthStencilImage = dsv->GetImage();
+
+        mHasLoadOpClear |= (dsv->GetDepthLoadOp() == grfx::ATTACHMENT_LOAD_OP_CLEAR);
+        mHasLoadOpClear |= (dsv->GetStencilLoadOp() == grfx::ATTACHMENT_LOAD_OP_CLEAR);
     }
 
     return ppx::SUCCESS;
@@ -326,6 +331,8 @@ Result RenderPass::CreateImagesAndViewsV2(const grfx::internal::RenderPassCreate
             }
 
             mRenderTargetViews.push_back(rtv);
+
+            mHasLoadOpClear |= (rtvCreateInfo.loadOp == grfx::ATTACHMENT_LOAD_OP_CLEAR);
         }
 
         // DSV
@@ -355,6 +362,9 @@ Result RenderPass::CreateImagesAndViewsV2(const grfx::internal::RenderPassCreate
             }
 
             mDepthStencilView = dsv;
+
+            mHasLoadOpClear |= (dsvCreateInfo.depthLoadOp == grfx::ATTACHMENT_LOAD_OP_CLEAR);
+            mHasLoadOpClear |= (dsvCreateInfo.stencilLoadOp == grfx::ATTACHMENT_LOAD_OP_CLEAR);
         }
     }
 
@@ -409,6 +419,8 @@ Result RenderPass::CreateImagesAndViewsV3(const grfx::internal::RenderPassCreate
             }
 
             mRenderTargetViews.push_back(rtv);
+
+            mHasLoadOpClear |= (rtvCreateInfo.loadOp == grfx::ATTACHMENT_LOAD_OP_CLEAR);
         }
 
         // DSV
@@ -438,6 +450,9 @@ Result RenderPass::CreateImagesAndViewsV3(const grfx::internal::RenderPassCreate
             }
 
             mDepthStencilView = dsv;
+
+            mHasLoadOpClear |= (dsvCreateInfo.depthLoadOp == grfx::ATTACHMENT_LOAD_OP_CLEAR);
+            mHasLoadOpClear |= (dsvCreateInfo.stencilLoadOp == grfx::ATTACHMENT_LOAD_OP_CLEAR);
         }
     }
 
@@ -575,6 +590,18 @@ grfx::ImagePtr RenderPass::GetDepthStencilImage() const
     grfx::ImagePtr object;
     GetDepthStencilImage(&object);
     return object;
+}
+
+uint32_t RenderPass::GetRenderTargetImageIndex(const grfx::Image* pImage) const
+{
+    uint32_t index = UINT32_MAX;
+    for (uint32_t i = 0; i < CountU32(mRenderTargetImages); ++i) {
+        if (mRenderTargetImages[i] == pImage) {
+            index = i;
+            break;
+        }
+    }
+    return index;
 }
 
 Result RenderPass::DisownRenderTargetView(uint32_t index, grfx::RenderTargetView** ppView)

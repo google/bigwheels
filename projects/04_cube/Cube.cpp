@@ -124,6 +124,30 @@ void CubeApp::Setup()
         mPerFrame.push_back(frame);
     }
 
+    // Render pass
+    {
+        for (uint32_t i = 0; i < GetSwapchain()->GetImageCount(); ++i) {
+            auto pRenderTargetImage = GetSwapchain()->GetColorImage(i);
+            auto pDepthStencilimage = GetSwapchain()->GetDepthImage(i);
+
+            // Explicitly use OP_LOAD for all attachments
+            grfx::RenderPassCreateInfo3 createInfo = {};
+            createInfo.width                       = pRenderTargetImage->GetWidth();
+            createInfo.height                      = pRenderTargetImage->GetHeight();
+            createInfo.renderTargetCount           = 1;
+            createInfo.pRenderTargetImages[0]      = pRenderTargetImage;
+            createInfo.renderTargetLoadOps[0]      = grfx::ATTACHMENT_LOAD_OP_LOAD;
+            createInfo.pDepthStencilImage          = pDepthStencilimage;
+            createInfo.depthLoadOp                 = grfx::ATTACHMENT_LOAD_OP_LOAD;
+            createInfo.stencilLoadOp               = grfx::ATTACHMENT_LOAD_OP_LOAD;
+
+            grfx::RenderPassPtr renderPass = nullptr;
+            PPX_CHECKED_CALL(GetDevice()->CreateRenderPass(&createInfo, &renderPass));
+
+            mRenderPasses.push_back(renderPass);
+        }
+    }
+
     // Vertex buffer and geometry data
     {
         // clang-format off
@@ -220,19 +244,22 @@ void CubeApp::Render()
     // Build command buffer
     PPX_CHECKED_CALL(frame.cmd->Begin());
     {
-        grfx::RenderPassPtr renderPass = swapchain->GetRenderPass(imageIndex);
+        grfx::RenderPassPtr renderPass = mRenderPasses[imageIndex];
         PPX_ASSERT_MSG(!renderPass.IsNull(), "render pass object is null");
 
         grfx::RenderPassBeginInfo beginInfo = {};
         beginInfo.pRenderPass               = renderPass;
         beginInfo.renderArea                = renderPass->GetRenderArea();
-        beginInfo.RTVClearCount             = 1;
-        beginInfo.RTVClearValues[0]         = {{0, 0, 0, 0}};
-        beginInfo.DSVClearValue             = {1.0f, 0xFF};
+
+        // Clear RTV to greyish blue
+        grfx::RenderTargetClearValue rtvClearValue = {0.23f, 0.23f, 0.33f, 0};
+        grfx::DepthStencilClearValue dsvClearValue = {1.0f, 0xFF};
 
         frame.cmd->TransitionImageLayout(renderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
         frame.cmd->BeginRenderPass(&beginInfo);
         {
+            frame.cmd->ClearRenderTarget(renderPass->GetRenderTargetImage(0), rtvClearValue);
+            frame.cmd->ClearDepthStencil(renderPass->GetDepthStencilImage(), dsvClearValue, grfx::CLEAR_FLAG_DEPTH);
             frame.cmd->SetScissors(GetScissor());
             frame.cmd->SetViewports(GetViewport());
             frame.cmd->BindGraphicsDescriptorSets(mPipelineInterface, 1, &mDescriptorSet);

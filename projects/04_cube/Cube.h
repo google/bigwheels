@@ -36,17 +36,18 @@ private:
         grfx::FencePtr         renderCompleteFence;
     };
 
-    std::vector<PerFrame>        mPerFrame;
-    grfx::ShaderModulePtr        mVS;
-    grfx::ShaderModulePtr        mPS;
-    grfx::PipelineInterfacePtr   mPipelineInterface;
-    grfx::GraphicsPipelinePtr    mPipeline;
-    grfx::BufferPtr              mVertexBuffer;
-    grfx::DescriptorPoolPtr      mDescriptorPool;
-    grfx::DescriptorSetLayoutPtr mDescriptorSetLayout;
-    grfx::DescriptorSetPtr       mDescriptorSet;
-    grfx::BufferPtr              mUniformBuffer;
-    grfx::VertexBinding          mVertexBinding;
+    std::vector<PerFrame>            mPerFrame;
+    std::vector<grfx::RenderPassPtr> mRenderPasses; // Tests grfx::CommandBuffer::Clear* functions
+    grfx::ShaderModulePtr            mVS;
+    grfx::ShaderModulePtr            mPS;
+    grfx::PipelineInterfacePtr       mPipelineInterface;
+    grfx::GraphicsPipelinePtr        mPipeline;
+    grfx::BufferPtr                  mVertexBuffer;
+    grfx::DescriptorPoolPtr          mDescriptorPool;
+    grfx::DescriptorSetLayoutPtr     mDescriptorSetLayout;
+    grfx::DescriptorSetPtr           mDescriptorSet;
+    grfx::BufferPtr                  mUniformBuffer;
+    grfx::VertexBinding              mVertexBinding;
 };
 
 #endif // CUBE_H

@@ -208,6 +208,8 @@ public:
 
     grfx::ImagePtr          GetImage() const { return mCreateInfo.pImage; }
     grfx::Format            GetFormat() const { return mCreateInfo.format; }
+    uint32_t                GetMipLevel() const { return mCreateInfo.mipLevel; }
+    uint32_t                GetArrayLayer() const { return mCreateInfo.arrayLayer; }
     grfx::AttachmentLoadOp  GetDepthLoadOp() const { return mCreateInfo.depthLoadOp; }
     grfx::AttachmentStoreOp GetDepthStoreOp() const { return mCreateInfo.depthStoreOp; }
     grfx::AttachmentLoadOp  GetStencilLoadOp() const { return mCreateInfo.stencilLoadOp; }
@@ -251,6 +253,8 @@ public:
     grfx::ImagePtr          GetImage() const { return mCreateInfo.pImage; }
     grfx::Format            GetFormat() const { return mCreateInfo.format; }
     grfx::SampleCount       GetSampleCount() const { return mCreateInfo.sampleCount; }
+    uint32_t                GetMipLevel() const { return mCreateInfo.mipLevel; }
+    uint32_t                GetArrayLayer() const { return mCreateInfo.arrayLayer; }
     grfx::AttachmentLoadOp  GetLoadOp() const { return mCreateInfo.loadOp; }
     grfx::AttachmentStoreOp GetStoreOp() const { return mCreateInfo.storeOp; }
 };

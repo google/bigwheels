@@ -245,13 +245,27 @@ public:
     CommandBuffer() {}
     virtual ~CommandBuffer() {}
 
+    grfx::CommandType GetCommandType() const { return mCreateInfo.pPool->GetCommandType(); }
+
     virtual Result Begin() = 0;
     virtual Result End()   = 0;
 
     void BeginRenderPass(const grfx::RenderPassBeginInfo* pBeginInfo);
     void EndRenderPass();
 
-    grfx::CommandType GetCommandType() { return mCreateInfo.pPool->GetCommandType(); }
+    const grfx::RenderPass* GetCurrentRenderPass() const { return mCurrentRenderPass; }
+
+    //
+    // Clear functions must be called between BeginRenderPass and EndRenderPass.
+    // Arg for pImage must be an image in the current render pass.
+    //
+    virtual void ClearRenderTarget(
+        grfx::Image*                        pImage,
+        const grfx::RenderTargetClearValue& clearValue) = 0;
+    virtual void ClearDepthStencil(
+        grfx::Image*                        pImage,
+        const grfx::DepthStencilClearValue& clearValue,
+        uint32_t                            clearFlags) = 0;
 
     //! @fn TransitionImageLayout
     //!
