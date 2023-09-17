@@ -245,7 +245,7 @@ public:
     CommandBuffer() {}
     virtual ~CommandBuffer() {}
 
-    grfx::CommandType GetCommandType() { return mCreateInfo.pPool->GetCommandType(); }
+    grfx::CommandType GetCommandType() const { return mCreateInfo.pPool->GetCommandType(); }
 
     virtual Result Begin() = 0;
     virtual Result End()   = 0;
