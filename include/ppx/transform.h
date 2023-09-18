@@ -36,18 +36,20 @@ public:
     Transform(const float3& translation);
     virtual ~Transform();
 
+    bool IsDirty() const { return (mDirty.mask != 0); }
+
     const float3& GetTranslation() const { return mTranslation; }
     const float3& GetRotation() const { return mRotation; }
     const float3& GetScale() const { return mScale; }
     RotationOrder GetRotationOrder() const { return mRotationOrder; }
 
-    void SetTranslation(const float3& value);
-    void SetTranslation(float x, float y, float z) { SetTranslation(float3(x, y, z)); }
-    void SetRotation(const float3& value);
-    void SetRotation(float x, float y, float z) { SetRotation(float3(x, y, z)); }
-    void SetScale(const float3& value);
-    void SetScale(float x, float y, float z) { SetScale(float3(x, y, z)); }
-    void SetRotationOrder(RotationOrder value);
+    virtual void SetTranslation(const float3& value);
+    void         SetTranslation(float x, float y, float z);
+    virtual void SetRotation(const float3& value);
+    void         SetRotation(float x, float y, float z);
+    virtual void SetScale(const float3& value);
+    void         SetScale(float x, float y, float z);
+    virtual void SetRotationOrder(Transform::RotationOrder value);
 
     const float4x4& GetTranslationMatrix() const;
     const float4x4& GetRotationMatrix() const;

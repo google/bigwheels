@@ -36,10 +36,12 @@ void CommandBuffer::BeginRenderPass(const grfx::RenderPassBeginInfo* pBeginInfo)
         PPX_ASSERT_MSG(false, "cannot nest render passes");
     }
 
-    uint32_t rtvCount   = pBeginInfo->pRenderPass->GetRenderTargetCount();
-    uint32_t clearCount = pBeginInfo->RTVClearCount;
-    if (clearCount < rtvCount) {
-        PPX_ASSERT_MSG(false, "clear count cannot less than RTV count");
+    if (pBeginInfo->pRenderPass->HasLoadOpClear()) {
+        uint32_t rtvCount   = pBeginInfo->pRenderPass->GetRenderTargetCount();
+        uint32_t clearCount = pBeginInfo->RTVClearCount;
+        if (clearCount < rtvCount) {
+            PPX_ASSERT_MSG(false, "clear count cannot less than RTV count");
+        }
     }
 
     BeginRenderPassImpl(pBeginInfo);
