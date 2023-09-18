@@ -16,6 +16,7 @@
 #include "ppx/xr_composition_layers.h"
 
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -28,18 +29,31 @@ XrProjectionLayer::XrProjectionLayer()
 
 void XrProjectionLayer::AddView(XrCompositionLayerProjectionView view)
 {
+    mDepthInfos.push_back(std::nullopt);
     mViews.emplace_back(view);
-    layer().views     = mViews.data();
-    layer().viewCount = static_cast<uint32_t>(mViews.size());
+    FixViewReferences();
 }
 
 void XrProjectionLayer::AddView(XrCompositionLayerProjectionView view, XrCompositionLayerDepthInfoKHR depthInfo)
 {
-    mDepthInfos.emplace_back(depthInfo);
+    mDepthInfos.emplace_back(std::make_optional(depthInfo));
     mViews.emplace_back(view);
-    mViews.back().next = &mDepthInfos.back();
-    layer().views      = mViews.data();
-    layer().viewCount  = static_cast<uint32_t>(mViews.size());
+    FixViewReferences();
+}
+
+void XrProjectionLayer::FixViewReferences()
+{
+    for (size_t i = 0; i < mViews.size(); i++) {
+        if (mDepthInfos[i].has_value()) {
+            mViews[i].next = &mDepthInfos[i].value();
+        }
+        else {
+            mViews[i].next = NULL;
+        }
+    }
+
+    layer().views     = mViews.data();
+    layer().viewCount = static_cast<uint32_t>(mViews.size());
 }
 
 } // namespace ppx

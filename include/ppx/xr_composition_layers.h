@@ -20,6 +20,7 @@
 #include <openxr/openxr.h>
 
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -89,8 +90,10 @@ public:
     void AddView(XrCompositionLayerProjectionView view, XrCompositionLayerDepthInfoKHR depthInfo);
 
 private:
-    std::vector<XrCompositionLayerProjectionView> mViews;
-    std::vector<XrCompositionLayerDepthInfoKHR>   mDepthInfos;
+    void FixViewReferences();
+
+    std::vector<XrCompositionLayerProjectionView>              mViews;
+    std::vector<std::optional<XrCompositionLayerDepthInfoKHR>> mDepthInfos;
 };
 
 // XrLayerBase implementation for XrCompositionLayerQuad layers.

@@ -559,8 +559,8 @@ void XrComponent::EndFrame(const std::vector<grfx::SwapchainPtr>& swapchains, ui
 
 void XrComponent::PopulateProjectionLayer(const std::vector<grfx::SwapchainPtr>& swapchains, uint32_t startIndex, XrLayerBaseQueue& layerQueue, XrProjectionLayer& projectionLayer)
 {
-    size_t viewCount = mViews.size();
-    PPX_ASSERT_MSG(swapchains.size() >= viewCount, "Number of swapchains needs to be larger than or equal to the number of views!");
+    const size_t viewCount = mViews.size();
+    PPX_ASSERT_MSG(swapchains.size() >= (viewCount + startIndex), "Number of swapchains needs to be larger than or equal to the number of views!");
 
     if (!mShouldRender) {
         return;
