@@ -31,12 +31,12 @@
 #include <android_native_app_glue.h>
 #endif // defined(PPX_ANDROID)
 
-#include <queue>
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 #include <ppx/grfx/grfx_config.h>
 
 #include <optional>
+#include <queue>
 #include <unordered_map>
 
 #include "ppx/xr_composition_layers.h"
@@ -196,9 +196,11 @@ private:
     const XrEventDataBaseHeader* TryReadNextEvent();
     void                         HandleSessionStateChangedEvent(const XrEventDataSessionStateChanged& stateChangedEvent, bool& exitRenderLoop);
 
-    void PopulateProjectionLayer(const std::vector<grfx::SwapchainPtr>& swapchains, uint32_t startIndex, XrLayerBaseQueue& layerQueue, XrProjectionLayer& projectionLayer);
-    void PopulateImGuiLayer(const std::vector<grfx::SwapchainPtr>& swapchains, uint32_t index, XrLayerBaseQueue& layerQueue, XrQuadLayer& quadLayer);
-    void PopulatePassthroughFbLayer(XrLayerBaseQueue& layerQueue, XrPassthroughFbLayer& passthroughFbLayer);
+    // Methods that populate the OpenXR composition layers with information when they are needed for rendering.
+    // Used by XrComponent::EndFrame to support the base application composition layers.
+    void ConditionallyPopulateProjectionLayer(const std::vector<grfx::SwapchainPtr>& swapchains, uint32_t startIndex, XrLayerBaseQueue& layerQueue, XrProjectionLayer& projectionLayer);
+    void ConditionallyPopulateImGuiLayer(const std::vector<grfx::SwapchainPtr>& swapchains, uint32_t index, XrLayerBaseQueue& layerQueue, XrQuadLayer& quadLayer);
+    void ConditionallyPopulatePassthroughFbLayer(XrLayerBaseQueue& layerQueue, XrPassthroughFbLayer& passthroughFbLayer);
 
     XrInstance mInstance = XR_NULL_HANDLE;
     XrSystemId mSystemId = XR_NULL_SYSTEM_ID;

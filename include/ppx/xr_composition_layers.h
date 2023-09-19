@@ -90,10 +90,8 @@ public:
     void AddView(XrCompositionLayerProjectionView view, XrCompositionLayerDepthInfoKHR depthInfo);
 
 private:
-    void FixViewReferences();
-
-    std::vector<XrCompositionLayerProjectionView>              mViews;
-    std::vector<std::optional<XrCompositionLayerDepthInfoKHR>> mDepthInfos;
+    std::vector<XrCompositionLayerProjectionView>                mViews;
+    std::vector<std::unique_ptr<XrCompositionLayerDepthInfoKHR>> mDepthInfos;
 };
 
 // XrLayerBase implementation for XrCompositionLayerQuad layers.

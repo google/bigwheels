@@ -523,9 +523,9 @@ void XrComponent::EndFrame(const std::vector<grfx::SwapchainPtr>& swapchains, ui
     imGuiLayer.SetZIndex(300);
 
     // Populate data into the layers, and add them into the queue as needed.
-    PopulatePassthroughFbLayer(layerQueue, passthroughFbLayer);
-    PopulateProjectionLayer(swapchains, layerProjStartIndex, layerQueue, projectionLayer);
-    PopulateImGuiLayer(swapchains, layerQuadStartIndex, layerQueue, imGuiLayer);
+    ConditionallyPopulatePassthroughFbLayer(layerQueue, passthroughFbLayer);
+    ConditionallyPopulateProjectionLayer(swapchains, layerProjStartIndex, layerQueue, projectionLayer);
+    ConditionallyPopulateImGuiLayer(swapchains, layerQuadStartIndex, layerQueue, imGuiLayer);
 
     // Add any additional owned layers to the queue.
     for (const auto& [ref, layer] : mLayers) {
@@ -557,7 +557,7 @@ void XrComponent::EndFrame(const std::vector<grfx::SwapchainPtr>& swapchains, ui
     CHECK_XR_CALL(xrEndFrame(mSession, &frameEndInfo));
 }
 
-void XrComponent::PopulateProjectionLayer(const std::vector<grfx::SwapchainPtr>& swapchains, uint32_t startIndex, XrLayerBaseQueue& layerQueue, XrProjectionLayer& projectionLayer)
+void XrComponent::ConditionallyPopulateProjectionLayer(const std::vector<grfx::SwapchainPtr>& swapchains, uint32_t startIndex, XrLayerBaseQueue& layerQueue, XrProjectionLayer& projectionLayer)
 {
     const size_t viewCount = mViews.size();
     PPX_ASSERT_MSG(swapchains.size() >= (viewCount + startIndex), "Number of swapchains needs to be larger than or equal to the number of views!");
@@ -575,7 +575,7 @@ void XrComponent::PopulateProjectionLayer(const std::vector<grfx::SwapchainPtr>&
         view.subImage.imageRect.offset        = {0, 0};
         view.subImage.imageRect.extent        = {static_cast<int>(GetWidth()), static_cast<int>(GetHeight())};
 
-        if (mShouldSubmitDepthInfo && swapchains[startIndex + i]->GetXrDepthSwapchain() != XR_NULL_HANDLE) {
+        if (mShouldSubmitDepthInfo && (swapchains[startIndex + i]->GetXrDepthSwapchain() != XR_NULL_HANDLE)) {
             PPX_ASSERT_MSG(mNearPlaneForFrame.has_value() && mFarPlaneForFrame.has_value(), "Depth info layer cannot be submitted because near and far plane values are not set. "
                                                                                             "Call GetProjectionMatrixForCurrentViewAndSetFrustumPlanes to set per-frame values.");
             XrCompositionLayerDepthInfoKHR depthInfo = {XR_TYPE_COMPOSITION_LAYER_DEPTH_INFO_KHR};
@@ -601,7 +601,7 @@ void XrComponent::PopulateProjectionLayer(const std::vector<grfx::SwapchainPtr>&
     layerQueue.push(&projectionLayer);
 }
 
-void XrComponent::PopulateImGuiLayer(const std::vector<grfx::SwapchainPtr>& swapchains, uint32_t index, XrLayerBaseQueue& layerQueue, XrQuadLayer& quadLayer)
+void XrComponent::ConditionallyPopulateImGuiLayer(const std::vector<grfx::SwapchainPtr>& swapchains, uint32_t index, XrLayerBaseQueue& layerQueue, XrQuadLayer& quadLayer)
 {
     if (!mShouldRender) {
         return;
@@ -623,7 +623,7 @@ void XrComponent::PopulateImGuiLayer(const std::vector<grfx::SwapchainPtr>& swap
     layerQueue.push(&quadLayer);
 }
 
-void XrComponent::PopulatePassthroughFbLayer(XrLayerBaseQueue& layerQueue, XrPassthroughFbLayer& passthroughFbLayer)
+void XrComponent::ConditionallyPopulatePassthroughFbLayer(XrLayerBaseQueue& layerQueue, XrPassthroughFbLayer& passthroughFbLayer)
 {
     if (!mShouldRender) {
         return;
