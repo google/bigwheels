@@ -5,37 +5,35 @@
 // license that can be found in the LICENSE file or at
 // https://opensource.org/licenses/MIT.
 
-///
-/// Fluid simulation.
-///
-/// This code has been translated and adapted from the original WebGL implementation at
-/// https://github.com/PavelDoGreat/WebGL-Fluid-Simulation.
-///
-/// The code is organized in 3 files:
-///
-/// sim.cpp
-///     Contains the main simulation logic. Everything is driven by `class FluidSimulation`. Simulation actions
-///     generate dispatch records (@see ComputeDispatchRecord, GraphicsDispatchRecord), which describe the
-///     shader to execute and its inputs. Dispatch records are scheduled for execution using `FluidSimulation::ScheduleDR`.
-///     Most of this code resembles the original JavaScript implementation (@see https://github.com/PavelDoGreat/WebGL-Fluid-Simulation/blob/master/script.js)
-///
-/// shaders.cpp
-///     Contains most the logic required to interact with the BigWheels API to setup and dispatch compute and graphics shaders.
-///     Compute and graphics shaders all inherit from a common `class Shader`.  The main method in those classes is `GetDR()`,
-///     which generates a dispatch record with all the necessary inputs to execute the shader (textures to use and scalar inputs
-///     in `struct ScalarInput`.
-///
-/// main.cpp
-///     Contains the BigWheels API calls needed to launch the application and execute the main rendering loop.  On startup,
-///     a single instance of `class FluidSimulation` is created and an initial splash of color computed by calling
-///     `FluidSimulation::GenerateInitialSplat`.  The main rendering loop (@see ProjApp::Render) proceeds as follows:
-///
-///     1.  All the scheduled compute shaders are executed by calling `FluidSimulation::DispatchComputeShaders`.
-///     2.  All the generated textures are drawn by calling `FluidSimulation::Render`.
-///     3.  The resources used by compute shaders are released by calling `FluidSimulation::FreeComputeShaderResources`.
-///         This prevents running out of pool resources and needlessly executing compute operations over and over.
-///     4.  The next iteration of the simulation is executed (@note This is still not implemented).
-///
+// Fluid simulation.
+//
+// This code has been translated and adapted from the original WebGL implementation at
+// https://github.com/PavelDoGreat/WebGL-Fluid-Simulation.
+//
+// The code is organized in 3 files:
+//
+// sim.cpp
+//     Contains the main simulation logic. Everything is driven by `class FluidSimulation`. Simulation actions
+//     generate dispatch records (see ComputeDispatchRecord, GraphicsDispatchRecord), which describe the
+//     shader to execute and its inputs. Dispatch records are scheduled for execution using `FluidSimulation::ScheduleDR`.
+//     Most of this code resembles the original JavaScript implementation (https://github.com/PavelDoGreat/WebGL-Fluid-Simulation/blob/master/script.js)
+//
+// shaders.cpp
+//     Contains most the logic required to interact with the BigWheels API to setup and dispatch compute and graphics shaders.
+//     Compute and graphics shaders all inherit from a common `class Shader`.  The main method in those classes is `GetDR()`,
+//     which generates a dispatch record with all the necessary inputs to execute the shader (textures to use and scalar inputs
+//     in `struct ScalarInput`.
+//
+// main.cpp
+//     Contains the BigWheels API calls needed to launch the application and execute the main rendering loop.  On startup,
+//     a single instance of `class FluidSimulation` is created and an initial splash of color computed by calling
+//     `FluidSimulation::GenerateInitialSplat`.  The main rendering loop (ProjApp::Render) proceeds as follows:
+//
+//     1.  All the scheduled compute shaders are executed by calling `FluidSimulation::DispatchComputeShaders`.
+//     2.  All the generated textures are drawn by calling `FluidSimulation::Render`.
+//     3.  The resources used by compute shaders are released by calling `FluidSimulation::FreeComputeShaderResources`.
+//         This prevents running out of pool resources and needlessly executing compute operations over and over.
+//     4.  The next iteration of the simulation is executed.
 
 #include "sim.h"
 #include "shaders.h"

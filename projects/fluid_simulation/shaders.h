@@ -50,24 +50,24 @@ struct PerFrame
     ppx::grfx::FencePtr         renderCompleteFence;
 };
 
-/// @brief Representation of images used during simulation.
-///
-/// This structure keeps sample and storage views for presenting and modifying
-/// each of the generated textures.
+// Representation of images used during simulation.
+//
+// This structure keeps sample and storage views for presenting and modifying
+// each of the generated textures.
 class Texture
 {
 public:
-    /// @brief Initialize a new empty texture.
-    /// @param sim      Pointer to the main simulator instance (for accessing global state).
-    /// @param name     Name of the texture.
-    /// @param width    Texture width.
-    /// @param height   Texture height.
-    /// @param format   Texture format.
+    // Initialize a new empty texture.
+    // sim      Pointer to the main simulator instance (for accessing global state).
+    // name     Name of the texture.
+    // width    Texture width.
+    // height   Texture height.
+    // format   Texture format.
     Texture(FluidSimulation* sim, const std::string& name, uint32_t width, uint32_t height, ppx::grfx::Format format);
 
-    /// @brief Initialize a new texture from an image file.
-    /// @param sim      Pointer to the main simulator instance (for accessing global state).
-    /// @param fileName Image file to load.
+    // Initialize a new texture from an image file.
+    // sim      Pointer to the main simulator instance (for accessing global state).
+    // fileName Image file to load.
     Texture(FluidSimulation* sim, const std::string& fileName);
 
     uint32_t                       GetWidth() const { return mTexture->GetWidth(); }
@@ -98,14 +98,14 @@ private:
     std::string                    mName;
 };
 
-/// @brief Scalar inputs for the filter programs.
-///
-/// This needs to be 16-bit aligned to be copied into a uniform buffer.
-///
-/// NOTE: Fields are organized so that they are packed into 4 word component vectors
-/// to match the HLSL packing rules (https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-packing-rules)
-///
-/// This must match the CSInputs structure in assets/fluid_simulation/shaders/config.hlsli.
+// Scalar inputs for the filter programs.
+//
+// This needs to be 16-bit aligned to be copied into a uniform buffer.
+//
+// NOTE: Fields are organized so that they are packed into 4 word component vectors
+// to match the HLSL packing rules (https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-packing-rules)
+//
+// This must match the CSInputs structure in assets/fluid_simulation/shaders/config.hlsli.
 struct alignas(16) ScalarInput
 {
     ScalarInput(Texture* output)
@@ -177,13 +177,13 @@ struct ComputeDispatchRecord
     ComputeDispatchRecord(ComputeShader* cs, Texture* output, const ScalarInput& si);
     void FreeResources();
 
-    /// @brief Add a texture to sample from to the given descriptor set.
-    /// @param texture      Texture to bind.
-    /// @param inputBinding Binding slot to bind the texture in.
+    // Add a texture to sample from to the given descriptor set.
+    // texture      Texture to bind.
+    // inputBinding Binding slot to bind the texture in.
     void BindInputTexture(Texture* texture, uint32_t bindingSlot);
 
-    /// @brief Add the output texture to the given descriptor set.
-    /// @param bindingSlot  Binding slot to bind the texture in.
+    // Add the output texture to the given descriptor set.
+    // bindingSlot  Binding slot to bind the texture in.
     void BindOutputTexture(uint32_t bindingSlot);
 
     ComputeShader*              mShader;
@@ -197,9 +197,9 @@ class ComputeShader : public Shader
 public:
     ComputeShader(FluidSimulation* sim, const std::string& shaderFile);
 
-    /// @brief Run this shader using the given dispatch record, output texture and inputs.
-    /// @param frame Frame to use.
-    /// @param dr    Dispatch record to use.
+    // Run this shader using the given dispatch record, output texture and inputs.
+    // frame Frame to use.
+    // dr    Dispatch record to use.
     void Dispatch(const PerFrame& frame, const std::unique_ptr<ComputeDispatchRecord>& dr);
 
 private:
@@ -234,11 +234,10 @@ public:
     BloomBlurShader(FluidSimulation* sim)
         : ComputeShader(sim, "bloom_blur") {}
 
-    /// @brief Create a dispatch record to execute this shader instance.
-    /// @param uTexture     Texture to sample from.
-    /// @param output       Texture to write to.
-    /// @param texelSize    Texel size.
-    /// @return The dispatch record to schedule.
+    // Create a dispatch record to execute this shader instance.
+    // uTexture     Texture to sample from.
+    // output       Texture to write to.
+    // texelSize    Texel size.
     std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* uTexture, Texture* output, ppx::float2 texelSize)
     {
         ScalarInput si(output);
@@ -257,10 +256,9 @@ public:
     BloomBlurAdditiveShader(FluidSimulation* sim)
         : ComputeShader(sim, "bloom_blur_additive") {}
 
-    /// @brief Create a dispatch record to execute this shader instance.
-    /// @param uTexture     Texture to sample from.
-    /// @param output       Texture to write to.
-    /// @return The dispatch record to schedule.
+    // Create a dispatch record to execute this shader instance.
+    // uTexture     Texture to sample from.
+    // output       Texture to write to.
     std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* uTexture, Texture* output, ppx::float2 texelSize)
     {
         ScalarInput si(output);
@@ -279,11 +277,10 @@ public:
     BloomFinalShader(FluidSimulation* sim)
         : ComputeShader(sim, "bloom_final") {}
 
-    /// @brief Create a dispatch record to execute this shader instance.
-    /// @param uTexture     Texture to sample from.
-    /// @param output       Texture to write to.
-    /// @param intensity    Intensity parameter.
-    /// @return The dispatch record to schedule.
+    // Create a dispatch record to execute this shader instance.
+    // uTexture     Texture to sample from.
+    // output       Texture to write to.
+    // intensity    Intensity parameter.
     std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* uTexture, Texture* output, ppx::float2 texelSize, float intensity)
     {
         ScalarInput si(output);
@@ -303,12 +300,11 @@ public:
     BloomPrefilterShader(FluidSimulation* sim)
         : ComputeShader(sim, "bloom_prefilter") {}
 
-    /// @brief Create a dispatch record to execute this shader instance.
-    /// @param uTexture     Texture to sample from.
-    /// @param output       Texture to write to.
-    /// @param curve        Curve parameter.
-    /// @param threshold    Threshold parameter.
-    /// @return The dispatch record to schedule.
+    // Create a dispatch record to execute this shader instance.
+    // uTexture     Texture to sample from.
+    // output       Texture to write to.
+    // curve        Curve parameter.
+    // threshold    Threshold parameter.
     std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* uTexture, Texture* output, ppx::float3 curve, float threshold)
     {
         ScalarInput si(output);
@@ -328,10 +324,9 @@ public:
     BlurShader(FluidSimulation* sim)
         : ComputeShader(sim, "blur") {}
 
-    /// @brief Create a dispatch record to execute this shader instance.
-    /// @param uTexture     Texture to sample from.
-    /// @param output       Texture to write to.
-    /// @return The dispatch record to schedule.
+    // Create a dispatch record to execute this shader instance.
+    // uTexture     Texture to sample from.
+    // output       Texture to write to.
     std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* uTexture, Texture* output, ppx::float2 texelSize)
     {
         ScalarInput si(output);
@@ -350,10 +345,9 @@ public:
     CheckerboardShader(FluidSimulation* sim)
         : ComputeShader(sim, "checkerboard") {}
 
-    /// @brief Create a dispatch record to execute this shader instance.
-    /// @param output       Texture to write to.
-    /// @param aspectRatio  Aspect ratio parameter.
-    /// @return The dispatch record to schedule.
+    // Create a dispatch record to execute this shader instance.
+    // output       Texture to write to.
+    // aspectRatio  Aspect ratio parameter.
     std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* output, float aspectRatio)
     {
         ScalarInput si(output);
@@ -389,10 +383,9 @@ public:
     ColorShader(FluidSimulation* sim)
         : ComputeShader(sim, "color") {}
 
-    /// @brief Create a dispatch record to execute this shader instance.
-    /// @param output   Texture to write to.
-    /// @param color    Color to write to the whole texture.
-    /// @return The dispatch record to schedule.
+    // Create a dispatch record to execute this shader instance.
+    // output   Texture to write to.
+    // color    Color to write to the whole texture.
     std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* output, ppx::float4 color)
     {
         ScalarInput si(output);
@@ -428,10 +421,9 @@ public:
     DisplayShader(FluidSimulation* sim)
         : ComputeShader(sim, "display") {}
 
-    /// @brief Create a dispatch record to execute this shader instance.
-    /// @param output   Texture to write to.
-    /// @param color    Color to write to the whole texture.
-    /// @return The dispatch record to schedule.
+    // Create a dispatch record to execute this shader instance.
+    // output   Texture to write to.
+    // color    Color to write to the whole texture.
     std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* uTexture, Texture* uBloom, Texture* uSunrays, Texture* uDithering, Texture* output, ppx::float2 texelSize, ppx::float2 ditherScale)
     {
         ScalarInput si(output);
@@ -510,15 +502,14 @@ public:
     SplatShader(FluidSimulation* sim)
         : ComputeShader(sim, "splat") {}
 
-    /// @brief Create a dispatch record to execute this shader instance.
-    /// @param dr           Dispatch record to update.
-    /// @param uTexture     Texture to sample from.
-    /// @param output       Texture to write to.
-    /// @param coordinate   Coordinate shader parameter.
-    /// @param aspectRatio  Aspect ratio shader parameter.
-    /// @param radius       Radius shader parameter.
-    /// @param color        Color shader parameter.
-    /// @return The dispatch record to schedule.
+    // Create a dispatch record to execute this shader instance.
+    // dr           Dispatch record to update.
+    // uTexture     Texture to sample from.
+    // output       Texture to write to.
+    // coordinate   Coordinate shader parameter.
+    // aspectRatio  Aspect ratio shader parameter.
+    // radius       Radius shader parameter.
+    // color        Color shader parameter.
     std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* uTexture, Texture* output, ppx::float2 coordinate, float aspectRatio, float radius, ppx::float4 color)
     {
         ScalarInput si(output);
@@ -540,10 +531,9 @@ public:
     SunraysMaskShader(FluidSimulation* sim)
         : ComputeShader(sim, "sunrays_mask") {}
 
-    /// @brief Create a dispatch record to execute this shader instance.
-    /// @param uTexture     Texture to sample from.
-    /// @param output       Texture to write to.
-    /// @return The dispatch record to schedule.
+    // Create a dispatch record to execute this shader instance.
+    // uTexture     Texture to sample from.
+    // output       Texture to write to.
     std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* uTexture, Texture* output)
     {
         ScalarInput si(output);
@@ -561,11 +551,10 @@ public:
     SunraysShader(FluidSimulation* sim)
         : ComputeShader(sim, "sunrays") {}
 
-    /// @brief Create a dispatch record to execute this shader instance.
-    /// @param uTexture     Texture to sample from.
-    /// @param output       Texture to write to.
-    /// @param weight       Weight parameter.
-    /// @return The dispatch record to schedule.
+    // Create a dispatch record to execute this shader instance.
+    // uTexture     Texture to sample from.
+    // output       Texture to write to.
+    // weight       Weight parameter.
     std::unique_ptr<ComputeDispatchRecord> GetDR(Texture* uTexture, Texture* output, float weight)
     {
         ScalarInput si(output);
@@ -619,15 +608,14 @@ class GraphicsShader : public Shader
 public:
     GraphicsShader(FluidSimulation* sim);
 
-    /// @brief Draw the given texture.
-    /// @param frame        Frame to use.
-    /// @param dr           GraphicsDispatchRecord instance to use for setting up the pipeline.
+    // Draw the given texture.
+    // frame        Frame to use.
+    // dr           GraphicsDispatchRecord instance to use for setting up the pipeline.
     void Dispatch(const PerFrame& frame, const std::unique_ptr<GraphicsDispatchRecord>& dr);
 
-    /// @brief Create a dispatch record to execute this shader instance.
-    /// @param image    Texture to draw.
-    /// @param coord    Normalized coordinate where to draw the texture.
-    /// @return The dispatch record to schedule.
+    // Create a dispatch record to execute this shader instance.
+    // image    Texture to draw.
+    // coord    Normalized coordinate where to draw the texture.
     std::unique_ptr<GraphicsDispatchRecord> GetDR(Texture* image, ppx::float2 coord)
     {
         return std::make_unique<GraphicsDispatchRecord>(this, image, coord);
