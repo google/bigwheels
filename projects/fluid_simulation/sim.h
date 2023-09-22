@@ -67,13 +67,34 @@ class ProjApp;
 class FluidSimulation
 {
 public:
-    FluidSimulation(ProjApp* app);
-    ProjApp*                     GetApp() const { return mApp; }
-    const SimulationConfig&      GetConfig() const;
+    FluidSimulation(ppx::Application* app, ppx::grfx::DevicePtr device, ppx::uint2 resolution, const SimulationConfig& config)
+        : mApp(app), mDevice(device), mResolution(resolution), mConfig(config)
+    {
+    }
+
+    // Create a new fluid simulation instance.
+    //
+    // device       The device to use.
+    // resolution   A 2 element vector with the desired resolution in pixels.
+    // config       An instance of SimulationConfig describing all the inputs to the simulation.
+    // ppSim        A pointer the the newly created simulator instance.  If an error occurred during creation,
+    //              this will be set to nullptr and an error code will be returned.
+    static ppx::Result Create(ppx::Application* app, ppx::grfx::DevicePtr device, ppx::uint2 resolution, const SimulationConfig& config, std::unique_ptr<FluidSimulation>* ppSim);
+
+    ppx::Application*            GetApp() const { return mApp; }
+    const SimulationConfig&      GetConfig() const { return mConfig; }
     ppx::grfx::DescriptorPoolPtr GetDescriptorPool() const { return mDescriptorPool; }
     ComputeResources*            GetComputeResources() { return &mCompute; }
     GraphicsResources*           GetGraphicsResources() { return &mGraphics; }
     PerFrame&                    GetFrame(size_t ix) { return mPerFrame[ix]; }
+    ppx::uint2                   GetResolution() const { return mResolution; }
+    float                        GetResolutionAspect() const { return static_cast<float>(GetWidth()) / static_cast<float>(GetHeight()); }
+    uint32_t                     GetWidth() const { return mResolution.x; }
+    uint32_t                     GetHeight() const { return mResolution.y; }
+    ppx::grfx::DevicePtr         GetDevice() const { return mDevice; }
+
+    // Initialize the simulation.
+    ppx::Result Initialize();
 
     // Generate the initial splash of color.
     void GenerateInitialSplat();
@@ -104,7 +125,16 @@ public:
 
 private:
     // Parent application data.
-    ProjApp* mApp;
+    ppx::Application* mApp;
+
+    // Device to use.
+    ppx::grfx::DevicePtr mDevice;
+
+    // Resolution to use for the simulation.
+    ppx::uint2 mResolution;
+
+    // Simulation parameters.
+    SimulationConfig mConfig;
 
     // Frame synchronization data.
     std::vector<PerFrame> mPerFrame;

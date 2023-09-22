@@ -84,17 +84,17 @@ Texture::Texture(FluidSimulation* sim, const std::string& textureFile)
     PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateStorageImageView(&storageVCI, &mStorageView));
 }
 
-ProjApp* Texture::GetApp() const
+ppx::Application* Texture::GetApp() const
 {
     return mSim->GetApp();
 }
 
 ppx::float2 Texture::GetNormalizedSize() const
 {
-    return ppx::float2(GetWidth() * 2.0f / GetApp()->GetWindowWidth(), GetHeight() * 2.0f / GetApp()->GetWindowHeight());
+    return ppx::float2(GetWidth() * 2.0f / mSim->GetWidth(), GetHeight() * 2.0f / mSim->GetHeight());
 }
 
-ProjApp* Shader::GetApp() const
+ppx::Application* Shader::GetApp() const
 {
     return mSim->GetApp();
 }

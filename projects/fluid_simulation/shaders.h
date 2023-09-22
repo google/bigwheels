@@ -8,6 +8,7 @@
 #ifndef FLUID_SIMULATION_SHADERS_H
 #define FLUID_SIMULATION_SHADERS_H
 
+#include "ppx/application.h"
 #include "ppx/graphics_util.h"
 #include "ppx/grfx/grfx_buffer.h"
 #include "ppx/grfx/grfx_config.h"
@@ -19,7 +20,6 @@
 
 namespace FluidSim {
 
-class ProjApp;
 class FluidSimulation;
 
 // Pipeline interface, descriptor layout and sampler used by compute shaders.
@@ -89,7 +89,7 @@ public:
     }
 
 private:
-    ProjApp* GetApp() const;
+    ppx::Application* GetApp() const;
 
     FluidSimulation*               mSim;
     ppx::grfx::ImagePtr            mTexture;
@@ -158,7 +158,7 @@ public:
 
     const std::string& GetName() const { return mShaderFile; }
     FluidSimulation*   GetSim() const { return mSim; }
-    ProjApp*           GetApp() const;
+    ppx::Application*  GetApp() const;
     GraphicsResources* GetGraphicsResources() const;
     ComputeResources*  GetComputeResources() const;
 
