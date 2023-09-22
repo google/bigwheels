@@ -183,7 +183,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
 void ProjApp::Setup()
 {
     // Create the main simulation driver.
-    mSim = std::make_unique<FluidSimulation>(this);
+    FluidSim::FluidSimulation::Create(this, GetDevice(), ppx::uint2(GetWindowWidth(), GetWindowHeight()), mConfig, &mSim);
 
     // Generate the initial screen with random splashes of color.
     mSim->GenerateInitialSplat();
