@@ -207,7 +207,6 @@ private:
     //
     // dr   The dispatch record describing the shader to be executed and
     //      the data used to execute it (descriptor set and uniform buffer).
-    //      @see ComputeDispatchRecord.
     void ScheduleDR(std::unique_ptr<ComputeDispatchRecord> dr) { mComputeDispatchQueue.push_back(std::move(dr)); }
 
     // Schedule a graphics shader for execution.
