@@ -1074,9 +1074,23 @@ uint32_t Geometry::GetLargestBufferSize() const
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 void Geometry::AppendIndex(uint32_t idx)
 =======
 void Geometry::AppendIndex(uint32_t vtx)
+=======
+void Geometry::AppendIndex(uint32_t vtx)
+{
+    if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT16) {
+        mIndexBuffer.Append(static_cast<uint16_t>(vtx));
+    }
+    else if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT32) {
+        mIndexBuffer.Append(vtx);
+    }
+}
+
+void Geometry::AppendIndicesTriangle(uint32_t vtx0, uint32_t vtx1, uint32_t vtx2)
+>>>>>>> fb8c736 (Utility class updates and fixes)
 {
     if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT16) {
         mIndexBuffer.Append(static_cast<uint16_t>(vtx));
@@ -1097,6 +1111,7 @@ void Geometry::AppendIndicesTriangle(uint32_t vtx0, uint32_t vtx1, uint32_t vtx2
     }
 }
 
+<<<<<<< HEAD
 void Geometry::AppendIndicesTriangle(uint32_t idx0, uint32_t idx1, uint32_t idx2)
 {
     if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT16) {
@@ -1126,6 +1141,8 @@ void Geometry::AppendIndicesEdge(uint32_t idx0, uint32_t idx1)
 
 =======
 >>>>>>> 380ae59 (Utility class updates and fixes)
+=======
+>>>>>>> fb8c736 (Utility class updates and fixes)
 void Geometry::AppendIndicesU32(uint32_t count, const uint32_t* pIndices)
 {
     if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT16) {
