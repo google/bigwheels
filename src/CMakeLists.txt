@@ -283,19 +283,28 @@ list(
 list(
     APPEND PPX_SCENE_HEADER_FILES
     ${INC_DIR}/ppx/scene/scene_config.h
+    ${INC_DIR}/ppx/scene/scene_gltf_loader.h
+    ${INC_DIR}/ppx/scene/scene_forward_renderer.h
+    ${INC_DIR}/ppx/scene/scene_loader.h
     ${INC_DIR}/ppx/scene/scene_material.h
     ${INC_DIR}/ppx/scene/scene_mesh.h
     ${INC_DIR}/ppx/scene/scene_node.h
+    ${INC_DIR}/ppx/scene/scene_pipeline_args.h
     ${INC_DIR}/ppx/scene/scene_resource_manager.h
+    ${INC_DIR}/ppx/scene/scene_renderer.h
     ${INC_DIR}/ppx/scene/scene_scene.h
 )
 
 list(
     APPEND PPX_SCENE_SOURCE_FILES
+    ${SRC_DIR}/ppx/scene/scene_gltf_loader.cpp
+    ${SRC_DIR}/ppx/scene/scene_forward_renderer.cpp
     ${SRC_DIR}/ppx/scene/scene_material.cpp
     ${SRC_DIR}/ppx/scene/scene_mesh.cpp
     ${SRC_DIR}/ppx/scene/scene_node.cpp
+    ${SRC_DIR}/ppx/scene/scene_pipeline_args.cpp
     ${SRC_DIR}/ppx/scene/scene_resource_manager.cpp
+    ${SRC_DIR}/ppx/scene/scene_renderer.cpp
     ${SRC_DIR}/ppx/scene/scene_scene.cpp
 )
 

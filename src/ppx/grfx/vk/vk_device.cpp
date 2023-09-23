@@ -498,7 +498,7 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
         descriptorIndexingFeatures.shaderUniformTexelBufferArrayNonUniformIndexing    = VK_FALSE;
         descriptorIndexingFeatures.shaderStorageTexelBufferArrayNonUniformIndexing    = VK_FALSE;
         descriptorIndexingFeatures.descriptorBindingUniformBufferUpdateAfterBind      = VK_FALSE;
-        descriptorIndexingFeatures.descriptorBindingSampledImageUpdateAfterBind       = VK_FALSE;
+        descriptorIndexingFeatures.descriptorBindingSampledImageUpdateAfterBind       = VK_TRUE;
         descriptorIndexingFeatures.descriptorBindingStorageImageUpdateAfterBind       = VK_FALSE;
         descriptorIndexingFeatures.descriptorBindingStorageBufferUpdateAfterBind      = VK_FALSE;
         descriptorIndexingFeatures.descriptorBindingUniformTexelBufferUpdateAfterBind = VK_FALSE;
@@ -509,6 +509,14 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
         descriptorIndexingFeatures.runtimeDescriptorArray                             = VK_TRUE;
 
         extensionStructs.push_back(reinterpret_cast<VkBaseOutStructure*>(&descriptorIndexingFeatures));
+    }
+
+    // VK_EXT_scalar_block_layout
+    VkPhysicalDeviceScalarBlockLayoutFeatures scalarBlockLayoutFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES};
+    if ((GetInstance()->GetApi() >= grfx::API_VK_1_2) || ElementExists(std::string(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME), mExtensions)) {
+        scalarBlockLayoutFeatures.scalarBlockLayout = VK_TRUE;
+
+        extensionStructs.push_back(reinterpret_cast<VkBaseOutStructure*>(&scalarBlockLayoutFeatures));
     }
 
     // VK_KHR_timeline_semaphore
