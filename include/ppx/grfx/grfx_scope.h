@@ -30,7 +30,12 @@ public:
     Result AddObject(grfx::Buffer* pObject);
     Result AddObject(grfx::Mesh* pObject);
     Result AddObject(grfx::Texture* pObject);
+    Result AddObject(grfx::Sampler* pObject);
+    Result AddObject(grfx::SampledImageView* pObject);
     Result AddObject(grfx::Queue* pParent, grfx::CommandBuffer* pObject);
+
+    // Releases all objects without destroying them
+    void ReleaseAll();
 
 private:
     grfx::DevicePtr                                                mDevice;
@@ -38,6 +43,8 @@ private:
     std::vector<grfx::BufferPtr>                                   mBuffers;
     std::vector<grfx::MeshPtr>                                     mMeshes;
     std::vector<grfx::TexturePtr>                                  mTextures;
+    std::vector<grfx::SamplerPtr>                                  mSamplers;
+    std::vector<grfx::SampledImageViewPtr>                         mSampledImageViews;
     std::vector<std::pair<grfx::QueuePtr, grfx::CommandBufferPtr>> mTransientCommandBuffers;
 };
 

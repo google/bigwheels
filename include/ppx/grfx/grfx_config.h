@@ -283,14 +283,24 @@ private:
 
 // -------------------------------------------------------------------------------------------------
 
-template <typename CreatInfoT>
-class DeviceObject
-    : public CreateDestroyTraits<CreatInfoT>
+class NamedObjectTrait
 {
 public:
     const std::string& GetName() const { return mName; }
     void               SetName(const std::string& name) { mName = name; }
 
+private:
+    std::string mName;
+};
+
+// -------------------------------------------------------------------------------------------------
+
+template <typename CreatInfoT>
+class DeviceObject
+    : public CreateDestroyTraits<CreatInfoT>,
+      public NamedObjectTrait
+{
+public:
     grfx::Device* GetDevice() const
     {
         grfx::Device* ptr = mDevice;
@@ -305,7 +315,6 @@ private:
     friend class grfx::Device;
 
 private:
-    std::string     mName;
     grfx::DevicePtr mDevice;
 };
 

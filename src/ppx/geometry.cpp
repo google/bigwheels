@@ -1073,6 +1073,16 @@ uint32_t Geometry::GetLargestBufferSize() const
     return size;
 }
 
+void Geometry::AppendIndex(uint32_t vtx)
+{
+    if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT16) {
+        mIndexBuffer.Append(static_cast<uint16_t>(vtx));
+    }
+    else if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT32) {
+        mIndexBuffer.Append(vtx);
+    }
+}
+
 void Geometry::AppendIndicesTriangle(uint32_t vtx0, uint32_t vtx1, uint32_t vtx2)
 {
     if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT16) {
@@ -1097,6 +1107,15 @@ void Geometry::AppendIndicesEdge(uint32_t vtx0, uint32_t vtx1)
         mIndexBuffer.Append(vtx0);
         mIndexBuffer.Append(vtx1);
     }
+}
+
+void Geometry::AppendIndicesU32(uint32_t count, const uint32_t* pIndices)
+{
+    if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT16) {
+        PPX_ASSERT_MSG(false, "Invalid geometry index type, trying to append UINT32 data to UINT16 indices");
+        return;
+    }
+    mIndexBuffer.Append(count, pIndices);
 }
 
 uint32_t Geometry::AppendVertexData(const TriMeshVertexData& vtx)

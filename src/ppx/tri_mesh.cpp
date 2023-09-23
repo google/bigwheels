@@ -447,7 +447,7 @@ uint32_t TriMesh::AppendBitangent(const float3& value)
 Result TriMesh::GetTriangle(uint32_t triIndex, uint32_t& v0, uint32_t& v1, uint32_t& v2) const
 {
     if (mIndexType == grfx::INDEX_TYPE_UNDEFINED) {
-        return ppx::ERROR_NO_INDEX_DATA;
+        return ppx::ERROR_GEOMETRY_NO_INDEX_DATA;
     }
 
     uint32_t triCount = GetCountTriangles();

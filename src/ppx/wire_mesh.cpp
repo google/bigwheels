@@ -200,7 +200,7 @@ uint32_t WireMesh::AppendColor(const float3& value)
 Result WireMesh::GetEdge(uint32_t triIndex, uint32_t& v0, uint32_t& v1) const
 {
     if (mIndexType == grfx::INDEX_TYPE_UNDEFINED) {
-        return ppx::ERROR_NO_INDEX_DATA;
+        return ppx::ERROR_GEOMETRY_NO_INDEX_DATA;
     }
 
     uint32_t triCount = GetCountEdges();
