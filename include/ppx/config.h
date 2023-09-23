@@ -156,7 +156,7 @@ enum Result
     ERROR_BITMAP_BAD_COPY_SOURCE               = -2006,
     ERROR_BITMAP_FOOTPRINT_MISMATCH            = -2007,
 
-    ERROR_NO_INDEX_DATA                    = -2400,
+    ERROR_GEOMETRY_NO_INDEX_DATA           = -2400,
     ERROR_GEOMETRY_FILE_LOAD_FAILED        = -2500,
     ERROR_GEOMETRY_FILE_NO_DATA            = -2501,
     ERROR_GEOMETRY_INVALID_VERTEX_SEMANTIC = -2502,
@@ -169,6 +169,24 @@ enum Result
 
     ERROR_PPM_EXPORT_FORMAT_NOT_SUPPORTED = -5000,
     ERROR_PPM_EXPORT_INVALID_SIZE         = -5001,
+
+    ERROR_SCENE_UNSUPPORTED_FILE_TYPE               = -6001,
+    ERROR_SCENE_UNSUPPORTED_NODE_TYPE               = -6002,
+    ERROR_SCENE_UNSUPPORTED_CAMERA_TYPE             = -6003,
+    ERROR_SCENE_UNSUPPORTED_TOPOLOGY_TYPE           = -6004,
+    ERROR_SCENE_SOURCE_FILE_LOAD_FAILED             = -6005,
+    ERROR_SCENE_NO_SOURCE_DATA                      = -6006,
+    ERROR_SCENE_INVALID_SOURCE_SCENE                = -6007,
+    ERROR_SCENE_INVALID_SOURCE_NODE                 = -6008,
+    ERROR_SCENE_INVALID_SOURCE_CAMERA               = -6009,
+    ERROR_SCENE_INVALID_SOURCE_LIGHT                = -6010,
+    ERROR_SCENE_INVALID_SOURCE_MESH                 = -6011,
+    ERROR_SCENE_INVALID_SOURCE_GEOMETRY_INDEX_TYPE  = -6012,
+    ERROR_SCENE_INVALID_SOURCE_GEOMETRY_INDEX_DATA  = -6013,
+    ERROR_SCENE_INVALID_SOURCE_GEOMETRY_VERTEX_DATA = -6014,
+    ERROR_SCENE_INVALID_SOURCE_MATERIAL             = -6015,
+    ERROR_SCENE_INVALID_SOURCE_TEXTURE              = -6016,
+    ERROR_SCENE_INVALID_SOURCE_IMAGE                = -6017,
 };
 
 inline const char* ToString(ppx::Result value)
@@ -239,7 +257,7 @@ inline const char* ToString(ppx::Result value)
         case Result::ERROR_BITMAP_BAD_COPY_SOURCE                     : return "ERROR_BITMAP_BAD_COPY_SOURCE";
         case Result::ERROR_BITMAP_FOOTPRINT_MISMATCH                  : return "ERROR_BITMAP_FOOTPRINT_MISMATCH";
 
-        case Result::ERROR_NO_INDEX_DATA                              : return "ERROR_NO_INDEX_DATA";
+        case Result::ERROR_GEOMETRY_NO_INDEX_DATA                     : return "ERROR_GEOMETRY_NO_INDEX_DATA";
         case Result::ERROR_GEOMETRY_FILE_LOAD_FAILED                  : return "ERROR_GEOMETRY_FILE_LOAD_FAILED";
         case Result::ERROR_GEOMETRY_FILE_NO_DATA                      : return "ERROR_GEOMETRY_FILE_NO_DATA";
 

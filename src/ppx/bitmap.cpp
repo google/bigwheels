@@ -27,6 +27,12 @@
 
 namespace ppx {
 
+static const char*  kRadianceSig     = "#?RADIANCE";
+static const size_t kRadianceSigSize = 10;
+
+// -------------------------------------------------------------------------------------------------
+// Bitmap
+// -------------------------------------------------------------------------------------------------
 Bitmap::Bitmap()
 {
     InternalCtor();
@@ -500,26 +506,34 @@ uint64_t Bitmap::StorageFootprint(uint32_t width, uint32_t height, Bitmap::Forma
 
 static Result IsRadianceFile(const std::filesystem::path& path, bool& isRadiance)
 {
-    static const char* kRadianceSig = "#?RADIANCE";
-
     // Open file
-
     ppx::fs::File file;
     if (!file.Open(path.string().c_str())) {
         return ppx::ERROR_IMAGE_FILE_LOAD_FAILED;
     }
     // Signature buffer
-    const size_t kBufferSize      = 10;
-    char         buf[kBufferSize] = {0};
+    char buf[kRadianceSigSize] = {0};
 
     // Read signature
-    size_t n = file.Read(buf, kBufferSize);
+    size_t n = file.Read(buf, kRadianceSigSize);
 
     // Only check if kBufferSize bytes were read
-    if (n == kBufferSize) {
-        int res    = strncmp(buf, kRadianceSig, kBufferSize);
+    if (n == kRadianceSigSize) {
+        int res    = strncmp(buf, kRadianceSig, kRadianceSigSize);
         isRadiance = (res == 0);
     }
+
+    return ppx::SUCCESS;
+}
+
+static Result IsRadianceImage(const size_t dataSize, const void* pData, bool& isRadiance)
+{
+    if ((dataSize < kRadianceSigSize) || IsNull(pData)) {
+        return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
+    }
+
+    int res    = strncmp(static_cast<const char*>(pData), kRadianceSig, kRadianceSigSize);
+    isRadiance = (res == 0);
 
     return ppx::SUCCESS;
 }
@@ -533,12 +547,22 @@ Result Bitmap::StbiInfo(const std::filesystem::path& path, int* pX, int* pY, int
 
     int stbiResult = 0;
     if (file.IsMapped()) {
-        stbiResult = stbi_info_from_memory(reinterpret_cast<const stbi_uc*>(file.GetMappedData()), file.GetLength(), pX, pY, pComp);
+        stbiResult = stbi_info_from_memory(
+            reinterpret_cast<const stbi_uc*>(file.GetMappedData()),
+            static_cast<int>(file.GetLength()),
+            pX,
+            pY,
+            pComp);
     }
     else {
         std::vector<uint8_t> buffer(file.GetLength());
         file.Read(buffer.data(), buffer.size());
-        stbiResult = stbi_info_from_memory(buffer.data(), buffer.size(), pX, pY, pComp);
+        stbiResult = stbi_info_from_memory(
+            buffer.data(),
+            static_cast<int>(buffer.size()),
+            pX,
+            pY,
+            pComp);
     }
 
     return stbiResult ? ppx::SUCCESS : ppx::ERROR_IMAGE_FILE_LOAD_FAILED;
@@ -598,9 +622,21 @@ char* Bitmap::StbiLoad(const std::filesystem::path& path, Bitmap::Format format,
 
     const stbi_uc* readPtr = file.IsMapped() ? reinterpret_cast<const stbi_uc*>(file.GetMappedData()) : buffer.data();
     if (format == Bitmap::FORMAT_RGBA_FLOAT) {
-        return reinterpret_cast<char*>(stbi_loadf_from_memory(readPtr, file.GetLength(), pWidth, pHeight, pChannels, desiredChannels));
+        return reinterpret_cast<char*>(stbi_loadf_from_memory(
+            readPtr,
+            static_cast<int>(file.GetLength()),
+            pWidth,
+            pHeight,
+            pChannels,
+            desiredChannels));
     }
-    return reinterpret_cast<char*>(stbi_load_from_memory(readPtr, file.GetLength(), pWidth, pHeight, pChannels, desiredChannels));
+    return reinterpret_cast<char*>(stbi_load_from_memory(
+        readPtr,
+        static_cast<int>(file.GetLength()),
+        pWidth,
+        pHeight,
+        pChannels,
+        desiredChannels));
 }
 
 Result Bitmap::LoadFile(const std::filesystem::path& path, Bitmap* pBitmap)
@@ -650,6 +686,60 @@ Result Bitmap::SaveFilePNG(const std::filesystem::path& path, const Bitmap* pBit
     }
     return ppx::SUCCESS;
 #endif
+}
+
+Result Bitmap::LoadFromMemory(const size_t dataSize, const void* pData, Bitmap* pBitmap)
+{
+    if ((dataSize == 0) || IsNull(pData) || IsNull(pBitmap)) {
+        return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
+    }
+
+    bool   isRadiance = false;
+    Result ppxres     = IsRadianceImage(dataSize, pData, isRadiance);
+    if (Failed(ppxres)) {
+        return ppxres;
+    }
+
+    int            width            = 0;
+    int            height           = 0;
+    int            channels         = 0;
+    int            requiredChannels = 4; // Force to 4 channels to make things easier for the graphics APIs.
+    Bitmap::Format format           = (isRadiance) ? Bitmap::FORMAT_RGBA_FLOAT : Bitmap::FORMAT_RGBA_UINT8;
+
+    void* pStbData = nullptr;
+    if (isRadiance) {
+        pStbData = stbi_loadf_from_memory(
+            static_cast<const stbi_uc*>(pData),
+            static_cast<int>(dataSize),
+            &width,
+            &height,
+            &channels,
+            requiredChannels);
+    }
+    else {
+        pStbData = stbi_load_from_memory(
+            static_cast<const stbi_uc*>(pData),
+            static_cast<int>(dataSize),
+            &width,
+            &height,
+            &channels,
+            requiredChannels);
+    }
+
+    if (IsNull(pStbData)) {
+        return ppx::ERROR_IMAGE_FILE_LOAD_FAILED;
+    }
+
+    ppxres = Bitmap::Create(width, height, format, static_cast<char*>(pStbData), pBitmap);
+    if (!pBitmap->IsOk()) {
+        // Something has gone really wrong if this happens
+        stbi_image_free(pStbData);
+        return ppx::ERROR_FAILED;
+    }
+    // Critical! This marks the memory as needing to be freed later!
+    pBitmap->mDataIsFromStbi = true;
+
+    return ppx::SUCCESS;
 }
 
 } // namespace ppx
