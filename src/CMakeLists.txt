@@ -182,6 +182,7 @@ list(
     ${INC_DIR}/ppx/window.h
     ${INC_DIR}/ppx/wire_mesh.h
     ${INC_DIR}/ppx/xr_component.h
+    ${INC_DIR}/ppx/xr_composition_layers.h
 )
 
 list(
@@ -216,6 +217,7 @@ list(
     ${SRC_DIR}/ppx/window.cpp
     ${SRC_DIR}/ppx/wire_mesh.cpp
     ${SRC_DIR}/ppx/xr_component.cpp
+    ${SRC_DIR}/ppx/xr_composition_layers.cpp
     ${SRC_DIR}/ppx/imgui/font_inconsolata.h
     ${SRC_DIR}/ppx/imgui/font_inconsolata.cpp
 )

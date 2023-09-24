@@ -36,6 +36,10 @@
 #include <ppx/grfx/grfx_config.h>
 
 #include <optional>
+#include <queue>
+#include <unordered_map>
+
+#include "ppx/xr_composition_layers.h"
 
 #define CHECK_XR_CALL(CMD__)                                                                       \
     {                                                                                              \
@@ -44,6 +48,21 @@
     }
 
 namespace ppx {
+namespace {
+
+// Strict weak ordering by XrLayerBase zIndex.
+struct OrderXrLayers
+{
+    bool operator()(const XrLayerBase* left, const XrLayerBase* right) const
+    {
+        return left->zIndex() > right->zIndex();
+    }
+};
+
+// Type alias for a priority queue that uses the OrderXrLayers compare type.
+using XrLayerBaseQueue = std::priority_queue<XrLayerBase*, std::vector<XrLayerBase*>, OrderXrLayers>;
+
+} // namespace
 
 enum struct XrRefSpace
 {
@@ -87,6 +106,9 @@ struct XrComponentCreateInfo
     XrComponentResolution   resolution           = {0, 0};
     XrComponentResolution   uiResolution         = {0, 0};
 };
+
+// Used to reference OpenXR layers added to XrComponent through XrComponent::AddLayer.
+using LayerRef = uint32_t;
 
 //! @class XrComponent
 class XrComponent
@@ -160,9 +182,25 @@ public:
     virtual void EndPassthrough();
     virtual void TogglePassthrough();
 
+    // Adds an OpenXR Layer to the layers used to render OpenXR frames. The XrComponent
+    // assumes ownership over the given layer, and returns a reference that can be used
+    // to remove the layer from future frames as needed.
+    LayerRef AddLayer(std::unique_ptr<XrLayerBase> layer);
+
+    // Removes a XrLayerBase from being rendered in future frames. Removing a layer will
+    // cause the XrComponent to deinitialize the referenced layer. Returns true if the
+    // requested layer was successfully removed from the owned layers, and false otherwise.
+    bool RemoveLayer(LayerRef layerRef);
+
 private:
     const XrEventDataBaseHeader* TryReadNextEvent();
     void                         HandleSessionStateChangedEvent(const XrEventDataSessionStateChanged& stateChangedEvent, bool& exitRenderLoop);
+
+    // Methods that populate the OpenXR composition layers with information when they are needed for rendering.
+    // Used by XrComponent::EndFrame to support the base application composition layers.
+    void ConditionallyPopulateProjectionLayer(const std::vector<grfx::SwapchainPtr>& swapchains, uint32_t startIndex, XrLayerBaseQueue& layerQueue, XrProjectionLayer& projectionLayer);
+    void ConditionallyPopulateImGuiLayer(const std::vector<grfx::SwapchainPtr>& swapchains, uint32_t index, XrLayerBaseQueue& layerQueue, XrQuadLayer& quadLayer);
+    void ConditionallyPopulatePassthroughFbLayer(XrLayerBaseQueue& layerQueue, XrPassthroughFbLayer& passthroughFbLayer);
 
     XrInstance mInstance = XR_NULL_HANDLE;
     XrSystemId mSystemId = XR_NULL_SYSTEM_ID;
@@ -175,6 +213,9 @@ private:
     std::vector<XrView>                  mViews;
     std::vector<XrEnvironmentBlendMode>  mBlendModes;
     uint32_t                             mCurrentViewIndex = 0;
+
+    std::unordered_map<LayerRef, std::unique_ptr<XrLayerBase>> mLayers;
+    LayerRef                                                   mNextLayerRef = 0;
 
     XrSpace                  mRefSpace           = XR_NULL_HANDLE;
     XrSpace                  mUISpace            = XR_NULL_HANDLE;
