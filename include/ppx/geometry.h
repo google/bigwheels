@@ -242,24 +242,9 @@ public:
     // Will cast to uint16_t if geometry index type is UINT16.
     // NOOP if index type is UNDEFINED (geometry does not have index data).
     //
-<<<<<<< HEAD
-<<<<<<< HEAD
     void AppendIndex(uint32_t idx);
     void AppendIndicesTriangle(uint32_t idx0, uint32_t idx1, uint32_t idx2);
     void AppendIndicesEdge(uint32_t idx0, uint32_t idx1);
-
-    // Append a chunk of UINT32 indices
-    void AppendIndicesU32(uint32_t count, const uint32_t* pIndices);
-=======
-=======
->>>>>>> fb8c736 (Utility class updates and fixes)
-    void AppendIndex(uint32_t vtx);
-    void AppendIndicesTriangle(uint32_t vtx0, uint32_t vtx1, uint32_t vtx2);
-    void AppendIndicesEdge(uint32_t vtx0, uint32_t vtx1);
->>>>>>> 380ae59 (Utility class updates and fixes)
-
-    // Append a chunk of UINT32 indices
-    void AppendIndicesU32(uint32_t count, const uint32_t* pIndices);
 
     // Append a chunk of UINT32 indices
     void AppendIndicesU32(uint32_t count, const uint32_t* pIndices);
