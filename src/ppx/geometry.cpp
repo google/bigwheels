@@ -1073,39 +1073,39 @@ uint32_t Geometry::GetLargestBufferSize() const
     return size;
 }
 
-void Geometry::AppendIndex(uint32_t vtx)
+void Geometry::AppendIndex(uint32_t idx)
 {
     if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT16) {
-        mIndexBuffer.Append(static_cast<uint16_t>(vtx));
+        mIndexBuffer.Append(static_cast<uint16_t>(idx));
     }
     else if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT32) {
-        mIndexBuffer.Append(vtx);
+        mIndexBuffer.Append(idx);
     }
 }
 
-void Geometry::AppendIndicesTriangle(uint32_t vtx0, uint32_t vtx1, uint32_t vtx2)
+void Geometry::AppendIndicesTriangle(uint32_t idx0, uint32_t idx1, uint32_t idx2)
 {
     if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT16) {
-        mIndexBuffer.Append(static_cast<uint16_t>(vtx0));
-        mIndexBuffer.Append(static_cast<uint16_t>(vtx1));
-        mIndexBuffer.Append(static_cast<uint16_t>(vtx2));
+        mIndexBuffer.Append(static_cast<uint16_t>(idx0));
+        mIndexBuffer.Append(static_cast<uint16_t>(idx1));
+        mIndexBuffer.Append(static_cast<uint16_t>(idx2));
     }
     else if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT32) {
-        mIndexBuffer.Append(vtx0);
-        mIndexBuffer.Append(vtx1);
-        mIndexBuffer.Append(vtx2);
+        mIndexBuffer.Append(idx0);
+        mIndexBuffer.Append(idx1);
+        mIndexBuffer.Append(idx2);
     }
 }
 
-void Geometry::AppendIndicesEdge(uint32_t vtx0, uint32_t vtx1)
+void Geometry::AppendIndicesEdge(uint32_t idx0, uint32_t idx1)
 {
     if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT16) {
-        mIndexBuffer.Append(static_cast<uint16_t>(vtx0));
-        mIndexBuffer.Append(static_cast<uint16_t>(vtx1));
+        mIndexBuffer.Append(static_cast<uint16_t>(idx0));
+        mIndexBuffer.Append(static_cast<uint16_t>(idx1));
     }
     else if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT32) {
-        mIndexBuffer.Append(vtx0);
-        mIndexBuffer.Append(vtx1);
+        mIndexBuffer.Append(idx0);
+        mIndexBuffer.Append(idx1);
     }
 }
 
