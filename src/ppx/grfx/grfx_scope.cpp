@@ -58,6 +58,20 @@ ScopeDestroyer::~ScopeDestroyer()
     }
     mTextures.clear();
 
+    for (auto& object : mSamplers) {
+        if (object->GetOwnership() == grfx::OWNERSHIP_EXCLUSIVE) {
+            mDevice->DestroySampler(object);
+        }
+    }
+    mSamplers.clear();
+
+    for (auto& object : mSampledImageViews) {
+        if (object->GetOwnership() == grfx::OWNERSHIP_EXCLUSIVE) {
+            mDevice->DestroySampledImageView(object);
+        }
+    }
+    mSampledImageViews.clear();
+
     for (auto& object : mTransientCommandBuffers) {
         if (object.second->GetOwnership() == grfx::OWNERSHIP_EXCLUSIVE) {
             object.first->DestroyCommandBuffer(object.second);
@@ -125,6 +139,36 @@ Result ScopeDestroyer::AddObject(grfx::Texture* pObject)
     return ppx::SUCCESS;
 }
 
+Result ScopeDestroyer::AddObject(grfx::Sampler* pObject)
+{
+    if (IsNull(pObject)) {
+        PPX_ASSERT_MSG(false, NULL_ARGUMENT_MSG);
+        return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
+    }
+    if (pObject->GetOwnership() != grfx::OWNERSHIP_REFERENCE) {
+        PPX_ASSERT_MSG(false, WRONG_OWNERSHIP_MSG);
+        return ppx::ERROR_GRFX_INVALID_OWNERSHIP;
+    }
+    pObject->SetOwnership(grfx::OWNERSHIP_EXCLUSIVE);
+    mSamplers.push_back(pObject);
+    return ppx::SUCCESS;
+}
+
+Result ScopeDestroyer::AddObject(grfx::SampledImageView* pObject)
+{
+    if (IsNull(pObject)) {
+        PPX_ASSERT_MSG(false, NULL_ARGUMENT_MSG);
+        return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
+    }
+    if (pObject->GetOwnership() != grfx::OWNERSHIP_REFERENCE) {
+        PPX_ASSERT_MSG(false, WRONG_OWNERSHIP_MSG);
+        return ppx::ERROR_GRFX_INVALID_OWNERSHIP;
+    }
+    pObject->SetOwnership(grfx::OWNERSHIP_EXCLUSIVE);
+    mSampledImageViews.push_back(pObject);
+    return ppx::SUCCESS;
+}
+
 Result ScopeDestroyer::AddObject(grfx::Queue* pParent, grfx::CommandBuffer* pObject)
 {
     if (IsNull(pParent) || IsNull(pObject)) {
@@ -138,6 +182,17 @@ Result ScopeDestroyer::AddObject(grfx::Queue* pParent, grfx::CommandBuffer* pObj
     pObject->SetOwnership(grfx::OWNERSHIP_EXCLUSIVE);
     mTransientCommandBuffers.push_back(std::make_pair(pParent, pObject));
     return ppx::SUCCESS;
+}
+
+void ScopeDestroyer::ReleaseAll()
+{
+    mImages.clear();
+    mBuffers.clear();
+    mMeshes.clear();
+    mTextures.clear();
+    mSamplers.clear();
+    mSampledImageViews.clear();
+    mTransientCommandBuffers.clear();
 }
 
 } // namespace grfx

@@ -175,6 +175,21 @@ public:
             memcpy(pDst, pSrc, sizeOfValue);
         }
 
+        template <typename T>
+        void Append(uint32_t count, const T* pValues)
+        {
+            uint32_t sizeOfValues = count * static_cast<uint32_t>(sizeof(T));
+
+            // Current size
+            size_t offset = mData.size();
+            // Allocate storage for incoming data
+            mData.resize(offset + sizeOfValues);
+            // Copy data
+            const void* pSrc = pValues;
+            void*       pDst = mData.data() + offset;
+            memcpy(pDst, pSrc, sizeOfValues);
+        }
+
     private:
         BufferType        mType        = BUFFER_TYPE_VERTEX;
         uint32_t          mElementSize = 0;
@@ -222,13 +237,17 @@ public:
     const Geometry::Buffer* GetVertexBuffer(uint32_t index) const;
     uint32_t                GetLargestBufferSize() const;
 
-    // Appends triangle or edge vertex indices to index buffer
+    // Appends single index, triangle, or edge vertex indices to index buffer
     //
     // Will cast to uint16_t if geometry index type is UINT16.
     // NOOP if index type is UNDEFINED (geometry does not have index data).
     //
-    void AppendIndicesTriangle(uint32_t vtx0, uint32_t vtx1, uint32_t vtx2);
-    void AppendIndicesEdge(uint32_t vtx0, uint32_t vtx1);
+    void AppendIndex(uint32_t idx);
+    void AppendIndicesTriangle(uint32_t idx0, uint32_t idx1, uint32_t idx2);
+    void AppendIndicesEdge(uint32_t idx0, uint32_t idx1);
+
+    // Append a chunk of UINT32 indices
+    void AppendIndicesU32(uint32_t count, const uint32_t* pIndices);
 
     // Append multiple attributes at once
     //
