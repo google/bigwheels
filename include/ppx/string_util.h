@@ -29,6 +29,9 @@ namespace string_util {
 // Misc
 // -------------------------------------------------------------------------------------------------
 
+std::string ToLowerCopy(const std::string& s);
+std::string ToUpperCopy(const std::string& s);
+
 void TrimLeft(std::string& s);
 void TrimRight(std::string& s);
 

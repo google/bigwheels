@@ -23,6 +23,7 @@
 #   define GLM_FORCE_DEPTH_ZERO_TO_ONE 
 #   define GLM_ENABLE_EXPERIMENTAL
 #   include <glm/glm.hpp>
+#   include <glm/gtc/quaternion.hpp>
 #   include <glm/gtc/matrix_access.hpp>
 #   include <glm/gtc/matrix_inverse.hpp>
 #   include <glm/gtc/matrix_transform.hpp>
@@ -43,6 +44,18 @@ namespace ppx {
 using bool2     = glm::bool2;
 using bool3     = glm::bool3;
 using bool4     = glm::bool4;
+
+// 8-bit signed integer
+using i8        = glm::i8;
+using i8vec2    = glm::i8vec2;
+using i8vec3    = glm::i8vec3;
+using i8vec4    = glm::i8vec4;
+
+// 16-bit unsigned integer
+using half      = glm::u16;
+using half2     = glm::u16vec2;
+using half3     = glm::u16vec3;
+using half4     = glm::u16vec4;
 
 // 32-bit signed integer
 using int2      = glm::ivec2;

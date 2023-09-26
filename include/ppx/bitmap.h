@@ -128,6 +128,8 @@ public:
     static Result SaveFilePNG(const std::filesystem::path& path, const Bitmap* pBitmap);
     static bool   IsBitmapFile(const std::filesystem::path& path);
 
+    static Result LoadFromMemory(const size_t dataSize, const void* pData, Bitmap* pBitmap);
+
     // ---------------------------------------------------------------------------------------------
 
     class PixelIterator

@@ -28,13 +28,13 @@ const ppx::grfx::Format kR    = ppx::grfx::FORMAT_R16_FLOAT;
 const ppx::grfx::Format kRG   = ppx::grfx::FORMAT_R16G16_FLOAT;
 const ppx::grfx::Format kRGBA = ppx::grfx::FORMAT_R16G16B16A16_FLOAT;
 
-const SimulationConfig& FluidSimulation::GetConfig() const
+ppx::Result FluidSimulation::Create(ppx::Application* app, ppx::grfx::DevicePtr device, ppx::uint2 resolution, const SimulationConfig& config, std::unique_ptr<FluidSimulation>* pSim)
 {
-    return mApp->GetSimulationConfig();
+    *pSim = std::make_unique<FluidSimulation>(app, device, resolution, config);
+    return (*pSim)->Initialize();
 }
 
-FluidSimulation::FluidSimulation(ProjApp* app)
-    : mApp(app)
+ppx::Result FluidSimulation::Initialize()
 {
     // Create descriptor pool shared by all pipelines.
     ppx::grfx::DescriptorPoolCreateInfo dpci = {};
@@ -42,18 +42,18 @@ FluidSimulation::FluidSimulation(ProjApp* app)
     dpci.sampledImage                        = 1024;
     dpci.uniformBuffer                       = 1024;
     dpci.storageImage                        = 1024;
-    PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateDescriptorPool(&dpci, &mDescriptorPool));
+    PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&dpci, &mDescriptorPool));
 
     // Frame synchronization data.
     PerFrame                       frame = {};
     ppx::grfx::SemaphoreCreateInfo sci   = {};
     ppx::grfx::FenceCreateInfo     fci   = {};
     PPX_CHECKED_CALL(GetApp()->GetGraphicsQueue()->CreateCommandBuffer(&frame.cmd));
-    PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateSemaphore(&sci, &frame.imageAcquiredSemaphore));
-    PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateFence(&fci, &frame.imageAcquiredFence));
-    PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateSemaphore(&sci, &frame.renderCompleteSemaphore));
+    PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&sci, &frame.imageAcquiredSemaphore));
+    PPX_CHECKED_CALL(GetDevice()->CreateFence(&fci, &frame.imageAcquiredFence));
+    PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&sci, &frame.renderCompleteSemaphore));
     fci = {true}; // Create signaled
-    PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateFence(&fci, &frame.renderCompleteFence));
+    PPX_CHECKED_CALL(GetDevice()->CreateFence(&fci, &frame.renderCompleteFence));
     mPerFrame.push_back(frame);
 
     // Set up all the filters to use.
@@ -64,6 +64,7 @@ FluidSimulation::FluidSimulation(ProjApp* app)
 
     // Initialize textures
     InitTextures();
+    return ppx::Result();
 }
 
 void FluidSimulation::InitComputeShaders()
@@ -198,7 +199,7 @@ void FluidSimulation::InitGraphicsShaders()
 
 ppx::uint2 FluidSimulation::GetResolution(uint32_t resolution)
 {
-    float aspectRatio = static_cast<float>(GetApp()->GetWindowWidth()) / static_cast<float>(GetApp()->GetWindowHeight());
+    float aspectRatio = GetResolutionAspect();
     if (aspectRatio < 1.0f) {
         aspectRatio = 1.0f / aspectRatio;
     }
@@ -206,7 +207,7 @@ ppx::uint2 FluidSimulation::GetResolution(uint32_t resolution)
     uint32_t min = resolution;
     uint32_t max = static_cast<uint32_t>(std::round(static_cast<float>(resolution) * aspectRatio));
 
-    return (GetApp()->GetWindowWidth() > GetApp()->GetWindowHeight()) ? ppx::uint2(max, min) : ppx::uint2(min, max);
+    return (mResolution.x > mResolution.y) ? ppx::uint2(max, min) : ppx::uint2(min, max);
 }
 
 void FluidSimulation::InitTextures()
@@ -215,13 +216,12 @@ void FluidSimulation::InitTextures()
     ppx::int2 dyeRes = GetResolution(GetConfig().pDyeResolution->GetValue());
 
     // Generate all the textures.
-    ppx::uint2 wsize     = {GetApp()->GetWindowWidth(), GetApp()->GetWindowHeight()};
-    mCheckerboardTexture = std::make_unique<Texture>(this, "checkerboard", wsize.x, wsize.y, GetApp()->GetSwapchain()->GetColorFormat());
+    mCheckerboardTexture = std::make_unique<Texture>(this, "checkerboard", mResolution.x, mResolution.y, GetApp()->GetSwapchain()->GetColorFormat());
     mCurlTexture         = std::make_unique<Texture>(this, "curl", simRes.x, simRes.y, kR);
     mDivergenceTexture   = std::make_unique<Texture>(this, "divergence", simRes.x, simRes.y, kR);
-    mDisplayTexture      = std::make_unique<Texture>(this, "display", wsize.x, wsize.y, kRGBA);
+    mDisplayTexture      = std::make_unique<Texture>(this, "display", mResolution.x, mResolution.y, kRGBA);
     mDitheringTexture    = std::make_unique<Texture>(this, "fluid_simulation/textures/LDR_LLL1_0.png");
-    mDrawColorTexture    = std::make_unique<Texture>(this, "draw color", wsize.x, wsize.y, kRGBA);
+    mDrawColorTexture    = std::make_unique<Texture>(this, "draw color", mResolution.x, mResolution.y, kRGBA);
     mDyeTexture[0]       = std::make_unique<Texture>(this, "dye[0]", dyeRes.x, dyeRes.y, kRGBA);
     mDyeTexture[1]       = std::make_unique<Texture>(this, "dye[1]", dyeRes.x, dyeRes.y, kRGBA);
     mPressureTexture[0]  = std::make_unique<Texture>(this, "pressure[0]", simRes.x, simRes.y, kR);
@@ -238,7 +238,7 @@ void FluidSimulation::InitBloomTextures()
     ppx::int2 res = GetResolution(GetConfig().pBloomResolution->GetValue());
     mBloomTexture = std::make_unique<Texture>(this, "bloom", res.x, res.y, kRGBA);
     PPX_ASSERT_MSG(mBloomTextures.empty(), "Bloom textures already initialized");
-    for (uint32_t i = 0; i < GetConfig().pBloomIterations->GetValue(); i++) {
+    for (int i = 0; i < GetConfig().pBloomIterations->GetValue(); i++) {
         uint32_t width  = res.x >> (i + 1);
         uint32_t height = res.y >> (i + 1);
         if (width < 2 || height < 2)
@@ -305,13 +305,13 @@ ppx::float3 FluidSimulation::GenerateColor()
 
 float FluidSimulation::CorrectRadius(float radius)
 {
-    float aspectRatio = GetApp()->GetWindowAspect();
+    float aspectRatio = GetResolutionAspect();
     return (aspectRatio > 1) ? radius * aspectRatio : radius;
 }
 
 void FluidSimulation::Splat(ppx::float2 point, ppx::float2 delta, ppx::float3 color)
 {
-    float       aspect     = GetApp()->GetWindowAspect();
+    float       aspect     = GetResolutionAspect();
     float       radius     = CorrectRadius(GetConfig().pSplatRadius->GetValue() / 100.0f);
     ppx::float4 deltaColor = ppx::float4(delta.x, delta.y, 0.0f, 1.0f);
     ScheduleDR(mSplat->GetDR(mVelocityTexture[0].get(), mVelocityTexture[1].get(), point, aspect, radius, deltaColor));
@@ -413,16 +413,14 @@ void FluidSimulation::DrawColor(ppx::float4 color)
 
 void FluidSimulation::DrawCheckerboard()
 {
-    ScheduleDR(mCheckerboard->GetDR(mCheckerboardTexture.get(), GetApp()->GetWindowAspect()));
+    ScheduleDR(mCheckerboard->GetDR(mCheckerboardTexture.get(), GetResolutionAspect()));
     ScheduleDR(mDraw->GetDR(mCheckerboardTexture.get(), ppx::float2(-1.0f, 1.0f)));
 }
 
 void FluidSimulation::DrawDisplay()
 {
-    uint32_t    width       = GetApp()->GetWindowWidth();
-    uint32_t    height      = GetApp()->GetWindowHeight();
-    ppx::float2 texelSize   = ppx::float2(1.0f / width, 1.0f / height);
-    ppx::float2 ditherScale = mDitheringTexture->GetDitherScale(width, height);
+    ppx::float2 texelSize   = ppx::float2(1.0f / mResolution.x, 1.0f / mResolution.y);
+    ppx::float2 ditherScale = mDitheringTexture->GetDitherScale(mResolution.x, mResolution.y);
     DrawColor(NormalizeColor(GetConfig().backColor));
     ScheduleDR(mDisplay->GetDR(mDyeTexture[0].get(), mBloomTexture.get(), mSunraysTexture.get(), mDitheringTexture.get(), mDisplayTexture.get(), texelSize, ditherScale));
     ScheduleDR(mDraw->GetDR(mDisplayTexture.get(), ppx::float2(-1.0f, 1.0f)));
@@ -521,7 +519,7 @@ void FluidSimulation::Step(float delta)
     ScheduleDR(mClear->GetDR(mPressureTexture[0].get(), mPressureTexture[1].get(), GetConfig().pPressure->GetValue()));
     std::swap(mPressureTexture[0], mPressureTexture[1]);
 
-    for (uint32_t i = 0; i < GetConfig().pPressureIterations->GetValue(); ++i) {
+    for (int i = 0; i < GetConfig().pPressureIterations->GetValue(); ++i) {
         ScheduleDR(mPressure->GetDR(mPressureTexture[0].get(), mDivergenceTexture.get(), mPressureTexture[1].get(), texelSize));
         std::swap(mPressureTexture[0], mPressureTexture[1]);
     }

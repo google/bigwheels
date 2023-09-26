@@ -25,6 +25,28 @@ namespace string_util {
 // Misc
 // -------------------------------------------------------------------------------------------------
 
+std::string ToLowerCopy(const std::string& s)
+{
+    std::string s2 = s;
+    std::transform(
+        s2.cbegin(),
+        s2.cend(),
+        s2.begin(),
+        [](std::string::value_type c) { return std::tolower(c); });
+    return s2;
+}
+
+std::string ToUpperCopy(const std::string& s)
+{
+    std::string s2 = s;
+    std::transform(
+        s2.cbegin(),
+        s2.cend(),
+        s2.begin(),
+        [](std::string::value_type c) { return std::toupper(c); });
+    return s2;
+}
+
 void TrimLeft(std::string& s)
 {
     s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {

@@ -210,6 +210,12 @@ public:
     grfx::ImagePtr            GetRenderTargetImage(uint32_t index) const;
     grfx::ImagePtr            GetDepthStencilImage() const;
 
+    // Returns index of pImage otherwise returns UINT32_MAX
+    uint32_t GetRenderTargetImageIndex(const grfx::Image* pImage) const;
+
+    // Returns true if render targets or depth stencil contains ATTACHMENT_LOAD_OP_CLEAR
+    bool HasLoadOpClear() const { return mHasLoadOpClear; }
+
 protected:
     virtual Result Create(const grfx::internal::RenderPassCreateInfo* pCreateInfo) override;
     virtual void   Destroy() override;
@@ -227,6 +233,7 @@ protected:
     grfx::DepthStencilViewPtr              mDepthStencilView;
     std::vector<grfx::ImagePtr>            mRenderTargetImages;
     grfx::ImagePtr                         mDepthStencilImage;
+    bool                                   mHasLoadOpClear = false;
 };
 
 } // namespace grfx

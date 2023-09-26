@@ -51,6 +51,14 @@ private:
         const grfx::Sampler*           pSampler) override;
 
 public:
+    virtual void ClearRenderTarget(
+        grfx::Image*                        pImage,
+        const grfx::RenderTargetClearValue& clearValue) override;
+    virtual void ClearDepthStencil(
+        grfx::Image*                        pImage,
+        const grfx::DepthStencilClearValue& clearValue,
+        uint32_t                            clearFlags) override;
+
     virtual void TransitionImageLayout(
         const grfx::Image*  pImage,
         uint32_t            mipLevel,

@@ -176,7 +176,7 @@ struct Viewport
 //!
 //! If a member object's ownership is set to OWNERSHIP_EXCLUSIVE or
 //! OWNERSHIP_RESTRICTED, this means that the containing object must
-//! destroy it durnig the destruction process.
+//! destroy it during the destruction process.
 //!
 //! If the containing object fails to destroy OWNERSHIP_EXCLUSIVE and
 //! OWNERSHIP_RESTRICTED objects, then either grfx::Device or grfx::Instance
@@ -283,14 +283,24 @@ private:
 
 // -------------------------------------------------------------------------------------------------
 
-template <typename CreatInfoT>
-class DeviceObject
-    : public CreateDestroyTraits<CreatInfoT>
+class NamedObjectTrait
 {
 public:
     const std::string& GetName() const { return mName; }
     void               SetName(const std::string& name) { mName = name; }
 
+private:
+    std::string mName;
+};
+
+// -------------------------------------------------------------------------------------------------
+
+template <typename CreatInfoT>
+class DeviceObject
+    : public CreateDestroyTraits<CreatInfoT>,
+      public NamedObjectTrait
+{
+public:
     grfx::Device* GetDevice() const
     {
         grfx::Device* ptr = mDevice;
@@ -305,7 +315,6 @@ private:
     friend class grfx::Device;
 
 private:
-    std::string     mName;
     grfx::DevicePtr mDevice;
 };
 

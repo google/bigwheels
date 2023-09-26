@@ -218,6 +218,12 @@ enum D3DDescriptorType
     D3D_DESCRIPTOR_TYPE_SAMPLER   = 4,
 };
 
+enum ClearFlagBits
+{
+    CLEAR_FLAG_DEPTH   = 0x1,
+    CLEAR_FLAG_STENCIL = 0x2,
+};
+
 enum DescriptorType
 {
     // NOTE: These *DO NOT* match the enums in Vulkan

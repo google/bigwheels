@@ -26,6 +26,13 @@
 
 namespace ppx {
 
+enum CameraType
+{
+    CAMERA_TYPE_UNKNOWN      = 0,
+    CAMERA_TYPE_PERSPECTIVE  = 1,
+    CAMERA_TYPE_ORTHOGRAPHIC = 2,
+};
+
 // -------------------------------------------------------------------------------------------------
 // Camera
 // -------------------------------------------------------------------------------------------------
@@ -38,10 +45,14 @@ public:
 
     virtual ~Camera() {}
 
+    virtual ppx::CameraType GetCameraType() const = 0;
+
     virtual void LookAt(const float3& eye, const float3& target, const float3& up = PPX_CAMERA_DEFAULT_WORLD_UP);
 
     const float3& GetEyePosition() const { return mEyePosition; }
     const float3& GetTarget() const { return mTarget; }
+    const float3& GetViewDirection() const { return mViewDirection; }
+    const float3& GetWorldUp() const { return mWorldUp; }
 
     const float4x4& GetViewMatrix() const { return mViewMatrix; }
     const float4x4& GetProjectionMatrix() const { return mProjectionMatrix; }
@@ -106,6 +117,8 @@ public:
 
     virtual ~PerspCamera();
 
+    virtual ppx::CameraType GetCameraType() const { return ppx::CAMERA_TYPE_PERSPECTIVE; }
+
     void SetPerspective(
         float horizFovDegrees,
         float aspect,
@@ -138,6 +151,8 @@ public:
         float farClip);
 
     virtual ~OrthoCamera();
+
+    virtual ppx::CameraType GetCameraType() const { return ppx::CAMERA_TYPE_ORTHOGRAPHIC; }
 
     void SetOrthographic(
         float left,
@@ -206,11 +221,11 @@ public:
 
     ////! @fn const float4x4& GetCameraMatrix() const
     ////!
-    //const float4x4& GetCameraMatrix() const { return mCameraMatrix; }
+    // const float4x4& GetCameraMatrix() const { return mCameraMatrix; }
 
     ////! @fn const float4x4& GetInverseCameraMatrix() const
     ////!
-    //const float4x4& GetInverseCameraMatrix() const { return mInverseCameraMatrix; }
+    // const float4x4& GetInverseCameraMatrix() const { return mInverseCameraMatrix; }
 
 private:
     void UpdateCamera();
@@ -219,8 +234,8 @@ private:
     float4x4 mCenterTranslationMatrix;
     float4x4 mTranslationMatrix;
     quat     mRotationQuat;
-    //float4x4 mCameraMatrix;
-    //float4x4 mInverseCameraMatrix;
+    // float4x4 mCameraMatrix;
+    // float4x4 mInverseCameraMatrix;
 };
 
 } // namespace ppx

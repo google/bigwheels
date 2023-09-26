@@ -54,7 +54,7 @@ struct SimulationConfig
     ppx::float4 backColor = {0.0f, 0.0f, 0.0f, 1.0f};
 };
 
-/// @brief Represents a virtual object bouncing around the field.
+// Represents a virtual object bouncing around the field.
 struct Bouncer
 {
     ppx::float2 coord = {0.5, 0.5};
@@ -67,44 +67,74 @@ class ProjApp;
 class FluidSimulation
 {
 public:
-    FluidSimulation(ProjApp* app);
-    ProjApp*                     GetApp() const { return mApp; }
-    const SimulationConfig&      GetConfig() const;
+    FluidSimulation(ppx::Application* app, ppx::grfx::DevicePtr device, ppx::uint2 resolution, const SimulationConfig& config)
+        : mApp(app), mDevice(device), mResolution(resolution), mConfig(config)
+    {
+    }
+
+    // Create a new fluid simulation instance.
+    //
+    // device       The device to use.
+    // resolution   A 2 element vector with the desired resolution in pixels.
+    // config       An instance of SimulationConfig describing all the inputs to the simulation.
+    // ppSim        A pointer the the newly created simulator instance.  If an error occurred during creation,
+    //              this will be set to nullptr and an error code will be returned.
+    static ppx::Result Create(ppx::Application* app, ppx::grfx::DevicePtr device, ppx::uint2 resolution, const SimulationConfig& config, std::unique_ptr<FluidSimulation>* ppSim);
+
+    ppx::Application*            GetApp() const { return mApp; }
+    const SimulationConfig&      GetConfig() const { return mConfig; }
     ppx::grfx::DescriptorPoolPtr GetDescriptorPool() const { return mDescriptorPool; }
     ComputeResources*            GetComputeResources() { return &mCompute; }
     GraphicsResources*           GetGraphicsResources() { return &mGraphics; }
     PerFrame&                    GetFrame(size_t ix) { return mPerFrame[ix]; }
+    ppx::uint2                   GetResolution() const { return mResolution; }
+    float                        GetResolutionAspect() const { return static_cast<float>(GetWidth()) / static_cast<float>(GetHeight()); }
+    uint32_t                     GetWidth() const { return mResolution.x; }
+    uint32_t                     GetHeight() const { return mResolution.y; }
+    ppx::grfx::DevicePtr         GetDevice() const { return mDevice; }
 
-    /// @brief Generate the initial splash of color.
+    // Initialize the simulation.
+    ppx::Result Initialize();
+
+    // Generate the initial splash of color.
     void GenerateInitialSplat();
 
-    /// @brief Execute all the scheduled compute shaders in sequence.
+    // Execute all the scheduled compute shaders in sequence.
     void DispatchComputeShaders(const PerFrame& frame);
 
-    /// @brief Free descriptor sets and uniform buffers used by compute shaders. This
-    /// also clears the execution schedule.
-    ///
-    /// TODO(https://github.com/google/bigwheels/issues/26): Implement resource pool.
+    // Free descriptor sets and uniform buffers used by compute shaders. This
+    // also clears the execution schedule.
+    //
+    // TODO(https://github.com/google/bigwheels/issues/26): Implement resource pool.
     void FreeComputeShaderResources();
 
-    /// @brief Execute all the scheduled graphics shaders in sequence.
+    // brief Execute all the scheduled graphics shaders in sequence.
     void DispatchGraphicsShaders(const PerFrame& frame);
 
-    /// @brief Free descriptor sets used by graphics shaders. This also clears
-    /// the execution schedule.
+    // Free descriptor sets used by graphics shaders. This also clears
+    // the execution schedule.
     void FreeGraphicsShaderResources();
 
-    /// @brief Register the given texture to be filled with an initial color.
-    /// @param texture Texture to initialize.
+    // Register the given texture to be filled with an initial color.
+    // texture Texture to initialize.
     void AddTextureToInitialize(Texture* texture);
 
-    /// @brief  Update the state of the simulation.  This moves the virtual
-    ///         bodies producing the wake.
+    // Update the state of the simulation.  This moves the virtual
+    // bodies producing the wake.
     void Update();
 
 private:
     // Parent application data.
-    ProjApp* mApp;
+    ppx::Application* mApp;
+
+    // Device to use.
+    ppx::grfx::DevicePtr mDevice;
+
+    // Resolution to use for the simulation.
+    ppx::uint2 mResolution;
+
+    // Simulation parameters.
+    SimulationConfig mConfig;
 
     // Frame synchronization data.
     std::vector<PerFrame> mPerFrame;
@@ -183,12 +213,12 @@ private:
     void        MoveMarble();
     void        Step(float deltaTime);
 
-    /// @brief             Return a vector describing a rectangle with dimensions that can fit "resolution" pixels.
-    ///
-    /// @param resolution  The minimum size of the rectangle to fit this many pixels.
-    ///
-    /// @return            A vector of 2 dimensions. The dimensions have the same aspect ratio as
-    ///                    the application window and can fit at least "resolution" pixels in it.
+    // Return a vector describing a rectangle with dimensions that can fit "resolution" pixels.
+    //
+    // resolution  The minimum size of the rectangle to fit this many pixels.
+    //
+    // Returns A vector of 2 dimensions. The dimensions have the same aspect ratio as
+    // the application window and can fit at least "resolution" pixels in it.
     ppx::uint2 GetResolution(uint32_t resolution);
 
     ppx::float3  HSVtoRGB(ppx::float3 hsv);
@@ -203,18 +233,16 @@ private:
     ppx::Random& Random() { return mRandom; }
     void         Splat(ppx::float2 point, ppx::float2 delta, ppx::float3 color);
 
-    /// @brief Schedule a compute shader for execution.
-    ///
-    /// @param dr   The dispatch record describing the shader to be executed and
-    ///             the data used to execute it (descriptor set and uniform buffer).
-    ///             @see ComputeDispatchRecord.
+    // Schedule a compute shader for execution.
+    //
+    // dr   The dispatch record describing the shader to be executed and
+    //      the data used to execute it (descriptor set and uniform buffer).
     void ScheduleDR(std::unique_ptr<ComputeDispatchRecord> dr) { mComputeDispatchQueue.push_back(std::move(dr)); }
 
-    /// @brief Schedule a graphics shader for execution.
-    ///
-    /// @param dr   The dispatch record describing the shader to be executed and
-    ///             the descriptor set and texture used to execute it.
-    ///             @see GraphicsDispatchRecord.
+    // Schedule a graphics shader for execution.
+    //
+    // dr   The dispatch record describing the shader to be executed and
+    //      the descriptor set and texture used to execute it.
     void ScheduleDR(std::unique_ptr<GraphicsDispatchRecord> dr) { mGraphicsDispatchQueue.push_back(std::move(dr)); }
 };
 

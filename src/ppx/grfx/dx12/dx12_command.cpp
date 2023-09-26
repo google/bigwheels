@@ -319,6 +319,92 @@ void CommandBuffer::PushDescriptorImpl(
     }
 }
 
+void CommandBuffer::ClearRenderTarget(
+    grfx::Image*                        pImage,
+    const grfx::RenderTargetClearValue& clearValue)
+{
+    auto pCurrentRenderPass = GetCurrentRenderPass();
+    if (IsNull(pCurrentRenderPass)) {
+        return;
+    }
+
+    // Make sure pImage is a render target in current render pass
+    const uint32_t renderTargetIndex = pCurrentRenderPass->GetRenderTargetImageIndex(pImage);
+    if (renderTargetIndex == UINT32_MAX) {
+        return;
+    }
+
+    // Get view at renderTargetIndex
+    auto pView = ToApi(pCurrentRenderPass->GetRenderTargetView(renderTargetIndex));
+
+    // Clear value
+    FLOAT colorRGBA[4] = {clearValue.r, clearValue.g, clearValue.b, clearValue.a};
+
+    // Render area
+    const auto& renderArea = pCurrentRenderPass->GetRenderArea();
+
+    // Rect
+    D3D12_RECT rect = {
+        static_cast<LONG>(renderArea.x),
+        static_cast<LONG>(renderArea.y),
+        static_cast<LONG>(renderArea.x + renderArea.width),
+        static_cast<LONG>(renderArea.y + renderArea.height),
+    };
+
+    mCommandList->ClearRenderTargetView(
+        pView->GetCpuDescriptorHandle(),
+        colorRGBA,
+        1,
+        &rect);
+}
+
+void CommandBuffer::ClearDepthStencil(
+    grfx::Image*                        pImage,
+    const grfx::DepthStencilClearValue& clearValue,
+    uint32_t                            clearFlags)
+{
+    auto pCurrentRenderPass = GetCurrentRenderPass();
+    if (IsNull(pCurrentRenderPass)) {
+        return;
+    }
+
+    // Make sure pImage is depth stencil in current render pass
+    if (pCurrentRenderPass->GetDepthStencilImage().Get() != pImage) {
+        return;
+    }
+
+    // Get view
+    auto pView = ToApi(pCurrentRenderPass->GetDepthStencilView());
+
+    // Clear flags
+    D3D12_CLEAR_FLAGS dxClearFlags = static_cast<D3D12_CLEAR_FLAGS>(0);
+    if (clearFlags & grfx::CLEAR_FLAG_DEPTH) {
+        dxClearFlags |= D3D12_CLEAR_FLAG_DEPTH;
+    }
+    if (clearFlags & grfx::CLEAR_FLAG_STENCIL) {
+        dxClearFlags |= D3D12_CLEAR_FLAG_STENCIL;
+    }
+
+    // Render area
+    const auto& renderArea = pCurrentRenderPass->GetRenderArea();
+
+    // Rect
+    D3D12_RECT rect = {
+        static_cast<LONG>(renderArea.x),
+        static_cast<LONG>(renderArea.y),
+        static_cast<LONG>(renderArea.x + renderArea.width),
+        static_cast<LONG>(renderArea.y + renderArea.height),
+    };
+
+    mCommandList->ClearDepthStencilView(
+        pView->GetCpuDescriptorHandle(),
+        dxClearFlags,
+        clearValue.depth,
+        static_cast<UINT8>(clearValue.stencil),
+        1,
+        &rect);
+}
+
 void CommandBuffer::TransitionImageLayout(
     const grfx::Image*  pImage,
     uint32_t            mipLevel,
