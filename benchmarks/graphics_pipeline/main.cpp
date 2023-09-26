@@ -125,7 +125,7 @@ static constexpr std::array<const char*, 3> kAvailableLODs = {
 
 static constexpr uint32_t kMeshCount = kAvailableVbFormats.size() * kAvailableVertexAttrLayouts.size() * kAvailableLODs.size();
 
-static constexpr std::array<const char*, 6> kFullscreenQuadsColours = {
+static constexpr std::array<const char*, 6> kFullscreenQuadsColors = {
     "Noise",
     "Red",
     "Blue",
@@ -133,7 +133,7 @@ static constexpr std::array<const char*, 6> kFullscreenQuadsColours = {
     "Black",
     "White"};
 
-static constexpr std::array<float3, 6> kFullscreenQuadsColoursValues = {
+static constexpr std::array<float3, 6> kFullscreenQuadsColorsValues = {
     float3(0.0f, 0.0f, 0.0f),
     float3(1.0f, 0.0f, 0.0f),
     float3(0.0f, 0.0f, 1.0f),
@@ -214,8 +214,8 @@ private:
     grfx::ShaderModulePtr                                         mPS;
     grfx::ShaderModulePtr                                         mVSNoise;
     grfx::ShaderModulePtr                                         mPSNoise;
-    grfx::ShaderModulePtr                                         mVSSolidColour;
-    grfx::ShaderModulePtr                                         mPSSolidColour;
+    grfx::ShaderModulePtr                                         mVSSolidColor;
+    grfx::ShaderModulePtr                                         mPSSolidColor;
     Texture                                                       mSkyBoxTexture;
     Texture                                                       mAlbedoTexture;
     Texture                                                       mNormalMapTexture;
@@ -242,7 +242,7 @@ private:
     std::shared_ptr<KnobSlider<int>>           pSphereInstanceCount;
     std::shared_ptr<KnobSlider<int>>           pDrawCallCount;
     std::shared_ptr<KnobSlider<int>>           pFullscreenQuadsCount;
-    std::shared_ptr<KnobDropdown<std::string>> pFullscreenQuadsColour;
+    std::shared_ptr<KnobDropdown<std::string>> pFullscreenQuadsColor;
     std::shared_ptr<KnobCheckbox>              pAlphaBlend;
     std::shared_ptr<KnobCheckbox>              pDepthTestWrite;
 
@@ -375,10 +375,10 @@ void ProjApp::InitKnobs()
     pFullscreenQuadsCount->SetDisplayName("Number of Fullscreen Quads");
     pFullscreenQuadsCount->SetFlagDescription("Select the number of fullscreen quads to render.");
 
-    pFullscreenQuadsColour = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("fullscreen-quads-colour", 0, kFullscreenQuadsColours);
-    pFullscreenQuadsColour->SetDisplayName("Colour of Fullscreen Quads");
-    pFullscreenQuadsColour->SetFlagDescription("Select the colour for the fullscreen quads (see --fullscreen-quads-count).");
-    pFullscreenQuadsColour->SetIndent(1);
+    pFullscreenQuadsColor = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("fullscreen-quads-color", 0, kFullscreenQuadsColors);
+    pFullscreenQuadsColor->SetDisplayName("Color of Fullscreen Quads");
+    pFullscreenQuadsColor->SetFlagDescription("Select the color for the fullscreen quads (see --fullscreen-quads-count).");
+    pFullscreenQuadsColor->SetIndent(1);
 
     pAlphaBlend = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("alpha-blend", false);
     pAlphaBlend->SetDisplayName("Alpha Blend");
@@ -827,21 +827,21 @@ void ProjApp::SetupFullscreenQuads()
         shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
         PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPSNoise));
 
-        bytecode = LoadShader("benchmarks/shaders", "Benchmark_SolidColour.vs");
+        bytecode = LoadShader("benchmarks/shaders", "Benchmark_SolidColor.vs");
         PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
         shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mVSSolidColour));
+        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mVSSolidColor));
 
-        bytecode = LoadShader("benchmarks/shaders", "Benchmark_SolidColour.ps");
+        bytecode = LoadShader("benchmarks/shaders", "Benchmark_SolidColor.ps");
         PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
         shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPSSolidColour));
+        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPSSolidColor));
     }
 }
 
 void ProjApp::CreateFullscreenQuadsPipelines()
 {
-    bool isNoise = pFullscreenQuadsColour->GetIndex() == 0;
+    bool isNoise = pFullscreenQuadsColor->GetIndex() == 0;
 
     grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
     piCreateInfo.setCount                          = 0;
@@ -851,8 +851,8 @@ void ProjApp::CreateFullscreenQuadsPipelines()
     PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mFullscreenQuads.pipelineInterface));
 
     grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
-    gpCreateInfo.VS                                 = {isNoise ? mVSNoise.Get() : mVSSolidColour.Get(), "vsmain"};
-    gpCreateInfo.PS                                 = {isNoise ? mPSNoise.Get() : mPSSolidColour.Get(), "psmain"};
+    gpCreateInfo.VS                                 = {isNoise ? mVSNoise.Get() : mVSSolidColor.Get(), "vsmain"};
+    gpCreateInfo.PS                                 = {isNoise ? mPSNoise.Get() : mPSSolidColor.Get(), "psmain"};
     gpCreateInfo.vertexInputState.bindingCount      = 1;
     gpCreateInfo.vertexInputState.bindings[0]       = mFullscreenQuads.vertexBinding;
     gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
@@ -941,16 +941,16 @@ void ProjApp::ProcessKnobs()
         rebuildSpherePipeline = true;
     }
 
-    if (pFullscreenQuadsColour->DigestUpdate()) {
+    if (pFullscreenQuadsColor->DigestUpdate()) {
         rebuildFullscreenQuadsPipeline = true;
     }
 
     if (pFullscreenQuadsCount->DigestUpdate()) {
         if (pFullscreenQuadsCount->GetValue() > 0) {
-            pFullscreenQuadsColour->SetVisible(true);
+            pFullscreenQuadsColor->SetVisible(true);
         }
         else {
-            pFullscreenQuadsColour->SetVisible(false);
+            pFullscreenQuadsColor->SetVisible(false);
         }
 
         rebuildFullscreenQuadsPipeline = true;
@@ -1099,9 +1099,9 @@ void ProjApp::Render()
 
                 frame.cmd->BeginRenderPass(currentRenderPass);
                 {
-                    if (pFullscreenQuadsColour->GetIndex() > 0) {
-                        float3 colourValues = kFullscreenQuadsColoursValues[pFullscreenQuadsColour->GetIndex()];
-                        frame.cmd->PushGraphicsConstants(mFullscreenQuads.pipelineInterface, 3, &colourValues);
+                    if (pFullscreenQuadsColor->GetIndex() > 0) {
+                        float3 colorValues = kFullscreenQuadsColorsValues[pFullscreenQuadsColor->GetIndex()];
+                        frame.cmd->PushGraphicsConstants(mFullscreenQuads.pipelineInterface, 3, &colorValues);
                     }
                     else {
                         uint32_t noiseQuadRandomSeed = (uint32_t)i;

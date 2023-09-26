@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-struct ColourParams
+struct ColorParams
 {
     float3 Value;
 };
@@ -20,7 +20,7 @@ struct ColourParams
 #if defined(__spirv__)
 [[vk::push_constant]]
 #endif
-ConstantBuffer<ColourParams> Colour : register(b0);
+ConstantBuffer<ColorParams> Color : register(b0);
 
 struct VSOutput {
     float4 position : SV_POSITION;
@@ -35,5 +35,5 @@ VSOutput vsmain(float4 Position : POSITION)
 
 float4 psmain(VSOutput input) : SV_TARGET
 {
-    return float4(Colour.Value, 1.0f);
+    return float4(Color.Value, 1.0f);
 }
