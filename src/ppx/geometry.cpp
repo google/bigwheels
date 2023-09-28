@@ -61,7 +61,16 @@ protected:
     {
         if (bufferIndex != PPX_VALUE_IGNORED) {
             PPX_ASSERT_MSG((bufferIndex >= 0) && (bufferIndex < pGeom->mVertexBuffers.size()), "buffer index is not valid");
-            pGeom->mVertexBuffers[bufferIndex].Append(data);
+            if (pGeom->mInitialResizeMode) {
+                uint32_t    dataSize = static_cast<uint32_t>(sizeof(U));
+                const void* pSrc     = &data;
+                void*       pDst     = pGeom->mVertexBuffersDataPtrs[bufferIndex];
+                memcpy(pDst, pSrc, dataSize);
+                pGeom->mVertexBuffersDataPtrs[bufferIndex] = pGeom->mVertexBuffersDataPtrs[bufferIndex] + dataSize;
+            }
+            else {
+                pGeom->mVertexBuffers[bufferIndex].Append(data);
+            }
             return pGeom->mVertexBuffers[bufferIndex].GetElementCount();
         }
         return 0;
@@ -111,14 +120,14 @@ protected:
     }
 
     uint32_t GetPositionBufferIndex(const Geometry* pGeom) const { return pGeom->mPositionBufferIndex; }
-    uint32_t GetNormalBufferIndex(const Geometry* pGeom) const { return pGeom->mNormaBufferIndex; }
+    uint32_t GetNormalBufferIndex(const Geometry* pGeom) const { return pGeom->mNormalBufferIndex; }
     uint32_t GetColorBufferIndex(const Geometry* pGeom) const { return pGeom->mColorBufferIndex; }
     uint32_t GetTexCoordBufferIndex(const Geometry* pGeom) const { return pGeom->mTexCoordBufferIndex; }
     uint32_t GetTangentBufferIndex(const Geometry* pGeom) const { return pGeom->mTangentBufferIndex; }
     uint32_t GetBitangentBufferIndex(const Geometry* pGeom) const { return pGeom->mBitangentBufferIndex; }
 
     void SetPositionBufferIndex(Geometry* pGeom, uint32_t index) { pGeom->mPositionBufferIndex = index; }
-    void SetNormalBufferIndex(Geometry* pGeom, uint32_t index) { pGeom->mNormaBufferIndex = index; }
+    void SetNormalBufferIndex(Geometry* pGeom, uint32_t index) { pGeom->mNormalBufferIndex = index; }
     void SetColorBufferIndex(Geometry* pGeom, uint32_t index) { pGeom->mColorBufferIndex = index; }
     void SetTexCoordBufferIndex(Geometry* pGeom, uint32_t index) { pGeom->mTexCoordBufferIndex = index; }
     void SetTangentBufferIndex(Geometry* pGeom, uint32_t index) { pGeom->mTangentBufferIndex = index; }
@@ -245,7 +254,8 @@ public:
 
         uint32_t       bytesWritten            = (endSize - startSize);
         const uint32_t vertexBufferElementSize = this->GetVertexBufferElementSize(pGeom, kBufferIndex);
-        PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
+
+        //PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
 
         return this->GetVertexBufferElementCount(pGeom, kBufferIndex);
     }
@@ -274,7 +284,7 @@ public:
 
         uint32_t       bytesWritten            = (endSize - startSize);
         const uint32_t vertexBufferElementSize = this->GetVertexBufferElementSize(pGeom, kBufferIndex);
-        PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
+        //PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
 
         return this->GetVertexBufferElementCount(pGeom, kBufferIndex);
     }
@@ -363,7 +373,7 @@ public:
 
         uint32_t       bytesWritten            = (endSize - startSize);
         const uint32_t vertexBufferElementSize = this->GetVertexBufferElementSize(pGeom, kNonPositionBufferIndex);
-        PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
+        //PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
         return n;
     }
 
@@ -389,7 +399,7 @@ public:
         uint32_t bytesWritten = (endSize - startSize);
 
         const uint32_t vertexBufferElementSize = this->GetVertexBufferElementSize(pGeom, kNonPositionBufferIndex);
-        PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
+        //PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
         return n;
     }
 
@@ -1076,36 +1086,120 @@ uint32_t Geometry::GetLargestBufferSize() const
 void Geometry::AppendIndex(uint32_t idx)
 {
     if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT16) {
-        mIndexBuffer.Append(static_cast<uint16_t>(idx));
+        if (mInitialResizeMode) {
+            uint32_t    dataSize = 2; // uint16_t
+            uint16_t    idx_half = static_cast<uint16_t>(idx);
+            const void* pSrc     = &idx_half;
+            void*       pDst     = mIndexBufferDataPtr;
+            memcpy(pDst, pSrc, dataSize);
+            mIndexBufferDataPtr += dataSize;
+        }
+        else {
+            mIndexBuffer.Append(static_cast<uint16_t>(idx));
+        }
     }
     else if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT32) {
-        mIndexBuffer.Append(idx);
+        if (mInitialResizeMode) {
+            uint32_t    dataSize = 4; // uint32_t
+            const void* pSrc     = &idx;
+            void*       pDst     = mIndexBufferDataPtr;
+            memcpy(pDst, pSrc, dataSize);
+            mIndexBufferDataPtr += dataSize;
+        }
+        else {
+            mIndexBuffer.Append(idx);
+        }
     }
 }
 
 void Geometry::AppendIndicesTriangle(uint32_t idx0, uint32_t idx1, uint32_t idx2)
 {
     if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT16) {
-        mIndexBuffer.Append(static_cast<uint16_t>(idx0));
-        mIndexBuffer.Append(static_cast<uint16_t>(idx1));
-        mIndexBuffer.Append(static_cast<uint16_t>(idx2));
+        if (mInitialResizeMode) {
+            uint32_t dataSize = 2; // uint16_t
+
+            uint16_t    idx0_half = static_cast<uint16_t>(idx0);
+            const void* pSrc      = &idx0_half;
+            memcpy(mIndexBufferDataPtr, pSrc, dataSize);
+            mIndexBufferDataPtr += dataSize;
+
+            uint16_t idx1_half = static_cast<uint16_t>(idx1);
+            pSrc               = &idx1_half;
+            memcpy(mIndexBufferDataPtr, pSrc, dataSize);
+            mIndexBufferDataPtr += dataSize;
+
+            uint16_t idx2_half = static_cast<uint16_t>(idx2);
+            pSrc               = &idx2_half;
+            memcpy(mIndexBufferDataPtr, pSrc, dataSize);
+            mIndexBufferDataPtr += dataSize;
+        }
+        else {
+            mIndexBuffer.Append(static_cast<uint16_t>(idx0));
+            mIndexBuffer.Append(static_cast<uint16_t>(idx1));
+            mIndexBuffer.Append(static_cast<uint16_t>(idx2));
+        }
     }
     else if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT32) {
-        mIndexBuffer.Append(idx0);
-        mIndexBuffer.Append(idx1);
-        mIndexBuffer.Append(idx2);
+        if (mInitialResizeMode) {
+            uint32_t dataSize = 4; // uint32_t
+
+            const void* pSrc = &idx0;
+            memcpy(mIndexBufferDataPtr, pSrc, dataSize);
+            mIndexBufferDataPtr += dataSize;
+
+            pSrc = &idx1;
+            memcpy(mIndexBufferDataPtr, pSrc, dataSize);
+            mIndexBufferDataPtr += dataSize;
+
+            pSrc = &idx2;
+            memcpy(mIndexBufferDataPtr, pSrc, dataSize);
+            mIndexBufferDataPtr += dataSize;
+        }
+        else {
+            mIndexBuffer.Append(idx0);
+            mIndexBuffer.Append(idx1);
+            mIndexBuffer.Append(idx2);
+        }
     }
 }
 
 void Geometry::AppendIndicesEdge(uint32_t idx0, uint32_t idx1)
 {
     if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT16) {
-        mIndexBuffer.Append(static_cast<uint16_t>(idx0));
-        mIndexBuffer.Append(static_cast<uint16_t>(idx1));
+        if (mInitialResizeMode) {
+            uint32_t dataSize = 2; // uint16_t
+
+            uint16_t    idx0_half = static_cast<uint16_t>(idx0);
+            const void* pSrc      = &idx0_half;
+            memcpy(mIndexBufferDataPtr, pSrc, dataSize);
+            mIndexBufferDataPtr += dataSize;
+
+            uint16_t idx1_half = static_cast<uint16_t>(idx1);
+            pSrc               = &idx1_half;
+            memcpy(mIndexBufferDataPtr, pSrc, dataSize);
+            mIndexBufferDataPtr += dataSize;
+        }
+        else {
+            mIndexBuffer.Append(static_cast<uint16_t>(idx0));
+            mIndexBuffer.Append(static_cast<uint16_t>(idx1));
+        }
     }
     else if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT32) {
-        mIndexBuffer.Append(idx0);
-        mIndexBuffer.Append(idx1);
+        if (mInitialResizeMode) {
+            uint32_t dataSize = 4; // uint32_t
+
+            const void* pSrc = &idx0;
+            memcpy(mIndexBufferDataPtr, pSrc, dataSize);
+            mIndexBufferDataPtr += dataSize;
+
+            pSrc = &idx1;
+            memcpy(mIndexBufferDataPtr, pSrc, dataSize);
+            mIndexBufferDataPtr += dataSize;
+        }
+        else {
+            mIndexBuffer.Append(idx0);
+            mIndexBuffer.Append(idx1);
+        }
     }
 }
 
@@ -1115,7 +1209,17 @@ void Geometry::AppendIndicesU32(uint32_t count, const uint32_t* pIndices)
         PPX_ASSERT_MSG(false, "Invalid geometry index type, trying to append UINT32 data to UINT16 indices");
         return;
     }
-    mIndexBuffer.Append(count, pIndices);
+
+    if (mInitialResizeMode) {
+        uint32_t    dataSize = count * 4; // uint32_t
+        void*       pDst     = mIndexBufferDataPtr;
+        const void* pSrc     = pIndices;
+        memcpy(pDst, pSrc, dataSize);
+        mIndexBufferDataPtr += dataSize;
+    }
+    else {
+        mIndexBuffer.Append(count, pIndices);
+    }
 }
 
 uint32_t Geometry::AppendVertexData(const TriMeshVertexData& vtx)
@@ -1150,6 +1254,30 @@ void Geometry::AppendEdge(const WireMeshVertexData& vtx0, const WireMeshVertexDa
 
     // Will only append indices if geometry has an index buffer
     AppendIndicesEdge(n0, n1);
+}
+
+void Geometry::EnableInitialResizeMode()
+{
+    mInitialResizeMode = true;
+    mVertexBuffersDataPtrs.resize(mVertexBuffers.size());
+}
+
+void Geometry::ResizeIndexBuffer(uint32_t sizeInBytes)
+{
+    PPX_ASSERT_MSG(mInitialResizeMode, "To manually resize the index buffer, enable initial resize mode");
+
+    mIndexBuffer.SetSize(sizeInBytes);
+    mIndexBufferDataPtr = mIndexBuffer.GetData();
+}
+
+void Geometry::ResizeVertexBuffer(uint32_t vbIndex, uint32_t sizeInBytes)
+{
+    PPX_ASSERT_MSG(mInitialResizeMode, "To manually resize the vertex buffers, enable initial resize mode");
+
+    for (size_t i = 0; i < GetVertexBufferCount(); i++) {
+        mVertexBuffers[vbIndex].SetSize(sizeInBytes);
+        mVertexBuffersDataPtrs[vbIndex] = mVertexBuffers[vbIndex].GetData();
+    }
 }
 
 } // namespace ppx

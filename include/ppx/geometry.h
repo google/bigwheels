@@ -261,6 +261,18 @@ public:
     void AppendTriangle(const TriMeshVertexData& vtx0, const TriMeshVertexData& vtx1, const TriMeshVertexData& vtx2);
     void AppendEdge(const WireMeshVertexData& vtx0, const WireMeshVertexData& vtx1);
 
+    // Use the following resize functions before using the append functions for speed over convenience,
+    // corresponding to Buffer "Use #1" described above.
+    // Caller is responsible for resizing Buffers to the appropriate size.
+    //
+    // Enabling the initial resize mode will indicate that initial resizing is expected,
+    // and it will change the behaviour of all the Append functions used afterwards to use
+    // the Buffer DataPtrs.
+    //
+    void EnableInitialResizeMode();
+    void ResizeIndexBuffer(uint32_t sizeInBytes);
+    void ResizeVertexBuffer(uint32_t vbIndex, uint32_t sizeInBytes);
+
 private:
     // This is intialized to point to a static var of derived class of VertexDataProcessorBase
     // which is shared by geometry objects, it is not supposed to be deleted
@@ -270,11 +282,15 @@ private:
     Geometry::Buffer                                      mIndexBuffer;
     std::vector<Geometry::Buffer>                         mVertexBuffers;
     uint32_t                                              mPositionBufferIndex  = PPX_VALUE_IGNORED;
-    uint32_t                                              mNormaBufferIndex     = PPX_VALUE_IGNORED;
+    uint32_t                                              mNormalBufferIndex    = PPX_VALUE_IGNORED;
     uint32_t                                              mColorBufferIndex     = PPX_VALUE_IGNORED;
     uint32_t                                              mTexCoordBufferIndex  = PPX_VALUE_IGNORED;
     uint32_t                                              mTangentBufferIndex   = PPX_VALUE_IGNORED;
     uint32_t                                              mBitangentBufferIndex = PPX_VALUE_IGNORED;
+
+    bool               mInitialResizeMode  = false;
+    char*              mIndexBufferDataPtr = nullptr;
+    std::vector<char*> mVertexBuffersDataPtrs;
 };
 
 } // namespace ppx
