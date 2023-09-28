@@ -237,6 +237,8 @@ public:
     const Geometry::Buffer* GetVertexBuffer(uint32_t index) const;
     uint32_t                GetLargestBufferSize() const;
 
+    bool GetInitialResizeMode() const { return mInitialResizeMode; }
+
     // Appends single index, triangle, or edge vertex indices to index buffer
     //
     // Will cast to uint16_t if geometry index type is UINT16.

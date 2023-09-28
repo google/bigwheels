@@ -503,15 +503,13 @@ void ProjApp::Setup()
             const uint32_t sphereTriCount    = mesh.GetCountTriangles();
 
             PPX_LOG_INFO("LOD: " << lod.name);
-            PPX_LOG_INFO("Sphere vertex count: " << sphereVertexCount);
-            PPX_LOG_INFO("Sphere triangle count: " << sphereTriCount);
+            PPX_LOG_INFO("  Sphere vertex count: " << sphereVertexCount << " | triangle count: " << sphereTriCount);
 
             Geometry lowPrecisionInterleaved;
             PPX_CHECKED_CALL(Geometry::Create(GeometryOptions::InterleavedU32(grfx::FORMAT_R16G16B16_FLOAT).AddTexCoord(grfx::FORMAT_R16G16_FLOAT).AddNormal(grfx::FORMAT_R8G8B8A8_SNORM).AddTangent(grfx::FORMAT_R8G8B8A8_SNORM), &lowPrecisionInterleaved));
             lowPrecisionInterleaved.EnableInitialResizeMode();
             lowPrecisionInterleaved.ResizeIndexBuffer(12 * sphereTriCount * kMaxSphereInstanceCount);        // 12 bytes per triangle
             lowPrecisionInterleaved.ResizeVertexBuffer(0, 18 * sphereVertexCount * kMaxSphereInstanceCount); // 18 bytes per vertex
-            //PPX_LOG_INFO("lowPrecisionInterleaved VERTEX BUFFER COUNT: " << lowPrecisionInterleaved.GetVertexBufferCount());
 
             Geometry lowPrecisionPositionPlanar;
             PPX_CHECKED_CALL(Geometry::Create(GeometryOptions::PositionPlanarU32(grfx::FORMAT_R16G16B16_FLOAT).AddTexCoord(grfx::FORMAT_R16G16_FLOAT).AddNormal(grfx::FORMAT_R8G8B8A8_SNORM).AddTangent(grfx::FORMAT_R8G8B8A8_SNORM), &lowPrecisionPositionPlanar));
@@ -519,14 +517,12 @@ void ProjApp::Setup()
             lowPrecisionPositionPlanar.ResizeIndexBuffer(12 * sphereTriCount * kMaxSphereInstanceCount);        // 12 bytes per triangle
             lowPrecisionPositionPlanar.ResizeVertexBuffer(0, 6 * sphereVertexCount * kMaxSphereInstanceCount);  // 6 bytes per vertex
             lowPrecisionPositionPlanar.ResizeVertexBuffer(1, 12 * sphereVertexCount * kMaxSphereInstanceCount); // 12 bytes per vertex
-            //PPX_LOG_INFO("lowPrecisionPositionPlanar VERTEX BUFFER COUNT: " << lowPrecisionPositionPlanar.GetVertexBufferCount());
 
             Geometry highPrecisionInterleaved;
             PPX_CHECKED_CALL(Geometry::Create(GeometryOptions::InterleavedU32().AddTexCoord().AddNormal().AddTangent(), &highPrecisionInterleaved));
             highPrecisionInterleaved.EnableInitialResizeMode();
             highPrecisionInterleaved.ResizeIndexBuffer(12 * sphereTriCount * kMaxSphereInstanceCount);        // 12 bytes per triangle
             highPrecisionInterleaved.ResizeVertexBuffer(0, 48 * sphereVertexCount * kMaxSphereInstanceCount); // 48 bytes per vertex
-            //PPX_LOG_INFO("highPrecisionInterleaved VERTEX BUFFER COUNT: " << highPrecisionInterleaved.GetVertexBufferCount());
 
             Geometry highPrecisionPositionPlanar;
             PPX_CHECKED_CALL(Geometry::Create(GeometryOptions::PositionPlanarU32().AddTexCoord().AddNormal().AddTangent(), &highPrecisionPositionPlanar));
@@ -534,7 +530,6 @@ void ProjApp::Setup()
             highPrecisionPositionPlanar.ResizeIndexBuffer(12 * sphereTriCount * kMaxSphereInstanceCount);        // 12 bytes per triangle
             highPrecisionPositionPlanar.ResizeVertexBuffer(0, 12 * sphereVertexCount * kMaxSphereInstanceCount); // 12 bytes per vertex
             highPrecisionPositionPlanar.ResizeVertexBuffer(1, 36 * sphereVertexCount * kMaxSphereInstanceCount); // 36 bytes per vertex
-            //PPX_LOG_INFO("highPrecisionPositionPlanar VERTEX BUFFER COUNT: " << highPrecisionPositionPlanar.GetVertexBufferCount());
 
             for (uint32_t i = 0; i < kMaxSphereInstanceCount; i++) {
                 uint32_t index = sphereIndices[i];
@@ -576,25 +571,29 @@ void ProjApp::Setup()
                 }
             }
 
-            PPX_LOG_INFO("Final vertex count of lowPrecisionInterleaved: " << lowPrecisionInterleaved.GetVertexCount());
-            PPX_LOG_INFO("lowPrecisionInterleaved INDEX BUFFER SIZE: " << lowPrecisionInterleaved.GetIndexBuffer()->GetSize());
-            PPX_LOG_INFO("lowPrecisionInterleaved VERTEX BUFFER 0 SIZE: " << lowPrecisionInterleaved.GetVertexBuffer(0)->GetSize());
+            PPX_LOG_INFO("  lowPrecisionInterleaved vertex buffer");
+            PPX_LOG_INFO("    vertex count: " << lowPrecisionInterleaved.GetVertexCount());
+            PPX_LOG_INFO("    index buffer size: " << lowPrecisionInterleaved.GetIndexBuffer()->GetSize());
+            PPX_LOG_INFO("    vertex buffer 0 size: " << lowPrecisionInterleaved.GetVertexBuffer(0)->GetSize());
 
-            PPX_LOG_INFO("Final vertex count of lowPrecisionPositionPlanar: " << lowPrecisionPositionPlanar.GetVertexCount());
-            PPX_LOG_INFO("lowPrecisionPositionPlanar INDEX BUFFER SIZE: " << lowPrecisionPositionPlanar.GetIndexBuffer()->GetSize());
-            PPX_LOG_INFO("lowPrecisionPositionPlanar VERTEX BUFFER 0 SIZE: " << lowPrecisionPositionPlanar.GetVertexBuffer(0)->GetSize());
-            PPX_LOG_INFO("lowPrecisionPositionPlanar VERTEX BUFFER 1 SIZE: " << lowPrecisionPositionPlanar.GetVertexBuffer(1)->GetSize());
+            PPX_LOG_INFO("  lowPrecisionPositionPlanar vertex buffer");
+            PPX_LOG_INFO("    vertex count: " << lowPrecisionPositionPlanar.GetVertexCount());
+            PPX_LOG_INFO("    index buffer size: " << lowPrecisionPositionPlanar.GetIndexBuffer()->GetSize());
+            PPX_LOG_INFO("    vertex buffer 0 size: " << lowPrecisionPositionPlanar.GetVertexBuffer(0)->GetSize());
+            PPX_LOG_INFO("    vertex buffer 1 size: " << lowPrecisionPositionPlanar.GetVertexBuffer(1)->GetSize());
 
-            PPX_LOG_INFO("Final vertex count of highPrecisionInterleaved: " << highPrecisionInterleaved.GetVertexCount());
-            PPX_LOG_INFO("highPrecisionInterleaved INDEX BUFFER SIZE: " << highPrecisionInterleaved.GetIndexBuffer()->GetSize());
-            PPX_LOG_INFO("highPrecisionInterleaved VERTEX BUFFER 0 SIZE: " << highPrecisionInterleaved.GetVertexBuffer(0)->GetSize());
+            PPX_LOG_INFO("  highPrecisionInterleaved vertex buffer");
+            PPX_LOG_INFO("    vertex count: " << highPrecisionInterleaved.GetVertexCount());
+            PPX_LOG_INFO("    index buffer size: " << highPrecisionInterleaved.GetIndexBuffer()->GetSize());
+            PPX_LOG_INFO("    vertex buffer 0 size: " << highPrecisionInterleaved.GetVertexBuffer(0)->GetSize());
 
-            PPX_LOG_INFO("Final vertex count of highPrecisionPositionPlanar: " << highPrecisionPositionPlanar.GetVertexCount());
-            PPX_LOG_INFO("highPrecisionPositionPlanar INDEX BUFFER SIZE: " << highPrecisionPositionPlanar.GetIndexBuffer()->GetSize());
-            PPX_LOG_INFO("highPrecisionPositionPlanar VERTEX BUFFER 0 SIZE: " << highPrecisionPositionPlanar.GetVertexBuffer(0)->GetSize());
-            PPX_LOG_INFO("highPrecisionPositionPlanar VERTEX BUFFER 1 SIZE: " << highPrecisionPositionPlanar.GetVertexBuffer(1)->GetSize());
+            PPX_LOG_INFO("  highPrecisionPositionPlanar vertex buffer");
+            PPX_LOG_INFO("    vertex count: " << highPrecisionPositionPlanar.GetVertexCount());
+            PPX_LOG_INFO("    index buffer size: " << highPrecisionPositionPlanar.GetIndexBuffer()->GetSize());
+            PPX_LOG_INFO("    vertex buffer 0 size: " << highPrecisionPositionPlanar.GetVertexBuffer(0)->GetSize());
+            PPX_LOG_INFO("    vertex buffer 1 size: " << highPrecisionPositionPlanar.GetVertexBuffer(1)->GetSize());
 
-            // Create a giant vertex buffer to accommodate all copies of the sphere mesh
+            // Create a giant vertex buffer for each vb type to accommodate all copies of the sphere mesh
             PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &lowPrecisionInterleaved, &mSphereMeshes[meshIndex++]));
             PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &lowPrecisionPositionPlanar, &mSphereMeshes[meshIndex++]));
             PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &highPrecisionInterleaved, &mSphereMeshes[meshIndex++]));

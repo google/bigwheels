@@ -86,6 +86,11 @@ protected:
         return pGeom->mVertexBuffers[bufferIndex].GetSize();
     }
 
+    char* GetVertexBufferData(const Geometry* pGeom, uint32_t bufferIndex) const
+    {
+        return pGeom->mVertexBuffersDataPtrs[bufferIndex];
+    }
+
     uint32_t GetVertexBufferElementCount(const Geometry* pGeom, uint32_t bufferIndex) const
     {
         return pGeom->mVertexBuffers[bufferIndex].GetElementCount();
@@ -228,7 +233,15 @@ public:
 
     virtual uint32_t AppendVertexData(Geometry* pGeom, const T& vtx) override
     {
-        uint32_t       startSize = this->GetVertexBufferSize(pGeom, kBufferIndex);
+        uint32_t startSize, endSize;
+        char *   startPosition, *endPosition;
+
+        if (pGeom->GetInitialResizeMode()) {
+            startPosition = this->GetVertexBufferData(pGeom, kBufferIndex);
+        }
+        else {
+            startSize = this->GetVertexBufferSize(pGeom, kBufferIndex);
+        }
         const uint32_t attrCount = this->GetVertexBindingAttributeCount(pGeom, kBufferIndex);
         for (uint32_t attrIndex = 0; attrIndex < attrCount; ++attrIndex) {
             const grfx::VertexSemantic semantic = this->GetVertexBindingAttributeSematic(pGeom, kBufferIndex, attrIndex);
@@ -250,12 +263,24 @@ public:
             }
             // clang-format on
         }
-        uint32_t endSize = this->GetVertexBufferSize(pGeom, kBufferIndex);
 
-        uint32_t       bytesWritten            = (endSize - startSize);
+        if (pGeom->GetInitialResizeMode()) {
+            endPosition = this->GetVertexBufferData(pGeom, kBufferIndex);
+        }
+        else {
+            endSize = this->GetVertexBufferSize(pGeom, kBufferIndex);
+        }
+
         const uint32_t vertexBufferElementSize = this->GetVertexBufferElementSize(pGeom, kBufferIndex);
 
-        //PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
+        if (pGeom->GetInitialResizeMode()) {
+            uint32_t bytesWritten = static_cast<uint32_t>(endPosition - startPosition);
+            PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size (inital resize mode enabled)");
+        }
+        else {
+            uint32_t bytesWritten = (endSize - startSize);
+            PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
+        }
 
         return this->GetVertexBufferElementCount(pGeom, kBufferIndex);
     }
@@ -284,7 +309,10 @@ public:
 
         uint32_t       bytesWritten            = (endSize - startSize);
         const uint32_t vertexBufferElementSize = this->GetVertexBufferElementSize(pGeom, kBufferIndex);
-        //PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
+
+        if (!pGeom->GetInitialResizeMode()) {
+            PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
+        }
 
         return this->GetVertexBufferElementCount(pGeom, kBufferIndex);
     }
@@ -373,7 +401,10 @@ public:
 
         uint32_t       bytesWritten            = (endSize - startSize);
         const uint32_t vertexBufferElementSize = this->GetVertexBufferElementSize(pGeom, kNonPositionBufferIndex);
-        //PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
+
+        if (!pGeom->GetInitialResizeMode()) {
+            PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
+        }
         return n;
     }
 
@@ -399,7 +430,11 @@ public:
         uint32_t bytesWritten = (endSize - startSize);
 
         const uint32_t vertexBufferElementSize = this->GetVertexBufferElementSize(pGeom, kNonPositionBufferIndex);
-        //PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
+
+        if (!pGeom->GetInitialResizeMode()) {
+            PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
+        }
+
         return n;
     }
 
