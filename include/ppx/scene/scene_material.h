@@ -26,14 +26,14 @@ namespace ppx {
 namespace scene {
 
 // Image
-// 
+//
 // This class wraps a grfx::Image and a grfx::SampledImage objects to make
 // pathing access to the GPU pipelines easier.
-// 
+//
 // scene::Image objects can be shared between different scene::Texture objects.
 //
 // Corresponds to GLTF's image object.
-// 
+//
 class Image
     : public grfx::NamedObjectTrait
 {
@@ -54,10 +54,10 @@ private:
 // -------------------------------------------------------------------------------------------------
 
 // Sampler
-// 
+//
 // This class wraps a grfx::Sampler object to make sharability on the ppx::scene
 // level easier to understand.
-// 
+//
 // scene::Sampler objects can be shared between different scene::Texture objects.
 //
 // Corresponds to GLTF's sampler object.
@@ -79,13 +79,13 @@ private:
 // -------------------------------------------------------------------------------------------------
 
 // Texture
-// 
-// This class is container for references to a scene::Image and a scene::Sampler 
-// objects. 
-// 
+//
+// This class is container for references to a scene::Image and a scene::Sampler
+// objects.
+//
 // scene::Texture objects can be shared between different scene::Material objects
 // via the scene::TextureView struct.
-// 
+//
 // Corresponds to GLTF's texture objects
 //
 class Texture
@@ -108,10 +108,10 @@ private:
 // -------------------------------------------------------------------------------------------------
 
 // Texture View
-// 
+//
 // This struct contains a reference a texture object and the transform
 // data that must be applied by the shader before sampling a pixel.
-// 
+//
 // scene::Texture view objects are used directly by scene::Matreial objets.
 //
 // Corresponds to cgltf's texture view object.
@@ -130,10 +130,10 @@ struct TextureView
 //
 // All materials deriving from this class must have a uniquely identifiable
 // Material Ident String that's returned by GetIdentString().
-// 
+//
 // Materials must also provide a mask of all the vertex attributes it requires
 // for rendering.
-// 
+//
 // scene::Material derivative objects can be shared beween different scene::Mesh
 // objects via scene::PrimitiveBatch.
 //
@@ -145,15 +145,15 @@ public:
     virtual ~Material() {}
 
     virtual std::string GetIdentString() const = 0;
-    
+
     virtual scene::VertexAttributeFlags GetRequiredVertexAttributes() const = 0;
 };
 
 // -------------------------------------------------------------------------------------------------
 
 // Error Material for when a primitive batch is missing a material.
-// 
-// Implementations should render something recognizable. Default version 
+//
+// Implementations should render something recognizable. Default version
 // renders solid purple: float3(1, 0, 1).
 //
 class ErrorMaterial
@@ -174,7 +174,7 @@ public:
 //
 // Implemtations should render a texture without any lighting. Base color factor
 // can act as a multiplier for the values from base color texture.
-// 
+//
 // Corresponds to GLTF's KHR_materials_unlit:
 //   https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_materials_unlit/README.md
 //
@@ -208,7 +208,7 @@ private:
 //
 // Implementations should render a lit pixel using a PBR method that makes
 // use of the provided fields and textures of this class.
-// 
+//
 // Corresponds to GLTF's metallic roughness material:
 //   https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#reference-material-pbrmetallicroughness
 //
@@ -275,11 +275,11 @@ private:
 //
 // Customizable factory that provides implementations of materials. An application
 // can inherit this class to provide implemtnations of materials as it sees fit.
-// 
-// Materials must be uniquely identifiable by their Material Ident string. 
-// 
-// Materials that do not take any parameters, such as the default ErrorMaterial 
-// class, can the same shared copy across all of its instances. 
+//
+// Materials must be uniquely identifiable by their Material Ident string.
+//
+// Materials that do not take any parameters, such as the default ErrorMaterial
+// class, can the same shared copy across all of its instances.
 //
 class MaterialFactory
 {

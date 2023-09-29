@@ -25,12 +25,12 @@ namespace scene {
 //
 // Container for geomtry data and the buffer views required by
 // a renderer. scene::MeshData objects can be shared among different
-// scene::Mesh instances. 
-// 
+// scene::Mesh instances.
+//
 // It's necessary to separate out the mesh data from the mesh since
 // it's possible for a series of meshes to use the same geometry
 // data but a different set of scene::PrimitiveBatch descriptions.
-// 
+//
 //
 class MeshData
     : public grfx::NamedObjectTrait
@@ -83,12 +83,12 @@ struct PrimitiveBatch
 //   - geomtry data reference
 //   - primitive batches
 //   - material references
-// 
+//
 // If a mesh is loaded standalone, it will use its own resource
 // manager for required materials, textures, images, and samplers.
-// 
+//
 // If a mesh is loaded as part of a scene, the scene's resource
-// manager will be used instead. 
+// manager will be used instead.
 //
 class Mesh
     : public grfx::NamedObjectTrait
