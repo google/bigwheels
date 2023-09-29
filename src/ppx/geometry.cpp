@@ -61,16 +61,7 @@ protected:
     {
         if (bufferIndex != PPX_VALUE_IGNORED) {
             PPX_ASSERT_MSG((bufferIndex >= 0) && (bufferIndex < pGeom->mVertexBuffers.size()), "buffer index is not valid");
-            if (pGeom->mInitialResizeMode) {
-                uint32_t    dataSize = static_cast<uint32_t>(sizeof(U));
-                const void* pSrc     = &data;
-                void*       pDst     = pGeom->mVertexBuffersDataPtrs[bufferIndex];
-                memcpy(pDst, pSrc, dataSize);
-                pGeom->mVertexBuffersDataPtrs[bufferIndex] = pGeom->mVertexBuffersDataPtrs[bufferIndex] + dataSize;
-            }
-            else {
-                pGeom->mVertexBuffers[bufferIndex].Append(data);
-            }
+            pGeom->mVertexBuffers[bufferIndex].Append(data);
             return pGeom->mVertexBuffers[bufferIndex].GetElementCount();
         }
         return 0;
@@ -78,17 +69,12 @@ protected:
 
     void AddVertexBuffer(Geometry* pGeom, uint32_t bindingIndex)
     {
-        pGeom->mVertexBuffers.push_back(Geometry::Buffer(Geometry::BUFFER_TYPE_VERTEX, GetVertexBindingStride(pGeom, bindingIndex)));
+        pGeom->mVertexBuffers.push_back(Geometry::Buffer(Geometry::BUFFER_TYPE_VERTEX, GetVertexBindingStride(pGeom, bindingIndex), pGeom->mCreateInfo.finalVertexCount));
     }
 
     uint32_t GetVertexBufferSize(const Geometry* pGeom, uint32_t bufferIndex) const
     {
         return pGeom->mVertexBuffers[bufferIndex].GetSize();
-    }
-
-    char* GetVertexBufferData(const Geometry* pGeom, uint32_t bufferIndex) const
-    {
-        return pGeom->mVertexBuffersDataPtrs[bufferIndex];
     }
 
     uint32_t GetVertexBufferElementCount(const Geometry* pGeom, uint32_t bufferIndex) const
@@ -233,16 +219,8 @@ public:
 
     virtual uint32_t AppendVertexData(Geometry* pGeom, const T& vtx) override
     {
-        uint32_t startSize, endSize;
-        char *   startPosition, *endPosition;
-
-        if (pGeom->GetInitialResizeMode()) {
-            startPosition = this->GetVertexBufferData(pGeom, kBufferIndex);
-        }
-        else {
-            startSize = this->GetVertexBufferSize(pGeom, kBufferIndex);
-        }
-        const uint32_t attrCount = this->GetVertexBindingAttributeCount(pGeom, kBufferIndex);
+        uint32_t       startElementCount = this->GetVertexBufferElementCount(pGeom, kBufferIndex);
+        const uint32_t attrCount         = this->GetVertexBindingAttributeCount(pGeom, kBufferIndex);
         for (uint32_t attrIndex = 0; attrIndex < attrCount; ++attrIndex) {
             const grfx::VertexSemantic semantic = this->GetVertexBindingAttributeSematic(pGeom, kBufferIndex, attrIndex);
 
@@ -263,32 +241,16 @@ public:
             }
             // clang-format on
         }
-
-        if (pGeom->GetInitialResizeMode()) {
-            endPosition = this->GetVertexBufferData(pGeom, kBufferIndex);
-        }
-        else {
-            endSize = this->GetVertexBufferSize(pGeom, kBufferIndex);
-        }
-
-        const uint32_t vertexBufferElementSize = this->GetVertexBufferElementSize(pGeom, kBufferIndex);
-
-        if (pGeom->GetInitialResizeMode()) {
-            uint32_t bytesWritten = static_cast<uint32_t>(endPosition - startPosition);
-            PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size (inital resize mode enabled)");
-        }
-        else {
-            uint32_t bytesWritten = (endSize - startSize);
-            PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
-        }
+        uint32_t endElementCount = this->GetVertexBufferElementCount(pGeom, kBufferIndex);
+        PPX_ASSERT_MSG(endElementCount - startElementCount == 1, "number of vertices written is not 1: starting: " << startElementCount << " ending: " << endElementCount);
 
         return this->GetVertexBufferElementCount(pGeom, kBufferIndex);
     }
 
     virtual uint32_t AppendVertexData(Geometry* pGeom, const WireMeshVertexData& vtx) override
     {
-        uint32_t       startSize = this->GetVertexBufferSize(pGeom, kBufferIndex);
-        const uint32_t attrCount = this->GetVertexBindingAttributeCount(pGeom, kBufferIndex);
+        uint32_t       startElementCount = this->GetVertexBufferElementCount(pGeom, kBufferIndex);
+        const uint32_t attrCount         = this->GetVertexBindingAttributeCount(pGeom, kBufferIndex);
         for (uint32_t attrIndex = 0; attrIndex < attrCount; ++attrIndex) {
             const grfx::VertexSemantic semantic = this->GetVertexBindingAttributeSematic(pGeom, kBufferIndex, attrIndex);
 
@@ -307,12 +269,8 @@ public:
         }
         uint32_t endSize = this->GetVertexBufferSize(pGeom, kBufferIndex);
 
-        uint32_t       bytesWritten            = (endSize - startSize);
-        const uint32_t vertexBufferElementSize = this->GetVertexBufferElementSize(pGeom, kBufferIndex);
-
-        if (!pGeom->GetInitialResizeMode()) {
-            PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
-        }
+        uint32_t endElementCount = this->GetVertexBufferElementCount(pGeom, kBufferIndex);
+        PPX_ASSERT_MSG(endElementCount - startElementCount == 1, "number of vertices written is not 1: starting: " << startElementCount << " ending: " << endElementCount);
 
         return this->GetVertexBufferElementCount(pGeom, kBufferIndex);
     }
@@ -380,8 +338,8 @@ public:
         const uint32_t n = this->AppendDataToVertexBuffer(pGeom, this->GetPositionBufferIndex(pGeom), vtx.position);
         PPX_ASSERT_MSG(n > 0, "position should always available");
 
-        uint32_t       startSize = this->GetVertexBufferSize(pGeom, kNonPositionBufferIndex);
-        const uint32_t attrCount = this->GetVertexBindingAttributeCount(pGeom, kNonPositionBufferIndex);
+        uint32_t       startElementCount = this->GetVertexBufferElementCount(pGeom, kNonPositionBufferIndex);
+        const uint32_t attrCount         = this->GetVertexBindingAttributeCount(pGeom, kNonPositionBufferIndex);
         for (uint32_t attrIndex = 0; attrIndex < attrCount; ++attrIndex) {
             const grfx::VertexSemantic semantic = this->GetVertexBindingAttributeSematic(pGeom, kNonPositionBufferIndex, attrIndex);
 
@@ -397,14 +355,8 @@ public:
             }
             // clang-format on
         }
-        uint32_t endSize = this->GetVertexBufferSize(pGeom, kNonPositionBufferIndex);
-
-        uint32_t       bytesWritten            = (endSize - startSize);
-        const uint32_t vertexBufferElementSize = this->GetVertexBufferElementSize(pGeom, kNonPositionBufferIndex);
-
-        if (!pGeom->GetInitialResizeMode()) {
-            PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
-        }
+        uint32_t endElementCount = this->GetVertexBufferElementCount(pGeom, kNonPositionBufferIndex);
+        PPX_ASSERT_MSG(endElementCount - startElementCount == 1, "number of vertices written is not 1: starting: " << startElementCount << " ending: " << endElementCount);
         return n;
     }
 
@@ -412,8 +364,8 @@ public:
     {
         const uint32_t n = this->AppendDataToVertexBuffer(pGeom, kPositionBufferIndex, vtx.position);
         PPX_ASSERT_MSG(n > 0, "position should always available");
-        uint32_t       startSize = this->GetVertexBufferSize(pGeom, kNonPositionBufferIndex);
-        const uint32_t attrCount = this->GetVertexBindingAttributeCount(pGeom, kNonPositionBufferIndex);
+        uint32_t       startElementCount = this->GetVertexBufferElementCount(pGeom, kNonPositionBufferIndex);
+        const uint32_t attrCount         = this->GetVertexBindingAttributeCount(pGeom, kNonPositionBufferIndex);
         for (uint32_t attrIndex = 0; attrIndex < attrCount; ++attrIndex) {
             const grfx::VertexSemantic semantic = this->GetVertexBindingAttributeSematic(pGeom, kNonPositionBufferIndex, attrIndex);
 
@@ -425,16 +377,8 @@ public:
             }
             // clang-format on
         }
-        uint32_t endSize = this->GetVertexBufferSize(pGeom, kNonPositionBufferIndex);
-
-        uint32_t bytesWritten = (endSize - startSize);
-
-        const uint32_t vertexBufferElementSize = this->GetVertexBufferElementSize(pGeom, kNonPositionBufferIndex);
-
-        if (!pGeom->GetInitialResizeMode()) {
-            PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
-        }
-
+        uint32_t endElementCount = this->GetVertexBufferElementCount(pGeom, kNonPositionBufferIndex);
+        PPX_ASSERT_MSG(endElementCount - startElementCount == 1, "number of vertices written is not 1: starting: " << startElementCount << " ending: " << endElementCount);
         return n;
     }
 
@@ -659,12 +603,27 @@ GeometryOptions& GeometryOptions::AddBitangent(grfx::Format format)
     return *this;
 }
 
+GeometryOptions& GeometryOptions::FinalIndexCount(uint32_t count)
+{
+    finalIndexCount = count;
+    return *this;
+}
+
+GeometryOptions& GeometryOptions::FinalVertexCount(uint32_t count)
+{
+    finalVertexCount = count;
+    return *this;
+}
+
 // -------------------------------------------------------------------------------------------------
 // Geometry::Buffer
 // -------------------------------------------------------------------------------------------------
 uint32_t Geometry::Buffer::GetElementCount() const
 {
     size_t sizeOfData = mData.size();
+    if (mKnownFinalElementCount > 0) {
+        sizeOfData = mOffset;
+    }
     // round up for the case of interleaved buffers
     uint32_t count = static_cast<uint32_t>(std::ceil(static_cast<double>(sizeOfData) / static_cast<double>(mElementSize)));
     return count;
@@ -706,7 +665,7 @@ Result Geometry::InternalCtor()
             return ppx::ERROR_FAILED;
         }
 
-        mIndexBuffer = Buffer(BUFFER_TYPE_INDEX, elementSize);
+        mIndexBuffer = Buffer(BUFFER_TYPE_INDEX, elementSize, mCreateInfo.finalIndexCount);
     }
 
     return mVDProcessor->UpdateVertexBuffer(this);
@@ -1121,120 +1080,36 @@ uint32_t Geometry::GetLargestBufferSize() const
 void Geometry::AppendIndex(uint32_t idx)
 {
     if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT16) {
-        if (mInitialResizeMode) {
-            uint32_t    dataSize = 2; // uint16_t
-            uint16_t    idx_half = static_cast<uint16_t>(idx);
-            const void* pSrc     = &idx_half;
-            void*       pDst     = mIndexBufferDataPtr;
-            memcpy(pDst, pSrc, dataSize);
-            mIndexBufferDataPtr += dataSize;
-        }
-        else {
-            mIndexBuffer.Append(static_cast<uint16_t>(idx));
-        }
+        mIndexBuffer.Append(static_cast<uint16_t>(idx));
     }
     else if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT32) {
-        if (mInitialResizeMode) {
-            uint32_t    dataSize = 4; // uint32_t
-            const void* pSrc     = &idx;
-            void*       pDst     = mIndexBufferDataPtr;
-            memcpy(pDst, pSrc, dataSize);
-            mIndexBufferDataPtr += dataSize;
-        }
-        else {
-            mIndexBuffer.Append(idx);
-        }
+        mIndexBuffer.Append(idx);
     }
 }
 
 void Geometry::AppendIndicesTriangle(uint32_t idx0, uint32_t idx1, uint32_t idx2)
 {
     if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT16) {
-        if (mInitialResizeMode) {
-            uint32_t dataSize = 2; // uint16_t
-
-            uint16_t    idx0_half = static_cast<uint16_t>(idx0);
-            const void* pSrc      = &idx0_half;
-            memcpy(mIndexBufferDataPtr, pSrc, dataSize);
-            mIndexBufferDataPtr += dataSize;
-
-            uint16_t idx1_half = static_cast<uint16_t>(idx1);
-            pSrc               = &idx1_half;
-            memcpy(mIndexBufferDataPtr, pSrc, dataSize);
-            mIndexBufferDataPtr += dataSize;
-
-            uint16_t idx2_half = static_cast<uint16_t>(idx2);
-            pSrc               = &idx2_half;
-            memcpy(mIndexBufferDataPtr, pSrc, dataSize);
-            mIndexBufferDataPtr += dataSize;
-        }
-        else {
-            mIndexBuffer.Append(static_cast<uint16_t>(idx0));
-            mIndexBuffer.Append(static_cast<uint16_t>(idx1));
-            mIndexBuffer.Append(static_cast<uint16_t>(idx2));
-        }
+        mIndexBuffer.Append(static_cast<uint16_t>(idx0));
+        mIndexBuffer.Append(static_cast<uint16_t>(idx1));
+        mIndexBuffer.Append(static_cast<uint16_t>(idx2));
     }
     else if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT32) {
-        if (mInitialResizeMode) {
-            uint32_t dataSize = 4; // uint32_t
-
-            const void* pSrc = &idx0;
-            memcpy(mIndexBufferDataPtr, pSrc, dataSize);
-            mIndexBufferDataPtr += dataSize;
-
-            pSrc = &idx1;
-            memcpy(mIndexBufferDataPtr, pSrc, dataSize);
-            mIndexBufferDataPtr += dataSize;
-
-            pSrc = &idx2;
-            memcpy(mIndexBufferDataPtr, pSrc, dataSize);
-            mIndexBufferDataPtr += dataSize;
-        }
-        else {
-            mIndexBuffer.Append(idx0);
-            mIndexBuffer.Append(idx1);
-            mIndexBuffer.Append(idx2);
-        }
+        mIndexBuffer.Append(idx0);
+        mIndexBuffer.Append(idx1);
+        mIndexBuffer.Append(idx2);
     }
 }
 
 void Geometry::AppendIndicesEdge(uint32_t idx0, uint32_t idx1)
 {
     if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT16) {
-        if (mInitialResizeMode) {
-            uint32_t dataSize = 2; // uint16_t
-
-            uint16_t    idx0_half = static_cast<uint16_t>(idx0);
-            const void* pSrc      = &idx0_half;
-            memcpy(mIndexBufferDataPtr, pSrc, dataSize);
-            mIndexBufferDataPtr += dataSize;
-
-            uint16_t idx1_half = static_cast<uint16_t>(idx1);
-            pSrc               = &idx1_half;
-            memcpy(mIndexBufferDataPtr, pSrc, dataSize);
-            mIndexBufferDataPtr += dataSize;
-        }
-        else {
-            mIndexBuffer.Append(static_cast<uint16_t>(idx0));
-            mIndexBuffer.Append(static_cast<uint16_t>(idx1));
-        }
+        mIndexBuffer.Append(static_cast<uint16_t>(idx0));
+        mIndexBuffer.Append(static_cast<uint16_t>(idx1));
     }
     else if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT32) {
-        if (mInitialResizeMode) {
-            uint32_t dataSize = 4; // uint32_t
-
-            const void* pSrc = &idx0;
-            memcpy(mIndexBufferDataPtr, pSrc, dataSize);
-            mIndexBufferDataPtr += dataSize;
-
-            pSrc = &idx1;
-            memcpy(mIndexBufferDataPtr, pSrc, dataSize);
-            mIndexBufferDataPtr += dataSize;
-        }
-        else {
-            mIndexBuffer.Append(idx0);
-            mIndexBuffer.Append(idx1);
-        }
+        mIndexBuffer.Append(idx0);
+        mIndexBuffer.Append(idx1);
     }
 }
 
@@ -1244,17 +1119,7 @@ void Geometry::AppendIndicesU32(uint32_t count, const uint32_t* pIndices)
         PPX_ASSERT_MSG(false, "Invalid geometry index type, trying to append UINT32 data to UINT16 indices");
         return;
     }
-
-    if (mInitialResizeMode) {
-        uint32_t    dataSize = count * 4; // uint32_t
-        void*       pDst     = mIndexBufferDataPtr;
-        const void* pSrc     = pIndices;
-        memcpy(pDst, pSrc, dataSize);
-        mIndexBufferDataPtr += dataSize;
-    }
-    else {
-        mIndexBuffer.Append(count, pIndices);
-    }
+    mIndexBuffer.Append(count, pIndices);
 }
 
 uint32_t Geometry::AppendVertexData(const TriMeshVertexData& vtx)
@@ -1289,30 +1154,6 @@ void Geometry::AppendEdge(const WireMeshVertexData& vtx0, const WireMeshVertexDa
 
     // Will only append indices if geometry has an index buffer
     AppendIndicesEdge(n0, n1);
-}
-
-void Geometry::EnableInitialResizeMode()
-{
-    mInitialResizeMode = true;
-    mVertexBuffersDataPtrs.resize(mVertexBuffers.size());
-}
-
-void Geometry::ResizeIndexBuffer(uint32_t sizeInBytes)
-{
-    PPX_ASSERT_MSG(mInitialResizeMode, "To manually resize the index buffer, enable initial resize mode");
-
-    mIndexBuffer.SetSize(sizeInBytes);
-    mIndexBufferDataPtr = mIndexBuffer.GetData();
-}
-
-void Geometry::ResizeVertexBuffer(uint32_t vbIndex, uint32_t sizeInBytes)
-{
-    PPX_ASSERT_MSG(mInitialResizeMode, "To manually resize the vertex buffers, enable initial resize mode");
-
-    for (size_t i = 0; i < GetVertexBufferCount(); i++) {
-        mVertexBuffers[vbIndex].SetSize(sizeInBytes);
-        mVertexBuffersDataPtrs[vbIndex] = mVertexBuffers[vbIndex].GetData();
-    }
 }
 
 } // namespace ppx

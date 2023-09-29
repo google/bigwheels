@@ -19,6 +19,8 @@
 #include <array>
 #include <random>
 #include <cmath>
+#include <chrono>
+#include <ctime>
 
 #include "ppx/ppx.h"
 #include "ppx/knob.h"
@@ -475,6 +477,8 @@ void ProjApp::Setup()
 
     // Meshes for sphere instances
     {
+        std::chrono::time_point<std::chrono::system_clock> tstart, tend, t1, t2, t3;
+
         // 3D grid
         Grid grid;
         grid.xSize = static_cast<uint32_t>(std::cbrt(kMaxSphereInstanceCount));
@@ -498,6 +502,7 @@ void ProjApp::Setup()
         // Create the meshes
         uint32_t meshIndex = 0;
         for (LOD lod : mSphereLODs) {
+            tstart                           = std::chrono::system_clock::now();
             TriMesh        mesh              = TriMesh::CreateSphere(/* radius = */ 1, lod.longitudeSegments, lod.latitudeSegments, TriMeshOptions().Indices().TexCoords().Normals().Tangents());
             const uint32_t sphereVertexCount = mesh.GetCountPositions();
             const uint32_t sphereTriCount    = mesh.GetCountTriangles();
@@ -506,32 +511,53 @@ void ProjApp::Setup()
             PPX_LOG_INFO("  Sphere vertex count: " << sphereVertexCount << " | triangle count: " << sphereTriCount);
 
             Geometry lowPrecisionInterleaved;
-            PPX_CHECKED_CALL(Geometry::Create(GeometryOptions::InterleavedU32(grfx::FORMAT_R16G16B16_FLOAT).AddTexCoord(grfx::FORMAT_R16G16_FLOAT).AddNormal(grfx::FORMAT_R8G8B8A8_SNORM).AddTangent(grfx::FORMAT_R8G8B8A8_SNORM), &lowPrecisionInterleaved));
-            lowPrecisionInterleaved.EnableInitialResizeMode();
-            lowPrecisionInterleaved.ResizeIndexBuffer(12 * sphereTriCount * kMaxSphereInstanceCount);        // 12 bytes per triangle
-            lowPrecisionInterleaved.ResizeVertexBuffer(0, 18 * sphereVertexCount * kMaxSphereInstanceCount); // 18 bytes per vertex
+            PPX_CHECKED_CALL(Geometry::Create(
+                GeometryOptions::InterleavedU32(grfx::FORMAT_R16G16B16_FLOAT)
+                    .AddTexCoord(grfx::FORMAT_R16G16_FLOAT)
+                    .AddNormal(grfx::FORMAT_R8G8B8A8_SNORM)
+                    .AddTangent(grfx::FORMAT_R8G8B8A8_SNORM)
+                    .FinalIndexCount(3 * sphereTriCount * kMaxSphereInstanceCount)
+                    .FinalVertexCount(sphereVertexCount * kMaxSphereInstanceCount),
+                &lowPrecisionInterleaved));
 
             Geometry lowPrecisionPositionPlanar;
-            PPX_CHECKED_CALL(Geometry::Create(GeometryOptions::PositionPlanarU32(grfx::FORMAT_R16G16B16_FLOAT).AddTexCoord(grfx::FORMAT_R16G16_FLOAT).AddNormal(grfx::FORMAT_R8G8B8A8_SNORM).AddTangent(grfx::FORMAT_R8G8B8A8_SNORM), &lowPrecisionPositionPlanar));
-            lowPrecisionPositionPlanar.EnableInitialResizeMode();
-            lowPrecisionPositionPlanar.ResizeIndexBuffer(12 * sphereTriCount * kMaxSphereInstanceCount);        // 12 bytes per triangle
-            lowPrecisionPositionPlanar.ResizeVertexBuffer(0, 6 * sphereVertexCount * kMaxSphereInstanceCount);  // 6 bytes per vertex
-            lowPrecisionPositionPlanar.ResizeVertexBuffer(1, 12 * sphereVertexCount * kMaxSphereInstanceCount); // 12 bytes per vertex
+            PPX_CHECKED_CALL(Geometry::Create(
+                GeometryOptions::PositionPlanarU32(grfx::FORMAT_R16G16B16_FLOAT)
+                    .AddTexCoord(grfx::FORMAT_R16G16_FLOAT)
+                    .AddNormal(grfx::FORMAT_R8G8B8A8_SNORM)
+                    .AddTangent(grfx::FORMAT_R8G8B8A8_SNORM)
+                    .FinalIndexCount(3 * sphereTriCount * kMaxSphereInstanceCount)
+                    .FinalVertexCount(sphereVertexCount * kMaxSphereInstanceCount),
+                &lowPrecisionPositionPlanar));
 
             Geometry highPrecisionInterleaved;
-            PPX_CHECKED_CALL(Geometry::Create(GeometryOptions::InterleavedU32().AddTexCoord().AddNormal().AddTangent(), &highPrecisionInterleaved));
-            highPrecisionInterleaved.EnableInitialResizeMode();
-            highPrecisionInterleaved.ResizeIndexBuffer(12 * sphereTriCount * kMaxSphereInstanceCount);        // 12 bytes per triangle
-            highPrecisionInterleaved.ResizeVertexBuffer(0, 48 * sphereVertexCount * kMaxSphereInstanceCount); // 48 bytes per vertex
+            PPX_CHECKED_CALL(Geometry::Create(
+                GeometryOptions::InterleavedU32()
+                    .AddTexCoord()
+                    .AddNormal()
+                    .AddTangent()
+                    .FinalIndexCount(3 * sphereTriCount * kMaxSphereInstanceCount)
+                    .FinalVertexCount(sphereVertexCount * kMaxSphereInstanceCount),
+                &highPrecisionInterleaved));
 
             Geometry highPrecisionPositionPlanar;
-            PPX_CHECKED_CALL(Geometry::Create(GeometryOptions::PositionPlanarU32().AddTexCoord().AddNormal().AddTangent(), &highPrecisionPositionPlanar));
-            highPrecisionPositionPlanar.EnableInitialResizeMode();
-            highPrecisionPositionPlanar.ResizeIndexBuffer(12 * sphereTriCount * kMaxSphereInstanceCount);        // 12 bytes per triangle
-            highPrecisionPositionPlanar.ResizeVertexBuffer(0, 12 * sphereVertexCount * kMaxSphereInstanceCount); // 12 bytes per vertex
-            highPrecisionPositionPlanar.ResizeVertexBuffer(1, 36 * sphereVertexCount * kMaxSphereInstanceCount); // 36 bytes per vertex
+            PPX_CHECKED_CALL(Geometry::Create(
+                GeometryOptions::PositionPlanarU32()
+                    .AddTexCoord()
+                    .AddNormal()
+                    .AddTangent()
+                    .FinalIndexCount(3 * sphereTriCount * kMaxSphereInstanceCount)
+                    .FinalVertexCount(sphereVertexCount * kMaxSphereInstanceCount),
+                &highPrecisionPositionPlanar));
 
+            tend                                          = std::chrono::system_clock::now();
+            std::chrono::duration<double> elapsed_seconds = tend - tstart;
+            std::cout << "seconds taken for geometry create: " << elapsed_seconds.count() << std::endl;
+
+            double elapsed_12 = 0;
+            double elapsed_23 = 0;
             for (uint32_t i = 0; i < kMaxSphereInstanceCount; i++) {
+                t1             = std::chrono::system_clock::now();
                 uint32_t index = sphereIndices[i];
                 uint32_t x     = (index % (grid.xSize * grid.ySize)) / grid.ySize;
                 uint32_t y     = index % grid.ySize;
@@ -558,6 +584,7 @@ void ProjApp::Setup()
                     highPrecisionInterleaved.AppendVertexData(vertexData);
                     highPrecisionPositionPlanar.AppendVertexData(vertexData);
                 }
+                t2 = std::chrono::system_clock::now();
                 // Iterate the meshes triangles and add the vertex indices
                 for (uint32_t triIndex = 0; triIndex < sphereTriCount; ++triIndex) {
                     uint32_t v0 = PPX_VALUE_IGNORED;
@@ -569,7 +596,15 @@ void ProjApp::Setup()
                     highPrecisionInterleaved.AppendIndicesTriangle(v0 + i * sphereVertexCount, v1 + i * sphereVertexCount, v2 + i * sphereVertexCount);
                     highPrecisionPositionPlanar.AppendIndicesTriangle(v0 + i * sphereVertexCount, v1 + i * sphereVertexCount, v2 + i * sphereVertexCount);
                 }
+                t3                                            = std::chrono::system_clock::now();
+                std::chrono::duration<double> elapsed_seconds = t2 - t1;
+                elapsed_12 += elapsed_seconds.count();
+                elapsed_seconds = t3 - t2;
+                elapsed_23 += elapsed_seconds.count();
             }
+
+            std::cout << "seconds taken for appending vertex data: " << elapsed_12 << std::endl;
+            std::cout << "seconds taken for appending index data: " << elapsed_23 << std::endl;
 
             PPX_LOG_INFO("  lowPrecisionInterleaved vertex buffer");
             PPX_LOG_INFO("    vertex count: " << lowPrecisionInterleaved.GetVertexCount());
