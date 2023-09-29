@@ -25,6 +25,7 @@
 #include "ppx/bounding_volume.h"
 
 #include <filesystem>
+#include <unordered_map>
 
 namespace ppx {
 namespace scene {
