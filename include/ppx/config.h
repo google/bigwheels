@@ -187,6 +187,8 @@ enum Result
     ERROR_SCENE_INVALID_SOURCE_MATERIAL             = -6015,
     ERROR_SCENE_INVALID_SOURCE_TEXTURE              = -6016,
     ERROR_SCENE_INVALID_SOURCE_IMAGE                = -6017,
+    ERROR_SCENE_INVALID_NODE_HIERARCHY              = -6018,
+    ERROR_SCENE_INVALID_STANDALONE_OPERATION        = -6019,
 };
 
 inline const char* ToString(ppx::Result value)

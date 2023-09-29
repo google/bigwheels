@@ -38,7 +38,7 @@ void Camera::LookAt(const float3& eye, const float3& target, const float3& up)
     mEyePosition          = eye;
     mTarget               = target;
     mWorldUp              = up;
-    mViewDirection        = glm::normalize(mEyePosition - mTarget);
+    mViewDirection        = glm::normalize(mTarget - mEyePosition);
     mViewMatrix           = glm::scale(yAxis) * glm::lookAt(mEyePosition, mTarget, mWorldUp);
     mViewProjectionMatrix = mProjectionMatrix * mViewMatrix;
     mInverseViewMatrix    = glm::inverse(mViewMatrix);
@@ -58,7 +58,7 @@ float3 Camera::WorldToViewVector(const float3& worldVector) const
 
 void Camera::MoveAlongViewDirection(float distance)
 {
-    float3 eyePosition = mEyePosition + (distance * -mViewDirection);
+    float3 eyePosition = mEyePosition + (distance * mViewDirection);
     LookAt(eyePosition, mTarget, mWorldUp);
 }
 
