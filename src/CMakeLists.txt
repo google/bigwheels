@@ -182,7 +182,6 @@ list(
     ${INC_DIR}/ppx/window.h
     ${INC_DIR}/ppx/wire_mesh.h
     ${INC_DIR}/ppx/xr_component.h
-    ${INC_DIR}/ppx/xr_composition_layers.h
 )
 
 list(
@@ -217,7 +216,6 @@ list(
     ${SRC_DIR}/ppx/window.cpp
     ${SRC_DIR}/ppx/wire_mesh.cpp
     ${SRC_DIR}/ppx/xr_component.cpp
-    ${SRC_DIR}/ppx/xr_composition_layers.cpp
     ${SRC_DIR}/ppx/imgui/font_inconsolata.h
     ${SRC_DIR}/ppx/imgui/font_inconsolata.cpp
 )
@@ -277,6 +275,26 @@ list(
     ${SRC_DIR}/ppx/grfx/grfx_text_draw.cpp
     ${SRC_DIR}/ppx/grfx/grfx_texture.cpp
     ${SRC_DIR}/ppx/grfx/grfx_util.cpp
+)
+
+list(
+    APPEND PPX_SCENE_HEADER_FILES
+    ${INC_DIR}/ppx/scene/scene_config.h
+    ${INC_DIR}/ppx/scene/scene_loader.h
+    ${INC_DIR}/ppx/scene/scene_material.h
+    ${INC_DIR}/ppx/scene/scene_mesh.h
+    ${INC_DIR}/ppx/scene/scene_node.h
+    ${INC_DIR}/ppx/scene/scene_resource_manager.h
+    ${INC_DIR}/ppx/scene/scene_scene.h
+)
+
+list(
+    APPEND PPX_SCENE_SOURCE_FILES
+    ${SRC_DIR}/ppx/scene/scene_material.cpp
+    ${SRC_DIR}/ppx/scene/scene_mesh.cpp
+    ${SRC_DIR}/ppx/scene/scene_node.cpp
+    ${SRC_DIR}/ppx/scene/scene_resource_manager.cpp
+    ${SRC_DIR}/ppx/scene/scene_scene.cpp
 )
 
 if (PPX_D3D12)
@@ -395,6 +413,8 @@ source_group("ppx-grfx-dx12\\header"  FILES ${PPX_GRFX_DX12_HEADER_FILES})
 source_group("ppx-grfx-dx12\\source"  FILES ${PPX_GRFX_DX12_SOURCE_FILES})
 source_group("ppx-grfx-vk\\header"    FILES ${PPX_GRFX_VK_HEADER_FILES})
 source_group("ppx-grfx-vk\\source"    FILES ${PPX_GRFX_VK_SOURCE_FILES})
+source_group("ppx-scene\\header"      FILES ${PPX_SCENE_HEADER_FILES})
+source_group("ppx-scene\\source"      FILES ${PPX_SCENE_SOURCE_FILES})
 source_group("third_party\\imgui"     FILES ${IMGUI_HEADER_FILES} ${IMGUI_SOURCE_FILES})
 source_group("third_party\\json"      FILES ${JSON_HEADER_FILES})
 source_group("third_party\\xxHash"    FILES ${XXHASH_FILES})
@@ -415,6 +435,8 @@ add_library(
     ${PPX_GRFX_DX12_SOURCE_FILES}
     ${PPX_GRFX_VK_HEADER_FILES}
     ${PPX_GRFX_VK_SOURCE_FILES}
+    ${PPX_SCENE_HEADER_FILES}
+    ${PPX_SCENE_SOURCE_FILES}
     ${CONTRIB_FILES}
     ${IMGUI_HEADER_FILES}
     ${IMGUI_SOURCE_FILES}
