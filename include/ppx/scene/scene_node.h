@@ -180,7 +180,7 @@ public:
     void SetType(const scene::LightType type) { mLightType = type; }
     void SetColor(const float3& color) { mColor = color; }
     void SetIntensity(float intensity) { mIntensity = intensity; }
-    void SetDistance(float distance) { mDistance; }
+    void SetDistance(float distance) { mDistance = distance; }
     void SetSpotInnerConeAngle(float angle) { mSpotInnerConeAngle = angle; }
     void SetSpotOuterConeAngle(float angle) { mSpotOuterConeAngle = angle; }
 
