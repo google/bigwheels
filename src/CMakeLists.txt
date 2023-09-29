@@ -280,7 +280,6 @@ list(
 list(
     APPEND PPX_SCENE_HEADER_FILES
     ${INC_DIR}/ppx/scene/scene_config.h
-    ${INC_DIR}/ppx/scene/scene_loader.h
     ${INC_DIR}/ppx/scene/scene_material.h
     ${INC_DIR}/ppx/scene/scene_mesh.h
     ${INC_DIR}/ppx/scene/scene_node.h
