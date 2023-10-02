@@ -48,6 +48,11 @@ const float4x4& Node::GetEvaluatedMatrix() const
     return mEvaluatedMatrix;
 }
 
+void Node::SetParent(scene::Node* pNewParent)
+{
+    mParent = pNewParent;
+}
+
 void Node::SetEvaluatedDirty()
 {
     mEvaluatedDirty = true;
@@ -80,18 +85,6 @@ void Node::SetRotationOrder(Transform::RotationOrder value)
     SetEvaluatedDirty();
 }
 
-void Node::SetParent(scene::Node* pNewParent)
-{
-    auto pCurrentParent = GetParent();
-    if (!IsNull(pCurrentParent)) {
-        pCurrentParent->RemoveChild(this);
-    }
-
-    mParent = pNewParent;
-
-    SetEvaluatedDirty();
-}
-
 scene::Node* Node::GetChild(uint32_t index) const
 {
     scene::Node* pChild = nullptr;
@@ -101,48 +94,56 @@ scene::Node* Node::GetChild(uint32_t index) const
     return pChild;
 }
 
-ppx::Result Node::AddChild(scene::Node* pNode)
+ppx::Result Node::AddChild(scene::Node* pNewChild)
 {
     if (IsNull(mScene)) {
         return ppx::ERROR_SCENE_INVALID_STANDALONE_OPERATION;
     }
 
-    if (IsNull(pNode)) {
+    if (IsNull(pNewChild)) {
         return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
     }
 
-    // Make sure node isn't the parent or in the hierarchy.
-    scene::Node* pParent = this;
-    while (!IsNull(pParent)) {
-        if (pParent == pNode) {
-            return ppx::ERROR_SCENE_INVALID_NODE_HIERARCHY;
-        }
-        pParent = pParent->GetParent();
-    }
-
-    // Make sure child isn't already in mChildren
-    if (ElementExists(pNode, mChildren)) {
+    // Don't add new child if it already exists
+    auto it = std::find(mChildren.begin(), mChildren.end(), pNewChild);
+    if (it != mChildren.end()) {
         return ppx::ERROR_DUPLICATE_ELEMENT;
     }
 
-    // Set node's parent, this will remove it from the current parent
-    pNode->SetParent(this);
+    // Don't add new child if it currently has a parent
+    const auto pCurrentParent = pNewChild->GetParent();
+    if (!IsNull(pCurrentParent)) {
+        return ppx::ERROR_SCENE_NODE_ALREADY_HAS_PARENT;
+    }
 
-    // Add child to current node
-    mChildren.push_back(pNode);
+    pNewChild->SetParent(this);
+
+    mChildren.push_back(pNewChild);
 
     return ppx::SUCCESS;
 }
 
-void Node::RemoveChild(const scene::Node* pChild)
+scene::Node* Node::RemoveChild(const scene::Node* pChild)
 {
     if (IsNull(pChild)) {
-        return;
+        return nullptr;
     }
 
+    // Return NULL if pChild isn't in mChildren
+    auto it = std::find(mChildren.begin(), mChildren.end(), pChild);
+    if (it == mChildren.end()) {
+        return nullptr;
+    }
+
+    // Remove pChild from mChildren
     mChildren.erase(
         std::remove(mChildren.begin(), mChildren.end(), pChild),
         mChildren.end());
+
+    scene::Node* pParentlessChild = const_cast<scene::Node*>(pChild);
+    pParentlessChild->SetParent(nullptr);
+
+    return pParentlessChild;
 }
 
 // -------------------------------------------------------------------------------------------------
