@@ -28,7 +28,7 @@ namespace scene {
 //
 // The resource manager acts as the external owner of all shared resources
 // for scenes and meshes. Required objects can be shared in a variety of
-// difference cases:
+// different cases:
 //   - images and image views can be shared among textures
 //   - textures can be shared among materials by way of texture views
 //   - materials can be shared among primitive batches

@@ -23,7 +23,7 @@ namespace scene {
 
 // Mesh Data
 //
-// Container for geomtry data and the buffer views required by
+// Container for geometry data and the buffer views required by
 // a renderer. scene::MeshData objects can be shared among different
 // scene::Mesh instances.
 //
@@ -80,7 +80,7 @@ struct PrimitiveBatch
 // Mesh
 //
 // Contains all the information necessary to render a model:
-//   - geomtry data reference
+//   - geometry data reference
 //   - primitive batches
 //   - material references
 //
