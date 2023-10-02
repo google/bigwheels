@@ -21,10 +21,11 @@ namespace grfx {
 enum Api
 {
     API_UNDEFINED = 0,
-    API_VK_1_1,
-    API_VK_1_2,
-    API_DX_12_0,
-    API_DX_12_1,
+    API_VK_1_1    = (1 << 16) | (1 << 0),
+    API_VK_1_2    = (1 << 16) | (2 << 0),
+    API_VK_1_3    = (1 << 16) | (3 << 0),
+    API_DX_12_0   = (12 << 16) | (0 << 0),
+    API_DX_12_1   = (12 << 16) | (1 << 0),
 };
 
 enum AttachmentLoadOp
