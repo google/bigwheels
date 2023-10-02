@@ -41,9 +41,9 @@ enum NodeType
 //
 // This node objects can also be used as standalone objects outside of a scene. Standalone
 // nodes will have neither a parent or children. Loader implementations must not populate a
-// stadalone node's parent or children if loading a standalone node.
+// standalone node's parent or children if loading a standalone node.
 //
-// When used as a standalone node, scene::Node stores only transform informatio.
+// When used as a standalone node, scene::Node stores only transform information.
 //
 class Node
     : public ppx::Transform,
@@ -94,7 +94,7 @@ private:
 // Scene graph nodes that contains reference to a scene::Mesh object.
 //
 // When used as a standalone node, scene::Mesh stores a mesh and its required objects
-// as populated as by a loader.
+// as populated by a loader.
 //
 // See scene::Node class declaration for additional usages of scene::Node objects.
 //
@@ -119,7 +119,7 @@ private:
 
 // Scene Graph Camera Node
 //
-// Scene graph nodes that contains reference contains an instannce of
+// Scene graph nodes that contains reference contains an instance of
 // a ppx::Camera object. Can be used for both perspective and orthographic
 // cameras.
 //

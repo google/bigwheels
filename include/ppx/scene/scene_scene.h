@@ -30,7 +30,7 @@ namespace scene {
 // their required objects: meshes, mesh geometry data, materials, textures,
 // images, and samplers.
 //
-// See scene::Resource manager for details on object sharing among the various
+// See scene::ResourceManager for details on object sharing among the various
 // elements of the scene.
 //
 class Scene

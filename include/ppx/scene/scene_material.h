@@ -109,7 +109,7 @@ private:
 
 // Texture View
 //
-// This struct contains a reference a texture object and the transform
+// This struct contains a reference to a texture object and the transform
 // data that must be applied by the shader before sampling a pixel.
 //
 // scene::Texture view objects are used directly by scene::Matreial objets.
@@ -172,7 +172,7 @@ public:
 
 // Unlit Material
 //
-// Implemtations should render a texture without any lighting. Base color factor
+// Implementations should render a texture without any lighting. Base color factor
 // can act as a multiplier for the values from base color texture.
 //
 // Corresponds to GLTF's KHR_materials_unlit:
@@ -274,7 +274,7 @@ private:
 // Material Factory
 //
 // Customizable factory that provides implementations of materials. An application
-// can inherit this class to provide implemtnations of materials as it sees fit.
+// can inherit this class to provide implementations of materials as it sees fit.
 //
 // Materials must be uniquely identifiable by their Material Ident string.
 //
