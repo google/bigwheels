@@ -281,6 +281,9 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
         return ppxres;
     }
 
+    // We can't include structs whose extesnions aren't enabled, so do the tracking.
+    std::vector<VkBaseOutStructure*> extensionStructs;
+
     // VK_EXT_descriptor_indexing
     VkPhysicalDeviceDescriptorIndexingFeatures descriptorIndexingFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES};
     if ((GetInstance()->GetApi() >= grfx::API_VK_1_2) || ElementExists(std::string(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME), mExtensions)) {
@@ -308,27 +311,36 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
         descriptorIndexingFeatures.descriptorBindingPartiallyBound                    = VK_FALSE;
         descriptorIndexingFeatures.descriptorBindingVariableDescriptorCount           = VK_FALSE;
         descriptorIndexingFeatures.runtimeDescriptorArray                             = VK_TRUE;
+
+        extensionStructs.push_back(reinterpret_cast<VkBaseOutStructure*>(&descriptorIndexingFeatures));
     }
 
     // VK_KHR_timeline_semaphore
     VkPhysicalDeviceTimelineSemaphoreFeatures timelineSemaphoreFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES};
     if ((GetInstance()->GetApi() >= grfx::API_VK_1_2) || ElementExists(std::string(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME), mExtensions)) {
         timelineSemaphoreFeatures.timelineSemaphore = VK_TRUE;
+
+        extensionStructs.push_back(reinterpret_cast<VkBaseOutStructure*>(&timelineSemaphoreFeatures));
     }
-    descriptorIndexingFeatures.pNext = &timelineSemaphoreFeatures;
 
     // VK_EXT_host_query_reset
     VkPhysicalDeviceHostQueryResetFeatures queryResetFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES_EXT};
     if ((GetInstance()->GetApi() >= grfx::API_VK_1_2) || ElementExists(std::string(VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME), mExtensions)) {
         queryResetFeatures.hostQueryReset = VK_TRUE;
+
+        extensionStructs.push_back(reinterpret_cast<VkBaseOutStructure*>(&queryResetFeatures));
     }
-    timelineSemaphoreFeatures.pNext = &queryResetFeatures;
+
+    // Chain pNexts
+    for (size_t i = 0; i < (extensionStructs.size() - 1); ++i) {
+        extensionStructs[i]->pNext = extensionStructs[i+1];
+    }
 
     // Get C strings
     std::vector<const char*> extensions = GetCStrings(mExtensions);
 
     VkDeviceCreateInfo vkci      = {VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
-    vkci.pNext                   = &descriptorIndexingFeatures;
+    vkci.pNext                   = extensionStructs.empty() ? nullptr : extensionStructs[0];
     vkci.flags                   = 0;
     vkci.queueCreateInfoCount    = CountU32(queueCreateInfos);
     vkci.pQueueCreateInfos       = DataPtr(queueCreateInfos);
