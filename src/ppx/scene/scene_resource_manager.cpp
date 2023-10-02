@@ -90,40 +90,11 @@ ppx::Result ResourceManager::Cache(uint64_t objectId, const scene::MeshRef& obje
 
 void ResourceManager::DestroyAll()
 {
-    for (auto& it : mImages) {
-        auto objectRef = it.second;
-        objectRef->~Image();
-    }
     mImages.clear();
-
-    for (auto& it : mSamplers) {
-        auto objectRef = it.second;
-        objectRef->~Sampler();
-    }
     mSamplers.clear();
-
-    for (auto& it : mTextures) {
-        auto objectRef = it.second;
-        objectRef->~Texture();
-    }
     mTextures.clear();
-
-    for (auto& it : mMaterials) {
-        auto objectRef = it.second;
-        objectRef->~Material();
-    }
     mMaterials.clear();
-
-    for (auto& it : mMeshData) {
-        auto objectRef = it.second;
-        objectRef->~MeshData();
-    }
     mMeshData.clear();
-
-    for (auto& it : mMeshes) {
-        auto objectRef = it.second;
-        objectRef->~Mesh();
-    }
     mMeshes.clear();
 }
 
