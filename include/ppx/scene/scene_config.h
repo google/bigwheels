@@ -49,7 +49,6 @@ using MeshRef     = std::shared_ptr<scene::Mesh>;
 using MeshDataRef = std::shared_ptr<scene::MeshData>;
 using NodeRef     = std::shared_ptr<scene::Node>;
 using SamplerRef  = std::shared_ptr<scene::Sampler>;
-using SceneRef    = std::shared_ptr<scene::Scene>;
 using TextureRef  = std::shared_ptr<scene::Texture>;
 
 enum LightType
