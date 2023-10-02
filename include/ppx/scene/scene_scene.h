@@ -37,11 +37,8 @@ class Scene
     : public grfx::NamedObjectTrait
 {
 public:
-    Scene();
+    Scene(std::unique_ptr<scene::ResourceManager>&& resourceManager);
     virtual ~Scene();
-
-    scene::ResourceManager*       GetResourceManager() { return &mResourceManager; }
-    const scene::ResourceManager* GetResourceManager() const { return &mResourceManager; }
 
     // Returns the number of all the nodes in the scene
     uint32_t GetNodeCount() const { return CountU32(mNodes); }
@@ -78,7 +75,7 @@ public:
     // Returns a light node that matches name
     scene::LightNode* FindLightNode(const std::string& name) const;
 
-    ppx::Result AddNode(const scene::NodeRef& node);
+    ppx::Result AddNode(scene::NodeRef&& node);
 
 private:
     template <typename NodeT>
@@ -98,11 +95,11 @@ private:
     }
 
 private:
-    scene::ResourceManager          mResourceManager = {};
-    std::vector<scene::NodeRef>     mNodes           = {};
-    std::vector<scene::MeshNode*>   mMeshNodes       = {};
-    std::vector<scene::CameraNode*> mCameraNodes     = {};
-    std::vector<scene::LightNode*>  mLightNodes      = {};
+    std::unique_ptr<scene::ResourceManager> mResourceManager = nullptr;
+    std::vector<scene::NodeRef>             mNodes           = {};
+    std::vector<scene::MeshNode*>           mMeshNodes       = {};
+    std::vector<scene::CameraNode*>         mCameraNodes     = {};
+    std::vector<scene::LightNode*>          mLightNodes      = {};
 };
 
 } // namespace scene

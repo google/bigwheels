@@ -3,13 +3,14 @@
 namespace ppx {
 namespace scene {
 
-Scene::Scene()
+Scene::Scene(std::unique_ptr<scene::ResourceManager>&& resourceManager)
+    : mResourceManager(std::move(resourceManager))
 {
 }
 
 Scene::~Scene()
 {
-    mResourceManager.DestroyAll();
+    mResourceManager->DestroyAll();
 }
 
 scene::Node* Scene::GetNode(uint32_t index) const
@@ -78,7 +79,7 @@ scene::LightNode* Scene::FindLightNode(const std::string& name) const
     return FindNodeByName(name, mLightNodes);
 }
 
-ppx::Result Scene::AddNode(const scene::NodeRef& node)
+ppx::Result Scene::AddNode(scene::NodeRef&& node)
 {
     if (!node) {
         return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
