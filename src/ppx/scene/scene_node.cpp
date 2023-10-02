@@ -88,7 +88,7 @@ void Node::SetParent(scene::Node* pNewParent)
     }
 
     mParent = pNewParent;
-    
+
     SetEvaluatedDirty();
 }
 
