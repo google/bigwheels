@@ -66,15 +66,18 @@ public:
     const float4x4& GetEvaluatedMatrix() const;
 
     scene::Node* GetParent() const { return mParent; }
-    void         SetParent(scene::Node* pNewParent);
 
     uint32_t     GetChildCount() const { return CountU32(mChildren); }
     scene::Node* GetChild(uint32_t index) const;
 
-    ppx::Result AddChild(scene::Node* pNew);
-    void        RemoveChild(const scene::Node* pChild);
+    // Adds new child if it doesn't have a parent and if it isn't already a child.
+    ppx::Result AddChild(scene::Node* pNewChild);
+
+    // Removes child if it exists and returns a non-const parentless child, otherwise returns NULL.
+    scene::Node* RemoveChild(const scene::Node* pChild);
 
 private:
+    void SetParent(scene::Node* pNewParent);
     void SetEvaluatedDirty();
 
 private:
