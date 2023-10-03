@@ -58,6 +58,29 @@ MeshData::~MeshData()
 }
 
 // -------------------------------------------------------------------------------------------------
+// PrimitiveBatch
+// -------------------------------------------------------------------------------------------------
+PrimitiveBatch::PrimitiveBatch(
+    const scene::MaterialRef& material,
+    uint32_t                  indexOffset,
+    uint32_t                  vertexOffset,
+    uint32_t                  indexCount,
+    uint32_t                  vertexCount,
+    ppx::AABB                 boundingBox)
+    : mMaterial(material),
+      mIndexOffset(indexOffset),
+      mVertexOffset(vertexOffset),
+      mIndexCount(indexCount),
+      mVertexCount(vertexCount),
+      mBoundingBox(boundingBox)
+{
+}
+
+PrimitiveBatch::~PrimitiveBatch()
+{
+}
+
+// -------------------------------------------------------------------------------------------------
 // Mesh
 // -------------------------------------------------------------------------------------------------
 Mesh::Mesh(
@@ -102,20 +125,20 @@ void Mesh::UpdateBoundingBox()
 {
     mBoundingBox.Set(float3(0));
     for (const auto& batch : mBatches) {
-        mBoundingBox.Expand(batch.boundingBox.GetMin());
-        mBoundingBox.Expand(batch.boundingBox.GetMax());
+        mBoundingBox.Expand(batch.GetBoundingBox().GetMin());
+        mBoundingBox.Expand(batch.GetBoundingBox().GetMax());
     }
 }
 
-std::vector<scene::Material*> Mesh::GetMaterials() const
+std::vector<const scene::Material*> Mesh::GetMaterials() const
 {
-    std::vector<scene::Material*> materials;
+    std::vector<const scene::Material*> materials;
     for (auto& batch : mBatches) {
-        if (!batch.material) {
+        if (!IsNull(batch.GetMaterial())) {
             // @TODO: need a better way missing materials
             continue;
         }
-        materials.push_back(batch.material.get());
+        materials.push_back(batch.GetMaterial());
     }
     return materials;
 }

@@ -113,19 +113,38 @@ private:
 
 // Texture View
 //
-// This struct contains a reference to a texture object and the transform
+// This class contains a reference to a texture object and the transform
 // data that must be applied by the shader before sampling a pixel.
 //
 // scene::Texture view objects are used directly by scene::Matreial objets.
 //
 // Corresponds to cgltf's texture view object.
 //
-struct TextureView
+class TextureView
 {
-    scene::TextureRef texture           = nullptr;
-    float2            texCoordTranslate = float2(0, 0);
-    float             texCoordRotate    = 0;
-    float2            texCoordScale     = float2(1, 1);
+public:
+    TextureView();
+
+    TextureView(
+        const scene::TextureRef& texture,
+        float2                   texCoordTranslate,
+        float                    texCoordRotate,
+        float2                   texCoordScale);
+
+    ~TextureView();
+
+    const scene::Texture* GetTexture() const { return mTexture.get(); }
+    const float2&         GetTexCoordTranslate() const { return mTexCoordTranslate; }
+    float                 GetTexCoordRotate() const { return mTexCoordRotate; }
+    const float2&         GetTexCoordScale() const { return mTexCoordScale; }
+
+    bool HasTexture() const { return mTexture ? true : false; }
+
+private:
+    scene::TextureRef mTexture           = nullptr;
+    float2            mTexCoordTranslate = float2(0, 0);
+    float             mTexCoordRotate    = 0;
+    float2            mTexCoordScale     = float2(1, 1);
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -197,7 +216,7 @@ public:
     const scene::TextureView& GetBaseColorTexture() const { return mBaseColorTextureView; }
     scene::TextureView*       GetBaseColorTextureViewPtr() { return &mBaseColorTextureView; }
 
-    bool HasBaseColorTexture() const { return mBaseColorTextureView.texture ? true : false; }
+    bool HasBaseColorTexture() const { return mBaseColorTextureView.HasTexture(); }
 
     void SetBaseColorFactor(const float4& value);
 
@@ -246,11 +265,11 @@ public:
     scene::TextureView* GetOcclusionTextureViewPtr() { return &mOcclusionTextureView; }
     scene::TextureView* GetEmissiveTextureViewPtr() { return &mEmissiveTextureView; }
 
-    bool HasBaseColorTexture() const { return mBaseColorTextureView.texture ? true : false; }
-    bool HasMetallicRoughnessTexture() const { return mMetallicRoughnessTextureView.texture ? true : false; }
-    bool HasNormalTexture() const { return mNormalTextureView.texture ? true : false; }
-    bool HasOcclusionTexture() const { return mOcclusionTextureView.texture ? true : false; }
-    bool HasEmissiveTexture() const { return mEmissiveTextureView.texture ? true : false; }
+    bool HasBaseColorTexture() const { return mBaseColorTextureView.HasTexture(); }
+    bool HasMetallicRoughnessTexture() const { return mMetallicRoughnessTextureView.HasTexture(); }
+    bool HasNormalTexture() const { return mNormalTextureView.HasTexture(); }
+    bool HasOcclusionTexture() const { return mOcclusionTextureView.HasTexture(); }
+    bool HasEmissiveTexture() const { return mEmissiveTextureView.HasTexture(); }
 
     void SetBaseColorFactor(const float4& value);
     void SetMetallicFactor(float value);
