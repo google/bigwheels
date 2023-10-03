@@ -29,9 +29,14 @@ Node::~Node()
 {
 }
 
-void Node::SetVisible(bool visible)
+void Node::SetVisible(bool visible, bool recursive)
 {
     mVisible = visible;
+    if (recursive) {
+        for (auto pChild : mChildren) {
+            pChild->SetVisible(visible, recursive);
+        }
+    }
 }
 
 const float4x4& Node::GetEvaluatedMatrix() const

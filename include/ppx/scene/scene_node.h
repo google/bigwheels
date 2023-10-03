@@ -56,7 +56,7 @@ public:
     virtual scene::NodeType GetNodeType() const { return scene::NODE_TYPE_TRANSFORM; }
 
     bool IsVisible() const { return mVisible; }
-    void SetVisible(bool visible);
+    void SetVisible(bool visible, bool recursive = false);
 
     virtual void SetTranslation(const float3& translation) override;
     virtual void SetRotation(const float3& rotation) override;
