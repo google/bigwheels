@@ -193,6 +193,7 @@ Result Swapchain::CreateRenderTargets()
         grfx::RenderTargetViewCreateInfo rtvCreateInfo = grfx::RenderTargetViewCreateInfo::GuessFromImage(imagePtr);
         rtvCreateInfo.loadOp                           = ppx::grfx::ATTACHMENT_LOAD_OP_CLEAR;
         rtvCreateInfo.ownership                        = grfx::OWNERSHIP_RESTRICTED;
+
         grfx::RenderTargetViewPtr rtv;
         Result                    ppxres = GetDevice()->CreateRenderTargetView(&rtvCreateInfo, &rtv);
         if (Failed(ppxres)) {
@@ -215,6 +216,7 @@ Result Swapchain::CreateRenderTargets()
             dsvCreateInfo.depthLoadOp                      = ppx::grfx::ATTACHMENT_LOAD_OP_CLEAR;
             dsvCreateInfo.stencilLoadOp                    = ppx::grfx::ATTACHMENT_LOAD_OP_CLEAR;
             dsvCreateInfo.ownership                        = ppx::grfx::OWNERSHIP_RESTRICTED;
+
             grfx::DepthStencilViewPtr dsv;
             ppxres = GetDevice()->CreateDepthStencilView(&dsvCreateInfo, &dsv);
             if (Failed(ppxres)) {
@@ -371,7 +373,11 @@ Result Swapchain::GetRenderTargetView(uint32_t imageIndex, grfx::AttachmentLoadO
 
 Result Swapchain::GetDepthStencilView(uint32_t imageIndex, grfx::DepthStencilView** ppView) const
 {
-    return mClearRenderPasses[imageIndex]->GetDepthStencilView(ppView);
+    if (!IsIndexInRange(imageIndex, mDepthStencilViews)) {
+        return ppx::ERROR_OUT_OF_RANGE;
+    }
+    *ppView = mDepthStencilViews[imageIndex];
+    return ppx::SUCCESS;
 }
 
 grfx::ImagePtr Swapchain::GetColorImage(uint32_t imageIndex) const
@@ -404,7 +410,9 @@ grfx::RenderTargetViewPtr Swapchain::GetRenderTargetView(uint32_t imageIndex, gr
 
 grfx::DepthStencilViewPtr Swapchain::GetDepthStencilView(uint32_t imageIndex) const
 {
-    return mClearRenderPasses[imageIndex]->GetDepthStencilView();
+    grfx::DepthStencilViewPtr object;
+    GetDepthStencilView(imageIndex, &object);
+    return object;
 }
 
 Result Swapchain::AcquireNextImage(
