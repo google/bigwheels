@@ -65,14 +65,33 @@ private:
 // counts correspond to the graphics API's draw call. Bounding box
 // can be used by renderer.
 //
-struct PrimitiveBatch
+class PrimitiveBatch
 {
-    scene::MaterialRef material     = nullptr;
-    uint32_t           indexOffset  = 0;
-    uint32_t           vertexOffset = 0;
-    uint32_t           indexCount   = 0;
-    uint32_t           vertexCount  = 0;
-    ppx::AABB          boundingBox  = {};
+public:
+    PrimitiveBatch(
+        const scene::MaterialRef& material,
+        uint32_t                  indexOffset,
+        uint32_t                  vertexOffset,
+        uint32_t                  indexCount,
+        uint32_t                  vertexCount,
+        ppx::AABB                 boundingBox);
+
+    ~PrimitiveBatch();
+
+    const scene::Material* GetMaterial() const { return mMaterial.get(); }
+    uint32_t               GetIndexOffset() const { return mIndexOffset; }
+    uint32_t               GetVertexOffset() const { return mVertexOffset; }
+    uint32_t               GetIndexCount() const { return mIndexCount; }
+    uint32_t               GetVertexCount() const { return mVertexCount; }
+    ppx::AABB              GetBoundingBox() const { return mBoundingBox; }
+
+private:
+    scene::MaterialRef mMaterial     = nullptr;
+    uint32_t           mIndexOffset  = 0;
+    uint32_t           mVertexOffset = 0;
+    uint32_t           mIndexCount   = 0;
+    uint32_t           mVertexCount  = 0;
+    ppx::AABB          mBoundingBox  = {};
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -115,7 +134,7 @@ public:
     const ppx::AABB& GetBoundingBox() const { return mBoundingBox; }
     void             UpdateBoundingBox();
 
-    std::vector<scene::Material*> GetMaterials() const;
+    std::vector<const scene::Material*> GetMaterials() const;
 
 private:
     std::unique_ptr<scene::ResourceManager> mResourceManager = nullptr;

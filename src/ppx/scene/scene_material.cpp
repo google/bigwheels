@@ -64,6 +64,29 @@ Texture::~Texture()
 }
 
 // -------------------------------------------------------------------------------------------------
+// TextureView
+// -------------------------------------------------------------------------------------------------
+TextureView::TextureView()
+{
+}
+
+TextureView::TextureView(
+    const scene::TextureRef& texture,
+    float2                   texCoordTranslate,
+    float                    texCoordRotate,
+    float2                   texCoordScale)
+    : mTexture(texture),
+      mTexCoordTranslate(texCoordTranslate),
+      mTexCoordRotate(texCoordRotate),
+      mTexCoordScale(texCoordScale)
+{
+}
+
+TextureView::~TextureView()
+{
+}
+
+// -------------------------------------------------------------------------------------------------
 // ErrorMaterial
 // -------------------------------------------------------------------------------------------------
 scene::VertexAttributeFlags ErrorMaterial::GetRequiredVertexAttributes() const
