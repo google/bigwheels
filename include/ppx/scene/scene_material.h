@@ -30,6 +30,8 @@ namespace scene {
 // This class wraps a grfx::Image and a grfx::SampledImage objects to make
 // pathing access to the GPU pipelines easier.
 //
+// This class owns mImage and mImageView and destroys them in the destructor.
+//
 // scene::Image objects can be shared between different scene::Texture objects.
 //
 // Corresponds to GLTF's image object.
@@ -57,6 +59,8 @@ private:
 //
 // This class wraps a grfx::Sampler object to make sharability on the ppx::scene
 // level easier to understand.
+//
+// This class owns mSampler and destroys it in the destructor.
 //
 // scene::Sampler objects can be shared between different scene::Texture objects.
 //
