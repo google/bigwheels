@@ -191,6 +191,45 @@ private:
         std::string name;
     };
 
+    struct SetupTimer
+    {
+        struct Timer
+        {
+            std::chrono::time_point<std::chrono::system_clock> start;
+            double                                             elapsedSeconds;
+            std::string                                        name;
+        };
+
+        // The first one is the total setup
+        std::array<Timer, 14> timers;
+
+        void setName(size_t timerIndex, std::string name)
+        {
+            timers[timerIndex].name           = name;
+            timers[timerIndex].elapsedSeconds = 0;
+        }
+        void tic(size_t timerIndex)
+        {
+            timers[timerIndex].start = std::chrono::system_clock::now();
+        }
+        void toc(size_t timerIndex)
+        {
+            std::chrono::duration<double> period = std::chrono::system_clock::now() - timers[timerIndex].start;
+            timers[timerIndex].elapsedSeconds += period.count();
+        }
+        void print()
+        {
+            PPX_LOG_INFO("SETUP TIMING [sec]: ");
+            PPX_LOG_INFO(timers[0].elapsedSeconds << ": " << timers[0].name);
+            double remainingTime = timers[0].elapsedSeconds;
+            for (size_t i = 1; i < timers.size(); i++) {
+                PPX_LOG_INFO("  " << timers[i].elapsedSeconds << ": " << timers[i].name);
+                remainingTime -= timers[i].elapsedSeconds;
+            }
+            PPX_LOG_INFO(remainingTime << ": Total untimed setup");
+        }
+    };
+
     std::vector<PerFrame>                                         mPerFrame;
     FreeCamera                                                    mCamera;
     float3                                                        mLightPosition = float3(10, 250, 10);
@@ -216,6 +255,7 @@ private:
     MultiDimensionalIndexer                                       mGraphicsPipelinesIndexer;
     MultiDimensionalIndexer                                       mMeshesIndexer;
     std::vector<LOD>                                              mSphereLODs;
+    SetupTimer                                                    mSetupTimer;
 
 private:
     std::shared_ptr<KnobDropdown<std::string>> pKnobVs;
@@ -241,6 +281,12 @@ private:
     void CreateSpherePipelines();
 
     void SetupNoiseQuads();
+
+    void RepeatGeometryNonPositionVertexData(Geometry* dstGeom, const Geometry* srcGeom, size_t repeatCount);
+
+    void WritePositionData(Geometry::Buffer* dstBuffer, const TriMeshVertexData& vtx, size_t elementIndex);
+
+    void WritePositionData(Geometry::Buffer* dstBuffer, const TriMeshVertexDataCompressed& vtx, size_t elementIndex);
 };
 
 void MultiDimensionalIndexer::AddDimension(size_t size)
@@ -395,6 +441,9 @@ int8_t MapFloatToInt8(float x)
 
 void ProjApp::Setup()
 {
+    mSetupTimer.setName(0, "Total setup");
+    mSetupTimer.tic(0);
+
     // Cameras
     {
         mCamera.LookAt(mCamera.GetEyePosition(), mCamera.GetTarget());
@@ -402,6 +451,8 @@ void ProjApp::Setup()
     }
 
     // Texture image, view, and sampler
+    mSetupTimer.setName(1, "loading textures");
+    mSetupTimer.tic(1);
     {
         // SkyBox
         grfx_util::ImageOptions options = grfx_util::ImageOptions().MipLevelCount(PPX_REMAINING_MIP_LEVELS);
@@ -466,18 +517,23 @@ void ProjApp::Setup()
         samplerCreateInfo.maxLod                  = FLT_MAX;
         PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &mMetalRoughnessTexture.sampler));
     }
+    mSetupTimer.toc(1);
 
     // SkyBox mesh
+    mSetupTimer.setName(2, "skybox");
+    mSetupTimer.tic(2);
     {
         TriMesh  mesh = TriMesh::CreateCube(float3(1, 1, 1), TriMeshOptions().TexCoords());
         Geometry geo;
         PPX_CHECKED_CALL(Geometry::Create(GeometryOptions::InterleavedU16().AddTexCoord(), mesh, &geo));
         PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mSkyBox.mesh));
     }
+    mSetupTimer.toc(2);
 
     // Meshes for sphere instances
     {
-        std::chrono::time_point<std::chrono::system_clock> tstart, tend, t1, t2, t3;
+        mSetupTimer.setName(3, "sphere: grid, shuffle, LOD meshes");
+        mSetupTimer.tic(3);
 
         // 3D grid
         Grid grid;
@@ -498,11 +554,18 @@ void ProjApp::Setup()
         mSphereLODs.push_back(LOD{/* longitudeSegments = */ 20, /* latitudeSegments = */ 20, kAvailableLODs[1]});
         mSphereLODs.push_back(LOD{/* longitudeSegments = */ 10, /* latitudeSegments = */ 10, kAvailableLODs[2]});
         PPX_ASSERT_MSG(mSphereLODs.size() == kAvailableLODs.size(), "LODs for spheres must be the same as the available LODs");
+        mSetupTimer.toc(3);
 
         // Create the meshes
+        mSetupTimer.setName(4, "sphere: creating geometry");
+        mSetupTimer.setName(5, "sphere: single sphere");
+        mSetupTimer.setName(6, "sphere: duplicate N times");
+        mSetupTimer.setName(7, "sphere: write unique vertex data");
+        mSetupTimer.setName(8, "sphere: write indices");
+        mSetupTimer.setName(9, "sphere: create mesh from geometry");
         uint32_t meshIndex = 0;
         for (LOD lod : mSphereLODs) {
-            tstart                           = std::chrono::system_clock::now();
+            mSetupTimer.tic(4);
             TriMesh        mesh              = TriMesh::CreateSphere(/* radius = */ 1, lod.longitudeSegments, lod.latitudeSegments, TriMeshOptions().Indices().TexCoords().Normals().Tangents());
             const uint32_t sphereVertexCount = mesh.GetCountPositions();
             const uint32_t sphereTriCount    = mesh.GetCountTriangles();
@@ -510,14 +573,52 @@ void ProjApp::Setup()
             PPX_LOG_INFO("LOD: " << lod.name);
             PPX_LOG_INFO("  Sphere vertex count: " << sphereVertexCount << " | triangle count: " << sphereTriCount);
 
+            // Single-sphere geometries
+            Geometry lowPrecisionInterleavedSingleSphere;
+            PPX_CHECKED_CALL(Geometry::Create(
+                GeometryOptions::InterleavedU32(grfx::FORMAT_R16G16B16_FLOAT)
+                    .AddTexCoord(grfx::FORMAT_R16G16_FLOAT)
+                    .AddNormal(grfx::FORMAT_R8G8B8A8_SNORM)
+                    .AddTangent(grfx::FORMAT_R8G8B8A8_SNORM)
+                    .MaxVertexCount(sphereVertexCount),
+                &lowPrecisionInterleavedSingleSphere));
+
+            Geometry lowPrecisionPositionPlanarSingleSphere;
+            PPX_CHECKED_CALL(Geometry::Create(
+                GeometryOptions::PositionPlanarU32(grfx::FORMAT_R16G16B16_FLOAT)
+                    .AddTexCoord(grfx::FORMAT_R16G16_FLOAT)
+                    .AddNormal(grfx::FORMAT_R8G8B8A8_SNORM)
+                    .AddTangent(grfx::FORMAT_R8G8B8A8_SNORM)
+                    .MaxVertexCount(sphereVertexCount),
+                &lowPrecisionPositionPlanarSingleSphere));
+
+            Geometry highPrecisionInterleavedSingleSphere;
+            PPX_CHECKED_CALL(Geometry::Create(
+                GeometryOptions::InterleavedU32()
+                    .AddTexCoord()
+                    .AddNormal()
+                    .AddTangent()
+                    .MaxVertexCount(sphereVertexCount),
+                &highPrecisionInterleavedSingleSphere));
+
+            Geometry highPrecisionPositionPlanarSingleSphere;
+            PPX_CHECKED_CALL(Geometry::Create(
+                GeometryOptions::PositionPlanarU32()
+                    .AddTexCoord()
+                    .AddNormal()
+                    .AddTangent()
+                    .MaxVertexCount(sphereVertexCount),
+                &highPrecisionPositionPlanarSingleSphere));
+
+            // Full geometries
             Geometry lowPrecisionInterleaved;
             PPX_CHECKED_CALL(Geometry::Create(
                 GeometryOptions::InterleavedU32(grfx::FORMAT_R16G16B16_FLOAT)
                     .AddTexCoord(grfx::FORMAT_R16G16_FLOAT)
                     .AddNormal(grfx::FORMAT_R8G8B8A8_SNORM)
                     .AddTangent(grfx::FORMAT_R8G8B8A8_SNORM)
-                    .FinalIndexCount(3 * sphereTriCount * kMaxSphereInstanceCount)
-                    .FinalVertexCount(sphereVertexCount * kMaxSphereInstanceCount),
+                    .MaxIndexCount(3 * sphereTriCount * kMaxSphereInstanceCount)
+                    .MaxVertexCount(sphereVertexCount * kMaxSphereInstanceCount),
                 &lowPrecisionInterleaved));
 
             Geometry lowPrecisionPositionPlanar;
@@ -526,8 +627,8 @@ void ProjApp::Setup()
                     .AddTexCoord(grfx::FORMAT_R16G16_FLOAT)
                     .AddNormal(grfx::FORMAT_R8G8B8A8_SNORM)
                     .AddTangent(grfx::FORMAT_R8G8B8A8_SNORM)
-                    .FinalIndexCount(3 * sphereTriCount * kMaxSphereInstanceCount)
-                    .FinalVertexCount(sphereVertexCount * kMaxSphereInstanceCount),
+                    .MaxIndexCount(3 * sphereTriCount * kMaxSphereInstanceCount)
+                    .MaxVertexCount(sphereVertexCount * kMaxSphereInstanceCount),
                 &lowPrecisionPositionPlanar));
 
             Geometry highPrecisionInterleaved;
@@ -536,8 +637,8 @@ void ProjApp::Setup()
                     .AddTexCoord()
                     .AddNormal()
                     .AddTangent()
-                    .FinalIndexCount(3 * sphereTriCount * kMaxSphereInstanceCount)
-                    .FinalVertexCount(sphereVertexCount * kMaxSphereInstanceCount),
+                    .MaxIndexCount(3 * sphereTriCount * kMaxSphereInstanceCount)
+                    .MaxVertexCount(sphereVertexCount * kMaxSphereInstanceCount),
                 &highPrecisionInterleaved));
 
             Geometry highPrecisionPositionPlanar;
@@ -546,18 +647,52 @@ void ProjApp::Setup()
                     .AddTexCoord()
                     .AddNormal()
                     .AddTangent()
-                    .FinalIndexCount(3 * sphereTriCount * kMaxSphereInstanceCount)
-                    .FinalVertexCount(sphereVertexCount * kMaxSphereInstanceCount),
+                    .MaxIndexCount(3 * sphereTriCount * kMaxSphereInstanceCount)
+                    .MaxVertexCount(sphereVertexCount * kMaxSphereInstanceCount),
                 &highPrecisionPositionPlanar));
+            mSetupTimer.toc(4);
 
-            tend                                          = std::chrono::system_clock::now();
-            std::chrono::duration<double> elapsed_seconds = tend - tstart;
-            std::cout << "seconds taken for geometry create: " << elapsed_seconds.count() << std::endl;
+            // Populate vertex buffers for a single sphere
+            mSetupTimer.tic(5);
+            for (uint32_t vertexIndex = 0; vertexIndex < sphereVertexCount; ++vertexIndex) {
+                TriMeshVertexData vertexData = {};
+                mesh.GetVertexData(vertexIndex, &vertexData);
 
-            double elapsed_12 = 0;
-            double elapsed_23 = 0;
+                TriMeshVertexDataCompressed vertexDataCompressed;
+                vertexDataCompressed.position = half3(glm::packHalf1x16(vertexData.position.x), glm::packHalf1x16(vertexData.position.y), glm::packHalf1x16(vertexData.position.z));
+                vertexDataCompressed.texCoord = half2(glm::packHalf1x16(vertexData.texCoord.x), glm::packHalf1x16(vertexData.texCoord.y));
+                vertexDataCompressed.normal   = i8vec4(MapFloatToInt8(vertexData.normal.x), MapFloatToInt8(vertexData.normal.y), MapFloatToInt8(vertexData.normal.z), MapFloatToInt8(1.0f));
+                vertexDataCompressed.tangent  = i8vec4(MapFloatToInt8(vertexData.tangent.x), MapFloatToInt8(vertexData.tangent.y), MapFloatToInt8(vertexData.tangent.z), MapFloatToInt8(vertexData.tangent.a));
+
+                lowPrecisionInterleavedSingleSphere.AppendVertexData(vertexDataCompressed);
+                lowPrecisionPositionPlanarSingleSphere.AppendVertexData(vertexDataCompressed);
+
+                highPrecisionInterleavedSingleSphere.AppendVertexData(vertexData);
+                highPrecisionPositionPlanarSingleSphere.AppendVertexData(vertexData);
+            }
+            mSetupTimer.toc(5);
+
+            mSetupTimer.tic(6);
+            // Copy single sphere vertex buffers into full buffers, since the non-position vertex buffer data is repeated.
+            RepeatGeometryNonPositionVertexData(&lowPrecisionInterleaved, &lowPrecisionInterleavedSingleSphere, kMaxSphereInstanceCount);
+            RepeatGeometryNonPositionVertexData(&lowPrecisionPositionPlanar, &lowPrecisionPositionPlanarSingleSphere, kMaxSphereInstanceCount);
+            RepeatGeometryNonPositionVertexData(&highPrecisionInterleaved, &highPrecisionInterleavedSingleSphere, kMaxSphereInstanceCount);
+            RepeatGeometryNonPositionVertexData(&highPrecisionPositionPlanar, &highPrecisionPositionPlanarSingleSphere, kMaxSphereInstanceCount);
+            mSetupTimer.toc(6);
+
+            // Get temporary buffers and prepare to edit in place
+            Geometry::Buffer lowPrecisionInterleavedPositionBuffer     = *(lowPrecisionInterleaved.GetVertexBuffer(0));
+            Geometry::Buffer lowPrecisionPositionPlanarPositionBuffer  = *(lowPrecisionPositionPlanar.GetVertexBuffer(0));
+            Geometry::Buffer highPrecisionInterleavedPositionBuffer    = *(highPrecisionInterleaved.GetVertexBuffer(0));
+            Geometry::Buffer highPrecisionPositionPlanarPositionBuffer = *(highPrecisionPositionPlanar.GetVertexBuffer(0));
+
+            // Adjusting planar position offsets manually in preparation for overwriting
+            lowPrecisionPositionPlanarPositionBuffer.SetOffset(lowPrecisionPositionPlanarPositionBuffer.GetSize());
+            highPrecisionPositionPlanarPositionBuffer.SetOffset(highPrecisionPositionPlanarPositionBuffer.GetSize());
+
+            // Iterate through full vertex buffers, changing position data and appending indices.
             for (uint32_t i = 0; i < kMaxSphereInstanceCount; i++) {
-                t1             = std::chrono::system_clock::now();
+                mSetupTimer.tic(7);
                 uint32_t index = sphereIndices[i];
                 uint32_t x     = (index % (grid.xSize * grid.ySize)) / grid.ySize;
                 uint32_t y     = index % grid.ySize;
@@ -566,8 +701,7 @@ void ProjApp::Setup()
                 // Model matrix to be applied to the sphere mesh
                 float4x4 modelMatrix = glm::translate(float3(x * grid.step, y * grid.step, z * grid.step));
 
-                // Copy a sphere mesh to create a giant vertex buffer
-                // Iterate through the meshes vertx data and add it to the geometry
+                // Overwrite position data
                 for (uint32_t vertexIndex = 0; vertexIndex < sphereVertexCount; ++vertexIndex) {
                     TriMeshVertexData vertexData = {};
                     mesh.GetVertexData(vertexIndex, &vertexData);
@@ -575,67 +709,51 @@ void ProjApp::Setup()
 
                     TriMeshVertexDataCompressed vertexDataCompressed;
                     vertexDataCompressed.position = half3(glm::packHalf1x16(vertexData.position.x), glm::packHalf1x16(vertexData.position.y), glm::packHalf1x16(vertexData.position.z));
-                    vertexDataCompressed.texCoord = half2(glm::packHalf1x16(vertexData.texCoord.x), glm::packHalf1x16(vertexData.texCoord.y));
-                    vertexDataCompressed.normal   = i8vec4(MapFloatToInt8(vertexData.normal.x), MapFloatToInt8(vertexData.normal.y), MapFloatToInt8(vertexData.normal.z), MapFloatToInt8(1.0f));
-                    vertexDataCompressed.tangent  = i8vec4(MapFloatToInt8(vertexData.tangent.x), MapFloatToInt8(vertexData.tangent.y), MapFloatToInt8(vertexData.tangent.z), MapFloatToInt8(vertexData.tangent.a));
-                    lowPrecisionInterleaved.AppendVertexData(vertexDataCompressed);
-                    lowPrecisionPositionPlanar.AppendVertexData(vertexDataCompressed);
 
-                    highPrecisionInterleaved.AppendVertexData(vertexData);
-                    highPrecisionPositionPlanar.AppendVertexData(vertexData);
+                    WritePositionData(&lowPrecisionInterleavedPositionBuffer, vertexDataCompressed, i * sphereVertexCount + vertexIndex);
+                    WritePositionData(&lowPrecisionPositionPlanarPositionBuffer, vertexDataCompressed, i * sphereVertexCount + vertexIndex);
+
+                    WritePositionData(&highPrecisionInterleavedPositionBuffer, vertexData, i * sphereVertexCount + vertexIndex);
+                    WritePositionData(&highPrecisionPositionPlanarPositionBuffer, vertexData, i * sphereVertexCount + vertexIndex);
                 }
-                t2 = std::chrono::system_clock::now();
+                mSetupTimer.toc(7);
+
                 // Iterate the meshes triangles and add the vertex indices
+                mSetupTimer.tic(8);
                 for (uint32_t triIndex = 0; triIndex < sphereTriCount; ++triIndex) {
                     uint32_t v0 = PPX_VALUE_IGNORED;
                     uint32_t v1 = PPX_VALUE_IGNORED;
                     uint32_t v2 = PPX_VALUE_IGNORED;
                     mesh.GetTriangle(triIndex, v0, v1, v2);
+                    // The planar ones are the same, can just be copied later
                     lowPrecisionInterleaved.AppendIndicesTriangle(v0 + i * sphereVertexCount, v1 + i * sphereVertexCount, v2 + i * sphereVertexCount);
-                    lowPrecisionPositionPlanar.AppendIndicesTriangle(v0 + i * sphereVertexCount, v1 + i * sphereVertexCount, v2 + i * sphereVertexCount);
                     highPrecisionInterleaved.AppendIndicesTriangle(v0 + i * sphereVertexCount, v1 + i * sphereVertexCount, v2 + i * sphereVertexCount);
-                    highPrecisionPositionPlanar.AppendIndicesTriangle(v0 + i * sphereVertexCount, v1 + i * sphereVertexCount, v2 + i * sphereVertexCount);
                 }
-                t3                                            = std::chrono::system_clock::now();
-                std::chrono::duration<double> elapsed_seconds = t2 - t1;
-                elapsed_12 += elapsed_seconds.count();
-                elapsed_seconds = t3 - t2;
-                elapsed_23 += elapsed_seconds.count();
+                mSetupTimer.toc(8);
             }
 
-            std::cout << "seconds taken for appending vertex data: " << elapsed_12 << std::endl;
-            std::cout << "seconds taken for appending index data: " << elapsed_23 << std::endl;
+            // Overwrite the position vertex buffers in the geometries
+            lowPrecisionInterleaved.SetVertexBuffer(&lowPrecisionInterleavedPositionBuffer, 0);
+            lowPrecisionPositionPlanar.SetVertexBuffer(&lowPrecisionPositionPlanarPositionBuffer, 0);
+            highPrecisionInterleaved.SetVertexBuffer(&highPrecisionInterleavedPositionBuffer, 0);
+            highPrecisionPositionPlanar.SetVertexBuffer(&highPrecisionPositionPlanarPositionBuffer, 0);
 
-            PPX_LOG_INFO("  lowPrecisionInterleaved vertex buffer");
-            PPX_LOG_INFO("    vertex count: " << lowPrecisionInterleaved.GetVertexCount());
-            PPX_LOG_INFO("    index buffer size: " << lowPrecisionInterleaved.GetIndexBuffer()->GetSize());
-            PPX_LOG_INFO("    vertex buffer 0 size: " << lowPrecisionInterleaved.GetVertexBuffer(0)->GetSize());
-
-            PPX_LOG_INFO("  lowPrecisionPositionPlanar vertex buffer");
-            PPX_LOG_INFO("    vertex count: " << lowPrecisionPositionPlanar.GetVertexCount());
-            PPX_LOG_INFO("    index buffer size: " << lowPrecisionPositionPlanar.GetIndexBuffer()->GetSize());
-            PPX_LOG_INFO("    vertex buffer 0 size: " << lowPrecisionPositionPlanar.GetVertexBuffer(0)->GetSize());
-            PPX_LOG_INFO("    vertex buffer 1 size: " << lowPrecisionPositionPlanar.GetVertexBuffer(1)->GetSize());
-
-            PPX_LOG_INFO("  highPrecisionInterleaved vertex buffer");
-            PPX_LOG_INFO("    vertex count: " << highPrecisionInterleaved.GetVertexCount());
-            PPX_LOG_INFO("    index buffer size: " << highPrecisionInterleaved.GetIndexBuffer()->GetSize());
-            PPX_LOG_INFO("    vertex buffer 0 size: " << highPrecisionInterleaved.GetVertexBuffer(0)->GetSize());
-
-            PPX_LOG_INFO("  highPrecisionPositionPlanar vertex buffer");
-            PPX_LOG_INFO("    vertex count: " << highPrecisionPositionPlanar.GetVertexCount());
-            PPX_LOG_INFO("    index buffer size: " << highPrecisionPositionPlanar.GetIndexBuffer()->GetSize());
-            PPX_LOG_INFO("    vertex buffer 0 size: " << highPrecisionPositionPlanar.GetVertexBuffer(0)->GetSize());
-            PPX_LOG_INFO("    vertex buffer 1 size: " << highPrecisionPositionPlanar.GetVertexBuffer(1)->GetSize());
+            // These planar index buffers are the same as the interleaved ones
+            lowPrecisionPositionPlanar.SetIndexBuffer(lowPrecisionInterleaved.GetIndexBuffer());
+            highPrecisionPositionPlanar.SetIndexBuffer(highPrecisionInterleaved.GetIndexBuffer());
 
             // Create a giant vertex buffer for each vb type to accommodate all copies of the sphere mesh
+            mSetupTimer.tic(9);
             PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &lowPrecisionInterleaved, &mSphereMeshes[meshIndex++]));
             PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &lowPrecisionPositionPlanar, &mSphereMeshes[meshIndex++]));
             PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &highPrecisionInterleaved, &mSphereMeshes[meshIndex++]));
             PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &highPrecisionPositionPlanar, &mSphereMeshes[meshIndex++]));
+            mSetupTimer.toc(9);
         }
     }
 
+    mSetupTimer.setName(10, "meshes indexer, uniform buffers, descriptor set layout");
+    mSetupTimer.tic(10);
     // Meshes indexer
     {
         mMeshesIndexer.AddDimension(kAvailableLODs.size());
@@ -696,7 +814,30 @@ void ProjApp::Setup()
             PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mDrawCallUniformBuffers[i]));
         }
     }
+    mSetupTimer.toc(10);
 
+    mSetupTimer.setName(11, "shaders");
+    mSetupTimer.tic(11);
+    // Vertex Shaders
+    for (size_t i = 0; i < kAvailableVsShaders.size(); i++) {
+        const std::string vsShaderBaseName = kAvailableVsShaders[i];
+        std::vector<char> bytecode         = LoadShader("benchmarks/shaders", vsShaderBaseName + ".vs");
+        PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
+        grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mVsShaders[i]));
+    }
+    // Pixel Shaders
+    for (size_t j = 0; j < kAvailablePsShaders.size(); j++) {
+        const std::string psShaderBaseName = kAvailablePsShaders[j];
+        std::vector<char> bytecode         = LoadShader("benchmarks/shaders", psShaderBaseName + ".ps");
+        PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
+        grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPsShaders[j]));
+    }
+    mSetupTimer.toc(11);
+
+    mSetupTimer.setName(12, "create skybox and sphere pipelines");
+    mSetupTimer.tic(12);
     // SkyBox Pipeline
     {
         std::vector<char> bytecode = LoadShader("benchmarks/shaders", "Benchmark_SkyBox.vs");
@@ -733,25 +874,8 @@ void ProjApp::Setup()
         gpCreateInfo.pPipelineInterface                 = mSkyBox.pipelineInterface;
         PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mSkyBox.pipeline));
     }
-
-    // Vertex Shaders
-    for (size_t i = 0; i < kAvailableVsShaders.size(); i++) {
-        const std::string vsShaderBaseName = kAvailableVsShaders[i];
-        std::vector<char> bytecode         = LoadShader("benchmarks/shaders", vsShaderBaseName + ".vs");
-        PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
-        grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mVsShaders[i]));
-    }
-    // Pixel Shaders
-    for (size_t j = 0; j < kAvailablePsShaders.size(); j++) {
-        const std::string psShaderBaseName = kAvailablePsShaders[j];
-        std::vector<char> bytecode         = LoadShader("benchmarks/shaders", psShaderBaseName + ".ps");
-        PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
-        grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPsShaders[j]));
-    }
-
     CreateSpherePipelines();
+    mSetupTimer.toc(12);
 
     // Graphics pipelines indexer
     {
@@ -761,7 +885,10 @@ void ProjApp::Setup()
         mGraphicsPipelinesIndexer.AddDimension(kAvailableVertexAttrLayouts.size());
     }
 
+    mSetupTimer.setName(13, "fullscreen quads");
+    mSetupTimer.tic(13);
     SetupNoiseQuads();
+    mSetupTimer.toc(13);
 
     // Per frame data
     {
@@ -788,6 +915,65 @@ void ProjApp::Setup()
 
         mPerFrame.push_back(frame);
     }
+
+    // Print timing
+    mSetupTimer.toc(0);
+    mSetupTimer.print();
+}
+
+void ProjApp::RepeatGeometryNonPositionVertexData(Geometry* dstGeom, const Geometry* srcGeom, size_t repeatCount)
+{
+    size_t nVertexBufferCount = srcGeom->GetVertexBufferCount();
+    PPX_ASSERT_MSG(nVertexBufferCount == dstGeom->GetVertexBufferCount(), "Mismatched source and destination vertex data format");
+
+    bool copyFirstBuffer;
+    switch (nVertexBufferCount) {
+        case 0: {
+            PPX_ASSERT_MSG(0, "Geometry cannot have 0 vertex buffers");
+        } break;
+        case 1: {
+            // For interleaved (1 vb), repeat position data as well
+            copyFirstBuffer = true;
+        } break;
+        default: {
+            // For position planar (2 vb) & planar (1+ vb), repeat only non-position vertex data
+            copyFirstBuffer = false;
+        }
+    }
+
+    for (size_t vertexBufferIndex = 0; vertexBufferIndex < nVertexBufferCount; vertexBufferIndex++) {
+        if (vertexBufferIndex == 0 && !copyFirstBuffer) {
+            continue;
+        }
+
+        const Geometry::Buffer* srcBufferPtr = srcGeom->GetVertexBuffer(vertexBufferIndex);
+        const void*             pSrc         = srcBufferPtr->GetData();
+        Geometry::Buffer        dstBuffer    = *dstGeom->GetVertexBuffer(vertexBufferIndex);
+        void*                   pDst;
+        size_t                  sizeOfValue = srcBufferPtr->GetSize();
+        size_t                  offset      = 0;
+        for (size_t j = 0; j < repeatCount; j++) {
+            pDst = dstBuffer.GetData() + offset;
+            memcpy(pDst, pSrc, sizeOfValue);
+            offset += sizeOfValue;
+        }
+        dstBuffer.SetOffset(sizeOfValue * repeatCount);
+        dstGeom->SetVertexBuffer(&dstBuffer, vertexBufferIndex);
+    }
+}
+
+void ProjApp::WritePositionData(Geometry::Buffer* dstBuffer, const TriMeshVertexData& vtx, size_t elementIndex)
+{
+    size_t elementSize = dstBuffer->GetElementSize();
+    size_t offset      = elementSize * elementIndex;
+    dstBuffer->Overwrite(vtx.position, offset);
+}
+
+void ProjApp::WritePositionData(Geometry::Buffer* dstBuffer, const TriMeshVertexDataCompressed& vtx, size_t elementIndex)
+{
+    size_t elementSize = dstBuffer->GetElementSize();
+    size_t offset      = elementSize * elementIndex;
+    dstBuffer->Overwrite(vtx.position, offset);
 }
 
 void ProjApp::CreateSpherePipelines()

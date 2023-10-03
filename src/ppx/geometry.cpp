@@ -69,7 +69,7 @@ protected:
 
     void AddVertexBuffer(Geometry* pGeom, uint32_t bindingIndex)
     {
-        pGeom->mVertexBuffers.push_back(Geometry::Buffer(Geometry::BUFFER_TYPE_VERTEX, GetVertexBindingStride(pGeom, bindingIndex), pGeom->mCreateInfo.finalVertexCount));
+        pGeom->mVertexBuffers.push_back(Geometry::Buffer(Geometry::BUFFER_TYPE_VERTEX, GetVertexBindingStride(pGeom, bindingIndex), pGeom->mCreateInfo.maxVertexCount));
     }
 
     uint32_t GetVertexBufferSize(const Geometry* pGeom, uint32_t bufferIndex) const
@@ -267,8 +267,6 @@ public:
             }
             // clang-format on
         }
-        uint32_t endSize = this->GetVertexBufferSize(pGeom, kBufferIndex);
-
         uint32_t endElementCount = this->GetVertexBufferElementCount(pGeom, kBufferIndex);
         PPX_ASSERT_MSG(endElementCount - startElementCount == 1, "number of vertices written is not 1: starting: " << startElementCount << " ending: " << endElementCount);
 
@@ -603,15 +601,15 @@ GeometryOptions& GeometryOptions::AddBitangent(grfx::Format format)
     return *this;
 }
 
-GeometryOptions& GeometryOptions::FinalIndexCount(uint32_t count)
+GeometryOptions& GeometryOptions::MaxIndexCount(uint32_t count)
 {
-    finalIndexCount = count;
+    maxIndexCount = count;
     return *this;
 }
 
-GeometryOptions& GeometryOptions::FinalVertexCount(uint32_t count)
+GeometryOptions& GeometryOptions::MaxVertexCount(uint32_t count)
 {
-    finalVertexCount = count;
+    maxVertexCount = count;
     return *this;
 }
 
@@ -621,7 +619,7 @@ GeometryOptions& GeometryOptions::FinalVertexCount(uint32_t count)
 uint32_t Geometry::Buffer::GetElementCount() const
 {
     size_t sizeOfData = mData.size();
-    if (mKnownFinalElementCount > 0) {
+    if (mKnownElementCount > 0) {
         sizeOfData = mOffset;
     }
     // round up for the case of interleaved buffers
@@ -665,7 +663,7 @@ Result Geometry::InternalCtor()
             return ppx::ERROR_FAILED;
         }
 
-        mIndexBuffer = Buffer(BUFFER_TYPE_INDEX, elementSize, mCreateInfo.finalIndexCount);
+        mIndexBuffer = Buffer(BUFFER_TYPE_INDEX, elementSize, mCreateInfo.maxIndexCount);
     }
 
     return mVDProcessor->UpdateVertexBuffer(this);
