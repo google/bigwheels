@@ -37,23 +37,23 @@ class MeshData
 {
 public:
     MeshData(
-        const scene::VertexAttributeFlags& activeVertexAttributes,
+        const scene::VertexAttributeFlags& availableVertexAttributes,
         grfx::Mesh*                        pGpuMesh);
     virtual ~MeshData();
 
     grfx::Mesh*                        GetGpuMesh() const { return mGpuMesh.Get(); }
-    const scene::VertexAttributeFlags& GetActiveVertexAttributes() const { return mActiveVertexAttributes; }
+    const scene::VertexAttributeFlags& GetAvailableVertexAttributes() const { return mAvailableVertexAttributes; }
     const grfx::IndexBufferView&       GetIndexBufferView() const { return mIndexBufferView; }
     const grfx::VertexBufferView&      GetPositionBufferView() const { return mPositionBufferView; }
     const grfx::VertexBufferView&      GetAttributeBufferView() const { return mAttributeBufferView; }
 
 private:
-    std::string                 mName                   = "";
-    scene::VertexAttributeFlags mActiveVertexAttributes = {};
-    grfx::MeshPtr               mGpuMesh                = nullptr;
-    grfx::IndexBufferView       mIndexBufferView        = {};
-    grfx::VertexBufferView      mPositionBufferView     = {};
-    grfx::VertexBufferView      mAttributeBufferView    = {};
+    std::string                 mName                      = "";
+    scene::VertexAttributeFlags mAvailableVertexAttributes = {};
+    grfx::MeshPtr               mGpuMesh                   = nullptr;
+    grfx::IndexBufferView       mIndexBufferView           = {};
+    grfx::VertexBufferView      mPositionBufferView        = {};
+    grfx::VertexBufferView      mAttributeBufferView       = {};
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -105,7 +105,7 @@ public:
 
     bool HasResourceManager() const { return mResourceManager ? true : false; }
 
-    scene::VertexAttributeFlags GetActiveVertexAttributes() const;
+    scene::VertexAttributeFlags GetAvailableVertexAttributes() const;
 
     scene::MeshData*                          GetMeshData() const { return mMeshData.get(); }
     const std::vector<scene::PrimitiveBatch>& GetBatches() const { return mBatches; }
