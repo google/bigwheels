@@ -841,7 +841,7 @@ void ProjApp::SetupFullscreenQuads()
 
 void ProjApp::CreateFullscreenQuadsPipelines()
 {
-    bool isNoise = pFullscreenQuadsColor->GetIndex() == 0;
+    bool isNoise = (pFullscreenQuadsColor->GetIndex() == 0);
 
     grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
     piCreateInfo.setCount                          = 0;

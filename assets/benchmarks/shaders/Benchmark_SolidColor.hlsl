@@ -28,9 +28,9 @@ struct VSOutput {
 
 VSOutput vsmain(float4 Position : POSITION)
 {
-	VSOutput result;
-	result.position = Position;
-	return result;
+    VSOutput result;
+    result.position = Position;
+    return result;
 }
 
 float4 psmain(VSOutput input) : SV_TARGET
