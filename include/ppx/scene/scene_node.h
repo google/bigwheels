@@ -70,10 +70,13 @@ public:
     uint32_t     GetChildCount() const { return CountU32(mChildren); }
     scene::Node* GetChild(uint32_t index) const;
 
-    // Adds new child if it doesn't have a parent and if it isn't already a child.
+    // Returns true if pNode is in current node's subtree, this includes the current node itself.
+    bool IsInSubTree(const scene::Node* pNode);
+
+    // Adds pNewChild if it doesn't have a parent and if it isn't already a child.
     ppx::Result AddChild(scene::Node* pNewChild);
 
-    // Removes child if it exists and returns a non-const parentless child, otherwise returns NULL.
+    // Removes pChild if it exists and returns a non-const parentless child, otherwise returns NULL.
     scene::Node* RemoveChild(const scene::Node* pChild);
 
 private:
