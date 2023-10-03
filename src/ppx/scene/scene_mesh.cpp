@@ -134,8 +134,8 @@ std::vector<const scene::Material*> Mesh::GetMaterials() const
 {
     std::vector<const scene::Material*> materials;
     for (auto& batch : mBatches) {
-        if (!IsNull(batch.GetMaterial())) {
-            // @TODO: need a better way missing materials
+        if (IsNull(batch.GetMaterial())) {
+            // @TODO: need a better way to handle missing materials
             continue;
         }
         materials.push_back(batch.GetMaterial());

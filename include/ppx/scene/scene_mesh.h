@@ -61,7 +61,7 @@ private:
 // Primitive Batch
 //
 // Contains all information necessary for a draw call. The material
-// reference will determine whch pipeline gets used. The offsets and
+// reference will determine which pipeline gets used. The offsets and
 // counts correspond to the graphics API's draw call. Bounding box
 // can be used by renderer.
 //

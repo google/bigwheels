@@ -125,9 +125,8 @@ private:
 
 // Scene Graph Camera Node
 //
-// Scene graph nodes that contains reference contains an instance of
-// a ppx::Camera object. Can be used for both perspective and orthographic
-// cameras.
+// Scene graph node that contains an instance of a ppx::Camera object.
+// Can be used for both perspective and orthographic cameras.
 //
 // When used as a standalone node, scene::Camera stores a camera object as populated
 // by a loader.
@@ -162,7 +161,7 @@ private:
 // Scene graph node that contains all properties to represent different light
 // types.
 //
-// When used as a standalone node, scene::Camera stores light information as populated
+// When used as a standalone node, scene::Light stores light information as populated
 // by a loader.
 //
 // See scene::Node class declaration for additional usages of scene::Node objects.

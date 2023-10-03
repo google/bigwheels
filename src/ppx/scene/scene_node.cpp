@@ -51,6 +51,7 @@ const float4x4& Node::GetEvaluatedMatrix() const
 void Node::SetParent(scene::Node* pNewParent)
 {
     mParent = pNewParent;
+    SetEvaluatedDirty();
 }
 
 void Node::SetEvaluatedDirty()
@@ -88,9 +89,7 @@ void Node::SetRotationOrder(Transform::RotationOrder value)
 scene::Node* Node::GetChild(uint32_t index) const
 {
     scene::Node* pChild = nullptr;
-    if (ppx::GetElement(index, mChildren, &pChild)) {
-        return nullptr;
-    }
+    ppx::GetElement(index, mChildren, &pChild);
     return pChild;
 }
 
@@ -126,7 +125,7 @@ ppx::Result Node::AddChild(scene::Node* pNewChild)
     }
 
     // Cannot add child if current node is in child's subtree
-    if (IsInSubTree(this)) {
+    if (pNewChild->IsInSubTree(this)) {
         return ppx::ERROR_SCENE_INVALID_NODE_HIERARCHY;
     }
 

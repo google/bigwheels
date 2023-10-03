@@ -116,7 +116,7 @@ private:
 // This class contains a reference to a texture object and the transform
 // data that must be applied by the shader before sampling a pixel.
 //
-// scene::Texture view objects are used directly by scene::Matreial objets.
+// scene::Texture view objects are used directly by scene::Matreial objects.
 //
 // Corresponds to cgltf's texture view object.
 //
