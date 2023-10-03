@@ -22,9 +22,9 @@ namespace scene {
 // MeshData
 // -------------------------------------------------------------------------------------------------
 MeshData::MeshData(
-    const scene::VertexAttributeFlags& activeVertexAttributes,
+    const scene::VertexAttributeFlags& availableVertexAttributes,
     grfx::Mesh*                        pGpuMesh)
-    : mActiveVertexAttributes(activeVertexAttributes), mGpuMesh(pGpuMesh)
+    : mAvailableVertexAttributes(availableVertexAttributes), mGpuMesh(pGpuMesh)
 {
     PPX_ASSERT_MSG(!IsNull(mGpuMesh.Get()), "mGpuMesh is NULL");
 
@@ -39,7 +39,7 @@ MeshData::MeshData(
     mPositionBufferView.offset    = 0;
     mPositionBufferView.size      = mGpuMesh->GetVertexBuffer(kPositionIndex)->GetSize();
 
-    if (mActiveVertexAttributes.mask != 0) {
+    if (mAvailableVertexAttributes.mask != 0) {
         const uint32_t kAttributesIndex = 1;
         mAttributeBufferView.pBuffer    = mGpuMesh->GetVertexBuffer(kAttributesIndex);
         mAttributeBufferView.stride     = mGpuMesh->GetDerivedVertexBindings()[kAttributesIndex].GetStride();
@@ -88,9 +88,9 @@ Mesh::~Mesh()
     }
 }
 
-scene::VertexAttributeFlags Mesh::GetActiveVertexAttributes() const
+scene::VertexAttributeFlags Mesh::GetAvailableVertexAttributes() const
 {
-    return mMeshData ? mMeshData->GetActiveVertexAttributes() : scene::VertexAttributeFlags::None();
+    return mMeshData ? mMeshData->GetAvailableVertexAttributes() : scene::VertexAttributeFlags::None();
 }
 
 void Mesh::AddBatch(const scene::PrimitiveBatch& batch)
