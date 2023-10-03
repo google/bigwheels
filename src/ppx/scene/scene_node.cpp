@@ -94,14 +94,40 @@ scene::Node* Node::GetChild(uint32_t index) const
     return pChild;
 }
 
+bool Node::IsInSubTree(const scene::Node* pNode)
+{
+    bool inSubTree = (pNode == this);
+    if (!inSubTree) {
+        for (auto pChild : mChildren) {
+            inSubTree = pChild->IsInSubTree(pNode);
+            if (inSubTree) {
+                break;
+            }
+        }
+    }
+    return inSubTree;
+}
+
 ppx::Result Node::AddChild(scene::Node* pNewChild)
 {
+    // Cannot add child if current node is standalone
     if (IsNull(mScene)) {
         return ppx::ERROR_SCENE_INVALID_STANDALONE_OPERATION;
     }
 
+    // Cannot add NULL child
     if (IsNull(pNewChild)) {
         return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
+    }
+
+    // Cannot add self as a child
+    if (pNewChild == this) {
+        return ppx::ERROR_SCENE_INVALID_NODE_HIERARCHY;
+    }
+
+    // Cannot add child if current node is in child's subtree
+    if (IsInSubTree(this)) {
+        return ppx::ERROR_SCENE_INVALID_NODE_HIERARCHY;
     }
 
     // Don't add new child if it already exists
@@ -125,7 +151,8 @@ ppx::Result Node::AddChild(scene::Node* pNewChild)
 
 scene::Node* Node::RemoveChild(const scene::Node* pChild)
 {
-    if (IsNull(pChild)) {
+    // Return null if pChild is null or if pChild is self
+    if (IsNull(pChild) || (pChild == this)) {
         return nullptr;
     }
 
