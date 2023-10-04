@@ -95,9 +95,9 @@ const grfx::Api kApi = grfx::API_DX_12_0;
 const grfx::Api kApi = grfx::API_VK_1_1;
 #endif
 
-static constexpr uint32_t kMaxSphereInstanceCount = 3000;
-static constexpr uint32_t kSeed                   = 89977;
-static constexpr uint32_t kMaxNoiseQuadsCount     = 1000;
+static constexpr uint32_t kMaxSphereInstanceCount  = 3000;
+static constexpr uint32_t kSeed                    = 89977;
+static constexpr uint32_t kMaxFullscreenQuadsCount = 1000;
 
 static constexpr std::array<const char*, 2> kAvailableVsShaders = {
     "Benchmark_VsSimple",
@@ -124,6 +124,22 @@ static constexpr std::array<const char*, 3> kAvailableLODs = {
     "LOD_2"};
 
 static constexpr uint32_t kMeshCount = kAvailableVbFormats.size() * kAvailableVertexAttrLayouts.size() * kAvailableLODs.size();
+
+static constexpr std::array<const char*, 6> kFullscreenQuadsColors = {
+    "Noise",
+    "Red",
+    "Blue",
+    "Green",
+    "Black",
+    "White"};
+
+static constexpr std::array<float3, 6> kFullscreenQuadsColorsValues = {
+    float3(0.0f, 0.0f, 0.0f),
+    float3(1.0f, 0.0f, 0.0f),
+    float3(0.0f, 0.0f, 1.0f),
+    float3(0.0f, 1.0f, 0.0f),
+    float3(0.0f, 0.0f, 0.0f),
+    float3(1.0f, 1.0f, 1.0f)};
 
 class ProjApp
     : public ppx::Application
@@ -198,13 +214,15 @@ private:
     grfx::ShaderModulePtr                                         mPS;
     grfx::ShaderModulePtr                                         mVSNoise;
     grfx::ShaderModulePtr                                         mPSNoise;
+    grfx::ShaderModulePtr                                         mVSSolidColor;
+    grfx::ShaderModulePtr                                         mPSSolidColor;
     Texture                                                       mSkyBoxTexture;
     Texture                                                       mAlbedoTexture;
     Texture                                                       mNormalMapTexture;
     Texture                                                       mMetalRoughnessTexture;
     Entity                                                        mSkyBox;
     Entity                                                        mSphere;
-    Entity2D                                                      mNoiseQuads;
+    Entity2D                                                      mFullscreenQuads;
     bool                                                          mEnableMouseMovement = true;
     std::vector<grfx::BufferPtr>                                  mDrawCallUniformBuffers;
     std::array<grfx::GraphicsPipelinePtr, kPipelineCount>         mPipelines;
@@ -223,7 +241,8 @@ private:
     std::shared_ptr<KnobDropdown<std::string>> pKnobVertexAttrLayout;
     std::shared_ptr<KnobSlider<int>>           pSphereInstanceCount;
     std::shared_ptr<KnobSlider<int>>           pDrawCallCount;
-    std::shared_ptr<KnobSlider<int>>           pNoiseQuadsCount;
+    std::shared_ptr<KnobSlider<int>>           pFullscreenQuadsCount;
+    std::shared_ptr<KnobDropdown<std::string>> pFullscreenQuadsColor;
     std::shared_ptr<KnobCheckbox>              pAlphaBlend;
     std::shared_ptr<KnobCheckbox>              pDepthTestWrite;
 
@@ -238,7 +257,9 @@ private:
 
     void CreateSpherePipelines();
 
-    void SetupNoiseQuads();
+    void SetupFullscreenQuads();
+
+    void CreateFullscreenQuadsPipelines();
 };
 
 void MultiDimensionalIndexer::AddDimension(size_t size)
@@ -350,9 +371,14 @@ void ProjApp::InitKnobs()
     pDrawCallCount->SetDisplayName("DrawCall Count");
     pDrawCallCount->SetFlagDescription("Select the number of draw calls to be used to draw the `sphere-count` spheres.");
 
-    pNoiseQuadsCount = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("noise-quads-count", /* defaultValue = */ 0, /* minValue = */ 0, kMaxNoiseQuadsCount);
-    pNoiseQuadsCount->SetDisplayName("Number of Fullscreen Noise Quads");
-    pNoiseQuadsCount->SetFlagDescription("Select the number of fullscreen noise quads to render.");
+    pFullscreenQuadsCount = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("fullscreen-quads-count", /* defaultValue = */ 0, /* minValue = */ 0, kMaxFullscreenQuadsCount);
+    pFullscreenQuadsCount->SetDisplayName("Number of Fullscreen Quads");
+    pFullscreenQuadsCount->SetFlagDescription("Select the number of fullscreen quads to render.");
+
+    pFullscreenQuadsColor = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("fullscreen-quads-color", 0, kFullscreenQuadsColors);
+    pFullscreenQuadsColor->SetDisplayName("Color of Fullscreen Quads");
+    pFullscreenQuadsColor->SetFlagDescription("Select the color for the fullscreen quads (see --fullscreen-quads-count).");
+    pFullscreenQuadsColor->SetIndent(1);
 
     pAlphaBlend = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("alpha-blend", false);
     pAlphaBlend->SetDisplayName("Alpha Blend");
@@ -686,7 +712,9 @@ void ProjApp::Setup()
         mGraphicsPipelinesIndexer.AddDimension(kAvailableVertexAttrLayouts.size());
     }
 
-    SetupNoiseQuads();
+    SetupFullscreenQuads();
+
+    CreateFullscreenQuadsPipelines();
 
     // Per frame data
     {
@@ -756,16 +784,16 @@ void ProjApp::CreateSpherePipelines()
     }
 }
 
-void ProjApp::SetupNoiseQuads()
+void ProjApp::SetupFullscreenQuads()
 {
-    // Vertex buffer
+    // Vertex buffer and vertex binding
     {
         // clang-format off
         std::vector<float> vertexData = {
             // position       
             -1.0f, -1.0f, 0.0f,
-             1.0f, -1.0f, 0.0f,
             -1.0f,  1.0f, 0.0f,
+             1.0f, -1.0f, 0.0f,
              1.0f,  1.0f, 0.0f
         };
         // clang-format on
@@ -777,12 +805,14 @@ void ProjApp::SetupNoiseQuads()
         bufferCreateInfo.memoryUsage                  = grfx::MEMORY_USAGE_CPU_TO_GPU;
         bufferCreateInfo.initialState                 = grfx::RESOURCE_STATE_VERTEX_BUFFER;
 
-        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mNoiseQuads.vertexBuffer));
+        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mFullscreenQuads.vertexBuffer));
 
         void* pAddr = nullptr;
-        PPX_CHECKED_CALL(mNoiseQuads.vertexBuffer->MapMemory(0, &pAddr));
+        PPX_CHECKED_CALL(mFullscreenQuads.vertexBuffer->MapMemory(0, &pAddr));
         memcpy(pAddr, vertexData.data(), dataSize);
-        mNoiseQuads.vertexBuffer->UnmapMemory();
+        mFullscreenQuads.vertexBuffer->UnmapMemory();
+
+        mFullscreenQuads.vertexBinding.AppendAttribute({"POSITION", 0, grfx::FORMAT_R32G32B32_FLOAT, 0, PPX_APPEND_OFFSET_ALIGNED, grfx::VERTEX_INPUT_RATE_VERTEX});
     }
 
     // Load shaders
@@ -796,37 +826,47 @@ void ProjApp::SetupNoiseQuads()
         PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
         shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
         PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPSNoise));
+
+        bytecode = LoadShader("benchmarks/shaders", "Benchmark_SolidColor.vs");
+        PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
+        shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mVSSolidColor));
+
+        bytecode = LoadShader("benchmarks/shaders", "Benchmark_SolidColor.ps");
+        PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
+        shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPSSolidColor));
     }
+}
 
-    // Noise quads: pipeline
-    {
-        grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
-        piCreateInfo.setCount                          = 0;
-        piCreateInfo.pushConstants.count               = 1;
-        piCreateInfo.pushConstants.binding             = 0;
-        piCreateInfo.pushConstants.set                 = 0;
-        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mNoiseQuads.pipelineInterface));
+void ProjApp::CreateFullscreenQuadsPipelines()
+{
+    bool isNoise = (pFullscreenQuadsColor->GetIndex() == 0);
 
-        mNoiseQuads.vertexBinding.AppendAttribute({"POSITION", 0, grfx::FORMAT_R32G32B32_FLOAT, 0, PPX_APPEND_OFFSET_ALIGNED, grfx::VERTEX_INPUT_RATE_VERTEX});
+    grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
+    piCreateInfo.setCount                          = 0;
+    piCreateInfo.pushConstants.count               = isNoise ? 1 : (sizeof(float3) / sizeof(uint32_t));
+    piCreateInfo.pushConstants.binding             = 0;
+    piCreateInfo.pushConstants.set                 = 0;
+    PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mFullscreenQuads.pipelineInterface));
 
-        grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
-        gpCreateInfo.VS                                 = {mVSNoise.Get(), "vsmain"};
-        gpCreateInfo.PS                                 = {mPSNoise.Get(), "psmain"};
-        gpCreateInfo.vertexInputState.bindingCount      = 1;
-        gpCreateInfo.vertexInputState.bindings[0]       = mNoiseQuads.vertexBinding;
-        gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-        gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
-        gpCreateInfo.cullMode                           = grfx::CULL_MODE_NONE;
-        gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CW;
-        gpCreateInfo.depthReadEnable                    = true;
-        gpCreateInfo.depthWriteEnable                   = false;
-        gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
-        gpCreateInfo.outputState.renderTargetCount      = 1;
-        gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
-        gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
-        gpCreateInfo.pPipelineInterface                 = mNoiseQuads.pipelineInterface;
-        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mNoiseQuads.pipeline));
-    }
+    grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
+    gpCreateInfo.VS                                 = {isNoise ? mVSNoise.Get() : mVSSolidColor.Get(), "vsmain"};
+    gpCreateInfo.PS                                 = {isNoise ? mPSNoise.Get() : mPSSolidColor.Get(), "psmain"};
+    gpCreateInfo.vertexInputState.bindingCount      = 1;
+    gpCreateInfo.vertexInputState.bindings[0]       = mFullscreenQuads.vertexBinding;
+    gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+    gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
+    gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
+    gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CW;
+    gpCreateInfo.depthReadEnable                    = true;
+    gpCreateInfo.depthWriteEnable                   = false;
+    gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
+    gpCreateInfo.outputState.renderTargetCount      = 1;
+    gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
+    gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
+    gpCreateInfo.pPipelineInterface                 = mFullscreenQuads.pipelineInterface;
+    PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mFullscreenQuads.pipeline));
 }
 
 void ProjApp::MouseMove(int32_t x, int32_t y, int32_t dx, int32_t dy, uint32_t buttons)
@@ -883,7 +923,8 @@ void ProjApp::ProcessInput()
 
 void ProjApp::ProcessKnobs()
 {
-    bool rebuildSpherePipeline = false;
+    bool rebuildSpherePipeline          = false;
+    bool rebuildFullscreenQuadsPipeline = false;
 
     // TODO: Ideally, the `maxValue` of the drawcall-count slider knob should be changed at runtime.
     // Currently, the value of the drawcall-count is adjusted to the sphere-count in case the
@@ -900,8 +941,28 @@ void ProjApp::ProcessKnobs()
         rebuildSpherePipeline = true;
     }
 
+    if (pFullscreenQuadsColor->DigestUpdate()) {
+        rebuildFullscreenQuadsPipeline = true;
+    }
+
+    if (pFullscreenQuadsCount->DigestUpdate()) {
+        if (pFullscreenQuadsCount->GetValue() > 0) {
+            pFullscreenQuadsColor->SetVisible(true);
+        }
+        else {
+            pFullscreenQuadsColor->SetVisible(false);
+        }
+
+        rebuildFullscreenQuadsPipeline = true;
+    }
+
+    // Rebuild pipelines
     if (rebuildSpherePipeline) {
         CreateSpherePipelines();
+    }
+
+    if (rebuildFullscreenQuadsPipeline) {
+        CreateFullscreenQuadsPipelines();
     }
 }
 
@@ -1028,19 +1089,24 @@ void ProjApp::Render()
         // =====================================================================
         // Fullscreen quads renderpasses
         // =====================================================================
-        if (pNoiseQuadsCount->GetValue() > 0) {
-            for (size_t i = 0; i < pNoiseQuadsCount->GetValue(); ++i) {
+        if (pFullscreenQuadsCount->GetValue() > 0) {
+            frame.cmd->BindGraphicsPipeline(mFullscreenQuads.pipeline);
+            frame.cmd->BindVertexBuffers(1, &mFullscreenQuads.vertexBuffer, &mFullscreenQuads.vertexBinding.GetStride());
+
+            for (size_t i = 0; i < pFullscreenQuadsCount->GetValue(); ++i) {
                 currentRenderPass = swapchain->GetRenderPass(imageIndex);
                 PPX_ASSERT_MSG(!currentRenderPass.IsNull(), "render pass object is null");
 
                 frame.cmd->BeginRenderPass(currentRenderPass);
                 {
-                    // Draw noise quads
-                    frame.cmd->BindGraphicsPipeline(mNoiseQuads.pipeline);
-                    frame.cmd->BindVertexBuffers(1, &mNoiseQuads.vertexBuffer, &mNoiseQuads.vertexBinding.GetStride());
-
-                    uint32_t noiseQuadRandomSeed = (uint32_t)i;
-                    frame.cmd->PushGraphicsConstants(mNoiseQuads.pipelineInterface, 1, &noiseQuadRandomSeed);
+                    if (pFullscreenQuadsColor->GetIndex() > 0) {
+                        float3 colorValues = kFullscreenQuadsColorsValues[pFullscreenQuadsColor->GetIndex()];
+                        frame.cmd->PushGraphicsConstants(mFullscreenQuads.pipelineInterface, 3, &colorValues);
+                    }
+                    else {
+                        uint32_t noiseQuadRandomSeed = (uint32_t)i;
+                        frame.cmd->PushGraphicsConstants(mFullscreenQuads.pipelineInterface, 1, &noiseQuadRandomSeed);
+                    }
                     frame.cmd->Draw(4, 1, 0, 0);
                 }
                 frame.cmd->EndRenderPass();

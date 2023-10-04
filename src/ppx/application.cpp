@@ -1465,7 +1465,7 @@ int Application::Run(int argc, char** argv)
             mAverageFrameTime      = totalFrameTimeMs / mFrameTimesMs.size();
         }
         else {
-            mAverageFPS       = static_cast<float>(mFrameCount / nowMs / 1000.f);
+            mAverageFPS       = static_cast<float>(mFrameCount / (nowMs / 1000.f));
             mAverageFrameTime = static_cast<float>(nowMs / mFrameCount);
         }
 

@@ -165,19 +165,7 @@ Result Device::ConfigureExtensions(const grfx::DeviceCreateInfo* pCreateInfo)
         mExtensions.push_back(VK_EXT_DEPTH_RANGE_UNRESTRICTED_EXTENSION_NAME);
     }
 
-    // Dynamic rendering - if present. It also requires
-    // VK_KHR_depth_stencil_resolve and VK_KHR_create_renderpass2.
-#if defined(VK_KHR_dynamic_rendering)
-    if (ElementExists(std::string(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME), mFoundExtensions) &&
-        ElementExists(std::string(VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME), mFoundExtensions) &&
-        ElementExists(std::string(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME), mFoundExtensions)) {
-        mExtensions.push_back(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
-        mExtensions.push_back(VK_KHR_DEPTH_STENCIL_RESOLVE_EXTENSION_NAME);
-        mExtensions.push_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
-        mHasDynamicRendering = true;
-    }
-#endif
-
+    // Push descriptors
     if (ElementExists(std::string(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME), mFoundExtensions)) {
         mExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
     }
@@ -293,34 +281,66 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
         return ppxres;
     }
 
-    // VK_EXT_host_query_reset
-#ifndef VK_API_VERSION_1_2
-    VkPhysicalDeviceHostQueryResetFeaturesEXT queryResetFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES_EXT};
-#else
-    VkPhysicalDeviceHostQueryResetFeatures queryResetFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES};
-#endif
-    queryResetFeatures.hostQueryReset = VK_TRUE;
+    // We can't include structs whose extesnions aren't enabled, so do the tracking.
+    std::vector<VkBaseOutStructure*> extensionStructs;
 
-    // VkPhysicalDeviceDynamicRenderingFeatures
-#if defined(VK_KHR_dynamic_rendering)
+    // VK_EXT_descriptor_indexing
+    VkPhysicalDeviceDescriptorIndexingFeatures descriptorIndexingFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES};
+    if ((GetInstance()->GetApi() >= grfx::API_VK_1_2) || ElementExists(std::string(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME), mExtensions)) {
+        //
+        // 2023/10/01 - Just runtimeDescriptorArrays for now - need to survey what Android
+        //              usage is like before enabling other freatures.
+        //
+        descriptorIndexingFeatures.shaderInputAttachmentArrayDynamicIndexing          = VK_FALSE;
+        descriptorIndexingFeatures.shaderUniformTexelBufferArrayDynamicIndexing       = VK_FALSE;
+        descriptorIndexingFeatures.shaderStorageTexelBufferArrayDynamicIndexing       = VK_FALSE;
+        descriptorIndexingFeatures.shaderUniformBufferArrayNonUniformIndexing         = VK_FALSE;
+        descriptorIndexingFeatures.shaderSampledImageArrayNonUniformIndexing          = VK_FALSE;
+        descriptorIndexingFeatures.shaderStorageBufferArrayNonUniformIndexing         = VK_FALSE;
+        descriptorIndexingFeatures.shaderStorageImageArrayNonUniformIndexing          = VK_FALSE;
+        descriptorIndexingFeatures.shaderInputAttachmentArrayNonUniformIndexing       = VK_FALSE;
+        descriptorIndexingFeatures.shaderUniformTexelBufferArrayNonUniformIndexing    = VK_FALSE;
+        descriptorIndexingFeatures.shaderStorageTexelBufferArrayNonUniformIndexing    = VK_FALSE;
+        descriptorIndexingFeatures.descriptorBindingUniformBufferUpdateAfterBind      = VK_FALSE;
+        descriptorIndexingFeatures.descriptorBindingSampledImageUpdateAfterBind       = VK_FALSE;
+        descriptorIndexingFeatures.descriptorBindingStorageImageUpdateAfterBind       = VK_FALSE;
+        descriptorIndexingFeatures.descriptorBindingStorageBufferUpdateAfterBind      = VK_FALSE;
+        descriptorIndexingFeatures.descriptorBindingUniformTexelBufferUpdateAfterBind = VK_FALSE;
+        descriptorIndexingFeatures.descriptorBindingStorageTexelBufferUpdateAfterBind = VK_FALSE;
+        descriptorIndexingFeatures.descriptorBindingUpdateUnusedWhilePending          = VK_FALSE;
+        descriptorIndexingFeatures.descriptorBindingPartiallyBound                    = VK_FALSE;
+        descriptorIndexingFeatures.descriptorBindingVariableDescriptorCount           = VK_FALSE;
+        descriptorIndexingFeatures.runtimeDescriptorArray                             = VK_TRUE;
 
-#ifndef VK_API_VERSION_1_3
-    VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamicRenderingFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR};
-#else
-    VkPhysicalDeviceDynamicRenderingFeatures dynamicRenderingFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES};
-#endif
-
-    if (mHasDynamicRendering) {
-        dynamicRenderingFeatures.dynamicRendering = VK_TRUE;
-        queryResetFeatures.pNext                  = &dynamicRenderingFeatures;
+        extensionStructs.push_back(reinterpret_cast<VkBaseOutStructure*>(&descriptorIndexingFeatures));
     }
-#endif
+
+    // VK_KHR_timeline_semaphore
+    VkPhysicalDeviceTimelineSemaphoreFeatures timelineSemaphoreFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES};
+    if ((GetInstance()->GetApi() >= grfx::API_VK_1_2) || ElementExists(std::string(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME), mExtensions)) {
+        timelineSemaphoreFeatures.timelineSemaphore = VK_TRUE;
+
+        extensionStructs.push_back(reinterpret_cast<VkBaseOutStructure*>(&timelineSemaphoreFeatures));
+    }
+
+    // VK_EXT_host_query_reset
+    VkPhysicalDeviceHostQueryResetFeatures queryResetFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_QUERY_RESET_FEATURES_EXT};
+    if ((GetInstance()->GetApi() >= grfx::API_VK_1_2) || ElementExists(std::string(VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME), mExtensions)) {
+        queryResetFeatures.hostQueryReset = VK_TRUE;
+
+        extensionStructs.push_back(reinterpret_cast<VkBaseOutStructure*>(&queryResetFeatures));
+    }
+
+    // Chain pNexts
+    for (size_t i = 0; i < (extensionStructs.size() - 1); ++i) {
+        extensionStructs[i]->pNext = extensionStructs[i + 1];
+    }
 
     // Get C strings
     std::vector<const char*> extensions = GetCStrings(mExtensions);
 
     VkDeviceCreateInfo vkci      = {VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO};
-    vkci.pNext                   = &queryResetFeatures;
+    vkci.pNext                   = extensionStructs.empty() ? nullptr : extensionStructs[0];
     vkci.flags                   = 0;
     vkci.queueCreateInfoCount    = CountU32(queueCreateInfos);
     vkci.pQueueCreateInfos       = DataPtr(queueCreateInfos);
