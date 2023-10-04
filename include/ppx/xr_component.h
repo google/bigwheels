@@ -105,6 +105,8 @@ struct XrComponentCreateInfo
     bool                    enableDepthSwapchain = false;
     XrComponentResolution   resolution           = {0, 0};
     XrComponentResolution   uiResolution         = {0, 0};
+
+    std::vector<std::string> requiredExtensions = {};
 };
 
 // Used to reference OpenXR layers added to XrComponent through XrComponent::AddLayer.
