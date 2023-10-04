@@ -53,7 +53,6 @@ MeshData::~MeshData()
     if (mGpuMesh) {
         auto pDevice = mGpuMesh->GetDevice();
         pDevice->DestroyMesh(mGpuMesh);
-        mGpuMesh.Reset();
     }
 }
 

@@ -34,13 +34,11 @@ Image::~Image()
     if (mImageView) {
         auto pDevice = mImageView->GetDevice();
         pDevice->DestroySampledImageView(mImageView);
-        mImageView.Reset();
     }
 
     if (mImage) {
         auto pDevice = mImage->GetDevice();
         pDevice->DestroyImage(mImage);
-        mImage.Reset();
     }
 }
 
