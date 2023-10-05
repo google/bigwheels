@@ -54,22 +54,23 @@ protected:
     // ----------------------------------------
 
     // Missing attributes will also result in NOOP.
-    // returns the element count of the vertex buffer with the bufferIndex
+    // Returns the number of bytes written, since partial elements can be written
     // 0 is returned if the bufferIndex is ignored
     template <typename U>
     uint32_t AppendDataToVertexBuffer(Geometry* pGeom, uint32_t bufferIndex, const U& data)
     {
         if (bufferIndex != PPX_VALUE_IGNORED) {
             PPX_ASSERT_MSG((bufferIndex >= 0) && (bufferIndex < pGeom->mVertexBuffers.size()), "buffer index is not valid");
+            uint32_t originalSize = pGeom->mVertexBuffers[bufferIndex].GetSizeOfData();
             pGeom->mVertexBuffers[bufferIndex].Append(data);
-            return pGeom->mVertexBuffers[bufferIndex].GetElementCount();
+            return pGeom->mVertexBuffers[bufferIndex].GetSizeOfData() - originalSize;
         }
         return 0;
     }
 
     void AddVertexBuffer(Geometry* pGeom, uint32_t bindingIndex)
     {
-        pGeom->mVertexBuffers.push_back(Geometry::Buffer(Geometry::BUFFER_TYPE_VERTEX, GetVertexBindingStride(pGeom, bindingIndex)));
+        pGeom->mVertexBuffers.push_back(Geometry::Buffer(Geometry::BUFFER_TYPE_VERTEX, GetVertexBindingStride(pGeom, bindingIndex), pGeom->mCreateInfo.maxVertexCount));
     }
 
     uint32_t GetVertexBufferSize(const Geometry* pGeom, uint32_t bufferIndex) const
@@ -111,14 +112,14 @@ protected:
     }
 
     uint32_t GetPositionBufferIndex(const Geometry* pGeom) const { return pGeom->mPositionBufferIndex; }
-    uint32_t GetNormalBufferIndex(const Geometry* pGeom) const { return pGeom->mNormaBufferIndex; }
+    uint32_t GetNormalBufferIndex(const Geometry* pGeom) const { return pGeom->mNormalBufferIndex; }
     uint32_t GetColorBufferIndex(const Geometry* pGeom) const { return pGeom->mColorBufferIndex; }
     uint32_t GetTexCoordBufferIndex(const Geometry* pGeom) const { return pGeom->mTexCoordBufferIndex; }
     uint32_t GetTangentBufferIndex(const Geometry* pGeom) const { return pGeom->mTangentBufferIndex; }
     uint32_t GetBitangentBufferIndex(const Geometry* pGeom) const { return pGeom->mBitangentBufferIndex; }
 
     void SetPositionBufferIndex(Geometry* pGeom, uint32_t index) { pGeom->mPositionBufferIndex = index; }
-    void SetNormalBufferIndex(Geometry* pGeom, uint32_t index) { pGeom->mNormaBufferIndex = index; }
+    void SetNormalBufferIndex(Geometry* pGeom, uint32_t index) { pGeom->mNormalBufferIndex = index; }
     void SetColorBufferIndex(Geometry* pGeom, uint32_t index) { pGeom->mColorBufferIndex = index; }
     void SetTexCoordBufferIndex(Geometry* pGeom, uint32_t index) { pGeom->mTexCoordBufferIndex = index; }
     void SetTangentBufferIndex(Geometry* pGeom, uint32_t index) { pGeom->mTangentBufferIndex = index; }
@@ -169,22 +170,22 @@ public:
 
     virtual uint32_t AppendVertexData(Geometry* pGeom, const T& vtx) override
     {
-        const uint32_t n = this->AppendDataToVertexBuffer(pGeom, this->GetPositionBufferIndex(pGeom), vtx.position);
-        PPX_ASSERT_MSG(n > 0, "position should always available");
+        const uint32_t bytesWritten = this->AppendDataToVertexBuffer(pGeom, this->GetPositionBufferIndex(pGeom), vtx.position);
+        PPX_ASSERT_MSG(bytesWritten > 0, "position should always be appended");
         this->AppendDataToVertexBuffer(pGeom, this->GetNormalBufferIndex(pGeom), vtx.normal);
         this->AppendDataToVertexBuffer(pGeom, this->GetColorBufferIndex(pGeom), vtx.color);
         this->AppendDataToVertexBuffer(pGeom, this->GetTexCoordBufferIndex(pGeom), vtx.texCoord);
         this->AppendDataToVertexBuffer(pGeom, this->GetTangentBufferIndex(pGeom), vtx.tangent);
         this->AppendDataToVertexBuffer(pGeom, this->GetBitangentBufferIndex(pGeom), vtx.bitangent);
-        return n;
+        return GetVertexCount(pGeom);
     }
 
     virtual uint32_t AppendVertexData(Geometry* pGeom, const WireMeshVertexData& vtx) override
     {
-        const uint32_t n = this->AppendDataToVertexBuffer(pGeom, this->GetPositionBufferIndex(pGeom), vtx.position);
-        PPX_ASSERT_MSG(n > 0, "position should always available");
+        const uint32_t bytesWritten = this->AppendDataToVertexBuffer(pGeom, this->GetPositionBufferIndex(pGeom), vtx.position);
+        PPX_ASSERT_MSG(bytesWritten > 0, "position should always be appended");
         this->AppendDataToVertexBuffer(pGeom, this->GetColorBufferIndex(pGeom), vtx.color);
-        return n;
+        return GetVertexCount(pGeom);
     }
 
     virtual uint32_t GetVertexCount(const Geometry* pGeom) override
@@ -219,8 +220,8 @@ public:
 
     virtual uint32_t AppendVertexData(Geometry* pGeom, const T& vtx) override
     {
-        uint32_t       startSize = this->GetVertexBufferSize(pGeom, kBufferIndex);
-        const uint32_t attrCount = this->GetVertexBindingAttributeCount(pGeom, kBufferIndex);
+        uint32_t       startElementCount = GetVertexCount(pGeom);
+        const uint32_t attrCount         = this->GetVertexBindingAttributeCount(pGeom, kBufferIndex);
         for (uint32_t attrIndex = 0; attrIndex < attrCount; ++attrIndex) {
             const grfx::VertexSemantic semantic = this->GetVertexBindingAttributeSematic(pGeom, kBufferIndex, attrIndex);
 
@@ -229,8 +230,8 @@ public:
                 default: break;
                 case grfx::VERTEX_SEMANTIC_POSITION  :
                     {
-                        const uint32_t n = this->AppendDataToVertexBuffer(pGeom, kBufferIndex, vtx.position);
-                        PPX_ASSERT_MSG(n > 0, "position should always available");
+                        const uint32_t bytesWritten = this->AppendDataToVertexBuffer(pGeom, kBufferIndex, vtx.position);
+                        PPX_ASSERT_MSG(bytesWritten > 0, "position should always be appended");
                     }
                     break;
                 case grfx::VERTEX_SEMANTIC_NORMAL    : this->AppendDataToVertexBuffer(pGeom, kBufferIndex, vtx.normal); break;
@@ -241,19 +242,16 @@ public:
             }
             // clang-format on
         }
-        uint32_t endSize = this->GetVertexBufferSize(pGeom, kBufferIndex);
+        uint32_t endElementCount = GetVertexCount(pGeom);
+        PPX_ASSERT_MSG(endElementCount - startElementCount == 1, "number of vertices written is not 1: starting: " << startElementCount << " ending: " << endElementCount);
 
-        uint32_t       bytesWritten            = (endSize - startSize);
-        const uint32_t vertexBufferElementSize = this->GetVertexBufferElementSize(pGeom, kBufferIndex);
-        PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
-
-        return this->GetVertexBufferElementCount(pGeom, kBufferIndex);
+        return endElementCount;
     }
 
     virtual uint32_t AppendVertexData(Geometry* pGeom, const WireMeshVertexData& vtx) override
     {
-        uint32_t       startSize = this->GetVertexBufferSize(pGeom, kBufferIndex);
-        const uint32_t attrCount = this->GetVertexBindingAttributeCount(pGeom, kBufferIndex);
+        uint32_t       startElementCount = GetVertexCount(pGeom);
+        const uint32_t attrCount         = this->GetVertexBindingAttributeCount(pGeom, kBufferIndex);
         for (uint32_t attrIndex = 0; attrIndex < attrCount; ++attrIndex) {
             const grfx::VertexSemantic semantic = this->GetVertexBindingAttributeSematic(pGeom, kBufferIndex, attrIndex);
 
@@ -262,21 +260,18 @@ public:
                 default: break;
                 case grfx::VERTEX_SEMANTIC_POSITION: 
                     {
-                        const uint32_t n = this->AppendDataToVertexBuffer(pGeom, kBufferIndex, vtx.position); 
-                        PPX_ASSERT_MSG(n > 0, "position should always available");
+                        const uint32_t bytesWritten = this->AppendDataToVertexBuffer(pGeom, kBufferIndex, vtx.position); 
+                        PPX_ASSERT_MSG(bytesWritten > 0, "position should always be appended");
                     }
                     break;
                 case grfx::VERTEX_SEMANTIC_COLOR   : this->AppendDataToVertexBuffer(pGeom, kBufferIndex, vtx.color); break;
             }
             // clang-format on
         }
-        uint32_t endSize = this->GetVertexBufferSize(pGeom, kBufferIndex);
+        uint32_t endElementCount = GetVertexCount(pGeom);
+        PPX_ASSERT_MSG(endElementCount - startElementCount == 1, "number of vertices written is not 1: starting: " << startElementCount << " ending: " << endElementCount);
 
-        uint32_t       bytesWritten            = (endSize - startSize);
-        const uint32_t vertexBufferElementSize = this->GetVertexBufferElementSize(pGeom, kBufferIndex);
-        PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
-
-        return this->GetVertexBufferElementCount(pGeom, kBufferIndex);
+        return endElementCount;
     }
 
     virtual uint32_t GetVertexCount(const Geometry* pGeom) override
@@ -339,11 +334,11 @@ public:
 
     virtual uint32_t AppendVertexData(Geometry* pGeom, const T& vtx) override
     {
-        const uint32_t n = this->AppendDataToVertexBuffer(pGeom, this->GetPositionBufferIndex(pGeom), vtx.position);
-        PPX_ASSERT_MSG(n > 0, "position should always available");
+        const uint32_t bytesWritten = this->AppendDataToVertexBuffer(pGeom, this->GetPositionBufferIndex(pGeom), vtx.position);
+        PPX_ASSERT_MSG(bytesWritten > 0, "position should always be appended");
 
-        uint32_t       startSize = this->GetVertexBufferSize(pGeom, kNonPositionBufferIndex);
-        const uint32_t attrCount = this->GetVertexBindingAttributeCount(pGeom, kNonPositionBufferIndex);
+        uint32_t       startElementCount = this->GetVertexBufferElementCount(pGeom, kNonPositionBufferIndex);
+        const uint32_t attrCount         = this->GetVertexBindingAttributeCount(pGeom, kNonPositionBufferIndex);
         for (uint32_t attrIndex = 0; attrIndex < attrCount; ++attrIndex) {
             const grfx::VertexSemantic semantic = this->GetVertexBindingAttributeSematic(pGeom, kNonPositionBufferIndex, attrIndex);
 
@@ -359,20 +354,17 @@ public:
             }
             // clang-format on
         }
-        uint32_t endSize = this->GetVertexBufferSize(pGeom, kNonPositionBufferIndex);
-
-        uint32_t       bytesWritten            = (endSize - startSize);
-        const uint32_t vertexBufferElementSize = this->GetVertexBufferElementSize(pGeom, kNonPositionBufferIndex);
-        PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
-        return n;
+        uint32_t endElementCount = this->GetVertexBufferElementCount(pGeom, kNonPositionBufferIndex);
+        PPX_ASSERT_MSG(endElementCount - startElementCount == 1, "number of vertices written is not 1: starting: " << startElementCount << " ending: " << endElementCount);
+        return endElementCount;
     }
 
     virtual uint32_t AppendVertexData(Geometry* pGeom, const WireMeshVertexData& vtx) override
     {
-        const uint32_t n = this->AppendDataToVertexBuffer(pGeom, kPositionBufferIndex, vtx.position);
-        PPX_ASSERT_MSG(n > 0, "position should always available");
-        uint32_t       startSize = this->GetVertexBufferSize(pGeom, kNonPositionBufferIndex);
-        const uint32_t attrCount = this->GetVertexBindingAttributeCount(pGeom, kNonPositionBufferIndex);
+        const uint32_t bytesWritten = this->AppendDataToVertexBuffer(pGeom, kPositionBufferIndex, vtx.position);
+        PPX_ASSERT_MSG(bytesWritten > 0, "position should always be appended");
+        uint32_t       startElementCount = this->GetVertexBufferElementCount(pGeom, kNonPositionBufferIndex);
+        const uint32_t attrCount         = this->GetVertexBindingAttributeCount(pGeom, kNonPositionBufferIndex);
         for (uint32_t attrIndex = 0; attrIndex < attrCount; ++attrIndex) {
             const grfx::VertexSemantic semantic = this->GetVertexBindingAttributeSematic(pGeom, kNonPositionBufferIndex, attrIndex);
 
@@ -384,13 +376,9 @@ public:
             }
             // clang-format on
         }
-        uint32_t endSize = this->GetVertexBufferSize(pGeom, kNonPositionBufferIndex);
-
-        uint32_t bytesWritten = (endSize - startSize);
-
-        const uint32_t vertexBufferElementSize = this->GetVertexBufferElementSize(pGeom, kNonPositionBufferIndex);
-        PPX_ASSERT_MSG(bytesWritten == vertexBufferElementSize, "size of vertex data written does not match buffer's element size");
-        return n;
+        uint32_t endElementCount = this->GetVertexBufferElementCount(pGeom, kNonPositionBufferIndex);
+        PPX_ASSERT_MSG(endElementCount - startElementCount == 1, "number of vertices written is not 1: starting: " << startElementCount << " ending: " << endElementCount);
+        return endElementCount;
     }
 
     virtual uint32_t GetVertexCount(const Geometry* pGeom) override
@@ -614,15 +602,36 @@ GeometryOptions& GeometryOptions::AddBitangent(grfx::Format format)
     return *this;
 }
 
+GeometryOptions& GeometryOptions::MaxIndexCount(uint32_t count)
+{
+    maxIndexCount = count;
+    return *this;
+}
+
+GeometryOptions& GeometryOptions::MaxVertexCount(uint32_t count)
+{
+    maxVertexCount = count;
+    return *this;
+}
+
 // -------------------------------------------------------------------------------------------------
 // Geometry::Buffer
 // -------------------------------------------------------------------------------------------------
 uint32_t Geometry::Buffer::GetElementCount() const
 {
-    size_t sizeOfData = mData.size();
-    // round up for the case of interleaved buffers
-    uint32_t count = static_cast<uint32_t>(std::ceil(static_cast<double>(sizeOfData) / static_cast<double>(mElementSize)));
+    size_t sizeOfData = GetSizeOfData();
+    PPX_ASSERT_MSG(sizeOfData % mElementSize == 0, "Buffer contains data of size " << sizeOfData << " which is not a multiple of element size " << mElementSize);
+    uint32_t count = sizeOfData / mElementSize;
     return count;
+}
+
+uint32_t Geometry::Buffer::GetSizeOfData() const
+{
+    size_t sizeOfData = mData.size();
+    if (mKnownElementCount > 0) {
+        sizeOfData = mOffset;
+    }
+    return sizeOfData;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -661,7 +670,7 @@ Result Geometry::InternalCtor()
             return ppx::ERROR_FAILED;
         }
 
-        mIndexBuffer = Buffer(BUFFER_TYPE_INDEX, elementSize);
+        mIndexBuffer = Buffer(BUFFER_TYPE_INDEX, elementSize, mCreateInfo.maxIndexCount);
     }
 
     return mVDProcessor->UpdateVertexBuffer(this);
