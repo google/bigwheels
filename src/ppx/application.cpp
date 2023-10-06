@@ -1339,7 +1339,7 @@ int Application::Run(int argc, char** argv)
 
     // Call setup
     {
-        ScopedTimer("Setup() finished");
+        ScopedTimer timer("Setup() finished");
         DispatchSetup();
     }
 
