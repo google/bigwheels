@@ -152,47 +152,41 @@ public:
 
         BufferType  GetType() const { return mType; }
         uint32_t    GetElementSize() const { return mElementSize; }
-        uint32_t    GetSize() const { return CountU32(mData); }
-        void        SetSize(uint32_t size) { mData.resize(size); }
+        uint32_t    GetSize() const { return static_cast<uint32_t>(mUsedSize); }
         char*       GetData() { return DataPtr(mData); }
         const char* GetData() const { return DataPtr(mData); }
         uint32_t    GetElementCount() const;
 
         // Trusts that calling code is well behaved :)
-        //
         template <typename T>
-        void Append(const T& value)
+        inline void Append(const T& value)
         {
-            uint32_t sizeOfValue = static_cast<uint32_t>(sizeof(T));
-
-            // Current size
-            size_t offset = mData.size();
-            // Allocate storage for incoming data
-            mData.resize(offset + sizeOfValue);
-            // Copy data
-            const void* pSrc = &value;
-            void*       pDst = mData.data() + offset;
-            memcpy(pDst, pSrc, sizeOfValue);
+            Append(1, &value);
         }
 
         template <typename T>
-        void Append(uint32_t count, const T* pValues)
+        inline void Append(uint32_t count, const T* pValues)
         {
             uint32_t sizeOfValues = count * static_cast<uint32_t>(sizeof(T));
+            if (mUsedSize + sizeOfValues > mData.size()) {
+                mData.resize(std::max<size_t>(mUsedSize + sizeOfValues, mData.size() * 2));
+            }
 
-            // Current size
-            size_t offset = mData.size();
-            // Allocate storage for incoming data
-            mData.resize(offset + sizeOfValues);
-            // Copy data
+            //// Current size
+            // size_t offset = mData.size();
+            //// Allocate storage for incoming data
+            // mData.resize(offset + sizeOfValues);
+            //  Copy data
             const void* pSrc = pValues;
-            void*       pDst = mData.data() + offset;
+            void*       pDst = mData.data() + mUsedSize;
             memcpy(pDst, pSrc, sizeOfValues);
+            mUsedSize += sizeOfValues;
         }
 
     private:
         BufferType        mType        = BUFFER_TYPE_VERTEX;
         uint32_t          mElementSize = 0;
+        size_t            mUsedSize    = 0;
         std::vector<char> mData;
     };
 
