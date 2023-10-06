@@ -99,7 +99,6 @@ public:
     Texture(
         const scene::ImageRef   image,
         const scene::SamplerRef sampler);
-    virtual ~Texture();
 
     const scene::Image*   GetImage() const { return mImage.get(); }
     const scene::Sampler* GetSampler() const { return mSampler.get(); }
@@ -130,8 +129,6 @@ public:
         float2                   texCoordTranslate,
         float                    texCoordRotate,
         float2                   texCoordScale);
-
-    ~TextureView();
 
     const scene::Texture* GetTexture() const { return mTexture.get(); }
     const float2&         GetTexCoordTranslate() const { return mTexCoordTranslate; }
@@ -301,9 +298,6 @@ private:
 //
 // Materials must be uniquely identifiable by their Material Ident string.
 //
-// Materials that do not take any parameters, such as the default ErrorMaterial
-// class, can the same shared copy across all of its instances.
-//
 class MaterialFactory
 {
 public:
@@ -314,9 +308,6 @@ public:
 
     virtual scene::MaterialRef CreateMaterial(
         const std::string& materialIdent) const;
-
-private:
-    mutable scene::MaterialRef mErrorMaterial;
 };
 
 } // namespace scene

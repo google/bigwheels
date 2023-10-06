@@ -90,10 +90,8 @@ struct VertexAttributeFlags
         uint32_t mask = 0;
     };
 
-    VertexAttributeFlags(uint32_t initialMask = 0)
+    constexpr VertexAttributeFlags(uint32_t initialMask = 0)
         : mask(initialMask) {}
-
-    ~VertexAttributeFlags() {}
 
     static VertexAttributeFlags None()
     {
@@ -105,7 +103,7 @@ struct VertexAttributeFlags
         return flags;
     }
 
-    static VertexAttributeFlags EnableAll()
+    static VertexAttributeFlags All()
     {
         VertexAttributeFlags flags = {};
         flags.bits.texCoords       = true;

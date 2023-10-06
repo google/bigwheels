@@ -56,7 +56,6 @@ Sampler::~Sampler()
     if (mSampler) {
         auto pDevice = mSampler->GetDevice();
         pDevice->DestroySampler(mSampler);
-        mSampler.Reset();
     }
 }
 
@@ -68,10 +67,6 @@ Texture::Texture(
     const scene::SamplerRef sampler)
     : mImage(image),
       mSampler(sampler)
-{
-}
-
-Texture::~Texture()
 {
 }
 
@@ -91,10 +86,6 @@ TextureView::TextureView(
       mTexCoordTranslate(texCoordTranslate),
       mTexCoordRotate(texCoordRotate),
       mTexCoordScale(texCoordScale)
-{
-}
-
-TextureView::~TextureView()
 {
 }
 
@@ -204,10 +195,7 @@ scene::MaterialRef MaterialFactory::CreateMaterial(
         material = scene::MakeRef(new scene::StandardMaterial());
     }
     else {
-        if (!mErrorMaterial) {
-            mErrorMaterial = scene::MakeRef(new scene::ErrorMaterial());
-        }
-        material = mErrorMaterial;
+        material = scene::MakeRef(new scene::ErrorMaterial());
     }
 
     return material;
