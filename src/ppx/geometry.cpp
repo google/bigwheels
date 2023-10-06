@@ -61,9 +61,9 @@ protected:
     {
         if (bufferIndex != PPX_VALUE_IGNORED) {
             PPX_ASSERT_MSG((bufferIndex >= 0) && (bufferIndex < pGeom->mVertexBuffers.size()), "buffer index is not valid");
-            uint32_t originalSize = pGeom->mVertexBuffers[bufferIndex].GetSizeOfData();
+            uint32_t originalSize = pGeom->mVertexBuffers[bufferIndex].GetDataSize();
             pGeom->mVertexBuffers[bufferIndex].Append(data);
-            return pGeom->mVertexBuffers[bufferIndex].GetSizeOfData() - originalSize;
+            return pGeom->mVertexBuffers[bufferIndex].GetDataSize() - originalSize;
         }
         return 0;
     }
@@ -619,16 +619,16 @@ GeometryOptions& GeometryOptions::MaxVertexCount(uint32_t count)
 // -------------------------------------------------------------------------------------------------
 uint32_t Geometry::Buffer::GetElementCount() const
 {
-    size_t sizeOfData = GetSizeOfData();
+    size_t sizeOfData = GetDataSize();
     PPX_ASSERT_MSG(sizeOfData % mElementSize == 0, "Buffer contains data of size " << sizeOfData << " which is not a multiple of element size " << mElementSize);
     uint32_t count = sizeOfData / mElementSize;
     return count;
 }
 
-uint32_t Geometry::Buffer::GetSizeOfData() const
+uint32_t Geometry::Buffer::GetDataSize() const
 {
     size_t sizeOfData = mData.size();
-    if (mKnownElementCount > 0) {
+    if (mMaxElementCount > 0) {
         sizeOfData = mOffset;
     }
     return sizeOfData;

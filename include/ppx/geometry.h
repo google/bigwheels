@@ -153,13 +153,10 @@ public:
     {
     public:
         Buffer() {}
-        Buffer(BufferType type, uint32_t elementSize, uint32_t knownElementCount = 0)
-            : mType(type), mElementSize(elementSize), mKnownElementCount(knownElementCount)
+        Buffer(BufferType type, uint32_t elementSize, uint32_t maxElementCount = 0)
+            : mType(type), mElementSize(elementSize), mMaxElementCount(maxElementCount)
         {
-            if (mKnownElementCount > 0) {
-                // Pre-determined final size of buffer
-                mData.resize(mKnownElementCount * mElementSize);
-            }
+            mData.resize(mMaxElementCount * mElementSize);
         }
         ~Buffer() {}
 
@@ -170,7 +167,7 @@ public:
         char*       GetData() { return DataPtr(mData); }
         const char* GetData() const { return DataPtr(mData); }
         uint32_t    GetElementCount() const;
-        uint32_t    GetSizeOfData() const;
+        uint32_t    GetDataSize() const;
 
         // Append() will automatically adjust mOffset, but it may need to be
         // manually adjusted if Overwrite() is used
@@ -183,7 +180,7 @@ public:
         {
             uint32_t sizeOfValue = static_cast<uint32_t>(sizeof(T));
 
-            if (mKnownElementCount == 0) {
+            if (mMaxElementCount == 0) {
                 // Allocate storage for incoming data
                 SetSize(mOffset + sizeOfValue);
             }
@@ -201,7 +198,7 @@ public:
         {
             uint32_t sizeOfValues = count * static_cast<uint32_t>(sizeof(T));
 
-            if (mKnownElementCount == 0) {
+            if (mMaxElementCount == 0) {
                 // Allocate storage for incoming data
                 SetSize(mOffset + sizeOfValues);
             }
@@ -231,11 +228,11 @@ public:
         }
 
     private:
-        BufferType        mType              = BUFFER_TYPE_VERTEX;
-        uint32_t          mElementSize       = 0;
-        uint32_t          mKnownElementCount = 0;
+        BufferType        mType            = BUFFER_TYPE_VERTEX;
+        uint32_t          mElementSize     = 0;
+        uint32_t          mMaxElementCount = 0;
         std::vector<char> mData;
-        uint32_t          mOffset = 0;
+        uint32_t          mOffset = 0; // bytes
     };
 
     // ---------------------------------------------------------------------------------------------
