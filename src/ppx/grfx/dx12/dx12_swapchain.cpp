@@ -410,6 +410,7 @@ Result Swapchain::Resize(uint32_t width, uint32_t height)
 
     // Destroy these to make sure there's no reference before resizing
     DestroyRenderPasses();
+    DestroyRenderTargets();
     DestroyDepthImages();
     DestroyColorImages();
 
@@ -453,6 +454,9 @@ Result Swapchain::Resize(uint32_t width, uint32_t height)
 
     // Create depth images
     CreateDepthImages();
+
+    // Create render targets
+    CreateRenderTargets();
 
     // Create render passes
     CreateRenderPasses();

@@ -248,7 +248,8 @@ struct StandardOptions
 
     std::shared_ptr<KnobFlag<std::pair<int, int>>> pResolution;
 #if defined(PPX_BUILD_XR)
-    std::shared_ptr<KnobFlag<std::pair<int, int>>> pXrUiResolution;
+    std::shared_ptr<KnobFlag<std::pair<int, int>>>      pXrUiResolution;
+    std::shared_ptr<KnobFlag<std::vector<std::string>>> pXrRequiredExtensions;
 #endif
 
     std::shared_ptr<KnobFlag<std::vector<std::string>>> pAssetsPaths;
