@@ -159,23 +159,19 @@ public:
 
         // Trusts that calling code is well behaved :)
         template <typename T>
-        inline void Append(const T& value)
+        void Append(const T& value)
         {
             Append(1, &value);
         }
 
         template <typename T>
-        inline void Append(uint32_t count, const T* pValues)
+        void Append(uint32_t count, const T* pValues)
         {
             uint32_t sizeOfValues = count * static_cast<uint32_t>(sizeof(T));
-            if (mUsedSize + sizeOfValues > mData.size()) {
+            if ((mUsedSize + sizeOfValues) > mData.size()) {
                 mData.resize(std::max<size_t>(mUsedSize + sizeOfValues, mData.size() * 2));
             }
 
-            //// Current size
-            // size_t offset = mData.size();
-            //// Allocate storage for incoming data
-            // mData.resize(offset + sizeOfValues);
             //  Copy data
             const void* pSrc = pValues;
             void*       pDst = mData.data() + mUsedSize;
