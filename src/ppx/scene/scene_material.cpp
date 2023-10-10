@@ -87,6 +87,10 @@ TextureView::TextureView(
       mTexCoordRotate(texCoordRotate),
       mTexCoordScale(texCoordScale)
 {
+    float2x2 T         = glm::translate(float3(mTexCoordTranslate, 0));
+    float2x2 R         = glm::rotate(mTexCoordRotate, float3(0, 0, 1));
+    float2x2 S         = glm::scale(float3(mTexCoordScale, 0));
+    mTexCoordTransform = T * R * S;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -99,6 +103,19 @@ scene::VertexAttributeFlags ErrorMaterial::GetRequiredVertexAttributes() const
 }
 
 // -------------------------------------------------------------------------------------------------
+// DebugMaterial
+// -------------------------------------------------------------------------------------------------
+scene::VertexAttributeFlags DebugMaterial::GetRequiredVertexAttributes() const
+{
+    scene::VertexAttributeFlags attrFlags = scene::VertexAttributeFlags::None();
+    attrFlags.bits.texCoords              = true;
+    attrFlags.bits.normals                = true;
+    attrFlags.bits.tangents               = true;
+    attrFlags.bits.colors                 = true;
+    return attrFlags;
+}
+
+// -------------------------------------------------------------------------------------------------
 // UnlitMaterial
 // -------------------------------------------------------------------------------------------------
 scene::VertexAttributeFlags UnlitMaterial::GetRequiredVertexAttributes() const
@@ -106,6 +123,12 @@ scene::VertexAttributeFlags UnlitMaterial::GetRequiredVertexAttributes() const
     scene::VertexAttributeFlags attrFlags = scene::VertexAttributeFlags::None();
     attrFlags.bits.texCoords              = true;
     return attrFlags;
+}
+
+bool UnlitMaterial::HasTextures() const
+{
+    bool hasBaseColorTex = HasBaseColorTexture();
+    return hasBaseColorTex;
 }
 
 void UnlitMaterial::SetBaseColorFactor(const float4& value)
@@ -124,6 +147,17 @@ scene::VertexAttributeFlags StandardMaterial::GetRequiredVertexAttributes() cons
     attrFlags.bits.tangents               = true;
     attrFlags.bits.colors                 = true;
     return attrFlags;
+}
+
+bool StandardMaterial::HasTextures() const
+{
+    bool hasBaseColorTex         = HasBaseColorTexture();
+    bool hasMetallicRoughnessTex = HasMetallicRoughnessTexture();
+    bool hasNormalTex            = HasNormalTexture();
+    bool hasOcclusionTex         = HasOcclusionTexture();
+    bool hasEmissiveTex          = HasEmissiveTexture();
+    bool hasTextures             = hasBaseColorTex || hasMetallicRoughnessTex || hasNormalTex || hasOcclusionTex || hasNormalTex;
+    return hasTextures;
 }
 
 void StandardMaterial::SetBaseColorFactor(const float4& value)

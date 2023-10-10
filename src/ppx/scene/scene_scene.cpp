@@ -1,4 +1,20 @@
+// Copyright 2023 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include "ppx/scene/scene_scene.h"
+
+#include <set>
 
 namespace ppx {
 namespace scene {
@@ -6,11 +22,6 @@ namespace scene {
 Scene::Scene(std::unique_ptr<scene::ResourceManager>&& resourceManager)
     : mResourceManager(std::move(resourceManager))
 {
-}
-
-Scene::~Scene()
-{
-    mResourceManager->DestroyAll();
 }
 
 scene::Node* Scene::GetNode(uint32_t index) const
@@ -120,6 +131,51 @@ ppx::Result Scene::AddNode(scene::NodeRef&& node)
     }
 
     return ppx::SUCCESS;
+}
+
+scene::ResourceArrayIndexMap<scene::Sampler> Scene::GetSamplersArrayIndexMap() const
+{
+    auto array = mResourceManager->GetSamplers();
+
+    std::unordered_map<const scene::Sampler*, uint32_t> indexMap;
+    //
+    const uint32_t objectCount = CountU32(array);
+    for (uint32_t idx = 0; idx < objectCount; ++idx) {
+        auto pObject      = array[idx];
+        indexMap[pObject] = idx;
+    }
+
+    return std::make_pair(array, indexMap);
+}
+
+scene::ResourceArrayIndexMap<scene::Image> Scene::GetImagesArrayIndexMap() const
+{
+    auto array = mResourceManager->GetImages();
+
+    std::unordered_map<const scene::Image*, uint32_t> indexMap;
+    //
+    const uint32_t objectCount = CountU32(array);
+    for (uint32_t idx = 0; idx < objectCount; ++idx) {
+        auto pObject      = array[idx];
+        indexMap[pObject] = idx;
+    }
+
+    return std::make_pair(array, indexMap);
+}
+
+scene::ResourceArrayIndexMap<scene::Material> Scene::GetMaterialsArrayIndexMap() const
+{
+    auto array = mResourceManager->GetMaterials();
+
+    std::unordered_map<const scene::Material*, uint32_t> indexMap;
+    //
+    const uint32_t objectCount = CountU32(array);
+    for (uint32_t idx = 0; idx < objectCount; ++idx) {
+        auto pObject      = array[idx];
+        indexMap[pObject] = idx;
+    }
+
+    return std::make_pair(array, indexMap);
 }
 
 } // namespace scene
