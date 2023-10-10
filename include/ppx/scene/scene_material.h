@@ -236,8 +236,8 @@ public:
 
     virtual scene::VertexAttributeFlags GetRequiredVertexAttributes() const override;
 
-    virtual bool HasParams() const { return true; }
-    virtual bool HasTextures() const;
+    virtual bool HasParams() const override { return true; }
+    virtual bool HasTextures() const override;
 
     const float4&             GetBaseColorFactor() const { return mBaseColorFactor; }
     const scene::TextureView& GetBaseColorTexture() const { return mBaseColorTextureView; }
@@ -273,8 +273,8 @@ public:
 
     virtual scene::VertexAttributeFlags GetRequiredVertexAttributes() const override;
 
-    virtual bool HasParams() const { return true; }
-    virtual bool HasTextures() const;
+    virtual bool HasParams() const override { return true; }
+    virtual bool HasTextures() const override;
 
     const float4& GetBaseColorFactor() const { return mBaseColorFactor; }
     float         GetMetallicFactor() const { return mMetallicFactor; }
