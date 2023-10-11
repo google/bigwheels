@@ -77,7 +77,7 @@ public:
     // and parameter arrays that are fed as arguments into the shader
     // for indexing.
     //
-    // The expectation is tht these functions are only called when
+    // The expectation is that these functions are only called when
     // the arguments to the shader need updating. This should only be
     // during loads or there's a change to scene. So it should be
     // infrequent.
