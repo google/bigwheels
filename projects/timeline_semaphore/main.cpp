@@ -16,6 +16,8 @@
 #include "ppx/camera.h"
 using namespace ppx;
 
+#include <thread>
+
 #if defined(USE_DX12)
 const grfx::Api kApi = grfx::API_DX_12_0;
 #elif defined(USE_VK)
