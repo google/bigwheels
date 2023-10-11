@@ -420,6 +420,12 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
     else {
         mHasTimelineSemaphore = true;
     }
+    if (mHasTimelineSemaphore) {
+        // Load in KHR versions of functions since they'll cover Vulkan 1.1 and later versions
+        mFnWaitSemaphores           = (PFN_vkWaitSemaphoresKHR)vkGetDeviceProcAddr(mDevice, "vkWaitSemaphoresKHR");
+        mFnSignalSemaphore          = (PFN_vkSignalSemaphoreKHR)vkGetDeviceProcAddr(mDevice, "vkSignalSemaphoreKHR");
+        mFnGetSemaphoreCounterValue = (PFN_vkGetSemaphoreCounterValueKHR)vkGetDeviceProcAddr(mDevice, "vkGetSemaphoreCounterValueKHR");
+    }
     PPX_LOG_INFO("Vulkan timeline semaphore is present: " << mHasTimelineSemaphore);
 
 #if defined(PPX_VK_EXTENDED_DYNAMIC_STATE)
@@ -740,6 +746,24 @@ void Device::ResetQueryPoolEXT(
     uint32_t    queryCount) const
 {
     mFnResetQueryPoolEXT(mDevice, queryPool, firstQuery, queryCount);
+}
+
+VkResult Device::WaitSemaphores(const VkSemaphoreWaitInfo* pWaitInfo, uint64_t timeout) const
+{
+    PPX_ASSERT_NULL_ARG(mFnWaitSemaphores);
+    return mFnWaitSemaphores(mDevice, pWaitInfo, timeout);
+}
+
+VkResult Device::SignalSemaphore(const VkSemaphoreSignalInfo* pSignalInfo)
+{
+    PPX_ASSERT_NULL_ARG(mFnSignalSemaphore);
+    return mFnSignalSemaphore(mDevice, pSignalInfo);
+}
+
+VkResult Device::GetSemaphoreCounterValue(VkSemaphore semaphore, uint64_t* pValue)
+{
+    PPX_ASSERT_NULL_ARG(mFnGetSemaphoreCounterValue);
+    return mFnGetSemaphoreCounterValue(mDevice, semaphore, pValue);
 }
 
 std::array<uint32_t, 3> Device::GetAllQueueFamilyIndices() const

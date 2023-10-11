@@ -432,6 +432,12 @@ enum SampleCount
     SAMPLE_COUNT_64 = 64,
 };
 
+enum SemaphoreType
+{
+    SEMAPHORE_TYPE_BINARY   = 0,
+    SEMAPHORE_TYPE_TIMELINE = 1,
+};
+
 enum ShaderStageBits
 {
     SHADER_STAGE_UNDEFINED    = 0x00000000,

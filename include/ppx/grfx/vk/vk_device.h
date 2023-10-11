@@ -50,6 +50,10 @@ public:
         uint32_t    firstQuery,
         uint32_t    queryCount) const;
 
+    VkResult WaitSemaphores(const VkSemaphoreWaitInfo* pWaitInfo, uint64_t timeout) const;
+    VkResult SignalSemaphore(const VkSemaphoreSignalInfo* pSignalInfo);
+    VkResult GetSemaphoreCounterValue(VkSemaphore semaphore, uint64_t* pValue);
+
     uint32_t                GetGraphicsQueueFamilyIndex() const { return mGraphicsQueueFamilyIndex; }
     uint32_t                GetComputeQueueFamilyIndex() const { return mComputeQueueFamilyIndex; }
     uint32_t                GetTransferQueueFamilyIndex() const { return mTransferQueueFamilyIndex; }
@@ -93,20 +97,23 @@ private:
     Result CreateQueues(const grfx::DeviceCreateInfo* pCreateInfo);
 
 private:
-    std::vector<std::string> mFoundExtensions;
-    std::vector<std::string> mExtensions;
-    VkDevicePtr              mDevice;
-    VkPhysicalDeviceFeatures mDeviceFeatures = {};
-    VmaAllocatorPtr          mVmaAllocator;
-    bool                     mHasTimelineSemaphore      = false;
-    bool                     mHasExtendedDynamicState   = false;
-    bool                     mHasUnrestrictedDepthRange = false;
-    bool                     mHasDynamicRendering       = false;
-    PFN_vkResetQueryPoolEXT  mFnResetQueryPoolEXT       = nullptr;
-    uint32_t                 mGraphicsQueueFamilyIndex  = 0;
-    uint32_t                 mComputeQueueFamilyIndex   = 0;
-    uint32_t                 mTransferQueueFamilyIndex  = 0;
-    uint32_t                 mMaxPushDescriptors        = 0;
+    std::vector<std::string>       mFoundExtensions;
+    std::vector<std::string>       mExtensions;
+    VkDevicePtr                    mDevice;
+    VkPhysicalDeviceFeatures       mDeviceFeatures = {};
+    VmaAllocatorPtr                mVmaAllocator;
+    bool                           mHasTimelineSemaphore       = false;
+    bool                           mHasExtendedDynamicState    = false;
+    bool                           mHasUnrestrictedDepthRange  = false;
+    bool                           mHasDynamicRendering        = false;
+    PFN_vkResetQueryPoolEXT        mFnResetQueryPoolEXT        = nullptr;
+    PFN_vkWaitSemaphores           mFnWaitSemaphores           = nullptr;
+    PFN_vkSignalSemaphore          mFnSignalSemaphore          = nullptr;
+    PFN_vkGetSemaphoreCounterValue mFnGetSemaphoreCounterValue = nullptr;
+    uint32_t                       mGraphicsQueueFamilyIndex   = 0;
+    uint32_t                       mComputeQueueFamilyIndex    = 0;
+    uint32_t                       mTransferQueueFamilyIndex   = 0;
+    uint32_t                       mMaxPushDescriptors         = 0;
 };
 
 extern PFN_vkCmdPushDescriptorSetKHR CmdPushDescriptorSetKHR;

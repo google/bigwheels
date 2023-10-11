@@ -27,8 +27,10 @@ struct SubmitInfo
     const grfx::CommandBuffer* const* ppCommandBuffers     = nullptr;
     uint32_t                          waitSemaphoreCount   = 0;
     const grfx::Semaphore* const*     ppWaitSemaphores     = nullptr;
+    std::vector<uint64_t>             waitValues           = {}; // Use 0 if index is binary semaphore
     uint32_t                          signalSemaphoreCount = 0;
     grfx::Semaphore**                 ppSignalSemaphores   = nullptr;
+    std::vector<uint64_t>             signalValues         = {}; // Use 0 if index is binary smeaphore
     grfx::Fence*                      pFence               = nullptr;
 };
 
@@ -62,6 +64,10 @@ public:
     virtual Result WaitIdle() = 0;
 
     virtual Result Submit(const grfx::SubmitInfo* pSubmitInfo) = 0;
+
+    // Timeline semaphore functions
+    virtual Result QueueWait(grfx::Semaphore* pSemaphore, uint64_t value)   = 0;
+    virtual Result QueueSignal(grfx::Semaphore* pSemaphore, uint64_t value) = 0;
 
     // GPU timestamp frequency counter in ticks per second
     virtual Result GetTimestampFrequency(uint64_t* pFrequency) const = 0;
