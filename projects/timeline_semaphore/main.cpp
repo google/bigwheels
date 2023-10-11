@@ -199,7 +199,8 @@ void ProjApp::Render()
                 std::stringstream ss;
                 ss << "Frame: " << GetFrameCount() << "\n";
                 ss << "FPS: " << std::setw(6) << std::setprecision(6) << GetAverageFPS() << "\n";
-                ss << "Timeline semaphores FTW!" << "\n";
+                ss << "Timeline semaphores FTW!"
+                   << "\n";
                 ss << "Timeline value: " << frame.timelineValue;
 
                 mDynamicText->Clear();
