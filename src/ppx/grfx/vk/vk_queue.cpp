@@ -68,6 +68,9 @@ void Queue::DestroyApiObjects()
 
 Result Queue::WaitIdle()
 {
+    // Synchronized queue access
+    std::lock_guard<std::mutex> lock(mQueueMutex);
+
     VkResult vkres = vkQueueWaitIdle(mQueue);
     if (vkres != VK_SUCCESS) {
         PPX_ASSERT_MSG(false, "vkQueueWaitIdle failed" << ToString(vkres));
@@ -99,7 +102,15 @@ Result Queue::Submit(const grfx::SubmitInfo* pSubmitInfo)
         signalSemaphores.push_back(ToApi(pSubmitInfo->ppSignalSemaphores[i])->GetVkSemaphore());
     }
 
+    VkTimelineSemaphoreSubmitInfo timelineSubmitInfo = {VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO};
+    timelineSubmitInfo.pNext                         = nullptr;
+    timelineSubmitInfo.waitSemaphoreValueCount       = CountU32(pSubmitInfo->waitValues);
+    timelineSubmitInfo.pWaitSemaphoreValues          = DataPtr(pSubmitInfo->waitValues);
+    timelineSubmitInfo.signalSemaphoreValueCount     = CountU32(pSubmitInfo->signalValues);
+    timelineSubmitInfo.pSignalSemaphoreValues        = DataPtr(pSubmitInfo->signalValues);
+
     VkSubmitInfo vksi         = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
+    vksi.pNext                = &timelineSubmitInfo;
     vksi.waitSemaphoreCount   = CountU32(waitSemaphores);
     vksi.pWaitSemaphores      = DataPtr(waitSemaphores);
     vksi.pWaitDstStageMask    = DataPtr(waitDstStageMasks);
@@ -114,13 +125,96 @@ Result Queue::Submit(const grfx::SubmitInfo* pSubmitInfo)
         fence = ToApi(pSubmitInfo->pFence)->GetVkFence();
     }
 
-    VkResult vkres = vk::QueueSubmit(
-        mQueue,
-        1,
-        &vksi,
-        fence);
-    if (vkres != VK_SUCCESS) {
-        return ppx::ERROR_API_FAILURE;
+    // Synchronized queue access
+    {
+        std::lock_guard<std::mutex> lock(mQueueMutex);
+
+        VkResult vkres = vk::QueueSubmit(
+            mQueue,
+            1,
+            &vksi,
+            fence);
+        if (vkres != VK_SUCCESS) {
+            return ppx::ERROR_API_FAILURE;
+        }
+    }
+
+    return ppx::SUCCESS;
+}
+
+Result Queue::QueueWait(grfx::Semaphore* pSemaphore, uint64_t value)
+{
+    if (IsNull(pSemaphore)) {
+        return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
+    }
+
+    if (pSemaphore->GetSemaphoreType() != grfx::SEMAPHORE_TYPE_TIMELINE) {
+        return ppx::ERROR_GRFX_INVALID_SEMAPHORE_TYPE;
+    }
+
+    VkSemaphore semaphoreHandle = ToApi(pSemaphore)->GetVkSemaphore();
+
+    VkTimelineSemaphoreSubmitInfo timelineSubmitInfo = {VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO};
+    timelineSubmitInfo.pNext                         = nullptr;
+    timelineSubmitInfo.waitSemaphoreValueCount       = 1;
+    timelineSubmitInfo.pWaitSemaphoreValues          = &value;
+
+    VkSubmitInfo vksi       = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
+    vksi.pNext              = &timelineSubmitInfo;
+    vksi.waitSemaphoreCount = 1;
+    vksi.pWaitSemaphores    = &semaphoreHandle;
+
+    // Synchronized queue access
+    {
+        std::lock_guard<std::mutex> lock(mQueueMutex);
+
+        VkResult vkres = vk::QueueSubmit(
+            mQueue,
+            1,
+            &vksi,
+            VK_NULL_HANDLE);
+        if (vkres != VK_SUCCESS) {
+            return ppx::ERROR_API_FAILURE;
+        }
+    }
+
+    return ppx::SUCCESS;
+}
+
+Result Queue::QueueSignal(grfx::Semaphore* pSemaphore, uint64_t value)
+{
+    if (IsNull(pSemaphore)) {
+        return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
+    }
+
+    if (pSemaphore->GetSemaphoreType() != grfx::SEMAPHORE_TYPE_TIMELINE) {
+        return ppx::ERROR_GRFX_INVALID_SEMAPHORE_TYPE;
+    }
+
+    VkSemaphore semaphoreHandle = ToApi(pSemaphore)->GetVkSemaphore();
+
+    VkTimelineSemaphoreSubmitInfo timelineSubmitInfo = {VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO};
+    timelineSubmitInfo.pNext                         = nullptr;
+    timelineSubmitInfo.signalSemaphoreValueCount     = 1;
+    timelineSubmitInfo.pSignalSemaphoreValues        = &value;
+
+    VkSubmitInfo vksi         = {VK_STRUCTURE_TYPE_SUBMIT_INFO};
+    vksi.pNext                = &timelineSubmitInfo;
+    vksi.signalSemaphoreCount = 1;
+    vksi.pSignalSemaphores    = &semaphoreHandle;
+
+    // Synchronized queue access
+    {
+        std::lock_guard<std::mutex> lock(mQueueMutex);
+
+        VkResult vkres = vk::QueueSubmit(
+            mQueue,
+            1,
+            &vksi,
+            VK_NULL_HANDLE);
+        if (vkres != VK_SUCCESS) {
+            return ppx::ERROR_API_FAILURE;
+        }
     }
 
     return ppx::SUCCESS;
@@ -352,22 +446,34 @@ VkResult Queue::TransitionImageLayout(
     vkai.commandBufferCount          = 1;
 
     VkCommandBufferPtr commandBuffer;
-    VkResult           vkres = vkAllocateCommandBuffers(
-        ToApi(GetDevice())->GetVkDevice(),
-        &vkai,
-        &commandBuffer);
-    if (vkres != VK_SUCCESS) {
-        PPX_ASSERT_MSG(false, "vkAllocateCommandBuffers failed" << ToString(vkres));
-        return vkres;
+    // Synchronize command pool access
+    {
+        std::lock_guard<std::mutex> lock(mCommandPoolMutex);
+
+        VkResult vkres = vkAllocateCommandBuffers(
+            ToApi(GetDevice())->GetVkDevice(),
+            &vkai,
+            &commandBuffer);
+        if (vkres != VK_SUCCESS) {
+            PPX_ASSERT_MSG(false, "vkAllocateCommandBuffers failed" << ToString(vkres));
+            return vkres;
+        }
     }
+
+    // Save ourselves from having to write a bunch of mutex locks
+    auto FreeCommandBuffer = [this, &commandBuffer] {
+        std::lock_guard<std::mutex> lock(mCommandPoolMutex);
+
+        vkFreeCommandBuffers(ToApi(this->GetDevice())->GetVkDevice(), this->mTransientPool, 1, commandBuffer);
+    };
 
     VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
     beginInfo.flags                    = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     beginInfo.pInheritanceInfo         = nullptr;
 
-    vkres = vkBeginCommandBuffer(commandBuffer, &beginInfo);
+    VkResult vkres = vkBeginCommandBuffer(commandBuffer, &beginInfo);
     if (vkres != VK_SUCCESS) {
-        vkFreeCommandBuffers(ToApi(GetDevice())->GetVkDevice(), mTransientPool, 1, commandBuffer);
+        FreeCommandBuffer();
         PPX_ASSERT_MSG(false, "vkBeginCommandBuffer failed" << ToString(vkres));
         return vkres;
     }
@@ -384,14 +490,14 @@ VkResult Queue::TransitionImageLayout(
         newLayout,
         newPipelineStage);
     if (vkres != VK_SUCCESS) {
-        vkFreeCommandBuffers(ToApi(GetDevice())->GetVkDevice(), mTransientPool, 1, commandBuffer);
+        FreeCommandBuffer();
         PPX_ASSERT_MSG(false, "CmdTransitionImageLayout failed" << ToString(vkres));
         return vkres;
     }
 
     vkres = vkEndCommandBuffer(commandBuffer);
     if (vkres != VK_SUCCESS) {
-        vkFreeCommandBuffers(ToApi(GetDevice())->GetVkDevice(), mTransientPool, 1, commandBuffer);
+        FreeCommandBuffer();
         PPX_ASSERT_MSG(false, "vkEndCommandBuffer failed" << ToString(vkres));
         return vkres;
     }
@@ -405,21 +511,27 @@ VkResult Queue::TransitionImageLayout(
     submitInfo.signalSemaphoreCount = 0;
     submitInfo.pSignalSemaphores    = nullptr;
 
-    vkres = vkQueueSubmit(mQueue, 1, &submitInfo, VK_NULL_HANDLE);
-    if (vkres != VK_SUCCESS) {
-        vkFreeCommandBuffers(ToApi(GetDevice())->GetVkDevice(), mTransientPool, 1, commandBuffer);
-        PPX_ASSERT_MSG(false, "vkQueueSubmit failed" << ToString(vkres));
-        return vkres;
+    // Sychronized queue access
+    {
+        std::lock_guard<std::mutex> lock(mQueueMutex);
+
+        vkres = vkQueueSubmit(mQueue, 1, &submitInfo, VK_NULL_HANDLE);
+        if (vkres != VK_SUCCESS) {
+            FreeCommandBuffer();
+            PPX_ASSERT_MSG(false, "vkQueueSubmit failed" << ToString(vkres));
+            return vkres;
+        }
+
+        vkres = vkQueueWaitIdle(mQueue);
     }
 
-    vkres = vkQueueWaitIdle(mQueue);
     if (vkres != VK_SUCCESS) {
-        vkFreeCommandBuffers(ToApi(GetDevice())->GetVkDevice(), mTransientPool, 1, commandBuffer);
+        FreeCommandBuffer();
         PPX_ASSERT_MSG(false, "vkQueueWaitIdle failed" << ToString(vkres));
         return vkres;
     }
 
-    vkFreeCommandBuffers(ToApi(GetDevice())->GetVkDevice(), mTransientPool, 1, commandBuffer);
+    FreeCommandBuffer();
 
     return VK_SUCCESS;
 }
