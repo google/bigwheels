@@ -619,7 +619,7 @@ GeometryOptions& GeometryOptions::AddBitangent(grfx::Format format)
 // -------------------------------------------------------------------------------------------------
 uint32_t Geometry::Buffer::GetElementCount() const
 {
-    size_t sizeOfData = mUsedSize;
+    size_t sizeOfData = mData.size();
     // round up for the case of interleaved buffers
     uint32_t count = static_cast<uint32_t>(std::ceil(static_cast<double>(sizeOfData) / static_cast<double>(mElementSize)));
     return count;
@@ -1062,6 +1062,14 @@ const Geometry::Buffer* Geometry::GetVertexBuffer(uint32_t index) const
         pBuffer = &mVertexBuffers[index];
     }
     return pBuffer;
+}
+
+void Geometry::SetVertexBuffer(uint32_t index, const Geometry::Buffer& newVertexBuffer)
+{
+    if (!IsIndexInRange(index, mVertexBuffers)) {
+        return;
+    }
+    mVertexBuffers[index] = newVertexBuffer;
 }
 
 uint32_t Geometry::GetLargestBufferSize() const

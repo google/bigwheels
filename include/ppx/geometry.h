@@ -109,7 +109,10 @@ private:
 //! @class Geometry
 //!
 //! Implementation Notes:
-//!   - Do not modify the vertex buffers directly, use the Append* functions
+//!   - Recommended to avoid modifying the index/vertex buffers directly and to use
+//!     the Append* functions instead (for smaller geometries especially)
+//!   - Only use SetIndexBuffer/SetVertexBuffer if direct access to buffers is needed
+//!     (as described in Use #2 of Buffer below)
 //!
 class Geometry
 {
@@ -152,7 +155,8 @@ public:
 
         BufferType  GetType() const { return mType; }
         uint32_t    GetElementSize() const { return mElementSize; }
-        uint32_t    GetSize() const { return static_cast<uint32_t>(mUsedSize); }
+        uint32_t    GetSize() const { return CountU32(mData); }
+        void        SetSize(uint32_t size) { mData.resize(size); }
         char*       GetData() { return DataPtr(mData); }
         const char* GetData() const { return DataPtr(mData); }
         uint32_t    GetElementCount() const;
@@ -177,21 +181,24 @@ public:
         void Append(uint32_t count, const T* pValues)
         {
             uint32_t sizeOfValues = count * static_cast<uint32_t>(sizeof(T));
-            if ((mUsedSize + sizeOfValues) > mData.size()) {
-                mData.resize(std::max<size_t>(mUsedSize + sizeOfValues, mData.size() * 2));
+
+            // Current size
+            size_t offset = mData.size();
+            // Reserve double storage if necessary
+            if ((offset + sizeOfValues) > mData.capacity()) {
+                mData.reserve(std::max<size_t>(offset + sizeOfValues, mData.size() * 2));
             }
+            mData.resize(offset + sizeOfValues);
 
             //  Copy data
             const void* pSrc = pValues;
-            void*       pDst = mData.data() + mUsedSize;
+            void*       pDst = mData.data() + offset;
             memcpy(pDst, pSrc, sizeOfValues);
-            mUsedSize += sizeOfValues;
         }
 
     private:
         BufferType        mType        = BUFFER_TYPE_VERTEX;
         uint32_t          mElementSize = 0;
-        size_t            mUsedSize    = 0;
         std::vector<char> mData;
     };
 
@@ -225,6 +232,7 @@ public:
 
     grfx::IndexType         GetIndexType() const { return mCreateInfo.indexType; }
     const Geometry::Buffer* GetIndexBuffer() const { return &mIndexBuffer; }
+    void                    SetIndexBuffer(const Geometry::Buffer& newIndexBuffer) { mIndexBuffer = newIndexBuffer; }
     uint32_t                GetIndexCount() const;
 
     GeometryVertexAttributeLayout GetVertexAttributeLayout() const { return mCreateInfo.vertexAttributeLayout; }
@@ -234,6 +242,7 @@ public:
     uint32_t                GetVertexCount() const;
     uint32_t                GetVertexBufferCount() const { return CountU32(mVertexBuffers); }
     const Geometry::Buffer* GetVertexBuffer(uint32_t index) const;
+    void                    SetVertexBuffer(uint32_t index, const Geometry::Buffer& newVertexBuffer);
     uint32_t                GetLargestBufferSize() const;
 
     // Appends single index, triangle, or edge vertex indices to index buffer
