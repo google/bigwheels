@@ -62,7 +62,7 @@ protected:
         if (bufferIndex != PPX_VALUE_IGNORED) {
             PPX_ASSERT_MSG((bufferIndex >= 0) && (bufferIndex < pGeom->mVertexBuffers.size()), "buffer index is not valid");
             uint32_t originalSize = pGeom->mVertexBuffers[bufferIndex].GetDataSize();
-            pGeom->mVertexBuffers[bufferIndex].Append(data);
+            pGeom->mVertexBuffers[bufferIndex].Write(data);
             return pGeom->mVertexBuffers[bufferIndex].GetDataSize() - originalSize;
         }
         return 0;
@@ -602,13 +602,13 @@ GeometryOptions& GeometryOptions::AddBitangent(grfx::Format format)
     return *this;
 }
 
-GeometryOptions& GeometryOptions::MaxIndexCount(uint32_t count)
+GeometryOptions& GeometryOptions::SetMaxIndexCount(uint32_t count)
 {
     maxIndexCount = count;
     return *this;
 }
 
-GeometryOptions& GeometryOptions::MaxVertexCount(uint32_t count)
+GeometryOptions& GeometryOptions::SetMaxVertexCount(uint32_t count)
 {
     maxVertexCount = count;
     return *this;
@@ -628,7 +628,7 @@ uint32_t Geometry::Buffer::GetElementCount() const
 uint32_t Geometry::Buffer::GetDataSize() const
 {
     size_t sizeOfData = mData.size();
-    if (mMaxElementCount > 0) {
+    if (mFinalSizeSet) {
         sizeOfData = mOffset;
     }
     return sizeOfData;
@@ -1085,36 +1085,36 @@ uint32_t Geometry::GetLargestBufferSize() const
 void Geometry::AppendIndex(uint32_t idx)
 {
     if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT16) {
-        mIndexBuffer.Append(static_cast<uint16_t>(idx));
+        mIndexBuffer.Write(static_cast<uint16_t>(idx));
     }
     else if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT32) {
-        mIndexBuffer.Append(idx);
+        mIndexBuffer.Write(idx);
     }
 }
 
 void Geometry::AppendIndicesTriangle(uint32_t idx0, uint32_t idx1, uint32_t idx2)
 {
     if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT16) {
-        mIndexBuffer.Append(static_cast<uint16_t>(idx0));
-        mIndexBuffer.Append(static_cast<uint16_t>(idx1));
-        mIndexBuffer.Append(static_cast<uint16_t>(idx2));
+        mIndexBuffer.Write(static_cast<uint16_t>(idx0));
+        mIndexBuffer.Write(static_cast<uint16_t>(idx1));
+        mIndexBuffer.Write(static_cast<uint16_t>(idx2));
     }
     else if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT32) {
-        mIndexBuffer.Append(idx0);
-        mIndexBuffer.Append(idx1);
-        mIndexBuffer.Append(idx2);
+        mIndexBuffer.Write(idx0);
+        mIndexBuffer.Write(idx1);
+        mIndexBuffer.Write(idx2);
     }
 }
 
 void Geometry::AppendIndicesEdge(uint32_t idx0, uint32_t idx1)
 {
     if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT16) {
-        mIndexBuffer.Append(static_cast<uint16_t>(idx0));
-        mIndexBuffer.Append(static_cast<uint16_t>(idx1));
+        mIndexBuffer.Write(static_cast<uint16_t>(idx0));
+        mIndexBuffer.Write(static_cast<uint16_t>(idx1));
     }
     else if (mCreateInfo.indexType == grfx::INDEX_TYPE_UINT32) {
-        mIndexBuffer.Append(idx0);
-        mIndexBuffer.Append(idx1);
+        mIndexBuffer.Write(idx0);
+        mIndexBuffer.Write(idx1);
     }
 }
 
@@ -1124,7 +1124,7 @@ void Geometry::AppendIndicesU32(uint32_t count, const uint32_t* pIndices)
         PPX_ASSERT_MSG(false, "Invalid geometry index type, trying to append UINT32 data to UINT16 indices");
         return;
     }
-    mIndexBuffer.Append(count, pIndices);
+    mIndexBuffer.Write(count, pIndices);
 }
 
 uint32_t Geometry::AppendVertexData(const TriMeshVertexData& vtx)

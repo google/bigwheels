@@ -106,8 +106,8 @@ struct GeometryOptions
 
     // NOTE: Setting max index/vertex counts will set up index/vertex
     // buffers for "Use #2"
-    GeometryOptions& MaxIndexCount(uint32_t count);
-    GeometryOptions& MaxVertexCount(uint32_t count);
+    GeometryOptions& SetMaxIndexCount(uint32_t count);
+    GeometryOptions& SetMaxVertexCount(uint32_t count);
 
 private:
     GeometryOptions& AddAttribute(grfx::VertexSemantic semantic, grfx::Format format);
@@ -154,9 +154,9 @@ public:
     public:
         Buffer() {}
         Buffer(BufferType type, uint32_t elementSize, uint32_t maxElementCount = 0)
-            : mType(type), mElementSize(elementSize), mMaxElementCount(maxElementCount)
+            : mType(type), mElementSize(elementSize), mFinalSizeSet(maxElementCount > 0)
         {
-            mData.resize(mMaxElementCount * mElementSize);
+            mData.resize(maxElementCount * mElementSize);
         }
         ~Buffer() {}
 
@@ -169,68 +169,64 @@ public:
         uint32_t    GetElementCount() const;
         uint32_t    GetDataSize() const;
 
-        // Append() will automatically adjust mOffset, but it may need to be
-        // manually adjusted if Overwrite() is used
-        void SetOffset(uint32_t offset) { mOffset = offset; }
-
         // Trusts that calling code is well behaved :)
         //
+        // Write(count, pValues...) is used to write a chunk of data at specified offset
+        // If called with offset=-1, will write at the end and adjust mOffset accordingly
         template <typename T>
-        void Append(const T& value)
-        {
-            uint32_t sizeOfValue = static_cast<uint32_t>(sizeof(T));
-
-            if (mMaxElementCount == 0) {
-                // Allocate storage for incoming data
-                SetSize(mOffset + sizeOfValue);
-            }
-
-            // Copy data
-            const void* pSrc = &value;
-            void*       pDst = mData.data() + mOffset;
-            memcpy(pDst, pSrc, sizeOfValue);
-
-            mOffset += sizeOfValue;
-        }
-
-        template <typename T>
-        void Append(uint32_t count, const T* pValues)
+        void Write(uint32_t count, const T* pValues, int32_t offset = -1)
         {
             uint32_t sizeOfValues = count * static_cast<uint32_t>(sizeof(T));
+            uint32_t writeOffset  = offset == -1 ? mOffset : offset;
 
-            if (mMaxElementCount == 0) {
-                // Allocate storage for incoming data
-                SetSize(mOffset + sizeOfValues);
+            if (offset == -1 && !mFinalSizeSet) {
+                // New data is being appended, need to allocate storage
+                SetSize(writeOffset + sizeOfValues);
+            }
+            else {
+                PPX_ASSERT_MSG(writeOffset + sizeOfValues <= GetSize(), "Attempting to write values of size " << sizeOfValues << " at offset " << offset << " will overflow the buffer of size " << GetSize());
             }
 
             // Copy data
             const void* pSrc = pValues;
-            void*       pDst = mData.data() + mOffset;
+            void*       pDst = mData.data() + writeOffset;
             memcpy(pDst, pSrc, sizeOfValues);
 
-            mOffset += sizeOfValues;
+            if (offset == -1) {
+                mOffset += sizeOfValues;
+            }
         }
 
-        // If Overwrite is used to write new data, calling code will also
-        // have to SetOffset() appropriately
-        //
+        // Write() is used to write data at the specified offset
+        // If called with offset=-1, will write at the end and adjust mOffset accordingly
         template <typename T>
-        void Overwrite(const T& value, size_t offset)
+        void Write(const T& value, int32_t offset = -1)
         {
             uint32_t sizeOfValue = static_cast<uint32_t>(sizeof(T));
+            uint32_t writeOffset = offset == -1 ? mOffset : offset;
 
-            PPX_ASSERT_MSG(offset + sizeOfValue <= GetSize(), "Attempting to overwrite with value of size " << sizeOfValue << " at offset " << offset << " will overflow the buffer of size " << GetSize());
+            if (offset == -1 && !mFinalSizeSet) {
+                // New data is being appended, need to allocate storage
+                SetSize(writeOffset + sizeOfValue);
+            }
+            else {
+                PPX_ASSERT_MSG(writeOffset + sizeOfValue <= GetSize(), "Attempting to write value of size " << sizeOfValue << " at offset " << offset << " will overflow the buffer of size " << GetSize());
+            }
 
             // Copy data
             const void* pSrc = &value;
-            void*       pDst = mData.data() + offset;
+            void*       pDst = mData.data() + writeOffset;
             memcpy(pDst, pSrc, sizeOfValue);
+
+            if (offset == -1) {
+                mOffset += sizeOfValue;
+            }
         }
 
     private:
-        BufferType        mType            = BUFFER_TYPE_VERTEX;
-        uint32_t          mElementSize     = 0;
-        uint32_t          mMaxElementCount = 0;
+        BufferType        mType         = BUFFER_TYPE_VERTEX;
+        uint32_t          mElementSize  = 0;
+        bool              mFinalSizeSet = false;
         std::vector<char> mData;
         uint32_t          mOffset = 0; // bytes
     };
@@ -301,8 +297,8 @@ public:
     void AppendEdge(const WireMeshVertexData& vtx0, const WireMeshVertexData& vtx1);
 
     // Directly overwrites index/vertex buffers
-    void SetIndexBuffer(const Geometry::Buffer* indexBuffer) { mIndexBuffer = *indexBuffer; }
-    void SetVertexBuffer(const Geometry::Buffer* vertexBuffer, size_t vertexBufferIndex) { mVertexBuffers[vertexBufferIndex] = *vertexBuffer; }
+    void SetIndexBuffer(const Geometry::Buffer& indexBuffer) { mIndexBuffer = indexBuffer; }
+    void SetVertexBuffer(const Geometry::Buffer& vertexBuffer, size_t vertexBufferIndex) { mVertexBuffers[vertexBufferIndex] = vertexBuffer; }
 
 private:
     // This is intialized to point to a static var of derived class of VertexDataProcessorBase
