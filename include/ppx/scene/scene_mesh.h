@@ -23,7 +23,7 @@ namespace scene {
 
 // Mesh Data
 //
-// Container for geomtry data and the buffer views required by
+// Container for geometry data and the buffer views required by
 // a renderer. scene::MeshData objects can be shared among different
 // scene::Mesh instances.
 //
@@ -37,23 +37,22 @@ class MeshData
 {
 public:
     MeshData(
-        const scene::VertexAttributeFlags& activeVertexAttributes,
+        const scene::VertexAttributeFlags& availableVertexAttributes,
         grfx::Mesh*                        pGpuMesh);
     virtual ~MeshData();
 
     grfx::Mesh*                        GetGpuMesh() const { return mGpuMesh.Get(); }
-    const scene::VertexAttributeFlags& GetActiveVertexAttributes() const { return mActiveVertexAttributes; }
+    const scene::VertexAttributeFlags& GetAvailableVertexAttributes() const { return mAvailableVertexAttributes; }
     const grfx::IndexBufferView&       GetIndexBufferView() const { return mIndexBufferView; }
     const grfx::VertexBufferView&      GetPositionBufferView() const { return mPositionBufferView; }
     const grfx::VertexBufferView&      GetAttributeBufferView() const { return mAttributeBufferView; }
 
 private:
-    std::string                 mName                   = "";
-    scene::VertexAttributeFlags mActiveVertexAttributes = {};
-    grfx::MeshPtr               mGpuMesh                = nullptr;
-    grfx::IndexBufferView       mIndexBufferView        = {};
-    grfx::VertexBufferView      mPositionBufferView     = {};
-    grfx::VertexBufferView      mAttributeBufferView    = {};
+    scene::VertexAttributeFlags mAvailableVertexAttributes = {};
+    grfx::MeshPtr               mGpuMesh                   = nullptr;
+    grfx::IndexBufferView       mIndexBufferView           = {};
+    grfx::VertexBufferView      mPositionBufferView        = {};
+    grfx::VertexBufferView      mAttributeBufferView       = {};
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -61,18 +60,35 @@ private:
 // Primitive Batch
 //
 // Contains all information necessary for a draw call. The material
-// reference will determine whch pipeline gets used. The offsets and
+// reference will determine which pipeline gets used. The offsets and
 // counts correspond to the graphics API's draw call. Bounding box
 // can be used by renderer.
 //
-struct PrimitiveBatch
+class PrimitiveBatch
 {
-    scene::MaterialRef material     = nullptr;
-    uint32_t           indexOffset  = 0;
-    uint32_t           vertexOffset = 0;
-    uint32_t           indexCount   = 0;
-    uint32_t           vertexCount  = 0;
-    ppx::AABB          boundingBox  = {};
+public:
+    PrimitiveBatch(
+        const scene::MaterialRef& material,
+        uint32_t                  indexOffset,
+        uint32_t                  vertexOffset,
+        uint32_t                  indexCount,
+        uint32_t                  vertexCount,
+        ppx::AABB                 boundingBox);
+
+    const scene::Material* GetMaterial() const { return mMaterial.get(); }
+    uint32_t               GetIndexOffset() const { return mIndexOffset; }
+    uint32_t               GetVertexOffset() const { return mVertexOffset; }
+    uint32_t               GetIndexCount() const { return mIndexCount; }
+    uint32_t               GetVertexCount() const { return mVertexCount; }
+    ppx::AABB              GetBoundingBox() const { return mBoundingBox; }
+
+private:
+    scene::MaterialRef mMaterial     = nullptr;
+    uint32_t           mIndexOffset  = 0;
+    uint32_t           mVertexOffset = 0;
+    uint32_t           mIndexCount   = 0;
+    uint32_t           mVertexCount  = 0;
+    ppx::AABB          mBoundingBox  = {};
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -80,7 +96,7 @@ struct PrimitiveBatch
 // Mesh
 //
 // Contains all the information necessary to render a model:
-//   - geomtry data reference
+//   - geometry data reference
 //   - primitive batches
 //   - material references
 //
@@ -105,7 +121,7 @@ public:
 
     bool HasResourceManager() const { return mResourceManager ? true : false; }
 
-    scene::VertexAttributeFlags GetActiveVertexAttributes() const;
+    scene::VertexAttributeFlags GetAvailableVertexAttributes() const;
 
     scene::MeshData*                          GetMeshData() const { return mMeshData.get(); }
     const std::vector<scene::PrimitiveBatch>& GetBatches() const { return mBatches; }
@@ -115,12 +131,11 @@ public:
     const ppx::AABB& GetBoundingBox() const { return mBoundingBox; }
     void             UpdateBoundingBox();
 
-    std::vector<scene::Material*> GetMaterials() const;
+    std::vector<const scene::Material*> GetMaterials() const;
 
 private:
     std::unique_ptr<scene::ResourceManager> mResourceManager = nullptr;
     scene::MeshDataRef                      mMeshData        = nullptr;
-    std::string                             mName            = "";
     std::vector<scene::PrimitiveBatch>      mBatches         = {};
     ppx::AABB                               mBoundingBox     = {};
 };

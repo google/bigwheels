@@ -28,14 +28,14 @@ ResourceManager::~ResourceManager()
 {
 }
 
-bool ResourceManager::Find(uint64_t objectId, scene::ImageRef& outObject) const
-{
-    return FindObject<grfx::Image>(objectId, mImages, outObject);
-}
-
 bool ResourceManager::Find(uint64_t objectId, scene::SamplerRef& outObject) const
 {
     return FindObject<grfx::Sampler>(objectId, mSamplers, outObject);
+}
+
+bool ResourceManager::Find(uint64_t objectId, scene::ImageRef& outObject) const
+{
+    return FindObject<grfx::Image>(objectId, mImages, outObject);
 }
 
 bool ResourceManager::Find(uint64_t objectId, scene::TextureRef& outObject) const
@@ -58,14 +58,14 @@ bool ResourceManager::Find(uint64_t objectId, scene::MeshRef& outObject) const
     return FindObject<scene::Mesh>(objectId, mMeshes, outObject);
 }
 
-ppx::Result ResourceManager::Cache(uint64_t objectId, const scene::ImageRef& object)
-{
-    return CacheObject<grfx::Image>(objectId, object, mImages);
-}
-
 ppx::Result ResourceManager::Cache(uint64_t objectId, const scene::SamplerRef& object)
 {
     return CacheObject<grfx::Image>(objectId, object, mSamplers);
+}
+
+ppx::Result ResourceManager::Cache(uint64_t objectId, const scene::ImageRef& object)
+{
+    return CacheObject<grfx::Image>(objectId, object, mImages);
 }
 
 ppx::Result ResourceManager::Cache(uint64_t objectId, const scene::TextureRef& object)
@@ -90,41 +90,48 @@ ppx::Result ResourceManager::Cache(uint64_t objectId, const scene::MeshRef& obje
 
 void ResourceManager::DestroyAll()
 {
-    for (auto& it : mImages) {
-        auto objectRef = it.second;
-        objectRef->~Image();
-    }
     mImages.clear();
-
-    for (auto& it : mSamplers) {
-        auto objectRef = it.second;
-        objectRef->~Sampler();
-    }
     mSamplers.clear();
-
-    for (auto& it : mTextures) {
-        auto objectRef = it.second;
-        objectRef->~Texture();
-    }
     mTextures.clear();
-
-    for (auto& it : mMaterials) {
-        auto objectRef = it.second;
-        objectRef->~Material();
-    }
     mMaterials.clear();
-
-    for (auto& it : mMeshData) {
-        auto objectRef = it.second;
-        objectRef->~MeshData();
-    }
     mMeshData.clear();
-
-    for (auto& it : mMeshes) {
-        auto objectRef = it.second;
-        objectRef->~Mesh();
-    }
     mMeshes.clear();
+}
+
+std::vector<const scene::Sampler*> ResourceManager::GetSamplers() const
+{
+    std::vector<const scene::Sampler*> objectPtrs;
+    for (auto& it : mSamplers) {
+        objectPtrs.push_back(it.second.get());
+    }
+    return objectPtrs;
+}
+
+std::vector<const scene::Image*> ResourceManager::GetImages() const
+{
+    std::vector<const scene::Image*> objectPtrs;
+    for (auto& it : mImages) {
+        objectPtrs.push_back(it.second.get());
+    }
+    return objectPtrs;
+}
+
+std::vector<const scene::Texture*> ResourceManager::GetTextures() const
+{
+    std::vector<const scene::Texture*> objectPtrs;
+    for (auto& it : mTextures) {
+        objectPtrs.push_back(it.second.get());
+    }
+    return objectPtrs;
+}
+
+std::vector<const scene::Material*> ResourceManager::GetMaterials() const
+{
+    std::vector<const scene::Material*> objectPtrs;
+    for (auto& it : mMaterials) {
+        objectPtrs.push_back(it.second.get());
+    }
+    return objectPtrs;
 }
 
 } // namespace scene

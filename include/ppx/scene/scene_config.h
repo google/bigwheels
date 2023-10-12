@@ -49,7 +49,6 @@ using MeshRef     = std::shared_ptr<scene::Mesh>;
 using MeshDataRef = std::shared_ptr<scene::MeshData>;
 using NodeRef     = std::shared_ptr<scene::Node>;
 using SamplerRef  = std::shared_ptr<scene::Sampler>;
-using SceneRef    = std::shared_ptr<scene::Scene>;
 using TextureRef  = std::shared_ptr<scene::Texture>;
 
 enum LightType
@@ -91,10 +90,8 @@ struct VertexAttributeFlags
         uint32_t mask = 0;
     };
 
-    VertexAttributeFlags(uint32_t initialMask = 0)
+    constexpr VertexAttributeFlags(uint32_t initialMask = 0)
         : mask(initialMask) {}
-
-    ~VertexAttributeFlags() {}
 
     static VertexAttributeFlags None()
     {
@@ -106,7 +103,7 @@ struct VertexAttributeFlags
         return flags;
     }
 
-    static VertexAttributeFlags EnableAll()
+    static VertexAttributeFlags All()
     {
         VertexAttributeFlags flags = {};
         flags.bits.texCoords       = true;

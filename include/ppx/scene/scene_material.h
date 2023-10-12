@@ -19,6 +19,7 @@
 #include "ppx/grfx/grfx_image.h"
 
 #define PPX_MATERIAL_IDENT_ERROR    "ppx_material_ident:error"
+#define PPX_MATERIAL_IDENT_DEBUG    "ppx_material_ident:debug"
 #define PPX_MATERIAL_IDENT_UNLIT    "ppx_material_ident:unlit"
 #define PPX_MATERIAL_IDENT_STANDARD "ppx_material_ident:standard"
 
@@ -29,6 +30,8 @@ namespace scene {
 //
 // This class wraps a grfx::Image and a grfx::SampledImage objects to make
 // pathing access to the GPU pipelines easier.
+//
+// This class owns mImage and mImageView and destroys them in the destructor.
 //
 // scene::Image objects can be shared between different scene::Texture objects.
 //
@@ -57,6 +60,8 @@ private:
 //
 // This class wraps a grfx::Sampler object to make sharability on the ppx::scene
 // level easier to understand.
+//
+// This class owns mSampler and destroys it in the destructor.
 //
 // scene::Sampler objects can be shared between different scene::Texture objects.
 //
@@ -95,7 +100,6 @@ public:
     Texture(
         const scene::ImageRef   image,
         const scene::SamplerRef sampler);
-    virtual ~Texture();
 
     const scene::Image*   GetImage() const { return mImage.get(); }
     const scene::Sampler* GetSampler() const { return mSampler.get(); }
@@ -109,19 +113,38 @@ private:
 
 // Texture View
 //
-// This struct contains a reference a texture object and the transform
+// This class contains a reference to a texture object and the transform
 // data that must be applied by the shader before sampling a pixel.
 //
-// scene::Texture view objects are used directly by scene::Matreial objets.
+// scene::Texture view objects are used directly by scene::Material objects.
 //
 // Corresponds to cgltf's texture view object.
 //
-struct TextureView
+class TextureView
 {
-    scene::TextureRef texture           = nullptr;
-    float2            texCoordTranslate = float2(0, 0);
-    float             texCoordRotate    = 0;
-    float2            texCoordScale     = float2(1, 1);
+public:
+    TextureView();
+
+    TextureView(
+        const scene::TextureRef& texture,
+        float2                   texCoordTranslate,
+        float                    texCoordRotate,
+        float2                   texCoordScale);
+
+    const scene::Texture* GetTexture() const { return mTexture.get(); }
+    const float2&         GetTexCoordTranslate() const { return mTexCoordTranslate; }
+    float                 GetTexCoordRotate() const { return mTexCoordRotate; }
+    const float2&         GetTexCoordScale() const { return mTexCoordScale; }
+    const float2x2&       GetTexCoordTransform() const { return mTexCoordTransform; }
+
+    bool HasTexture() const { return mTexture ? true : false; }
+
+private:
+    scene::TextureRef mTexture           = nullptr;
+    float2            mTexCoordTranslate = float2(0, 0);
+    float             mTexCoordRotate    = 0;
+    float2            mTexCoordScale     = float2(1, 1);
+    float2x2          mTexCoordTransform = float2x2(1);
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -147,6 +170,12 @@ public:
     virtual std::string GetIdentString() const = 0;
 
     virtual scene::VertexAttributeFlags GetRequiredVertexAttributes() const = 0;
+
+    // Returns true if material has paramters for shader
+    virtual bool HasParams() const { return false; }
+
+    // Returns true if material has at least one texture, otherwise false
+    virtual bool HasTextures() const { return false; }
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -170,9 +199,27 @@ public:
 
 // -------------------------------------------------------------------------------------------------
 
+// Debug Material
+//
+// Implementations should render position, tex coord, normal, and tangent as color output.
+//
+class DebugMaterial
+    : public scene::Material
+{
+public:
+    DebugMaterial() {}
+    virtual ~DebugMaterial() {}
+
+    virtual std::string GetIdentString() const override { return PPX_MATERIAL_IDENT_DEBUG; }
+
+    virtual scene::VertexAttributeFlags GetRequiredVertexAttributes() const override;
+};
+
+// -------------------------------------------------------------------------------------------------
+
 // Unlit Material
 //
-// Implemtations should render a texture without any lighting. Base color factor
+// Implementations should render a texture without any lighting. Base color factor
 // can act as a multiplier for the values from base color texture.
 //
 // Corresponds to GLTF's KHR_materials_unlit:
@@ -189,11 +236,14 @@ public:
 
     virtual scene::VertexAttributeFlags GetRequiredVertexAttributes() const override;
 
+    virtual bool HasParams() const override { return true; }
+    virtual bool HasTextures() const override;
+
     const float4&             GetBaseColorFactor() const { return mBaseColorFactor; }
-    const scene::TextureView& GetBaseColorTexture() const { return mBaseColorTextureView; }
+    const scene::TextureView& GetBaseColorTextureView() const { return mBaseColorTextureView; }
     scene::TextureView*       GetBaseColorTextureViewPtr() { return &mBaseColorTextureView; }
 
-    bool HasBaseColorTexture() const { return mBaseColorTextureView.texture ? true : false; }
+    bool HasBaseColorTexture() const { return mBaseColorTextureView.HasTexture(); }
 
     void SetBaseColorFactor(const float4& value);
 
@@ -223,6 +273,9 @@ public:
 
     virtual scene::VertexAttributeFlags GetRequiredVertexAttributes() const override;
 
+    virtual bool HasParams() const override { return true; }
+    virtual bool HasTextures() const override;
+
     const float4& GetBaseColorFactor() const { return mBaseColorFactor; }
     float         GetMetallicFactor() const { return mMetallicFactor; }
     float         GetRoughnessFactor() const { return mRoughnessFactor; }
@@ -242,11 +295,11 @@ public:
     scene::TextureView* GetOcclusionTextureViewPtr() { return &mOcclusionTextureView; }
     scene::TextureView* GetEmissiveTextureViewPtr() { return &mEmissiveTextureView; }
 
-    bool HasBaseColorTexture() const { return mBaseColorTextureView.texture ? true : false; }
-    bool HasMetallicRoughnessTexture() const { return mMetallicRoughnessTextureView.texture ? true : false; }
-    bool HasNormalTexture() const { return mNormalTextureView.texture ? true : false; }
-    bool HasOcclusionTexture() const { return mOcclusionTextureView.texture ? true : false; }
-    bool HasEmissiveTexture() const { return mEmissiveTextureView.texture ? true : false; }
+    bool HasBaseColorTexture() const { return mBaseColorTextureView.HasTexture(); }
+    bool HasMetallicRoughnessTexture() const { return mMetallicRoughnessTextureView.HasTexture(); }
+    bool HasNormalTexture() const { return mNormalTextureView.HasTexture(); }
+    bool HasOcclusionTexture() const { return mOcclusionTextureView.HasTexture(); }
+    bool HasEmissiveTexture() const { return mEmissiveTextureView.HasTexture(); }
 
     void SetBaseColorFactor(const float4& value);
     void SetMetallicFactor(float value);
@@ -274,12 +327,9 @@ private:
 // Material Factory
 //
 // Customizable factory that provides implementations of materials. An application
-// can inherit this class to provide implemtnations of materials as it sees fit.
+// can inherit this class to provide implementations of materials as it sees fit.
 //
 // Materials must be uniquely identifiable by their Material Ident string.
-//
-// Materials that do not take any parameters, such as the default ErrorMaterial
-// class, can the same shared copy across all of its instances.
 //
 class MaterialFactory
 {
@@ -289,11 +339,8 @@ public:
 
     virtual scene::VertexAttributeFlags GetRequiredVertexAttributes(const std::string& materialIdent) const;
 
-    virtual scene::MaterialRef CreateMaterial(
+    virtual scene::Material* CreateMaterial(
         const std::string& materialIdent) const;
-
-private:
-    mutable scene::MaterialRef mErrorMaterial;
 };
 
 } // namespace scene

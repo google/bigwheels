@@ -28,7 +28,7 @@ namespace scene {
 //
 // The resource manager acts as the external owner of all shared resources
 // for scenes and meshes. Required objects can be shared in a variety of
-// difference cases:
+// different cases:
 //   - images and image views can be shared among textures
 //   - textures can be shared among materials by way of texture views
 //   - materials can be shared among primitive batches
@@ -46,29 +46,46 @@ public:
     ResourceManager();
     virtual ~ResourceManager();
 
-    bool Find(uint64_t objectId, scene::ImageRef& outObject) const;
     bool Find(uint64_t objectId, scene::SamplerRef& outObject) const;
+    bool Find(uint64_t objectId, scene::ImageRef& outObject) const;
     bool Find(uint64_t objectId, scene::TextureRef& outObject) const;
     bool Find(uint64_t objectId, scene::MaterialRef& outObject) const;
     bool Find(uint64_t objectId, scene::MeshDataRef& outObject) const;
     bool Find(uint64_t objectId, scene::MeshRef& outObject) const;
 
     // Cache functions assumes ownership of pObject
-    ppx::Result Cache(uint64_t objectId, const scene::ImageRef& object);
     ppx::Result Cache(uint64_t objectId, const scene::SamplerRef& object);
+    ppx::Result Cache(uint64_t objectId, const scene::ImageRef& object);
     ppx::Result Cache(uint64_t objectId, const scene::TextureRef& object);
     ppx::Result Cache(uint64_t objectId, const scene::MaterialRef& object);
     ppx::Result Cache(uint64_t objectId, const scene::MeshDataRef& object);
     ppx::Result Cache(uint64_t objectId, const scene::MeshRef& object);
 
-    uint32_t GetImageCount() const { return static_cast<uint32_t>(mImages.size()); }
     uint32_t GetSamplerCount() const { return static_cast<uint32_t>(mSamplers.size()); }
+    uint32_t GetImageCount() const { return static_cast<uint32_t>(mImages.size()); }
     uint32_t GetTextureCount() const { return static_cast<uint32_t>(mTextures.size()); }
     uint32_t GetMaterialCount() const { return static_cast<uint32_t>(mMaterials.size()); }
     uint32_t GetMeshDataCount() const { return static_cast<uint32_t>(mMeshData.size()); }
     uint32_t GetMeshCount() const { return static_cast<uint32_t>(mMeshes.size()); }
 
     void DestroyAll();
+
+    // The following functions return an array of each resource in the
+    // order of iteration in the map.
+    //
+    // The results of these functions are used to build the resource
+    // and parameter arrays that are fed as arguments into the shader
+    // for indexing.
+    //
+    // The expectation is that these functions are only called when
+    // the arguments to the shader need updating. This should only be
+    // during loads or there's a change to scene. So it should be
+    // infrequent.
+    //
+    std::vector<const scene::Sampler*>  GetSamplers() const;
+    std::vector<const scene::Image*>    GetImages() const;
+    std::vector<const scene::Texture*>  GetTextures() const;
+    std::vector<const scene::Material*> GetMaterials() const;
 
 private:
     template <
@@ -112,8 +129,8 @@ private:
     }
 
 private:
-    std::unordered_map<uint64_t, scene::ImageRef>    mImages;
     std::unordered_map<uint64_t, scene::SamplerRef>  mSamplers;
+    std::unordered_map<uint64_t, scene::ImageRef>    mImages;
     std::unordered_map<uint64_t, scene::TextureRef>  mTextures;
     std::unordered_map<uint64_t, scene::MaterialRef> mMaterials;
     std::unordered_map<uint64_t, scene::MeshDataRef> mMeshData;

@@ -130,6 +130,11 @@ public:
         const grfx::Sampler* pSampler);
 
     Result UpdateSampledImage(
+        uint32_t                      binding,
+        uint32_t                      arrayIndex,
+        const grfx::SampledImageView* pImageView);
+
+    Result UpdateSampledImage(
         uint32_t             binding,
         uint32_t             arrayIndex,
         const grfx::Texture* pTexture);

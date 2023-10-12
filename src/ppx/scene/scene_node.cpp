@@ -1,3 +1,17 @@
+// Copyright 2023 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include "ppx/scene/scene_node.h"
 
 namespace ppx {
@@ -15,9 +29,14 @@ Node::~Node()
 {
 }
 
-void Node::SetVisible(bool visible)
+void Node::SetVisible(bool visible, bool recursive)
 {
     mVisible = visible;
+    if (recursive) {
+        for (auto pChild : mChildren) {
+            pChild->SetVisible(visible, recursive);
+        }
+    }
 }
 
 const float4x4& Node::GetEvaluatedMatrix() const
@@ -32,6 +51,12 @@ const float4x4& Node::GetEvaluatedMatrix() const
         mEvaluatedDirty          = false;
     }
     return mEvaluatedMatrix;
+}
+
+void Node::SetParent(scene::Node* pNewParent)
+{
+    mParent = pNewParent;
+    SetEvaluatedDirty();
 }
 
 void Node::SetEvaluatedDirty()
@@ -66,67 +91,90 @@ void Node::SetRotationOrder(Transform::RotationOrder value)
     SetEvaluatedDirty();
 }
 
-void Node::SetParent(scene::Node* pNewParent)
-{
-    auto pCurrentParent = GetParent();
-    if (!IsNull(pCurrentParent)) {
-        pCurrentParent->RemoveChild(this);
-    }
-
-    mParent = pNewParent;
-}
-
 scene::Node* Node::GetChild(uint32_t index) const
 {
     scene::Node* pChild = nullptr;
-    if (ppx::GetElement(index, mChildren, &pChild)) {
-        return nullptr;
-    }
+    ppx::GetElement(index, mChildren, &pChild);
     return pChild;
 }
 
-ppx::Result Node::AddChild(scene::Node* pNode)
+bool Node::IsInSubTree(const scene::Node* pNode)
 {
+    bool inSubTree = (pNode == this);
+    if (!inSubTree) {
+        for (auto pChild : mChildren) {
+            inSubTree = pChild->IsInSubTree(pNode);
+            if (inSubTree) {
+                break;
+            }
+        }
+    }
+    return inSubTree;
+}
+
+ppx::Result Node::AddChild(scene::Node* pNewChild)
+{
+    // Cannot add child if current node is standalone
     if (IsNull(mScene)) {
         return ppx::ERROR_SCENE_INVALID_STANDALONE_OPERATION;
     }
 
-    if (IsNull(pNode)) {
+    // Cannot add NULL child
+    if (IsNull(pNewChild)) {
         return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
     }
 
-    // Make sure node isn't the parent or in the hierarchy.
-    scene::Node* pParent = this;
-    while (!IsNull(pParent)) {
-        if (pParent == pNode) {
-            return ppx::ERROR_SCENE_INVALID_NODE_HIERARCHY;
-        }
-        pParent = pParent->GetParent();
+    // Cannot add self as a child
+    if (pNewChild == this) {
+        return ppx::ERROR_SCENE_INVALID_NODE_HIERARCHY;
     }
 
-    // Make sure child isn't already in mChildren
-    if (ElementExists(pNode, mChildren)) {
+    // Cannot add child if current node is in child's subtree
+    if (pNewChild->IsInSubTree(this)) {
+        return ppx::ERROR_SCENE_INVALID_NODE_HIERARCHY;
+    }
+
+    // Don't add new child if it already exists
+    auto it = std::find(mChildren.begin(), mChildren.end(), pNewChild);
+    if (it != mChildren.end()) {
         return ppx::ERROR_DUPLICATE_ELEMENT;
     }
 
-    // Set node's parent, this will remove it from the current parent
-    pNode->SetParent(this);
+    // Don't add new child if it currently has a parent
+    const auto pCurrentParent = pNewChild->GetParent();
+    if (!IsNull(pCurrentParent)) {
+        return ppx::ERROR_SCENE_NODE_ALREADY_HAS_PARENT;
+    }
 
-    // Add child to current node
-    mChildren.push_back(pNode);
+    pNewChild->SetParent(this);
+
+    mChildren.push_back(pNewChild);
 
     return ppx::SUCCESS;
 }
 
-void Node::RemoveChild(const scene::Node* pChild)
+scene::Node* Node::RemoveChild(const scene::Node* pChild)
 {
-    if (IsNull(pChild)) {
-        return;
+    // Return null if pChild is null or if pChild is self
+    if (IsNull(pChild) || (pChild == this)) {
+        return nullptr;
     }
 
+    // Return NULL if pChild isn't in mChildren
+    auto it = std::find(mChildren.begin(), mChildren.end(), pChild);
+    if (it == mChildren.end()) {
+        return nullptr;
+    }
+
+    // Remove pChild from mChildren
     mChildren.erase(
         std::remove(mChildren.begin(), mChildren.end(), pChild),
         mChildren.end());
+
+    scene::Node* pParentlessChild = const_cast<scene::Node*>(pChild);
+    pParentlessChild->SetParent(nullptr);
+
+    return pParentlessChild;
 }
 
 // -------------------------------------------------------------------------------------------------

@@ -1,3 +1,17 @@
+// Copyright 2023 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include "ppx/scene/scene_mesh.h"
 #include "ppx/grfx/grfx_device.h"
 
@@ -8,9 +22,9 @@ namespace scene {
 // MeshData
 // -------------------------------------------------------------------------------------------------
 MeshData::MeshData(
-    const scene::VertexAttributeFlags& activeVertexAttributes,
+    const scene::VertexAttributeFlags& availableVertexAttributes,
     grfx::Mesh*                        pGpuMesh)
-    : mActiveVertexAttributes(activeVertexAttributes), mGpuMesh(pGpuMesh)
+    : mAvailableVertexAttributes(availableVertexAttributes), mGpuMesh(pGpuMesh)
 {
     PPX_ASSERT_MSG(!IsNull(mGpuMesh.Get()), "mGpuMesh is NULL");
 
@@ -25,7 +39,7 @@ MeshData::MeshData(
     mPositionBufferView.offset    = 0;
     mPositionBufferView.size      = mGpuMesh->GetVertexBuffer(kPositionIndex)->GetSize();
 
-    if (mActiveVertexAttributes.mask != 0) {
+    if (mAvailableVertexAttributes.mask != 0) {
         const uint32_t kAttributesIndex = 1;
         mAttributeBufferView.pBuffer    = mGpuMesh->GetVertexBuffer(kAttributesIndex);
         mAttributeBufferView.stride     = mGpuMesh->GetDerivedVertexBindings()[kAttributesIndex].GetStride();
@@ -39,8 +53,26 @@ MeshData::~MeshData()
     if (mGpuMesh) {
         auto pDevice = mGpuMesh->GetDevice();
         pDevice->DestroyMesh(mGpuMesh);
-        mGpuMesh.Reset();
     }
+}
+
+// -------------------------------------------------------------------------------------------------
+// PrimitiveBatch
+// -------------------------------------------------------------------------------------------------
+PrimitiveBatch::PrimitiveBatch(
+    const scene::MaterialRef& material,
+    uint32_t                  indexOffset,
+    uint32_t                  vertexOffset,
+    uint32_t                  indexCount,
+    uint32_t                  vertexCount,
+    ppx::AABB                 boundingBox)
+    : mMaterial(material),
+      mIndexOffset(indexOffset),
+      mVertexOffset(vertexOffset),
+      mIndexCount(indexCount),
+      mVertexCount(vertexCount),
+      mBoundingBox(boundingBox)
+{
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -74,9 +106,9 @@ Mesh::~Mesh()
     }
 }
 
-scene::VertexAttributeFlags Mesh::GetActiveVertexAttributes() const
+scene::VertexAttributeFlags Mesh::GetAvailableVertexAttributes() const
 {
-    return mMeshData ? mMeshData->GetActiveVertexAttributes() : scene::VertexAttributeFlags::None();
+    return mMeshData ? mMeshData->GetAvailableVertexAttributes() : scene::VertexAttributeFlags::None();
 }
 
 void Mesh::AddBatch(const scene::PrimitiveBatch& batch)
@@ -88,20 +120,20 @@ void Mesh::UpdateBoundingBox()
 {
     mBoundingBox.Set(float3(0));
     for (const auto& batch : mBatches) {
-        mBoundingBox.Expand(batch.boundingBox.GetMin());
-        mBoundingBox.Expand(batch.boundingBox.GetMax());
+        mBoundingBox.Expand(batch.GetBoundingBox().GetMin());
+        mBoundingBox.Expand(batch.GetBoundingBox().GetMax());
     }
 }
 
-std::vector<scene::Material*> Mesh::GetMaterials() const
+std::vector<const scene::Material*> Mesh::GetMaterials() const
 {
-    std::vector<scene::Material*> materials;
+    std::vector<const scene::Material*> materials;
     for (auto& batch : mBatches) {
-        if (!batch.material) {
-            // @TODO: need a better way missing materials
+        if (IsNull(batch.GetMaterial())) {
+            // @TODO: need a better way to handle missing materials
             continue;
         }
-        materials.push_back(batch.material.get());
+        materials.push_back(batch.GetMaterial());
     }
     return materials;
 }

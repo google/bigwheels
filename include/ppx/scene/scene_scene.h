@@ -24,24 +24,25 @@
 namespace ppx {
 namespace scene {
 
+template <typename ResObjT>
+using ResourceArrayIndexMap = std::pair<std::vector<const ResObjT*>, std::unordered_map<const ResObjT*, uint32_t>>;
+
 // Scene Graph
 //
 // Basic scene graph designed to feed into a renderer. Manages nodes and all
 // their required objects: meshes, mesh geometry data, materials, textures,
 // images, and samplers.
 //
-// See scene::Resource manager for details on object sharing among the various
+// See scene::ResourceManager for details on object sharing among the various
 // elements of the scene.
 //
 class Scene
     : public grfx::NamedObjectTrait
 {
 public:
-    Scene();
-    virtual ~Scene();
+    Scene(std::unique_ptr<scene::ResourceManager>&& resourceManager);
 
-    scene::ResourceManager*       GetResourceManager() { return &mResourceManager; }
-    const scene::ResourceManager* GetResourceManager() const { return &mResourceManager; }
+    virtual ~Scene() = default;
 
     // Returns the number of all the nodes in the scene
     uint32_t GetNodeCount() const { return CountU32(mNodes); }
@@ -78,7 +79,24 @@ public:
     // Returns a light node that matches name
     scene::LightNode* FindLightNode(const std::string& name) const;
 
-    ppx::Result AddNode(const scene::NodeRef& node);
+    ppx::Result AddNode(scene::NodeRef&& node);
+
+    // ---------------------------------------------------------------------------------------------
+    // Get*ArrayIndexMap functions are used when populating resource and parameter
+    // arguments for the shader. The return value of these functions are two parts:
+    //   - the first is an array of resources from the resource manager
+    //   - the second is a map of the resource to its array index
+    //
+    // These two parts are used to build textures, sampler, and material resources
+    // arrays for the shader.
+    //
+    // ---------------------------------------------------------------------------------------------
+    // Returns an array of samplers and their index mappings
+    scene::ResourceArrayIndexMap<scene::Sampler> GetSamplersArrayIndexMap() const;
+    // Returns an array of images and their index mappings
+    scene::ResourceArrayIndexMap<scene::Image> GetImagesArrayIndexMap() const;
+    // Returns an array of materials and their index mappings
+    scene::ResourceArrayIndexMap<scene::Material> GetMaterialsArrayIndexMap() const;
 
 private:
     template <typename NodeT>
@@ -98,11 +116,11 @@ private:
     }
 
 private:
-    scene::ResourceManager          mResourceManager = {};
-    std::vector<scene::NodeRef>     mNodes           = {};
-    std::vector<scene::MeshNode*>   mMeshNodes       = {};
-    std::vector<scene::CameraNode*> mCameraNodes     = {};
-    std::vector<scene::LightNode*>  mLightNodes      = {};
+    std::unique_ptr<scene::ResourceManager> mResourceManager = nullptr;
+    std::vector<scene::NodeRef>             mNodes           = {};
+    std::vector<scene::MeshNode*>           mMeshNodes       = {};
+    std::vector<scene::CameraNode*>         mCameraNodes     = {};
+    std::vector<scene::LightNode*>          mLightNodes      = {};
 };
 
 } // namespace scene

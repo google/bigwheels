@@ -41,9 +41,9 @@ enum NodeType
 //
 // This node objects can also be used as standalone objects outside of a scene. Standalone
 // nodes will have neither a parent or children. Loader implementations must not populate a
-// stadalone node's parent or children if loading a standalone node.
+// standalone node's parent or children if loading a standalone node.
 //
-// When used as a standalone node, scene::Node stores only transform informatio.
+// When used as a standalone node, scene::Node stores only transform information.
 //
 class Node
     : public ppx::Transform,
@@ -56,7 +56,7 @@ public:
     virtual scene::NodeType GetNodeType() const { return scene::NODE_TYPE_TRANSFORM; }
 
     bool IsVisible() const { return mVisible; }
-    void SetVisible(bool visible);
+    void SetVisible(bool visible, bool recursive = false);
 
     virtual void SetTranslation(const float3& translation) override;
     virtual void SetRotation(const float3& rotation) override;
@@ -66,15 +66,21 @@ public:
     const float4x4& GetEvaluatedMatrix() const;
 
     scene::Node* GetParent() const { return mParent; }
-    void         SetParent(scene::Node* pNewParent);
 
     uint32_t     GetChildCount() const { return CountU32(mChildren); }
     scene::Node* GetChild(uint32_t index) const;
 
-    ppx::Result AddChild(scene::Node* pNew);
-    void        RemoveChild(const scene::Node* pChild);
+    // Returns true if pNode is in current node's subtree, this includes the current node itself.
+    bool IsInSubTree(const scene::Node* pNode);
+
+    // Adds pNewChild if it doesn't have a parent and if it isn't already a child.
+    ppx::Result AddChild(scene::Node* pNewChild);
+
+    // Removes pChild if it exists and returns a non-const parentless child, otherwise returns NULL.
+    scene::Node* RemoveChild(const scene::Node* pChild);
 
 private:
+    void SetParent(scene::Node* pNewParent);
     void SetEvaluatedDirty();
 
 private:
@@ -94,7 +100,7 @@ private:
 // Scene graph nodes that contains reference to a scene::Mesh object.
 //
 // When used as a standalone node, scene::Mesh stores a mesh and its required objects
-// as populated as by a loader.
+// as populated by a loader.
 //
 // See scene::Node class declaration for additional usages of scene::Node objects.
 //
@@ -119,9 +125,8 @@ private:
 
 // Scene Graph Camera Node
 //
-// Scene graph nodes that contains reference contains an instannce of
-// a ppx::Camera object. Can be used for both perspective and orthographic
-// cameras.
+// Scene graph node that contains an instance of a ppx::Camera object.
+// Can be used for both perspective and orthographic cameras.
 //
 // When used as a standalone node, scene::Camera stores a camera object as populated
 // by a loader.
@@ -156,7 +161,7 @@ private:
 // Scene graph node that contains all properties to represent different light
 // types.
 //
-// When used as a standalone node, scene::Camera stores light information as populated
+// When used as a standalone node, scene::Light stores light information as populated
 // by a loader.
 //
 // See scene::Node class declaration for additional usages of scene::Node objects.
