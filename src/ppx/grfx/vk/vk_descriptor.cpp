@@ -234,8 +234,8 @@ Result DescriptorSet::UpdateDescriptors(uint32_t writeCount, const grfx::WriteDe
         VkWriteDescriptorSet& vkWrite = mWriteStore[mWriteCount];
         vkWrite                       = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
         vkWrite.dstSet                = mDescriptorSet;
-        vkWrite.dstBinding            = srcWrite.binding + srcWrite.arrayIndex;
-        vkWrite.dstArrayElement       = 0;
+        vkWrite.dstBinding            = srcWrite.binding;
+        vkWrite.dstArrayElement       = srcWrite.arrayIndex;
         vkWrite.descriptorCount       = 1;
         vkWrite.descriptorType        = descriptorType;
         vkWrite.pImageInfo            = pImageInfo;
@@ -266,27 +266,15 @@ Result DescriptorSetLayout::CreateApiObjects(const grfx::DescriptorSetLayoutCrea
 
     std::vector<VkDescriptorSetLayoutBinding> vkBindings;
     for (size_t i = 0; i < pCreateInfo->bindings.size(); ++i) {
-        //
-        // NOTE: To keep D3D12 and Vulkan aligned, we do not support Vulkan's
-        //       descriptor arrayness model. This means that the value for
-        //       VkDescriptorSetLayoutBinding::descriptorCount is always 1.
-        //
-        //       If grfx::DescriptorBinding::arrayCount is greater than 1, we
-        //       create that many entries. The binding number is incremented
-        //       per entry starting from the initial binding value.
-
-        //
         const grfx::DescriptorBinding& baseBinding = pCreateInfo->bindings[i];
 
-        for (uint32_t bindingOffset = 0; bindingOffset < baseBinding.arrayCount; ++bindingOffset) {
-            VkDescriptorSetLayoutBinding vkBinding = {};
-            vkBinding.binding                      = baseBinding.binding + bindingOffset;
-            vkBinding.descriptorType               = ToVkDescriptorType(baseBinding.type);
-            vkBinding.descriptorCount              = 1;
-            vkBinding.stageFlags                   = ToVkShaderStageFlags(baseBinding.shaderVisiblity);
-            vkBinding.pImmutableSamplers           = nullptr;
-            vkBindings.push_back(vkBinding);
-        }
+        VkDescriptorSetLayoutBinding vkBinding = {};
+        vkBinding.binding                      = baseBinding.binding;
+        vkBinding.descriptorType               = ToVkDescriptorType(baseBinding.type);
+        vkBinding.descriptorCount              = baseBinding.arrayCount;
+        vkBinding.stageFlags                   = ToVkShaderStageFlags(baseBinding.shaderVisiblity);
+        vkBinding.pImmutableSamplers           = nullptr;
+        vkBindings.push_back(vkBinding);
     }
 
     VkDescriptorSetLayoutCreateInfo vkci = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
