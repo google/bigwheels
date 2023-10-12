@@ -48,7 +48,6 @@ public:
     const grfx::VertexBufferView&      GetAttributeBufferView() const { return mAttributeBufferView; }
 
 private:
-    std::string                 mName                      = "";
     scene::VertexAttributeFlags mAvailableVertexAttributes = {};
     grfx::MeshPtr               mGpuMesh                   = nullptr;
     grfx::IndexBufferView       mIndexBufferView           = {};
@@ -137,7 +136,6 @@ public:
 private:
     std::unique_ptr<scene::ResourceManager> mResourceManager = nullptr;
     scene::MeshDataRef                      mMeshData        = nullptr;
-    std::string                             mName            = "";
     std::vector<scene::PrimitiveBatch>      mBatches         = {};
     ppx::AABB                               mBoundingBox     = {};
 };

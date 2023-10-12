@@ -73,10 +73,6 @@ Texture::Texture(
 // -------------------------------------------------------------------------------------------------
 // TextureView
 // -------------------------------------------------------------------------------------------------
-TextureView::TextureView()
-{
-}
-
 TextureView::TextureView(
     const scene::TextureRef& texture,
     float2                   texCoordTranslate,
@@ -193,14 +189,6 @@ void StandardMaterial::SetEmissiveStrength(float value)
 // -------------------------------------------------------------------------------------------------
 // MaterialFactory
 // -------------------------------------------------------------------------------------------------
-MaterialFactory::MaterialFactory()
-{
-}
-
-MaterialFactory::~MaterialFactory()
-{
-}
-
 scene::VertexAttributeFlags MaterialFactory::GetRequiredVertexAttributes(const std::string& materialIdent) const
 {
     scene::VertexAttributeFlags attrFlags = scene::VertexAttributeFlags::None();
@@ -217,22 +205,25 @@ scene::VertexAttributeFlags MaterialFactory::GetRequiredVertexAttributes(const s
     return attrFlags;
 }
 
-scene::MaterialRef MaterialFactory::CreateMaterial(
+scene::Material* MaterialFactory::CreateMaterial(
     const std::string& materialIdent) const
 {
-    scene::MaterialRef material;
+    scene::Material* pMaterial = nullptr;
 
     if (materialIdent == PPX_MATERIAL_IDENT_UNLIT) {
-        material = scene::MakeRef(new scene::UnlitMaterial());
+        pMaterial = new scene::UnlitMaterial();
     }
     else if (materialIdent == PPX_MATERIAL_IDENT_STANDARD) {
-        material = scene::MakeRef(new scene::StandardMaterial());
+        pMaterial = new scene::StandardMaterial();
+    }
+    else if (materialIdent == PPX_MATERIAL_IDENT_DEBUG) {
+        pMaterial = new scene::DebugMaterial();
     }
     else {
-        material = scene::MakeRef(new scene::ErrorMaterial());
+        pMaterial = new scene::ErrorMaterial();
     }
 
-    return material;
+    return pMaterial;
 }
 
 } // namespace scene

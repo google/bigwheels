@@ -97,6 +97,8 @@ class Texture
     : public grfx::NamedObjectTrait
 {
 public:
+    Texture() = default;
+
     Texture(
         const scene::ImageRef   image,
         const scene::SamplerRef sampler);
@@ -123,7 +125,7 @@ private:
 class TextureView
 {
 public:
-    TextureView();
+    TextureView() = default;
 
     TextureView(
         const scene::TextureRef& texture,
@@ -164,18 +166,17 @@ class Material
     : public grfx::NamedObjectTrait
 {
 public:
-    Material() {}
-    virtual ~Material() {}
+    Material()          = default;
+    virtual ~Material() = default;
 
     virtual std::string GetIdentString() const = 0;
 
     virtual scene::VertexAttributeFlags GetRequiredVertexAttributes() const = 0;
 
     // Returns true if material has paramters for shader
-    virtual bool HasParams() const { return false; }
-
+    virtual bool HasParams() const = 0;
     // Returns true if material has at least one texture, otherwise false
-    virtual bool HasTextures() const { return false; }
+    virtual bool HasTextures() const = 0;
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -189,12 +190,15 @@ class ErrorMaterial
     : public scene::Material
 {
 public:
-    ErrorMaterial() {}
-    virtual ~ErrorMaterial() {}
+    ErrorMaterial()          = default;
+    virtual ~ErrorMaterial() = default;
 
     virtual std::string GetIdentString() const override { return PPX_MATERIAL_IDENT_ERROR; }
 
     virtual scene::VertexAttributeFlags GetRequiredVertexAttributes() const override;
+
+    virtual bool HasParams() const override { return false; }
+    virtual bool HasTextures() const override { return false; }
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -207,12 +211,15 @@ class DebugMaterial
     : public scene::Material
 {
 public:
-    DebugMaterial() {}
-    virtual ~DebugMaterial() {}
+    DebugMaterial()          = default;
+    virtual ~DebugMaterial() = default;
 
     virtual std::string GetIdentString() const override { return PPX_MATERIAL_IDENT_DEBUG; }
 
     virtual scene::VertexAttributeFlags GetRequiredVertexAttributes() const override;
+
+    virtual bool HasParams() const override { return false; }
+    virtual bool HasTextures() const override { return false; }
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -229,8 +236,8 @@ class UnlitMaterial
     : public scene::Material
 {
 public:
-    UnlitMaterial() {}
-    virtual ~UnlitMaterial() {}
+    UnlitMaterial()          = default;
+    virtual ~UnlitMaterial() = default;
 
     virtual std::string GetIdentString() const override { return PPX_MATERIAL_IDENT_UNLIT; }
 
@@ -240,7 +247,7 @@ public:
     virtual bool HasTextures() const override;
 
     const float4&             GetBaseColorFactor() const { return mBaseColorFactor; }
-    const scene::TextureView& GetBaseColorTexture() const { return mBaseColorTextureView; }
+    const scene::TextureView& GetBaseColorTextureView() const { return mBaseColorTextureView; }
     scene::TextureView*       GetBaseColorTextureViewPtr() { return &mBaseColorTextureView; }
 
     bool HasBaseColorTexture() const { return mBaseColorTextureView.HasTexture(); }
@@ -266,8 +273,8 @@ class StandardMaterial
     : public scene::Material
 {
 public:
-    StandardMaterial() {}
-    virtual ~StandardMaterial() {}
+    StandardMaterial()          = default;
+    virtual ~StandardMaterial() = default;
 
     virtual std::string GetIdentString() const override { return PPX_MATERIAL_IDENT_STANDARD; }
 
@@ -334,12 +341,12 @@ private:
 class MaterialFactory
 {
 public:
-    MaterialFactory();
-    virtual ~MaterialFactory();
+    MaterialFactory()          = default;
+    virtual ~MaterialFactory() = default;
 
     virtual scene::VertexAttributeFlags GetRequiredVertexAttributes(const std::string& materialIdent) const;
 
-    virtual scene::MaterialRef CreateMaterial(
+    virtual scene::Material* CreateMaterial(
         const std::string& materialIdent) const;
 };
 
