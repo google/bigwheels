@@ -157,6 +157,15 @@ public:
         const char* GetData() const { return DataPtr(mData); }
         uint32_t    GetElementCount() const;
 
+        // Changes the buffer size to `size`.
+        // If this operations grows the vector, this class considers all the elements
+        // to be initialized. It is the caller responsibility to initialize those elements.
+        void SetSize(uint32_t size)
+        {
+            mUsedSize = size;
+            mData.resize(size);
+        }
+
         // Trusts that calling code is well behaved :)
         template <typename T>
         void Append(const T& value)
