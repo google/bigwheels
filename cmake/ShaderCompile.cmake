@@ -111,7 +111,7 @@ function(internal_generate_rules_for_shader TARGET_NAME)
             SHADER_STAGE "${ARG_SHADER_STAGE}"
             OUTPUT_FORMAT "SPV_6_6"
             TARGET_FOLDER "${TARGET_NAME}"
-            COMPILER_FLAGS "-spirv" "-fspv-flatten-resource-arrays" "-fspv-target-env=vulkan1.1" "-fvk-use-dx-layout" "-DPPX_VULKAN=1" "-T" "${ARG_SHADER_STAGE}_6_6" "-E" "${ARG_SHADER_STAGE}main")
+            COMPILER_FLAGS "-spirv" "-fspv-target-env=vulkan1.1" "-fvk-use-dx-layout" "-DPPX_VULKAN=1" "-T" "${ARG_SHADER_STAGE}_6_6" "-E" "${ARG_SHADER_STAGE}main")
         add_dependencies("vk_${TARGET_NAME}" "vk_${TARGET_NAME}_${ARG_SHADER_STAGE}")
     endif ()
 endfunction()

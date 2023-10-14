@@ -932,6 +932,15 @@ void Application::InitStandardKnobs()
     mStandardOpts.pXrUiResolution->SetValidator([](std::pair<int, int> res) {
         return res.first >= 0 && res.second >= 0;
     });
+
+    mStandardOpts.pXrRequiredExtensions =
+        mKnobManager.CreateKnob<KnobFlag<std::vector<std::string>>>(
+            "xr-required-extension", defaultEmptyList);
+    mStandardOpts.pXrRequiredExtensions->SetFlagDescription(
+        "Specify any additional OpenXR extensions that need to be loaded in addition "
+        "to the base extensions. Any required extensions that are not supported by the "
+        "target system will cause the application to immediately exit.");
+    mStandardOpts.pXrRequiredExtensions->SetFlagParameters("<extension>");
 #endif
 }
 
@@ -1263,6 +1272,7 @@ int Application::Run(int argc, char** argv)
         }
         createInfo.uiResolution.width  = mSettings.xr.uiWidth;
         createInfo.uiResolution.height = mSettings.xr.uiHeight;
+        createInfo.requiredExtensions  = mStandardOpts.pXrRequiredExtensions->GetValue();
 
         mXrComponent.InitializeBeforeGrfxDeviceInit(createInfo);
     }
@@ -1455,7 +1465,7 @@ int Application::Run(int argc, char** argv)
             mAverageFrameTime      = totalFrameTimeMs / mFrameTimesMs.size();
         }
         else {
-            mAverageFPS       = static_cast<float>(mFrameCount / nowMs / 1000.f);
+            mAverageFPS       = static_cast<float>(mFrameCount / (nowMs / 1000.f));
             mAverageFrameTime = static_cast<float>(nowMs / mFrameCount);
         }
 

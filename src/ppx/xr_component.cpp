@@ -89,6 +89,10 @@ void XrComponent::InitializeBeforeGrfxDeviceInit(const XrComponentCreateInfo& cr
     xrInstanceExtensions.push_back(XR_KHR_ANDROID_CREATE_INSTANCE_EXTENSION_NAME);
 #endif // defined(PPX_ANDROID)
 
+    for (const auto& extension : createInfo.requiredExtensions) {
+        xrInstanceExtensions.push_back(const_cast<char*>(extension.c_str()));
+    }
+
     if (mCreateInfo.enableDebug) {
         xrInstanceExtensions.push_back(XR_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }

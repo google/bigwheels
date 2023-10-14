@@ -25,4 +25,5 @@ add_samples_for_all_apis(
       "shader_benchmark_ps_alu_bound"
       "shader_benchmark_ps_mem_bound"
       "shader_benchmark_random_noise"
-      "shader_benchmark_skybox")
+      "shader_benchmark_skybox"
+      "shader_benchmark_solid_color")
