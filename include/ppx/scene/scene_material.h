@@ -173,7 +173,7 @@ public:
 
     virtual scene::VertexAttributeFlags GetRequiredVertexAttributes() const = 0;
 
-    // Returns true if material has paramters for shader
+    // Returns true if material has parameters for shader
     virtual bool HasParams() const = 0;
     // Returns true if material has at least one texture, otherwise false
     virtual bool HasTextures() const = 0;
