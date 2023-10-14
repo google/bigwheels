@@ -24,6 +24,7 @@
 namespace ppx {
 namespace scene {
 
+// Map a resource pointer to an index, used for indexing resource on GPU.
 template <typename ResObjT>
 using ResourceIndexMap = std::unordered_map<const ResObjT*, uint32_t>;
 
