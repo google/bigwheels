@@ -24,6 +24,36 @@ Scene::Scene(std::unique_ptr<scene::ResourceManager>&& resourceManager)
 {
 }
 
+uint32_t Scene::GetSamplerCount() const
+{
+    return mResourceManager ? mResourceManager->GetSamplerCount() : 0;
+}
+
+uint32_t Scene::GetImageCount() const
+{
+    return mResourceManager ? mResourceManager->GetImageCount() : 0;
+}
+
+uint32_t Scene::GetTextureCount() const
+{
+    return mResourceManager ? mResourceManager->GetTextureCount() : 0;
+}
+
+uint32_t Scene::GetMaterialCount() const
+{
+    return mResourceManager ? mResourceManager->GetMaterialCount() : 0;
+}
+
+uint32_t Scene::GetMeshDataCount() const
+{
+    return mResourceManager ? mResourceManager->GetMeshDataCount() : 0;
+}
+
+uint32_t Scene::GetMeshCount() const
+{
+    return mResourceManager ? mResourceManager->GetMeshCount() : 0;
+}
+
 scene::Node* Scene::GetNode(uint32_t index) const
 {
     if (index >= CountU32(mNodes)) {
@@ -133,7 +163,7 @@ ppx::Result Scene::AddNode(scene::NodeRef&& node)
     return ppx::SUCCESS;
 }
 
-scene::ResourceArrayIndexMap<scene::Sampler> Scene::GetSamplersArrayIndexMap() const
+scene::ResourceIndexMap<scene::Sampler> Scene::GetSamplersArrayIndexMap() const
 {
     auto array = mResourceManager->GetSamplers();
 
@@ -145,10 +175,10 @@ scene::ResourceArrayIndexMap<scene::Sampler> Scene::GetSamplersArrayIndexMap() c
         indexMap[pObject] = idx;
     }
 
-    return std::make_pair(array, indexMap);
+    return indexMap;
 }
 
-scene::ResourceArrayIndexMap<scene::Image> Scene::GetImagesArrayIndexMap() const
+scene::ResourceIndexMap<scene::Image> Scene::GetImagesArrayIndexMap() const
 {
     auto array = mResourceManager->GetImages();
 
@@ -160,10 +190,10 @@ scene::ResourceArrayIndexMap<scene::Image> Scene::GetImagesArrayIndexMap() const
         indexMap[pObject] = idx;
     }
 
-    return std::make_pair(array, indexMap);
+    return indexMap;
 }
 
-scene::ResourceArrayIndexMap<scene::Material> Scene::GetMaterialsArrayIndexMap() const
+scene::ResourceIndexMap<scene::Material> Scene::GetMaterialsArrayIndexMap() const
 {
     auto array = mResourceManager->GetMaterials();
 
@@ -175,7 +205,7 @@ scene::ResourceArrayIndexMap<scene::Material> Scene::GetMaterialsArrayIndexMap()
         indexMap[pObject] = idx;
     }
 
-    return std::make_pair(array, indexMap);
+    return indexMap;
 }
 
 } // namespace scene

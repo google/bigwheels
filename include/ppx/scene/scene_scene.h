@@ -25,7 +25,7 @@ namespace ppx {
 namespace scene {
 
 template <typename ResObjT>
-using ResourceArrayIndexMap = std::pair<std::vector<const ResObjT*>, std::unordered_map<const ResObjT*, uint32_t>>;
+using ResourceIndexMap = std::unordered_map<const ResObjT*, uint32_t>;
 
 // Scene Graph
 //
@@ -43,6 +43,19 @@ public:
     Scene(std::unique_ptr<scene::ResourceManager>&& resourceManager);
 
     virtual ~Scene() = default;
+
+    // Returns the number of all samplers in the scene
+    uint32_t GetSamplerCount() const;
+    // Returns the number of all images in the scene
+    uint32_t GetImageCount() const;
+    // Returns the number of all textures in the scene
+    uint32_t GetTextureCount() const;
+    // Returns the number of all materials in the scene
+    uint32_t GetMaterialCount() const;
+    // Returns the number of all mesh data objects in the scene
+    uint32_t GetMeshDataCount() const;
+    // Returns the number of all meshes in the scene
+    uint32_t GetMeshCount() const;
 
     // Returns the number of all the nodes in the scene
     uint32_t GetNodeCount() const { return CountU32(mNodes); }
@@ -92,11 +105,11 @@ public:
     //
     // ---------------------------------------------------------------------------------------------
     // Returns an array of samplers and their index mappings
-    scene::ResourceArrayIndexMap<scene::Sampler> GetSamplersArrayIndexMap() const;
+    scene::ResourceIndexMap<scene::Sampler> GetSamplersArrayIndexMap() const;
     // Returns an array of images and their index mappings
-    scene::ResourceArrayIndexMap<scene::Image> GetImagesArrayIndexMap() const;
+    scene::ResourceIndexMap<scene::Image> GetImagesArrayIndexMap() const;
     // Returns an array of materials and their index mappings
-    scene::ResourceArrayIndexMap<scene::Material> GetMaterialsArrayIndexMap() const;
+    scene::ResourceIndexMap<scene::Material> GetMaterialsArrayIndexMap() const;
 
 private:
     template <typename NodeT>
