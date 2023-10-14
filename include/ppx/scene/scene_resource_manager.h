@@ -79,7 +79,7 @@ public:
     //
     // The expectation is that these functions are only called when
     // the arguments to the shader need updating. This should only be
-    // during loads or there's a change to scene. So it should be
+    // during loads or if there's a change to scene. So it should be
     // infrequent.
     //
     std::vector<const scene::Sampler*>  GetSamplers() const;
