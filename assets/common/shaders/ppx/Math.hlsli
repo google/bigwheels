@@ -16,7 +16,8 @@
 #define MATH_HLSLI
 
 #define EPSILON 0.00001
-#define PI      3.1415292
+#define PI      3.1415926
+#define INV_PI  (1.0 / 3.1415926)
 
 // circular atan2 - converts (x,y) on a unit circle to [0, 2pi]
 //
@@ -70,6 +71,17 @@ float2 CartesianToSpherical(float3 pos)
     float theta = catan2(pos.z, pos.x);
     float phi   = acos(pos.y);
     return float2(theta, phi);
+}
+
+//
+// https://github.com/Autodesk/Aurora/ (APL2 License)
+//
+float2 DirectionToLatLongUV(float3 dir)
+{
+    float2 uv;
+    uv.x = atan2(dir.x, -dir.z) * INV_PI * 0.5 + 0.75;
+    uv.y = -asin(dir.y) * INV_PI + 0.5;
+    return uv;
 }
 
 //

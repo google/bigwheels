@@ -50,9 +50,7 @@ float3 SampleIBLTexture(
     float3       dir,
     float        lod)
 {
-    float2 uv = CartesianToSpherical(normalize(dir));
-    uv.x = saturate(uv.x / (2.0 * PI));
-    uv.y = saturate(uv.y / PI);
+    float2 uv = DirectionToLatLongUV(normalize(dir));
     float3 color = iblTexture.SampleLevel(iblSampler, uv, lod).rgb;
     return color;
 }
