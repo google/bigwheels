@@ -79,8 +79,8 @@ public:
 
     // Timeline semaphore signal
     //
-    // WARNING: Signaling a value less that's less than what's already been signaled
-    //          can cause a block or a race condition.
+    // WARNING: Signaling a value less than what's already been signaled can
+    //          cause a block or a race condition.
     //
     // Use forceMonotonicValue=true to use the current timeline semaphore value
     // if it's greater than the passed in value. This is useful when signaling

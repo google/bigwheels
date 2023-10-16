@@ -79,11 +79,11 @@ private:
     //   https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkSemaphoreSignalInfo.html#VUID-VkSemaphoreSignalInfo-value-03258
     //
     // This is unfortunate, because there are cases where an application
-    // may need to signal a valuet hat is equal to what's been signaled.
+    // may need to signal a value that is equal to what's been signaled.
     //
     // Even though it's possible to get the current value, add 1 to it,
-    // and then signal it - this creates can create a different problem
-    // where a value is signaled too soon and a write-after-read hazard
+    // and then signal it - this can create a different problem where a value
+    // is signaled too soon and a write-after-read hazard
     // possibly gets introduced.
     //
     mutable uint64_t mTimelineSignaledValue = 0;

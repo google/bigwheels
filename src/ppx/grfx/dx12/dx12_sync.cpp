@@ -15,8 +15,7 @@
 #include "ppx/grfx/dx12/dx12_sync.h"
 #include "ppx/grfx/dx12/dx12_device.h"
 
-#define REQUIRES_BINARY_MSG   "invalid semaphore type: operation requires binary semaphore"
-#define REQUIRES_TIMELINE_MSG "invalid semaphore type: operation requires timeline semaphore"
+#define REQUIRES_BINARY_MSG "invalid semaphore type: operation requires binary semaphore"
 
 namespace ppx {
 namespace grfx {
@@ -145,8 +144,6 @@ UINT64 Semaphore::GetWaitForValue() const
 
 Result Semaphore::TimelineWait(uint64_t value, uint64_t timeout) const
 {
-    PPX_ASSERT_MSG((this->GetSemaphoreType() == grfx::SEMAPHORE_TYPE_TIMELINE), REQUIRES_TIMELINE_MSG);
-
     UINT64 completedValue = mFence->GetCompletedValue();
     if (completedValue < value) {
         mFence->SetEventOnCompletion(value, mWaitEventHandle);
@@ -160,8 +157,6 @@ Result Semaphore::TimelineWait(uint64_t value, uint64_t timeout) const
 
 Result Semaphore::TimelineSignal(uint64_t value) const
 {
-    PPX_ASSERT_MSG((this->GetSemaphoreType() == grfx::SEMAPHORE_TYPE_TIMELINE), REQUIRES_TIMELINE_MSG);
-
     HRESULT hr = mFence->Signal(static_cast<UINT64>(value));
     if (FAILED(hr)) {
         return ppx::ERROR_API_FAILURE;
@@ -172,8 +167,6 @@ Result Semaphore::TimelineSignal(uint64_t value) const
 
 uint64_t Semaphore::TimelineCounterValue() const
 {
-    PPX_ASSERT_MSG((this->GetSemaphoreType() == grfx::SEMAPHORE_TYPE_TIMELINE), REQUIRES_TIMELINE_MSG);
-
     UINT64 value = mFence->GetCompletedValue();
     return static_cast<uint64_t>(value);
 }

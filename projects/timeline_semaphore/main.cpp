@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.appName          = "timeline semaphore";
     settings.enableImGui      = true;
     settings.grfx.api         = kApi;
-    settings.grfx.enableDebug = true;
+    settings.grfx.enableDebug = false;
 }
 
 void ProjApp::Setup()
