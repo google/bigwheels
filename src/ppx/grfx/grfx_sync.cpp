@@ -14,6 +14,8 @@
 
 #include "ppx/grfx/grfx_sync.h"
 
+#define REQUIRES_TIMELINE_MSG "invalid semaphore type: operation requires timeline semaphore"
+
 namespace ppx {
 namespace grfx {
 
@@ -41,6 +43,7 @@ Result Fence::WaitAndReset(uint64_t timeout)
 Result Semaphore::Wait(uint64_t value, uint64_t timeout) const
 {
     if (this->GetSemaphoreType() != grfx::SEMAPHORE_TYPE_TIMELINE) {
+        PPX_ASSERT_MSG(false, REQUIRES_TIMELINE_MSG);
         return ppx::ERROR_GRFX_INVALID_SEMAPHORE_TYPE;
     }
 
@@ -55,6 +58,7 @@ Result Semaphore::Wait(uint64_t value, uint64_t timeout) const
 Result Semaphore::Signal(uint64_t value, bool forceMonotonicValue) const
 {
     if (this->GetSemaphoreType() != grfx::SEMAPHORE_TYPE_TIMELINE) {
+        PPX_ASSERT_MSG(false, REQUIRES_TIMELINE_MSG);
         return ppx::ERROR_GRFX_INVALID_SEMAPHORE_TYPE;
     }
 
@@ -77,6 +81,7 @@ Result Semaphore::Signal(uint64_t value, bool forceMonotonicValue) const
 uint64_t Semaphore::GetCounterValue() const
 {
     if (this->GetSemaphoreType() != grfx::SEMAPHORE_TYPE_TIMELINE) {
+        PPX_ASSERT_MSG(false, REQUIRES_TIMELINE_MSG);
         return UINT64_MAX;
     }
 

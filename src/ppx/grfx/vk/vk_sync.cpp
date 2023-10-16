@@ -16,8 +16,6 @@
 #include "ppx/grfx/vk/vk_device.h"
 #include "ppx/grfx/vk/vk_queue.h"
 
-#define REQUIRES_TIMELINE_MSG "invalid semaphore type: operation requires timeline semaphore"
-
 namespace ppx {
 namespace grfx {
 namespace vk {
@@ -124,8 +122,6 @@ void Semaphore::DestroyApiObjects()
 
 Result Semaphore::TimelineWait(uint64_t value, uint64_t timeout) const
 {
-    PPX_ASSERT_MSG((this->GetSemaphoreType() == grfx::SEMAPHORE_TYPE_TIMELINE), REQUIRES_TIMELINE_MSG);
-
     VkSemaphore semaphoreHandle = mSemaphore;
 
     VkSemaphoreWaitInfo waitInfo = {VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO};
@@ -145,8 +141,6 @@ Result Semaphore::TimelineWait(uint64_t value, uint64_t timeout) const
 
 Result Semaphore::TimelineSignal(uint64_t value) const
 {
-    PPX_ASSERT_MSG((this->GetSemaphoreType() == grfx::SEMAPHORE_TYPE_TIMELINE), REQUIRES_TIMELINE_MSG);
-
     // See header for explanation
     if (value > mTimelineSignaledValue) {
         VkSemaphore semaphoreHandle = mSemaphore;
@@ -169,8 +163,6 @@ Result Semaphore::TimelineSignal(uint64_t value) const
 
 uint64_t Semaphore::TimelineCounterValue() const
 {
-    PPX_ASSERT_MSG((this->GetSemaphoreType() == grfx::SEMAPHORE_TYPE_TIMELINE), REQUIRES_TIMELINE_MSG);
-
     uint64_t value = UINT64_MAX;
     VkResult vkres = ToApi(GetDevice())->GetSemaphoreCounterValue(mSemaphore, &value);
 
