@@ -29,7 +29,7 @@ void GltfBasicMaterialsApp::Config(ppx::ApplicationSettings& settings)
     settings.appName                    = "gltf_basic_materials";
     settings.enableImGui                = true;
     settings.grfx.api                   = kApi;
-    settings.grfx.enableDebug           = false;
+    settings.grfx.enableDebug           = true;
     settings.window.width               = 1920 * 1;
     settings.window.height              = 1080 * 1;
     settings.window.resizable           = false;
@@ -65,6 +65,7 @@ void GltfBasicMaterialsApp::Setup()
         //
         PPX_CHECKED_CALL(scene::GltfLoader::Create(
             GetAssetPath("scene_renderer/scenes/tests/gltf_test_basic_materials.glb"),
+            // GetAssetPath("scene_renderer/scenes/tests/gltf_test_materials.gltf"),
             nullptr,
             &pLoader));
 
@@ -80,6 +81,7 @@ void GltfBasicMaterialsApp::Setup()
         PPX_CHECKED_CALL(grfx_util::CreateIBLTexturesFromFile(
             GetDevice()->GetGraphicsQueue(),
             GetAssetPath("poly_haven/ibl/old_depot_4k.ibl"),
+            // GetAssetPath("poly_haven/ibl/abandoned_workshop_02_4k.ibl"),
             &mIBLIrrMap,
             &mIBLEnvMap));
     }
@@ -89,26 +91,22 @@ void GltfBasicMaterialsApp::Setup()
         PPX_CHECKED_CALL(scene::MaterialPipelineArgs::Create(GetDevice(), &mPipelineArgs));
 
         // Populate material samplers
-        auto  samplersArrayIndexMap = mScene->GetSamplersArrayIndexMap();
-        auto& samplersIndexMap      = samplersArrayIndexMap.second;
-        auto& samplersArray         = samplersArrayIndexMap.first;
-        for (uint32_t index = 0; index < CountU32(samplersArray); ++index) {
-            mPipelineArgs->SetMaterialSampler(index, samplersArray[index]);
+        auto samplersIndexMap = mScene->GetSamplersArrayIndexMap();
+        for (auto it : samplersIndexMap) {
+            mPipelineArgs->SetMaterialSampler(it.second, it.first);
         }
 
         // Populate material images
-        auto  imagesArrayIndexMap = mScene->GetImagesArrayIndexMap();
-        auto& imagesIndexMap      = imagesArrayIndexMap.second;
-        auto& imagesArray         = imagesArrayIndexMap.first;
-        for (uint32_t index = 0; index < CountU32(imagesArray); ++index) {
-            mPipelineArgs->SetMaterialTexture(index, imagesArray[index]);
+        auto imagesIndexMap = mScene->GetImagesArrayIndexMap();
+        for (auto it : imagesIndexMap) {
+            mPipelineArgs->SetMaterialTexture(it.second, it.first);
         }
 
         // Populate material params
-        auto  materialsArrayIndexMap = mScene->GetMaterialsArrayIndexMap();
-        auto& materialsArray         = materialsArrayIndexMap.first;
-        for (uint32_t index = 0; index < CountU32(materialsArray); ++index) {
-            auto pMaterial = materialsArray[index];
+        mMaterialIndexMap = mScene->GetMaterialsArrayIndexMap();
+        for (auto it : mMaterialIndexMap) {
+            auto           pMaterial = it.first;
+            const uint32_t index     = it.second;
 
             auto pMaterialParams = mPipelineArgs->GetMaterialParams(index);
 
@@ -137,9 +135,6 @@ void GltfBasicMaterialsApp::Setup()
 
         // Populate IBL textures
         mPipelineArgs->SetIBLTextures(0, mIBLIrrMap->GetSampledImageView(), mIBLEnvMap->GetSampledImageView());
-
-        // Save material index map
-        mMaterialIndexMap = materialsArrayIndexMap.second;
     }
 
     // Pipelines
@@ -154,7 +149,7 @@ void GltfBasicMaterialsApp::Setup()
         PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mPipelineInterface));
 
         // Get vertex bindings - every mesh in the test scene should have the same attributes
-        auto vertexBindings = mScene->GetMeshNode(0)->GetMesh()->GetMeshData()->GetGpuMesh()->GetDerivedVertexBindings();
+        auto vertexBindings = mScene->GetMeshNode(0)->GetMesh()->GetMeshData()->GetAvailableVertexBindings();
 
         auto CreatePipeline = [this, &vertexBindings](const std::string& vsName, const std::string& psName, grfx::GraphicsPipeline** ppPipeline) {
             std::vector<char> bytecode = LoadShader("scene_renderer/shaders", vsName);
@@ -285,15 +280,6 @@ void GltfBasicMaterialsApp::Render()
                 auto pNode = mScene->GetMeshNode(instanceIdx);
                 auto pMesh = pNode->GetMesh();
 
-                // Index buffer
-                frame.cmd->BindIndexBuffer(&pMesh->GetMeshData()->GetIndexBufferView());
-
-                // Vertex buffers
-                std::vector<grfx::VertexBufferView> vertexBufferViews = {
-                    pMesh->GetMeshData()->GetPositionBufferView(),
-                    pMesh->GetMeshData()->GetAttributeBufferView()};
-                frame.cmd->BindVertexBuffers(CountU32(vertexBufferViews), DataPtr(vertexBufferViews));
-
                 // Set DrawParams::instanceIndex
                 frame.cmd->PushGraphicsConstants(
                     mPipelineInterface,
@@ -316,7 +302,16 @@ void GltfBasicMaterialsApp::Render()
                         &materialIndex,
                         scene::MaterialPipelineArgs::MATERIAL_INDEX_CONSTANT_OFFSET);
 
-                    frame.cmd->DrawIndexed(batch.GetIndexCount(), 1, batch.GetIndexOffset(), batch.GetVertexOffset(), 0);
+                    // Index buffer
+                    frame.cmd->BindIndexBuffer(&batch.GetIndexBufferView());
+
+                    // Vertex buffers
+                    std::vector<grfx::VertexBufferView> vertexBufferViews = {
+                        batch.GetPositionBufferView(),
+                        batch.GetAttributeBufferView()};
+                    frame.cmd->BindVertexBuffers(CountU32(vertexBufferViews), DataPtr(vertexBufferViews));
+
+                    frame.cmd->DrawIndexed(batch.GetIndexCount(), 1, 0, 0, 0);
                 }
             }
 

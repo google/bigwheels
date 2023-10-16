@@ -38,21 +38,17 @@ class MeshData
 public:
     MeshData(
         const scene::VertexAttributeFlags& availableVertexAttributes,
-        grfx::Mesh*                        pGpuMesh);
+        grfx::Buffer*                      pGpuBuffer);
     virtual ~MeshData();
 
-    grfx::Mesh*                        GetGpuMesh() const { return mGpuMesh.Get(); }
-    const scene::VertexAttributeFlags& GetAvailableVertexAttributes() const { return mAvailableVertexAttributes; }
-    const grfx::IndexBufferView&       GetIndexBufferView() const { return mIndexBufferView; }
-    const grfx::VertexBufferView&      GetPositionBufferView() const { return mPositionBufferView; }
-    const grfx::VertexBufferView&      GetAttributeBufferView() const { return mAttributeBufferView; }
+    const scene::VertexAttributeFlags&      GetAvailableVertexAttributes() const { return mAvailableVertexAttributes; }
+    const std::vector<grfx::VertexBinding>& GetAvailableVertexBindings() const { return mVertexBindings; }
+    grfx::Buffer*                           GetGpuBuffer() const { return mGpuBuffer.Get(); }
 
 private:
-    scene::VertexAttributeFlags mAvailableVertexAttributes = {};
-    grfx::MeshPtr               mGpuMesh                   = nullptr;
-    grfx::IndexBufferView       mIndexBufferView           = {};
-    grfx::VertexBufferView      mPositionBufferView        = {};
-    grfx::VertexBufferView      mAttributeBufferView       = {};
+    scene::VertexAttributeFlags      mAvailableVertexAttributes = {};
+    std::vector<grfx::VertexBinding> mVertexBindings;
+    grfx::BufferPtr                  mGpuBuffer;
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -67,28 +63,35 @@ private:
 class PrimitiveBatch
 {
 public:
-    PrimitiveBatch(
-        const scene::MaterialRef& material,
-        uint32_t                  indexOffset,
-        uint32_t                  vertexOffset,
-        uint32_t                  indexCount,
-        uint32_t                  vertexCount,
-        ppx::AABB                 boundingBox);
+    PrimitiveBatch() = default;
 
-    const scene::Material* GetMaterial() const { return mMaterial.get(); }
-    uint32_t               GetIndexOffset() const { return mIndexOffset; }
-    uint32_t               GetVertexOffset() const { return mVertexOffset; }
-    uint32_t               GetIndexCount() const { return mIndexCount; }
-    uint32_t               GetVertexCount() const { return mVertexCount; }
-    ppx::AABB              GetBoundingBox() const { return mBoundingBox; }
+    PrimitiveBatch(
+        const scene::MaterialRef&     material,
+        const grfx::IndexBufferView&  indexBufferView,
+        const grfx::VertexBufferView& positionBufferView,
+        const grfx::VertexBufferView& attributeBufferView,
+        uint32_t                      indexCount,
+        uint32_t                      vertexCount,
+        const ppx::AABB&              boundingBox);
+
+    ~PrimitiveBatch() = default;
+
+    const scene::Material*        GetMaterial() const { return mMaterial.get(); }
+    const grfx::IndexBufferView&  GetIndexBufferView() const { return mIndexBufferView; }
+    const grfx::VertexBufferView& GetPositionBufferView() const { return mPositionBufferView; }
+    const grfx::VertexBufferView& GetAttributeBufferView() const { return mAttributeBufferView; }
+    ppx::AABB                     GetBoundingBox() const { return mBoundingBox; }
+    uint32_t                      GetIndexCount() const { return mIndexCount; }
+    uint32_t                      GetVertexCount() const { return mVertexCount; }
 
 private:
-    scene::MaterialRef mMaterial     = nullptr;
-    uint32_t           mIndexOffset  = 0;
-    uint32_t           mVertexOffset = 0;
-    uint32_t           mIndexCount   = 0;
-    uint32_t           mVertexCount  = 0;
-    ppx::AABB          mBoundingBox  = {};
+    scene::MaterialRef     mMaterial            = nullptr;
+    grfx::IndexBufferView  mIndexBufferView     = {};
+    grfx::VertexBufferView mPositionBufferView  = {};
+    grfx::VertexBufferView mAttributeBufferView = {};
+    uint32_t               mIndexCount          = 0;
+    uint32_t               mVertexCount         = 0;
+    ppx::AABB              mBoundingBox         = {};
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -121,7 +124,8 @@ public:
 
     bool HasResourceManager() const { return mResourceManager ? true : false; }
 
-    scene::VertexAttributeFlags GetAvailableVertexAttributes() const;
+    scene::VertexAttributeFlags      GetAvailableVertexAttributes() const;
+    std::vector<grfx::VertexBinding> GetAvailableVertexBindings() const;
 
     scene::MeshData*                          GetMeshData() const { return mMeshData.get(); }
     const std::vector<scene::PrimitiveBatch>& GetBatches() const { return mBatches; }

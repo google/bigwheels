@@ -50,9 +50,18 @@ float3 SampleIBLTexture(
     float3       dir,
     float        lod)
 {
-    float2 uv = CartesianToSpherical(normalize(dir));
-    uv.x = saturate(uv.x / (2.0 * PI));
-    uv.y = saturate(uv.y / PI);
+    //float2 uv = CartesianToSpherical(normalize(dir));
+    //uv.x = saturate(uv.x / (2.0 * PI));
+    //uv.y = saturate(uv.y / PI);
+
+    //float2 uv = CartesianToSpherical(normalize(dir));
+    //uv.x = uv.x / (2.0 * PI);
+    //uv.y = uv.y / PI;
+
+    float2 uv;
+    uv.x = atan2(dir.x, -dir.z) * PI_INV * 0.5f + 0.75f;
+    uv.y = -asin(dir.y) * PI_INV + 0.5f;
+
     float3 color = iblTexture.SampleLevel(iblSampler, uv, lod).rgb;
     return color;
 }

@@ -33,7 +33,7 @@ std::vector<const char*> gDbgVtxAttrNames = {
 
 void GltfNodeAnimationApp::Config(ppx::ApplicationSettings& settings)
 {
-    settings.appName                    = "gltf_load_scene";
+    settings.appName                    = "gltf_node_animation";
     settings.enableImGui                = true;
     settings.grfx.api                   = kApi;
     settings.grfx.enableDebug           = false;
@@ -75,7 +75,7 @@ void GltfNodeAnimationApp::Setup()
         PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mPipelineInterface));
 
         // Get vertex bindings - every mesh hould have the same attributes
-        auto vertexBindings = mScene->GetMeshNode(0)->GetMesh()->GetMeshData()->GetGpuMesh()->GetDerivedVertexBindings();
+        auto vertexBindings = mScene->GetMeshNode(0)->GetMesh()->GetAvailableVertexBindings();
 
         auto CreatePipeline = [this, &vertexBindings](const std::string& vsName, const std::string& psName, grfx::GraphicsPipeline** ppPipeline) {
             std::vector<char> bytecode = LoadShader("scene_renderer/shaders", vsName);
@@ -229,23 +229,22 @@ void GltfNodeAnimationApp::Render()
 
             // Draw scene
             auto DrawMesh = [&frame, this](uint32_t instanceIndex, const scene::Mesh* pMesh) {
-                // Index buffers
-                frame.cmd->BindIndexBuffer(&pMesh->GetMeshData()->GetIndexBufferView());
-
-                // Vertex buffers
-                std::vector<grfx::VertexBufferView> vertexBufferViews = {
-                    pMesh->GetMeshData()->GetPositionBufferView(),
-                    pMesh->GetMeshData()->GetAttributeBufferView()};
-                frame.cmd->BindVertexBuffers(CountU32(vertexBufferViews), DataPtr(vertexBufferViews));
-
-                frame.cmd->BindVertexBuffers(CountU32(vertexBufferViews), DataPtr(vertexBufferViews));
-
                 // Set DrawParams::instanceIndex
                 frame.cmd->PushGraphicsConstants(mPipelineInterface, 1, &instanceIndex, scene::MaterialPipelineArgs::INSTANCE_INDEX_CONSTANT_OFFSET);
 
                 // Draw batches
                 for (auto& batch : pMesh->GetBatches()) {
-                    frame.cmd->DrawIndexed(batch.GetIndexCount(), 1, batch.GetIndexOffset(), batch.GetVertexOffset(), 0);
+                    // Index buffer
+                    frame.cmd->BindIndexBuffer(&batch.GetIndexBufferView());
+
+                    // Vertex buffers
+                    std::vector<grfx::VertexBufferView> vertexBufferViews = {
+                        batch.GetPositionBufferView(),
+                        batch.GetAttributeBufferView()};
+                    frame.cmd->BindVertexBuffers(CountU32(vertexBufferViews), DataPtr(vertexBufferViews));
+
+                    // Draw!
+                    frame.cmd->DrawIndexed(batch.GetIndexCount(), 1, 0, 0, 0);
                 }
             };
 

@@ -60,7 +60,7 @@ float4 psmain(StandardVertexOutput input) : SV_TARGET
     }
 
     // Normal (N)
-    float3 N = mul(instance.modelMatrix, float4(input.Normal, 0)).xyz;
+    float3 N = normalize(mul(instance.modelMatrix, float4(input.Normal, 0)).xyz);
     if (normalTex.textureIndex != INVALID_INDEX) {
         Texture2D    tex = MaterialTextures[normalTex.textureIndex];
         SamplerState samp = MaterialSamplers[normalTex.samplerIndex];

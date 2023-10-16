@@ -73,10 +73,6 @@ Texture::Texture(
 // -------------------------------------------------------------------------------------------------
 // TextureView
 // -------------------------------------------------------------------------------------------------
-TextureView::TextureView()
-{
-}
-
 TextureView::TextureView(
     const scene::TextureRef& texture,
     float2                   texCoordTranslate,
@@ -193,14 +189,6 @@ void StandardMaterial::SetEmissiveStrength(float value)
 // -------------------------------------------------------------------------------------------------
 // MaterialFactory
 // -------------------------------------------------------------------------------------------------
-MaterialFactory::MaterialFactory()
-{
-}
-
-MaterialFactory::~MaterialFactory()
-{
-}
-
 scene::VertexAttributeFlags MaterialFactory::GetRequiredVertexAttributes(const std::string& materialIdent) const
 {
     scene::VertexAttributeFlags attrFlags = scene::VertexAttributeFlags::None();
@@ -227,6 +215,9 @@ scene::Material* MaterialFactory::CreateMaterial(
     }
     else if (materialIdent == PPX_MATERIAL_IDENT_STANDARD) {
         pMaterial = new scene::StandardMaterial();
+    }
+    else if (materialIdent == PPX_MATERIAL_IDENT_DEBUG) {
+        pMaterial = new scene::DebugMaterial();
     }
     else {
         pMaterial = new scene::ErrorMaterial();

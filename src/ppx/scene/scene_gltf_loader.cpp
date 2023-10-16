@@ -14,6 +14,7 @@
 
 #include "ppx/scene/scene_gltf_loader.h"
 #include "ppx/grfx/grfx_device.h"
+#include "ppx/grfx/grfx_scope.h"
 #include "ppx/graphics_util.h"
 #include "cgltf.h"
 #include "xxhash.h"
@@ -296,11 +297,13 @@ static void GetVertexAccessors(
         // clang-format on
     }
 
-    *ppGltflAccessorPositions = pGltflAccessorPositions;
-    *ppGltflAccessorNormals   = pGltflAccessorNormals;
-    *ppGltflAccessorTangents  = pGltflAccessorTangents;
-    *ppGltflAccessorColors    = pGltflAccessorColors;
-    *ppGltflAccessorTexCoords = pGltflAccessorTexCoords;
+    // clang-format off
+    if (!IsNull(ppGltflAccessorPositions)) *ppGltflAccessorPositions = pGltflAccessorPositions;
+    if (!IsNull(ppGltflAccessorNormals  )) *ppGltflAccessorNormals   = pGltflAccessorNormals;
+    if (!IsNull(ppGltflAccessorTangents )) *ppGltflAccessorTangents  = pGltflAccessorTangents;
+    if (!IsNull(ppGltflAccessorColors   )) *ppGltflAccessorColors    = pGltflAccessorColors;
+    if (!IsNull(ppGltflAccessorTexCoords)) *ppGltflAccessorTexCoords = pGltflAccessorTexCoords;
+    // clang-format on
 }
 
 // Get a buffer view's start address
@@ -1238,69 +1241,108 @@ ppx::Result GltfLoader::LoadMeshData(
 
     // ---------------------------------------------------------------------------------------------
 
-    // This figures out if we use UINT16 or UINT32 for the indices.
-    // UINT32 will be used if there's a mix of UINT16 and UINT32
-    // found among the primitives. If the function returns UNDEFINED,
-    // UINT32 will be used and we'll generate the topology indices
-    // using the position indices.
-    //
-    grfx::IndexType targetIndexType    = GetIndexType(pGltfMesh);
-    bool            genTopologyIndices = false;
-    if (targetIndexType == grfx::INDEX_TYPE_UNDEFINED) {
-        targetIndexType    = grfx::INDEX_TYPE_UINT32;
-        genTopologyIndices = true;
-    }
-
     // Target vertex formats
-    auto targetPositionFormat = grfx::FORMAT_R32G32B32_FLOAT;
-    auto targetTexCoordFormat = grfx::FORMAT_R32G32_FLOAT;
-    auto targetNormalFormat   = grfx::FORMAT_R32G32B32_FLOAT;
-    auto targetTangentFormat  = grfx::FORMAT_R32G32B32A32_FLOAT;
-    auto targetColorFormat    = grfx::FORMAT_R32G32B32_FLOAT;
+    auto targetPositionFormat = scene::kVertexPositionFormat;
+    auto targetTexCoordFormat = loadParams.requiredVertexAttributes.bits.texCoords ? scene::kVertexAttributeTexCoordFormat : grfx::FORMAT_UNDEFINED;
+    auto targetNormalFormat   = loadParams.requiredVertexAttributes.bits.normals ? scene::kVertexAttributeNormalFormat : grfx::FORMAT_UNDEFINED;
+    auto targetTangentFormat  = loadParams.requiredVertexAttributes.bits.tangents ? scene::kVertexAttributeTagentFormat : grfx::FORMAT_UNDEFINED;
+    auto targetColorFormat    = loadParams.requiredVertexAttributes.bits.colors ? scene::kVertexAttributeColorFormat : grfx::FORMAT_UNDEFINED;
 
-    // Create info for geometry
-    auto createInfo = (loadParams.requiredVertexAttributes.mask != 0) ? GeometryOptions::PositionPlanarU16() : GeometryOptions::PlanarU16();
-    if (targetIndexType == grfx::INDEX_TYPE_UINT32) {
-        createInfo = (loadParams.requiredVertexAttributes.mask != 0) ? GeometryOptions::PositionPlanarU32() : GeometryOptions::PlanarU32();
-    }
-    // clang-format off
-    if (loadParams.requiredVertexAttributes.bits.texCoords) createInfo.AddTexCoord(targetTexCoordFormat);
-    if (loadParams.requiredVertexAttributes.bits.normals) createInfo.AddNormal(targetNormalFormat);
-    if (loadParams.requiredVertexAttributes.bits.tangents) createInfo.AddTangent(targetTangentFormat);
-    if (loadParams.requiredVertexAttributes.bits.colors) createInfo.AddColor(targetColorFormat);
-    // clang-format on
+    const uint32_t targetTexCoordElementSize = (targetTexCoordFormat != grfx::FORMAT_UNDEFINED) ? grfx::GetFormatDescription(targetTexCoordFormat)->bytesPerTexel : 0;
+    const uint32_t targetNormalElementSize   = (targetNormalFormat != grfx::FORMAT_UNDEFINED) ? grfx::GetFormatDescription(targetNormalFormat)->bytesPerTexel : 0;
+    const uint32_t targetTangentElementSize  = (targetTangentFormat != grfx::FORMAT_UNDEFINED) ? grfx::GetFormatDescription(targetTangentFormat)->bytesPerTexel : 0;
+    const uint32_t targetColorElementSize    = (targetColorFormat != grfx::FORMAT_UNDEFINED) ? grfx::GetFormatDescription(targetColorFormat)->bytesPerTexel : 0;
 
-    // Create geometry so we can repack gemetry data into position planar + packed vertex attributes.
-    Geometry targetGeometry = {};
-    //
-    if (!hasCachedGeometry) {
-        auto ppxres = ppx::Geometry::Create(createInfo, &targetGeometry);
-        if (Failed(ppxres)) {
-            return ppxres;
-        }
-    }
+    const uint32_t targetPositionElementSize   = grfx::GetFormatDescription(targetPositionFormat)->bytesPerTexel;
+    const uint32_t targetAttributesElementSize = targetTexCoordElementSize + targetNormalElementSize + targetTangentElementSize + targetColorElementSize;
 
-    // Process primitives and repack geometry data
+    struct BatchInfo
+    {
+        scene::MaterialRef material            = nullptr;
+        uint32_t           indexDataOffset     = 0; // Must have 4 byte alignment
+        uint32_t           indexDataSize       = 0;
+        uint32_t           positionDataOffset  = 0; // Must have 4 byte alignment
+        uint32_t           positionDataSize    = 0;
+        uint32_t           attributeDataOffset = 0; // Must have 4 byte alignment
+        uint32_t           attributeDataSize   = 0;
+        grfx::Format       indexFormat         = grfx::FORMAT_UNDEFINED;
+        uint32_t           indexCount          = 0;
+        uint32_t           vertexCount         = 0;
+        ppx::AABB          boundingBox         = {};
+    };
+
+    // Build out batch infos
+    std::vector<BatchInfo> batchInfos;
     //
-    // Track using these variables so we can avoid asking targetGeometry
-    // for the counts if we're just processing primitives and not building
-    // geometry.
+    uint32_t totalDataSize = 0;
     //
-    uint32_t totalIndexCount  = 0;
-    uint32_t totalVertexCount = 0;
     for (cgltf_size primIdx = 0; primIdx < pGltfMesh->primitives_count; ++primIdx) {
         const cgltf_primitive* pGltfPrimitive = &pGltfMesh->primitives[primIdx];
 
-        // Batch args
-        scene::MaterialRef batchMaterial     = nullptr;
-        uint32_t           batchIndexOffset  = totalIndexCount;
-        uint32_t           batchVertexOffset = totalVertexCount;
-        uint32_t           batchIndexCount   = 0;
-        uint32_t           batchVertexCount  = 0;
-        ppx::AABB          batchBoundingBox  = {};
+        // Only triangle geometry right now
+        if (pGltfPrimitive->type != cgltf_primitive_type_triangles) {
+            PPX_ASSERT_MSG(false, "GLTF: only triangle primitives are supported");
+            return ppx::ERROR_SCENE_UNSUPPORTED_TOPOLOGY_TYPE;
+        }
 
-        // Prepare batch
+        // We require index data so bail if there isn't index data.
+        if (IsNull(pGltfPrimitive->indices)) {
+            PPX_ASSERT_MSG(false, "GLTF mesh primitive does not have index data");
+            return ppx::ERROR_SCENE_INVALID_SOURCE_GEOMETRY_INDEX_DATA;
+        }
+
+        // Get index format
         //
+        // It's valid for this to be UNDEFINED, means the primitive doesn't have any index data.
+        // However, if it's not UNDEFINED, UINT16, or UINT32 then it's a format we can't handle.
+        //
+        auto indexFormat = GetFormat(pGltfPrimitive->indices);
+        if ((indexFormat != grfx::FORMAT_UNDEFINED) && (indexFormat != grfx::FORMAT_R16_UINT) && (indexFormat != grfx::FORMAT_R32_UINT)) {
+            PPX_ASSERT_MSG(false, "GLTF mesh primitive has unrecognized index format");
+            return ppx::ERROR_SCENE_INVALID_SOURCE_GEOMETRY_INDEX_TYPE;
+        }
+
+        // Index data size
+        const uint32_t indexCount       = !IsNull(pGltfPrimitive->indices) ? static_cast<uint32_t>(pGltfPrimitive->indices->count) : 0;
+        const uint32_t indexElementSize = grfx::GetFormatDescription(indexFormat)->bytesPerTexel;
+        const uint32_t indexDataSize    = indexCount * indexElementSize;
+
+        // Get position accessor
+        const cgltf_accessor* pGltflAccessorPositions = nullptr;
+        GetVertexAccessors(pGltfPrimitive, &pGltflAccessorPositions, nullptr, nullptr, nullptr, nullptr);
+        //
+        if (IsNull(pGltflAccessorPositions)) {
+            PPX_ASSERT_MSG(false, "GLTF mesh primitive position accessor is NULL");
+            return ppx::ERROR_SCENE_INVALID_SOURCE_GEOMETRY_VERTEX_DATA;
+        }
+
+        // Vertex data sizes
+        const uint32_t vertexCount       = static_cast<uint32_t>(pGltflAccessorPositions->count);
+        const uint32_t positionDataSize  = vertexCount * targetPositionElementSize;
+        const uint32_t attributeDataSize = vertexCount * targetAttributesElementSize;
+
+        // Index data offset
+        const uint32_t indexDataOffset = totalDataSize;
+        totalDataSize += RoundUp<uint32_t>(indexDataSize, 4);
+        // Position data offset
+        const uint32_t positionDataOffset = totalDataSize;
+        totalDataSize += RoundUp<uint32_t>(positionDataSize, 4);
+        // Attribute data offset;
+        const uint32_t attributeDataOffset = totalDataSize;
+        totalDataSize += RoundUp<uint32_t>(attributeDataSize, 4);
+
+        // Build out batch info with data we'll need later
+        BatchInfo batchInfo           = {};
+        batchInfo.indexDataOffset     = indexDataOffset;
+        batchInfo.indexDataSize       = indexDataSize;
+        batchInfo.positionDataOffset  = positionDataOffset;
+        batchInfo.positionDataSize    = positionDataSize;
+        batchInfo.attributeDataOffset = attributeDataOffset;
+        batchInfo.attributeDataSize   = attributeDataSize;
+        batchInfo.indexFormat         = indexFormat;
+        batchInfo.indexCount          = indexCount;
+
+        // Material
         {
             // Yes, it's completely possible for GLTF primitives to have no material.
             // For example, if you create a cube in Blender and export it without
@@ -1309,163 +1351,238 @@ ppx::Result GltfLoader::LoadMeshData(
             //
             if (!IsNull(pGltfPrimitive->material)) {
                 const uint64_t materialId = cgltf_material_index(mGltfData, pGltfPrimitive->material);
-                loadParams.pResourceManager->Find(materialId, batchMaterial);
+                loadParams.pResourceManager->Find(materialId, batchInfo.material);
             }
             else {
                 auto pMaterial = loadParams.pMaterialFactory->CreateMaterial(PPX_MATERIAL_IDENT_ERROR);
                 if (IsNull(pMaterial)) {
+                    PPX_ASSERT_MSG(false, "could not create ErrorMaterial for GLTF mesh primitive");
                     return ppx::ERROR_SCENE_INVALID_SOURCE_MATERIAL;
                 }
 
-                batchMaterial = scene::MakeRef(pMaterial);
-                if (!batchMaterial) {
+                batchInfo.material = scene::MakeRef(pMaterial);
+                if (!batchInfo.material) {
                     delete pMaterial;
                     return ppx::ERROR_ALLOCATION_FAILED;
                 }
             }
+            PPX_ASSERT_MSG(batchInfo.material, "GLTF mesh primitive material is NULL");
         }
 
-        // Only triangle geometry right now
-        if (pGltfPrimitive->type != cgltf_primitive_type_triangles) {
-            PPX_ASSERT_MSG(false, "GLTF: only triangle primitives are supported");
-            return ppx::ERROR_SCENE_UNSUPPORTED_TOPOLOGY_TYPE;
-        }
+        // Add
+        batchInfos.push_back(batchInfo);
+    }
 
-        // Process indices
+    // Create GPU buffer and copy geometry data to it
+    grfx::BufferPtr targetGpuBuffer = outMeshData ? outMeshData->GetGpuBuffer() : nullptr;
+    //
+    if (!targetGpuBuffer) {
+        grfx::BufferCreateInfo bufferCreateInfo      = {};
+        bufferCreateInfo.size                        = totalDataSize;
+        bufferCreateInfo.usageFlags.bits.transferSrc = true;
+        bufferCreateInfo.memoryUsage                 = grfx::MEMORY_USAGE_CPU_TO_GPU;
+        bufferCreateInfo.initialState                = grfx::RESOURCE_STATE_COPY_SRC;
+
+        // Create staging buffer
         //
-        // REMINDER: It's possible for a primitive to not have index data
-        //
-        if (!IsNull(pGltfPrimitive->indices)) {
-            auto pGltfAccessor = pGltfPrimitive->indices;
-            if (!hasCachedGeometry) {
-                auto pGltfIndices = GetStartAddress(mGltfData, pGltfAccessor);
-                PPX_ASSERT_MSG(!IsNull(pGltfIndices), "GLTF: indices data start is NULL");
-
-                auto sourceIndexTypeFormat = GetFormat(pGltfAccessor);
-                // UINT32
-                if (sourceIndexTypeFormat == grfx::FORMAT_R32_UINT) {
-                    const uint32_t* pGltfIndex = static_cast<const uint32_t*>(pGltfIndices);
-                    for (cgltf_size i = 0; i < pGltfAccessor->count; ++i, ++pGltfIndex) {
-                        targetGeometry.AppendIndex(*pGltfIndex);
-                    }
-                }
-                // UINT16
-                else if (sourceIndexTypeFormat == grfx::FORMAT_R16_UINT) {
-                    const uint16_t* pGltfIndex = static_cast<const uint16_t*>(pGltfIndices);
-                    for (cgltf_size i = 0; i < pGltfAccessor->count; ++i, ++pGltfIndex) {
-                        targetGeometry.AppendIndex(*pGltfIndex);
-                    }
-                }
-                // Bad index type...this shouldn't happen unless there's corruption.
-                else {
-                    return ppx::ERROR_SCENE_INVALID_SOURCE_GEOMETRY_INDEX_TYPE;
-                }
-            }
-
-            // Update batches index count
-            batchIndexCount = static_cast<uint32_t>(pGltfAccessor->count);
-            totalIndexCount += totalIndexCount;
+        grfx::BufferPtr stagingBuffer;
+        auto            ppxres = loadParams.pDevice->CreateBuffer(&bufferCreateInfo, &stagingBuffer);
+        if (Failed(ppxres)) {
+            PPX_ASSERT_MSG(false, "staging buffer creation failed");
+            return ppxres;
         }
 
-        // Vertices
-        {
-            const cgltf_accessor* pGltflAccessorPositions = nullptr;
-            const cgltf_accessor* pGltflAccessorNormals   = nullptr;
-            const cgltf_accessor* pGltflAccessorTangents  = nullptr;
-            const cgltf_accessor* pGltflAccessorColors    = nullptr;
-            const cgltf_accessor* pGltflAccessorTexCoords = nullptr;
-            GetVertexAccessors(
-                pGltfPrimitive,
-                &pGltflAccessorPositions,
-                &pGltflAccessorNormals,
-                &pGltflAccessorTangents,
-                &pGltflAccessorColors,
-                &pGltflAccessorTexCoords);
+        // Scoped destory buffers if there's an early exit
+        grfx::ScopeDestroyer SCOPED_DESTROYER = grfx::ScopeDestroyer(loadParams.pDevice);
+        SCOPED_DESTROYER.AddObject(stagingBuffer);
+
+        // Create GPU buffer
+        bufferCreateInfo.usageFlags.bits.indexBuffer  = true;
+        bufferCreateInfo.usageFlags.bits.vertexBuffer = true;
+        bufferCreateInfo.usageFlags.bits.transferDst  = true;
+        bufferCreateInfo.memoryUsage                  = grfx::MEMORY_USAGE_GPU_ONLY;
+        bufferCreateInfo.initialState                 = grfx::RESOURCE_STATE_GENERAL;
+        //
+        ppxres = loadParams.pDevice->CreateBuffer(&bufferCreateInfo, &targetGpuBuffer);
+        if (Failed(ppxres)) {
+            PPX_ASSERT_MSG(false, "GPU buffer creation failed");
+            return ppxres;
+        }
+        SCOPED_DESTROYER.AddObject(targetGpuBuffer);
+
+        // Map staging buffer
+        char* pStagingBaseAddr = nullptr;
+        ppxres                 = stagingBuffer->MapMemory(0, reinterpret_cast<void**>(&pStagingBaseAddr));
+        if (Failed(ppxres)) {
+            PPX_ASSERT_MSG(false, "staging buffer mapping failed");
+            return ppxres;
+        }
+
+        // Stage data for copy
+        for (cgltf_size primIdx = 0; primIdx < pGltfMesh->primitives_count; ++primIdx) {
+            const cgltf_primitive* pGltfPrimitive = &pGltfMesh->primitives[primIdx];
+            BatchInfo&             batch          = batchInfos[primIdx];
+
+            // Our resulting geometry must have index data for draw efficiency.
+            // This means that if the index format is undefined we need to generate
+            // topology indices for it.
             //
-            // Bail if position accessor is NULL: no vertex positions, no geometry data
             //
-            if (IsNull(pGltflAccessorPositions)) {
-                return ppx::ERROR_SCENE_INVALID_SOURCE_GEOMETRY_VERTEX_DATA;
+            bool genTopologyIndices = false;
+            if (batch.indexFormat == grfx::FORMAT_UNDEFINED) {
+                genTopologyIndices = true;
+                batch.indexFormat  = (batch.vertexCount < 65536) ? grfx::FORMAT_R16_UINT : grfx::FORMAT_R32_UINT;
             }
 
-            // Bounding box
-            bool hasBoundingBox = (pGltflAccessorPositions->has_min && pGltflAccessorPositions->has_max);
-            if (hasBoundingBox) {
-                batchBoundingBox = ppx::AABB(
-                    *reinterpret_cast<const float3*>(pGltflAccessorPositions->min),
-                    *reinterpret_cast<const float3*>(pGltflAccessorPositions->max));
+            // Create genTopologyIndices so we can repack gemetry data into position planar + packed vertex attributes.
+            Geometry   targetGeometry = {};
+            const bool hasAttributes  = (loadParams.requiredVertexAttributes.mask != 0);
+            //
+            {
+                auto createInfo = hasAttributes ? GeometryOptions::PositionPlanarU16() : GeometryOptions::PlanarU16();
+                if (batch.indexFormat == grfx::FORMAT_R32_UINT) {
+                    createInfo = hasAttributes ? GeometryOptions::PositionPlanarU32() : GeometryOptions::PlanarU32();
+                }
+                // clang-format off
+                if (loadParams.requiredVertexAttributes.bits.texCoords) createInfo.AddTexCoord(targetTexCoordFormat);
+                if (loadParams.requiredVertexAttributes.bits.normals) createInfo.AddNormal(targetNormalFormat);
+                if (loadParams.requiredVertexAttributes.bits.tangents) createInfo.AddTangent(targetTangentFormat);
+                if (loadParams.requiredVertexAttributes.bits.colors) createInfo.AddColor(targetColorFormat);
+                // clang-format on
+
+                auto ppxres = ppx::Geometry::Create(createInfo, &targetGeometry);
+                if (Failed(ppxres)) {
+                    return ppxres;
+                }
             }
 
-            // Determine if we need to process vertices
-            //
-            // Assume we have to procss the vertices
-            bool processVertices = true;
-            if (hasCachedGeometry) {
-                // If we have cached geometry, we only process the vertices if
-                // we need the bounding box.
+            // Repack geometry data for batch
+            {
+                // Process indices
                 //
-                processVertices = !hasBoundingBox;
-            }
+                // REMINDER: It's possible for a primitive to not have index data
+                //
+                if (!IsNull(pGltfPrimitive->indices)) {
+                    // Get start of index data
+                    auto pGltfAccessor = pGltfPrimitive->indices;
+                    auto pGltfIndices  = GetStartAddress(mGltfData, pGltfAccessor);
+                    PPX_ASSERT_MSG(!IsNull(pGltfIndices), "GLTF: indices data start is NULL");
 
-            // Check vertex data formats
-            auto positionFormat = GetFormat(pGltflAccessorPositions);
-            auto normalFormat   = GetFormat(pGltflAccessorNormals);
-            auto tangentFormat  = GetFormat(pGltflAccessorTangents);
-            auto colorFormat    = GetFormat(pGltflAccessorColors);
-            auto texCoordFormat = GetFormat(pGltflAccessorTexCoords);
-            //
-            PPX_ASSERT_MSG((positionFormat == targetPositionFormat), "GLTF: vertex positions format is not supported");
-            //
-            if (loadParams.requiredVertexAttributes.bits.normals && !IsNull(pGltflAccessorNormals)) {
-                PPX_ASSERT_MSG((normalFormat == targetNormalFormat), "GLTF: vertex normals format is not supported");
-            }
-            if (loadParams.requiredVertexAttributes.bits.tangents && !IsNull(pGltflAccessorTangents)) {
-                PPX_ASSERT_MSG((tangentFormat == targetTangentFormat), "GLTF: vertex tangents format is not supported");
-            }
-            if (loadParams.requiredVertexAttributes.bits.colors && !IsNull(pGltflAccessorColors)) {
-                PPX_ASSERT_MSG((colorFormat == targetColorFormat), "GLTF: vertex colors format is not supported");
-            }
-            if (loadParams.requiredVertexAttributes.bits.texCoords && !IsNull(pGltflAccessorTexCoords)) {
-                PPX_ASSERT_MSG((texCoordFormat == targetTexCoordFormat), "GLTF: vertex tex coords sourceIndexTypeFormat is not supported");
-            }
-
-            // Data starts
-            const float3* pGltflPositions = static_cast<const float3*>(GetStartAddress(mGltfData, pGltflAccessorPositions));
-            const float3* pGltflNormals   = static_cast<const float3*>(GetStartAddress(mGltfData, pGltflAccessorNormals));
-            const float4* pGltflTangents  = static_cast<const float4*>(GetStartAddress(mGltfData, pGltflAccessorTangents));
-            const float3* pGltflColors    = static_cast<const float3*>(GetStartAddress(mGltfData, pGltflAccessorColors));
-            const float2* pGltflTexCoords = static_cast<const float2*>(GetStartAddress(mGltfData, pGltflAccessorTexCoords));
-
-            // Process vertex data
-            for (cgltf_size i = 0; i < pGltflAccessorPositions->count; ++i) {
-                TriMeshVertexData vertexData = {};
-
-                // Position
-                vertexData.position = *pGltflPositions;
-                ++pGltflPositions;
-                // Normals
-                if (loadParams.requiredVertexAttributes.bits.normals && !IsNull(pGltflNormals)) {
-                    vertexData.normal = *pGltflNormals;
-                    ++pGltflNormals;
+                    // UINT32
+                    if (batch.indexFormat == grfx::FORMAT_R32_UINT) {
+                        const uint32_t* pGltfIndex = static_cast<const uint32_t*>(pGltfIndices);
+                        for (cgltf_size i = 0; i < pGltfAccessor->count; ++i, ++pGltfIndex) {
+                            targetGeometry.AppendIndex(*pGltfIndex);
+                        }
+                    }
+                    // UINT16
+                    else if (batch.indexFormat == grfx::FORMAT_R16_UINT) {
+                        const uint16_t* pGltfIndex = static_cast<const uint16_t*>(pGltfIndices);
+                        for (cgltf_size i = 0; i < pGltfAccessor->count; ++i, ++pGltfIndex) {
+                            targetGeometry.AppendIndex(*pGltfIndex);
+                        }
+                    }
                 }
-                // Tangents
-                if (loadParams.requiredVertexAttributes.bits.tangents && !IsNull(pGltflTangents)) {
-                    vertexData.tangent = *pGltflTangents;
-                    ++pGltflTangents;
-                }
-                // Colors
-                if (loadParams.requiredVertexAttributes.bits.colors && !IsNull(pGltflColors)) {
-                    vertexData.color = *pGltflColors;
-                    ++pGltflColors;
-                }
-                // Tex cooord
-                if (loadParams.requiredVertexAttributes.bits.texCoords && !IsNull(pGltflTexCoords)) {
-                    vertexData.texCoord = *pGltflTexCoords;
-                    ++pGltflTexCoords;
+            }
+
+            // Vertices
+            {
+                const cgltf_accessor* pGltflAccessorPositions = nullptr;
+                const cgltf_accessor* pGltflAccessorNormals   = nullptr;
+                const cgltf_accessor* pGltflAccessorTangents  = nullptr;
+                const cgltf_accessor* pGltflAccessorColors    = nullptr;
+                const cgltf_accessor* pGltflAccessorTexCoords = nullptr;
+                GetVertexAccessors(
+                    pGltfPrimitive,
+                    &pGltflAccessorPositions,
+                    &pGltflAccessorNormals,
+                    &pGltflAccessorTangents,
+                    &pGltflAccessorColors,
+                    &pGltflAccessorTexCoords);
+                //
+                // Bail if position accessor is NULL: no vertex positions, no geometry data
+                //
+                if (IsNull(pGltflAccessorPositions)) {
+                    PPX_ASSERT_MSG(false, "GLTF mesh primitive is missing position data");
+                    return ppx::ERROR_SCENE_INVALID_SOURCE_GEOMETRY_VERTEX_DATA;
                 }
 
-                // Append to target geometry if we don't have cached geometry
-                if (!hasCachedGeometry) {
+                // Bounding box
+                bool hasBoundingBox = (pGltflAccessorPositions->has_min && pGltflAccessorPositions->has_max);
+                if (hasBoundingBox) {
+                    batch.boundingBox = ppx::AABB(
+                        *reinterpret_cast<const float3*>(pGltflAccessorPositions->min),
+                        *reinterpret_cast<const float3*>(pGltflAccessorPositions->max));
+                }
+
+                // Determine if we need to process vertices
+                //
+                // Assume we have to procss the vertices
+                bool processVertices = true;
+                if (hasCachedGeometry) {
+                    // If we have cached geometry, we only process the vertices if
+                    // we need the bounding box.
+                    //
+                    processVertices = !hasBoundingBox;
+                }
+
+                // Check vertex data formats
+                auto positionFormat = GetFormat(pGltflAccessorPositions);
+                auto texCoordFormat = GetFormat(pGltflAccessorTexCoords);
+                auto normalFormat   = GetFormat(pGltflAccessorNormals);
+                auto tangentFormat  = GetFormat(pGltflAccessorTangents);
+                auto colorFormat    = GetFormat(pGltflAccessorColors);
+                //
+                PPX_ASSERT_MSG((positionFormat == targetPositionFormat), "GLTF: vertex positions format is not supported");
+                //
+                if (loadParams.requiredVertexAttributes.bits.texCoords && !IsNull(pGltflAccessorTexCoords)) {
+                    PPX_ASSERT_MSG((texCoordFormat == targetTexCoordFormat), "GLTF: vertex tex coords sourceIndexTypeFormat is not supported");
+                }
+                if (loadParams.requiredVertexAttributes.bits.normals && !IsNull(pGltflAccessorNormals)) {
+                    PPX_ASSERT_MSG((normalFormat == targetNormalFormat), "GLTF: vertex normals format is not supported");
+                }
+                if (loadParams.requiredVertexAttributes.bits.tangents && !IsNull(pGltflAccessorTangents)) {
+                    PPX_ASSERT_MSG((tangentFormat == targetTangentFormat), "GLTF: vertex tangents format is not supported");
+                }
+                if (loadParams.requiredVertexAttributes.bits.colors && !IsNull(pGltflAccessorColors)) {
+                    PPX_ASSERT_MSG((colorFormat == targetColorFormat), "GLTF: vertex colors format is not supported");
+                }
+
+                // Data starts
+                const float3* pGltflPositions = static_cast<const float3*>(GetStartAddress(mGltfData, pGltflAccessorPositions));
+                const float3* pGltflNormals   = static_cast<const float3*>(GetStartAddress(mGltfData, pGltflAccessorNormals));
+                const float4* pGltflTangents  = static_cast<const float4*>(GetStartAddress(mGltfData, pGltflAccessorTangents));
+                const float3* pGltflColors    = static_cast<const float3*>(GetStartAddress(mGltfData, pGltflAccessorColors));
+                const float2* pGltflTexCoords = static_cast<const float2*>(GetStartAddress(mGltfData, pGltflAccessorTexCoords));
+
+                // Process vertex data
+                for (cgltf_size i = 0; i < pGltflAccessorPositions->count; ++i) {
+                    TriMeshVertexData vertexData = {};
+
+                    // Position
+                    vertexData.position = *pGltflPositions;
+                    ++pGltflPositions;
+                    // Normals
+                    if (loadParams.requiredVertexAttributes.bits.normals && !IsNull(pGltflNormals)) {
+                        vertexData.normal = *pGltflNormals;
+                        ++pGltflNormals;
+                    }
+                    // Tangents
+                    if (loadParams.requiredVertexAttributes.bits.tangents && !IsNull(pGltflTangents)) {
+                        vertexData.tangent = *pGltflTangents;
+                        ++pGltflTangents;
+                    }
+                    // Colors
+                    if (loadParams.requiredVertexAttributes.bits.colors && !IsNull(pGltflColors)) {
+                        vertexData.color = *pGltflColors;
+                        ++pGltflColors;
+                    }
+                    // Tex cooord
+                    if (loadParams.requiredVertexAttributes.bits.texCoords && !IsNull(pGltflTexCoords)) {
+                        vertexData.texCoord = *pGltflTexCoords;
+                        ++pGltflTexCoords;
+                    }
+
                     // Append vertex data
                     targetGeometry.AppendVertexData(vertexData);
 
@@ -1474,51 +1591,113 @@ ppx::Result GltfLoader::LoadMeshData(
                         uint32_t index = (targetGeometry.GetVertexCount() - 1);
                         targetGeometry.AppendIndex(index);
                     }
-                }
 
-                if (!hasBoundingBox) {
-                    if (i > 0) {
-                        batchBoundingBox.Expand(vertexData.position);
-                    }
-                    else {
-                        batchBoundingBox = ppx::AABB(vertexData.position, vertexData.position);
+                    if (!hasBoundingBox) {
+                        if (i > 0) {
+                            batch.boundingBox.Expand(vertexData.position);
+                        }
+                        else {
+                            batch.boundingBox = ppx::AABB(vertexData.position, vertexData.position);
+                        }
                     }
                 }
             }
 
-            // Update batches index count
-            batchVertexCount = static_cast<uint32_t>(pGltflAccessorPositions->count);
-            totalVertexCount += batchVertexCount;
+            // Geometry data must match what's in the batch
+            const uint32_t repackedIndexBufferSize     = targetGeometry.GetIndexBuffer()->GetSize();
+            const uint32_t repackedPositionBufferSize  = targetGeometry.GetVertexBuffer(0)->GetSize();
+            const uint32_t repackedAttributeBufferSize = hasAttributes ? targetGeometry.GetVertexBuffer(1)->GetSize() : 0;
+            if (repackedIndexBufferSize != batch.indexDataSize) {
+                PPX_ASSERT_MSG(false, "repacked index buffer size does not match batch's index data size");
+                return ppx::ERROR_SCENE_INVALID_SOURCE_GEOMETRY_INDEX_DATA;
+            }
+            if (repackedPositionBufferSize != batch.positionDataSize) {
+                PPX_ASSERT_MSG(false, "repacked position buffer size does not match batch's position data size");
+                return ppx::ERROR_SCENE_INVALID_SOURCE_GEOMETRY_INDEX_DATA;
+            }
+            if (repackedAttributeBufferSize != batch.attributeDataSize) {
+                PPX_ASSERT_MSG(false, "repacked attribute buffer size does not match batch's attribute data size");
+                return ppx::ERROR_SCENE_INVALID_SOURCE_GEOMETRY_INDEX_DATA;
+            }
+
+            // We're good - copy data to the staging buffer
+            {
+                // Indices
+                const void* pSrcData = targetGeometry.GetIndexBuffer()->GetData();
+                char*       pDstData = pStagingBaseAddr + batch.indexDataOffset;
+                PPX_ASSERT_MSG((static_cast<uint32_t>((pDstData + repackedIndexBufferSize) - pStagingBaseAddr) <= stagingBuffer->GetSize()), "index data exceeds buffer range");
+                memcpy(pDstData, pSrcData, repackedIndexBufferSize);
+
+                // Positions
+                pSrcData = targetGeometry.GetVertexBuffer(0)->GetData();
+                pDstData = pStagingBaseAddr + batch.positionDataOffset;
+                PPX_ASSERT_MSG((static_cast<uint32_t>((pDstData + repackedPositionBufferSize) - pStagingBaseAddr) <= stagingBuffer->GetSize()), "position data exceeds buffer range");
+                memcpy(pDstData, pSrcData, repackedPositionBufferSize);
+
+                // Attributes
+                if (hasAttributes) {
+                    pSrcData = targetGeometry.GetVertexBuffer(1)->GetData();
+                    pDstData = pStagingBaseAddr + batch.attributeDataOffset;
+                    PPX_ASSERT_MSG((static_cast<uint32_t>((pDstData + repackedAttributeBufferSize) - pStagingBaseAddr) <= stagingBuffer->GetSize()), "attribute data exceeds buffer range");
+                    memcpy(pDstData, pSrcData, repackedAttributeBufferSize);
+                }
+            }
         }
 
-        // Append batch
-        outBatches.push_back(scene::PrimitiveBatch(
-            batchMaterial,
-            batchIndexOffset,
-            batchVertexOffset,
-            batchIndexCount,
-            batchVertexCount,
-            batchBoundingBox));
+        // Copy staging buffer to GPU buffer
+        grfx::BufferToBufferCopyInfo copyInfo = {};
+        copyInfo.srcBuffer.offset             = 0;
+        copyInfo.dstBuffer.offset             = 0;
+        copyInfo.size                         = stagingBuffer->GetSize();
+        //
+        ppxres = loadParams.pDevice->GetGraphicsQueue()->CopyBufferToBuffer(
+            &copyInfo,
+            stagingBuffer,
+            targetGpuBuffer,
+            grfx::RESOURCE_STATE_GENERAL,
+            grfx::RESOURCE_STATE_GENERAL);
+        if (Failed(ppxres)) {
+            PPX_ASSERT_MSG(false, "staging buffer to GPU buffer copy failed");
+            return ppxres;
+        }
+
+        // We're good if we got here, release objects from scoped destroy
+        SCOPED_DESTROYER.ReleaseAll();
+        // Destroy staging buffer since we're done with it
+        stagingBuffer->UnmapMemory();
+        loadParams.pDevice->DestroyBuffer(stagingBuffer);
+    }
+
+    // Build batches
+    for (uint32_t batchIdx = 0; batchIdx < CountU32(batchInfos); ++batchIdx) {
+        const auto& batch = batchInfos[batchIdx];
+
+        const grfx::IndexType indexType       = (batch.indexFormat == grfx::FORMAT_R32_UINT) ? grfx::INDEX_TYPE_UINT32 : grfx::INDEX_TYPE_UINT16;
+        grfx::IndexBufferView indexBufferView = grfx::IndexBufferView(targetGpuBuffer, indexType, batch.indexDataOffset, batch.indexDataSize);
+
+        grfx::VertexBufferView positionBufferView  = grfx::VertexBufferView(targetGpuBuffer, targetPositionElementSize, batch.positionDataOffset, batch.positionDataSize);
+        grfx::VertexBufferView attributeBufferView = grfx::VertexBufferView((batch.attributeDataSize != 0) ? targetGpuBuffer : nullptr, targetAttributesElementSize, batch.attributeDataOffset, batch.attributeDataSize);
+
+        scene::PrimitiveBatch targetBatch = scene::PrimitiveBatch(
+            batch.material,
+            indexBufferView,
+            positionBufferView,
+            attributeBufferView,
+            batch.indexCount,
+            batch.vertexCount,
+            batch.boundingBox);
+
+        outBatches.push_back(targetBatch);
     }
 
     // ---------------------------------------------------------------------------------------------
 
     // Create GPU mesh from geometry if we don't have cached geometry
     if (!hasCachedGeometry) {
-        grfx::MeshPtr targetGpuMesh = nullptr;
-        //
-        auto ppxres = grfx_util::CreateMeshFromGeometry(
-            loadParams.pDevice->GetGraphicsQueue(),
-            &targetGeometry,
-            &targetGpuMesh);
-        if (Failed(ppxres)) {
-            return ppxres;
-        }
-
         // Allocate mesh data
-        auto pTargetMeshData = new scene::MeshData(loadParams.requiredVertexAttributes, targetGpuMesh);
+        auto pTargetMeshData = new scene::MeshData(loadParams.requiredVertexAttributes, targetGpuBuffer);
         if (IsNull(pTargetMeshData)) {
-            loadParams.pDevice->DestroyMesh(targetGpuMesh);
+            loadParams.pDevice->DestroyBuffer(targetGpuBuffer);
             return ppx::ERROR_ALLOCATION_FAILED;
         }
 
@@ -1755,7 +1934,7 @@ ppx::Result GltfLoader::LoadNodeInternal(
 
         // Transform node
         case scene::NODE_TYPE_TRANSFORM: {
-            pTargetNode = new scene::Node();
+            pTargetNode = new scene::Node(loadParams.pTargetScene);
         } break;
 
         // Mesh node
@@ -2747,6 +2926,14 @@ ppx::Result GltfLoader::LoadScene(
     if (Failed(ppxres)) {
         return ppxres;
     }
+
+    PPX_LOG_INFO("Scene load complete: " << GetName(pGltfScene));
+    PPX_LOG_INFO("   Num samplers : " << pTargetScene->GetSamplerCount());
+    PPX_LOG_INFO("   Num images   : " << pTargetScene->GetImageCount());
+    PPX_LOG_INFO("   Num textures : " << pTargetScene->GetTextureCount());
+    PPX_LOG_INFO("   Num materials: " << pTargetScene->GetMaterialCount());
+    PPX_LOG_INFO("   Num mesh data: " << pTargetScene->GetMeshDataCount());
+    PPX_LOG_INFO("   Num meshes   : " << pTargetScene->GetMeshCount());
 
     *ppTargetScene = pTargetScene;
 

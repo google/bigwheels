@@ -92,12 +92,13 @@ public:
     //
     // @TODO: Find a more appropriate location for these
     //
-    static const uint32_t MAX_UNIQUE_MATERIALS      = 32;
+    static const uint32_t MAX_UNIQUE_MATERIALS      = 8192;
     static const uint32_t MAX_TEXTURES_PER_MATERIAL = 6;
     static const uint32_t MAX_MATERIAL_TEXTURES     = MAX_UNIQUE_MATERIALS * MAX_TEXTURES_PER_MATERIAL;
 
-    static const uint32_t MAX_IBL_MAPS          = 8;
-    static const uint32_t MAX_MATERIAL_SAMPLERS = 8;
+    static const uint32_t MAX_MATERIAL_SAMPLERS = 64;
+
+    static const uint32_t MAX_IBL_MAPS          = 16;
 
     static const uint32_t FRAME_PARAMS_REGISTER            = 1;
     static const uint32_t CAMERA_PARAMS_REGISTER           = 2;

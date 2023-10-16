@@ -23,12 +23,13 @@
 
 #define INVALID_INDEX 0xFFFFFFFF
 
-#define MAX_UNIQUE_MATERIALS      32
+#define MAX_UNIQUE_MATERIALS      8192
 #define MAX_TEXTURES_PER_MATERIAL 6
 #define MAX_MATERIAL_TEXTURES     (MAX_UNIQUE_MATERIALS * MAX_TEXTURES_PER_MATERIAL)
 
-#define MAX_IBL_MAPS              8
-#define MAX_MATERIAL_SAMPLERS     8
+#define MAX_MATERIAL_SAMPLERS     64
+
+#define MAX_IBL_MAPS              16
 
 // -------------------------------------------------------------------------------------------------
 // Registers
