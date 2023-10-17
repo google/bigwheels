@@ -155,8 +155,7 @@ public:
 
         BufferType  GetType() const { return mType; }
         uint32_t    GetElementSize() const { return mElementSize; }
-        uint32_t    GetSize() const { return CountU32(mData); }
-        void        SetSize(uint32_t size) { mData.resize(size); }
+        uint32_t    GetSize() const { return static_cast<uint32_t>(mUsedSize); }
         char*       GetData() { return DataPtr(mData); }
         const char* GetData() const { return DataPtr(mData); }
         uint32_t    GetElementCount() const;
@@ -181,24 +180,21 @@ public:
         void Append(uint32_t count, const T* pValues)
         {
             uint32_t sizeOfValues = count * static_cast<uint32_t>(sizeof(T));
-
-            // Current size
-            size_t offset = mData.size();
-            // Reserve double storage if necessary
-            if ((offset + sizeOfValues) > mData.capacity()) {
-                mData.reserve(std::max<size_t>(offset + sizeOfValues, mData.size() * 2));
+            if ((mUsedSize + sizeOfValues) > mData.size()) {
+                mData.resize(std::max<size_t>(mUsedSize + sizeOfValues, mData.size() * 2));
             }
-            mData.resize(offset + sizeOfValues);
 
             //  Copy data
             const void* pSrc = pValues;
-            void*       pDst = mData.data() + offset;
+            void*       pDst = mData.data() + mUsedSize;
             memcpy(pDst, pSrc, sizeOfValues);
+            mUsedSize += sizeOfValues;
         }
 
     private:
         BufferType        mType        = BUFFER_TYPE_VERTEX;
         uint32_t          mElementSize = 0;
+        size_t            mUsedSize    = 0;
         std::vector<char> mData;
     };
 
