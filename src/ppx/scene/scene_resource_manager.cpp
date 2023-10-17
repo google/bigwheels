@@ -90,48 +90,32 @@ ppx::Result ResourceManager::Cache(uint64_t objectId, const scene::MeshRef& obje
 
 void ResourceManager::DestroyAll()
 {
-    mImages.clear();
     mSamplers.clear();
+    mImages.clear();
     mTextures.clear();
     mMaterials.clear();
     mMeshData.clear();
     mMeshes.clear();
 }
 
-std::vector<const scene::Sampler*> ResourceManager::GetSamplers() const
+const std::unordered_map<uint64_t, scene::SamplerRef>& ResourceManager::GetSamplers() const
 {
-    std::vector<const scene::Sampler*> objectPtrs;
-    for (auto& it : mSamplers) {
-        objectPtrs.push_back(it.second.get());
-    }
-    return objectPtrs;
+    return mSamplers;
 }
 
-std::vector<const scene::Image*> ResourceManager::GetImages() const
+const std::unordered_map<uint64_t, scene::ImageRef>& ResourceManager::GetImages() const
 {
-    std::vector<const scene::Image*> objectPtrs;
-    for (auto& it : mImages) {
-        objectPtrs.push_back(it.second.get());
-    }
-    return objectPtrs;
+    return mImages;
 }
 
-std::vector<const scene::Texture*> ResourceManager::GetTextures() const
+const std::unordered_map<uint64_t, scene::TextureRef>& ResourceManager::GetTextures() const
 {
-    std::vector<const scene::Texture*> objectPtrs;
-    for (auto& it : mTextures) {
-        objectPtrs.push_back(it.second.get());
-    }
-    return objectPtrs;
+    return mTextures;
 }
 
-std::vector<const scene::Material*> ResourceManager::GetMaterials() const
+const std::unordered_map<uint64_t, scene::MaterialRef>& ResourceManager::GetMaterials() const
 {
-    std::vector<const scene::Material*> objectPtrs;
-    for (auto& it : mMaterials) {
-        objectPtrs.push_back(it.second.get());
-    }
-    return objectPtrs;
+    return mMaterials;
 }
 
 } // namespace scene

@@ -70,22 +70,10 @@ public:
 
     void DestroyAll();
 
-    // The following functions return an array of each resource in the
-    // order of iteration in the map.
-    //
-    // The results of these functions are used to build the resource
-    // and parameter arrays that are fed as arguments into the shader
-    // for indexing.
-    //
-    // The expectation is that these functions are only called when
-    // the arguments to the shader need updating. This should only be
-    // during loads or if there's a change to scene. So it should be
-    // infrequent.
-    //
-    std::vector<const scene::Sampler*>  GetSamplers() const;
-    std::vector<const scene::Image*>    GetImages() const;
-    std::vector<const scene::Texture*>  GetTextures() const;
-    std::vector<const scene::Material*> GetMaterials() const;
+    const std::unordered_map<uint64_t, scene::SamplerRef>&  GetSamplers() const;
+    const std::unordered_map<uint64_t, scene::ImageRef>&    GetImages() const;
+    const std::unordered_map<uint64_t, scene::TextureRef>&  GetTextures() const;
+    const std::unordered_map<uint64_t, scene::MaterialRef>& GetMaterials() const;
 
 private:
     template <

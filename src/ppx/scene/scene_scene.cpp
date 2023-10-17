@@ -165,14 +165,14 @@ ppx::Result Scene::AddNode(scene::NodeRef&& node)
 
 scene::ResourceIndexMap<scene::Sampler> Scene::GetSamplersArrayIndexMap() const
 {
-    auto array = mResourceManager->GetSamplers();
+    const auto& objects = mResourceManager->GetSamplers();
 
     std::unordered_map<const scene::Sampler*, uint32_t> indexMap;
     //
-    const uint32_t objectCount = CountU32(array);
-    for (uint32_t idx = 0; idx < objectCount; ++idx) {
-        auto pObject      = array[idx];
-        indexMap[pObject] = idx;
+    uint32_t index = 0;
+    for (const auto& it : objects) {
+        indexMap[it.second.get()] = index;
+        ++index;
     }
 
     return indexMap;
@@ -180,14 +180,14 @@ scene::ResourceIndexMap<scene::Sampler> Scene::GetSamplersArrayIndexMap() const
 
 scene::ResourceIndexMap<scene::Image> Scene::GetImagesArrayIndexMap() const
 {
-    auto array = mResourceManager->GetImages();
+    const auto& objects = mResourceManager->GetImages();
 
-    std::unordered_map<const scene::Image*, uint32_t> indexMap;
+    scene::ResourceIndexMap<scene::Image> indexMap;
     //
-    const uint32_t objectCount = CountU32(array);
-    for (uint32_t idx = 0; idx < objectCount; ++idx) {
-        auto pObject      = array[idx];
-        indexMap[pObject] = idx;
+    uint32_t index = 0;
+    for (const auto& it : objects) {
+        indexMap[it.second.get()] = index;
+        ++index;
     }
 
     return indexMap;
@@ -195,14 +195,14 @@ scene::ResourceIndexMap<scene::Image> Scene::GetImagesArrayIndexMap() const
 
 scene::ResourceIndexMap<scene::Material> Scene::GetMaterialsArrayIndexMap() const
 {
-    auto array = mResourceManager->GetMaterials();
+    const auto& objects = mResourceManager->GetMaterials();
 
-    std::unordered_map<const scene::Material*, uint32_t> indexMap;
+    scene::ResourceIndexMap<scene::Material> indexMap;
     //
-    const uint32_t objectCount = CountU32(array);
-    for (uint32_t idx = 0; idx < objectCount; ++idx) {
-        auto pObject      = array[idx];
-        indexMap[pObject] = idx;
+    uint32_t index = 0;
+    for (const auto& it : objects) {
+        indexMap[it.second.get()] = index;
+        ++index;
     }
 
     return indexMap;

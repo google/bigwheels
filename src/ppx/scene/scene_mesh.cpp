@@ -42,63 +42,66 @@ MeshData::MeshData(
     }
     mVertexBindings.push_back(positionBinding);
 
-    if (availableVertexAttributes.mask != 0) {
-        auto attributeBinding = grfx::VertexBinding(kVertexAttributeBinding, grfx::VERTEX_INPUT_RATE_VERTEX);
-        {
-            // TexCoord
-            if (availableVertexAttributes.bits.texCoords) {
-                grfx::VertexAttribute attr = {};
-                attr.semanticName          = "TEXCOORD";
-                attr.location              = scene::kVertexAttributeTexCoordLocation;
-                attr.format                = scene::kVertexAttributeTexCoordFormat;
-                attr.binding               = scene::kVertexAttributeBinding;
-                attr.offset                = PPX_APPEND_OFFSET_ALIGNED;
-                attr.inputRate             = grfx::VERTEX_INPUT_RATE_VERTEX;
-                attr.semantic              = grfx::VERTEX_SEMANTIC_TEXCOORD;
-                attributeBinding.AppendAttribute(attr);
-            }
-
-            // Normal
-            if (availableVertexAttributes.bits.normals) {
-                grfx::VertexAttribute attr = {};
-                attr.semanticName          = "NORMAL";
-                attr.location              = scene::kVertexAttributeNormalLocation;
-                attr.format                = scene::kVertexAttributeNormalFormat;
-                attr.binding               = scene::kVertexAttributeBinding;
-                attr.offset                = PPX_APPEND_OFFSET_ALIGNED;
-                attr.inputRate             = grfx::VERTEX_INPUT_RATE_VERTEX;
-                attr.semantic              = grfx::VERTEX_SEMANTIC_NORMAL;
-                attributeBinding.AppendAttribute(attr);
-            }
-
-            // Tangent
-            if (availableVertexAttributes.bits.tangents) {
-                grfx::VertexAttribute attr = {};
-                attr.semanticName          = "TANGENT";
-                attr.location              = scene::kVertexAttributeTangentLocation;
-                attr.format                = scene::kVertexAttributeTagentFormat;
-                attr.binding               = scene::kVertexAttributeBinding;
-                attr.offset                = PPX_APPEND_OFFSET_ALIGNED;
-                attr.inputRate             = grfx::VERTEX_INPUT_RATE_VERTEX;
-                attr.semantic              = grfx::VERTEX_SEMANTIC_TANGENT;
-                attributeBinding.AppendAttribute(attr);
-            }
-
-            // Color
-            if (availableVertexAttributes.bits.colors) {
-                grfx::VertexAttribute attr = {};
-                attr.semanticName          = "COLOR";
-                attr.location              = scene::kVertexAttributeColorLocation;
-                attr.format                = scene::kVertexAttributeColorFormat;
-                attr.binding               = scene::kVertexAttributeBinding;
-                attr.offset                = PPX_APPEND_OFFSET_ALIGNED;
-                attr.inputRate             = grfx::VERTEX_INPUT_RATE_VERTEX;
-                attr.semantic              = grfx::VERTEX_SEMANTIC_COLOR;
-                attributeBinding.AppendAttribute(attr);
-            }
-        }
-        mVertexBindings.push_back(attributeBinding);
+    // Done if no vertex attributes
+    if (availableVertexAttributes.mask == 0) {
+        return;
     }
+
+    auto attributeBinding = grfx::VertexBinding(kVertexAttributeBinding, grfx::VERTEX_INPUT_RATE_VERTEX);
+    {
+        // TexCoord
+        if (availableVertexAttributes.bits.texCoords) {
+            grfx::VertexAttribute attr = {};
+            attr.semanticName          = "TEXCOORD";
+            attr.location              = scene::kVertexAttributeTexCoordLocation;
+            attr.format                = scene::kVertexAttributeTexCoordFormat;
+            attr.binding               = scene::kVertexAttributeBinding;
+            attr.offset                = PPX_APPEND_OFFSET_ALIGNED;
+            attr.inputRate             = grfx::VERTEX_INPUT_RATE_VERTEX;
+            attr.semantic              = grfx::VERTEX_SEMANTIC_TEXCOORD;
+            attributeBinding.AppendAttribute(attr);
+        }
+
+        // Normal
+        if (availableVertexAttributes.bits.normals) {
+            grfx::VertexAttribute attr = {};
+            attr.semanticName          = "NORMAL";
+            attr.location              = scene::kVertexAttributeNormalLocation;
+            attr.format                = scene::kVertexAttributeNormalFormat;
+            attr.binding               = scene::kVertexAttributeBinding;
+            attr.offset                = PPX_APPEND_OFFSET_ALIGNED;
+            attr.inputRate             = grfx::VERTEX_INPUT_RATE_VERTEX;
+            attr.semantic              = grfx::VERTEX_SEMANTIC_NORMAL;
+            attributeBinding.AppendAttribute(attr);
+        }
+
+        // Tangent
+        if (availableVertexAttributes.bits.tangents) {
+            grfx::VertexAttribute attr = {};
+            attr.semanticName          = "TANGENT";
+            attr.location              = scene::kVertexAttributeTangentLocation;
+            attr.format                = scene::kVertexAttributeTagentFormat;
+            attr.binding               = scene::kVertexAttributeBinding;
+            attr.offset                = PPX_APPEND_OFFSET_ALIGNED;
+            attr.inputRate             = grfx::VERTEX_INPUT_RATE_VERTEX;
+            attr.semantic              = grfx::VERTEX_SEMANTIC_TANGENT;
+            attributeBinding.AppendAttribute(attr);
+        }
+
+        // Color
+        if (availableVertexAttributes.bits.colors) {
+            grfx::VertexAttribute attr = {};
+            attr.semanticName          = "COLOR";
+            attr.location              = scene::kVertexAttributeColorLocation;
+            attr.format                = scene::kVertexAttributeColorFormat;
+            attr.binding               = scene::kVertexAttributeBinding;
+            attr.offset                = PPX_APPEND_OFFSET_ALIGNED;
+            attr.inputRate             = grfx::VERTEX_INPUT_RATE_VERTEX;
+            attr.semantic              = grfx::VERTEX_SEMANTIC_COLOR;
+            attributeBinding.AppendAttribute(attr);
+        }
+    }
+    mVertexBindings.push_back(attributeBinding);
 }
 
 MeshData::~MeshData()
