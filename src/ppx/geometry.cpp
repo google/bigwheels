@@ -619,7 +619,7 @@ GeometryOptions& GeometryOptions::AddBitangent(grfx::Format format)
 // -------------------------------------------------------------------------------------------------
 uint32_t Geometry::Buffer::GetElementCount() const
 {
-    size_t sizeOfData = mData.size();
+    size_t sizeOfData = mUsedSize;
     // round up for the case of interleaved buffers
     uint32_t count = static_cast<uint32_t>(std::ceil(static_cast<double>(sizeOfData) / static_cast<double>(mElementSize)));
     return count;
