@@ -17,7 +17,10 @@ project(graphics_pipeline)
 
 add_samples_for_all_apis(
     NAME ${PROJECT_NAME}
-    SOURCES "main.cpp"
+    SOURCES 
+      "main.cpp"
+      "helper.h"
+      "helper.cpp"
     SHADER_DEPENDENCIES
       "shader_benchmark_vs_simple"
       "shader_benchmark_vs_alu_bound"

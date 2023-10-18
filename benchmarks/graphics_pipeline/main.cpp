@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "helper.h"
+
 #include <functional>
 #include <utility>
 #include <queue>
@@ -23,71 +25,12 @@
 #include "ppx/ppx.h"
 #include "ppx/knob.h"
 #include "ppx/timer.h"
-#include "ppx/camera.h"
-#include "ppx/math_util.h"
 #include "ppx/graphics_util.h"
 #include "ppx/grfx/grfx_scope.h"
 #include "cgltf.h"
 #include "glm/gtc/type_ptr.hpp"
 
 using namespace ppx;
-
-class MultiDimensionalIndexer
-{
-public:
-    // Adds a new dimension with the given `size`.
-    void AddDimension(size_t size);
-
-    // Gets the index for the given dimension `indices`.
-    size_t GetIndex(const std::vector<size_t>& indices);
-
-private:
-    // `mSizes` are the sizes for each dimension.
-    std::vector<size_t> mSizes;
-    // `mMultipliers` are the multipliers for each dimension to get the index.
-    std::vector<size_t> mMultipliers;
-};
-
-static constexpr float kCameraSpeed = 0.2f;
-
-class FreeCamera
-    : public ppx::PerspCamera
-{
-public:
-    enum class MovementDirection
-    {
-        FORWARD,
-        LEFT,
-        RIGHT,
-        BACKWARD
-    };
-
-    // Initializes a FreeCamera located at `eyePosition` and looking at the
-    // spherical coordinates in world space defined by `theta` and `phi`.
-    // `mTheta` (longitude) is an angle in the range [0, 2pi].
-    // `mPhi` (latitude) is an angle in the range [0, pi].
-    FreeCamera(float3 eyePosition, float theta, float phi)
-    {
-        mEyePosition = eyePosition;
-        mTheta       = theta;
-        mPhi         = phi;
-        mTarget      = eyePosition + SphericalToCartesian(theta, phi);
-    }
-
-    // Moves the location of the camera in dir direction for distance units.
-    void Move(MovementDirection dir, float distance);
-
-    // Changes the location where the camera is looking at by turning `deltaTheta`
-    // (longitude) radians and looking up `deltaPhi` (latitude) radians.
-    void Turn(float deltaTheta, float deltaPhi);
-
-private:
-    // Spherical coordinates in world space where the camera is looking at.
-    // `mTheta` (longitude) is an angle in the range [0, 2pi].
-    // `mPhi` (latitude) is an angle in the range [0, pi].
-    float mTheta;
-    float mPhi;
-};
 
 #if defined(USE_DX12)
 const grfx::Api kApi = grfx::API_DX_12_0;
@@ -156,55 +99,6 @@ public:
     virtual void Render() override;
 
 private:
-    struct PerFrame
-    {
-        grfx::CommandBufferPtr cmd;
-        grfx::SemaphorePtr     imageAcquiredSemaphore;
-        grfx::FencePtr         imageAcquiredFence;
-        grfx::SemaphorePtr     renderCompleteSemaphore;
-        grfx::FencePtr         renderCompleteFence;
-        grfx::QueryPtr         timestampQuery;
-    };
-
-    struct Texture
-    {
-        grfx::ImagePtr            image;
-        grfx::SampledImageViewPtr sampledImageView;
-        grfx::SamplerPtr          sampler;
-    };
-
-    struct Entity
-    {
-        grfx::MeshPtr                mesh;
-        grfx::BufferPtr              uniformBuffer;
-        grfx::DescriptorSetLayoutPtr descriptorSetLayout;
-        grfx::PipelineInterfacePtr   pipelineInterface;
-        grfx::GraphicsPipelinePtr    pipeline;
-    };
-
-    struct Entity2D
-    {
-        grfx::BufferPtr            vertexBuffer;
-        grfx::VertexBinding        vertexBinding;
-        grfx::PipelineInterfacePtr pipelineInterface;
-        grfx::GraphicsPipelinePtr  pipeline;
-    };
-
-    struct Grid
-    {
-        uint32_t xSize;
-        uint32_t ySize;
-        uint32_t zSize;
-        float    step;
-    };
-
-    struct LOD
-    {
-        uint32_t    longitudeSegments;
-        uint32_t    latitudeSegments;
-        std::string name;
-    };
-
     std::vector<PerFrame>                                         mPerFrame;
     FreeCamera                                                    mCamera;
     float3                                                        mLightPosition = float3(10, 250, 10);
@@ -247,101 +141,43 @@ private:
     std::shared_ptr<KnobCheckbox>              pDepthTestWrite;
 
 private:
-    void ProcessInput();
+    // =====================================================================
+    // SETUP (One-time setup for objects)
+    // =====================================================================
 
-    void ProcessKnobs();
+    // Setup resources:
+    // - Images (images, image views, samplers)
+    // - Uniform buffers
+    // - Descriptor set layouts
+    // - Shaders
+    void SetupSkyboxResources();
+    void SetupSphereResources();
+    void SetupFullscreenQuadsResources();
 
-    void UpdateGUI();
+    // Setup vertex data:
+    // - Geometries (or raw vertices & bindings), meshes
+    void SetupSkyboxMeshes();
+    void SetupSphereMeshes();
+    void SetupFullscreenQuadsMeshes();
 
-    void DrawExtraInfo();
-
-    void CreateSpherePipelines();
-
-    void SetupFullscreenQuads();
-
+    // Create pipelines:
+    // Note: Pipeline creation can be re-triggered within rendering loop
+    void CreateSkyboxPipelines();
+    void CreateSpheresPipelines();
     void CreateFullscreenQuadsPipelines();
 
-    void RepeatGeometryNonPositionVertexData(Geometry& dstGeom, const Geometry& srcGeom, size_t repeatCount);
+    // =====================================================================
+    // RENDERING LOOP (Called every frame)
+    // =====================================================================
 
-    void OverwritePositionData(Geometry::Buffer& dstBuffer, const TriMeshVertexData& vtx, size_t elementIndex);
+    // Processing changed state
+    void ProcessInput();
+    void ProcessKnobs();
 
-    void OverwritePositionData(Geometry::Buffer& dstBuffer, const TriMeshVertexDataCompressed& vtx, size_t elementIndex);
+    // Drawing GUI
+    void UpdateGUI();
+    void DrawExtraInfo();
 };
-
-void MultiDimensionalIndexer::AddDimension(size_t size)
-{
-    for (size_t i = 0; i < mMultipliers.size(); i++) {
-        mMultipliers[i] *= size;
-    }
-    mSizes.push_back(size);
-    mMultipliers.push_back(1);
-}
-
-size_t MultiDimensionalIndexer::GetIndex(const std::vector<size_t>& indices)
-{
-    PPX_ASSERT_MSG(indices.size() == mSizes.size(), "The number of indices must be the same as the number of dimensions");
-    size_t index = 0;
-    for (size_t i = 0; i < indices.size(); i++) {
-        PPX_ASSERT_MSG(indices[i] < mSizes[i], "Index out of range");
-        index += indices[i] * mMultipliers[i];
-    }
-    return index;
-}
-
-void FreeCamera::Move(MovementDirection dir, float distance)
-{
-    // Given that v = (1, mTheta, mPhi) is where the camera is looking at in the Spherical
-    // coordinates and moving forward goes in this direction, we have to update the
-    // camera location for each movement as follows:
-    //      FORWARD:     distance * unitVectorOf(v)
-    //      BACKWARD:    -distance * unitVectorOf(v)
-    //      RIGHT:       distance * unitVectorOf(1, mTheta + pi/2, pi/2)
-    //      LEFT:        -distance * unitVectorOf(1, mTheta + pi/2, pi/2)
-    switch (dir) {
-        case MovementDirection::FORWARD: {
-            float3 unitVector = glm::normalize(SphericalToCartesian(mTheta, mPhi));
-            mEyePosition += distance * unitVector;
-            break;
-        }
-        case MovementDirection::LEFT: {
-            float3 perpendicularUnitVector = glm::normalize(SphericalToCartesian(mTheta + pi<float>() / 2.0f, pi<float>() / 2.0f));
-            mEyePosition -= distance * perpendicularUnitVector;
-            break;
-        }
-        case MovementDirection::RIGHT: {
-            float3 perpendicularUnitVector = glm::normalize(SphericalToCartesian(mTheta + pi<float>() / 2.0f, pi<float>() / 2.0f));
-            mEyePosition += distance * perpendicularUnitVector;
-            break;
-        }
-        case MovementDirection::BACKWARD: {
-            float3 unitVector = glm::normalize(SphericalToCartesian(mTheta, mPhi));
-            mEyePosition -= distance * unitVector;
-            break;
-        }
-    }
-    mTarget = mEyePosition + SphericalToCartesian(mTheta, mPhi);
-    LookAt(mEyePosition, mTarget);
-}
-
-void FreeCamera::Turn(float deltaTheta, float deltaPhi)
-{
-    mTheta += deltaTheta;
-    mPhi += deltaPhi;
-
-    // Saturate mTheta values by making wrap around.
-    if (mTheta < 0) {
-        mTheta = 2 * pi<float>();
-    }
-    else if (mTheta > 2 * pi<float>()) {
-        mTheta = 0;
-    }
-
-    // mPhi is saturated by making it stop, so the world doesn't turn upside down.
-    mPhi = std::clamp(mPhi, 0.1f, pi<float>() - 0.1f);
-
-    mTarget = mEyePosition + SphericalToCartesian(mTheta, mPhi);
-    LookAt(mEyePosition, mTarget);
-}
 
 void ProjApp::InitKnobs()
 {
@@ -406,34 +242,80 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
 }
 
-// Shuffles [`begin`, `end`) using function `f`.
-template <class Iter, class F>
-void Shuffle(Iter begin, Iter end, F&& f)
-{
-    size_t count = end - begin;
-    for (size_t i = 0; i < count; i++) {
-        std::swap(begin[i], begin[f() % (count - i) + i]);
-    }
-}
-
-// Maps a float between [-1, 1] to [-128, 127]
-int8_t MapFloatToInt8(float x)
-{
-    PPX_ASSERT_MSG(-1.0f <= x && x <= 1.0f, "The value must be between -1.0 and 1.0");
-    return static_cast<int8_t>((x + 1.0f) * 127.5f - 128.0f);
-}
-
 void ProjApp::Setup()
 {
-    // Cameras
+    // =====================================================================
+    // SCENE (skybox and spheres)
+    // =====================================================================
+
+    // Camera
     {
         mCamera.LookAt(mCamera.GetEyePosition(), mCamera.GetTarget());
         mCamera.SetPerspective(60.f, GetWindowAspect());
     }
-
-    // Texture image, view, and sampler
+    // Meshes indexer
     {
-        // SkyBox
+        mMeshesIndexer.AddDimension(kAvailableLODs.size());
+        mMeshesIndexer.AddDimension(kAvailableVbFormats.size());
+        mMeshesIndexer.AddDimension(kAvailableVertexAttrLayouts.size());
+    }
+    // Graphics pipelines indexer
+    {
+        mGraphicsPipelinesIndexer.AddDimension(kAvailableVsShaders.size());
+        mGraphicsPipelinesIndexer.AddDimension(kAvailablePsShaders.size());
+        mGraphicsPipelinesIndexer.AddDimension(kAvailableVbFormats.size());
+        mGraphicsPipelinesIndexer.AddDimension(kAvailableVertexAttrLayouts.size());
+    }
+
+    SetupSkyboxResources();
+    SetupSkyboxMeshes();
+    CreateSkyboxPipelines();
+
+    SetupSphereResources();
+    SetupSphereMeshes();
+    CreateSpheresPipelines();
+
+    // =====================================================================
+    // FULLSCREEN QUADS
+    // =====================================================================
+
+    SetupFullscreenQuadsResources();
+    SetupFullscreenQuadsMeshes();
+    CreateFullscreenQuadsPipelines();
+
+    // =====================================================================
+    // PER FRAME DATA
+    // =====================================================================
+    {
+        PerFrame frame = {};
+
+        PPX_CHECKED_CALL(GetGraphicsQueue()->CreateCommandBuffer(&frame.cmd));
+
+        grfx::SemaphoreCreateInfo semaCreateInfo = {};
+        PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &frame.imageAcquiredSemaphore));
+
+        grfx::FenceCreateInfo fenceCreateInfo = {};
+        PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &frame.imageAcquiredFence));
+
+        PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &frame.renderCompleteSemaphore));
+
+        fenceCreateInfo = {true}; // Create signaled
+        PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &frame.renderCompleteFence));
+
+        // Timestamp query
+        grfx::QueryCreateInfo queryCreateInfo = {};
+        queryCreateInfo.type                  = grfx::QUERY_TYPE_TIMESTAMP;
+        queryCreateInfo.count                 = 2;
+        PPX_CHECKED_CALL(GetDevice()->CreateQuery(&queryCreateInfo, &frame.timestampQuery));
+
+        mPerFrame.push_back(frame);
+    }
+}
+
+void ProjApp::SetupSkyboxResources()
+{
+    // Images
+    {
         grfx_util::ImageOptions options = grfx_util::ImageOptions().MipLevelCount(PPX_REMAINING_MIP_LEVELS);
         PPX_CHECKED_CALL(grfx_util::CreateImageFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("basic/models/spheres/basic-skybox.jpg"), &mSkyBoxTexture.image, options, true));
 
@@ -448,6 +330,30 @@ void ProjApp::Setup()
         samplerCreateInfo.maxLod                  = FLT_MAX;
         PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &mSkyBoxTexture.sampler));
     }
+
+    // Uniform buffers
+    {
+        grfx::BufferCreateInfo bufferCreateInfo        = {};
+        bufferCreateInfo.size                          = PPX_MINIMUM_UNIFORM_BUFFER_SIZE;
+        bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
+        bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
+        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mSkyBox.uniformBuffer));
+    }
+
+    // Descriptor set layout
+    {
+        grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
+        layoutCreateInfo.flags.bits.pushable                 = true;
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(0, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(1, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(2, grfx::DESCRIPTOR_TYPE_SAMPLER));
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mSkyBox.descriptorSetLayout));
+    }
+}
+
+void ProjApp::SetupSphereResources()
+{
+    // Images
     {
         // Albedo
         grfx_util::ImageOptions options = grfx_util::ImageOptions().MipLevelCount(PPX_REMAINING_MIP_LEVELS);
@@ -497,247 +403,13 @@ void ProjApp::Setup()
         PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &mMetalRoughnessTexture.sampler));
     }
 
-    // SkyBox mesh
-    {
-        TriMesh  mesh = TriMesh::CreateCube(float3(1, 1, 1), TriMeshOptions().TexCoords());
-        Geometry geo;
-        PPX_CHECKED_CALL(Geometry::Create(GeometryOptions::InterleavedU16().AddTexCoord(), mesh, &geo));
-        PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mSkyBox.mesh));
-    }
-
-    // Meshes for sphere instances
-    {
-        // 3D grid
-        Grid grid;
-        grid.xSize = static_cast<uint32_t>(std::cbrt(kMaxSphereInstanceCount));
-        grid.ySize = grid.xSize;
-        grid.zSize = static_cast<uint32_t>(std::ceil(kMaxSphereInstanceCount / static_cast<float>(grid.xSize * grid.ySize)));
-        grid.step  = 10.0f;
-
-        // Get sphere indices
-        std::vector<uint32_t> sphereIndices(kMaxSphereInstanceCount);
-        std::iota(sphereIndices.begin(), sphereIndices.end(), 0);
-        // Shuffle using the `mersenne_twister` deterministic random number generator to obtain
-        // the same sphere indices for a given `kMaxSphereInstanceCount`.
-        Shuffle(sphereIndices.begin(), sphereIndices.end(), std::mt19937(kSeed));
-
-        // LODs for spheres
-        mSphereLODs.push_back(LOD{/* longitudeSegments = */ 50, /* latitudeSegments = */ 50, kAvailableLODs[0]});
-        mSphereLODs.push_back(LOD{/* longitudeSegments = */ 20, /* latitudeSegments = */ 20, kAvailableLODs[1]});
-        mSphereLODs.push_back(LOD{/* longitudeSegments = */ 10, /* latitudeSegments = */ 10, kAvailableLODs[2]});
-        PPX_ASSERT_MSG(mSphereLODs.size() == kAvailableLODs.size(), "LODs for spheres must be the same as the available LODs");
-
-        // Create the meshes
-        uint32_t meshIndex = 0;
-        for (LOD lod : mSphereLODs) {
-            TriMesh        mesh              = TriMesh::CreateSphere(/* radius = */ 1, lod.longitudeSegments, lod.latitudeSegments, TriMeshOptions().Indices().TexCoords().Normals().Tangents());
-            const uint32_t sphereVertexCount = mesh.GetCountPositions();
-            const uint32_t sphereTriCount    = mesh.GetCountTriangles();
-
-            PPX_LOG_INFO("LOD: " << lod.name);
-            PPX_LOG_INFO("  Sphere vertex count: " << sphereVertexCount << " | triangle count: " << sphereTriCount);
-
-            // Single-sphere geometries
-            Geometry lowPrecisionInterleavedSingleSphere;
-            PPX_CHECKED_CALL(Geometry::Create(
-                GeometryOptions::InterleavedU32(grfx::FORMAT_R16G16B16_FLOAT)
-                    .AddTexCoord(grfx::FORMAT_R16G16_FLOAT)
-                    .AddNormal(grfx::FORMAT_R8G8B8A8_SNORM)
-                    .AddTangent(grfx::FORMAT_R8G8B8A8_SNORM),
-                &lowPrecisionInterleavedSingleSphere));
-
-            Geometry lowPrecisionPositionPlanarSingleSphere;
-            PPX_CHECKED_CALL(Geometry::Create(
-                GeometryOptions::PositionPlanarU32(grfx::FORMAT_R16G16B16_FLOAT)
-                    .AddTexCoord(grfx::FORMAT_R16G16_FLOAT)
-                    .AddNormal(grfx::FORMAT_R8G8B8A8_SNORM)
-                    .AddTangent(grfx::FORMAT_R8G8B8A8_SNORM),
-                &lowPrecisionPositionPlanarSingleSphere));
-
-            Geometry highPrecisionInterleavedSingleSphere;
-            PPX_CHECKED_CALL(Geometry::Create(
-                GeometryOptions::InterleavedU32()
-                    .AddTexCoord()
-                    .AddNormal()
-                    .AddTangent(),
-                &highPrecisionInterleavedSingleSphere));
-
-            Geometry highPrecisionPositionPlanarSingleSphere;
-            PPX_CHECKED_CALL(Geometry::Create(
-                GeometryOptions::PositionPlanarU32()
-                    .AddTexCoord()
-                    .AddNormal()
-                    .AddTangent(),
-                &highPrecisionPositionPlanarSingleSphere));
-
-            // Full geometries
-            Geometry lowPrecisionInterleaved;
-            PPX_CHECKED_CALL(Geometry::Create(
-                GeometryOptions::InterleavedU32(grfx::FORMAT_R16G16B16_FLOAT)
-                    .AddTexCoord(grfx::FORMAT_R16G16_FLOAT)
-                    .AddNormal(grfx::FORMAT_R8G8B8A8_SNORM)
-                    .AddTangent(grfx::FORMAT_R8G8B8A8_SNORM),
-                &lowPrecisionInterleaved));
-
-            Geometry lowPrecisionPositionPlanar;
-            PPX_CHECKED_CALL(Geometry::Create(
-                GeometryOptions::PositionPlanarU32(grfx::FORMAT_R16G16B16_FLOAT)
-                    .AddTexCoord(grfx::FORMAT_R16G16_FLOAT)
-                    .AddNormal(grfx::FORMAT_R8G8B8A8_SNORM)
-                    .AddTangent(grfx::FORMAT_R8G8B8A8_SNORM),
-                &lowPrecisionPositionPlanar));
-
-            Geometry highPrecisionInterleaved;
-            PPX_CHECKED_CALL(Geometry::Create(
-                GeometryOptions::InterleavedU32()
-                    .AddTexCoord()
-                    .AddNormal()
-                    .AddTangent(),
-                &highPrecisionInterleaved));
-
-            Geometry highPrecisionPositionPlanar;
-            PPX_CHECKED_CALL(Geometry::Create(
-                GeometryOptions::PositionPlanarU32()
-                    .AddTexCoord()
-                    .AddNormal()
-                    .AddTangent(),
-                &highPrecisionPositionPlanar));
-
-            // Populate vertex buffers for a single sphere
-            for (uint32_t vertexIndex = 0; vertexIndex < sphereVertexCount; ++vertexIndex) {
-                TriMeshVertexData vertexData = {};
-                mesh.GetVertexData(vertexIndex, &vertexData);
-
-                TriMeshVertexDataCompressed vertexDataCompressed;
-                vertexDataCompressed.position = half3(glm::packHalf1x16(vertexData.position.x), glm::packHalf1x16(vertexData.position.y), glm::packHalf1x16(vertexData.position.z));
-                vertexDataCompressed.texCoord = half2(glm::packHalf1x16(vertexData.texCoord.x), glm::packHalf1x16(vertexData.texCoord.y));
-                vertexDataCompressed.normal   = i8vec4(MapFloatToInt8(vertexData.normal.x), MapFloatToInt8(vertexData.normal.y), MapFloatToInt8(vertexData.normal.z), MapFloatToInt8(1.0f));
-                vertexDataCompressed.tangent  = i8vec4(MapFloatToInt8(vertexData.tangent.x), MapFloatToInt8(vertexData.tangent.y), MapFloatToInt8(vertexData.tangent.z), MapFloatToInt8(vertexData.tangent.a));
-
-                lowPrecisionInterleavedSingleSphere.AppendVertexData(vertexDataCompressed);
-                lowPrecisionPositionPlanarSingleSphere.AppendVertexData(vertexDataCompressed);
-                highPrecisionInterleavedSingleSphere.AppendVertexData(vertexData);
-                highPrecisionPositionPlanarSingleSphere.AppendVertexData(vertexData);
-            }
-
-            // Copy single sphere vertex buffers into full buffers, since the non-position vertex buffer data is repeated.
-            RepeatGeometryNonPositionVertexData(lowPrecisionInterleaved, lowPrecisionInterleavedSingleSphere, kMaxSphereInstanceCount);
-            RepeatGeometryNonPositionVertexData(lowPrecisionPositionPlanar, lowPrecisionPositionPlanarSingleSphere, kMaxSphereInstanceCount);
-            RepeatGeometryNonPositionVertexData(highPrecisionInterleaved, highPrecisionInterleavedSingleSphere, kMaxSphereInstanceCount);
-            RepeatGeometryNonPositionVertexData(highPrecisionPositionPlanar, highPrecisionPositionPlanarSingleSphere, kMaxSphereInstanceCount);
-
-            // Get temporary position buffers and prepare to edit in place
-            Geometry::Buffer lowInterleavedPositionBuffer  = *(lowPrecisionInterleaved.GetVertexBuffer(0));
-            Geometry::Buffer lowPlanarPositionBuffer       = *(lowPrecisionPositionPlanar.GetVertexBuffer(0));
-            Geometry::Buffer highInterleavedPositionBuffer = *(highPrecisionInterleaved.GetVertexBuffer(0));
-            Geometry::Buffer highPlanarPositionBuffer      = *(highPrecisionPositionPlanar.GetVertexBuffer(0));
-
-            // Resize empty Position Planar vertex buffers
-            lowPlanarPositionBuffer.SetSize(sphereVertexCount * kMaxSphereInstanceCount * lowPlanarPositionBuffer.GetElementSize());
-            highPlanarPositionBuffer.SetSize(sphereVertexCount * kMaxSphereInstanceCount * highPlanarPositionBuffer.GetElementSize());
-
-            // Iterate through full vertex buffers, changing position data and appending indices.
-            for (uint32_t i = 0; i < kMaxSphereInstanceCount; i++) {
-                uint32_t index = sphereIndices[i];
-                uint32_t x     = (index % (grid.xSize * grid.ySize)) / grid.ySize;
-                uint32_t y     = index % grid.ySize;
-                uint32_t z     = index / (grid.xSize * grid.ySize);
-
-                // Model matrix to be applied to the sphere mesh
-                float4x4 modelMatrix = glm::translate(float3(x * grid.step, y * grid.step, z * grid.step));
-
-                // Overwrite position data
-                for (uint32_t vertexIndex = 0; vertexIndex < sphereVertexCount; ++vertexIndex) {
-                    TriMeshVertexData vertexData = {};
-                    mesh.GetVertexData(vertexIndex, &vertexData);
-                    vertexData.position = modelMatrix * float4(vertexData.position, 1);
-
-                    TriMeshVertexDataCompressed vertexDataCompressed;
-                    vertexDataCompressed.position = half3(glm::packHalf1x16(vertexData.position.x), glm::packHalf1x16(vertexData.position.y), glm::packHalf1x16(vertexData.position.z));
-
-                    OverwritePositionData(lowInterleavedPositionBuffer, vertexDataCompressed, i * sphereVertexCount + vertexIndex);
-                    OverwritePositionData(lowPlanarPositionBuffer, vertexDataCompressed, i * sphereVertexCount + vertexIndex);
-                    OverwritePositionData(highInterleavedPositionBuffer, vertexData, i * sphereVertexCount + vertexIndex);
-                    OverwritePositionData(highPlanarPositionBuffer, vertexData, i * sphereVertexCount + vertexIndex);
-                }
-
-                // Iterate the meshes triangles and add the vertex indices
-                for (uint32_t triIndex = 0; triIndex < sphereTriCount; ++triIndex) {
-                    uint32_t v0 = PPX_VALUE_IGNORED;
-                    uint32_t v1 = PPX_VALUE_IGNORED;
-                    uint32_t v2 = PPX_VALUE_IGNORED;
-                    mesh.GetTriangle(triIndex, v0, v1, v2);
-                    // The planar ones are the same, can just be copied later
-                    lowPrecisionInterleaved.AppendIndicesTriangle(v0 + i * sphereVertexCount, v1 + i * sphereVertexCount, v2 + i * sphereVertexCount);
-                    highPrecisionInterleaved.AppendIndicesTriangle(v0 + i * sphereVertexCount, v1 + i * sphereVertexCount, v2 + i * sphereVertexCount);
-                }
-            }
-
-            // Overwrite the position vertex buffers in the geometries
-            lowPrecisionInterleaved.SetVertexBuffer(0, lowInterleavedPositionBuffer);
-            lowPrecisionPositionPlanar.SetVertexBuffer(0, lowPlanarPositionBuffer);
-            highPrecisionInterleaved.SetVertexBuffer(0, highInterleavedPositionBuffer);
-            highPrecisionPositionPlanar.SetVertexBuffer(0, highPlanarPositionBuffer);
-
-            // These planar index buffers are the same as the interleaved ones
-            lowPrecisionPositionPlanar.SetIndexBuffer(*lowPrecisionInterleaved.GetIndexBuffer());
-            highPrecisionPositionPlanar.SetIndexBuffer(*highPrecisionInterleaved.GetIndexBuffer());
-
-            // Create a giant vertex buffer for each vb type to accommodate all copies of the sphere mesh
-            PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &lowPrecisionInterleaved, &mSphereMeshes[meshIndex++]));
-            PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &lowPrecisionPositionPlanar, &mSphereMeshes[meshIndex++]));
-            PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &highPrecisionInterleaved, &mSphereMeshes[meshIndex++]));
-            PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &highPrecisionPositionPlanar, &mSphereMeshes[meshIndex++]));
-        }
-    }
-
-    // Meshes indexer
-    {
-        mMeshesIndexer.AddDimension(kAvailableLODs.size());
-        mMeshesIndexer.AddDimension(kAvailableVbFormats.size());
-        mMeshesIndexer.AddDimension(kAvailableVertexAttrLayouts.size());
-    }
-
     // Uniform buffers
     {
-        // SkyBox
-        grfx::BufferCreateInfo bufferCreateInfo        = {};
-        bufferCreateInfo.size                          = PPX_MINIMUM_UNIFORM_BUFFER_SIZE;
-        bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
-        bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
-        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mSkyBox.uniformBuffer));
-    }
-    {
-        // Sphere
         grfx::BufferCreateInfo bufferCreateInfo        = {};
         bufferCreateInfo.size                          = PPX_MINIMUM_UNIFORM_BUFFER_SIZE;
         bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
         bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
         PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mSphere.uniformBuffer));
-    }
-
-    // Descriptor set layout
-    {
-        // SkyBox
-        grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-        layoutCreateInfo.flags.bits.pushable                 = true;
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(0, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER));
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(1, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(2, grfx::DESCRIPTOR_TYPE_SAMPLER));
-        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mSkyBox.descriptorSetLayout));
-    }
-    {
-        // Sphere
-        grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-        layoutCreateInfo.flags.bits.pushable                 = true;
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(0, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER));
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(1, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(2, grfx::DESCRIPTOR_TYPE_SAMPLER));
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(3, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(4, grfx::DESCRIPTOR_TYPE_SAMPLER));
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(5, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(6, grfx::DESCRIPTOR_TYPE_SAMPLER));
-        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mSphere.descriptorSetLayout));
     }
 
     // Uniform buffers for draw calls
@@ -752,41 +424,18 @@ void ProjApp::Setup()
         }
     }
 
-    // SkyBox Pipeline
+    // Descriptor set layout
     {
-        std::vector<char> bytecode = LoadShader("benchmarks/shaders", "Benchmark_SkyBox.vs");
-        PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
-        grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mVS));
-
-        bytecode = LoadShader("benchmarks/shaders", "Benchmark_SkyBox.ps");
-        PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
-        shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPS));
-
-        grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
-        piCreateInfo.setCount                          = 1;
-        piCreateInfo.sets[0].set                       = 0;
-        piCreateInfo.sets[0].pLayout                   = mSkyBox.descriptorSetLayout;
-        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mSkyBox.pipelineInterface));
-
-        grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
-        gpCreateInfo.VS                                 = {mVS.Get(), "vsmain"};
-        gpCreateInfo.PS                                 = {mPS.Get(), "psmain"};
-        gpCreateInfo.vertexInputState.bindingCount      = 1;
-        gpCreateInfo.vertexInputState.bindings[0]       = mSkyBox.mesh->GetDerivedVertexBindings()[0];
-        gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
-        gpCreateInfo.cullMode                           = grfx::CULL_MODE_FRONT;
-        gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
-        gpCreateInfo.depthReadEnable                    = true;
-        gpCreateInfo.depthWriteEnable                   = false;
-        gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
-        gpCreateInfo.outputState.renderTargetCount      = 1;
-        gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
-        gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
-        gpCreateInfo.pPipelineInterface                 = mSkyBox.pipelineInterface;
-        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mSkyBox.pipeline));
+        grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
+        layoutCreateInfo.flags.bits.pushable                 = true;
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(0, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(1, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(2, grfx::DESCRIPTOR_TYPE_SAMPLER));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(3, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(4, grfx::DESCRIPTOR_TYPE_SAMPLER));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(5, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(6, grfx::DESCRIPTOR_TYPE_SAMPLER));
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mSphere.descriptorSetLayout));
     }
 
     // Vertex Shaders
@@ -805,117 +454,296 @@ void ProjApp::Setup()
         grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
         PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPsShaders[j]));
     }
-
-    CreateSpherePipelines();
-
-    // Graphics pipelines indexer
-    {
-        mGraphicsPipelinesIndexer.AddDimension(kAvailableVsShaders.size());
-        mGraphicsPipelinesIndexer.AddDimension(kAvailablePsShaders.size());
-        mGraphicsPipelinesIndexer.AddDimension(kAvailableVbFormats.size());
-        mGraphicsPipelinesIndexer.AddDimension(kAvailableVertexAttrLayouts.size());
-    }
-
-    SetupFullscreenQuads();
-
-    CreateFullscreenQuadsPipelines();
-
-    // Per frame data
-    {
-        PerFrame frame = {};
-
-        PPX_CHECKED_CALL(GetGraphicsQueue()->CreateCommandBuffer(&frame.cmd));
-
-        grfx::SemaphoreCreateInfo semaCreateInfo = {};
-        PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &frame.imageAcquiredSemaphore));
-
-        grfx::FenceCreateInfo fenceCreateInfo = {};
-        PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &frame.imageAcquiredFence));
-
-        PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &frame.renderCompleteSemaphore));
-
-        fenceCreateInfo = {true}; // Create signaled
-        PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &frame.renderCompleteFence));
-
-        // Timestamp query
-        grfx::QueryCreateInfo queryCreateInfo = {};
-        queryCreateInfo.type                  = grfx::QUERY_TYPE_TIMESTAMP;
-        queryCreateInfo.count                 = 2;
-        PPX_CHECKED_CALL(GetDevice()->CreateQuery(&queryCreateInfo, &frame.timestampQuery));
-
-        mPerFrame.push_back(frame);
-    }
 }
 
-void ProjApp::RepeatGeometryNonPositionVertexData(Geometry& dstGeom, const Geometry& srcGeom, size_t repeatCount)
+void ProjApp::SetupFullscreenQuadsResources()
 {
-    size_t nVertexBufferCount = srcGeom.GetVertexBufferCount();
-    PPX_ASSERT_MSG(nVertexBufferCount == dstGeom.GetVertexBufferCount(), "Mismatched source and destination vertex data format");
+    // Shaders
+    std::vector<char> bytecode = LoadShader("benchmarks/shaders", "Benchmark_RandomNoise.vs");
+    PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
+    grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+    PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mVSNoise));
 
-    bool copyFirstBuffer;
-    switch (nVertexBufferCount) {
-        case 0: {
-            PPX_ASSERT_MSG(0, "Geometry cannot have 0 vertex buffers");
-        } break;
-        case 1: {
-            // For interleaved (1 vb), repeat position data as well
-            copyFirstBuffer = true;
-        } break;
-        default: {
-            // For position planar (2 vb) & planar (1+ vb), repeat only non-position vertex data
-            copyFirstBuffer = false;
-        }
-    }
+    bytecode = LoadShader("benchmarks/shaders", "Benchmark_RandomNoise.ps");
+    PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
+    shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+    PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPSNoise));
 
-    for (size_t vertexBufferIndex = 0; vertexBufferIndex < nVertexBufferCount; vertexBufferIndex++) {
-        if (vertexBufferIndex == 0 && !copyFirstBuffer) {
-            continue;
-        }
+    bytecode = LoadShader("benchmarks/shaders", "Benchmark_SolidColor.vs");
+    PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
+    shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+    PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mVSSolidColor));
 
-        const char*      srcBufferDataPtr = srcGeom.GetVertexBuffer(vertexBufferIndex)->GetData();
-        size_t           srcBufferSize    = srcGeom.GetVertexBuffer(vertexBufferIndex)->GetSize();
-        size_t           dstBufferSize    = srcBufferSize * repeatCount;
-        Geometry::Buffer dstBuffer        = *(dstGeom.GetVertexBuffer(vertexBufferIndex));
-
-        dstBuffer.SetSize(dstBufferSize);
-
-        size_t offset = 0;
-        for (size_t j = 0; j < repeatCount; j++) {
-            const void* pSrc = srcBufferDataPtr;
-            void*       pDst = dstBuffer.GetData() + offset;
-            memcpy(pDst, pSrc, srcBufferSize);
-            offset += srcBufferSize;
-        }
-
-        dstGeom.SetVertexBuffer(vertexBufferIndex, dstBuffer);
-    }
+    bytecode = LoadShader("benchmarks/shaders", "Benchmark_SolidColor.ps");
+    PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
+    shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+    PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPSSolidColor));
 }
 
-void ProjApp::OverwritePositionData(Geometry::Buffer& dstBuffer, const TriMeshVertexData& vtx, size_t elementIndex)
+void ProjApp::SetupSkyboxMeshes()
 {
-    size_t elementSize = dstBuffer.GetElementSize();
-    size_t offset      = elementSize * elementIndex;
-
-    char* dstBufferDataPtr = dstBuffer.GetData();
-
-    const void* pSrc = &(vtx.position);
-    void*       pDst = dstBufferDataPtr + offset;
-    memcpy(pDst, pSrc, sizeof(float3));
+    TriMesh  mesh = TriMesh::CreateCube(float3(1, 1, 1), TriMeshOptions().TexCoords());
+    Geometry geo;
+    PPX_CHECKED_CALL(Geometry::Create(GeometryOptions::InterleavedU16().AddTexCoord(), mesh, &geo));
+    PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mSkyBox.mesh));
 }
 
-void ProjApp::OverwritePositionData(Geometry::Buffer& dstBuffer, const TriMeshVertexDataCompressed& vtx, size_t elementIndex)
+void ProjApp::SetupSphereMeshes()
 {
-    size_t elementSize = dstBuffer.GetElementSize();
-    size_t offset      = elementSize * elementIndex;
+    // 3D grid
+    Grid grid;
+    grid.xSize = static_cast<uint32_t>(std::cbrt(kMaxSphereInstanceCount));
+    grid.ySize = grid.xSize;
+    grid.zSize = static_cast<uint32_t>(std::ceil(kMaxSphereInstanceCount / static_cast<float>(grid.xSize * grid.ySize)));
+    grid.step  = 10.0f;
 
-    char* dstBufferDataPtr = dstBuffer.GetData();
+    // Get sphere indices
+    std::vector<uint32_t> sphereIndices(kMaxSphereInstanceCount);
+    std::iota(sphereIndices.begin(), sphereIndices.end(), 0);
+    // Shuffle using the `mersenne_twister` deterministic random number generator to obtain
+    // the same sphere indices for a given `kMaxSphereInstanceCount`.
+    Shuffle(sphereIndices.begin(), sphereIndices.end(), std::mt19937(kSeed));
 
-    const void* pSrc = &(vtx.position);
-    void*       pDst = dstBufferDataPtr + offset;
-    memcpy(pDst, pSrc, sizeof(half3));
+    // LODs for spheres
+    mSphereLODs.push_back(LOD{/* longitudeSegments = */ 50, /* latitudeSegments = */ 50, kAvailableLODs[0]});
+    mSphereLODs.push_back(LOD{/* longitudeSegments = */ 20, /* latitudeSegments = */ 20, kAvailableLODs[1]});
+    mSphereLODs.push_back(LOD{/* longitudeSegments = */ 10, /* latitudeSegments = */ 10, kAvailableLODs[2]});
+    PPX_ASSERT_MSG(mSphereLODs.size() == kAvailableLODs.size(), "LODs for spheres must be the same as the available LODs");
+
+    // Create the meshes
+    uint32_t meshIndex = 0;
+    for (LOD lod : mSphereLODs) {
+        TriMesh        mesh              = TriMesh::CreateSphere(/* radius = */ 1, lod.longitudeSegments, lod.latitudeSegments, TriMeshOptions().Indices().TexCoords().Normals().Tangents());
+        const uint32_t sphereVertexCount = mesh.GetCountPositions();
+        const uint32_t sphereTriCount    = mesh.GetCountTriangles();
+
+        PPX_LOG_INFO("LOD: " << lod.name);
+        PPX_LOG_INFO("  Sphere vertex count: " << sphereVertexCount << " | triangle count: " << sphereTriCount);
+
+        // Create sphere geometries
+        //
+        // Defaults used for all the following:
+        // - indexType = INDEX_TYPE_UINT32
+        // - primitiveTopology = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
+        // - VertexBinding inputRate = 0
+
+        Geometry lowPrecisionInterleavedSingleSphere;
+        Geometry lowPrecisionInterleaved;
+        // vertexBinding[0] = {stride = 18, attributeCount = 4} // position, texCoord, normal, tangent
+        GeometryOptions lowPrecisionInterleavedOptions = GeometryOptions::InterleavedU32(grfx::FORMAT_R16G16B16_FLOAT)
+                                                             .AddTexCoord(grfx::FORMAT_R16G16_FLOAT)
+                                                             .AddNormal(grfx::FORMAT_R8G8B8A8_SNORM)
+                                                             .AddTangent(grfx::FORMAT_R8G8B8A8_SNORM);
+        PPX_CHECKED_CALL(Geometry::Create(lowPrecisionInterleavedOptions, &lowPrecisionInterleavedSingleSphere));
+        PPX_CHECKED_CALL(Geometry::Create(lowPrecisionInterleavedOptions, &lowPrecisionInterleaved));
+
+        Geometry lowPrecisionPositionPlanarSingleSphere;
+        Geometry lowPrecisionPositionPlanar;
+        // vertexBinding[0] = {stride =  6, attributeCount = 1} // position
+        // vertexBinding[1] = {stride = 12, attributeCount = 3} // texCoord, normal, tangent
+        GeometryOptions lowPrecisionPositionPlanarOptions = GeometryOptions::PositionPlanarU32(grfx::FORMAT_R16G16B16_FLOAT)
+                                                                .AddTexCoord(grfx::FORMAT_R16G16_FLOAT)
+                                                                .AddNormal(grfx::FORMAT_R8G8B8A8_SNORM)
+                                                                .AddTangent(grfx::FORMAT_R8G8B8A8_SNORM);
+        PPX_CHECKED_CALL(Geometry::Create(lowPrecisionPositionPlanarOptions, &lowPrecisionPositionPlanarSingleSphere));
+        PPX_CHECKED_CALL(Geometry::Create(lowPrecisionPositionPlanarOptions, &lowPrecisionPositionPlanar));
+
+        Geometry highPrecisionInterleavedSingleSphere;
+        Geometry highPrecisionInterleaved;
+        // vertexBinding[0] = {stride = 48, attributeCount = 4} // position, texCoord, normal, tangent
+        GeometryOptions highPrecisionInterleavedOptions = GeometryOptions::InterleavedU32()
+                                                              .AddTexCoord()
+                                                              .AddNormal()
+                                                              .AddTangent();
+        PPX_CHECKED_CALL(Geometry::Create(highPrecisionInterleavedOptions, &highPrecisionInterleavedSingleSphere));
+        PPX_CHECKED_CALL(Geometry::Create(highPrecisionInterleavedOptions, &highPrecisionInterleaved));
+
+        Geometry highPrecisionPositionPlanarSingleSphere;
+        Geometry highPrecisionPositionPlanar;
+        // vertexBinding[0] = {stride = 12, attributeCount = 1} // position
+        // vertexBinding[1] = {stride = 36, attributeCount = 3} // texCoord, normal, tangent
+        GeometryOptions highPrecisionPositionPlanarOptions = GeometryOptions::PositionPlanarU32()
+                                                                 .AddTexCoord()
+                                                                 .AddNormal()
+                                                                 .AddTangent();
+        PPX_CHECKED_CALL(Geometry::Create(highPrecisionPositionPlanarOptions, &highPrecisionPositionPlanarSingleSphere));
+        PPX_CHECKED_CALL(Geometry::Create(highPrecisionPositionPlanarOptions, &highPrecisionPositionPlanar));
+
+        // Populate vertex buffers for single spheres
+        for (uint32_t j = 0; j < sphereVertexCount; ++j) {
+            TriMeshVertexData vertexData = {};
+            mesh.GetVertexData(j, &vertexData);
+
+            TriMeshVertexDataCompressed vertexDataCompressed;
+            vertexDataCompressed.position = half3(glm::packHalf1x16(vertexData.position.x), glm::packHalf1x16(vertexData.position.y), glm::packHalf1x16(vertexData.position.z));
+            vertexDataCompressed.texCoord = half2(glm::packHalf1x16(vertexData.texCoord.x), glm::packHalf1x16(vertexData.texCoord.y));
+            vertexDataCompressed.normal   = i8vec4(MapFloatToInt8(vertexData.normal.x), MapFloatToInt8(vertexData.normal.y), MapFloatToInt8(vertexData.normal.z), MapFloatToInt8(1.0f));
+            vertexDataCompressed.tangent  = i8vec4(MapFloatToInt8(vertexData.tangent.x), MapFloatToInt8(vertexData.tangent.y), MapFloatToInt8(vertexData.tangent.z), MapFloatToInt8(vertexData.tangent.a));
+
+            lowPrecisionInterleavedSingleSphere.AppendVertexData(vertexDataCompressed);
+            lowPrecisionPositionPlanarSingleSphere.AppendVertexData(vertexDataCompressed);
+            highPrecisionInterleavedSingleSphere.AppendVertexData(vertexData);
+            highPrecisionPositionPlanarSingleSphere.AppendVertexData(vertexData);
+        }
+
+        // Copy single sphere vertex buffers into full buffers, since the non-position vertex buffer data is repeated.
+        RepeatGeometryNonPositionVertexData(lowPrecisionInterleavedSingleSphere, kMaxSphereInstanceCount, lowPrecisionInterleaved);
+        RepeatGeometryNonPositionVertexData(lowPrecisionPositionPlanarSingleSphere, kMaxSphereInstanceCount, lowPrecisionPositionPlanar);
+        RepeatGeometryNonPositionVertexData(highPrecisionInterleavedSingleSphere, kMaxSphereInstanceCount, highPrecisionInterleaved);
+        RepeatGeometryNonPositionVertexData(highPrecisionPositionPlanarSingleSphere, kMaxSphereInstanceCount, highPrecisionPositionPlanar);
+
+        // Get position buffers and prepare to edit in place
+        Geometry::Buffer* lowInterleavedPositionBufferPtr  = lowPrecisionInterleaved.GetVertexBuffer(0);
+        Geometry::Buffer* lowPlanarPositionBufferPtr       = lowPrecisionPositionPlanar.GetVertexBuffer(0);
+        Geometry::Buffer* highInterleavedPositionBufferPtr = highPrecisionInterleaved.GetVertexBuffer(0);
+        Geometry::Buffer* highPlanarPositionBufferPtr      = highPrecisionPositionPlanar.GetVertexBuffer(0);
+
+        // Resize empty Position Planar vertex buffers
+        lowPlanarPositionBufferPtr->SetSize(sphereVertexCount * kMaxSphereInstanceCount * lowPlanarPositionBufferPtr->GetElementSize());
+        highPlanarPositionBufferPtr->SetSize(sphereVertexCount * kMaxSphereInstanceCount * highPlanarPositionBufferPtr->GetElementSize());
+
+        // Iterate through the full vertex buffers, changing position data and appending indices.
+        //
+        // i : sphere index
+        // j : vertex index within one sphere
+        // k : triangle index within one sphere
+        // v0, v1, v2: the three elements of triangle k
+        //
+        // Full vertex buffers contain a total of (kMaxSphereInstanceCount * sphereVertexCount) vertices arranged like so:
+        //
+        // | j(0) | j(1) | ... | j(sphereVertexCount-1) | j(0) | j(1) | ... | j(sphereVertexCount-1) | ... | j(0) | j(1) | ...  | j(sphereVertexCount-1) |
+        // |--------------------i(0)--------------------|--------------------i(1)--------------------| ... |----------i(kMaxSphereInstanceCount)---------|
+        //
+        // Full index buffers contain a total of (kMaxSphereInstanceCount * sphereTriCount * 3) indices arranged like so:
+        //
+        // | v0 | v1 | v2 | v0 | v1 | v2 |    ...     | v0 | v1 | v2 | ... | v0 | v1 | v2 | v0 | v1 | v2 |    ...     | v0 | v1 | v2 |
+        // |     k(0)     |     k(1)     | ... | k(sphereTriCount-1) | ... |     k(0)     |     k(1)     | ... | j(sphereTriCount-1) |
+        // |---------------------------i(0)--------------------------| ... |--------------i(kMaxSphereInstanceCount-1)---------------|
+        //
+        for (uint32_t i = 0; i < kMaxSphereInstanceCount; i++) {
+            uint32_t index = sphereIndices[i];
+            uint32_t x     = (index % (grid.xSize * grid.ySize)) / grid.ySize;
+            uint32_t y     = index % grid.ySize;
+            uint32_t z     = index / (grid.xSize * grid.ySize);
+
+            // Model matrix to be applied to the sphere mesh
+            float4x4 modelMatrix = glm::translate(float3(x * grid.step, y * grid.step, z * grid.step));
+
+            size_t firstVertexOfCurrentSphere = i * sphereVertexCount;
+
+            // For each vertex of the translated sphere, overwrite the position data within large vertex buffers
+            for (uint32_t j = 0; j < sphereVertexCount; ++j) {
+                TriMeshVertexData vertexData = {};
+                mesh.GetVertexData(j, &vertexData);
+                vertexData.position = modelMatrix * float4(vertexData.position, 1);
+
+                TriMeshVertexDataCompressed vertexDataCompressed;
+                vertexDataCompressed.position = half3(glm::packHalf1x16(vertexData.position.x), glm::packHalf1x16(vertexData.position.y), glm::packHalf1x16(vertexData.position.z));
+
+                size_t elementIndex = firstVertexOfCurrentSphere + j;
+                OverwritePositionData(lowInterleavedPositionBufferPtr, vertexDataCompressed, elementIndex);
+                OverwritePositionData(lowPlanarPositionBufferPtr, vertexDataCompressed, elementIndex);
+                OverwritePositionData(highInterleavedPositionBufferPtr, vertexData, elementIndex);
+                OverwritePositionData(highPlanarPositionBufferPtr, vertexData, elementIndex);
+            }
+
+            // For each triangle of the translated sphere, append the three indices to the large index buffers
+            for (uint32_t k = 0; k < sphereTriCount; ++k) {
+                uint32_t v0 = PPX_VALUE_IGNORED;
+                uint32_t v1 = PPX_VALUE_IGNORED;
+                uint32_t v2 = PPX_VALUE_IGNORED;
+                mesh.GetTriangle(k, v0, v1, v2);
+
+                // v0/v1/v2 contain the vertex index counting from the beginning of a sphere
+                // An offset of (i * sphereVertexCount) must be added for the ith sphere
+                // The planar indices are the same, can just be copied later
+                lowPrecisionInterleaved.AppendIndicesTriangle(firstVertexOfCurrentSphere + v0, firstVertexOfCurrentSphere + v1, firstVertexOfCurrentSphere + v2);
+                highPrecisionInterleaved.AppendIndicesTriangle(firstVertexOfCurrentSphere + v0, firstVertexOfCurrentSphere + v1, firstVertexOfCurrentSphere + v2);
+            }
+        }
+
+        // These planar index buffers are the same as the interleaved ones
+        *(lowPrecisionPositionPlanar.GetIndexBuffer())  = *(lowPrecisionInterleaved.GetIndexBuffer());
+        *(highPrecisionPositionPlanar.GetIndexBuffer()) = *(highPrecisionInterleaved.GetIndexBuffer());
+
+        // Create a giant vertex buffer for each vb type to accommodate all copies of the sphere mesh
+        PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &lowPrecisionInterleaved, &mSphereMeshes[meshIndex++]));
+        PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &lowPrecisionPositionPlanar, &mSphereMeshes[meshIndex++]));
+        PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &highPrecisionInterleaved, &mSphereMeshes[meshIndex++]));
+        PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &highPrecisionPositionPlanar, &mSphereMeshes[meshIndex++]));
+    }
 }
 
-void ProjApp::CreateSpherePipelines()
+void ProjApp::SetupFullscreenQuadsMeshes()
+{
+    // Vertex buffer and vertex binding
+
+    // clang-format off
+    // One large triangle 
+    std::vector<float> vertexData = {
+        // position       
+        -1.0f, -1.0f, 0.0f,
+        -1.0f,  1.0f, 0.0f,
+        1.0f, -1.0f, 0.0f,
+        1.0f,  1.0f, 0.0f
+    };
+    // clang-format on
+    uint32_t dataSize = SizeInBytesU32(vertexData);
+
+    grfx::BufferCreateInfo bufferCreateInfo       = {};
+    bufferCreateInfo.size                         = dataSize;
+    bufferCreateInfo.usageFlags.bits.vertexBuffer = true;
+    bufferCreateInfo.memoryUsage                  = grfx::MEMORY_USAGE_CPU_TO_GPU;
+    bufferCreateInfo.initialState                 = grfx::RESOURCE_STATE_VERTEX_BUFFER;
+
+    PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mFullscreenQuads.vertexBuffer));
+
+    void* pAddr = nullptr;
+    PPX_CHECKED_CALL(mFullscreenQuads.vertexBuffer->MapMemory(0, &pAddr));
+    memcpy(pAddr, vertexData.data(), dataSize);
+    mFullscreenQuads.vertexBuffer->UnmapMemory();
+
+    mFullscreenQuads.vertexBinding.AppendAttribute({"POSITION", 0, grfx::FORMAT_R32G32B32_FLOAT, 0, PPX_APPEND_OFFSET_ALIGNED, grfx::VERTEX_INPUT_RATE_VERTEX});
+}
+
+void ProjApp::CreateSkyboxPipelines()
+{
+    std::vector<char> bytecode = LoadShader("benchmarks/shaders", "Benchmark_SkyBox.vs");
+    PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
+    grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+    PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mVS));
+
+    bytecode = LoadShader("benchmarks/shaders", "Benchmark_SkyBox.ps");
+    PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
+    shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
+    PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPS));
+
+    grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
+    piCreateInfo.setCount                          = 1;
+    piCreateInfo.sets[0].set                       = 0;
+    piCreateInfo.sets[0].pLayout                   = mSkyBox.descriptorSetLayout;
+    PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mSkyBox.pipelineInterface));
+
+    grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
+    gpCreateInfo.VS                                 = {mVS.Get(), "vsmain"};
+    gpCreateInfo.PS                                 = {mPS.Get(), "psmain"};
+    gpCreateInfo.vertexInputState.bindingCount      = 1;
+    gpCreateInfo.vertexInputState.bindings[0]       = mSkyBox.mesh->GetDerivedVertexBindings()[0];
+    gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
+    gpCreateInfo.cullMode                           = grfx::CULL_MODE_FRONT;
+    gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
+    gpCreateInfo.depthReadEnable                    = true;
+    gpCreateInfo.depthWriteEnable                   = false;
+    gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
+    gpCreateInfo.outputState.renderTargetCount      = 1;
+    gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
+    gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
+    gpCreateInfo.pPipelineInterface                 = mSkyBox.pipelineInterface;
+    PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mSkyBox.pipeline));
+}
+
+void ProjApp::CreateSpheresPipelines()
 {
     grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
     piCreateInfo.setCount                          = 1;
@@ -953,61 +781,6 @@ void ProjApp::CreateSpherePipelines()
                 PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mPipelines[pipelineIndex++]));
             }
         }
-    }
-}
-
-void ProjApp::SetupFullscreenQuads()
-{
-    // Vertex buffer and vertex binding
-    {
-        // clang-format off
-        std::vector<float> vertexData = {
-            // position       
-            -1.0f, -1.0f, 0.0f,
-            -1.0f,  1.0f, 0.0f,
-             1.0f, -1.0f, 0.0f,
-             1.0f,  1.0f, 0.0f
-        };
-        // clang-format on
-        uint32_t dataSize = SizeInBytesU32(vertexData);
-
-        grfx::BufferCreateInfo bufferCreateInfo       = {};
-        bufferCreateInfo.size                         = dataSize;
-        bufferCreateInfo.usageFlags.bits.vertexBuffer = true;
-        bufferCreateInfo.memoryUsage                  = grfx::MEMORY_USAGE_CPU_TO_GPU;
-        bufferCreateInfo.initialState                 = grfx::RESOURCE_STATE_VERTEX_BUFFER;
-
-        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mFullscreenQuads.vertexBuffer));
-
-        void* pAddr = nullptr;
-        PPX_CHECKED_CALL(mFullscreenQuads.vertexBuffer->MapMemory(0, &pAddr));
-        memcpy(pAddr, vertexData.data(), dataSize);
-        mFullscreenQuads.vertexBuffer->UnmapMemory();
-
-        mFullscreenQuads.vertexBinding.AppendAttribute({"POSITION", 0, grfx::FORMAT_R32G32B32_FLOAT, 0, PPX_APPEND_OFFSET_ALIGNED, grfx::VERTEX_INPUT_RATE_VERTEX});
-    }
-
-    // Load shaders
-    {
-        std::vector<char> bytecode = LoadShader("benchmarks/shaders", "Benchmark_RandomNoise.vs");
-        PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
-        grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mVSNoise));
-
-        bytecode = LoadShader("benchmarks/shaders", "Benchmark_RandomNoise.ps");
-        PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
-        shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPSNoise));
-
-        bytecode = LoadShader("benchmarks/shaders", "Benchmark_SolidColor.vs");
-        PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
-        shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mVSSolidColor));
-
-        bytecode = LoadShader("benchmarks/shaders", "Benchmark_SolidColor.ps");
-        PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
-        shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-        PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPSSolidColor));
     }
 }
 
@@ -1130,28 +903,13 @@ void ProjApp::ProcessKnobs()
 
     // Rebuild pipelines
     if (rebuildSpherePipeline) {
-        CreateSpherePipelines();
+        CreateSpheresPipelines();
     }
 
     if (rebuildFullscreenQuadsPipeline) {
         CreateFullscreenQuadsPipelines();
     }
 }
-
-struct SkyBoxData
-{
-    float4x4 MVP;
-};
-
-struct SphereData
-{
-    float4x4 modelMatrix;                // Transforms object space to world space.
-    float4x4 ITModelMatrix;              // Inverse transpose of the ModelMatrix.
-    float4   ambient;                    // Object's ambient intensity.
-    float4x4 cameraViewProjectionMatrix; // Camera's view projection matrix.
-    float4   lightPosition;              // Light's position.
-    float4   eyePosition;                // Eye (camera) position.
-};
 
 void ProjApp::Render()
 {

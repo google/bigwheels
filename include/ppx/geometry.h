@@ -33,7 +33,7 @@ enum GeometryVertexAttributeLayout
 
 //! @struct GeometryOptions
 //!
-//! primtiveTopology
+//! primitiveTopology
 //!   - only TRIANGLE_LIST is currently supported
 //!
 //! indexType
@@ -58,7 +58,7 @@ struct GeometryOptions
     GeometryVertexAttributeLayout vertexAttributeLayout                   = ppx::GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_INTERLEAVED;
     uint32_t                      vertexBindingCount                      = 0;
     grfx::VertexBinding           vertexBindings[PPX_MAX_VERTEX_BINDINGS] = {};
-    grfx::PrimitiveTopology       primtiveTopology                        = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    grfx::PrimitiveTopology       primitiveTopology                       = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
     // Creates a create info objects with a UINT16 or UINT32 index
     // type and position vertex attribute.
@@ -111,8 +111,6 @@ private:
 //! Implementation Notes:
 //!   - Recommended to avoid modifying the index/vertex buffers directly and to use
 //!     the Append* functions instead (for smaller geometries especially)
-//!   - Only use SetIndexBuffer/SetVertexBuffer if direct access to buffers is needed
-//!     (as described in Use #2 of Buffer below)
 //!
 class Geometry
 {
@@ -228,7 +226,7 @@ public:
 
     grfx::IndexType         GetIndexType() const { return mCreateInfo.indexType; }
     const Geometry::Buffer* GetIndexBuffer() const { return &mIndexBuffer; }
-    void                    SetIndexBuffer(const Geometry::Buffer& newIndexBuffer) { mIndexBuffer = newIndexBuffer; }
+    Geometry::Buffer*       GetIndexBuffer() { return &mIndexBuffer; }
     uint32_t                GetIndexCount() const;
 
     GeometryVertexAttributeLayout GetVertexAttributeLayout() const { return mCreateInfo.vertexAttributeLayout; }
@@ -238,7 +236,7 @@ public:
     uint32_t                GetVertexCount() const;
     uint32_t                GetVertexBufferCount() const { return CountU32(mVertexBuffers); }
     const Geometry::Buffer* GetVertexBuffer(uint32_t index) const;
-    void                    SetVertexBuffer(uint32_t index, const Geometry::Buffer& newVertexBuffer);
+    Geometry::Buffer*       GetVertexBuffer(uint32_t index);
     uint32_t                GetLargestBufferSize() const;
 
     // Appends single index, triangle, or edge vertex indices to index buffer

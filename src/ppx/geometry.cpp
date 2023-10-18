@@ -673,7 +673,7 @@ Result Geometry::Create(const GeometryOptions& createInfo, Geometry* pGeometry)
 
     *pGeometry = Geometry();
 
-    if (createInfo.primtiveTopology != grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST) {
+    if (createInfo.primitiveTopology != grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST) {
         PPX_ASSERT_MSG(false, "only triangle list is supported");
         return ppx::ERROR_INVALID_CREATE_ARGUMENT;
     }
@@ -982,7 +982,7 @@ Result Geometry::Create(const TriMesh& mesh, Geometry* pGeometry)
     GeometryOptions createInfo       = {};
     createInfo.vertexAttributeLayout = ppx::GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_PLANAR;
     createInfo.indexType             = mesh.GetIndexType();
-    createInfo.primtiveTopology      = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    createInfo.primitiveTopology     = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
     createInfo.AddPosition();
 
@@ -1015,7 +1015,7 @@ Result Geometry::Create(const WireMesh& mesh, Geometry* pGeometry)
     GeometryOptions createInfo       = {};
     createInfo.vertexAttributeLayout = ppx::GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_PLANAR;
     createInfo.indexType             = mesh.GetIndexType();
-    createInfo.primtiveTopology      = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    createInfo.primitiveTopology     = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
     createInfo.AddPosition();
 
@@ -1064,12 +1064,13 @@ const Geometry::Buffer* Geometry::GetVertexBuffer(uint32_t index) const
     return pBuffer;
 }
 
-void Geometry::SetVertexBuffer(uint32_t index, const Geometry::Buffer& newVertexBuffer)
+Geometry::Buffer* Geometry::GetVertexBuffer(uint32_t index)
 {
-    if (!IsIndexInRange(index, mVertexBuffers)) {
-        return;
+    Geometry::Buffer* pBuffer = nullptr;
+    if (IsIndexInRange(index, mVertexBuffers)) {
+        pBuffer = &mVertexBuffers[index];
     }
-    mVertexBuffers[index] = newVertexBuffer;
+    return pBuffer;
 }
 
 uint32_t Geometry::GetLargestBufferSize() const
