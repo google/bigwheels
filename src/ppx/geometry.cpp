@@ -1057,20 +1057,14 @@ uint32_t Geometry::GetVertexCount() const
 
 const Geometry::Buffer* Geometry::GetVertexBuffer(uint32_t index) const
 {
-    const Geometry::Buffer* pBuffer = nullptr;
-    if (IsIndexInRange(index, mVertexBuffers)) {
-        pBuffer = &mVertexBuffers[index];
-    }
-    return pBuffer;
+    PPX_ASSERT_MSG(IsIndexInRange(index, mVertexBuffers), "Vertex buffer does not exist at index: " << index);
+    return &mVertexBuffers[index];
 }
 
 Geometry::Buffer* Geometry::GetVertexBuffer(uint32_t index)
 {
-    Geometry::Buffer* pBuffer = nullptr;
-    if (IsIndexInRange(index, mVertexBuffers)) {
-        pBuffer = &mVertexBuffers[index];
-    }
-    return pBuffer;
+    PPX_ASSERT_MSG(IsIndexInRange(index, mVertexBuffers), "Vertex buffer does not exist at index: " << index);
+    return &mVertexBuffers[index];
 }
 
 uint32_t Geometry::GetLargestBufferSize() const

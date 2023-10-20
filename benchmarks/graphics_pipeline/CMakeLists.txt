@@ -18,9 +18,15 @@ project(graphics_pipeline)
 add_samples_for_all_apis(
     NAME ${PROJECT_NAME}
     SOURCES 
+      "FreeCamera.h"
+      "FreeCamera.cpp"
+      "GraphicsBenchmarkApp.h"
+      "GraphicsBenchmarkApp.cpp"
       "main.cpp"
-      "helper.h"
-      "helper.cpp"
+      "MultiDimensionalIndexer.h"
+      "MultiDimensionalIndexer.cpp"
+      "SphereMesh.h"
+      "SphereMesh.cpp"
     SHADER_DEPENDENCIES
       "shader_benchmark_vs_simple"
       "shader_benchmark_vs_alu_bound"
