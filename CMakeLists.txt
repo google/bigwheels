@@ -223,6 +223,7 @@ endif()
 # ------------------------------------------------------------------------------
 if (PPX_BUILD_XR)
     message("Building OpenXR support")
+    configure_file(${CMAKE_SOURCE_DIR}/CTestCustom.cmake ${CMAKE_BINARY_DIR})
     add_subdirectory(third_party/OpenXR-SDK-Source)
 endif()
 
