@@ -76,8 +76,6 @@ public:
         uint32_t                  vertexCount,
         ppx::AABB                 boundingBox);
 
-    ~PrimitiveBatch();
-
     const scene::Material* GetMaterial() const { return mMaterial.get(); }
     uint32_t               GetIndexOffset() const { return mIndexOffset; }
     uint32_t               GetVertexOffset() const { return mVertexOffset; }
