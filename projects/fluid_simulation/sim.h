@@ -67,7 +67,7 @@ class ProjApp;
 class FluidSimulation
 {
 public:
-    FluidSimulation(ppx::Application* app, ppx::grfx::DevicePtr device, ppx::uint2 resolution, const SimulationConfig& config)
+    FluidSimulation(ppx::grfx::DevicePtr device, ppx::uint2 resolution, const SimulationConfig& config)
         : mDevice(device), mResolution(resolution), mConfig(config)
     {
     }
@@ -79,7 +79,7 @@ public:
     // config       An instance of SimulationConfig describing all the inputs to the simulation.
     // ppSim        A pointer the the newly created simulator instance.  If an error occurred during creation,
     //              this will be set to nullptr and an error code will be returned.
-    static ppx::Result Create(ppx::Application* app, ppx::grfx::DevicePtr device, ppx::uint2 resolution, const SimulationConfig& config, std::unique_ptr<FluidSimulation>* ppSim);
+    static ppx::Result Create(ppx::grfx::DevicePtr device, ppx::uint2 resolution, const SimulationConfig& config, std::unique_ptr<FluidSimulation>* ppSim);
 
     const SimulationConfig&      GetConfig() const { return mConfig; }
     ppx::grfx::DescriptorPoolPtr GetDescriptorPool() const { return mDescriptorPool; }

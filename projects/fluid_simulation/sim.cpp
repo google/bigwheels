@@ -28,9 +28,9 @@ const ppx::grfx::Format kR    = ppx::grfx::FORMAT_R16_FLOAT;
 const ppx::grfx::Format kRG   = ppx::grfx::FORMAT_R16G16_FLOAT;
 const ppx::grfx::Format kRGBA = ppx::grfx::FORMAT_R16G16B16A16_FLOAT;
 
-ppx::Result FluidSimulation::Create(ppx::Application* app, ppx::grfx::DevicePtr device, ppx::uint2 resolution, const SimulationConfig& config, std::unique_ptr<FluidSimulation>* pSim)
+ppx::Result FluidSimulation::Create(ppx::grfx::DevicePtr device, ppx::uint2 resolution, const SimulationConfig& config, std::unique_ptr<FluidSimulation>* pSim)
 {
-    *pSim = std::make_unique<FluidSimulation>(app, device, resolution, config);
+    *pSim = std::make_unique<FluidSimulation>(device, resolution, config);
     return (*pSim)->Initialize();
 }
 
