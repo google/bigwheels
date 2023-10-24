@@ -36,7 +36,7 @@ static constexpr uint32_t kMaxSphereInstanceCount  = 3000;
 static constexpr uint32_t kSeed                    = 89977;
 static constexpr uint32_t kMaxFullscreenQuadsCount = 1000;
 
-static constexpr char* kShaderBaseDir = "benchmarks/shaders";
+static constexpr const char* kShaderBaseDir = "benchmarks/shaders";
 
 static constexpr std::array<const char*, 2> kAvailableVsShaders = {
     "Benchmark_VsSimple",

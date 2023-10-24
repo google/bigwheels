@@ -299,7 +299,7 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsShaders()
     SetupShader("Benchmark_RandomNoise.vs", &mVSNoise);
     SetupShader("Benchmark_RandomNoise.ps", &mPSNoise);
     SetupShader("Benchmark_SolidColor.vs", &mVSSolidColor);
-    SetupShader("Benchmark_SolidColor.vs", &mPSSolidColor);
+    SetupShader("Benchmark_SolidColor.ps", &mPSSolidColor);
 }
 
 void GraphicsBenchmarkApp::SetupSkyboxMeshes()
