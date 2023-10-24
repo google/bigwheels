@@ -191,8 +191,8 @@ void GraphicsBenchmarkApp::SetupSkyboxResources()
     }
 
     // Shaders
-    GraphicsBenchmarkApp::SetupShader("Benchmark_SkyBox.vs", &mVSSkybox);
-    GraphicsBenchmarkApp::SetupShader("Benchmark_SkyBox.ps", &mPSSkybox);
+    SetupShader("Benchmark_SkyBox.vs", &mVSSkybox);
+    SetupShader("Benchmark_SkyBox.ps", &mPSSkybox);
 }
 
 void GraphicsBenchmarkApp::SetupSphereResources()
@@ -285,21 +285,21 @@ void GraphicsBenchmarkApp::SetupSphereResources()
     // Vertex Shaders
     for (size_t i = 0; i < kAvailableVsShaders.size(); i++) {
         const std::string vsShaderBaseName = kAvailableVsShaders[i];
-        GraphicsBenchmarkApp::SetupShader(vsShaderBaseName + ".vs", &mVsShaders[i]);
+        SetupShader(vsShaderBaseName + ".vs", &mVsShaders[i]);
     }
     // Pixel Shaders
     for (size_t j = 0; j < kAvailablePsShaders.size(); j++) {
         const std::string psShaderBaseName = kAvailablePsShaders[j];
-        GraphicsBenchmarkApp::SetupShader(psShaderBaseName + ".ps", &mPsShaders[j]);
+        SetupShader(psShaderBaseName + ".ps", &mPsShaders[j]);
     }
 }
 
 void GraphicsBenchmarkApp::SetupFullscreenQuadsShaders()
 {
-    GraphicsBenchmarkApp::SetupShader("Benchmark_RandomNoise.vs", &mVSNoise);
-    GraphicsBenchmarkApp::SetupShader("Benchmark_RandomNoise.ps", &mPSNoise);
-    GraphicsBenchmarkApp::SetupShader("Benchmark_SolidColor.vs", &mVSSolidColor);
-    GraphicsBenchmarkApp::SetupShader("Benchmark_SolidColor.vs", &mPSSolidColor);
+    SetupShader("Benchmark_RandomNoise.vs", &mVSNoise);
+    SetupShader("Benchmark_RandomNoise.ps", &mPSNoise);
+    SetupShader("Benchmark_SolidColor.vs", &mVSSolidColor);
+    SetupShader("Benchmark_SolidColor.vs", &mPSSolidColor);
 }
 
 void GraphicsBenchmarkApp::SetupSkyboxMeshes()

@@ -1040,6 +1040,13 @@ const grfx::VertexBinding* Geometry::GetVertexBinding(uint32_t index) const
     return pBinding;
 }
 
+void Geometry::SetIndexBuffer(const Geometry::Buffer& newIndexBuffer)
+{
+    PPX_ASSERT_MSG(newIndexBuffer.GetType() == mIndexBuffer.GetType(), "New index buffer is not the same type");
+    PPX_ASSERT_MSG(newIndexBuffer.GetElementSize() == mIndexBuffer.GetElementSize(), "New index buffer does not have the same element size");
+    mIndexBuffer = newIndexBuffer;
+}
+
 uint32_t Geometry::GetIndexCount() const
 {
     uint32_t count = 0;

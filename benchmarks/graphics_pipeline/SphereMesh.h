@@ -60,12 +60,12 @@ private:
 // Full VERTEX buffers contain a total of (mSphereCount * mSingleSphereVertexCount) vertices arranged like so:
 //
 // | j(0) | j(1) | ... | j(mSingleSphereVertexCount-1) | ... | j(0) | j(1) | ...  | j(mSingleSphereVertexCount-1) |
-// |-----------------------i(0)------------------------| ... |------------------i(mSphereCount)-------------------|
+// |-----------------------i(0)------------------------| ... |-----------------i(mSphereCount-1)------------------|
 //
 // Full INDEX buffers contain a total of (mSphereCount * mSingleSphereTriCount * 3) indices arranged like so:
 //
 // | v0 | v1 | v2 |        ...        | v0 | v1 | v2 | ... | v0 | v1 | v2 |        ...        | v0 | v1 | v2 |
-// |     k(0)     | ... | k(mSingleSphereTriCount-1) | ... |     k(0)     | ... | j(mSingleSphereTriCount-1) |
+// |     k(0)     | ... | k(mSingleSphereTriCount-1) | ... |     k(0)     | ... | k(mSingleSphereTriCount-1) |
 // |----------------------i(0)-----------------------| ... |----------------i(mSphereCount-1)----------------|
 class SphereMesh
 {

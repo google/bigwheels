@@ -76,8 +76,8 @@ void SphereMesh::ApplyGrid(const OrderedGrid& grid)
     }
 
     // These planar index buffers are the same as the interleaved ones
-    *(mLowPlanar.GetIndexBuffer())  = *(mLowInterleaved.GetIndexBuffer());
-    *(mHighPlanar.GetIndexBuffer()) = *(mHighInterleaved.GetIndexBuffer());
+    mLowPlanar.SetIndexBuffer(*(mLowInterleaved.GetIndexBuffer()));
+    mHighPlanar.SetIndexBuffer(*(mHighInterleaved.GetIndexBuffer()));
 }
 
 void SphereMesh::CreateAllGeometries()

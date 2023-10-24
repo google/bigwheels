@@ -226,7 +226,7 @@ public:
 
     grfx::IndexType         GetIndexType() const { return mCreateInfo.indexType; }
     const Geometry::Buffer* GetIndexBuffer() const { return &mIndexBuffer; }
-    Geometry::Buffer*       GetIndexBuffer() { return &mIndexBuffer; }
+    void                    SetIndexBuffer(const Geometry::Buffer& newIndexBuffer);
     uint32_t                GetIndexCount() const;
 
     GeometryVertexAttributeLayout GetVertexAttributeLayout() const { return mCreateInfo.vertexAttributeLayout; }
