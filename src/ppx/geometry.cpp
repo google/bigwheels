@@ -673,7 +673,7 @@ Result Geometry::Create(const GeometryOptions& createInfo, Geometry* pGeometry)
 
     *pGeometry = Geometry();
 
-    if (createInfo.primtiveTopology != grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST) {
+    if (createInfo.primitiveTopology != grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST) {
         PPX_ASSERT_MSG(false, "only triangle list is supported");
         return ppx::ERROR_INVALID_CREATE_ARGUMENT;
     }
@@ -982,7 +982,7 @@ Result Geometry::Create(const TriMesh& mesh, Geometry* pGeometry)
     GeometryOptions createInfo       = {};
     createInfo.vertexAttributeLayout = ppx::GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_PLANAR;
     createInfo.indexType             = mesh.GetIndexType();
-    createInfo.primtiveTopology      = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    createInfo.primitiveTopology     = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
     createInfo.AddPosition();
 
@@ -1015,7 +1015,7 @@ Result Geometry::Create(const WireMesh& mesh, Geometry* pGeometry)
     GeometryOptions createInfo       = {};
     createInfo.vertexAttributeLayout = ppx::GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_PLANAR;
     createInfo.indexType             = mesh.GetIndexType();
-    createInfo.primtiveTopology      = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    createInfo.primitiveTopology     = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
     createInfo.AddPosition();
 
@@ -1040,6 +1040,13 @@ const grfx::VertexBinding* Geometry::GetVertexBinding(uint32_t index) const
     return pBinding;
 }
 
+void Geometry::SetIndexBuffer(const Geometry::Buffer& newIndexBuffer)
+{
+    PPX_ASSERT_MSG(newIndexBuffer.GetType() == mIndexBuffer.GetType(), "New index buffer is not the same type");
+    PPX_ASSERT_MSG(newIndexBuffer.GetElementSize() == mIndexBuffer.GetElementSize(), "New index buffer does not have the same element size");
+    mIndexBuffer = newIndexBuffer;
+}
+
 uint32_t Geometry::GetIndexCount() const
 {
     uint32_t count = 0;
@@ -1057,11 +1064,14 @@ uint32_t Geometry::GetVertexCount() const
 
 const Geometry::Buffer* Geometry::GetVertexBuffer(uint32_t index) const
 {
-    const Geometry::Buffer* pBuffer = nullptr;
-    if (IsIndexInRange(index, mVertexBuffers)) {
-        pBuffer = &mVertexBuffers[index];
-    }
-    return pBuffer;
+    PPX_ASSERT_MSG(IsIndexInRange(index, mVertexBuffers), "Vertex buffer does not exist at index: " << index);
+    return &mVertexBuffers[index];
+}
+
+Geometry::Buffer* Geometry::GetVertexBuffer(uint32_t index)
+{
+    PPX_ASSERT_MSG(IsIndexInRange(index, mVertexBuffers), "Vertex buffer does not exist at index: " << index);
+    return &mVertexBuffers[index];
 }
 
 uint32_t Geometry::GetLargestBufferSize() const
