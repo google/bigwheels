@@ -190,6 +190,7 @@ private:
     std::shared_ptr<KnobSlider<int>>           pDrawCallCount;
     std::shared_ptr<KnobSlider<int>>           pFullscreenQuadsCount;
     std::shared_ptr<KnobDropdown<std::string>> pFullscreenQuadsColor;
+    std::shared_ptr<KnobCheckbox>              pFullscreenQuadsSingleRenderpass;
     std::shared_ptr<KnobCheckbox>              pAlphaBlend;
     std::shared_ptr<KnobCheckbox>              pDepthTestWrite;
 
@@ -231,12 +232,20 @@ private:
     void UpdateGUI();
     void DrawExtraInfo();
 
+    // Render to swapchain image
+    void RenderScene(grfx::SwapchainPtr swapchain, PerFrame& frame, uint32_t imageIndex);
+    void RenderFullscreenQuads(grfx::SwapchainPtr swapchain, PerFrame& frame, uint32_t imageIndex);
+    void RenderGUI(grfx::SwapchainPtr swapchain, PerFrame& frame, uint32_t imageIndex);
+
     // =====================================================================
     // UTILITY
     // =====================================================================
 
     // Loads shader at shaderBaseDir/fileName and creates it at ppShaderModule
     void SetupShader(const std::filesystem::path& fileName, grfx::ShaderModule** ppShaderModule);
+
+    // Fetch current renderpass
+    grfx::RenderPassPtr GetRenderpass(grfx::SwapchainPtr swapchain, uint32_t imageIndex);
 };
 
 #endif // BENCHMARKS_GRAPHICS_PIPELINE_GRAPHICS_BENCHMARK_APP_H
