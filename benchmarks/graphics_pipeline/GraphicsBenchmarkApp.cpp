@@ -599,7 +599,7 @@ void GraphicsBenchmarkApp::Render()
         // Write start timestamp
         frame.cmd->WriteTimestamp(frame.timestampQuery, grfx::PIPELINE_STAGE_TOP_OF_PIPE_BIT, /* queryIndex = */ 0);
 
-        // Note: Transitions image layout PRESENT->RENDER
+        // Note: Transitions image layout PRESENT->RENDER before this first renderpass
         RenderScene(swapchain, frame, imageIndex);
 
         RenderFullscreenQuads(swapchain, frame, imageIndex);
@@ -607,7 +607,7 @@ void GraphicsBenchmarkApp::Render()
         // Write end timestamp
         frame.cmd->WriteTimestamp(frame.timestampQuery, grfx::PIPELINE_STAGE_TOP_OF_PIPE_BIT, /* queryIndex = */ 1);
 
-        // Note: Transitions image layout RENDER->PRESENT
+        // Note: Transitions image layout RENDER->PRESENT after this last renderpass
         RenderGUI(swapchain, frame, imageIndex);
 
         // Resolve queries
@@ -765,7 +765,7 @@ void GraphicsBenchmarkApp::RenderFullscreenQuads(grfx::SwapchainPtr swapchain, P
                 uint32_t noiseQuadRandomSeed = (uint32_t)i;
                 frame.cmd->PushGraphicsConstants(mFullscreenQuads.pipelineInterface, 1, &noiseQuadRandomSeed);
             }
-            frame.cmd->Draw(4, 1, 0, 0);
+            frame.cmd->Draw(3, 1, 0, 0);
 
             if (!singleRenderpass) {
                 frame.cmd->EndRenderPass();
