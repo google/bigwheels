@@ -31,3 +31,10 @@ file('projects').eachDir { sub ->
         project(":$sub.name").projectDir = new File("projects/$sub.name")
     }
 }
+
+file('benchmarks').eachDir { sub ->
+    if (file("benchmarks/$sub.name/build.gradle").exists()) {
+        include ":$sub.name"
+        project(":$sub.name").projectDir = new File("benchmarks/$sub.name")
+    }
+}
