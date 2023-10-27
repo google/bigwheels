@@ -588,32 +588,10 @@ void GraphicsBenchmarkApp::Render()
     frame.timestampQuery->Reset(/* firstQuery= */ 0, frame.timestampQuery->GetCount());
 
     ProcessInput();
-
     ProcessKnobs();
-
     UpdateGUI();
 
-    // Build command buffer
-    PPX_CHECKED_CALL(frame.cmd->Begin());
-    {
-        // Write start timestamp
-        frame.cmd->WriteTimestamp(frame.timestampQuery, grfx::PIPELINE_STAGE_TOP_OF_PIPE_BIT, /* queryIndex = */ 0);
-
-        // Note: Transitions image layout PRESENT->RENDER before this first renderpass
-        RenderScene(swapchain, frame, imageIndex);
-
-        RenderFullscreenQuads(swapchain, frame, imageIndex);
-
-        // Write end timestamp
-        frame.cmd->WriteTimestamp(frame.timestampQuery, grfx::PIPELINE_STAGE_TOP_OF_PIPE_BIT, /* queryIndex = */ 1);
-
-        // Note: Transitions image layout RENDER->PRESENT after this last renderpass
-        RenderGUI(swapchain, frame, imageIndex);
-
-        // Resolve queries
-        frame.cmd->ResolveQueryData(frame.timestampQuery, /* startIndex= */ 0, frame.timestampQuery->GetCount());
-    }
-    PPX_CHECKED_CALL(frame.cmd->End());
+    RecordCommandBuffer(frame, swapchain, imageIndex);
 
     grfx::SubmitInfo submitInfo     = {};
     submitInfo.commandBufferCount   = 1;
@@ -663,142 +641,159 @@ void GraphicsBenchmarkApp::DrawExtraInfo()
     ImGui::NextColumn();
 }
 
-void GraphicsBenchmarkApp::RenderScene(grfx::SwapchainPtr swapchain, PerFrame& frame, uint32_t imageIndex)
+void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainPtr swapchain, uint32_t imageIndex)
 {
+    PPX_CHECKED_CALL(frame.cmd->Begin());
+
+    // Write start timestamp
+    frame.cmd->WriteTimestamp(frame.timestampQuery, grfx::PIPELINE_STAGE_TOP_OF_PIPE_BIT, /* queryIndex = */ 0);
+
+    frame.cmd->SetScissors(GetScissor());
+    frame.cmd->SetViewports(GetViewport());
+
     grfx::RenderPassPtr currentRenderPass = GetRenderpass(swapchain, imageIndex);
 
-    // Snapshot some scene-related values for the current frame
-    uint32_t currentSphereCount   = pSphereInstanceCount->GetValue();
-    uint32_t currentDrawCallCount = pDrawCallCount->GetValue();
-
+    // Transition image layout PRESENT->RENDER before the first renderpass
     frame.cmd->TransitionImageLayout(currentRenderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
+
+    // Record renderpass for scene
     frame.cmd->BeginRenderPass(currentRenderPass);
-    {
-        frame.cmd->SetScissors(GetScissor());
-        frame.cmd->SetViewports(GetViewport());
-
-        // Draw SkyBox
-        frame.cmd->BindGraphicsPipeline(mSkyBox.pipeline);
-        frame.cmd->BindIndexBuffer(mSkyBox.mesh);
-        frame.cmd->BindVertexBuffers(mSkyBox.mesh);
-        {
-            SkyboxData data;
-            data.MVP = mCamera.GetViewProjectionMatrix() * glm::scale(float3(500.0f, 500.0f, 500.0f));
-            mSkyBox.uniformBuffer->CopyFromSource(sizeof(data), &data);
-
-            frame.cmd->PushGraphicsUniformBuffer(mSkyBox.pipelineInterface, /* binding = */ 0, /* set = */ 0, /* bufferOffset = */ 0, mSkyBox.uniformBuffer);
-            frame.cmd->PushGraphicsSampledImage(mSkyBox.pipelineInterface, /* binding = */ 1, /* set = */ 0, mSkyBoxTexture.sampledImageView);
-            frame.cmd->PushGraphicsSampler(mSkyBox.pipelineInterface, /* binding = */ 2, /* set = */ 0, mSkyBoxTexture.sampler);
-        }
-        frame.cmd->DrawIndexed(mSkyBox.mesh->GetIndexCount());
-
-        // Draw sphere instances
-        const size_t pipelineIndex = mGraphicsPipelinesIndexer.GetIndex({pKnobVs->GetIndex(), pKnobPs->GetIndex(), pKnobVbFormat->GetIndex(), pKnobVertexAttrLayout->GetIndex()});
-        frame.cmd->BindGraphicsPipeline(mPipelines[pipelineIndex]);
-        const size_t meshIndex = mMeshesIndexer.GetIndex({pKnobLOD->GetIndex(), pKnobVbFormat->GetIndex(), pKnobVertexAttrLayout->GetIndex()});
-        frame.cmd->BindIndexBuffer(mSphereMeshes[meshIndex]);
-        frame.cmd->BindVertexBuffers(mSphereMeshes[meshIndex]);
-        {
-            uint32_t mSphereIndexCount  = mSphereMeshes[meshIndex]->GetIndexCount() / kMaxSphereInstanceCount;
-            uint32_t indicesPerDrawCall = (currentSphereCount * mSphereIndexCount) / currentDrawCallCount;
-            // Make `indicesPerDrawCall` multiple of 3 given that each consecutive three vertices (3*i + 0, 3*i + 1, 3*i + 2)
-            // defines a single triangle primitive (PRIMITIVE_TOPOLOGY_TRIANGLE_LIST).
-            indicesPerDrawCall -= indicesPerDrawCall % 3;
-            for (uint32_t i = 0; i < currentDrawCallCount; i++) {
-                SphereData data                 = {};
-                data.modelMatrix                = float4x4(1.0f);
-                data.ITModelMatrix              = glm::inverse(glm::transpose(data.modelMatrix));
-                data.ambient                    = float4(0.3f);
-                data.cameraViewProjectionMatrix = mCamera.GetViewProjectionMatrix();
-                data.lightPosition              = float4(mLightPosition, 0.0f);
-                data.eyePosition                = float4(mCamera.GetEyePosition(), 0.0f);
-                mDrawCallUniformBuffers[i]->CopyFromSource(sizeof(data), &data);
-
-                frame.cmd->PushGraphicsUniformBuffer(mSphere.pipelineInterface, /* binding = */ 0, /* set = */ 0, /* bufferOffset = */ 0, mDrawCallUniformBuffers[i]);
-                frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 1, /* set = */ 0, mAlbedoTexture.sampledImageView);
-                frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 2, /* set = */ 0, mAlbedoTexture.sampler);
-                frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 3, /* set = */ 0, mNormalMapTexture.sampledImageView);
-                frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 4, /* set = */ 0, mNormalMapTexture.sampler);
-                frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 5, /* set = */ 0, mMetalRoughnessTexture.sampledImageView);
-                frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 6, /* set = */ 0, mMetalRoughnessTexture.sampler);
-
-                uint32_t indexCount = indicesPerDrawCall;
-                // Add the remaining indices to the last drawcall
-                if (i == currentDrawCallCount - 1) {
-                    indexCount += (currentSphereCount * mSphereIndexCount - currentDrawCallCount * indicesPerDrawCall);
-                }
-                uint32_t firstIndex = i * indicesPerDrawCall;
-                frame.cmd->DrawIndexed(indexCount, /* instanceCount = */ 1, firstIndex);
-            }
-        }
-    }
+    RecordCommandBufferSkybox(frame);
+    RecordCommandBufferSpheres(frame);
     frame.cmd->EndRenderPass();
-}
 
-void GraphicsBenchmarkApp::RenderFullscreenQuads(grfx::SwapchainPtr swapchain, PerFrame& frame, uint32_t imageIndex)
-{
-    grfx::RenderPassPtr currentRenderPass = GetRenderpass(swapchain, imageIndex);
-
-    if (pFullscreenQuadsCount->GetValue() > 0) {
-        bool singleRenderpass = pFullscreenQuadsSingleRenderpass->GetValue();
+    // Record renderpass(es) for fullscreen quads
+    uint32_t quadsCount       = pFullscreenQuadsCount->GetValue();
+    bool     singleRenderpass = pFullscreenQuadsSingleRenderpass->GetValue();
+    if (quadsCount > 0) {
         frame.cmd->BindGraphicsPipeline(mFullscreenQuads.pipeline);
         frame.cmd->BindVertexBuffers(1, &mFullscreenQuads.vertexBuffer, &mFullscreenQuads.vertexBinding.GetStride());
 
-        if (singleRenderpass) {
-            currentRenderPass = swapchain->GetRenderPass(imageIndex);
-            PPX_ASSERT_MSG(!currentRenderPass.IsNull(), "render pass object is null");
-            frame.cmd->BeginRenderPass(currentRenderPass);
-        }
-
-        for (size_t i = 0; i < pFullscreenQuadsCount->GetValue(); ++i) {
+        // Begin the first renderpass
+        currentRenderPass = GetRenderpass(swapchain, imageIndex);
+        frame.cmd->BeginRenderPass(currentRenderPass);
+        for (size_t i = 0; i < quadsCount; i++) {
+            RecordCommandBufferFullscreenQuad(frame, i);
             if (!singleRenderpass) {
-                currentRenderPass = swapchain->GetRenderPass(imageIndex);
-                PPX_ASSERT_MSG(!currentRenderPass.IsNull(), "render pass object is null");
-                frame.cmd->BeginRenderPass(currentRenderPass);
-            }
-
-            if (pFullscreenQuadsColor->GetIndex() > 0) {
-                float3 colorValues = kFullscreenQuadsColorsValues[pFullscreenQuadsColor->GetIndex()];
-                frame.cmd->PushGraphicsConstants(mFullscreenQuads.pipelineInterface, 3, &colorValues);
-            }
-            else {
-                uint32_t noiseQuadRandomSeed = (uint32_t)i;
-                frame.cmd->PushGraphicsConstants(mFullscreenQuads.pipelineInterface, 1, &noiseQuadRandomSeed);
-            }
-            frame.cmd->Draw(3, 1, 0, 0);
-
-            if (!singleRenderpass) {
+                // If quads are using multiple renderpasses, transition image layout in between to force resolve
                 frame.cmd->EndRenderPass();
-
-                // Force resolve by transitioning image layout
                 frame.cmd->TransitionImageLayout(currentRenderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_SHADER_RESOURCE);
                 frame.cmd->TransitionImageLayout(currentRenderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_RENDER_TARGET);
+
+                if (i == quadsCount - 1) { // For the last quad, do not begin another renderpass
+                    break;
+                }
+                currentRenderPass = GetRenderpass(swapchain, imageIndex);
+                frame.cmd->BeginRenderPass(currentRenderPass);
             }
         }
-
         if (singleRenderpass) {
             frame.cmd->EndRenderPass();
         }
     }
-}
 
-void GraphicsBenchmarkApp::RenderGUI(grfx::SwapchainPtr swapchain, PerFrame& frame, uint32_t imageIndex)
-{
-    grfx::RenderPassPtr currentRenderPass = GetRenderpass(swapchain, imageIndex);
+    // Write end timestamp
+    frame.cmd->WriteTimestamp(frame.timestampQuery, grfx::PIPELINE_STAGE_TOP_OF_PIPE_BIT, /* queryIndex = */ 1);
 
+    // Write renderpass for GUI
     if (GetSettings()->enableImGui) {
         currentRenderPass = swapchain->GetRenderPass(imageIndex, grfx::ATTACHMENT_LOAD_OP_LOAD);
-        PPX_ASSERT_MSG(!currentRenderPass.IsNull(), "render pass object is null");
-
         frame.cmd->BeginRenderPass(currentRenderPass);
-        {
-            DrawImGui(frame.cmd);
-        }
+        RecordCommandBufferGUI(frame);
         frame.cmd->EndRenderPass();
     }
 
-    // Prepare image for presenting
+    // Transition image layout RENDER->PRESENT after the last renderpass
     frame.cmd->TransitionImageLayout(currentRenderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
+
+    // Resolve queries
+    frame.cmd->ResolveQueryData(frame.timestampQuery, /* startIndex= */ 0, frame.timestampQuery->GetCount());
+
+    PPX_CHECKED_CALL(frame.cmd->End());
+}
+
+void GraphicsBenchmarkApp::RecordCommandBufferSkybox(PerFrame& frame)
+{
+    frame.cmd->BindGraphicsPipeline(mSkyBox.pipeline);
+    frame.cmd->BindIndexBuffer(mSkyBox.mesh);
+    frame.cmd->BindVertexBuffers(mSkyBox.mesh);
+    {
+        SkyboxData data = {};
+        data.MVP        = mCamera.GetViewProjectionMatrix() * glm::scale(float3(500.0f, 500.0f, 500.0f));
+        mSkyBox.uniformBuffer->CopyFromSource(sizeof(data), &data);
+
+        frame.cmd->PushGraphicsUniformBuffer(mSkyBox.pipelineInterface, /* binding = */ 0, /* set = */ 0, /* bufferOffset = */ 0, mSkyBox.uniformBuffer);
+        frame.cmd->PushGraphicsSampledImage(mSkyBox.pipelineInterface, /* binding = */ 1, /* set = */ 0, mSkyBoxTexture.sampledImageView);
+        frame.cmd->PushGraphicsSampler(mSkyBox.pipelineInterface, /* binding = */ 2, /* set = */ 0, mSkyBoxTexture.sampler);
+    }
+    frame.cmd->DrawIndexed(mSkyBox.mesh->GetIndexCount());
+}
+
+void GraphicsBenchmarkApp::RecordCommandBufferSpheres(PerFrame& frame)
+{
+    const size_t pipelineIndex = mGraphicsPipelinesIndexer.GetIndex({pKnobVs->GetIndex(), pKnobPs->GetIndex(), pKnobVbFormat->GetIndex(), pKnobVertexAttrLayout->GetIndex()});
+    frame.cmd->BindGraphicsPipeline(mPipelines[pipelineIndex]);
+    const size_t meshIndex = mMeshesIndexer.GetIndex({pKnobLOD->GetIndex(), pKnobVbFormat->GetIndex(), pKnobVertexAttrLayout->GetIndex()});
+    frame.cmd->BindIndexBuffer(mSphereMeshes[meshIndex]);
+    frame.cmd->BindVertexBuffers(mSphereMeshes[meshIndex]);
+
+    // Snapshot some scene-related values for the current frame
+    uint32_t currentSphereCount   = pSphereInstanceCount->GetValue();
+    uint32_t currentDrawCallCount = pDrawCallCount->GetValue();
+    uint32_t mSphereIndexCount    = mSphereMeshes[meshIndex]->GetIndexCount() / kMaxSphereInstanceCount;
+    uint32_t indicesPerDrawCall   = (currentSphereCount * mSphereIndexCount) / currentDrawCallCount;
+
+    // Make `indicesPerDrawCall` multiple of 3 given that each consecutive three vertices (3*i + 0, 3*i + 1, 3*i + 2)
+    // defines a single triangle primitive (PRIMITIVE_TOPOLOGY_TRIANGLE_LIST).
+    indicesPerDrawCall -= indicesPerDrawCall % 3;
+    SphereData data    = {};
+    data.modelMatrix   = float4x4(1.0f);
+    data.ITModelMatrix = glm::inverse(glm::transpose(data.modelMatrix));
+    data.ambient       = float4(0.3f);
+
+    frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 1, /* set = */ 0, mAlbedoTexture.sampledImageView);
+    frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 2, /* set = */ 0, mAlbedoTexture.sampler);
+    frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 3, /* set = */ 0, mNormalMapTexture.sampledImageView);
+    frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 4, /* set = */ 0, mNormalMapTexture.sampler);
+    frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 5, /* set = */ 0, mMetalRoughnessTexture.sampledImageView);
+    frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 6, /* set = */ 0, mMetalRoughnessTexture.sampler);
+
+    for (uint32_t i = 0; i < currentDrawCallCount; i++) {
+        data.cameraViewProjectionMatrix = mCamera.GetViewProjectionMatrix();
+        data.lightPosition              = float4(mLightPosition, 0.0f);
+        data.eyePosition                = float4(mCamera.GetEyePosition(), 0.0f);
+        mDrawCallUniformBuffers[i]->CopyFromSource(sizeof(data), &data);
+
+        frame.cmd->PushGraphicsUniformBuffer(mSphere.pipelineInterface, /* binding = */ 0, /* set = */ 0, /* bufferOffset = */ 0, mDrawCallUniformBuffers[i]);
+
+        uint32_t indexCount = indicesPerDrawCall;
+        // Add the remaining indices to the last drawcall
+        if (i == currentDrawCallCount - 1) {
+            indexCount += (currentSphereCount * mSphereIndexCount - currentDrawCallCount * indicesPerDrawCall);
+        }
+        uint32_t firstIndex = i * indicesPerDrawCall;
+        frame.cmd->DrawIndexed(indexCount, /* instanceCount = */ 1, firstIndex);
+    }
+}
+
+void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, size_t seed)
+{
+    if (pFullscreenQuadsColor->GetIndex() > 0) {
+        // Solid color
+        float3 colorValues = kFullscreenQuadsColorsValues[pFullscreenQuadsColor->GetIndex()];
+        frame.cmd->PushGraphicsConstants(mFullscreenQuads.pipelineInterface, 3, &colorValues);
+    }
+    else {
+        // Noise
+        uint32_t noiseQuadRandomSeed = (uint32_t)seed;
+        frame.cmd->PushGraphicsConstants(mFullscreenQuads.pipelineInterface, 1, &noiseQuadRandomSeed);
+    }
+    frame.cmd->Draw(3, 1, 0, 0);
+}
+
+void GraphicsBenchmarkApp::RecordCommandBufferGUI(PerFrame& frame)
+{
+    DrawImGui(frame.cmd);
 }
 
 void GraphicsBenchmarkApp::SetupShader(const std::filesystem::path& fileName, grfx::ShaderModule** ppShaderModule)

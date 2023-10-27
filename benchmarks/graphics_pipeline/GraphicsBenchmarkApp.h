@@ -232,10 +232,14 @@ private:
     void UpdateGUI();
     void DrawExtraInfo();
 
-    // Render to swapchain image
-    void RenderScene(grfx::SwapchainPtr swapchain, PerFrame& frame, uint32_t imageIndex);
-    void RenderFullscreenQuads(grfx::SwapchainPtr swapchain, PerFrame& frame, uint32_t imageIndex);
-    void RenderGUI(grfx::SwapchainPtr swapchain, PerFrame& frame, uint32_t imageIndex);
+    // Record this frame's command buffer with multiple renderpasses
+    void RecordCommandBuffer(PerFrame& frame, grfx::SwapchainPtr swapchain, uint32_t imageIndex);
+
+    // Records commands to render * in this frame's command buffer, with the current renderpass
+    void RecordCommandBufferSkybox(PerFrame& frame);
+    void RecordCommandBufferSpheres(PerFrame& frame);
+    void RecordCommandBufferFullscreenQuad(PerFrame& frame, size_t seed);
+    void RecordCommandBufferGUI(PerFrame& frame);
 
     // =====================================================================
     // UTILITY
