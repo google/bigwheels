@@ -247,9 +247,6 @@ private:
 
     // Loads shader at shaderBaseDir/fileName and creates it at ppShaderModule
     void SetupShader(const std::filesystem::path& fileName, grfx::ShaderModule** ppShaderModule);
-
-    // Fetch current renderpass
-    grfx::RenderPassPtr GetRenderpass(grfx::SwapchainPtr swapchain, uint32_t imageIndex);
 };
 
 #endif // BENCHMARKS_GRAPHICS_PIPELINE_GRAPHICS_BENCHMARK_APP_H

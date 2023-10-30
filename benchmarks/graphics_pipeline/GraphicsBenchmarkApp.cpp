@@ -651,26 +651,26 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainP
     frame.cmd->SetScissors(GetScissor());
     frame.cmd->SetViewports(GetViewport());
 
-    grfx::RenderPassPtr currentRenderPass = GetRenderpass(swapchain, imageIndex);
+    grfx::RenderPassPtr currentRenderPass = swapchain->GetRenderPass(imageIndex);
+    PPX_ASSERT_MSG(!currentRenderPass.IsNull(), "render pass object is null");
 
     // Transition image layout PRESENT->RENDER before the first renderpass
     frame.cmd->TransitionImageLayout(currentRenderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
 
-    // Record renderpass for scene
+    // Record commands for the scene using one renderpass
     frame.cmd->BeginRenderPass(currentRenderPass);
     RecordCommandBufferSkybox(frame);
     RecordCommandBufferSpheres(frame);
     frame.cmd->EndRenderPass();
 
-    // Record renderpass(es) for fullscreen quads
+    // Record commands for the fullscreen quads using one/multiple renderpasses
     uint32_t quadsCount       = pFullscreenQuadsCount->GetValue();
     bool     singleRenderpass = pFullscreenQuadsSingleRenderpass->GetValue();
     if (quadsCount > 0) {
         frame.cmd->BindGraphicsPipeline(mFullscreenQuads.pipeline);
         frame.cmd->BindVertexBuffers(1, &mFullscreenQuads.vertexBuffer, &mFullscreenQuads.vertexBinding.GetStride());
 
-        // Begin the first renderpass
-        currentRenderPass = GetRenderpass(swapchain, imageIndex);
+        // Begin the first renderpass used for quads
         frame.cmd->BeginRenderPass(currentRenderPass);
         for (size_t i = 0; i < quadsCount; i++) {
             RecordCommandBufferFullscreenQuad(frame, i);
@@ -680,10 +680,9 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainP
                 frame.cmd->TransitionImageLayout(currentRenderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_SHADER_RESOURCE);
                 frame.cmd->TransitionImageLayout(currentRenderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_RENDER_TARGET);
 
-                if (i == quadsCount - 1) { // For the last quad, do not begin another renderpass
+                if (i == (quadsCount - 1)) { // For the last quad, do not begin another renderpass
                     break;
                 }
-                currentRenderPass = GetRenderpass(swapchain, imageIndex);
                 frame.cmd->BeginRenderPass(currentRenderPass);
             }
         }
@@ -695,9 +694,10 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainP
     // Write end timestamp
     frame.cmd->WriteTimestamp(frame.timestampQuery, grfx::PIPELINE_STAGE_TOP_OF_PIPE_BIT, /* queryIndex = */ 1);
 
-    // Write renderpass for GUI
+    // Record commands for the GUI using one last renderpass
     if (GetSettings()->enableImGui) {
         currentRenderPass = swapchain->GetRenderPass(imageIndex, grfx::ATTACHMENT_LOAD_OP_LOAD);
+        PPX_ASSERT_MSG(!currentRenderPass.IsNull(), "render pass object is null");
         frame.cmd->BeginRenderPass(currentRenderPass);
         RecordCommandBufferGUI(frame);
         frame.cmd->EndRenderPass();
@@ -746,10 +746,13 @@ void GraphicsBenchmarkApp::RecordCommandBufferSpheres(PerFrame& frame)
     // Make `indicesPerDrawCall` multiple of 3 given that each consecutive three vertices (3*i + 0, 3*i + 1, 3*i + 2)
     // defines a single triangle primitive (PRIMITIVE_TOPOLOGY_TRIANGLE_LIST).
     indicesPerDrawCall -= indicesPerDrawCall % 3;
-    SphereData data    = {};
-    data.modelMatrix   = float4x4(1.0f);
-    data.ITModelMatrix = glm::inverse(glm::transpose(data.modelMatrix));
-    data.ambient       = float4(0.3f);
+    SphereData data                 = {};
+    data.modelMatrix                = float4x4(1.0f);
+    data.ITModelMatrix              = glm::inverse(glm::transpose(data.modelMatrix));
+    data.ambient                    = float4(0.3f);
+    data.cameraViewProjectionMatrix = mCamera.GetViewProjectionMatrix();
+    data.lightPosition              = float4(mLightPosition, 0.0f);
+    data.eyePosition                = float4(mCamera.GetEyePosition(), 0.0f);
 
     frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 1, /* set = */ 0, mAlbedoTexture.sampledImageView);
     frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 2, /* set = */ 0, mAlbedoTexture.sampler);
@@ -759,16 +762,13 @@ void GraphicsBenchmarkApp::RecordCommandBufferSpheres(PerFrame& frame)
     frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 6, /* set = */ 0, mMetalRoughnessTexture.sampler);
 
     for (uint32_t i = 0; i < currentDrawCallCount; i++) {
-        data.cameraViewProjectionMatrix = mCamera.GetViewProjectionMatrix();
-        data.lightPosition              = float4(mLightPosition, 0.0f);
-        data.eyePosition                = float4(mCamera.GetEyePosition(), 0.0f);
         mDrawCallUniformBuffers[i]->CopyFromSource(sizeof(data), &data);
 
         frame.cmd->PushGraphicsUniformBuffer(mSphere.pipelineInterface, /* binding = */ 0, /* set = */ 0, /* bufferOffset = */ 0, mDrawCallUniformBuffers[i]);
 
         uint32_t indexCount = indicesPerDrawCall;
         // Add the remaining indices to the last drawcall
-        if (i == currentDrawCallCount - 1) {
+        if (i == (currentDrawCallCount - 1)) {
             indexCount += (currentSphereCount * mSphereIndexCount - currentDrawCallCount * indicesPerDrawCall);
         }
         uint32_t firstIndex = i * indicesPerDrawCall;
@@ -802,11 +802,4 @@ void GraphicsBenchmarkApp::SetupShader(const std::filesystem::path& fileName, gr
     PPX_ASSERT_MSG(!bytecode.empty(), "shader bytecode load failed for " << kShaderBaseDir << " " << fileName);
     grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
     PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, ppShaderModule));
-}
-
-grfx::RenderPassPtr GraphicsBenchmarkApp::GetRenderpass(grfx::SwapchainPtr swapchain, uint32_t imageIndex)
-{
-    grfx::RenderPassPtr renderpass = swapchain->GetRenderPass(imageIndex);
-    PPX_ASSERT_MSG(!renderpass.IsNull(), "render pass object is null");
-    return renderpass;
 }
