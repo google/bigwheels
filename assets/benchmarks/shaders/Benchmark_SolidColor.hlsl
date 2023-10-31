@@ -16,7 +16,6 @@
 
 struct ColorParams
 {
-    uint32_t Seed;
     float3 Value;
 };
 
@@ -25,20 +24,7 @@ struct ColorParams
 #endif
 ConstantBuffer<ColorParams> Color : register(b0);
 
-// returns zigzag value between (0.5 ~ 1.0) in steps of 0.1 between consecutive seeds
-// this is chosen to try and reduce flashing effect when the slider is dragged slowly
-// but so that color difference is still visible to the eye between consecutive quads
-float intensity(uint32_t seed)
-{
-    //     index:   0,   1,   2,   3,   4,   5,   6,   7,   8,   9,   0...
-    // intensity: 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0...
-    float index = seed % 10;
-    float weight = step(index, 4.5f); // weight==0: 0~4; weight==1: 5~9
-    return (1.0f - weight)*(index / 10.0f) + weight*(1.0f - (index / 10.f));
-}
-
 float4 psmain(VSOutputPos input) : SV_TARGET
 {
-    float3 dimmedColor = intensity(Color.Seed) * Color.Value;
-    return float4(dimmedColor, 1.0f);
+    return float4(Color.Value, 1.0f);
 }

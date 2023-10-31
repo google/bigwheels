@@ -458,7 +458,7 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsPipelines()
 
     grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
     piCreateInfo.setCount                          = 0;
-    piCreateInfo.pushConstants.count               = sizeof(float3) + sizeof(uint32_t); // max size, color case
+    piCreateInfo.pushConstants.count               = sizeof(float3); // max size, color case
     piCreateInfo.pushConstants.binding             = 0;
     piCreateInfo.pushConstants.set                 = 0;
     PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mFullscreenQuads.pipelineInterface));
@@ -816,10 +816,20 @@ void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, si
         }
         case 1: {
             // Solid color
-            uint32_t colorQuadRandomSeed = (uint32_t)seed;
-            frame.cmd->PushGraphicsConstants(mFullscreenQuads.pipelineInterface, 1, &colorQuadRandomSeed);
+            // zigzag the intensity between (0.5 ~ 1.0) in steps of 0.1
+            //     index:   0,   1,   2,   3,   4,   5,   6,   7,   8,   9,   0...
+            // intensity: 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0...
+            float index = seed % 10;
+            float intensity;
+            if (index > 4.5) {
+                intensity = (index / 10.0f);
+            }
+            else {
+                intensity = (1.0f - (index / 10.f));
+            }
             float3 colorValues = kFullscreenQuadsColorsValues[pFullscreenQuadsColor->GetIndex()];
-            frame.cmd->PushGraphicsConstants(mFullscreenQuads.pipelineInterface, 3, &colorValues, 1);
+            colorValues *= intensity;
+            frame.cmd->PushGraphicsConstants(mFullscreenQuads.pipelineInterface, 3, &colorValues);
             break;
         }
     }
