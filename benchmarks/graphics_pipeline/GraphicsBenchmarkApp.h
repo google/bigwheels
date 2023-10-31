@@ -64,20 +64,20 @@ static constexpr std::array<const char*, 3> kAvailableLODs = {
 
 static constexpr uint32_t kMeshCount = kAvailableVbFormats.size() * kAvailableVertexAttrLayouts.size() * kAvailableLODs.size();
 
-static constexpr std::array<const char*, 6> kFullscreenQuadsColors = {
+static constexpr std::array<const char*, 2> kFullscreenQuadsType = {
     "Noise",
+    "Solid_Color"};
+
+static constexpr std::array<const char*, 4> kFullscreenQuadsColors = {
     "Red",
     "Blue",
     "Green",
-    "Black",
     "White"};
 
-static constexpr std::array<float3, 6> kFullscreenQuadsColorsValues = {
-    float3(0.0f, 0.0f, 0.0f),
+static constexpr std::array<float3, 4> kFullscreenQuadsColorsValues = {
     float3(1.0f, 0.0f, 0.0f),
     float3(0.0f, 0.0f, 1.0f),
     float3(0.0f, 1.0f, 0.0f),
-    float3(0.0f, 0.0f, 0.0f),
     float3(1.0f, 1.0f, 1.0f)};
 
 class GraphicsBenchmarkApp
@@ -159,9 +159,8 @@ private:
     uint64_t                                                      mGpuWorkDuration;
     grfx::ShaderModulePtr                                         mVSSkybox;
     grfx::ShaderModulePtr                                         mPSSkybox;
-    grfx::ShaderModulePtr                                         mVSNoise;
+    grfx::ShaderModulePtr                                         mVSQuads;
     grfx::ShaderModulePtr                                         mPSNoise;
-    grfx::ShaderModulePtr                                         mVSSolidColor;
     grfx::ShaderModulePtr                                         mPSSolidColor;
     Texture                                                       mSkyBoxTexture;
     Texture                                                       mAlbedoTexture;
@@ -189,6 +188,7 @@ private:
     std::shared_ptr<KnobSlider<int>>           pSphereInstanceCount;
     std::shared_ptr<KnobSlider<int>>           pDrawCallCount;
     std::shared_ptr<KnobSlider<int>>           pFullscreenQuadsCount;
+    std::shared_ptr<KnobDropdown<std::string>> pFullscreenQuadsType;
     std::shared_ptr<KnobDropdown<std::string>> pFullscreenQuadsColor;
     std::shared_ptr<KnobCheckbox>              pFullscreenQuadsSingleRenderpass;
     std::shared_ptr<KnobCheckbox>              pAlphaBlend;
@@ -227,6 +227,7 @@ private:
     // Processing changed state
     void ProcessInput();
     void ProcessKnobs();
+    void ProcessQuadsKnobs();
 
     // Drawing GUI
     void UpdateGUI();

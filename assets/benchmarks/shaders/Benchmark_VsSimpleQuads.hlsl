@@ -14,24 +14,9 @@
 
 #include "VsOutput.hlsli"
 
-struct RandomParams
+VSOutputPos vsmain(float4 Position : POSITION)
 {
-    uint32_t Seed;
-};
-
-#if defined(__spirv__)
-[[vk::push_constant]]
-#endif
-ConstantBuffer<RandomParams> Random : register(b0);
-
-float random(float2 st, uint32_t seed) {
-    float underOne = sin(float(seed) + 0.5f);
-    float2 randomVector = float2(15.0f + underOne, 15.0f - underOne);
-    return frac(cos(dot(st.xy, randomVector))*40000.0f);
-}
-
-float4 psmain(VSOutputPos input) : SV_TARGET
-{
-    float rnd = random(input.position.xy, Random.Seed);
-    return float4(rnd, rnd, rnd, 1.0f);
+	VSOutputPos result;
+	result.position = Position;
+	return result;
 }
