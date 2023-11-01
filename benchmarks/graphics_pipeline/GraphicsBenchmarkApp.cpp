@@ -507,11 +507,11 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsPipelines()
         gpCreateInfo.PS                                 = {mQuadsPs[i].Get(), "psmain"};
         gpCreateInfo.vertexInputState.bindingCount      = 1;
         gpCreateInfo.vertexInputState.bindings[0]       = mFullscreenQuads.vertexBinding;
-        gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+        gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
         gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
         gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CW;
-        gpCreateInfo.depthReadEnable                    = true;
+        gpCreateInfo.depthReadEnable                    = false;
         gpCreateInfo.depthWriteEnable                   = false;
         gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
         gpCreateInfo.outputState.renderTargetCount      = 1;
@@ -707,7 +707,7 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainP
     frame.cmd->SetScissors(GetScissor());
     frame.cmd->SetViewports(GetViewport());
 
-    grfx::RenderPassPtr currentRenderPass = swapchain->GetRenderPass(imageIndex);
+    grfx::RenderPassPtr currentRenderPass = swapchain->GetRenderPass(imageIndex, grfx::ATTACHMENT_LOAD_OP_DONT_CARE);
     PPX_ASSERT_MSG(!currentRenderPass.IsNull(), "render pass object is null");
 
     // Transition image layout PRESENT->RENDER before the first renderpass
