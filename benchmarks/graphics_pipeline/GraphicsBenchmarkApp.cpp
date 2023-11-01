@@ -458,7 +458,7 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsPipelines()
 
     grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
     piCreateInfo.setCount                          = 0;
-    piCreateInfo.pushConstants.count               = sizeof(float3); // max size, color case
+    piCreateInfo.pushConstants.count               = sizeof(float3) / sizeof(uint32_t); // max size, color case
     piCreateInfo.pushConstants.binding             = 0;
     piCreateInfo.pushConstants.set                 = 0;
     PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mFullscreenQuads.pipelineInterface));
