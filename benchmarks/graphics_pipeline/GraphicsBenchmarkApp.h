@@ -221,6 +221,7 @@ private:
     std::shared_ptr<KnobCheckbox>              pAlphaBlend;
     std::shared_ptr<KnobCheckbox>              pDepthTestWrite;
     std::shared_ptr<KnobCheckbox>              pEnableSkyBox;
+    std::shared_ptr<KnobCheckbox>              pEnableSpheres;
     std::shared_ptr<KnobCheckbox>              pAllTexturesTo1x1;
 
 private:
