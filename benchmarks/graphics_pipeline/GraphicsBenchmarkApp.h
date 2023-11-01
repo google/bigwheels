@@ -208,6 +208,7 @@ private:
     std::shared_ptr<KnobCheckbox>              pFullscreenQuadsSingleRenderpass;
     std::shared_ptr<KnobCheckbox>              pAlphaBlend;
     std::shared_ptr<KnobCheckbox>              pDepthTestWrite;
+    std::shared_ptr<KnobCheckbox>              pEnableSkyBox;
 
 private:
     // =====================================================================
