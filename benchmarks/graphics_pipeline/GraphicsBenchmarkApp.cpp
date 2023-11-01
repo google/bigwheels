@@ -651,7 +651,7 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainP
     frame.cmd->SetScissors(GetScissor());
     frame.cmd->SetViewports(GetViewport());
 
-    grfx::RenderPassPtr currentRenderPass = swapchain->GetRenderPass(imageIndex);
+    grfx::RenderPassPtr currentRenderPass = swapchain->GetRenderPass(imageIndex, grfx::ATTACHMENT_LOAD_OP_DONT_CARE);
     PPX_ASSERT_MSG(!currentRenderPass.IsNull(), "render pass object is null");
 
     // Transition image layout PRESENT->RENDER before the first renderpass
