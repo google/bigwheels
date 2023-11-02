@@ -33,6 +33,11 @@ void GraphicsBenchmarkApp::InitKnobs()
     pKnobPs->SetDisplayName("Pixel Shader");
     pKnobPs->SetFlagDescription("Select the pixel shader for the graphics pipeline.");
 
+    pAllTexturesToWhite = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("all-textures-to-white", false);
+    pAllTexturesToWhite->SetDisplayName("All Textures To White");
+    pAllTexturesToWhite->SetFlagDescription("Replace all sphere textures with a 1x1 white texture.");
+    pAllTexturesToWhite->SetIndent(1);
+
     pKnobLOD = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("LOD", 0, kAvailableLODs);
     pKnobLOD->SetDisplayName("Level of Detail (LOD)");
     pKnobLOD->SetFlagDescription("Select the Level of Detail (LOD) for the sphere mesh.");
@@ -259,6 +264,22 @@ void GraphicsBenchmarkApp::SetupSphereResources()
         samplerCreateInfo.minLod                  = 0;
         samplerCreateInfo.maxLod                  = FLT_MAX;
         PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &mMetalRoughnessTexture.sampler));
+    }
+    {
+        // 1x1 White Texture
+        grfx_util::ImageOptions options = grfx_util::ImageOptions().MipLevelCount(0);
+        PPX_CHECKED_CALL(grfx_util::CreateImageFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("benchmarks/textures/white_pixel.jpg"), &mWhitePixelTexture.image, options, true));
+
+        grfx::SampledImageViewCreateInfo viewCreateInfo = grfx::SampledImageViewCreateInfo::GuessFromImage(mWhitePixelTexture.image);
+        PPX_CHECKED_CALL(GetDevice()->CreateSampledImageView(&viewCreateInfo, &mWhitePixelTexture.sampledImageView));
+
+        grfx::SamplerCreateInfo samplerCreateInfo = {};
+        samplerCreateInfo.magFilter               = grfx::FILTER_NEAREST;
+        samplerCreateInfo.minFilter               = grfx::FILTER_NEAREST;
+        samplerCreateInfo.mipmapMode              = grfx::SAMPLER_MIPMAP_MODE_NEAREST;
+        samplerCreateInfo.minLod                  = 0.0f;
+        samplerCreateInfo.maxLod                  = 1.0f;
+        PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &mWhitePixelTexture.sampler));
     }
 
     // Uniform buffers
@@ -602,6 +623,9 @@ void GraphicsBenchmarkApp::ProcessKnobs()
         SetupSpheresPipelines();
     }
 
+    // Set Visibilities
+    pAllTexturesToWhite->SetVisible(pKnobPs->GetIndex() == static_cast<size_t>(SpherePS::SPHERE_PS_MEM_BOUND));
+
     ProcessQuadsKnobs();
 }
 
@@ -611,7 +635,7 @@ void GraphicsBenchmarkApp::ProcessQuadsKnobs()
     if (pFullscreenQuadsCount->GetValue() > 0) {
         pFullscreenQuadsType->SetVisible(true);
         pFullscreenQuadsSingleRenderpass->SetVisible(true);
-        if (pFullscreenQuadsType->GetIndex() == 1) {
+        if (pFullscreenQuadsType->GetIndex() == static_cast<size_t>(FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_SOLID_COLOR)) {
             pFullscreenQuadsColor->SetVisible(true);
         }
         else {
@@ -839,12 +863,22 @@ void GraphicsBenchmarkApp::RecordCommandBufferSpheres(PerFrame& frame)
     data.lightPosition              = float4(mLightPosition, 0.0f);
     data.eyePosition                = float4(mCamera.GetEyePosition(), 0.0f);
 
-    frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 1, /* set = */ 0, mAlbedoTexture.sampledImageView);
-    frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 2, /* set = */ 0, mAlbedoTexture.sampler);
-    frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 3, /* set = */ 0, mNormalMapTexture.sampledImageView);
-    frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 4, /* set = */ 0, mNormalMapTexture.sampler);
-    frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 5, /* set = */ 0, mMetalRoughnessTexture.sampledImageView);
-    frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 6, /* set = */ 0, mMetalRoughnessTexture.sampler);
+    if (pAllTexturesToWhite->GetValue()) {
+        frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 1, /* set = */ 0, mWhitePixelTexture.sampledImageView);
+        frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 2, /* set = */ 0, mWhitePixelTexture.sampler);
+        frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 3, /* set = */ 0, mWhitePixelTexture.sampledImageView);
+        frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 4, /* set = */ 0, mWhitePixelTexture.sampler);
+        frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 5, /* set = */ 0, mWhitePixelTexture.sampledImageView);
+        frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 6, /* set = */ 0, mWhitePixelTexture.sampler);
+    }
+    else {
+        frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 1, /* set = */ 0, mAlbedoTexture.sampledImageView);
+        frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 2, /* set = */ 0, mAlbedoTexture.sampler);
+        frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 3, /* set = */ 0, mNormalMapTexture.sampledImageView);
+        frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 4, /* set = */ 0, mNormalMapTexture.sampler);
+        frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 5, /* set = */ 0, mMetalRoughnessTexture.sampledImageView);
+        frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 6, /* set = */ 0, mMetalRoughnessTexture.sampler);
+    }
 
     for (uint32_t i = 0; i < currentDrawCallCount; i++) {
         mDrawCallUniformBuffers[i]->CopyFromSource(sizeof(data), &data);

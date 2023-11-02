@@ -47,6 +47,13 @@ static constexpr std::array<const char*, 3> kAvailablePsShaders = {
     "Benchmark_PsAluBound",
     "Benchmark_PsMemBound"};
 
+enum class SpherePS
+{
+    SPHERE_PS_SIMPLE,
+    SPHERE_PS_ALU_BOUND,
+    SPHERE_PS_MEM_BOUND
+};
+
 static constexpr std::array<const char*, 2> kAvailableVbFormats = {
     "Low_Precision",
     "High_Precision"};
@@ -179,6 +186,7 @@ private:
     Texture                                                       mAlbedoTexture;
     Texture                                                       mNormalMapTexture;
     Texture                                                       mMetalRoughnessTexture;
+    Texture                                                       mWhitePixelTexture;
     std::vector<grfx::BufferPtr>                                  mDrawCallUniformBuffers;
     std::array<grfx::GraphicsPipelinePtr, kPipelineCount>         mPipelines;
     std::array<grfx::MeshPtr, kMeshCount>                         mSphereMeshes;
@@ -209,6 +217,7 @@ private:
     std::shared_ptr<KnobCheckbox>              pAlphaBlend;
     std::shared_ptr<KnobCheckbox>              pDepthTestWrite;
     std::shared_ptr<KnobCheckbox>              pEnableSkyBox;
+    std::shared_ptr<KnobCheckbox>              pAllTexturesToWhite;
 
 private:
     // =====================================================================
