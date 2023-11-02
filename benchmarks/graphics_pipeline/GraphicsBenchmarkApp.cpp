@@ -57,10 +57,15 @@ void GraphicsBenchmarkApp::InitKnobs()
     pFullscreenQuadsCount->SetDisplayName("Number of Fullscreen Quads");
     pFullscreenQuadsCount->SetFlagDescription("Select the number of fullscreen quads to render.");
 
+    pFullscreenQuadsType = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("fullscreen-quads-type", 0, kFullscreenQuadsTypes);
+    pFullscreenQuadsType->SetDisplayName("Type");
+    pFullscreenQuadsType->SetFlagDescription("Select the type of the fullscreen quads (see --fullscreen-quads-count).");
+    pFullscreenQuadsType->SetIndent(1);
+
     pFullscreenQuadsColor = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("fullscreen-quads-color", 0, kFullscreenQuadsColors);
-    pFullscreenQuadsColor->SetDisplayName("Color of Fullscreen Quads");
-    pFullscreenQuadsColor->SetFlagDescription("Select the color for the fullscreen quads (see --fullscreen-quads-count).");
-    pFullscreenQuadsColor->SetIndent(1);
+    pFullscreenQuadsColor->SetDisplayName("Color");
+    pFullscreenQuadsColor->SetFlagDescription("Select the hue for the solid color fullscreen quads (see --fullscreen-quads-count).");
+    pFullscreenQuadsColor->SetIndent(2);
 
     pFullscreenQuadsSingleRenderpass = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("fullscreen-quads-single-renderpass", false);
     pFullscreenQuadsSingleRenderpass->SetDisplayName("Single Renderpass");
@@ -124,7 +129,7 @@ void GraphicsBenchmarkApp::Setup()
     // FULLSCREEN QUADS
     // =====================================================================
 
-    SetupFullscreenQuadsShaders();
+    SetupFullscreenQuadsResources();
     SetupFullscreenQuadsMeshes();
     SetupFullscreenQuadsPipelines();
 
@@ -162,7 +167,7 @@ void GraphicsBenchmarkApp::SetupSkyboxResources()
     // Images
     {
         grfx_util::ImageOptions options = grfx_util::ImageOptions().MipLevelCount(PPX_REMAINING_MIP_LEVELS);
-        PPX_CHECKED_CALL(grfx_util::CreateImageFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("basic/models/spheres/basic-skybox.jpg"), &mSkyBoxTexture.image, options, true));
+        PPX_CHECKED_CALL(grfx_util::CreateImageFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("benchmarks/textures/skybox.jpg"), &mSkyBoxTexture.image, options, true));
 
         grfx::SampledImageViewCreateInfo viewCreateInfo = grfx::SampledImageViewCreateInfo::GuessFromImage(mSkyBoxTexture.image);
         PPX_CHECKED_CALL(GetDevice()->CreateSampledImageView(&viewCreateInfo, &mSkyBoxTexture.sampledImageView));
@@ -299,12 +304,37 @@ void GraphicsBenchmarkApp::SetupSphereResources()
     }
 }
 
-void GraphicsBenchmarkApp::SetupFullscreenQuadsShaders()
+void GraphicsBenchmarkApp::SetupFullscreenQuadsResources()
 {
-    SetupShader("Benchmark_RandomNoise.vs", &mVSNoise);
-    SetupShader("Benchmark_RandomNoise.ps", &mPSNoise);
-    SetupShader("Benchmark_SolidColor.vs", &mVSSolidColor);
-    SetupShader("Benchmark_SolidColor.ps", &mPSSolidColor);
+    // Image for texture shader
+    {
+        grfx_util::ImageOptions options = grfx_util::ImageOptions().MipLevelCount(1);
+        PPX_CHECKED_CALL(grfx_util::CreateImageFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("benchmarks/textures/resolution.jpg"), &mQuadsTexture.image, options, true));
+
+        grfx::SampledImageViewCreateInfo viewCreateInfo = grfx::SampledImageViewCreateInfo::GuessFromImage(mQuadsTexture.image);
+        PPX_CHECKED_CALL(GetDevice()->CreateSampledImageView(&viewCreateInfo, &mQuadsTexture.sampledImageView));
+
+        grfx::SamplerCreateInfo samplerCreateInfo = {};
+        samplerCreateInfo.magFilter               = grfx::FILTER_NEAREST;
+        samplerCreateInfo.minFilter               = grfx::FILTER_NEAREST;
+        samplerCreateInfo.mipmapMode              = grfx::SAMPLER_MIPMAP_MODE_NEAREST;
+        samplerCreateInfo.minLod                  = 0.0f;
+        samplerCreateInfo.maxLod                  = 1.0f;
+        PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &mQuadsTexture.sampler));
+    }
+
+    // Descriptor set layout for texture shader
+    {
+        grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
+        layoutCreateInfo.flags.bits.pushable                 = true;
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(0, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mFullscreenQuads.descriptorSetLayout));
+    }
+
+    SetupShader("Benchmark_VsSimpleQuads.vs", &mVSQuads);
+    SetupShader("Benchmark_RandomNoise.ps", &mQuadsPs[0]);
+    SetupShader("Benchmark_SolidColor.ps", &mQuadsPs[1]);
+    SetupShader("Benchmark_Texture.ps", &mQuadsPs[2]);
 }
 
 void GraphicsBenchmarkApp::SetupSkyboxMeshes()
@@ -346,10 +376,11 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsMeshes()
 
     // clang-format off
     std::vector<float> vertexData = {
-        // position: one large triangle covering entire screen area
+        // one large triangle covering entire screen area
+        // position
         -1.0f, -1.0f, 0.0f,
         -1.0f,  3.0f, 0.0f,
-         3.0f, -1.0f, 0.0f
+         3.0f, -1.0f, 0.0f,
     };
     // clang-format on
     uint32_t dataSize = SizeInBytesU32(vertexData);
@@ -440,32 +471,55 @@ void GraphicsBenchmarkApp::SetupSpheresPipelines()
 
 void GraphicsBenchmarkApp::SetupFullscreenQuadsPipelines()
 {
-    bool isNoise = (pFullscreenQuadsColor->GetIndex() == 0);
+    // Noise
+    {
+        grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
+        piCreateInfo.setCount                          = 0;
+        piCreateInfo.pushConstants.count               = sizeof(uint32_t) / 4;
+        piCreateInfo.pushConstants.binding             = 0;
+        piCreateInfo.pushConstants.set                 = 0;
 
-    grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
-    piCreateInfo.setCount                          = 0;
-    piCreateInfo.pushConstants.count               = isNoise ? 1 : (sizeof(float3) / sizeof(uint32_t));
-    piCreateInfo.pushConstants.binding             = 0;
-    piCreateInfo.pushConstants.set                 = 0;
-    PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mFullscreenQuads.pipelineInterface));
+        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mQuadsPipelineInterfaces[0]));
+    }
+    // Solid color
+    {
+        grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
+        piCreateInfo.setCount                          = 0;
+        piCreateInfo.pushConstants.count               = sizeof(float3) / 4;
+        piCreateInfo.pushConstants.binding             = 0;
+        piCreateInfo.pushConstants.set                 = 0;
 
-    grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
-    gpCreateInfo.VS                                 = {isNoise ? mVSNoise.Get() : mVSSolidColor.Get(), "vsmain"};
-    gpCreateInfo.PS                                 = {isNoise ? mPSNoise.Get() : mPSSolidColor.Get(), "psmain"};
-    gpCreateInfo.vertexInputState.bindingCount      = 1;
-    gpCreateInfo.vertexInputState.bindings[0]       = mFullscreenQuads.vertexBinding;
-    gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-    gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
-    gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
-    gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CW;
-    gpCreateInfo.depthReadEnable                    = true;
-    gpCreateInfo.depthWriteEnable                   = false;
-    gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
-    gpCreateInfo.outputState.renderTargetCount      = 1;
-    gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
-    gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
-    gpCreateInfo.pPipelineInterface                 = mFullscreenQuads.pipelineInterface;
-    PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mFullscreenQuads.pipeline));
+        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mQuadsPipelineInterfaces[1]));
+    }
+    // Texture
+    {
+        grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
+        piCreateInfo.setCount                          = 1;
+        piCreateInfo.sets[0].set                       = 0;
+        piCreateInfo.sets[0].pLayout                   = mFullscreenQuads.descriptorSetLayout;
+
+        PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mQuadsPipelineInterfaces[2]));
+    }
+
+    for (size_t i = 0; i < kFullscreenQuadsTypes.size(); i++) {
+        grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
+        gpCreateInfo.VS                                 = {mVSQuads.Get(), "vsmain"};
+        gpCreateInfo.PS                                 = {mQuadsPs[i].Get(), "psmain"};
+        gpCreateInfo.vertexInputState.bindingCount      = 1;
+        gpCreateInfo.vertexInputState.bindings[0]       = mFullscreenQuads.vertexBinding;
+        gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
+        gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
+        gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CW;
+        gpCreateInfo.depthReadEnable                    = false;
+        gpCreateInfo.depthWriteEnable                   = false;
+        gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
+        gpCreateInfo.outputState.renderTargetCount      = 1;
+        gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
+        gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
+        gpCreateInfo.pPipelineInterface                 = mQuadsPipelineInterfaces[i];
+        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mQuadsPipelines[i]));
+    }
 }
 
 void GraphicsBenchmarkApp::MouseMove(int32_t x, int32_t y, int32_t dx, int32_t dy, uint32_t buttons)
@@ -522,8 +576,7 @@ void GraphicsBenchmarkApp::ProcessInput()
 
 void GraphicsBenchmarkApp::ProcessKnobs()
 {
-    bool rebuildSpherePipeline          = false;
-    bool rebuildFullscreenQuadsPipeline = false;
+    bool rebuildSpherePipeline = false;
 
     // TODO: Ideally, the `maxValue` of the drawcall-count slider knob should be changed at runtime.
     // Currently, the value of the drawcall-count is adjusted to the sphere-count in case the
@@ -540,30 +593,33 @@ void GraphicsBenchmarkApp::ProcessKnobs()
         rebuildSpherePipeline = true;
     }
 
-    if (pFullscreenQuadsColor->DigestUpdate()) {
-        rebuildFullscreenQuadsPipeline = true;
-    }
-
-    if (pFullscreenQuadsCount->DigestUpdate()) {
-        if (pFullscreenQuadsCount->GetValue() > 0) {
-            pFullscreenQuadsColor->SetVisible(true);
-            pFullscreenQuadsSingleRenderpass->SetVisible(true);
-        }
-        else {
-            pFullscreenQuadsColor->SetVisible(false);
-            pFullscreenQuadsSingleRenderpass->SetVisible(false);
-        }
-
-        rebuildFullscreenQuadsPipeline = true;
-    }
-
     // Rebuild pipelines
     if (rebuildSpherePipeline) {
         SetupSpheresPipelines();
     }
 
-    if (rebuildFullscreenQuadsPipeline) {
-        SetupFullscreenQuadsPipelines();
+    ProcessQuadsKnobs();
+}
+
+void GraphicsBenchmarkApp::ProcessQuadsKnobs()
+{
+    bool rebuildPipeline = false;
+
+    // Set Visibilities
+    if (pFullscreenQuadsCount->GetValue() > 0) {
+        pFullscreenQuadsType->SetVisible(true);
+        pFullscreenQuadsSingleRenderpass->SetVisible(true);
+        if (pFullscreenQuadsType->GetIndex() == 1) {
+            pFullscreenQuadsColor->SetVisible(true);
+        }
+        else {
+            pFullscreenQuadsColor->SetVisible(false);
+        }
+    }
+    else {
+        pFullscreenQuadsType->SetVisible(false);
+        pFullscreenQuadsSingleRenderpass->SetVisible(false);
+        pFullscreenQuadsColor->SetVisible(false);
     }
 }
 
@@ -651,7 +707,7 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainP
     frame.cmd->SetScissors(GetScissor());
     frame.cmd->SetViewports(GetViewport());
 
-    grfx::RenderPassPtr currentRenderPass = swapchain->GetRenderPass(imageIndex);
+    grfx::RenderPassPtr currentRenderPass = swapchain->GetRenderPass(imageIndex, grfx::ATTACHMENT_LOAD_OP_DONT_CARE);
     PPX_ASSERT_MSG(!currentRenderPass.IsNull(), "render pass object is null");
 
     // Transition image layout PRESENT->RENDER before the first renderpass
@@ -667,7 +723,7 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainP
     uint32_t quadsCount       = pFullscreenQuadsCount->GetValue();
     bool     singleRenderpass = pFullscreenQuadsSingleRenderpass->GetValue();
     if (quadsCount > 0) {
-        frame.cmd->BindGraphicsPipeline(mFullscreenQuads.pipeline);
+        frame.cmd->BindGraphicsPipeline(mQuadsPipelines[pFullscreenQuadsType->GetIndex()]);
         frame.cmd->BindVertexBuffers(1, &mFullscreenQuads.vertexBuffer, &mFullscreenQuads.vertexBinding.GetStride());
 
         // Begin the first renderpass used for quads
@@ -778,15 +834,33 @@ void GraphicsBenchmarkApp::RecordCommandBufferSpheres(PerFrame& frame)
 
 void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, size_t seed)
 {
-    if (pFullscreenQuadsColor->GetIndex() > 0) {
-        // Solid color
-        float3 colorValues = kFullscreenQuadsColorsValues[pFullscreenQuadsColor->GetIndex()];
-        frame.cmd->PushGraphicsConstants(mFullscreenQuads.pipelineInterface, 3, &colorValues);
-    }
-    else {
-        // Noise
-        uint32_t noiseQuadRandomSeed = (uint32_t)seed;
-        frame.cmd->PushGraphicsConstants(mFullscreenQuads.pipelineInterface, 1, &noiseQuadRandomSeed);
+    switch (pFullscreenQuadsType->GetIndex()) {
+        case static_cast<size_t>(FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_NOISE): {
+            uint32_t noiseQuadRandomSeed = (uint32_t)seed;
+            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[0], 1, &noiseQuadRandomSeed);
+            break;
+        }
+        case static_cast<size_t>(FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_SOLID_COLOR): {
+            // zigzag the intensity between (0.5 ~ 1.0) in steps of 0.1
+            //     index:   0,   1,   2,   3,   4,   5,   6,   7,   8,   9,   0...
+            // intensity: 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0...
+            float index = seed % 10;
+            float intensity;
+            if (index > 4.5) {
+                intensity = (index / 10.0f);
+            }
+            else {
+                intensity = (1.0f - (index / 10.f));
+            }
+            float3 colorValues = kFullscreenQuadsColorsValues[pFullscreenQuadsColor->GetIndex()];
+            colorValues *= intensity;
+            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[1], 3, &colorValues);
+            break;
+        }
+        case static_cast<size_t>(FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_TEXTURE): {
+            frame.cmd->PushGraphicsSampledImage(mQuadsPipelineInterfaces[2], /* binding = */ 0, /* set = */ 0, mQuadsTexture.sampledImageView);
+            break;
+        }
     }
     frame.cmd->Draw(3, 1, 0, 0);
 }

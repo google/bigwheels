@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "VsOutput.hlsli"
+
 struct ColorParams
 {
     float3 Value;
@@ -22,18 +24,7 @@ struct ColorParams
 #endif
 ConstantBuffer<ColorParams> Color : register(b0);
 
-struct VSOutput {
-    float4 position : SV_POSITION;
-};
-
-VSOutput vsmain(float4 Position : POSITION)
-{
-    VSOutput result;
-    result.position = Position;
-    return result;
-}
-
-float4 psmain(VSOutput input) : SV_TARGET
+float4 psmain(VSOutputPos input) : SV_TARGET
 {
     return float4(Color.Value, 1.0f);
 }

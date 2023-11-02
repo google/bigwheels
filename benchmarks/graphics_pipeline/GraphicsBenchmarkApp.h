@@ -64,20 +64,28 @@ static constexpr std::array<const char*, 3> kAvailableLODs = {
 
 static constexpr uint32_t kMeshCount = kAvailableVbFormats.size() * kAvailableVertexAttrLayouts.size() * kAvailableLODs.size();
 
-static constexpr std::array<const char*, 6> kFullscreenQuadsColors = {
+static constexpr std::array<const char*, 3> kFullscreenQuadsTypes = {
     "Noise",
+    "Solid_Color",
+    "Texture"};
+
+enum class FullscreenQuadsType
+{
+    FULLSCREEN_QUADS_TYPE_NOISE,
+    FULLSCREEN_QUADS_TYPE_SOLID_COLOR,
+    FULLSCREEN_QUADS_TYPE_TEXTURE
+};
+
+static constexpr std::array<const char*, 4> kFullscreenQuadsColors = {
     "Red",
     "Blue",
     "Green",
-    "Black",
     "White"};
 
-static constexpr std::array<float3, 6> kFullscreenQuadsColorsValues = {
-    float3(0.0f, 0.0f, 0.0f),
+static constexpr std::array<float3, 4> kFullscreenQuadsColorsValues = {
     float3(1.0f, 0.0f, 0.0f),
     float3(0.0f, 0.0f, 1.0f),
     float3(0.0f, 1.0f, 0.0f),
-    float3(0.0f, 0.0f, 0.0f),
     float3(1.0f, 1.0f, 1.0f)};
 
 class GraphicsBenchmarkApp
@@ -138,10 +146,9 @@ private:
 
     struct Entity2D
     {
-        grfx::BufferPtr            vertexBuffer;
-        grfx::VertexBinding        vertexBinding;
-        grfx::PipelineInterfacePtr pipelineInterface;
-        grfx::GraphicsPipelinePtr  pipeline;
+        grfx::BufferPtr              vertexBuffer;
+        grfx::VertexBinding          vertexBinding;
+        grfx::DescriptorSetLayoutPtr descriptorSetLayout;
     };
 
     struct LOD
@@ -152,33 +159,40 @@ private:
     };
 
 private:
-    std::vector<PerFrame>                                         mPerFrame;
-    FreeCamera                                                    mCamera;
-    float3                                                        mLightPosition = float3(10, 250, 10);
-    std::array<bool, TOTAL_KEY_COUNT>                             mPressedKeys   = {0};
-    uint64_t                                                      mGpuWorkDuration;
-    grfx::ShaderModulePtr                                         mVSSkybox;
-    grfx::ShaderModulePtr                                         mPSSkybox;
-    grfx::ShaderModulePtr                                         mVSNoise;
-    grfx::ShaderModulePtr                                         mPSNoise;
-    grfx::ShaderModulePtr                                         mVSSolidColor;
-    grfx::ShaderModulePtr                                         mPSSolidColor;
-    Texture                                                       mSkyBoxTexture;
+    std::vector<PerFrame>             mPerFrame;
+    FreeCamera                        mCamera;
+    float3                            mLightPosition       = float3(10, 250, 10);
+    std::array<bool, TOTAL_KEY_COUNT> mPressedKeys         = {0};
+    bool                              mEnableMouseMovement = true;
+    uint64_t                          mGpuWorkDuration;
+
+    // Skybox resources
+    Entity                mSkyBox;
+    grfx::ShaderModulePtr mVSSkybox;
+    grfx::ShaderModulePtr mPSSkybox;
+    Texture               mSkyBoxTexture;
+
+    // Spheres resources
+    Entity                                                        mSphere;
+    std::array<grfx::ShaderModulePtr, kAvailableVsShaders.size()> mVsShaders;
+    std::array<grfx::ShaderModulePtr, kAvailablePsShaders.size()> mPsShaders;
     Texture                                                       mAlbedoTexture;
     Texture                                                       mNormalMapTexture;
     Texture                                                       mMetalRoughnessTexture;
-    Entity                                                        mSkyBox;
-    Entity                                                        mSphere;
-    Entity2D                                                      mFullscreenQuads;
-    bool                                                          mEnableMouseMovement = true;
     std::vector<grfx::BufferPtr>                                  mDrawCallUniformBuffers;
     std::array<grfx::GraphicsPipelinePtr, kPipelineCount>         mPipelines;
-    std::array<grfx::ShaderModulePtr, kAvailableVsShaders.size()> mVsShaders;
-    std::array<grfx::ShaderModulePtr, kAvailablePsShaders.size()> mPsShaders;
     std::array<grfx::MeshPtr, kMeshCount>                         mSphereMeshes;
+    std::vector<LOD>                                              mSphereLODs;
     MultiDimensionalIndexer                                       mGraphicsPipelinesIndexer;
     MultiDimensionalIndexer                                       mMeshesIndexer;
-    std::vector<LOD>                                              mSphereLODs;
+
+    // Fullscreen quads resources
+    Entity2D                                                             mFullscreenQuads;
+    grfx::ShaderModulePtr                                                mVSQuads;
+    Texture                                                              mQuadsTexture;
+    std::array<grfx::GraphicsPipelinePtr, kFullscreenQuadsTypes.size()>  mQuadsPipelines;
+    std::array<grfx::PipelineInterfacePtr, kFullscreenQuadsTypes.size()> mQuadsPipelineInterfaces;
+    std::array<grfx::ShaderModulePtr, kFullscreenQuadsTypes.size()>      mQuadsPs;
 
 private:
     std::shared_ptr<KnobDropdown<std::string>> pKnobVs;
@@ -189,6 +203,7 @@ private:
     std::shared_ptr<KnobSlider<int>>           pSphereInstanceCount;
     std::shared_ptr<KnobSlider<int>>           pDrawCallCount;
     std::shared_ptr<KnobSlider<int>>           pFullscreenQuadsCount;
+    std::shared_ptr<KnobDropdown<std::string>> pFullscreenQuadsType;
     std::shared_ptr<KnobDropdown<std::string>> pFullscreenQuadsColor;
     std::shared_ptr<KnobCheckbox>              pFullscreenQuadsSingleRenderpass;
     std::shared_ptr<KnobCheckbox>              pAlphaBlend;
@@ -206,7 +221,7 @@ private:
     // - Shaders
     void SetupSkyboxResources();
     void SetupSphereResources();
-    void SetupFullscreenQuadsShaders();
+    void SetupFullscreenQuadsResources();
 
     // Setup vertex data:
     // - Geometries (or raw vertices & bindings), meshes
@@ -227,6 +242,7 @@ private:
     // Processing changed state
     void ProcessInput();
     void ProcessKnobs();
+    void ProcessQuadsKnobs();
 
     // Drawing GUI
     void UpdateGUI();
