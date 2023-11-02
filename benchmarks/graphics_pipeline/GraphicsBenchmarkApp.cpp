@@ -53,6 +53,18 @@ void GraphicsBenchmarkApp::InitKnobs()
     pDrawCallCount->SetDisplayName("DrawCall Count");
     pDrawCallCount->SetFlagDescription("Select the number of draw calls to be used to draw the `sphere-count` spheres.");
 
+    pAlphaBlend = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("alpha-blend", false);
+    pAlphaBlend->SetDisplayName("Alpha Blend");
+    pAlphaBlend->SetFlagDescription("Set blend mode of the spheres to alpha blending.");
+
+    pDepthTestWrite = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("depth-test-write", true);
+    pDepthTestWrite->SetDisplayName("Depth Test & Write");
+    pDepthTestWrite->SetFlagDescription("Enable depth test and depth write for spheres (Default: enabled).");
+
+    pEnableSkyBox = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("enable-skybox", true);
+    pEnableSkyBox->SetDisplayName("Enable SkyBox");
+    pEnableSkyBox->SetFlagDescription("Enable the SkyBox in the scene.");
+
     pFullscreenQuadsCount = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("fullscreen-quads-count", /* defaultValue = */ 0, /* minValue = */ 0, kMaxFullscreenQuadsCount);
     pFullscreenQuadsCount->SetDisplayName("Number of Fullscreen Quads");
     pFullscreenQuadsCount->SetFlagDescription("Select the number of fullscreen quads to render.");
@@ -71,14 +83,6 @@ void GraphicsBenchmarkApp::InitKnobs()
     pFullscreenQuadsSingleRenderpass->SetDisplayName("Single Renderpass");
     pFullscreenQuadsSingleRenderpass->SetFlagDescription("Render all fullscreen quads (see --fullscreen-quads-count) in a single renderpass.");
     pFullscreenQuadsSingleRenderpass->SetIndent(1);
-
-    pAlphaBlend = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("alpha-blend", false);
-    pAlphaBlend->SetDisplayName("Alpha Blend");
-    pAlphaBlend->SetFlagDescription("Set blend mode of the spheres to alpha blending.");
-
-    pDepthTestWrite = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("depth-test-write", true);
-    pDepthTestWrite->SetDisplayName("Depth Test & Write");
-    pDepthTestWrite->SetFlagDescription("Enable depth test and depth write for spheres (Default: enabled).");
 }
 
 void GraphicsBenchmarkApp::Config(ppx::ApplicationSettings& settings)
@@ -715,7 +719,9 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainP
 
     // Record commands for the scene using one renderpass
     frame.cmd->BeginRenderPass(currentRenderPass);
-    RecordCommandBufferSkybox(frame);
+    if (pEnableSkyBox->GetValue()) {
+        RecordCommandBufferSkybox(frame);
+    }
     RecordCommandBufferSpheres(frame);
     frame.cmd->EndRenderPass();
 
