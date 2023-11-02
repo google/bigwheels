@@ -33,10 +33,10 @@ void GraphicsBenchmarkApp::InitKnobs()
     pKnobPs->SetDisplayName("Pixel Shader");
     pKnobPs->SetFlagDescription("Select the pixel shader for the graphics pipeline.");
 
-    pAllTexturesToWhite = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("all-textures-to-white", false);
-    pAllTexturesToWhite->SetDisplayName("All Textures To White");
-    pAllTexturesToWhite->SetFlagDescription("Replace all sphere textures with a 1x1 white texture.");
-    pAllTexturesToWhite->SetIndent(1);
+    pAllTexturesTo1x1 = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("all-textures-to-1x1", false);
+    pAllTexturesTo1x1->SetDisplayName("All Textures To 1x1");
+    pAllTexturesTo1x1->SetFlagDescription("Replace all sphere textures with a 1x1 white texture.");
+    pAllTexturesTo1x1->SetIndent(1);
 
     pKnobLOD = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("LOD", 0, kAvailableLODs);
     pKnobLOD->SetDisplayName("Level of Detail (LOD)");
@@ -624,7 +624,7 @@ void GraphicsBenchmarkApp::ProcessKnobs()
     }
 
     // Set Visibilities
-    pAllTexturesToWhite->SetVisible(pKnobPs->GetIndex() == static_cast<size_t>(SpherePS::SPHERE_PS_MEM_BOUND));
+    pAllTexturesTo1x1->SetVisible(pKnobPs->GetIndex() == static_cast<size_t>(SpherePS::SPHERE_PS_MEM_BOUND));
 
     ProcessQuadsKnobs();
 }
@@ -863,7 +863,7 @@ void GraphicsBenchmarkApp::RecordCommandBufferSpheres(PerFrame& frame)
     data.lightPosition              = float4(mLightPosition, 0.0f);
     data.eyePosition                = float4(mCamera.GetEyePosition(), 0.0f);
 
-    if (pAllTexturesToWhite->GetValue()) {
+    if (pAllTexturesTo1x1->GetValue()) {
         frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 1, /* set = */ 0, mWhitePixelTexture.sampledImageView);
         frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 2, /* set = */ 0, mWhitePixelTexture.sampler);
         frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 3, /* set = */ 0, mWhitePixelTexture.sampledImageView);
