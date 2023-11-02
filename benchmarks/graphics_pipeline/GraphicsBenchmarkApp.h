@@ -64,10 +64,17 @@ static constexpr std::array<const char*, 3> kAvailableLODs = {
 
 static constexpr uint32_t kMeshCount = kAvailableVbFormats.size() * kAvailableVertexAttrLayouts.size() * kAvailableLODs.size();
 
-static constexpr std::array<const char*, 3> kFullscreenQuadsType = {
+static constexpr std::array<const char*, 3> kFullscreenQuadsTypes = {
     "Noise",
     "Solid_Color",
     "Texture"};
+
+enum class FullscreenQuadsType
+{
+    FULLSCREEN_QUADS_TYPE_NOISE,
+    FULLSCREEN_QUADS_TYPE_SOLID_COLOR,
+    FULLSCREEN_QUADS_TYPE_TEXTURE
+};
 
 static constexpr std::array<const char*, 4> kFullscreenQuadsColors = {
     "Red",
@@ -152,34 +159,40 @@ private:
     };
 
 private:
-    std::vector<PerFrame>                                               mPerFrame;
-    FreeCamera                                                          mCamera;
-    float3                                                              mLightPosition = float3(10, 250, 10);
-    std::array<bool, TOTAL_KEY_COUNT>                                   mPressedKeys   = {0};
-    uint64_t                                                            mGpuWorkDuration;
-    grfx::ShaderModulePtr                                               mVSSkybox;
-    grfx::ShaderModulePtr                                               mPSSkybox;
-    grfx::ShaderModulePtr                                               mVSQuads;
-    Texture                                                             mSkyBoxTexture;
-    Texture                                                             mAlbedoTexture;
-    Texture                                                             mNormalMapTexture;
-    Texture                                                             mMetalRoughnessTexture;
-    Texture                                                             mQuadsTexture;
-    Entity                                                              mSkyBox;
-    Entity                                                              mSphere;
-    Entity2D                                                            mFullscreenQuads;
-    bool                                                                mEnableMouseMovement = true;
-    std::vector<grfx::BufferPtr>                                        mDrawCallUniformBuffers;
-    std::array<grfx::GraphicsPipelinePtr, kPipelineCount>               mPipelines;
-    std::array<grfx::GraphicsPipelinePtr, kFullscreenQuadsType.size()>  mQuadsPipelines;
-    std::array<grfx::PipelineInterfacePtr, kFullscreenQuadsType.size()> mQuadsPipelineInterfaces;
-    std::array<grfx::ShaderModulePtr, kFullscreenQuadsType.size()>      mQuadsPs;
-    std::array<grfx::ShaderModulePtr, kAvailableVsShaders.size()>       mVsShaders;
-    std::array<grfx::ShaderModulePtr, kAvailablePsShaders.size()>       mPsShaders;
-    std::array<grfx::MeshPtr, kMeshCount>                               mSphereMeshes;
-    MultiDimensionalIndexer                                             mGraphicsPipelinesIndexer;
-    MultiDimensionalIndexer                                             mMeshesIndexer;
-    std::vector<LOD>                                                    mSphereLODs;
+    std::vector<PerFrame>             mPerFrame;
+    FreeCamera                        mCamera;
+    float3                            mLightPosition       = float3(10, 250, 10);
+    std::array<bool, TOTAL_KEY_COUNT> mPressedKeys         = {0};
+    bool                              mEnableMouseMovement = true;
+    uint64_t                          mGpuWorkDuration;
+
+    // Skybox resources
+    Entity                mSkyBox;
+    grfx::ShaderModulePtr mVSSkybox;
+    grfx::ShaderModulePtr mPSSkybox;
+    Texture               mSkyBoxTexture;
+
+    // Spheres resources
+    Entity                                                        mSphere;
+    std::array<grfx::ShaderModulePtr, kAvailableVsShaders.size()> mVsShaders;
+    std::array<grfx::ShaderModulePtr, kAvailablePsShaders.size()> mPsShaders;
+    Texture                                                       mAlbedoTexture;
+    Texture                                                       mNormalMapTexture;
+    Texture                                                       mMetalRoughnessTexture;
+    std::vector<grfx::BufferPtr>                                  mDrawCallUniformBuffers;
+    std::array<grfx::GraphicsPipelinePtr, kPipelineCount>         mPipelines;
+    std::array<grfx::MeshPtr, kMeshCount>                         mSphereMeshes;
+    std::vector<LOD>                                              mSphereLODs;
+    MultiDimensionalIndexer                                       mGraphicsPipelinesIndexer;
+    MultiDimensionalIndexer                                       mMeshesIndexer;
+
+    // Fullscreen quads resources
+    Entity2D                                                             mFullscreenQuads;
+    grfx::ShaderModulePtr                                                mVSQuads;
+    Texture                                                              mQuadsTexture;
+    std::array<grfx::GraphicsPipelinePtr, kFullscreenQuadsTypes.size()>  mQuadsPipelines;
+    std::array<grfx::PipelineInterfacePtr, kFullscreenQuadsTypes.size()> mQuadsPipelineInterfaces;
+    std::array<grfx::ShaderModulePtr, kFullscreenQuadsTypes.size()>      mQuadsPs;
 
 private:
     std::shared_ptr<KnobDropdown<std::string>> pKnobVs;

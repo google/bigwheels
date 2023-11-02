@@ -57,7 +57,7 @@ void GraphicsBenchmarkApp::InitKnobs()
     pFullscreenQuadsCount->SetDisplayName("Number of Fullscreen Quads");
     pFullscreenQuadsCount->SetFlagDescription("Select the number of fullscreen quads to render.");
 
-    pFullscreenQuadsType = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("fullscreen-quads-type", 0, kFullscreenQuadsType);
+    pFullscreenQuadsType = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("fullscreen-quads-type", 0, kFullscreenQuadsTypes);
     pFullscreenQuadsType->SetDisplayName("Type");
     pFullscreenQuadsType->SetFlagDescription("Select the type of the fullscreen quads (see --fullscreen-quads-count).");
     pFullscreenQuadsType->SetIndent(1);
@@ -501,7 +501,7 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsPipelines()
         PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mQuadsPipelineInterfaces[2]));
     }
 
-    for (size_t i = 0; i < kFullscreenQuadsType.size(); i++) {
+    for (size_t i = 0; i < kFullscreenQuadsTypes.size(); i++) {
         grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
         gpCreateInfo.VS                                 = {mVSQuads.Get(), "vsmain"};
         gpCreateInfo.PS                                 = {mQuadsPs[i].Get(), "psmain"};
@@ -835,14 +835,12 @@ void GraphicsBenchmarkApp::RecordCommandBufferSpheres(PerFrame& frame)
 void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, size_t seed)
 {
     switch (pFullscreenQuadsType->GetIndex()) {
-        case 0: {
-            // Noise
+        case static_cast<size_t>(FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_NOISE): {
             uint32_t noiseQuadRandomSeed = (uint32_t)seed;
             frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[0], 1, &noiseQuadRandomSeed);
             break;
         }
-        case 1: {
-            // Solid color
+        case static_cast<size_t>(FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_SOLID_COLOR): {
             // zigzag the intensity between (0.5 ~ 1.0) in steps of 0.1
             //     index:   0,   1,   2,   3,   4,   5,   6,   7,   8,   9,   0...
             // intensity: 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0...
@@ -859,8 +857,7 @@ void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, si
             frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[1], 3, &colorValues);
             break;
         }
-        case 2: {
-            // Texture
+        case static_cast<size_t>(FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_TEXTURE): {
             frame.cmd->PushGraphicsSampledImage(mQuadsPipelineInterfaces[2], /* binding = */ 0, /* set = */ 0, mQuadsTexture.sampledImageView);
             break;
         }
