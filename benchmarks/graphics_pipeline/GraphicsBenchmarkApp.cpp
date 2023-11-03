@@ -711,7 +711,7 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainP
     frame.cmd->SetScissors(GetScissor());
     frame.cmd->SetViewports(GetViewport());
 
-    grfx::RenderPassPtr currentRenderPass = swapchain->GetRenderPass(imageIndex, grfx::ATTACHMENT_LOAD_OP_DONT_CARE);
+    grfx::RenderPassPtr currentRenderPass = swapchain->GetRenderPass(imageIndex, grfx::ATTACHMENT_LOAD_OP_CLEAR);
     PPX_ASSERT_MSG(!currentRenderPass.IsNull(), "render pass object is null");
 
     // Transition image layout PRESENT->RENDER before the first renderpass
@@ -729,6 +729,7 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainP
     uint32_t quadsCount       = pFullscreenQuadsCount->GetValue();
     bool     singleRenderpass = pFullscreenQuadsSingleRenderpass->GetValue();
     if (quadsCount > 0) {
+        currentRenderPass = swapchain->GetRenderPass(imageIndex, grfx::ATTACHMENT_LOAD_OP_DONT_CARE);
         frame.cmd->BindGraphicsPipeline(mQuadsPipelines[pFullscreenQuadsType->GetIndex()]);
         frame.cmd->BindVertexBuffers(1, &mFullscreenQuads.vertexBuffer, &mFullscreenQuads.vertexBinding.GetStride());
 
