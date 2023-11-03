@@ -607,8 +607,6 @@ void GraphicsBenchmarkApp::ProcessKnobs()
 
 void GraphicsBenchmarkApp::ProcessQuadsKnobs()
 {
-    bool rebuildPipeline = false;
-
     // Set Visibilities
     if (pFullscreenQuadsCount->GetValue() > 0) {
         pFullscreenQuadsType->SetVisible(true);
