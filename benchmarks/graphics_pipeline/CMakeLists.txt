@@ -17,7 +17,16 @@ project(graphics_pipeline)
 
 add_samples_for_all_apis(
     NAME ${PROJECT_NAME}
-    SOURCES "main.cpp"
+    SOURCES 
+      "FreeCamera.h"
+      "FreeCamera.cpp"
+      "GraphicsBenchmarkApp.h"
+      "GraphicsBenchmarkApp.cpp"
+      "main.cpp"
+      "MultiDimensionalIndexer.h"
+      "MultiDimensionalIndexer.cpp"
+      "SphereMesh.h"
+      "SphereMesh.cpp"
     SHADER_DEPENDENCIES
       "shader_benchmark_vs_simple"
       "shader_benchmark_vs_alu_bound"
@@ -26,4 +35,6 @@ add_samples_for_all_apis(
       "shader_benchmark_ps_mem_bound"
       "shader_benchmark_random_noise"
       "shader_benchmark_skybox"
-      "shader_benchmark_solid_color")
+      "shader_benchmark_solid_color"
+      "shader_benchmark_texture"
+      "shader_benchmark_vs_simple_quads")
