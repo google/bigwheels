@@ -687,17 +687,41 @@ void GraphicsBenchmarkApp::DrawExtraInfo()
     GetGraphicsQueue()->GetTimestampFrequency(&frequency);
 
     ImGui::Columns(2);
-    const float gpuWorkDuration = static_cast<float>(mGpuWorkDuration / static_cast<double>(frequency)) * 1000.0f;
+    const float gpuWorkDurationInSec = static_cast<float>(mGpuWorkDuration / static_cast<double>(frequency));
+    const float gpuWorkDurationInMs  = gpuWorkDurationInSec * 1000.0f;
     ImGui::Text("GPU Work Duration");
     ImGui::NextColumn();
-    ImGui::Text("%f ms ", gpuWorkDuration);
+    ImGui::Text("%.2f ms ", gpuWorkDurationInMs);
     ImGui::NextColumn();
 
     ImGui::Columns(2);
     const float gpuFPS = static_cast<float>(frequency / static_cast<double>(mGpuWorkDuration));
     ImGui::Text("GPU FPS");
     ImGui::NextColumn();
-    ImGui::Text("%f fps ", gpuFPS);
+    ImGui::Text("%.2f fps ", gpuFPS);
+    ImGui::NextColumn();
+
+    const uint32_t width  = GetSwapchain()->GetWidth();
+    const uint32_t height = GetSwapchain()->GetHeight();
+    ImGui::Columns(2);
+    ImGui::Text("Swapchain resolution");
+    ImGui::NextColumn();
+    ImGui::Text("%d x %d", width, height);
+    ImGui::NextColumn();
+
+    const uint32_t quad_count    = pFullscreenQuadsCount->GetValue();
+    const float    dataWriteInGb = (static_cast<float>(width) * static_cast<float>(height) * 4.f * quad_count) / (1024.f * 1024.f * 1024.f);
+    ImGui::Columns(2);
+    ImGui::Text("Write Data");
+    ImGui::NextColumn();
+    ImGui::Text("%.2f GB", dataWriteInGb);
+    ImGui::NextColumn();
+
+    const float bandwidth = dataWriteInGb / gpuWorkDurationInSec;
+    ImGui::Columns(2);
+    ImGui::Text("Write Bandwidth");
+    ImGui::NextColumn();
+    ImGui::Text("%.2f GB/s", bandwidth);
     ImGui::NextColumn();
 }
 
