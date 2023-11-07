@@ -47,6 +47,13 @@ static constexpr std::array<const char*, 3> kAvailablePsShaders = {
     "Benchmark_PsAluBound",
     "Benchmark_PsMemBound"};
 
+enum class SpherePS
+{
+    SPHERE_PS_SIMPLE,
+    SPHERE_PS_ALU_BOUND,
+    SPHERE_PS_MEM_BOUND
+};
+
 static constexpr std::array<const char*, 2> kAvailableVbFormats = {
     "Low_Precision",
     "High_Precision"};
@@ -128,13 +135,6 @@ private:
         grfx::QueryPtr         timestampQuery;
     };
 
-    struct Texture
-    {
-        grfx::ImagePtr            image;
-        grfx::SampledImageViewPtr sampledImageView;
-        grfx::SamplerPtr          sampler;
-    };
-
     struct Entity
     {
         grfx::MeshPtr                mesh;
@@ -165,20 +165,22 @@ private:
     std::array<bool, TOTAL_KEY_COUNT> mPressedKeys         = {0};
     bool                              mEnableMouseMovement = true;
     uint64_t                          mGpuWorkDuration;
+    grfx::SamplerPtr                  mLinearSampler;
 
     // Skybox resources
     Entity                mSkyBox;
     grfx::ShaderModulePtr mVSSkybox;
     grfx::ShaderModulePtr mPSSkybox;
-    Texture               mSkyBoxTexture;
+    grfx::TexturePtr      mSkyBoxTexture;
 
     // Spheres resources
     Entity                                                        mSphere;
     std::array<grfx::ShaderModulePtr, kAvailableVsShaders.size()> mVsShaders;
     std::array<grfx::ShaderModulePtr, kAvailablePsShaders.size()> mPsShaders;
-    Texture                                                       mAlbedoTexture;
-    Texture                                                       mNormalMapTexture;
-    Texture                                                       mMetalRoughnessTexture;
+    grfx::TexturePtr                                              mAlbedoTexture;
+    grfx::TexturePtr                                              mNormalMapTexture;
+    grfx::TexturePtr                                              mMetalRoughnessTexture;
+    grfx::TexturePtr                                              mWhitePixelTexture;
     std::vector<grfx::BufferPtr>                                  mDrawCallUniformBuffers;
     std::array<grfx::GraphicsPipelinePtr, kPipelineCount>         mPipelines;
     std::array<grfx::MeshPtr, kMeshCount>                         mSphereMeshes;
@@ -189,7 +191,7 @@ private:
     // Fullscreen quads resources
     Entity2D                                                             mFullscreenQuads;
     grfx::ShaderModulePtr                                                mVSQuads;
-    Texture                                                              mQuadsTexture;
+    grfx::TexturePtr                                                     mQuadsTexture;
     std::array<grfx::GraphicsPipelinePtr, kFullscreenQuadsTypes.size()>  mQuadsPipelines;
     std::array<grfx::PipelineInterfacePtr, kFullscreenQuadsTypes.size()> mQuadsPipelineInterfaces;
     std::array<grfx::ShaderModulePtr, kFullscreenQuadsTypes.size()>      mQuadsPs;
@@ -209,6 +211,7 @@ private:
     std::shared_ptr<KnobCheckbox>              pAlphaBlend;
     std::shared_ptr<KnobCheckbox>              pDepthTestWrite;
     std::shared_ptr<KnobCheckbox>              pEnableSkyBox;
+    std::shared_ptr<KnobCheckbox>              pAllTexturesTo1x1;
 
 private:
     // =====================================================================

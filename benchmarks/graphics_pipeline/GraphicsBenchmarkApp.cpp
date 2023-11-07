@@ -33,6 +33,11 @@ void GraphicsBenchmarkApp::InitKnobs()
     pKnobPs->SetDisplayName("Pixel Shader");
     pKnobPs->SetFlagDescription("Select the pixel shader for the graphics pipeline.");
 
+    pAllTexturesTo1x1 = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("all-textures-to-1x1", false);
+    pAllTexturesTo1x1->SetDisplayName("All Textures To 1x1");
+    pAllTexturesTo1x1->SetFlagDescription("Replace all sphere textures with a 1x1 white texture.");
+    pAllTexturesTo1x1->SetIndent(1);
+
     pKnobLOD = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("LOD", 0, kAvailableLODs);
     pKnobLOD->SetDisplayName("Level of Detail (LOD)");
     pKnobLOD->SetFlagDescription("Select the Level of Detail (LOD) for the sphere mesh.");
@@ -120,6 +125,16 @@ void GraphicsBenchmarkApp::Setup()
         mGraphicsPipelinesIndexer.AddDimension(kAvailableVbFormats.size());
         mGraphicsPipelinesIndexer.AddDimension(kAvailableVertexAttrLayouts.size());
     }
+    // Sampler
+    {
+        grfx::SamplerCreateInfo samplerCreateInfo = {};
+        samplerCreateInfo.magFilter               = grfx::FILTER_LINEAR;
+        samplerCreateInfo.minFilter               = grfx::FILTER_LINEAR;
+        samplerCreateInfo.mipmapMode              = grfx::SAMPLER_MIPMAP_MODE_LINEAR;
+        samplerCreateInfo.minLod                  = 0;
+        samplerCreateInfo.maxLod                  = FLT_MAX;
+        PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &mLinearSampler));
+    }
 
     SetupSkyboxResources();
     SetupSkyboxMeshes();
@@ -168,21 +183,11 @@ void GraphicsBenchmarkApp::Setup()
 
 void GraphicsBenchmarkApp::SetupSkyboxResources()
 {
-    // Images
+    // Textures
     {
-        grfx_util::ImageOptions options = grfx_util::ImageOptions().MipLevelCount(PPX_REMAINING_MIP_LEVELS);
-        PPX_CHECKED_CALL(grfx_util::CreateImageFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("benchmarks/textures/skybox.jpg"), &mSkyBoxTexture.image, options, true));
-
-        grfx::SampledImageViewCreateInfo viewCreateInfo = grfx::SampledImageViewCreateInfo::GuessFromImage(mSkyBoxTexture.image);
-        PPX_CHECKED_CALL(GetDevice()->CreateSampledImageView(&viewCreateInfo, &mSkyBoxTexture.sampledImageView));
-
-        grfx::SamplerCreateInfo samplerCreateInfo = {};
-        samplerCreateInfo.magFilter               = grfx::FILTER_LINEAR;
-        samplerCreateInfo.minFilter               = grfx::FILTER_LINEAR;
-        samplerCreateInfo.mipmapMode              = grfx::SAMPLER_MIPMAP_MODE_LINEAR;
-        samplerCreateInfo.minLod                  = 0;
-        samplerCreateInfo.maxLod                  = FLT_MAX;
-        PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &mSkyBoxTexture.sampler));
+        // Albedo
+        grfx_util::TextureOptions options = grfx_util::TextureOptions().MipLevelCount(PPX_REMAINING_MIP_LEVELS);
+        PPX_CHECKED_CALL(CreateTextureFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("benchmarks/textures/skybox.jpg"), &mSkyBoxTexture, options));
     }
 
     // Uniform buffers
@@ -211,54 +216,17 @@ void GraphicsBenchmarkApp::SetupSkyboxResources()
 
 void GraphicsBenchmarkApp::SetupSphereResources()
 {
-    // Images
+    // Textures
     {
-        // Albedo
-        grfx_util::ImageOptions options = grfx_util::ImageOptions().MipLevelCount(PPX_REMAINING_MIP_LEVELS);
-        PPX_CHECKED_CALL(grfx_util::CreateImageFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("basic/models/altimeter/albedo.png"), &mAlbedoTexture.image, options, true));
-
-        grfx::SampledImageViewCreateInfo viewCreateInfo = grfx::SampledImageViewCreateInfo::GuessFromImage(mAlbedoTexture.image);
-        PPX_CHECKED_CALL(GetDevice()->CreateSampledImageView(&viewCreateInfo, &mAlbedoTexture.sampledImageView));
-
-        grfx::SamplerCreateInfo samplerCreateInfo = {};
-        samplerCreateInfo.magFilter               = grfx::FILTER_LINEAR;
-        samplerCreateInfo.minFilter               = grfx::FILTER_LINEAR;
-        samplerCreateInfo.mipmapMode              = grfx::SAMPLER_MIPMAP_MODE_LINEAR;
-        samplerCreateInfo.minLod                  = 0;
-        samplerCreateInfo.maxLod                  = FLT_MAX;
-        PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &mAlbedoTexture.sampler));
+        // Altimeter textures
+        grfx_util::TextureOptions options = grfx_util::TextureOptions().MipLevelCount(PPX_REMAINING_MIP_LEVELS);
+        PPX_CHECKED_CALL(CreateTextureFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("basic/models/altimeter/albedo.png"), &mAlbedoTexture, options));
+        PPX_CHECKED_CALL(CreateTextureFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("basic/models/altimeter/normal.png"), &mNormalMapTexture, options));
+        PPX_CHECKED_CALL(CreateTextureFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("basic/models/altimeter/metalness-roughness.png"), &mMetalRoughnessTexture, options));
     }
     {
-        // NormalMap
-        grfx_util::ImageOptions options = grfx_util::ImageOptions().MipLevelCount(PPX_REMAINING_MIP_LEVELS);
-        PPX_CHECKED_CALL(grfx_util::CreateImageFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("basic/models/altimeter/normal.png"), &mNormalMapTexture.image, options, true));
-
-        grfx::SampledImageViewCreateInfo viewCreateInfo = grfx::SampledImageViewCreateInfo::GuessFromImage(mNormalMapTexture.image);
-        PPX_CHECKED_CALL(GetDevice()->CreateSampledImageView(&viewCreateInfo, &mNormalMapTexture.sampledImageView));
-
-        grfx::SamplerCreateInfo samplerCreateInfo = {};
-        samplerCreateInfo.magFilter               = grfx::FILTER_LINEAR;
-        samplerCreateInfo.minFilter               = grfx::FILTER_LINEAR;
-        samplerCreateInfo.mipmapMode              = grfx::SAMPLER_MIPMAP_MODE_LINEAR;
-        samplerCreateInfo.minLod                  = 0;
-        samplerCreateInfo.maxLod                  = FLT_MAX;
-        PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &mNormalMapTexture.sampler));
-    }
-    {
-        // MetalRoughness
-        grfx_util::ImageOptions options = grfx_util::ImageOptions().MipLevelCount(PPX_REMAINING_MIP_LEVELS);
-        PPX_CHECKED_CALL(grfx_util::CreateImageFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("basic/models/altimeter/metalness-roughness.png"), &mMetalRoughnessTexture.image, options, true));
-
-        grfx::SampledImageViewCreateInfo viewCreateInfo = grfx::SampledImageViewCreateInfo::GuessFromImage(mMetalRoughnessTexture.image);
-        PPX_CHECKED_CALL(GetDevice()->CreateSampledImageView(&viewCreateInfo, &mMetalRoughnessTexture.sampledImageView));
-
-        grfx::SamplerCreateInfo samplerCreateInfo = {};
-        samplerCreateInfo.magFilter               = grfx::FILTER_LINEAR;
-        samplerCreateInfo.minFilter               = grfx::FILTER_LINEAR;
-        samplerCreateInfo.mipmapMode              = grfx::SAMPLER_MIPMAP_MODE_LINEAR;
-        samplerCreateInfo.minLod                  = 0;
-        samplerCreateInfo.maxLod                  = FLT_MAX;
-        PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &mMetalRoughnessTexture.sampler));
+        // 1x1 White Texture
+        PPX_CHECKED_CALL(grfx_util::CreateTexture1x1<uint8_t>(GetDevice()->GetGraphicsQueue(), {255, 255, 255, 255}, &mWhitePixelTexture));
     }
 
     // Uniform buffers
@@ -310,21 +278,11 @@ void GraphicsBenchmarkApp::SetupSphereResources()
 
 void GraphicsBenchmarkApp::SetupFullscreenQuadsResources()
 {
-    // Image for texture shader
+    // Textures
     {
-        grfx_util::ImageOptions options = grfx_util::ImageOptions().MipLevelCount(1);
-        PPX_CHECKED_CALL(grfx_util::CreateImageFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("benchmarks/textures/resolution.jpg"), &mQuadsTexture.image, options, true));
-
-        grfx::SampledImageViewCreateInfo viewCreateInfo = grfx::SampledImageViewCreateInfo::GuessFromImage(mQuadsTexture.image);
-        PPX_CHECKED_CALL(GetDevice()->CreateSampledImageView(&viewCreateInfo, &mQuadsTexture.sampledImageView));
-
-        grfx::SamplerCreateInfo samplerCreateInfo = {};
-        samplerCreateInfo.magFilter               = grfx::FILTER_NEAREST;
-        samplerCreateInfo.minFilter               = grfx::FILTER_NEAREST;
-        samplerCreateInfo.mipmapMode              = grfx::SAMPLER_MIPMAP_MODE_NEAREST;
-        samplerCreateInfo.minLod                  = 0.0f;
-        samplerCreateInfo.maxLod                  = 1.0f;
-        PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &mQuadsTexture.sampler));
+        // Large resolution image
+        grfx_util::TextureOptions options = grfx_util::TextureOptions().MipLevelCount(1);
+        PPX_CHECKED_CALL(CreateTextureFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("benchmarks/textures/resolution.jpg"), &mQuadsTexture, options));
     }
 
     // Descriptor set layout for texture shader
@@ -602,6 +560,9 @@ void GraphicsBenchmarkApp::ProcessKnobs()
         SetupSpheresPipelines();
     }
 
+    // Set Visibilities
+    pAllTexturesTo1x1->SetVisible(pKnobPs->GetIndex() == static_cast<size_t>(SpherePS::SPHERE_PS_MEM_BOUND));
+
     ProcessQuadsKnobs();
 }
 
@@ -611,7 +572,7 @@ void GraphicsBenchmarkApp::ProcessQuadsKnobs()
     if (pFullscreenQuadsCount->GetValue() > 0) {
         pFullscreenQuadsType->SetVisible(true);
         pFullscreenQuadsSingleRenderpass->SetVisible(true);
-        if (pFullscreenQuadsType->GetIndex() == 1) {
+        if (pFullscreenQuadsType->GetIndex() == static_cast<size_t>(FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_SOLID_COLOR)) {
             pFullscreenQuadsColor->SetVisible(true);
         }
         else {
@@ -808,8 +769,8 @@ void GraphicsBenchmarkApp::RecordCommandBufferSkybox(PerFrame& frame)
         mSkyBox.uniformBuffer->CopyFromSource(sizeof(data), &data);
 
         frame.cmd->PushGraphicsUniformBuffer(mSkyBox.pipelineInterface, /* binding = */ 0, /* set = */ 0, /* bufferOffset = */ 0, mSkyBox.uniformBuffer);
-        frame.cmd->PushGraphicsSampledImage(mSkyBox.pipelineInterface, /* binding = */ 1, /* set = */ 0, mSkyBoxTexture.sampledImageView);
-        frame.cmd->PushGraphicsSampler(mSkyBox.pipelineInterface, /* binding = */ 2, /* set = */ 0, mSkyBoxTexture.sampler);
+        frame.cmd->PushGraphicsSampledImage(mSkyBox.pipelineInterface, /* binding = */ 1, /* set = */ 0, mSkyBoxTexture->GetSampledImageView());
+        frame.cmd->PushGraphicsSampler(mSkyBox.pipelineInterface, /* binding = */ 2, /* set = */ 0, mLinearSampler);
     }
     frame.cmd->DrawIndexed(mSkyBox.mesh->GetIndexCount());
 }
@@ -839,12 +800,20 @@ void GraphicsBenchmarkApp::RecordCommandBufferSpheres(PerFrame& frame)
     data.lightPosition              = float4(mLightPosition, 0.0f);
     data.eyePosition                = float4(mCamera.GetEyePosition(), 0.0f);
 
-    frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 1, /* set = */ 0, mAlbedoTexture.sampledImageView);
-    frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 2, /* set = */ 0, mAlbedoTexture.sampler);
-    frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 3, /* set = */ 0, mNormalMapTexture.sampledImageView);
-    frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 4, /* set = */ 0, mNormalMapTexture.sampler);
-    frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 5, /* set = */ 0, mMetalRoughnessTexture.sampledImageView);
-    frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 6, /* set = */ 0, mMetalRoughnessTexture.sampler);
+    frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 2, /* set = */ 0, mLinearSampler);
+    frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 4, /* set = */ 0, mLinearSampler);
+    frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 6, /* set = */ 0, mLinearSampler);
+
+    if (pAllTexturesTo1x1->GetValue()) {
+        frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 1, /* set = */ 0, mWhitePixelTexture->GetSampledImageView());
+        frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 3, /* set = */ 0, mWhitePixelTexture->GetSampledImageView());
+        frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 5, /* set = */ 0, mWhitePixelTexture->GetSampledImageView());
+    }
+    else {
+        frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 1, /* set = */ 0, mAlbedoTexture->GetSampledImageView());
+        frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 3, /* set = */ 0, mNormalMapTexture->GetSampledImageView());
+        frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 5, /* set = */ 0, mMetalRoughnessTexture->GetSampledImageView());
+    }
 
     for (uint32_t i = 0; i < currentDrawCallCount; i++) {
         mDrawCallUniformBuffers[i]->CopyFromSource(sizeof(data), &data);
@@ -887,7 +856,7 @@ void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, si
             break;
         }
         case static_cast<size_t>(FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_TEXTURE): {
-            frame.cmd->PushGraphicsSampledImage(mQuadsPipelineInterfaces[2], /* binding = */ 0, /* set = */ 0, mQuadsTexture.sampledImageView);
+            frame.cmd->PushGraphicsSampledImage(mQuadsPipelineInterfaces[2], /* binding = */ 0, /* set = */ 0, mQuadsTexture->GetSampledImageView());
             break;
         }
     }
