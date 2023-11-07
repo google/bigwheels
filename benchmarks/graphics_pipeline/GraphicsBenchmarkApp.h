@@ -165,7 +165,6 @@ private:
     std::array<bool, TOTAL_KEY_COUNT> mPressedKeys         = {0};
     bool                              mEnableMouseMovement = true;
     uint64_t                          mGpuWorkDuration;
-    grfx::SamplerPtr                  mNearestSampler;
     grfx::SamplerPtr                  mLinearSampler;
 
     // Skybox resources

@@ -125,7 +125,7 @@ void GraphicsBenchmarkApp::Setup()
         mGraphicsPipelinesIndexer.AddDimension(kAvailableVbFormats.size());
         mGraphicsPipelinesIndexer.AddDimension(kAvailableVertexAttrLayouts.size());
     }
-    // Samplers
+    // Sampler
     {
         grfx::SamplerCreateInfo samplerCreateInfo = {};
         samplerCreateInfo.magFilter               = grfx::FILTER_LINEAR;
@@ -134,14 +134,6 @@ void GraphicsBenchmarkApp::Setup()
         samplerCreateInfo.minLod                  = 0;
         samplerCreateInfo.maxLod                  = FLT_MAX;
         PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &mLinearSampler));
-
-        samplerCreateInfo            = {};
-        samplerCreateInfo.magFilter  = grfx::FILTER_NEAREST;
-        samplerCreateInfo.minFilter  = grfx::FILTER_NEAREST;
-        samplerCreateInfo.mipmapMode = grfx::SAMPLER_MIPMAP_MODE_NEAREST;
-        samplerCreateInfo.minLod     = 0.0f;
-        samplerCreateInfo.maxLod     = 1.0f;
-        PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &mNearestSampler));
     }
 
     SetupSkyboxResources();
@@ -808,21 +800,19 @@ void GraphicsBenchmarkApp::RecordCommandBufferSpheres(PerFrame& frame)
     data.lightPosition              = float4(mLightPosition, 0.0f);
     data.eyePosition                = float4(mCamera.GetEyePosition(), 0.0f);
 
+    frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 2, /* set = */ 0, mLinearSampler);
+    frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 4, /* set = */ 0, mLinearSampler);
+    frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 6, /* set = */ 0, mLinearSampler);
+
     if (pAllTexturesTo1x1->GetValue()) {
         frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 1, /* set = */ 0, mWhitePixelTexture->GetSampledImageView());
-        frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 2, /* set = */ 0, mNearestSampler);
         frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 3, /* set = */ 0, mWhitePixelTexture->GetSampledImageView());
-        frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 4, /* set = */ 0, mNearestSampler);
         frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 5, /* set = */ 0, mWhitePixelTexture->GetSampledImageView());
-        frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 6, /* set = */ 0, mNearestSampler);
     }
     else {
         frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 1, /* set = */ 0, mAlbedoTexture->GetSampledImageView());
-        frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 2, /* set = */ 0, mLinearSampler);
         frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 3, /* set = */ 0, mNormalMapTexture->GetSampledImageView());
-        frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 4, /* set = */ 0, mLinearSampler);
         frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 5, /* set = */ 0, mMetalRoughnessTexture->GetSampledImageView());
-        frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 6, /* set = */ 0, mLinearSampler);
     }
 
     for (uint32_t i = 0; i < currentDrawCallCount; i++) {
