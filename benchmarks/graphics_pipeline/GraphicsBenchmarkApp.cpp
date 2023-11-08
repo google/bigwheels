@@ -99,6 +99,12 @@ void GraphicsBenchmarkApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.api                   = kApi;
     settings.grfx.enableDebug           = false;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
+#if defined(PPX_BUILD_XR)
+    // XR specific settings
+    settings.grfx.pacedFrameRate   = 0;
+    settings.xr.enable             = false; // Change this to true to enable the XR mode
+    settings.xr.enableDebugCapture = false;
+#endif
 }
 
 void GraphicsBenchmarkApp::Setup()
@@ -176,6 +182,14 @@ void GraphicsBenchmarkApp::Setup()
         queryCreateInfo.type                  = grfx::QUERY_TYPE_TIMESTAMP;
         queryCreateInfo.count                 = 2;
         PPX_CHECKED_CALL(GetDevice()->CreateQuery(&queryCreateInfo, &frame.timestampQuery));
+
+#if defined(PPX_BUILD_XR)
+        // For XR, we need to render the UI into a separate composition layer with a different swapchain
+        if (IsXrEnabled()) {
+            PPX_CHECKED_CALL(GetGraphicsQueue()->CreateCommandBuffer(&frame.uiCmd));
+            PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &frame.uiRenderCompleteFence));
+        }
+#endif
 
         mPerFrame.push_back(frame);
     }
@@ -586,14 +600,80 @@ void GraphicsBenchmarkApp::ProcessQuadsKnobs()
     }
 }
 
+#if defined(PPX_BUILD_XR)
+void GraphicsBenchmarkApp::RecordAndSubmitCommandBufferGUIXR(PerFrame& frame)
+{
+    uint32_t           imageIndex  = UINT32_MAX;
+    grfx::SwapchainPtr uiSwapchain = GetUISwapchain();
+    PPX_CHECKED_CALL(uiSwapchain->AcquireNextImage(UINT64_MAX, nullptr, nullptr, &imageIndex));
+    PPX_CHECKED_CALL(frame.uiRenderCompleteFence->WaitAndReset());
+
+    PPX_CHECKED_CALL(frame.uiCmd->Begin());
+    {
+        grfx::RenderPassPtr renderPass = uiSwapchain->GetRenderPass(imageIndex, grfx::ATTACHMENT_LOAD_OP_CLEAR);
+        PPX_ASSERT_MSG(!renderPass.IsNull(), "render pass object is null");
+
+        frame.uiCmd->BeginRenderPass(renderPass);
+        // Draw ImGui
+        UpdateGUI();
+        DrawImGui(frame.uiCmd);
+        frame.uiCmd->EndRenderPass();
+    }
+    PPX_CHECKED_CALL(frame.uiCmd->End());
+
+    grfx::SubmitInfo submitInfo     = {};
+    submitInfo.commandBufferCount   = 1;
+    submitInfo.ppCommandBuffers     = &frame.uiCmd;
+    submitInfo.waitSemaphoreCount   = 0;
+    submitInfo.ppWaitSemaphores     = nullptr;
+    submitInfo.signalSemaphoreCount = 0;
+    submitInfo.ppSignalSemaphores   = nullptr;
+
+    submitInfo.pFence = frame.uiRenderCompleteFence;
+
+    PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
+}
+#endif
+
 void GraphicsBenchmarkApp::Render()
 {
-    PerFrame&          frame      = mPerFrame[0];
-    grfx::SwapchainPtr swapchain  = GetSwapchain();
+    ProcessInput();
+    ProcessKnobs();
+
+    PerFrame& frame            = mPerFrame[0];
+    uint32_t  currentViewIndex = 0;
+
+#if defined(PPX_BUILD_XR)
+    // Render UI into a different composition layer.
+    if (IsXrEnabled()) {
+        currentViewIndex = GetXrComponent().GetCurrentViewIndex();
+        if ((currentViewIndex == 0) && GetSettings()->enableImGui) {
+            RecordAndSubmitCommandBufferGUIXR(frame);
+        }
+    }
+#endif
+
     uint32_t           imageIndex = UINT32_MAX;
-    PPX_CHECKED_CALL(swapchain->AcquireNextImage(UINT64_MAX, frame.imageAcquiredSemaphore, frame.imageAcquiredFence, &imageIndex));
-    // Wait for and reset image acquired fence
-    PPX_CHECKED_CALL(frame.imageAcquiredFence->WaitAndReset());
+    grfx::SwapchainPtr swapchain  = GetSwapchain(currentViewIndex);
+
+#if defined(PPX_BUILD_XR)
+    if (IsXrEnabled()) {
+        PPX_ASSERT_MSG(swapchain->ShouldSkipExternalSynchronization(), "XRComponent should not be nullptr when XR is enabled!");
+        // No need to
+        // - Signal imageAcquiredSemaphore & imageAcquiredFence.
+        // - Wait for imageAcquiredFence since xrWaitSwapchainImage is called in AcquireNextImage.
+        PPX_CHECKED_CALL(swapchain->AcquireNextImage(UINT64_MAX, nullptr, nullptr, &imageIndex));
+    }
+    else
+#endif
+    {
+        // Wait semaphore is ignored for XR.
+        PPX_CHECKED_CALL(swapchain->AcquireNextImage(UINT64_MAX, frame.imageAcquiredSemaphore, frame.imageAcquiredFence, &imageIndex));
+
+        // Wait for and reset image acquired fence.
+        PPX_CHECKED_CALL(frame.imageAcquiredFence->WaitAndReset());
+    }
+
     // Wait for and reset render complete fence
     PPX_CHECKED_CALL(frame.renderCompleteFence->WaitAndReset());
 
@@ -606,24 +686,60 @@ void GraphicsBenchmarkApp::Render()
     // Reset query
     frame.timestampQuery->Reset(/* firstQuery= */ 0, frame.timestampQuery->GetCount());
 
-    ProcessInput();
-    ProcessKnobs();
-    UpdateGUI();
+    // Update scene data
+    frame.sceneData.viewProjectionMatrix = mCamera.GetViewProjectionMatrix();
+#if defined(PPX_BUILD_XR)
+    if (IsXrEnabled()) {
+        const glm::mat4 v                    = GetXrComponent().GetViewMatrixForCurrentView();
+        const glm::mat4 p                    = GetXrComponent().GetProjectionMatrixForCurrentViewAndSetFrustumPlanes(PPX_CAMERA_DEFAULT_NEAR_CLIP, PPX_CAMERA_DEFAULT_FAR_CLIP);
+        frame.sceneData.viewProjectionMatrix = p * v;
+    }
+#endif
 
     RecordCommandBuffer(frame, swapchain, imageIndex);
 
-    grfx::SubmitInfo submitInfo     = {};
-    submitInfo.commandBufferCount   = 1;
-    submitInfo.ppCommandBuffers     = &frame.cmd;
-    submitInfo.waitSemaphoreCount   = 1;
-    submitInfo.ppWaitSemaphores     = &frame.imageAcquiredSemaphore;
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.ppSignalSemaphores   = &frame.renderCompleteSemaphore;
-    submitInfo.pFence               = frame.renderCompleteFence;
+    grfx::SubmitInfo submitInfo   = {};
+    submitInfo.commandBufferCount = 1;
+    submitInfo.ppCommandBuffers   = &frame.cmd;
+#if defined(PPX_BUILD_XR)
+    // No need to use semaphore when XR is enabled.
+    if (IsXrEnabled()) {
+        submitInfo.waitSemaphoreCount   = 0;
+        submitInfo.ppWaitSemaphores     = nullptr;
+        submitInfo.signalSemaphoreCount = 0;
+        submitInfo.ppSignalSemaphores   = nullptr;
+    }
+    else
+#endif
+    {
+        submitInfo.waitSemaphoreCount   = 1;
+        submitInfo.ppWaitSemaphores     = &frame.imageAcquiredSemaphore;
+        submitInfo.signalSemaphoreCount = 1;
+        submitInfo.ppSignalSemaphores   = &frame.renderCompleteSemaphore;
+    }
+    submitInfo.pFence = frame.renderCompleteFence;
 
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
 
-    PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.renderCompleteSemaphore));
+#if defined(PPX_BUILD_XR)
+    // No need to present when XR is enabled.
+    if (IsXrEnabled()) {
+        if (GetSettings()->xr.enableDebugCapture && (currentViewIndex == 1)) {
+            // We could use semaphore to sync to have better performance,
+            // but this requires modifying the submission code.
+            // For debug capture we don't care about the performance,
+            // so use existing fence to sync for simplicity.
+            grfx::SwapchainPtr debugSwapchain = GetDebugCaptureSwapchain();
+            PPX_CHECKED_CALL(debugSwapchain->AcquireNextImage(UINT64_MAX, nullptr, frame.imageAcquiredFence, &imageIndex));
+            frame.imageAcquiredFence->WaitAndReset();
+            PPX_CHECKED_CALL(debugSwapchain->Present(imageIndex, 0, nullptr));
+        }
+    }
+    else
+#endif
+    {
+        PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.renderCompleteSemaphore));
+    }
 }
 
 void GraphicsBenchmarkApp::UpdateGUI()
@@ -631,6 +747,16 @@ void GraphicsBenchmarkApp::UpdateGUI()
     if (!GetSettings()->enableImGui) {
         return;
     }
+
+#if defined(PPX_BUILD_XR)
+    // Apply the same trick as in Application::DrawDebugInfo() to reposition UI to the center for XR
+    if (IsXrEnabled()) {
+        ImVec2 lastImGuiWindowSize = ImGui::GetWindowSize();
+        // For XR, force the diagnostic window to the center with automatic sizing for legibility and since control is limited.
+        ImGui::SetNextWindowPos({(GetUIWidth() - lastImGuiWindowSize.x) / 2, (GetUIHeight() - lastImGuiWindowSize.y) / 2}, 0, {0.0f, 0.0f});
+        ImGui::SetNextWindowSize({0, 0});
+    }
+#endif
 
     // GUI
     ImGui::Begin("Debug Window");
@@ -697,8 +823,13 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainP
     grfx::RenderPassPtr currentRenderPass = swapchain->GetRenderPass(imageIndex, grfx::ATTACHMENT_LOAD_OP_CLEAR);
     PPX_ASSERT_MSG(!currentRenderPass.IsNull(), "render pass object is null");
 
-    // Transition image layout PRESENT->RENDER before the first renderpass
-    frame.cmd->TransitionImageLayout(currentRenderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
+#if defined(PPX_BUILD_XR)
+    if (!IsXrEnabled())
+#endif
+    {
+        // Transition image layout PRESENT->RENDER before the first renderpass
+        frame.cmd->TransitionImageLayout(currentRenderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
+    }
 
     // Record commands for the scene using one renderpass
     frame.cmd->BeginRenderPass(currentRenderPass);
@@ -741,16 +872,26 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainP
     frame.cmd->WriteTimestamp(frame.timestampQuery, grfx::PIPELINE_STAGE_TOP_OF_PIPE_BIT, /* queryIndex = */ 1);
 
     // Record commands for the GUI using one last renderpass
-    if (GetSettings()->enableImGui) {
+    if (
+#if defined(PPX_BUILD_XR)
+        !IsXrEnabled() &&
+#endif
+        GetSettings()->enableImGui) {
         currentRenderPass = swapchain->GetRenderPass(imageIndex, grfx::ATTACHMENT_LOAD_OP_LOAD);
         PPX_ASSERT_MSG(!currentRenderPass.IsNull(), "render pass object is null");
         frame.cmd->BeginRenderPass(currentRenderPass);
-        RecordCommandBufferGUI(frame);
+        UpdateGUI();
+        DrawImGui(frame.cmd);
         frame.cmd->EndRenderPass();
     }
 
-    // Transition image layout RENDER->PRESENT after the last renderpass
-    frame.cmd->TransitionImageLayout(currentRenderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
+#if defined(PPX_BUILD_XR)
+    if (!IsXrEnabled())
+#endif
+    {
+        // Transition image layout RENDER->PRESENT after the last renderpass
+        frame.cmd->TransitionImageLayout(currentRenderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
+    }
 
     // Resolve queries
     frame.cmd->ResolveQueryData(frame.timestampQuery, /* startIndex= */ 0, frame.timestampQuery->GetCount());
@@ -765,7 +906,7 @@ void GraphicsBenchmarkApp::RecordCommandBufferSkybox(PerFrame& frame)
     frame.cmd->BindVertexBuffers(mSkyBox.mesh);
     {
         SkyboxData data = {};
-        data.MVP        = mCamera.GetViewProjectionMatrix() * glm::scale(float3(500.0f, 500.0f, 500.0f));
+        data.MVP        = frame.sceneData.viewProjectionMatrix * glm::scale(float3(500.0f, 500.0f, 500.0f));
         mSkyBox.uniformBuffer->CopyFromSource(sizeof(data), &data);
 
         frame.cmd->PushGraphicsUniformBuffer(mSkyBox.pipelineInterface, /* binding = */ 0, /* set = */ 0, /* bufferOffset = */ 0, mSkyBox.uniformBuffer);
@@ -796,7 +937,7 @@ void GraphicsBenchmarkApp::RecordCommandBufferSpheres(PerFrame& frame)
     data.modelMatrix                = float4x4(1.0f);
     data.ITModelMatrix              = glm::inverse(glm::transpose(data.modelMatrix));
     data.ambient                    = float4(0.3f);
-    data.cameraViewProjectionMatrix = mCamera.GetViewProjectionMatrix();
+    data.cameraViewProjectionMatrix = frame.sceneData.viewProjectionMatrix;
     data.lightPosition              = float4(mLightPosition, 0.0f);
     data.eyePosition                = float4(mCamera.GetEyePosition(), 0.0f);
 
@@ -861,11 +1002,6 @@ void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, si
         }
     }
     frame.cmd->Draw(3, 1, 0, 0);
-}
-
-void GraphicsBenchmarkApp::RecordCommandBufferGUI(PerFrame& frame)
-{
-    DrawImGui(frame.cmd);
 }
 
 void GraphicsBenchmarkApp::SetupShader(const std::filesystem::path& fileName, grfx::ShaderModule** ppShaderModule)
