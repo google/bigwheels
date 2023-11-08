@@ -657,7 +657,8 @@ void GraphicsBenchmarkApp::Render()
     grfx::SwapchainPtr swapchain  = GetSwapchain(currentViewIndex);
 
 #if defined(PPX_BUILD_XR)
-    if (swapchain->ShouldSkipExternalSynchronization()) {
+    if (IsXrEnabled()) {
+        PPX_ASSERT_MSG(swapchain->ShouldSkipExternalSynchronization(), "XRComponent should not be nullptr when XR is enabled!");
         // No need to
         // - Signal imageAcquiredSemaphore & imageAcquiredFence.
         // - Wait for imageAcquiredFence since xrWaitSwapchainImage is called in AcquireNextImage.
@@ -904,8 +905,8 @@ void GraphicsBenchmarkApp::RecordCommandBufferSkybox(PerFrame& frame)
     frame.cmd->BindIndexBuffer(mSkyBox.mesh);
     frame.cmd->BindVertexBuffers(mSkyBox.mesh);
     {
-        SkyboxData data{};
-        data.MVP = frame.sceneData.viewProjectionMatrix * glm::scale(float3(500.0f, 500.0f, 500.0f));
+        SkyboxData data = {};
+        data.MVP        = frame.sceneData.viewProjectionMatrix * glm::scale(float3(500.0f, 500.0f, 500.0f));
         mSkyBox.uniformBuffer->CopyFromSource(sizeof(data), &data);
 
         frame.cmd->PushGraphicsUniformBuffer(mSkyBox.pipelineInterface, /* binding = */ 0, /* set = */ 0, /* bufferOffset = */ 0, mSkyBox.uniformBuffer);
