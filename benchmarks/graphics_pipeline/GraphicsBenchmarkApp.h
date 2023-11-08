@@ -125,6 +125,11 @@ private:
         float4   eyePosition;                // Eye (camera) position.
     };
 
+    struct SceneData
+    {
+        float4x4 viewProjectionMatrix;
+    };
+
     struct PerFrame
     {
         grfx::CommandBufferPtr cmd;
@@ -133,6 +138,11 @@ private:
         grfx::SemaphorePtr     renderCompleteSemaphore;
         grfx::FencePtr         renderCompleteFence;
         grfx::QueryPtr         timestampQuery;
+
+        grfx::CommandBufferPtr uiCmd;
+        ppx::grfx::FencePtr    uiRenderCompleteFence;
+
+        SceneData sceneData;
     };
 
     struct Entity
@@ -259,7 +269,11 @@ private:
     void RecordCommandBufferSkybox(PerFrame& frame);
     void RecordCommandBufferSpheres(PerFrame& frame);
     void RecordCommandBufferFullscreenQuad(PerFrame& frame, size_t seed);
-    void RecordCommandBufferGUI(PerFrame& frame);
+
+#if defined(PPX_BUILD_XR)
+    // Records and submits commands for UI for XR
+    void RecordAndSubmitCommandBufferGUIXR(PerFrame& frame);
+#endif
 
     // =====================================================================
     // UTILITY
