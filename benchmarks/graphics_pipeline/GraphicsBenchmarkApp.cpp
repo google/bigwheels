@@ -141,10 +141,19 @@ void GraphicsBenchmarkApp::Setup()
         samplerCreateInfo.maxLod                  = FLT_MAX;
         PPX_CHECKED_CALL(GetDevice()->CreateSampler(&samplerCreateInfo, &mLinearSampler));
     }
+    // Descriptor Pool
+    {
+        grfx::DescriptorPoolCreateInfo createInfo = {};
+        createInfo.sampler                        = 100; // per frame in flight: 1 for skybox, 3 for spheres
+        createInfo.sampledImage                   = 100; // per frame in flight: 1 for skybox, 3 for spheres
+        createInfo.uniformBuffer                  = 100; // per frame in flight: 1 for skybox, 1 for spheres
 
-    SetupSkyboxResources();
-    SetupSkyboxMeshes();
-    SetupSkyboxPipelines();
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&createInfo, &mDescriptorPool));
+    }
+
+    SetupSkyBoxResources();
+    SetupSkyBoxMeshes();
+    SetupSkyBoxPipelines();
 
     SetupSphereResources();
     SetupSphereMeshes();
@@ -195,7 +204,7 @@ void GraphicsBenchmarkApp::Setup()
     }
 }
 
-void GraphicsBenchmarkApp::SetupSkyboxResources()
+void GraphicsBenchmarkApp::SetupSkyBoxResources()
 {
     // Textures
     {
@@ -216,16 +225,25 @@ void GraphicsBenchmarkApp::SetupSkyboxResources()
     // Descriptor set layout
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-        layoutCreateInfo.flags.bits.pushable                 = true;
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(0, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER));
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(1, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(2, grfx::DESCRIPTOR_TYPE_SAMPLER));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(SKYBOX_UNIFORM_BUFFER_REGISTER, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(SKYBOX_SAMPLED_IMAGE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(SKYBOX_SAMPLER_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER));
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mSkyBox.descriptorSetLayout));
     }
 
+    // Allocate descriptor sets
+    uint32_t n = GetNumFramesInFlight();
+    for (size_t i = 0; i < n; i++) {
+        grfx::DescriptorSetPtr pDescriptorSet;
+        PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mSkyBox.descriptorSetLayout, &pDescriptorSet));
+        mSkyBox.descriptorSets.push_back(pDescriptorSet);
+    }
+
+    UpdateSkyBoxDescriptors();
+
     // Shaders
-    SetupShader("Benchmark_SkyBox.vs", &mVSSkybox);
-    SetupShader("Benchmark_SkyBox.ps", &mPSSkybox);
+    SetupShader("Benchmark_SkyBox.vs", &mVSSkyBox);
+    SetupShader("Benchmark_SkyBox.ps", &mPSSkyBox);
 }
 
 void GraphicsBenchmarkApp::SetupSphereResources()
@@ -254,29 +272,35 @@ void GraphicsBenchmarkApp::SetupSphereResources()
 
     // Uniform buffers for draw calls
     {
-        mDrawCallUniformBuffers.resize(kMaxSphereInstanceCount);
-        for (uint32_t i = 0; i < kMaxSphereInstanceCount; i++) {
-            grfx::BufferCreateInfo bufferCreateInfo        = {};
-            bufferCreateInfo.size                          = PPX_MINIMUM_UNIFORM_BUFFER_SIZE;
-            bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
-            bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
-            PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mDrawCallUniformBuffers[i]));
-        }
+        grfx::BufferCreateInfo bufferCreateInfo        = {};
+        bufferCreateInfo.size                          = PPX_MINIMUM_UNIFORM_BUFFER_SIZE;
+        bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
+        bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
+        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mSphere.uniformBuffer));
     }
 
     // Descriptor set layout
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-        layoutCreateInfo.flags.bits.pushable                 = true;
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(0, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER));
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(1, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(2, grfx::DESCRIPTOR_TYPE_SAMPLER));
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(3, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(4, grfx::DESCRIPTOR_TYPE_SAMPLER));
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(5, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(6, grfx::DESCRIPTOR_TYPE_SAMPLER));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(SPHERE_UNIFORM_BUFFER_REGISTER, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(SPHERE_ALBEDO_SAMPLED_IMAGE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(SPHERE_ALBEDO_SAMPLER_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(SPHERE_NORMAL_SAMPLED_IMAGE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(SPHERE_NORMAL_SAMPLER_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(SPHERE_METAL_ROUGHNESS_SAMPLED_IMAGE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(SPHERE_METAL_ROUGHNESS_SAMPLER_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER));
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mSphere.descriptorSetLayout));
     }
+
+    // Allocate descriptor sets
+    uint32_t n = GetNumFramesInFlight();
+    for (size_t i = 0; i < n; i++) {
+        grfx::DescriptorSetPtr pDescriptorSet;
+        PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mSphere.descriptorSetLayout, &pDescriptorSet));
+        mSphere.descriptorSets.push_back(pDescriptorSet);
+    }
+
+    UpdateSphereDescriptors();
 
     // Vertex Shaders
     for (size_t i = 0; i < kAvailableVsShaders.size(); i++) {
@@ -302,10 +326,19 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsResources()
     // Descriptor set layout for texture shader
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-        layoutCreateInfo.flags.bits.pushable                 = true;
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(0, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(QUADS_SAMPLED_IMAGE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mFullscreenQuads.descriptorSetLayout));
     }
+
+    // Allocate descriptor sets
+    uint32_t n = GetNumFramesInFlight();
+    for (size_t i = 0; i < n; i++) {
+        grfx::DescriptorSetPtr pDescriptorSet;
+        PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mFullscreenQuads.descriptorSetLayout, &pDescriptorSet));
+        mFullscreenQuads.descriptorSets.push_back(pDescriptorSet);
+    }
+
+    UpdateFullscreenQuadsDescriptors();
 
     SetupShader("Benchmark_VsSimpleQuads.vs", &mVSQuads);
     SetupShader("Benchmark_RandomNoise.ps", &mQuadsPs[0]);
@@ -313,7 +346,52 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsResources()
     SetupShader("Benchmark_Texture.ps", &mQuadsPs[2]);
 }
 
-void GraphicsBenchmarkApp::SetupSkyboxMeshes()
+void GraphicsBenchmarkApp::UpdateSkyBoxDescriptors()
+{
+    uint32_t n = GetNumFramesInFlight();
+    for (size_t i = 0; i < n; i++) {
+        grfx::DescriptorSetPtr pDescriptorSet = mSkyBox.descriptorSets[i];
+        PPX_CHECKED_CALL(pDescriptorSet->UpdateUniformBuffer(SKYBOX_UNIFORM_BUFFER_REGISTER, 0, mSkyBox.uniformBuffer));
+        PPX_CHECKED_CALL(pDescriptorSet->UpdateSampledImage(SKYBOX_SAMPLED_IMAGE_REGISTER, 0, mSkyBoxTexture));
+        PPX_CHECKED_CALL(pDescriptorSet->UpdateSampler(SKYBOX_SAMPLER_REGISTER, 0, mLinearSampler));
+    }
+}
+
+void GraphicsBenchmarkApp::UpdateSphereDescriptors()
+{
+    uint32_t n = GetNumFramesInFlight();
+    for (size_t i = 0; i < n; i++) {
+        grfx::DescriptorSetPtr pDescriptorSet = mSphere.descriptorSets[i];
+
+        PPX_CHECKED_CALL(pDescriptorSet->UpdateUniformBuffer(SPHERE_UNIFORM_BUFFER_REGISTER, 0, mSphere.uniformBuffer));
+
+        PPX_CHECKED_CALL(pDescriptorSet->UpdateSampler(SPHERE_ALBEDO_SAMPLER_REGISTER, 0, mLinearSampler));
+        PPX_CHECKED_CALL(pDescriptorSet->UpdateSampler(SPHERE_NORMAL_SAMPLER_REGISTER, 0, mLinearSampler));
+        PPX_CHECKED_CALL(pDescriptorSet->UpdateSampler(SPHERE_METAL_ROUGHNESS_SAMPLER_REGISTER, 0, mLinearSampler));
+
+        if (pAllTexturesTo1x1->GetValue()) {
+            PPX_CHECKED_CALL(pDescriptorSet->UpdateSampledImage(SPHERE_ALBEDO_SAMPLED_IMAGE_REGISTER, 0, mWhitePixelTexture));
+            PPX_CHECKED_CALL(pDescriptorSet->UpdateSampledImage(SPHERE_NORMAL_SAMPLED_IMAGE_REGISTER, 0, mWhitePixelTexture));
+            PPX_CHECKED_CALL(pDescriptorSet->UpdateSampledImage(SPHERE_METAL_ROUGHNESS_SAMPLED_IMAGE_REGISTER, 0, mWhitePixelTexture));
+        }
+        else {
+            PPX_CHECKED_CALL(pDescriptorSet->UpdateSampledImage(SPHERE_ALBEDO_SAMPLED_IMAGE_REGISTER, 0, mAlbedoTexture));
+            PPX_CHECKED_CALL(pDescriptorSet->UpdateSampledImage(SPHERE_NORMAL_SAMPLED_IMAGE_REGISTER, 0, mAlbedoTexture));
+            PPX_CHECKED_CALL(pDescriptorSet->UpdateSampledImage(SPHERE_METAL_ROUGHNESS_SAMPLED_IMAGE_REGISTER, 0, mAlbedoTexture));
+        }
+    }
+}
+
+void GraphicsBenchmarkApp::UpdateFullscreenQuadsDescriptors()
+{
+    uint32_t n = GetNumFramesInFlight();
+    for (size_t i = 0; i < n; i++) {
+        grfx::DescriptorSetPtr pDescriptorSet = mFullscreenQuads.descriptorSets[i];
+        PPX_CHECKED_CALL(pDescriptorSet->UpdateSampledImage(QUADS_SAMPLED_IMAGE_REGISTER, 0, mQuadsTexture));
+    }
+}
+
+void GraphicsBenchmarkApp::SetupSkyBoxMeshes()
 {
     TriMesh  mesh = TriMesh::CreateCube(float3(1, 1, 1), TriMeshOptions().TexCoords());
     Geometry geo;
@@ -377,7 +455,7 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsMeshes()
     mFullscreenQuads.vertexBinding.AppendAttribute({"POSITION", 0, grfx::FORMAT_R32G32B32_FLOAT, 0, PPX_APPEND_OFFSET_ALIGNED, grfx::VERTEX_INPUT_RATE_VERTEX});
 }
 
-void GraphicsBenchmarkApp::SetupSkyboxPipelines()
+void GraphicsBenchmarkApp::SetupSkyBoxPipelines()
 {
     grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
     piCreateInfo.setCount                          = 1;
@@ -386,8 +464,8 @@ void GraphicsBenchmarkApp::SetupSkyboxPipelines()
     PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mSkyBox.pipelineInterface));
 
     grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
-    gpCreateInfo.VS                                 = {mVSSkybox.Get(), "vsmain"};
-    gpCreateInfo.PS                                 = {mPSSkybox.Get(), "psmain"};
+    gpCreateInfo.VS                                 = {mVSSkyBox.Get(), "vsmain"};
+    gpCreateInfo.PS                                 = {mPSSkyBox.Get(), "psmain"};
     gpCreateInfo.vertexInputState.bindingCount      = 1;
     gpCreateInfo.vertexInputState.bindings[0]       = mSkyBox.mesh->GetDerivedVertexBindings()[0];
     gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -552,7 +630,9 @@ void GraphicsBenchmarkApp::ProcessInput()
 
 void GraphicsBenchmarkApp::ProcessKnobs()
 {
-    bool rebuildSpherePipeline = false;
+    bool rebuildSpherePipeline   = false;
+    bool updateSphereDescriptors = false;
+    bool updateQuadsDescriptors  = false;
 
     // TODO: Ideally, the `maxValue` of the drawcall-count slider knob should be changed at runtime.
     // Currently, the value of the drawcall-count is adjusted to the sphere-count in case the
@@ -567,6 +647,19 @@ void GraphicsBenchmarkApp::ProcessKnobs()
 
     if (pDepthTestWrite->DigestUpdate()) {
         rebuildSpherePipeline = true;
+    }
+
+    if (pAllTexturesTo1x1->DigestUpdate()) {
+        updateSphereDescriptors = true;
+        updateQuadsDescriptors  = true;
+    }
+
+    // Update descriptors
+    if (updateSphereDescriptors) {
+        UpdateSphereDescriptors();
+    }
+    if (updateQuadsDescriptors) {
+        UpdateFullscreenQuadsDescriptors();
     }
 
     // Rebuild pipelines
@@ -834,7 +927,7 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainP
     // Record commands for the scene using one renderpass
     frame.cmd->BeginRenderPass(currentRenderPass);
     if (pEnableSkyBox->GetValue()) {
-        RecordCommandBufferSkybox(frame);
+        RecordCommandBufferSkyBox(frame);
     }
     RecordCommandBufferSpheres(frame);
     frame.cmd->EndRenderPass();
@@ -846,6 +939,12 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainP
         currentRenderPass = swapchain->GetRenderPass(imageIndex, grfx::ATTACHMENT_LOAD_OP_DONT_CARE);
         frame.cmd->BindGraphicsPipeline(mQuadsPipelines[pFullscreenQuadsType->GetIndex()]);
         frame.cmd->BindVertexBuffers(1, &mFullscreenQuads.vertexBuffer, &mFullscreenQuads.vertexBinding.GetStride());
+
+        if (pFullscreenQuadsType->GetIndex() == static_cast<size_t>(FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_TEXTURE)) {
+            grfx::DescriptorSet* sets[1] = {nullptr};
+            sets[0]                      = mFullscreenQuads.descriptorSets.at(GetInFlightFrameIndex());
+            frame.cmd->BindGraphicsDescriptorSets(mQuadsPipelineInterfaces.at(pFullscreenQuadsType->GetIndex()), 1, sets);
+        }
 
         // Begin the first renderpass used for quads
         frame.cmd->BeginRenderPass(currentRenderPass);
@@ -899,30 +998,37 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainP
     PPX_CHECKED_CALL(frame.cmd->End());
 }
 
-void GraphicsBenchmarkApp::RecordCommandBufferSkybox(PerFrame& frame)
+void GraphicsBenchmarkApp::RecordCommandBufferSkyBox(PerFrame& frame)
 {
+    // Bind resources
     frame.cmd->BindGraphicsPipeline(mSkyBox.pipeline);
     frame.cmd->BindIndexBuffer(mSkyBox.mesh);
     frame.cmd->BindVertexBuffers(mSkyBox.mesh);
-    {
-        SkyboxData data = {};
-        data.MVP        = frame.sceneData.viewProjectionMatrix * glm::scale(float3(500.0f, 500.0f, 500.0f));
-        mSkyBox.uniformBuffer->CopyFromSource(sizeof(data), &data);
 
-        frame.cmd->PushGraphicsUniformBuffer(mSkyBox.pipelineInterface, /* binding = */ 0, /* set = */ 0, /* bufferOffset = */ 0, mSkyBox.uniformBuffer);
-        frame.cmd->PushGraphicsSampledImage(mSkyBox.pipelineInterface, /* binding = */ 1, /* set = */ 0, mSkyBoxTexture->GetSampledImageView());
-        frame.cmd->PushGraphicsSampler(mSkyBox.pipelineInterface, /* binding = */ 2, /* set = */ 0, mLinearSampler);
-    }
+    grfx::DescriptorSet* sets[1] = {nullptr};
+    sets[0]                      = mSkyBox.descriptorSets.at(GetInFlightFrameIndex());
+    frame.cmd->BindGraphicsDescriptorSets(mSkyBox.pipelineInterface, 1, sets);
+
+    // Update uniform buffer with current view data
+    SkyBoxData data = {};
+    data.MVP        = frame.sceneData.viewProjectionMatrix * glm::scale(float3(500.0f, 500.0f, 500.0f));
+    mSkyBox.uniformBuffer->CopyFromSource(sizeof(data), &data);
+
     frame.cmd->DrawIndexed(mSkyBox.mesh->GetIndexCount());
 }
 
 void GraphicsBenchmarkApp::RecordCommandBufferSpheres(PerFrame& frame)
 {
+    // Bind resources
     const size_t pipelineIndex = mGraphicsPipelinesIndexer.GetIndex({pKnobVs->GetIndex(), pKnobPs->GetIndex(), pKnobVbFormat->GetIndex(), pKnobVertexAttrLayout->GetIndex()});
     frame.cmd->BindGraphicsPipeline(mPipelines[pipelineIndex]);
     const size_t meshIndex = mMeshesIndexer.GetIndex({pKnobLOD->GetIndex(), pKnobVbFormat->GetIndex(), pKnobVertexAttrLayout->GetIndex()});
     frame.cmd->BindIndexBuffer(mSphereMeshes[meshIndex]);
     frame.cmd->BindVertexBuffers(mSphereMeshes[meshIndex]);
+
+    grfx::DescriptorSet* sets[1] = {nullptr};
+    sets[0]                      = mSphere.descriptorSets.at(GetInFlightFrameIndex());
+    frame.cmd->BindGraphicsDescriptorSets(mSphere.pipelineInterface, 1, sets);
 
     // Snapshot some scene-related values for the current frame
     uint32_t currentSphereCount   = pSphereInstanceCount->GetValue();
@@ -940,27 +1046,9 @@ void GraphicsBenchmarkApp::RecordCommandBufferSpheres(PerFrame& frame)
     data.cameraViewProjectionMatrix = frame.sceneData.viewProjectionMatrix;
     data.lightPosition              = float4(mLightPosition, 0.0f);
     data.eyePosition                = float4(mCamera.GetEyePosition(), 0.0f);
-
-    frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 2, /* set = */ 0, mLinearSampler);
-    frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 4, /* set = */ 0, mLinearSampler);
-    frame.cmd->PushGraphicsSampler(mSphere.pipelineInterface, /* binding = */ 6, /* set = */ 0, mLinearSampler);
-
-    if (pAllTexturesTo1x1->GetValue()) {
-        frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 1, /* set = */ 0, mWhitePixelTexture->GetSampledImageView());
-        frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 3, /* set = */ 0, mWhitePixelTexture->GetSampledImageView());
-        frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 5, /* set = */ 0, mWhitePixelTexture->GetSampledImageView());
-    }
-    else {
-        frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 1, /* set = */ 0, mAlbedoTexture->GetSampledImageView());
-        frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 3, /* set = */ 0, mNormalMapTexture->GetSampledImageView());
-        frame.cmd->PushGraphicsSampledImage(mSphere.pipelineInterface, /* binding = */ 5, /* set = */ 0, mMetalRoughnessTexture->GetSampledImageView());
-    }
+    mSphere.uniformBuffer->CopyFromSource(sizeof(data), &data);
 
     for (uint32_t i = 0; i < currentDrawCallCount; i++) {
-        mDrawCallUniformBuffers[i]->CopyFromSource(sizeof(data), &data);
-
-        frame.cmd->PushGraphicsUniformBuffer(mSphere.pipelineInterface, /* binding = */ 0, /* set = */ 0, /* bufferOffset = */ 0, mDrawCallUniformBuffers[i]);
-
         uint32_t indexCount = indicesPerDrawCall;
         // Add the remaining indices to the last drawcall
         if (i == (currentDrawCallCount - 1)) {
@@ -994,10 +1082,6 @@ void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, si
             float3 colorValues = kFullscreenQuadsColorsValues[pFullscreenQuadsColor->GetIndex()];
             colorValues *= intensity;
             frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[1], 3, &colorValues);
-            break;
-        }
-        case static_cast<size_t>(FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_TEXTURE): {
-            frame.cmd->PushGraphicsSampledImage(mQuadsPipelineInterfaces[2], /* binding = */ 0, /* set = */ 0, mQuadsTexture->GetSampledImageView());
             break;
         }
     }

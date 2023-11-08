@@ -98,7 +98,7 @@ public:
 
 namespace internal {
 
-//! @struct DescriptorPoolCreateInfo
+//! @struct DescriptorSetCreateInfo
 //!
 //!
 struct DescriptorSetCreateInfo
