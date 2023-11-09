@@ -36,20 +36,6 @@ static constexpr uint32_t kMaxSphereInstanceCount  = 3000;
 static constexpr uint32_t kSeed                    = 89977;
 static constexpr uint32_t kMaxFullscreenQuadsCount = 1000;
 
-static constexpr size_t SKYBOX_UNIFORM_BUFFER_REGISTER = 0;
-static constexpr size_t SKYBOX_SAMPLED_IMAGE_REGISTER  = 1;
-static constexpr size_t SKYBOX_SAMPLER_REGISTER        = 2;
-
-static constexpr size_t SPHERE_UNIFORM_BUFFER_REGISTER                = 0;
-static constexpr size_t SPHERE_ALBEDO_SAMPLED_IMAGE_REGISTER          = 1;
-static constexpr size_t SPHERE_ALBEDO_SAMPLER_REGISTER                = 2;
-static constexpr size_t SPHERE_NORMAL_SAMPLED_IMAGE_REGISTER          = 3;
-static constexpr size_t SPHERE_NORMAL_SAMPLER_REGISTER                = 4;
-static constexpr size_t SPHERE_METAL_ROUGHNESS_SAMPLED_IMAGE_REGISTER = 5;
-static constexpr size_t SPHERE_METAL_ROUGHNESS_SAMPLER_REGISTER       = 6;
-
-static constexpr size_t QUADS_SAMPLED_IMAGE_REGISTER = 0;
-
 static constexpr const char* kShaderBaseDir = "benchmarks/shaders";
 
 static constexpr std::array<const char*, 2> kAvailableVsShaders = {

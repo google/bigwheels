@@ -19,6 +19,20 @@
 
 using namespace ppx;
 
+static constexpr size_t SKYBOX_UNIFORM_BUFFER_REGISTER = 0;
+static constexpr size_t SKYBOX_SAMPLED_IMAGE_REGISTER  = 1;
+static constexpr size_t SKYBOX_SAMPLER_REGISTER        = 2;
+
+static constexpr size_t SPHERE_UNIFORM_BUFFER_REGISTER                = 0;
+static constexpr size_t SPHERE_ALBEDO_SAMPLED_IMAGE_REGISTER          = 1;
+static constexpr size_t SPHERE_ALBEDO_SAMPLER_REGISTER                = 2;
+static constexpr size_t SPHERE_NORMAL_SAMPLED_IMAGE_REGISTER          = 3;
+static constexpr size_t SPHERE_NORMAL_SAMPLER_REGISTER                = 4;
+static constexpr size_t SPHERE_METAL_ROUGHNESS_SAMPLED_IMAGE_REGISTER = 5;
+static constexpr size_t SPHERE_METAL_ROUGHNESS_SAMPLER_REGISTER       = 6;
+
+static constexpr size_t QUADS_SAMPLED_IMAGE_REGISTER = 0;
+
 void GraphicsBenchmarkApp::InitKnobs()
 {
     const auto& cl_options = GetExtraOptions();
@@ -144,9 +158,9 @@ void GraphicsBenchmarkApp::Setup()
     // Descriptor Pool
     {
         grfx::DescriptorPoolCreateInfo createInfo = {};
-        createInfo.sampler                        = 100; // per frame in flight: 1 for skybox, 3 for spheres
-        createInfo.sampledImage                   = 100; // per frame in flight: 1 for skybox, 3 for spheres
-        createInfo.uniformBuffer                  = 100; // per frame in flight: 1 for skybox, 1 for spheres
+        createInfo.sampler                        = 10; // per frame in flight: 1 for skybox, 3 for spheres
+        createInfo.sampledImage                   = 10; // per frame in flight: 1 for skybox, 3 for spheres, 1 for quads
+        createInfo.uniformBuffer                  = 10; // per frame in flight: 1 for skybox, 1 for spheres
 
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&createInfo, &mDescriptorPool));
     }
@@ -376,8 +390,8 @@ void GraphicsBenchmarkApp::UpdateSphereDescriptors()
         }
         else {
             PPX_CHECKED_CALL(pDescriptorSet->UpdateSampledImage(SPHERE_ALBEDO_SAMPLED_IMAGE_REGISTER, 0, mAlbedoTexture));
-            PPX_CHECKED_CALL(pDescriptorSet->UpdateSampledImage(SPHERE_NORMAL_SAMPLED_IMAGE_REGISTER, 0, mAlbedoTexture));
-            PPX_CHECKED_CALL(pDescriptorSet->UpdateSampledImage(SPHERE_METAL_ROUGHNESS_SAMPLED_IMAGE_REGISTER, 0, mAlbedoTexture));
+            PPX_CHECKED_CALL(pDescriptorSet->UpdateSampledImage(SPHERE_NORMAL_SAMPLED_IMAGE_REGISTER, 0, mNormalMapTexture));
+            PPX_CHECKED_CALL(pDescriptorSet->UpdateSampledImage(SPHERE_METAL_ROUGHNESS_SAMPLED_IMAGE_REGISTER, 0, mMetalRoughnessTexture));
         }
     }
 }
@@ -941,9 +955,7 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainP
         frame.cmd->BindVertexBuffers(1, &mFullscreenQuads.vertexBuffer, &mFullscreenQuads.vertexBinding.GetStride());
 
         if (pFullscreenQuadsType->GetIndex() == static_cast<size_t>(FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_TEXTURE)) {
-            grfx::DescriptorSet* sets[1] = {nullptr};
-            sets[0]                      = mFullscreenQuads.descriptorSets.at(GetInFlightFrameIndex());
-            frame.cmd->BindGraphicsDescriptorSets(mQuadsPipelineInterfaces.at(pFullscreenQuadsType->GetIndex()), 1, sets);
+            frame.cmd->BindGraphicsDescriptorSets(mQuadsPipelineInterfaces.at(pFullscreenQuadsType->GetIndex()), 1, &mFullscreenQuads.descriptorSets.at(GetInFlightFrameIndex()));
         }
 
         // Begin the first renderpass used for quads
@@ -1005,9 +1017,7 @@ void GraphicsBenchmarkApp::RecordCommandBufferSkyBox(PerFrame& frame)
     frame.cmd->BindIndexBuffer(mSkyBox.mesh);
     frame.cmd->BindVertexBuffers(mSkyBox.mesh);
 
-    grfx::DescriptorSet* sets[1] = {nullptr};
-    sets[0]                      = mSkyBox.descriptorSets.at(GetInFlightFrameIndex());
-    frame.cmd->BindGraphicsDescriptorSets(mSkyBox.pipelineInterface, 1, sets);
+    frame.cmd->BindGraphicsDescriptorSets(mSkyBox.pipelineInterface, 1, &mSkyBox.descriptorSets.at(GetInFlightFrameIndex()));
 
     // Update uniform buffer with current view data
     SkyBoxData data = {};
@@ -1026,9 +1036,7 @@ void GraphicsBenchmarkApp::RecordCommandBufferSpheres(PerFrame& frame)
     frame.cmd->BindIndexBuffer(mSphereMeshes[meshIndex]);
     frame.cmd->BindVertexBuffers(mSphereMeshes[meshIndex]);
 
-    grfx::DescriptorSet* sets[1] = {nullptr};
-    sets[0]                      = mSphere.descriptorSets.at(GetInFlightFrameIndex());
-    frame.cmd->BindGraphicsDescriptorSets(mSphere.pipelineInterface, 1, sets);
+    frame.cmd->BindGraphicsDescriptorSets(mSphere.pipelineInterface, 1, &mSphere.descriptorSets.at(GetInFlightFrameIndex()));
 
     // Snapshot some scene-related values for the current frame
     uint32_t currentSphereCount   = pSphereInstanceCount->GetValue();
