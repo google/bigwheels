@@ -39,50 +39,63 @@ void GraphicsBenchmarkApp::InitKnobs()
     PPX_ASSERT_MSG(!cl_options.HasExtraOption("vs-shader-index"), "--vs-shader-index flag has been replaced, instead use --vs and specify the name of the vertex shader");
     PPX_ASSERT_MSG(!cl_options.HasExtraOption("ps-shader-index"), "--ps-shader-index flag has been replaced, instead use --ps and specify the name of the pixel shader");
 
+    pEnableSkyBox = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("enable-skybox", true);
+    pEnableSkyBox->SetDisplayName("Enable SkyBox");
+    pEnableSkyBox->SetFlagDescription("Enable the SkyBox in the scene.");
+
+    pEnableSpheres = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("enable-spheres", true);
+    pEnableSpheres->SetDisplayName("Enable Spheres");
+    pEnableSpheres->SetFlagDescription("Enable the Spheres in the scene.");
+
     pKnobVs = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("vs", 0, kAvailableVsShaders);
     pKnobVs->SetDisplayName("Vertex Shader");
     pKnobVs->SetFlagDescription("Select the vertex shader for the graphics pipeline.");
+    pKnobVs->SetIndent(1);
 
     pKnobPs = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("ps", 0, kAvailablePsShaders);
     pKnobPs->SetDisplayName("Pixel Shader");
     pKnobPs->SetFlagDescription("Select the pixel shader for the graphics pipeline.");
+    pKnobPs->SetIndent(1);
 
     pAllTexturesTo1x1 = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("all-textures-to-1x1", false);
     pAllTexturesTo1x1->SetDisplayName("All Textures To 1x1");
     pAllTexturesTo1x1->SetFlagDescription("Replace all sphere textures with a 1x1 white texture.");
-    pAllTexturesTo1x1->SetIndent(1);
+    pAllTexturesTo1x1->SetIndent(2);
 
     pKnobLOD = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("LOD", 0, kAvailableLODs);
     pKnobLOD->SetDisplayName("Level of Detail (LOD)");
     pKnobLOD->SetFlagDescription("Select the Level of Detail (LOD) for the sphere mesh.");
+    pKnobLOD->SetIndent(1);
 
     pKnobVbFormat = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("vertex-buffer-format", 0, kAvailableVbFormats);
     pKnobVbFormat->SetDisplayName("Vertex Buffer Format");
     pKnobVbFormat->SetFlagDescription("Select the format for the vertex buffer.");
+    pKnobVbFormat->SetIndent(1);
 
     pKnobVertexAttrLayout = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("vertex-attr-layout", 0, kAvailableVertexAttrLayouts);
     pKnobVertexAttrLayout->SetDisplayName("Vertex Attribute Layout");
     pKnobVertexAttrLayout->SetFlagDescription("Select the Vertex Attribute Layout for the graphics pipeline.");
+    pKnobVertexAttrLayout->SetIndent(1);
 
     pSphereInstanceCount = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("sphere-count", /* defaultValue = */ 50, /* minValue = */ 1, kMaxSphereInstanceCount);
     pSphereInstanceCount->SetDisplayName("Sphere Count");
     pSphereInstanceCount->SetFlagDescription("Select the number of spheres to draw on the screen.");
+    pSphereInstanceCount->SetIndent(1);
 
     pDrawCallCount = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("drawcall-count", /* defaultValue = */ 1, /* minValue = */ 1, kMaxSphereInstanceCount);
     pDrawCallCount->SetDisplayName("DrawCall Count");
     pDrawCallCount->SetFlagDescription("Select the number of draw calls to be used to draw the `sphere-count` spheres.");
+    pDrawCallCount->SetIndent(1);
 
     pAlphaBlend = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("alpha-blend", false);
     pAlphaBlend->SetDisplayName("Alpha Blend");
     pAlphaBlend->SetFlagDescription("Set blend mode of the spheres to alpha blending.");
+    pAlphaBlend->SetIndent(1);
 
     pDepthTestWrite = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("depth-test-write", true);
     pDepthTestWrite->SetDisplayName("Depth Test & Write");
     pDepthTestWrite->SetFlagDescription("Enable depth test and depth write for spheres (Default: enabled).");
-
-    pEnableSkyBox = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("enable-skybox", true);
-    pEnableSkyBox->SetDisplayName("Enable SkyBox");
-    pEnableSkyBox->SetFlagDescription("Enable the SkyBox in the scene.");
+    pDepthTestWrite->SetIndent(1);
 
     pFullscreenQuadsCount = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("fullscreen-quads-count", /* defaultValue = */ 0, /* minValue = */ 0, kMaxFullscreenQuadsCount);
     pFullscreenQuadsCount->SetDisplayName("Number of Fullscreen Quads");
@@ -669,6 +682,21 @@ void GraphicsBenchmarkApp::ProcessKnobs()
         updateQuadsDescriptors  = true;
     }
 
+    // Set visibilities
+    bool enableSpheres = pEnableSpheres->GetValue();
+    if (pEnableSpheres->DigestUpdate()) {
+        pKnobVs->SetVisible(enableSpheres);
+        pKnobPs->SetVisible(enableSpheres);
+        pKnobLOD->SetVisible(enableSpheres);
+        pKnobVbFormat->SetVisible(enableSpheres);
+        pKnobVertexAttrLayout->SetVisible(enableSpheres);
+        pSphereInstanceCount->SetVisible(enableSpheres);
+        pDrawCallCount->SetVisible(enableSpheres);
+        pAlphaBlend->SetVisible(enableSpheres);
+        pDepthTestWrite->SetVisible(enableSpheres);
+    }
+    pAllTexturesTo1x1->SetVisible(enableSpheres && (pKnobPs->GetIndex() == static_cast<size_t>(SpherePS::SPHERE_PS_MEM_BOUND)));
+
     // Update descriptors
     if (updateSphereDescriptors) {
         UpdateSphereDescriptors();
@@ -681,9 +709,6 @@ void GraphicsBenchmarkApp::ProcessKnobs()
     if (rebuildSpherePipeline) {
         SetupSpheresPipelines();
     }
-
-    // Set Visibilities
-    pAllTexturesTo1x1->SetVisible(pKnobPs->GetIndex() == static_cast<size_t>(SpherePS::SPHERE_PS_MEM_BOUND));
 
     ProcessQuadsKnobs();
 }
@@ -939,13 +964,18 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainP
         frame.cmd->TransitionImageLayout(currentRenderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
     }
 
-    // Record commands for the scene using one renderpass
-    frame.cmd->BeginRenderPass(currentRenderPass);
-    if (pEnableSkyBox->GetValue()) {
-        RecordCommandBufferSkyBox(frame);
+    bool renderScene = pEnableSkyBox->GetValue() || pEnableSpheres->GetValue();
+    if (renderScene) {
+        // Record commands for the scene using one renderpass
+        frame.cmd->BeginRenderPass(currentRenderPass);
+        if (pEnableSkyBox->GetValue()) {
+            RecordCommandBufferSkyBox(frame);
+        }
+        if (pEnableSpheres->GetValue()) {
+            RecordCommandBufferSpheres(frame);
+        }
+        frame.cmd->EndRenderPass();
     }
-    RecordCommandBufferSpheres(frame);
-    frame.cmd->EndRenderPass();
 
     // Record commands for the fullscreen quads using one/multiple renderpasses
     uint32_t quadsCount       = pFullscreenQuadsCount->GetValue();
@@ -989,7 +1019,7 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainP
         !IsXrEnabled() &&
 #endif
         GetSettings()->enableImGui) {
-        currentRenderPass = swapchain->GetRenderPass(imageIndex, grfx::ATTACHMENT_LOAD_OP_LOAD);
+        currentRenderPass = swapchain->GetRenderPass(imageIndex, (renderScene || quadsCount > 0) ? grfx::ATTACHMENT_LOAD_OP_LOAD : grfx::ATTACHMENT_LOAD_OP_CLEAR);
         PPX_ASSERT_MSG(!currentRenderPass.IsNull(), "render pass object is null");
         frame.cmd->BeginRenderPass(currentRenderPass);
         UpdateGUI();
