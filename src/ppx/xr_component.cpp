@@ -581,7 +581,7 @@ void XrComponent::ConditionallyPopulateProjectionLayer(const std::vector<grfx::S
 
         if (mShouldSubmitDepthInfo && (swapchains[startIndex + i]->GetXrDepthSwapchain() != XR_NULL_HANDLE)) {
             PPX_ASSERT_MSG(mNearPlaneForFrame.has_value() && mFarPlaneForFrame.has_value(), "Depth info layer cannot be submitted because near and far plane values are not set. "
-                                                                                            "Call GetProjectionMatrixForCurrentViewAndSetFrustumPlanes to set per-frame values.");
+                                                                                            "Call GetProjectionMatrixForViewAndSetFrustumPlanes to set per-frame values.");
             XrCompositionLayerDepthInfoKHR depthInfo = {XR_TYPE_COMPOSITION_LAYER_DEPTH_INFO_KHR};
             depthInfo.minDepth                       = 0.0f;
             depthInfo.maxDepth                       = 1.0f;
@@ -663,10 +663,10 @@ bool XrComponent::RemoveLayer(LayerRef layerRef)
     return mLayers.erase(layerRef);
 }
 
-glm::mat4 XrComponent::GetViewMatrixForCurrentView() const
+glm::mat4 XrComponent::GetViewMatrixForView(uint32_t viewIndex) const
 {
-    PPX_ASSERT_MSG((mCurrentViewIndex < mViews.size()), "Invalid view index!");
-    const XrView&  view = mViews[mCurrentViewIndex];
+    PPX_ASSERT_MSG((viewIndex < mViews.size()), "Invalid view index!");
+    const XrView&  view = mViews[viewIndex];
     const XrPosef& pose = view.pose;
     // OpenXR is using right handed system which is the same as Vulkan
     glm::quat quat         = glm::quat(pose.orientation.w, pose.orientation.x, pose.orientation.y, pose.orientation.z);
@@ -678,10 +678,10 @@ glm::mat4 XrComponent::GetViewMatrixForCurrentView() const
     return view_glm_inv;
 }
 
-glm::mat4 XrComponent::GetProjectionMatrixForCurrentViewAndSetFrustumPlanes(float nearZ, float farZ)
+glm::mat4 XrComponent::GetProjectionMatrixForViewAndSetFrustumPlanes(uint32_t viewIndex, float nearZ, float farZ)
 {
-    PPX_ASSERT_MSG((mCurrentViewIndex < mViews.size()), "Invalid view index!");
-    const XrView& view = mViews[mCurrentViewIndex];
+    PPX_ASSERT_MSG((viewIndex < mViews.size()), "Invalid view index!");
+    const XrView& view = mViews[viewIndex];
     const XrFovf& fov  = view.fov;
 
     // Save near and far plane values so that they can be referenced
@@ -722,10 +722,10 @@ glm::mat4 XrComponent::GetProjectionMatrixForCurrentViewAndSetFrustumPlanes(floa
     return glm::make_mat4(mat);
 }
 
-XrPosef XrComponent::GetPoseForCurrentView() const
+XrPosef XrComponent::GetPoseForView(uint32_t viewIndex) const
 {
-    PPX_ASSERT_MSG((mCurrentViewIndex < mViews.size()), "Invalid view index!");
-    return mViews[mCurrentViewIndex].pose;
+    PPX_ASSERT_MSG((viewIndex < mViews.size()), "Invalid view index!");
+    return mViews[viewIndex].pose;
 }
 
 } // namespace ppx

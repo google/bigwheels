@@ -36,7 +36,7 @@ public:
 
     void Setup(uint32_t numFramesInFlight, const FishTornadoSettings& settings);
     void Shutdown();
-    void Update(uint32_t frameIndex);
+    void Update(uint32_t frameIndex, uint32_t viewIndex);
     void CopyConstantsToGpu(uint32_t frameIndex, grfx::CommandBuffer* pCmd);
 
     void BeginCompute(uint32_t frameIndex, grfx::CommandBuffer* pCmd, bool asyncCompute);

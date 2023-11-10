@@ -166,16 +166,14 @@ public:
     XrInstance GetInstance() const { return mInstance; }
     XrSystemId GetSystemId() const { return mSystemId; }
     XrSession  GetSession() const { return mSession; }
-    void       SetCurrentViewIndex(uint32_t index) { mCurrentViewIndex = index; }
-    uint32_t   GetCurrentViewIndex() const { return mCurrentViewIndex; }
 
     // Computes the projection matrix for the current view given the near and
     // far frustum planes. The values for the frustum planes will be sent to
     // the OpenXR runtime as part of the frame depth info submission, and the
     // caller must ensure that the values do not change within a frame.
-    glm::mat4 GetProjectionMatrixForCurrentViewAndSetFrustumPlanes(float nearZ, float farZ);
-    glm::mat4 GetViewMatrixForCurrentView() const;
-    XrPosef   GetPoseForCurrentView() const;
+    glm::mat4 GetProjectionMatrixForViewAndSetFrustumPlanes(uint32_t viewIndex, float nearZ, float farZ);
+    glm::mat4 GetViewMatrixForView(uint32_t viewIndex) const;
+    XrPosef   GetPoseForView(uint32_t viewIndex) const;
 
     bool IsSessionRunning() const { return mIsSessionRunning; }
     bool ShouldRender() const { return mShouldRender; }
@@ -214,7 +212,6 @@ private:
     std::vector<XrViewConfigurationView> mConfigViews;
     std::vector<XrView>                  mViews;
     std::vector<XrEnvironmentBlendMode>  mBlendModes;
-    uint32_t                             mCurrentViewIndex = 0;
 
     std::unordered_map<LayerRef, std::unique_ptr<XrLayerBase>> mLayers;
     LayerRef                                                   mNextLayerRef = 0;

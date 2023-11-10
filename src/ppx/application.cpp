@@ -1368,32 +1368,15 @@ int Application::Run(int argc, char** argv)
 
             if (mXrComponent.IsSessionRunning()) {
                 mXrComponent.BeginFrame();
+
                 if (mXrComponent.ShouldRender()) {
-                    XrSwapchainImageReleaseInfo releaseInfo = {XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
-                    uint32_t                    viewCount   = static_cast<uint32_t>(mXrComponent.GetViewCount());
                     // Start new Imgui frame
                     if (mImGui) {
                         mImGui->NewFrame();
                     }
-                    for (uint32_t k = 0; k < viewCount; ++k) {
-                        mSwapchainIndex = k;
-                        mXrComponent.SetCurrentViewIndex(k);
-                        DispatchRender();
-                        grfx::SwapchainPtr swapchain = GetSwapchain(k + mStereoscopicSwapchainIndex);
-                        CHECK_XR_CALL(xrReleaseSwapchainImage(swapchain->GetXrColorSwapchain(), &releaseInfo));
-                        if (swapchain->GetXrDepthSwapchain() != XR_NULL_HANDLE) {
-                            CHECK_XR_CALL(xrReleaseSwapchainImage(swapchain->GetXrDepthSwapchain(), &releaseInfo));
-                        }
-                    }
-
-                    if (GetSettings()->enableImGui) {
-                        grfx::SwapchainPtr swapchain = GetSwapchain(mUISwapchainIndex);
-                        CHECK_XR_CALL(xrReleaseSwapchainImage(swapchain->GetXrColorSwapchain(), &releaseInfo));
-                        if (swapchain->GetXrDepthSwapchain() != XR_NULL_HANDLE) {
-                            CHECK_XR_CALL(xrReleaseSwapchainImage(swapchain->GetXrDepthSwapchain(), &releaseInfo));
-                        }
-                    }
+                    DispatchRender();
                 }
+
                 mXrComponent.EndFrame(mSwapchains, 0, mUISwapchainIndex);
             }
         }

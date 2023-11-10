@@ -318,7 +318,7 @@ void Flocking::Shutdown()
     mMaterialConstants.Destroy();
 }
 
-void Flocking::Update(uint32_t frameIndex)
+void Flocking::Update(uint32_t frameIndex, uint32_t viewIndex = 0)
 {
     FishTornadoApp* pApp  = FishTornadoApp::GetThisApp();
     const float     t     = pApp->GetTime();
@@ -346,7 +346,7 @@ void Flocking::Update(uint32_t frameIndex)
         pFlockingData->predPos            = pApp->GetShark()->GetPosition();
         pFlockingData->camPos             = pApp->GetCamera()->GetEyePosition();
         if (pApp->IsXrEnabled() && (pUseTracking != nullptr && *pUseTracking)) {
-            const XrVector3f& pos = pApp->GetXrComponent().GetPoseForCurrentView().position;
+            const XrVector3f& pos = pApp->GetXrComponent().GetPoseForView(viewIndex).position;
             pFlockingData->camPos = {pos.x, pos.y, pos.z};
         }
     }

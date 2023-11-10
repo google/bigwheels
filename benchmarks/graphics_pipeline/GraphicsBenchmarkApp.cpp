@@ -755,6 +755,7 @@ void GraphicsBenchmarkApp::RecordAndSubmitCommandBufferGUIXR(PerFrame& frame)
         frame.uiCmd->EndRenderPass();
     }
     PPX_CHECKED_CALL(frame.uiCmd->End());
+    uiSwapchain->Wait(imageIndex);
 
     grfx::SubmitInfo submitInfo     = {};
     submitInfo.commandBufferCount   = 1;
@@ -767,29 +768,42 @@ void GraphicsBenchmarkApp::RecordAndSubmitCommandBufferGUIXR(PerFrame& frame)
     submitInfo.pFence = frame.uiRenderCompleteFence;
 
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
+    uiSwapchain->Present(imageIndex, 0, nullptr);
 }
 #endif
+
+void GraphicsBenchmarkApp::DispatchRender()
+{
+    if (IsXrEnabled()) {
+        size_t viewCount = static_cast<uint32_t>(GetXrComponent().GetViewCount());
+        for (size_t view = 0; view < viewCount; view++) {
+            mViewIndex = view;
+            Render();
+        }
+    }
+    else {
+        Render();
+    }
+}
 
 void GraphicsBenchmarkApp::Render()
 {
     ProcessInput();
     ProcessKnobs();
 
-    PerFrame& frame            = mPerFrame[0];
-    uint32_t  currentViewIndex = 0;
+    PerFrame& frame = mPerFrame[0];
 
 #if defined(PPX_BUILD_XR)
     // Render UI into a different composition layer.
     if (IsXrEnabled()) {
-        currentViewIndex = GetXrComponent().GetCurrentViewIndex();
-        if ((currentViewIndex == 0) && GetSettings()->enableImGui) {
+        if ((mViewIndex == 0) && GetSettings()->enableImGui) {
             RecordAndSubmitCommandBufferGUIXR(frame);
         }
     }
 #endif
 
     uint32_t           imageIndex = UINT32_MAX;
-    grfx::SwapchainPtr swapchain  = GetSwapchain(currentViewIndex);
+    grfx::SwapchainPtr swapchain  = GetSwapchain(mViewIndex);
 
 #if defined(PPX_BUILD_XR)
     if (IsXrEnabled()) {
@@ -825,13 +839,15 @@ void GraphicsBenchmarkApp::Render()
     frame.sceneData.viewProjectionMatrix = mCamera.GetViewProjectionMatrix();
 #if defined(PPX_BUILD_XR)
     if (IsXrEnabled()) {
-        const glm::mat4 v                    = GetXrComponent().GetViewMatrixForCurrentView();
-        const glm::mat4 p                    = GetXrComponent().GetProjectionMatrixForCurrentViewAndSetFrustumPlanes(PPX_CAMERA_DEFAULT_NEAR_CLIP, PPX_CAMERA_DEFAULT_FAR_CLIP);
+        const glm::mat4 v                    = GetXrComponent().GetViewMatrixForView(mViewIndex);
+        const glm::mat4 p                    = GetXrComponent().GetProjectionMatrixForViewAndSetFrustumPlanes(mViewIndex, PPX_CAMERA_DEFAULT_NEAR_CLIP, PPX_CAMERA_DEFAULT_FAR_CLIP);
         frame.sceneData.viewProjectionMatrix = p * v;
     }
 #endif
 
     RecordCommandBuffer(frame, swapchain, imageIndex);
+
+    swapchain->Wait(imageIndex);
 
     grfx::SubmitInfo submitInfo   = {};
     submitInfo.commandBufferCount = 1;
@@ -857,9 +873,10 @@ void GraphicsBenchmarkApp::Render()
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
 
 #if defined(PPX_BUILD_XR)
-    // No need to present when XR is enabled.
     if (IsXrEnabled()) {
-        if (GetSettings()->xr.enableDebugCapture && (currentViewIndex == 1)) {
+        PPX_CHECKED_CALL(swapchain->Present(imageIndex, 0, nullptr));
+
+        if (GetSettings()->xr.enableDebugCapture && (mViewIndex == 1)) {
             // We could use semaphore to sync to have better performance,
             // but this requires modifying the submission code.
             // For debug capture we don't care about the performance,

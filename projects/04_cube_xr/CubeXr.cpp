@@ -201,17 +201,27 @@ void CubeXrApp::Setup()
     mScissorRect = {0, 0, GetWindowWidth(), GetWindowHeight()};
 }
 
+void CubeXrApp::DispatchRender()
+{
+    if (IsXrEnabled()) {
+        size_t viewCount = static_cast<uint32_t>(GetXrComponent().GetViewCount());
+        for (size_t view = 0; view < viewCount; view++) {
+            mViewIndex = view;
+            Render();
+        }
+    }
+    else {
+        Render();
+    }
+}
+
 void CubeXrApp::Render()
 {
     PerFrame& frame            = mPerFrame[0];
     uint32_t  imageIndex       = UINT32_MAX;
-    uint32_t  currentViewIndex = 0;
-    if (IsXrEnabled()) {
-        currentViewIndex = GetXrComponent().GetCurrentViewIndex();
-    }
 
     // Render UI into a different composition layer.
-    if (IsXrEnabled() && (currentViewIndex == 0) && GetSettings()->enableImGui) {
+    if (IsXrEnabled() && (mViewIndex == 0) && GetSettings()->enableImGui) {
         grfx::SwapchainPtr uiSwapchain = GetUISwapchain();
         PPX_CHECKED_CALL(uiSwapchain->AcquireNextImage(UINT64_MAX, nullptr, nullptr, &imageIndex));
         PPX_CHECKED_CALL(frame.uiRenderCompleteFence->WaitAndReset());
@@ -245,16 +255,17 @@ void CubeXrApp::Render()
         submitInfo.ppSignalSemaphores   = nullptr;
 
         submitInfo.pFence = frame.uiRenderCompleteFence;
+        uiSwapchain->Wait(imageIndex);
 
         PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
+        uiSwapchain->Present(imageIndex, 0, nullptr);
     }
 
-    grfx::SwapchainPtr swapchain = GetSwapchain(currentViewIndex);
+    grfx::SwapchainPtr swapchain = GetSwapchain(mViewIndex);
 
     if (swapchain->ShouldSkipExternalSynchronization()) {
         // No need to
         // - Signal imageAcquiredSemaphore & imageAcquiredFence.
-        // - Wait for imageAcquiredFence since xrWaitSwapchainImage is called in AcquireNextImage.
         PPX_CHECKED_CALL(swapchain->AcquireNextImage(UINT64_MAX, nullptr, nullptr, &imageIndex));
     }
     else {
@@ -275,9 +286,10 @@ void CubeXrApp::Render()
         float4x4 V = glm::lookAt(float3(0, 0, 0), float3(0, 0, 1), float3(0, 1, 0));
 
         if (IsXrEnabled()) {
-            P = GetXrComponent().GetProjectionMatrixForCurrentViewAndSetFrustumPlanes(0.001f, 10000.0f);
-            V = GetXrComponent().GetViewMatrixForCurrentView();
+            P = GetXrComponent().GetProjectionMatrixForViewAndSetFrustumPlanes(mViewIndex, 0.001f, 10000.0f);
+            V = GetXrComponent().GetViewMatrixForView(mViewIndex);
         }
+
         float4x4 M   = glm::translate(float3(0, 0, -3)) * glm::rotate(t, float3(0, 0, 1)) * glm::rotate(t, float3(0, 1, 0)) * glm::rotate(t, float3(1, 0, 0));
         float4x4 mat = P * V * M;
 
@@ -330,36 +342,31 @@ void CubeXrApp::Render()
     submitInfo.commandBufferCount = 1;
     submitInfo.ppCommandBuffers   = &frame.cmd;
     // No need to use semaphore when XR is enabled.
-    if (IsXrEnabled()) {
-        submitInfo.waitSemaphoreCount   = 0;
-        submitInfo.ppWaitSemaphores     = nullptr;
-        submitInfo.signalSemaphoreCount = 0;
-        submitInfo.ppSignalSemaphores   = nullptr;
-    }
-    else {
+    if (!IsXrEnabled()) {
         submitInfo.waitSemaphoreCount   = 1;
         submitInfo.ppWaitSemaphores     = &frame.imageAcquiredSemaphore;
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.ppSignalSemaphores   = &frame.renderCompleteSemaphore;
     }
     submitInfo.pFence = frame.renderCompleteFence;
-
+    swapchain->Wait(imageIndex);
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
 
-    // No need to present when XR is enabled.
     if (!IsXrEnabled()) {
         PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.renderCompleteSemaphore));
     }
     else {
-        if (GetSettings()->xr.enableDebugCapture && (currentViewIndex == 1)) {
-            // We could use semaphore to sync to have better performance,
-            // but this requires modifying the submission code.
-            // For debug capture we don't care about the performance,
-            // so use existing fence to sync for simplicity.
-            grfx::SwapchainPtr debugSwapchain = GetDebugCaptureSwapchain();
-            PPX_CHECKED_CALL(debugSwapchain->AcquireNextImage(UINT64_MAX, nullptr, frame.imageAcquiredFence, &imageIndex));
-            frame.imageAcquiredFence->WaitAndReset();
-            PPX_CHECKED_CALL(debugSwapchain->Present(imageIndex, 0, nullptr));
-        }
+        PPX_CHECKED_CALL(swapchain->Present(imageIndex, 0, nullptr));
+    }
+
+    if (IsXrEnabled() && GetSettings()->xr.enableDebugCapture && (mViewIndex == 1)) {
+        // We could use semaphore to sync to have better performance,
+        // but this requires modifying the submission code.
+        // For debug capture we don't care about the performance,
+        // so use existing fence to sync for simplicity.
+        grfx::SwapchainPtr debugSwapchain = GetDebugCaptureSwapchain();
+        PPX_CHECKED_CALL(debugSwapchain->AcquireNextImage(UINT64_MAX, nullptr, frame.imageAcquiredFence, &imageIndex));
+        frame.imageAcquiredFence->WaitAndReset();
+        PPX_CHECKED_CALL(debugSwapchain->Present(imageIndex, 0, nullptr));
     }
 }

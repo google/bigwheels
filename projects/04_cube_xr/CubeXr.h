@@ -26,6 +26,7 @@ public:
     virtual void Config(ApplicationSettings& settings) override;
     virtual void Setup() override;
     virtual void Render() override;
+    virtual void DispatchRender() override;
 
 private:
     struct PerFrame
@@ -54,6 +55,8 @@ private:
     grfx::Viewport               mViewport;
     grfx::Rect                   mScissorRect;
     grfx::VertexBinding          mVertexBinding;
+
+    uint32_t mViewIndex;
 };
 
 #endif // CUBEXR_H
