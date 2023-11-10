@@ -207,6 +207,13 @@ private:
         };
     };
 
+    struct SubmissionTime
+    {
+        double min;
+        double max;
+        double average;
+    };
+
 private:
     using SpherePipelineMap = std::unordered_map<SpherePipelineKey, grfx::GraphicsPipelinePtr, SpherePipelineKey::Hash>;
 
@@ -218,6 +225,7 @@ private:
     uint64_t                          mGpuWorkDuration;
     grfx::SamplerPtr                  mLinearSampler;
     grfx::DescriptorPoolPtr           mDescriptorPool;
+    SubmissionTime                    mSubmissionTime;
 
     // SkyBox resources
     Entity                mSkyBox;
