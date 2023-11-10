@@ -92,7 +92,7 @@ subprojects {
             testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
             externalNativeBuild {
                 cmake {
-                    if (project.name.contains("_xr")) {
+                    if (project.name.contains("_xr") || project.name.contains("graphics_pipeline")) {
                         arguments '-DPPX_ANDROID=TRUE',
                                   '-DPPX_BUILD_TESTS=FALSE',
                                   '-DBUILD_TESTS=FALSE', // Required for OpenXR
@@ -104,7 +104,7 @@ subprojects {
                         arguments '-DPPX_ANDROID=TRUE',
                                   '-DPPX_BUILD_TESTS=FALSE'
                     }
-                    if (project.name.contains("_xr")) {
+                    if (project.name.contains("_xr") || project.name.contains("graphics_pipeline")) {
                         cppFlags '-std=c++17',
                                  '-DXR_USE_PLATFORM_ANDROID'
                     }
@@ -122,7 +122,7 @@ subprojects {
             it.buildConfigField "String", "sample_library_name", '"vk_' + project.name + '"'
             sourceSets.main {
                 java.srcDirs = [ "${rootProject.projectDir}/src/android" ]
-                if (project.name.contains("_xr")) {
+                if (project.name.contains("_xr") || project.name.contains("graphics_pipeline")) {
                     manifest.srcFile "${rootProject.projectDir}/src/android/AndroidManifest.XR.xml"
                 } else {
                     manifest.srcFile "${rootProject.projectDir}/src/android/AndroidManifest.xml"
