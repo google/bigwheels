@@ -107,6 +107,7 @@ public:
     virtual void MouseMove(int32_t x, int32_t y, int32_t dx, int32_t dy, uint32_t buttons) override;
     virtual void KeyDown(ppx::KeyCode key) override;
     virtual void KeyUp(ppx::KeyCode key) override;
+    virtual void DispatchRender() override;
     virtual void Render() override;
 
 private:
@@ -207,6 +208,8 @@ private:
     std::array<grfx::GraphicsPipelinePtr, kFullscreenQuadsTypes.size()>  mQuadsPipelines;
     std::array<grfx::PipelineInterfacePtr, kFullscreenQuadsTypes.size()> mQuadsPipelineInterfaces;
     std::array<grfx::ShaderModulePtr, kFullscreenQuadsTypes.size()>      mQuadsPs;
+
+    uint32_t mViewIndex;
 
 private:
     std::shared_ptr<KnobDropdown<std::string>> pKnobVs;

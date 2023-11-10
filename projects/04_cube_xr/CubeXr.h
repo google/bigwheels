@@ -26,6 +26,8 @@ public:
     virtual void Config(ApplicationSettings& settings) override;
     virtual void Setup() override;
     virtual void Render() override;
+    void         RenderSingleCommandBuffer();
+    virtual void DispatchRender() override;
 
 private:
     struct PerFrame
@@ -41,6 +43,14 @@ private:
         grfx::FencePtr         uiRenderCompleteFence;
     };
 
+    struct PerView
+    {
+        grfx::DescriptorSetPtr mDescriptorSet;
+        grfx::BufferPtr        mUniformBuffer;
+    };
+
+    std::vector<PerView> mPerView;
+
     std::vector<PerFrame>        mPerFrame;
     grfx::ShaderModulePtr        mVS;
     grfx::ShaderModulePtr        mPS;
@@ -49,11 +59,12 @@ private:
     grfx::BufferPtr              mVertexBuffer;
     grfx::DescriptorPoolPtr      mDescriptorPool;
     grfx::DescriptorSetLayoutPtr mDescriptorSetLayout;
-    grfx::DescriptorSetPtr       mDescriptorSet;
-    grfx::BufferPtr              mUniformBuffer;
+
     grfx::Viewport               mViewport;
     grfx::Rect                   mScissorRect;
     grfx::VertexBinding          mVertexBinding;
+
+    uint32_t mViewIndex;
 };
 
 #endif // CUBEXR_H

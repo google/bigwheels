@@ -565,7 +565,6 @@ private:
     KnobManager                     mKnobManager;
 
     uint64_t          mFrameCount        = 0;
-    uint32_t          mSwapchainIndex    = 0;
     float             mAverageFPS        = 0;
     float             mFrameStartTime    = 0;
     float             mFrameEndTime      = 0;

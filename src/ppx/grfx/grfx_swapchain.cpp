@@ -429,18 +429,10 @@ Result Swapchain::AcquireNextImage(
         XrSwapchainImageAcquireInfo acquire_info = {XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO};
         CHECK_XR_CALL(xrAcquireSwapchainImage(mXrColorSwapchain, &acquire_info, pImageIndex));
 
-        XrSwapchainImageWaitInfo wait_info = {XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO};
-        wait_info.timeout                  = XR_INFINITE_DURATION;
-        CHECK_XR_CALL(xrWaitSwapchainImage(mXrColorSwapchain, &wait_info));
-
         if (mXrDepthSwapchain != XR_NULL_HANDLE) {
             uint32_t                    colorImageIndex = *pImageIndex;
             XrSwapchainImageAcquireInfo acquire_info    = {XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO};
             CHECK_XR_CALL(xrAcquireSwapchainImage(mXrDepthSwapchain, &acquire_info, pImageIndex));
-
-            XrSwapchainImageWaitInfo wait_info = {XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO};
-            wait_info.timeout                  = XR_INFINITE_DURATION;
-            CHECK_XR_CALL(xrWaitSwapchainImage(mXrDepthSwapchain, &wait_info));
 
             PPX_ASSERT_MSG(colorImageIndex == *pImageIndex, "Color and depth swapchain image indices are different");
         }
@@ -455,6 +447,27 @@ Result Swapchain::AcquireNextImage(
     return AcquireNextImageInternal(timeout, pSemaphore, pFence, pImageIndex);
 }
 
+Result Swapchain::Wait(uint32_t imageIndex)
+{
+#if defined(PPX_BUILD_XR)
+    if (mCreateInfo.pXrComponent != nullptr) {
+        // TODO: assert the image has been acquired.
+        PPX_ASSERT_MSG(mXrColorSwapchain != XR_NULL_HANDLE, "Invalid color xrSwapchain handle!");
+
+        XrSwapchainImageWaitInfo wait_info = {XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO};
+        wait_info.timeout                  = XR_INFINITE_DURATION;
+        CHECK_XR_CALL(xrWaitSwapchainImage(mXrColorSwapchain, &wait_info));
+        PPX_LOG_INFO("Waited on the image from swapchain " << mXrColorSwapchain);
+        if (mXrDepthSwapchain != XR_NULL_HANDLE) {
+            XrSwapchainImageWaitInfo wait_info = {XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO};
+            wait_info.timeout                  = XR_INFINITE_DURATION;
+            CHECK_XR_CALL(xrWaitSwapchainImage(mXrDepthSwapchain, &wait_info));
+        }
+    }
+#endif
+    return ppx::SUCCESS;
+}
+
 Result Swapchain::Present(
     uint32_t                      imageIndex,
     uint32_t                      waitSemaphoreCount,
@@ -463,7 +476,17 @@ Result Swapchain::Present(
     if (IsHeadless()) {
         return PresentHeadless(imageIndex, waitSemaphoreCount, ppWaitSemaphores);
     }
-
+#if defined(PPX_BUILD_XR)
+    else if (mCreateInfo.pXrComponent != nullptr) {
+        // TODO: assert the image has been waited on
+        XrSwapchainImageReleaseInfo releaseInfo = {XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
+        CHECK_XR_CALL(xrReleaseSwapchainImage(GetXrColorSwapchain(), &releaseInfo));
+        if (GetXrDepthSwapchain() != XR_NULL_HANDLE) {
+            CHECK_XR_CALL(xrReleaseSwapchainImage(GetXrDepthSwapchain(), &releaseInfo));
+        }
+        return ppx::SUCCESS;
+    }
+#endif
     return PresentInternal(imageIndex, waitSemaphoreCount, ppWaitSemaphores);
 }
 

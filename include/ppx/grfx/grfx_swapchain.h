@@ -146,6 +146,8 @@ public:
         grfx::Fence*     pFence,     // Wait fence
         uint32_t*        pImageIndex);
 
+    Result Wait(uint32_t imageIndex);
+
     Result Present(
         uint32_t                      imageIndex,
         uint32_t                      waitSemaphoreCount,

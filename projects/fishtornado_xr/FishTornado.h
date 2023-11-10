@@ -88,6 +88,7 @@ public:
     virtual void Setup() override;
     virtual void Shutdown() override;
     virtual void Scroll(float dx, float dy) override;
+    virtual void DispatchRender() override;
     virtual void Render() override;
 
     bool WasLastFrameAsync() { return mLastFrameWasAsyncCompute; }
@@ -168,6 +169,7 @@ private:
     std::vector<uint64_t>                 mViewGpuFrameTime         = {};
     std::vector<grfx::PipelineStatistics> mViewPipelineStatistics   = {};
     MetricsData                           mMetricsData;
+    uint32_t                              mViewIndex;
 
 private:
     void SetupDescriptorPool();

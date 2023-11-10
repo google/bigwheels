@@ -505,10 +505,10 @@ void FishTornadoApp::UpdateScene(uint32_t frameIndex)
     pSceneData->usePCF                     = static_cast<uint32_t>(mSettings.usePCF);
 
     if (IsXrEnabled() && mSettings.useTracking) {
-        const XrVector3f& pos            = GetXrComponent().GetPoseForCurrentView().position;
+        const XrVector3f& pos            = GetXrComponent().GetPoseForView(mViewIndex).position;
         pSceneData->eyePosition          = {pos.x, pos.y, pos.z};
-        const glm::mat4 v                = GetXrComponent().GetViewMatrixForCurrentView();
-        const glm::mat4 p                = GetXrComponent().GetProjectionMatrixForCurrentViewAndSetFrustumPlanes(PPX_CAMERA_DEFAULT_NEAR_CLIP, PPX_CAMERA_DEFAULT_FAR_CLIP);
+        const glm::mat4 v                = GetXrComponent().GetViewMatrixForView(mViewIndex);
+        const glm::mat4 p                = GetXrComponent().GetProjectionMatrixForViewAndSetFrustumPlanes(mViewIndex, PPX_CAMERA_DEFAULT_NEAR_CLIP, PPX_CAMERA_DEFAULT_FAR_CLIP);
         pSceneData->viewMatrix           = v;
         pSceneData->projectionMatrix     = p;
         pSceneData->viewProjectionMatrix = p * v;
@@ -566,7 +566,7 @@ void FishTornadoApp::RenderSceneUsingSingleCommandBuffer(
         bool updateFlocking = true;
         // only need to update flocking once per frame
         if (IsXrEnabled()) {
-            if (GetXrComponent().GetCurrentViewIndex() != 0) {
+            if (mViewIndex != 0) {
                 updateFlocking = false;
             }
         }
@@ -674,6 +674,8 @@ void FishTornadoApp::RenderSceneUsingSingleCommandBuffer(
 
     PPX_CHECKED_CALL(frame.cmd->End());
 
+    swapchain->Wait(imageIndex);
+
     grfx::SubmitInfo submitInfo   = {};
     submitInfo.commandBufferCount = 1;
     submitInfo.ppCommandBuffers   = &frame.cmd;
@@ -778,7 +780,7 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
     bool updateFlocking = true;
     // only need to update flocking once per frame
     if (IsXrEnabled()) {
-        if (GetXrComponent().GetCurrentViewIndex() != 0) {
+        if (mViewIndex != 0) {
             updateFlocking = false;
         }
     }
@@ -921,6 +923,8 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
     }
     PPX_CHECKED_CALL(frame.cmd->End());
 
+    swapchain->Wait(imageIndex);
+
     // Submit render work
     // no need to use semaphore when XR is enabled
     if (IsXrEnabled()) {
@@ -1007,6 +1011,18 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
 #endif
 }
 
+void FishTornadoApp::DispatchRender()
+{
+    if (!IsXrEnabled) {
+        Render();
+        return;
+    }
+    mViewIndex = 0;
+    Render();
+    mViewIndex = 1;
+    Render();
+}
+
 void FishTornadoApp::Render()
 {
     uint32_t  frameIndex     = GetInFlightFrameIndex();
@@ -1014,21 +1030,18 @@ void FishTornadoApp::Render()
     uint32_t  prevFrameIndex = GetPreviousInFlightFrameIndex();
     PerFrame& prevFrame      = mPerFrame[prevFrameIndex];
 
-    uint32_t imageIndex       = UINT32_MAX;
-    uint32_t currentViewIndex = 0;
-    if (IsXrEnabled()) {
-        currentViewIndex = GetXrComponent().GetCurrentViewIndex();
-    }
+    uint32_t imageIndex   = UINT32_MAX;
+    uint32_t uiImageIndex = UINT32_MAX;
 
     // Render UI into a different composition layer.
-    if (IsXrEnabled() && (currentViewIndex == 0) && GetSettings()->enableImGui) {
+    if (IsXrEnabled() && (mViewIndex == 0) && GetSettings()->enableImGui) {
         grfx::SwapchainPtr uiSwapchain = GetUISwapchain();
-        PPX_CHECKED_CALL(uiSwapchain->AcquireNextImage(UINT64_MAX, nullptr, nullptr, &imageIndex));
+        PPX_CHECKED_CALL(uiSwapchain->AcquireNextImage(UINT64_MAX, nullptr, nullptr, &uiImageIndex));
         PPX_CHECKED_CALL(frame.uiRenderCompleteFence->WaitAndReset());
 
         PPX_CHECKED_CALL(frame.uiCmd->Begin());
         {
-            grfx::RenderPassPtr renderPass = uiSwapchain->GetRenderPass(imageIndex);
+            grfx::RenderPassPtr renderPass = uiSwapchain->GetRenderPass(uiImageIndex);
             PPX_ASSERT_MSG(!renderPass.IsNull(), "render pass object is null");
 
             grfx::RenderPassBeginInfo beginInfo = {};
@@ -1046,6 +1059,8 @@ void FishTornadoApp::Render()
         }
         PPX_CHECKED_CALL(frame.uiCmd->End());
 
+        PPX_CHECKED_CALL(uiSwapchain->Wait(uiImageIndex));
+
         grfx::SubmitInfo submitInfo     = {};
         submitInfo.commandBufferCount   = 1;
         submitInfo.ppCommandBuffers     = &frame.uiCmd;
@@ -1059,7 +1074,7 @@ void FishTornadoApp::Render()
         PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
     }
 
-    grfx::SwapchainPtr swapchain = GetSwapchain(currentViewIndex);
+    grfx::SwapchainPtr swapchain = GetSwapchain(mViewIndex);
 
     UpdateTime();
 
@@ -1086,7 +1101,7 @@ void FishTornadoApp::Render()
         mShark.Update(frameIndex);
     }
     if (mSettings.renderFish) {
-        mFlocking.Update(frameIndex);
+        mFlocking.Update(frameIndex, mViewIndex);
     }
     if (mSettings.renderOcean) {
         mOcean.Update(frameIndex);
@@ -1098,9 +1113,9 @@ void FishTornadoApp::Render()
         uint64_t data[2] = {0, 0};
         PPX_CHECKED_CALL(prevFrame.startTimestampQuery->GetData(&data[0], 1 * sizeof(uint64_t)));
         PPX_CHECKED_CALL(prevFrame.endTimestampQuery->GetData(&data[1], 1 * sizeof(uint64_t)));
-        mViewGpuFrameTime[currentViewIndex] = (data[1] - data[0]);
+        mViewGpuFrameTime[mViewIndex] = (data[1] - data[0]);
         if (GetDevice()->PipelineStatsAvailable()) {
-            PPX_CHECKED_CALL(prevFrame.pipelineStatsQuery->GetData(&(mViewPipelineStatistics[currentViewIndex]), sizeof(grfx::PipelineStatistics)));
+            PPX_CHECKED_CALL(prevFrame.pipelineStatsQuery->GetData(&(mViewPipelineStatistics[mViewIndex]), sizeof(grfx::PipelineStatistics)));
         }
 #endif
     }
@@ -1119,7 +1134,11 @@ void FishTornadoApp::Render()
         PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.frameCompleteSemaphore));
     }
     else {
-        if (GetSettings()->xr.enableDebugCapture && (currentViewIndex == 1)) {
+        if (mViewIndex == 0 && GetSettings()->enableImGui) {
+            PPX_CHECKED_CALL(GetUISwapchain()->Present(uiImageIndex, 0, nullptr));
+        }
+        PPX_CHECKED_CALL(swapchain->Present(imageIndex, 0, nullptr));
+        if (GetSettings()->xr.enableDebugCapture && (mViewIndex == 1)) {
             // We could use semaphore to sync to have better performance,
             // but this requires modifying the submission code.
             // For debug capture we don't care about the performance,
