@@ -46,29 +46,34 @@ public:
     ResourceManager();
     virtual ~ResourceManager();
 
-    bool Find(uint64_t objectId, scene::ImageRef& outObject) const;
     bool Find(uint64_t objectId, scene::SamplerRef& outObject) const;
+    bool Find(uint64_t objectId, scene::ImageRef& outObject) const;
     bool Find(uint64_t objectId, scene::TextureRef& outObject) const;
     bool Find(uint64_t objectId, scene::MaterialRef& outObject) const;
     bool Find(uint64_t objectId, scene::MeshDataRef& outObject) const;
     bool Find(uint64_t objectId, scene::MeshRef& outObject) const;
 
     // Cache functions assumes ownership of pObject
-    ppx::Result Cache(uint64_t objectId, const scene::ImageRef& object);
     ppx::Result Cache(uint64_t objectId, const scene::SamplerRef& object);
+    ppx::Result Cache(uint64_t objectId, const scene::ImageRef& object);
     ppx::Result Cache(uint64_t objectId, const scene::TextureRef& object);
     ppx::Result Cache(uint64_t objectId, const scene::MaterialRef& object);
     ppx::Result Cache(uint64_t objectId, const scene::MeshDataRef& object);
     ppx::Result Cache(uint64_t objectId, const scene::MeshRef& object);
 
-    uint32_t GetImageCount() const { return static_cast<uint32_t>(mImages.size()); }
     uint32_t GetSamplerCount() const { return static_cast<uint32_t>(mSamplers.size()); }
+    uint32_t GetImageCount() const { return static_cast<uint32_t>(mImages.size()); }
     uint32_t GetTextureCount() const { return static_cast<uint32_t>(mTextures.size()); }
     uint32_t GetMaterialCount() const { return static_cast<uint32_t>(mMaterials.size()); }
     uint32_t GetMeshDataCount() const { return static_cast<uint32_t>(mMeshData.size()); }
     uint32_t GetMeshCount() const { return static_cast<uint32_t>(mMeshes.size()); }
 
     void DestroyAll();
+
+    const std::unordered_map<uint64_t, scene::SamplerRef>&  GetSamplers() const;
+    const std::unordered_map<uint64_t, scene::ImageRef>&    GetImages() const;
+    const std::unordered_map<uint64_t, scene::TextureRef>&  GetTextures() const;
+    const std::unordered_map<uint64_t, scene::MaterialRef>& GetMaterials() const;
 
 private:
     template <
@@ -112,8 +117,8 @@ private:
     }
 
 private:
-    std::unordered_map<uint64_t, scene::ImageRef>    mImages;
     std::unordered_map<uint64_t, scene::SamplerRef>  mSamplers;
+    std::unordered_map<uint64_t, scene::ImageRef>    mImages;
     std::unordered_map<uint64_t, scene::TextureRef>  mTextures;
     std::unordered_map<uint64_t, scene::MaterialRef> mMaterials;
     std::unordered_map<uint64_t, scene::MeshDataRef> mMeshData;

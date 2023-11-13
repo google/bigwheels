@@ -73,10 +73,6 @@ Texture::Texture(
 // -------------------------------------------------------------------------------------------------
 // TextureView
 // -------------------------------------------------------------------------------------------------
-TextureView::TextureView()
-{
-}
-
 TextureView::TextureView(
     const scene::TextureRef& texture,
     float2                   texCoordTranslate,
@@ -87,6 +83,10 @@ TextureView::TextureView(
       mTexCoordRotate(texCoordRotate),
       mTexCoordScale(texCoordScale)
 {
+    float2x2 T         = glm::translate(float3(mTexCoordTranslate, 0));
+    float2x2 R         = glm::rotate(mTexCoordRotate, float3(0, 0, 1));
+    float2x2 S         = glm::scale(float3(mTexCoordScale, 0));
+    mTexCoordTransform = T * R * S;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -99,6 +99,19 @@ scene::VertexAttributeFlags ErrorMaterial::GetRequiredVertexAttributes() const
 }
 
 // -------------------------------------------------------------------------------------------------
+// DebugMaterial
+// -------------------------------------------------------------------------------------------------
+scene::VertexAttributeFlags DebugMaterial::GetRequiredVertexAttributes() const
+{
+    scene::VertexAttributeFlags attrFlags = scene::VertexAttributeFlags::None();
+    attrFlags.bits.texCoords              = true;
+    attrFlags.bits.normals                = true;
+    attrFlags.bits.tangents               = true;
+    attrFlags.bits.colors                 = true;
+    return attrFlags;
+}
+
+// -------------------------------------------------------------------------------------------------
 // UnlitMaterial
 // -------------------------------------------------------------------------------------------------
 scene::VertexAttributeFlags UnlitMaterial::GetRequiredVertexAttributes() const
@@ -106,6 +119,12 @@ scene::VertexAttributeFlags UnlitMaterial::GetRequiredVertexAttributes() const
     scene::VertexAttributeFlags attrFlags = scene::VertexAttributeFlags::None();
     attrFlags.bits.texCoords              = true;
     return attrFlags;
+}
+
+bool UnlitMaterial::HasTextures() const
+{
+    bool hasBaseColorTex = HasBaseColorTexture();
+    return hasBaseColorTex;
 }
 
 void UnlitMaterial::SetBaseColorFactor(const float4& value)
@@ -124,6 +143,17 @@ scene::VertexAttributeFlags StandardMaterial::GetRequiredVertexAttributes() cons
     attrFlags.bits.tangents               = true;
     attrFlags.bits.colors                 = true;
     return attrFlags;
+}
+
+bool StandardMaterial::HasTextures() const
+{
+    bool hasBaseColorTex         = HasBaseColorTexture();
+    bool hasMetallicRoughnessTex = HasMetallicRoughnessTexture();
+    bool hasNormalTex            = HasNormalTexture();
+    bool hasOcclusionTex         = HasOcclusionTexture();
+    bool hasEmissiveTex          = HasEmissiveTexture();
+    bool hasTextures             = hasBaseColorTex || hasMetallicRoughnessTex || hasNormalTex || hasOcclusionTex || hasNormalTex;
+    return hasTextures;
 }
 
 void StandardMaterial::SetBaseColorFactor(const float4& value)
@@ -159,14 +189,6 @@ void StandardMaterial::SetEmissiveStrength(float value)
 // -------------------------------------------------------------------------------------------------
 // MaterialFactory
 // -------------------------------------------------------------------------------------------------
-MaterialFactory::MaterialFactory()
-{
-}
-
-MaterialFactory::~MaterialFactory()
-{
-}
-
 scene::VertexAttributeFlags MaterialFactory::GetRequiredVertexAttributes(const std::string& materialIdent) const
 {
     scene::VertexAttributeFlags attrFlags = scene::VertexAttributeFlags::None();
@@ -183,22 +205,25 @@ scene::VertexAttributeFlags MaterialFactory::GetRequiredVertexAttributes(const s
     return attrFlags;
 }
 
-scene::MaterialRef MaterialFactory::CreateMaterial(
+scene::Material* MaterialFactory::CreateMaterial(
     const std::string& materialIdent) const
 {
-    scene::MaterialRef material;
+    scene::Material* pMaterial = nullptr;
 
     if (materialIdent == PPX_MATERIAL_IDENT_UNLIT) {
-        material = scene::MakeRef(new scene::UnlitMaterial());
+        pMaterial = new scene::UnlitMaterial();
     }
     else if (materialIdent == PPX_MATERIAL_IDENT_STANDARD) {
-        material = scene::MakeRef(new scene::StandardMaterial());
+        pMaterial = new scene::StandardMaterial();
+    }
+    else if (materialIdent == PPX_MATERIAL_IDENT_DEBUG) {
+        pMaterial = new scene::DebugMaterial();
     }
     else {
-        material = scene::MakeRef(new scene::ErrorMaterial());
+        pMaterial = new scene::ErrorMaterial();
     }
 
-    return material;
+    return pMaterial;
 }
 
 } // namespace scene

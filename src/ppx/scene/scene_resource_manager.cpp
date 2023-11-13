@@ -28,14 +28,14 @@ ResourceManager::~ResourceManager()
 {
 }
 
-bool ResourceManager::Find(uint64_t objectId, scene::ImageRef& outObject) const
-{
-    return FindObject<grfx::Image>(objectId, mImages, outObject);
-}
-
 bool ResourceManager::Find(uint64_t objectId, scene::SamplerRef& outObject) const
 {
     return FindObject<grfx::Sampler>(objectId, mSamplers, outObject);
+}
+
+bool ResourceManager::Find(uint64_t objectId, scene::ImageRef& outObject) const
+{
+    return FindObject<grfx::Image>(objectId, mImages, outObject);
 }
 
 bool ResourceManager::Find(uint64_t objectId, scene::TextureRef& outObject) const
@@ -58,14 +58,14 @@ bool ResourceManager::Find(uint64_t objectId, scene::MeshRef& outObject) const
     return FindObject<scene::Mesh>(objectId, mMeshes, outObject);
 }
 
-ppx::Result ResourceManager::Cache(uint64_t objectId, const scene::ImageRef& object)
-{
-    return CacheObject<grfx::Image>(objectId, object, mImages);
-}
-
 ppx::Result ResourceManager::Cache(uint64_t objectId, const scene::SamplerRef& object)
 {
     return CacheObject<grfx::Image>(objectId, object, mSamplers);
+}
+
+ppx::Result ResourceManager::Cache(uint64_t objectId, const scene::ImageRef& object)
+{
+    return CacheObject<grfx::Image>(objectId, object, mImages);
 }
 
 ppx::Result ResourceManager::Cache(uint64_t objectId, const scene::TextureRef& object)
@@ -90,12 +90,32 @@ ppx::Result ResourceManager::Cache(uint64_t objectId, const scene::MeshRef& obje
 
 void ResourceManager::DestroyAll()
 {
-    mImages.clear();
     mSamplers.clear();
+    mImages.clear();
     mTextures.clear();
     mMaterials.clear();
     mMeshData.clear();
     mMeshes.clear();
+}
+
+const std::unordered_map<uint64_t, scene::SamplerRef>& ResourceManager::GetSamplers() const
+{
+    return mSamplers;
+}
+
+const std::unordered_map<uint64_t, scene::ImageRef>& ResourceManager::GetImages() const
+{
+    return mImages;
+}
+
+const std::unordered_map<uint64_t, scene::TextureRef>& ResourceManager::GetTextures() const
+{
+    return mTextures;
+}
+
+const std::unordered_map<uint64_t, scene::MaterialRef>& ResourceManager::GetMaterials() const
+{
+    return mMaterials;
 }
 
 } // namespace scene

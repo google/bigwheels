@@ -59,11 +59,19 @@ enum LightType
     LIGHT_TYPE_SPOT        = 3,
 };
 
+const uint32_t kVertexPositionBinding           = 0;
+const uint32_t kVertexPositionLocation          = 0;
 const uint32_t kVertexAttributeBinding          = 1;
 const uint32_t kVertexAttributeTexCoordLocation = 1;
 const uint32_t kVertexAttributeNormalLocation   = 2;
 const uint32_t kVertexAttributeTangentLocation  = 3;
 const uint32_t kVertexAttributeColorLocation    = 4;
+
+const grfx::Format kVertexPositionFormat          = grfx::FORMAT_R32G32B32_FLOAT;
+const grfx::Format kVertexAttributeTexCoordFormat = grfx::FORMAT_R32G32_FLOAT;
+const grfx::Format kVertexAttributeNormalFormat   = grfx::FORMAT_R32G32B32_FLOAT;
+const grfx::Format kVertexAttributeTagentFormat   = grfx::FORMAT_R32G32B32A32_FLOAT;
+const grfx::Format kVertexAttributeColorFormat    = grfx::FORMAT_R32G32B32_FLOAT;
 
 template <
     typename ObjectT,

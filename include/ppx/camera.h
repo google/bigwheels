@@ -47,6 +47,9 @@ public:
 
     virtual ppx::CameraType GetCameraType() const = 0;
 
+    float GetNearClip() const { return mNearClip; }
+    float GetFarClip() const { return mFarClip; }
+
     virtual void LookAt(const float3& eye, const float3& target, const float3& up = PPX_CAMERA_DEFAULT_WORLD_UP);
 
     const float3& GetEyePosition() const { return mEyePosition; }
@@ -65,7 +68,6 @@ public:
 
 protected:
     bool             mPixelAligned         = false;
-    float            mAspect               = 0;
     float            mNearClip             = PPX_CAMERA_DEFAULT_NEAR_CLIP;
     float            mFarClip              = PPX_CAMERA_DEFAULT_FAR_CLIP;
     float3           mEyePosition          = PPX_CAMERA_DEFAULT_EYE_POSITION;
