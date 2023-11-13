@@ -30,7 +30,7 @@
 // We're going to favor the second case - command buffers do not
 // have affinity for tasks. This means that for D3D12 we'll copy
 // descriptors from the set's CPU heaps to the command buffer's
-// GPU visible heaps when the indGraphicsDescriptorSets or
+// GPU visible heaps when the BindGraphicsDescriptorSets or
 // BindComputeDescriptorSets is called. This may not be the most
 // efficient way to do this but it does give us the flexiblity
 // to shape D3D12 to look like Vulkan.

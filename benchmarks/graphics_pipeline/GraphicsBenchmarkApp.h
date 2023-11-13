@@ -47,6 +47,13 @@ static constexpr std::array<const char*, 3> kAvailablePsShaders = {
     "Benchmark_PsAluBound",
     "Benchmark_PsMemBound"};
 
+enum class SpherePS
+{
+    SPHERE_PS_SIMPLE,
+    SPHERE_PS_ALU_BOUND,
+    SPHERE_PS_MEM_BOUND
+};
+
 static constexpr std::array<const char*, 2> kAvailableVbFormats = {
     "Low_Precision",
     "High_Precision"};
@@ -103,7 +110,7 @@ public:
     virtual void Render() override;
 
 private:
-    struct SkyboxData
+    struct SkyBoxData
     {
         float4x4 MVP;
     };
@@ -118,6 +125,11 @@ private:
         float4   eyePosition;                // Eye (camera) position.
     };
 
+    struct SceneData
+    {
+        float4x4 viewProjectionMatrix;
+    };
+
     struct PerFrame
     {
         grfx::CommandBufferPtr cmd;
@@ -126,29 +138,29 @@ private:
         grfx::SemaphorePtr     renderCompleteSemaphore;
         grfx::FencePtr         renderCompleteFence;
         grfx::QueryPtr         timestampQuery;
-    };
 
-    struct Texture
-    {
-        grfx::ImagePtr            image;
-        grfx::SampledImageViewPtr sampledImageView;
-        grfx::SamplerPtr          sampler;
+        grfx::CommandBufferPtr uiCmd;
+        ppx::grfx::FencePtr    uiRenderCompleteFence;
+
+        SceneData sceneData;
     };
 
     struct Entity
     {
-        grfx::MeshPtr                mesh;
-        grfx::BufferPtr              uniformBuffer;
-        grfx::DescriptorSetLayoutPtr descriptorSetLayout;
-        grfx::PipelineInterfacePtr   pipelineInterface;
-        grfx::GraphicsPipelinePtr    pipeline;
+        grfx::MeshPtr                       mesh;
+        grfx::BufferPtr                     uniformBuffer;
+        grfx::DescriptorSetLayoutPtr        descriptorSetLayout;
+        grfx::PipelineInterfacePtr          pipelineInterface;
+        grfx::GraphicsPipelinePtr           pipeline;
+        std::vector<grfx::DescriptorSetPtr> descriptorSets;
     };
 
     struct Entity2D
     {
-        grfx::BufferPtr              vertexBuffer;
-        grfx::VertexBinding          vertexBinding;
-        grfx::DescriptorSetLayoutPtr descriptorSetLayout;
+        grfx::BufferPtr                     vertexBuffer;
+        grfx::VertexBinding                 vertexBinding;
+        grfx::DescriptorSetLayoutPtr        descriptorSetLayout;
+        std::vector<grfx::DescriptorSetPtr> descriptorSets;
     };
 
     struct LOD
@@ -165,21 +177,23 @@ private:
     std::array<bool, TOTAL_KEY_COUNT> mPressedKeys         = {0};
     bool                              mEnableMouseMovement = true;
     uint64_t                          mGpuWorkDuration;
+    grfx::SamplerPtr                  mLinearSampler;
+    grfx::DescriptorPoolPtr           mDescriptorPool;
 
-    // Skybox resources
+    // SkyBox resources
     Entity                mSkyBox;
-    grfx::ShaderModulePtr mVSSkybox;
-    grfx::ShaderModulePtr mPSSkybox;
-    Texture               mSkyBoxTexture;
+    grfx::ShaderModulePtr mVSSkyBox;
+    grfx::ShaderModulePtr mPSSkyBox;
+    grfx::TexturePtr      mSkyBoxTexture;
 
     // Spheres resources
     Entity                                                        mSphere;
     std::array<grfx::ShaderModulePtr, kAvailableVsShaders.size()> mVsShaders;
     std::array<grfx::ShaderModulePtr, kAvailablePsShaders.size()> mPsShaders;
-    Texture                                                       mAlbedoTexture;
-    Texture                                                       mNormalMapTexture;
-    Texture                                                       mMetalRoughnessTexture;
-    std::vector<grfx::BufferPtr>                                  mDrawCallUniformBuffers;
+    grfx::TexturePtr                                              mAlbedoTexture;
+    grfx::TexturePtr                                              mNormalMapTexture;
+    grfx::TexturePtr                                              mMetalRoughnessTexture;
+    grfx::TexturePtr                                              mWhitePixelTexture;
     std::array<grfx::GraphicsPipelinePtr, kPipelineCount>         mPipelines;
     std::array<grfx::MeshPtr, kMeshCount>                         mSphereMeshes;
     std::vector<LOD>                                              mSphereLODs;
@@ -189,7 +203,7 @@ private:
     // Fullscreen quads resources
     Entity2D                                                             mFullscreenQuads;
     grfx::ShaderModulePtr                                                mVSQuads;
-    Texture                                                              mQuadsTexture;
+    grfx::TexturePtr                                                     mQuadsTexture;
     std::array<grfx::GraphicsPipelinePtr, kFullscreenQuadsTypes.size()>  mQuadsPipelines;
     std::array<grfx::PipelineInterfacePtr, kFullscreenQuadsTypes.size()> mQuadsPipelineInterfaces;
     std::array<grfx::ShaderModulePtr, kFullscreenQuadsTypes.size()>      mQuadsPs;
@@ -209,6 +223,8 @@ private:
     std::shared_ptr<KnobCheckbox>              pAlphaBlend;
     std::shared_ptr<KnobCheckbox>              pDepthTestWrite;
     std::shared_ptr<KnobCheckbox>              pEnableSkyBox;
+    std::shared_ptr<KnobCheckbox>              pEnableSpheres;
+    std::shared_ptr<KnobCheckbox>              pAllTexturesTo1x1;
 
 private:
     // =====================================================================
@@ -220,21 +236,27 @@ private:
     // - Uniform buffers
     // - Descriptor set layouts
     // - Shaders
-    void SetupSkyboxResources();
+    void SetupSkyBoxResources();
     void SetupSphereResources();
     void SetupFullscreenQuadsResources();
 
     // Setup vertex data:
     // - Geometries (or raw vertices & bindings), meshes
-    void SetupSkyboxMeshes();
+    void SetupSkyBoxMeshes();
     void SetupSphereMeshes();
     void SetupFullscreenQuadsMeshes();
 
     // Setup pipelines:
     // Note: Pipeline creation can be re-triggered within rendering loop
-    void SetupSkyboxPipelines();
+    void SetupSkyBoxPipelines();
     void SetupSpheresPipelines();
     void SetupFullscreenQuadsPipelines();
+
+    // Update descriptors
+    // Note: Descriptors can be updated within rendering loop
+    void UpdateSkyBoxDescriptors();
+    void UpdateSphereDescriptors();
+    void UpdateFullscreenQuadsDescriptors();
 
     // =====================================================================
     // RENDERING LOOP (Called every frame)
@@ -253,10 +275,14 @@ private:
     void RecordCommandBuffer(PerFrame& frame, grfx::SwapchainPtr swapchain, uint32_t imageIndex);
 
     // Records commands to render * in this frame's command buffer, with the current renderpass
-    void RecordCommandBufferSkybox(PerFrame& frame);
+    void RecordCommandBufferSkyBox(PerFrame& frame);
     void RecordCommandBufferSpheres(PerFrame& frame);
     void RecordCommandBufferFullscreenQuad(PerFrame& frame, size_t seed);
-    void RecordCommandBufferGUI(PerFrame& frame);
+
+#if defined(PPX_BUILD_XR)
+    // Records and submits commands for UI for XR
+    void RecordAndSubmitCommandBufferGUIXR(PerFrame& frame);
+#endif
 
     // =====================================================================
     // UTILITY
