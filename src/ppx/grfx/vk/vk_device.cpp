@@ -332,8 +332,8 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
     }
 
     // Chain pNexts
-    for (size_t i = 0; i < (extensionStructs.size() - 1); ++i) {
-        extensionStructs[i]->pNext = extensionStructs[i + 1];
+    for (size_t i = 1; i < extensionStructs.size(); ++i) {
+        extensionStructs[i - 1]->pNext = extensionStructs[i];
     }
 
     // Get C strings
