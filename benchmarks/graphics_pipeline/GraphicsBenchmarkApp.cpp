@@ -111,7 +111,7 @@ void GraphicsBenchmarkApp::InitKnobs()
     pFullscreenQuadsColor->SetFlagDescription("Select the hue for the solid color fullscreen quads (see --fullscreen-quads-count).");
     pFullscreenQuadsColor->SetIndent(2);
 
-    pFullscreenQuadsSingleRenderpass = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("fullscreen-quads-single-renderpass", false);
+    pFullscreenQuadsSingleRenderpass = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("fullscreen-quads-single-renderpass", true);
     pFullscreenQuadsSingleRenderpass->SetDisplayName("Single Renderpass");
     pFullscreenQuadsSingleRenderpass->SetFlagDescription("Render all fullscreen quads (see --fullscreen-quads-count) in a single renderpass.");
     pFullscreenQuadsSingleRenderpass->SetIndent(1);
@@ -183,9 +183,11 @@ void GraphicsBenchmarkApp::Setup()
     SetupSkyBoxMeshes();
     SetupSkyBoxPipelines();
 
-    SetupSphereResources();
-    SetupSphereMeshes();
-    SetupSpheresPipelines();
+    if (pEnableSpheres->GetValue()) {
+        SetupSphereResources();
+        SetupSphereMeshes();
+        SetupSpheresPipelines();
+    }
 
     // =====================================================================
     // FULLSCREEN QUADS
@@ -658,9 +660,20 @@ void GraphicsBenchmarkApp::ProcessInput()
 
 void GraphicsBenchmarkApp::ProcessKnobs()
 {
-    bool rebuildSpherePipeline   = false;
-    bool updateSphereDescriptors = false;
-    bool updateQuadsDescriptors  = false;
+    // Detect if any knob value has been changed
+    // Note: DigestUpdate should be called only once per frame (DigestUpdate unflags the internal knob variable)!
+    const bool allTexturesTo1x1KnobChanged = pAllTexturesTo1x1->DigestUpdate();
+    const bool alphaBlendKnobChanged       = pAlphaBlend->DigestUpdate();
+    const bool depthTestWriteKnobChanged   = pDepthTestWrite->DigestUpdate();
+    const bool enableSpheresKnobChanged    = pEnableSpheres->DigestUpdate();
+
+    const bool enableSpheres = pEnableSpheres->GetValue();
+    // If the LOD is empty, assuming we skipped the setup for all sphere resources at start
+    // So need to do the intial setup for all resources here
+    const bool spheresAreSetUp               = !mSphereLODs.empty();
+    const bool updateSphereDescriptors       = spheresAreSetUp && allTexturesTo1x1KnobChanged;
+    const bool setupSphereResourcesAndMeshes = (!spheresAreSetUp) && enableSpheres;
+    const bool rebuildSpherePipeline         = setupSphereResourcesAndMeshes || (spheresAreSetUp && (alphaBlendKnobChanged || depthTestWriteKnobChanged));
 
     // TODO: Ideally, the `maxValue` of the drawcall-count slider knob should be changed at runtime.
     // Currently, the value of the drawcall-count is adjusted to the sphere-count in case the
@@ -669,22 +682,8 @@ void GraphicsBenchmarkApp::ProcessKnobs()
         pDrawCallCount->SetValue(pSphereInstanceCount->GetValue());
     }
 
-    if (pAlphaBlend->DigestUpdate()) {
-        rebuildSpherePipeline = true;
-    }
-
-    if (pDepthTestWrite->DigestUpdate()) {
-        rebuildSpherePipeline = true;
-    }
-
-    if (pAllTexturesTo1x1->DigestUpdate()) {
-        updateSphereDescriptors = true;
-        updateQuadsDescriptors  = true;
-    }
-
     // Set visibilities
-    bool enableSpheres = pEnableSpheres->GetValue();
-    if (pEnableSpheres->DigestUpdate()) {
+    if (enableSpheresKnobChanged) {
         pKnobVs->SetVisible(enableSpheres);
         pKnobPs->SetVisible(enableSpheres);
         pKnobLOD->SetVisible(enableSpheres);
@@ -697,17 +696,20 @@ void GraphicsBenchmarkApp::ProcessKnobs()
     }
     pAllTexturesTo1x1->SetVisible(enableSpheres && (pKnobPs->GetIndex() == static_cast<size_t>(SpherePS::SPHERE_PS_MEM_BOUND)));
 
-    // Update descriptors
-    if (updateSphereDescriptors) {
-        UpdateSphereDescriptors();
-    }
-    if (updateQuadsDescriptors) {
-        UpdateFullscreenQuadsDescriptors();
+    // Update sphere resources and mesh
+    if (setupSphereResourcesAndMeshes) {
+        SetupSphereResources();
+        SetupSphereMeshes();
     }
 
     // Rebuild pipelines
     if (rebuildSpherePipeline) {
         SetupSpheresPipelines();
+    }
+
+    // Update descriptors
+    if (updateSphereDescriptors) {
+        UpdateSphereDescriptors();
     }
 
     ProcessQuadsKnobs();
@@ -886,16 +888,16 @@ void GraphicsBenchmarkApp::UpdateGUI()
     if (IsXrEnabled()) {
         ImVec2 lastImGuiWindowSize = ImGui::GetWindowSize();
         // For XR, force the diagnostic window to the center with automatic sizing for legibility and since control is limited.
-        ImGui::SetNextWindowPos({(GetUIWidth() - lastImGuiWindowSize.x) / 2, (GetUIHeight() - lastImGuiWindowSize.y) / 2}, 0, {0.0f, 0.0f});
-        ImGui::SetNextWindowSize({0, 0});
+        ImGui::SetNextWindowPos({(GetUIWidth() - lastImGuiWindowSize.x) / 2, (GetUIHeight() - lastImGuiWindowSize.y) / 2}, ImGuiCond_FirstUseEver, {0.0f, 0.0f});
+        ImGui::SetNextWindowSize({512, 512}, ImGuiCond_FirstUseEver);
     }
 #endif
 
     // GUI
     ImGui::Begin("Debug Window");
-    GetKnobManager().DrawAllKnobs(true);
-    ImGui::Separator();
     DrawExtraInfo();
+    ImGui::Separator();
+    GetKnobManager().DrawAllKnobs(true);
     ImGui::End();
 }
 
@@ -912,7 +914,6 @@ void GraphicsBenchmarkApp::DrawExtraInfo()
     ImGui::Text("%.2f ms ", gpuWorkDurationInMs);
     ImGui::NextColumn();
 
-    ImGui::Columns(2);
     const float gpuFPS = static_cast<float>(frequency / static_cast<double>(mGpuWorkDuration));
     ImGui::Text("GPU FPS");
     ImGui::NextColumn();
@@ -921,26 +922,26 @@ void GraphicsBenchmarkApp::DrawExtraInfo()
 
     const uint32_t width  = GetSwapchain()->GetWidth();
     const uint32_t height = GetSwapchain()->GetHeight();
-    ImGui::Columns(2);
     ImGui::Text("Swapchain resolution");
     ImGui::NextColumn();
     ImGui::Text("%d x %d", width, height);
     ImGui::NextColumn();
 
-    const uint32_t quad_count    = pFullscreenQuadsCount->GetValue();
-    const float    dataWriteInGb = (static_cast<float>(width) * static_cast<float>(height) * 4.f * quad_count) / (1024.f * 1024.f * 1024.f);
-    ImGui::Columns(2);
-    ImGui::Text("Write Data");
-    ImGui::NextColumn();
-    ImGui::Text("%.2f GB", dataWriteInGb);
-    ImGui::NextColumn();
+    const uint32_t quad_count = pFullscreenQuadsCount->GetValue();
+    if (quad_count) {
+        const float dataWriteInGb = (static_cast<float>(width) * static_cast<float>(height) * 4.f * quad_count) / (1024.f * 1024.f * 1024.f);
+        ImGui::Text("Write Data");
+        ImGui::NextColumn();
+        ImGui::Text("%.2f GB", dataWriteInGb);
+        ImGui::NextColumn();
 
-    const float bandwidth = dataWriteInGb / gpuWorkDurationInSec;
-    ImGui::Columns(2);
-    ImGui::Text("Write Bandwidth");
-    ImGui::NextColumn();
-    ImGui::Text("%.2f GB/s", bandwidth);
-    ImGui::NextColumn();
+        const float bandwidth = dataWriteInGb / gpuWorkDurationInSec;
+        ImGui::Text("Write Bandwidth");
+        ImGui::NextColumn();
+        ImGui::Text("%.2f GB/s", bandwidth);
+        ImGui::NextColumn();
+    }
+    ImGui::Columns(1);
 }
 
 void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainPtr swapchain, uint32_t imageIndex)
