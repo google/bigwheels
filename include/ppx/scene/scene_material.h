@@ -19,6 +19,7 @@
 #include "ppx/grfx/grfx_image.h"
 
 #define PPX_MATERIAL_IDENT_ERROR    "ppx_material_ident:error"
+#define PPX_MATERIAL_IDENT_DEBUG    "ppx_material_ident:debug"
 #define PPX_MATERIAL_IDENT_UNLIT    "ppx_material_ident:unlit"
 #define PPX_MATERIAL_IDENT_STANDARD "ppx_material_ident:standard"
 
@@ -96,6 +97,8 @@ class Texture
     : public grfx::NamedObjectTrait
 {
 public:
+    Texture() = default;
+
     Texture(
         const scene::ImageRef   image,
         const scene::SamplerRef sampler);
@@ -122,7 +125,7 @@ private:
 class TextureView
 {
 public:
-    TextureView();
+    TextureView() = default;
 
     TextureView(
         const scene::TextureRef& texture,
@@ -134,6 +137,7 @@ public:
     const float2&         GetTexCoordTranslate() const { return mTexCoordTranslate; }
     float                 GetTexCoordRotate() const { return mTexCoordRotate; }
     const float2&         GetTexCoordScale() const { return mTexCoordScale; }
+    const float2x2&       GetTexCoordTransform() const { return mTexCoordTransform; }
 
     bool HasTexture() const { return mTexture ? true : false; }
 
@@ -142,6 +146,7 @@ private:
     float2            mTexCoordTranslate = float2(0, 0);
     float             mTexCoordRotate    = 0;
     float2            mTexCoordScale     = float2(1, 1);
+    float2x2          mTexCoordTransform = float2x2(1);
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -161,12 +166,17 @@ class Material
     : public grfx::NamedObjectTrait
 {
 public:
-    Material() {}
-    virtual ~Material() {}
+    Material()          = default;
+    virtual ~Material() = default;
 
     virtual std::string GetIdentString() const = 0;
 
     virtual scene::VertexAttributeFlags GetRequiredVertexAttributes() const = 0;
+
+    // Returns true if material has parameters for shader
+    virtual bool HasParams() const = 0;
+    // Returns true if material has at least one texture, otherwise false
+    virtual bool HasTextures() const = 0;
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -180,12 +190,36 @@ class ErrorMaterial
     : public scene::Material
 {
 public:
-    ErrorMaterial() {}
-    virtual ~ErrorMaterial() {}
+    ErrorMaterial()          = default;
+    virtual ~ErrorMaterial() = default;
 
     virtual std::string GetIdentString() const override { return PPX_MATERIAL_IDENT_ERROR; }
 
     virtual scene::VertexAttributeFlags GetRequiredVertexAttributes() const override;
+
+    virtual bool HasParams() const override { return false; }
+    virtual bool HasTextures() const override { return false; }
+};
+
+// -------------------------------------------------------------------------------------------------
+
+// Debug Material
+//
+// Implementations should render position, tex coord, normal, and tangent as color output.
+//
+class DebugMaterial
+    : public scene::Material
+{
+public:
+    DebugMaterial()          = default;
+    virtual ~DebugMaterial() = default;
+
+    virtual std::string GetIdentString() const override { return PPX_MATERIAL_IDENT_DEBUG; }
+
+    virtual scene::VertexAttributeFlags GetRequiredVertexAttributes() const override;
+
+    virtual bool HasParams() const override { return false; }
+    virtual bool HasTextures() const override { return false; }
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -202,15 +236,18 @@ class UnlitMaterial
     : public scene::Material
 {
 public:
-    UnlitMaterial() {}
-    virtual ~UnlitMaterial() {}
+    UnlitMaterial()          = default;
+    virtual ~UnlitMaterial() = default;
 
     virtual std::string GetIdentString() const override { return PPX_MATERIAL_IDENT_UNLIT; }
 
     virtual scene::VertexAttributeFlags GetRequiredVertexAttributes() const override;
 
+    virtual bool HasParams() const override { return true; }
+    virtual bool HasTextures() const override;
+
     const float4&             GetBaseColorFactor() const { return mBaseColorFactor; }
-    const scene::TextureView& GetBaseColorTexture() const { return mBaseColorTextureView; }
+    const scene::TextureView& GetBaseColorTextureView() const { return mBaseColorTextureView; }
     scene::TextureView*       GetBaseColorTextureViewPtr() { return &mBaseColorTextureView; }
 
     bool HasBaseColorTexture() const { return mBaseColorTextureView.HasTexture(); }
@@ -236,12 +273,15 @@ class StandardMaterial
     : public scene::Material
 {
 public:
-    StandardMaterial() {}
-    virtual ~StandardMaterial() {}
+    StandardMaterial()          = default;
+    virtual ~StandardMaterial() = default;
 
     virtual std::string GetIdentString() const override { return PPX_MATERIAL_IDENT_STANDARD; }
 
     virtual scene::VertexAttributeFlags GetRequiredVertexAttributes() const override;
+
+    virtual bool HasParams() const override { return true; }
+    virtual bool HasTextures() const override;
 
     const float4& GetBaseColorFactor() const { return mBaseColorFactor; }
     float         GetMetallicFactor() const { return mMetallicFactor; }
@@ -301,12 +341,12 @@ private:
 class MaterialFactory
 {
 public:
-    MaterialFactory();
-    virtual ~MaterialFactory();
+    MaterialFactory()          = default;
+    virtual ~MaterialFactory() = default;
 
     virtual scene::VertexAttributeFlags GetRequiredVertexAttributes(const std::string& materialIdent) const;
 
-    virtual scene::MaterialRef CreateMaterial(
+    virtual scene::Material* CreateMaterial(
         const std::string& materialIdent) const;
 };
 

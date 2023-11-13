@@ -50,7 +50,7 @@ class Node
       public grfx::NamedObjectTrait
 {
 public:
-    Node(scene::Scene* pScene = nullptr);
+    Node(scene::Scene* pScene);
     virtual ~Node();
 
     virtual scene::NodeType GetNodeType() const { return scene::NODE_TYPE_TRANSFORM; }
