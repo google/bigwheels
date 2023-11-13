@@ -17,6 +17,9 @@
 
 #include "ppx/graphics_util.h"
 
+// Use this to disable sphere rendering completely, including loading
+//#define DISABLE_SPHERES
+
 using namespace ppx;
 
 static constexpr size_t SKYBOX_UNIFORM_BUFFER_REGISTER = 0;
@@ -111,7 +114,7 @@ void GraphicsBenchmarkApp::InitKnobs()
     pFullscreenQuadsColor->SetFlagDescription("Select the hue for the solid color fullscreen quads (see --fullscreen-quads-count).");
     pFullscreenQuadsColor->SetIndent(2);
 
-    pFullscreenQuadsSingleRenderpass = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("fullscreen-quads-single-renderpass", false);
+    pFullscreenQuadsSingleRenderpass = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("fullscreen-quads-single-renderpass", true);
     pFullscreenQuadsSingleRenderpass->SetDisplayName("Single Renderpass");
     pFullscreenQuadsSingleRenderpass->SetFlagDescription("Render all fullscreen quads (see --fullscreen-quads-count) in a single renderpass.");
     pFullscreenQuadsSingleRenderpass->SetIndent(1);
@@ -183,9 +186,11 @@ void GraphicsBenchmarkApp::Setup()
     SetupSkyBoxMeshes();
     SetupSkyBoxPipelines();
 
+#if !defined(DISABLE_SPHERES)
     SetupSphereResources();
     SetupSphereMeshes();
     SetupSpheresPipelines();
+#endif
 
     // =====================================================================
     // FULLSCREEN QUADS
@@ -697,6 +702,7 @@ void GraphicsBenchmarkApp::ProcessKnobs()
     }
     pAllTexturesTo1x1->SetVisible(enableSpheres && (pKnobPs->GetIndex() == static_cast<size_t>(SpherePS::SPHERE_PS_MEM_BOUND)));
 
+#if !defined(DISABLE_SPHERES)
     // Update descriptors
     if (updateSphereDescriptors) {
         UpdateSphereDescriptors();
@@ -704,11 +710,14 @@ void GraphicsBenchmarkApp::ProcessKnobs()
     if (updateQuadsDescriptors) {
         UpdateFullscreenQuadsDescriptors();
     }
+#endif
 
     // Rebuild pipelines
+#if !defined(DISABLE_SPHERES)
     if (rebuildSpherePipeline) {
         SetupSpheresPipelines();
     }
+#endif
 
     ProcessQuadsKnobs();
 }
@@ -886,16 +895,16 @@ void GraphicsBenchmarkApp::UpdateGUI()
     if (IsXrEnabled()) {
         ImVec2 lastImGuiWindowSize = ImGui::GetWindowSize();
         // For XR, force the diagnostic window to the center with automatic sizing for legibility and since control is limited.
-        ImGui::SetNextWindowPos({(GetUIWidth() - lastImGuiWindowSize.x) / 2, (GetUIHeight() - lastImGuiWindowSize.y) / 2}, 0, {0.0f, 0.0f});
-        ImGui::SetNextWindowSize({0, 0});
+        ImGui::SetNextWindowPos({(GetUIWidth() - lastImGuiWindowSize.x) / 2, (GetUIHeight() - lastImGuiWindowSize.y) / 2}, ImGuiCond_FirstUseEver, {0.0f, 0.0f});
+        ImGui::SetNextWindowSize({512, 512}, ImGuiCond_FirstUseEver);
     }
 #endif
 
     // GUI
     ImGui::Begin("Debug Window");
-    GetKnobManager().DrawAllKnobs(true);
-    ImGui::Separator();
     DrawExtraInfo();
+    ImGui::Separator();
+    GetKnobManager().DrawAllKnobs(true);
     ImGui::End();
 }
 
@@ -971,9 +980,11 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainP
         if (pEnableSkyBox->GetValue()) {
             RecordCommandBufferSkyBox(frame);
         }
+#if !defined(DISABLE_SPHERES)
         if (pEnableSpheres->GetValue()) {
             RecordCommandBufferSpheres(frame);
         }
+#endif
         frame.cmd->EndRenderPass();
     }
 
