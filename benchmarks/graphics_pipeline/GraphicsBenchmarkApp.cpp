@@ -17,9 +17,6 @@
 
 #include "ppx/graphics_util.h"
 
-// Use this to disable sphere rendering completely, including loading
-//#define DISABLE_SPHERES
-
 using namespace ppx;
 
 static constexpr size_t SKYBOX_UNIFORM_BUFFER_REGISTER = 0;
@@ -186,11 +183,11 @@ void GraphicsBenchmarkApp::Setup()
     SetupSkyBoxMeshes();
     SetupSkyBoxPipelines();
 
-#if !defined(DISABLE_SPHERES)
-    SetupSphereResources();
-    SetupSphereMeshes();
-    SetupSpheresPipelines();
-#endif
+    if (pEnableSpheres->GetValue()) {
+        SetupSphereResources();
+        SetupSphereMeshes();
+        SetupSpheresPipelines();
+    }
 
     // =====================================================================
     // FULLSCREEN QUADS
@@ -674,21 +671,21 @@ void GraphicsBenchmarkApp::ProcessKnobs()
         pDrawCallCount->SetValue(pSphereInstanceCount->GetValue());
     }
 
-    if (pAlphaBlend->DigestUpdate()) {
+    if (pAlphaBlend->DigestUpdate() && pEnableSpheres->GetValue()) {
         rebuildSpherePipeline = true;
     }
 
-    if (pDepthTestWrite->DigestUpdate()) {
+    if (pDepthTestWrite->DigestUpdate() && pEnableSpheres->GetValue()) {
         rebuildSpherePipeline = true;
     }
 
+    const bool enableSpheres = pEnableSpheres->GetValue();
     if (pAllTexturesTo1x1->DigestUpdate()) {
-        updateSphereDescriptors = true;
+        updateSphereDescriptors = true && enableSpheres;
         updateQuadsDescriptors  = true;
     }
 
     // Set visibilities
-    bool enableSpheres = pEnableSpheres->GetValue();
     if (pEnableSpheres->DigestUpdate()) {
         pKnobVs->SetVisible(enableSpheres);
         pKnobPs->SetVisible(enableSpheres);
@@ -699,10 +696,17 @@ void GraphicsBenchmarkApp::ProcessKnobs()
         pDrawCallCount->SetVisible(enableSpheres);
         pAlphaBlend->SetVisible(enableSpheres);
         pDepthTestWrite->SetVisible(enableSpheres);
+
+        // If the LOD is empty, assuming we skipped the setup for all sphere resources at start
+        // so need to do the intial setup for all resources here
+        if (enableSpheres && mSphereLODs.empty()) {
+            SetupSphereResources();
+            SetupSphereMeshes();
+            SetupSpheresPipelines();
+        }
     }
     pAllTexturesTo1x1->SetVisible(enableSpheres && (pKnobPs->GetIndex() == static_cast<size_t>(SpherePS::SPHERE_PS_MEM_BOUND)));
 
-#if !defined(DISABLE_SPHERES)
     // Update descriptors
     if (updateSphereDescriptors) {
         UpdateSphereDescriptors();
@@ -710,14 +714,11 @@ void GraphicsBenchmarkApp::ProcessKnobs()
     if (updateQuadsDescriptors) {
         UpdateFullscreenQuadsDescriptors();
     }
-#endif
 
     // Rebuild pipelines
-#if !defined(DISABLE_SPHERES)
     if (rebuildSpherePipeline) {
         SetupSpheresPipelines();
     }
-#endif
 
     ProcessQuadsKnobs();
 }
@@ -980,11 +981,9 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainP
         if (pEnableSkyBox->GetValue()) {
             RecordCommandBufferSkyBox(frame);
         }
-#if !defined(DISABLE_SPHERES)
         if (pEnableSpheres->GetValue()) {
             RecordCommandBufferSpheres(frame);
         }
-#endif
         frame.cmd->EndRenderPass();
     }
 
