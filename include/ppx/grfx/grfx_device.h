@@ -98,6 +98,9 @@ public:
     Result CreateFence(const grfx::FenceCreateInfo* pCreateInfo, grfx::Fence** ppFence);
     void   DestroyFence(const grfx::Fence* pFence);
 
+    Result CreateShadingRatePattern(const grfx::ShadingRatePatternCreateInfo* pCreateInfo, grfx::ShadingRatePattern** ppShadingRatePattern);
+    void   DestroyShadingRatePattern(const grfx::ShadingRatePattern* pShadingRatePattern);
+
     Result CreateFullscreenQuad(const grfx::FullscreenQuadCreateInfo* pCreateInfo, grfx::FullscreenQuad** ppFullscreenQuad);
     void   DestroyFullscreenQuad(const grfx::FullscreenQuad* pFullscreenQuad);
 
@@ -214,6 +217,7 @@ protected:
     virtual Result AllocateObject(grfx::Semaphore** ppObject)           = 0;
     virtual Result AllocateObject(grfx::ShaderModule** ppObject)        = 0;
     virtual Result AllocateObject(grfx::ShaderProgram** ppObject)       = 0;
+    virtual Result AllocateObject(grfx::ShadingRatePattern** ppObject)  = 0;
     virtual Result AllocateObject(grfx::StorageImageView** ppObject)    = 0;
     virtual Result AllocateObject(grfx::Swapchain** ppObject)           = 0;
 
@@ -254,6 +258,7 @@ protected:
     std::vector<grfx::DescriptorSetLayoutPtr> mDescriptorSetLayouts;
     std::vector<grfx::DrawPassPtr>            mDrawPasses;
     std::vector<grfx::FencePtr>               mFences;
+    std::vector<grfx::ShadingRatePatternPtr>  mShadingRatePatterns;
     std::vector<grfx::FullscreenQuadPtr>      mFullscreenQuads;
     std::vector<grfx::GraphicsPipelinePtr>    mGraphicsPipelines;
     std::vector<grfx::ImagePtr>               mImages;

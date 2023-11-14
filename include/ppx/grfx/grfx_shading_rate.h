@@ -16,6 +16,7 @@
 #define ppx_grfx_shading_rate_h
 
 #include "ppx/grfx/grfx_config.h"
+#include "ppx/grfx/grfx_image.h"
 
 namespace ppx {
 namespace grfx {
@@ -63,6 +64,54 @@ struct ShadingRateCapabilities
         uint32_t supportedRateCount = 0;
         Extent2D supportedRates[kMaxSupportedShadingRateCount];
     } vrs;
+};
+
+// ShadingRatePatternCreateInfo
+//
+//
+struct ShadingRatePatternCreateInfo
+{
+    // The size of the framebuffer image that will be used with the created
+    // ShadingRatePattern.
+    Extent2D framebufferSize;
+
+    // The size of the region of the framebuffer image that will correspond to
+    // a single pixel in the ShadingRatePattern image.
+    Extent2D texelSize;
+
+    // The shading rate mode (FDM or VRS).
+    ShadingRateMode shadingRateMode = SHADING_RATE_NONE;
+};
+
+// ShadingRatePattern
+//
+// An image representing fragment sizes/densities that can be used in a render
+// pass to control the shading rate.
+class ShadingRatePattern
+    : public DeviceObject<ShadingRatePatternCreateInfo>
+{
+public:
+    virtual ~ShadingRatePattern() = default;
+
+    // The shading rate mode (FDM or VRS).
+    ShadingRateMode GetShadingRateMode() const { return mShadingRateMode; }
+
+    // The image contaning encoded fragment sizes/densities.
+    ImagePtr GetAttachmentImage() const { return mAttachmentImage; }
+
+    // The width/height of the image contaning encoded fragment sizes/densities.
+    uint32_t GetAttachmentWidth() const { return mAttachmentImage->GetWidth(); }
+    uint32_t GetAttachmentHeight() const { return mAttachmentImage->GetHeight(); }
+
+    // The width/height of the region of the render target image corresponding
+    // to a single pixel in the image containing fragment sizes/densities.
+    uint32_t GetTexelWidth() const { return mTexelSize.width; }
+    uint32_t GetTexelHeight() const { return mTexelSize.height; }
+
+protected:
+    ShadingRateMode mShadingRateMode;
+    ImagePtr        mAttachmentImage;
+    Extent2D        mTexelSize;
 };
 
 } // namespace grfx

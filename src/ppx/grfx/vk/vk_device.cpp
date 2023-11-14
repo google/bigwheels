@@ -24,6 +24,7 @@
 #include "ppx/grfx/vk/vk_query.h"
 #include "ppx/grfx/vk/vk_render_pass.h"
 #include "ppx/grfx/vk/vk_shader.h"
+#include "ppx/grfx/vk/vk_shading_rate.h"
 #include "ppx/grfx/vk/vk_swapchain.h"
 #include "ppx/grfx/vk/vk_sync.h"
 #include "ppx/grfx/vk/vk_profiler_fn_wrapper.h"
@@ -909,6 +910,16 @@ Result Device::AllocateObject(grfx::ShaderModule** ppObject)
 Result Device::AllocateObject(grfx::ShaderProgram** ppObject)
 {
     return ppx::ERROR_ALLOCATION_FAILED;
+}
+
+Result Device::AllocateObject(grfx::ShadingRatePattern** ppObject)
+{
+    vk::ShadingRatePattern* pObject = new vk::ShadingRatePattern();
+    if (IsNull(pObject)) {
+        return ppx::ERROR_ALLOCATION_FAILED;
+    }
+    *ppObject = pObject;
+    return ppx::SUCCESS;
 }
 
 Result Device::AllocateObject(grfx::StorageImageView** ppObject)

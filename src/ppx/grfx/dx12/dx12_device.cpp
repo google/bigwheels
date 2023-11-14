@@ -566,6 +566,11 @@ Result Device::AllocateObject(grfx::ShaderProgram** ppObject)
 {
     return ppx::ERROR_ALLOCATION_FAILED;
 }
+Result Device::AllocateObject(grfx::ShadingRatePattern** ppObject)
+{
+    PPX_ASSERT_MSG(false, "ShadingRatePattern is not yet supported on DX12");
+    return ppx::ERROR_ALLOCATION_FAILED;
+}
 
 Result Device::AllocateObject(grfx::StorageImageView** ppObject)
 {

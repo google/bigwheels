@@ -233,7 +233,7 @@ VkBorderColor ToVkBorderColor(grfx::BorderColor value)
         case grfx::BORDER_COLOR_FLOAT_OPAQUE_BLACK      : return VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK     ; break;
         case grfx::BORDER_COLOR_INT_OPAQUE_BLACK        : return VK_BORDER_COLOR_INT_OPAQUE_BLACK       ; break;
         case grfx::BORDER_COLOR_FLOAT_OPAQUE_WHITE      : return VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE     ; break;
-        case grfx::BORDER_COLOR_INT_OPAQUE_WHITE        : return VK_BORDER_COLOR_INT_OPAQUE_WHITE       ; break;        
+        case grfx::BORDER_COLOR_INT_OPAQUE_WHITE        : return VK_BORDER_COLOR_INT_OPAQUE_WHITE       ; break;
     }
     // clang-format on
     return ppx::InvalidValue<VkBorderColor>();
@@ -398,94 +398,94 @@ VkFormat ToVkFormat(grfx::Format value)
         case FORMAT_R8G8B8A8_SNORM     : return VK_FORMAT_R8G8B8A8_SNORM; break;
         case FORMAT_B8G8R8_SNORM       : return VK_FORMAT_B8G8R8_SNORM; break;
         case FORMAT_B8G8R8A8_SNORM     : return VK_FORMAT_B8G8R8A8_SNORM; break;
-                                             
-        // 8-bit unsigned normalized         
+
+        // 8-bit unsigned normalized
         case FORMAT_R8_UNORM           : return VK_FORMAT_R8_UNORM; break;
         case FORMAT_R8G8_UNORM         : return VK_FORMAT_R8G8_UNORM; break;
         case FORMAT_R8G8B8_UNORM       : return VK_FORMAT_R8G8B8_UNORM; break;
         case FORMAT_R8G8B8A8_UNORM     : return VK_FORMAT_R8G8B8A8_UNORM; break;
         case FORMAT_B8G8R8_UNORM       : return VK_FORMAT_B8G8R8_UNORM; break;
         case FORMAT_B8G8R8A8_UNORM     : return VK_FORMAT_B8G8R8A8_UNORM; break;
-                                             
-        // 8-bit signed integer              
+
+        // 8-bit signed integer
         case FORMAT_R8_SINT            : return VK_FORMAT_R8_SINT; break;
         case FORMAT_R8G8_SINT          : return VK_FORMAT_R8G8_SINT; break;
         case FORMAT_R8G8B8_SINT        : return VK_FORMAT_R8G8B8_SINT; break;
         case FORMAT_R8G8B8A8_SINT      : return VK_FORMAT_R8G8B8A8_SINT; break;
         case FORMAT_B8G8R8_SINT        : return VK_FORMAT_B8G8R8_SINT; break;
         case FORMAT_B8G8R8A8_SINT      : return VK_FORMAT_B8G8R8A8_SINT; break;
-                                             
-        // 8-bit unsigned integer            
+
+        // 8-bit unsigned integer
         case FORMAT_R8_UINT            : return VK_FORMAT_R8_UINT; break;
         case FORMAT_R8G8_UINT          : return VK_FORMAT_R8G8_UINT; break;
         case FORMAT_R8G8B8_UINT        : return VK_FORMAT_R8G8B8_UINT; break;
         case FORMAT_R8G8B8A8_UINT      : return VK_FORMAT_R8G8B8A8_UINT; break;
         case FORMAT_B8G8R8_UINT        : return VK_FORMAT_B8G8R8_UINT; break;
         case FORMAT_B8G8R8A8_UINT      : return VK_FORMAT_B8G8R8A8_UINT; break;
-                                             
-        // 16-bit signed normalized          
+
+        // 16-bit signed normalized
         case FORMAT_R16_SNORM          : return VK_FORMAT_R16_SNORM; break;
         case FORMAT_R16G16_SNORM       : return VK_FORMAT_R16G16_SNORM; break;
         case FORMAT_R16G16B16_SNORM    : return VK_FORMAT_R16G16B16_SNORM; break;
         case FORMAT_R16G16B16A16_SNORM : return VK_FORMAT_R16G16B16A16_SNORM; break;
-                                             
-        // 16-bit unsigned normalized        
+
+        // 16-bit unsigned normalized
         case FORMAT_R16_UNORM          : return VK_FORMAT_R16_UNORM; break;
         case FORMAT_R16G16_UNORM       : return VK_FORMAT_R16G16_UNORM; break;
         case FORMAT_R16G16B16_UNORM    : return VK_FORMAT_R16G16B16_UNORM; break;
         case FORMAT_R16G16B16A16_UNORM : return VK_FORMAT_R16G16B16A16_UNORM; break;
-                                             
-        // 16-bit signed integer             
+
+        // 16-bit signed integer
         case FORMAT_R16_SINT           : return VK_FORMAT_R16_SINT; break;
         case FORMAT_R16G16_SINT        : return VK_FORMAT_R16G16_SINT; break;
         case FORMAT_R16G16B16_SINT     : return VK_FORMAT_R16G16B16_SINT; break;
         case FORMAT_R16G16B16A16_SINT  : return VK_FORMAT_R16G16B16A16_SINT; break;
-                                             
-        // 16-bit unsigned integer           
+
+        // 16-bit unsigned integer
         case FORMAT_R16_UINT           : return VK_FORMAT_R16_UINT; break;
         case FORMAT_R16G16_UINT        : return VK_FORMAT_R16G16_UINT; break;
         case FORMAT_R16G16B16_UINT     : return VK_FORMAT_R16G16B16_UINT; break;
         case FORMAT_R16G16B16A16_UINT  : return VK_FORMAT_R16G16B16A16_UINT; break;
-                                             
-        // 16-bit float                      
+
+        // 16-bit float
         case FORMAT_R16_FLOAT          : return VK_FORMAT_R16_SFLOAT; break;
         case FORMAT_R16G16_FLOAT       : return VK_FORMAT_R16G16_SFLOAT; break;
         case FORMAT_R16G16B16_FLOAT    : return VK_FORMAT_R16G16B16_SFLOAT; break;
         case FORMAT_R16G16B16A16_FLOAT : return VK_FORMAT_R16G16B16A16_SFLOAT; break;
-                                             
-        // 32-bit signed integer             
+
+        // 32-bit signed integer
         case FORMAT_R32_SINT           : return VK_FORMAT_R32_SINT; break;
         case FORMAT_R32G32_SINT        : return VK_FORMAT_R32G32_SINT; break;
         case FORMAT_R32G32B32_SINT     : return VK_FORMAT_R32G32B32_SINT; break;
         case FORMAT_R32G32B32A32_SINT  : return VK_FORMAT_R32G32B32A32_SINT; break;
-                                             
-        // 32-bit unsigned integer           
+
+        // 32-bit unsigned integer
         case FORMAT_R32_UINT           : return VK_FORMAT_R32_UINT; break;
         case FORMAT_R32G32_UINT        : return VK_FORMAT_R32G32_UINT; break;
         case FORMAT_R32G32B32_UINT     : return VK_FORMAT_R32G32B32_UINT; break;
         case FORMAT_R32G32B32A32_UINT  : return VK_FORMAT_R32G32B32A32_UINT; break;
-                                             
-        // 32-bit float                      
+
+        // 32-bit float
         case FORMAT_R32_FLOAT          : return VK_FORMAT_R32_SFLOAT; break;
         case FORMAT_R32G32_FLOAT       : return VK_FORMAT_R32G32_SFLOAT; break;
         case FORMAT_R32G32B32_FLOAT    : return VK_FORMAT_R32G32B32_SFLOAT; break;
         case FORMAT_R32G32B32A32_FLOAT : return VK_FORMAT_R32G32B32A32_SFLOAT; break;
-                                             
-        // 8-bit unsigned integer stencil    
+
+        // 8-bit unsigned integer stencil
         case FORMAT_S8_UINT            : return VK_FORMAT_S8_UINT; break;
-                                             
-        // 16-bit unsigned normalized depth  
+
+        // 16-bit unsigned normalized depth
         case FORMAT_D16_UNORM          : return VK_FORMAT_D16_UNORM; break;
-                                             
-        // 32-bit float depth                
+
+        // 32-bit float depth
         case FORMAT_D32_FLOAT          : return VK_FORMAT_D32_SFLOAT; break;
-                                             
-        // Depth/stencil combinations        
+
+        // Depth/stencil combinations
         case FORMAT_D16_UNORM_S8_UINT  : return VK_FORMAT_D16_UNORM_S8_UINT; break;
         case FORMAT_D24_UNORM_S8_UINT  : return VK_FORMAT_D24_UNORM_S8_UINT; break;
         case FORMAT_D32_FLOAT_S8_UINT  : return VK_FORMAT_D32_SFLOAT_S8_UINT; break;
-                                             
-        // SRGB                              
+
+        // SRGB
         case FORMAT_R8_SRGB            : return VK_FORMAT_R8_SRGB; break;
         case FORMAT_R8G8_SRGB          : return VK_FORMAT_R8G8_SRGB; break;
         case FORMAT_R8G8B8_SRGB        : return VK_FORMAT_R8G8B8_SRGB; break;
@@ -560,8 +560,8 @@ VkImageUsageFlags ToVkImageUsageFlags(const grfx::ImageUsageFlags& value)
     if (value.bits.depthStencilAttachment) flags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
     if (value.bits.transientAttachment   ) flags |= VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
     if (value.bits.inputAttachment       ) flags |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
-    if (value.bits.shadingRateImageNv    ) flags |= VK_IMAGE_USAGE_SHADING_RATE_IMAGE_BIT_NV;
     if (value.bits.fragmentDensityMap    ) flags |= VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT;
+    if (value.bits.fragmentShadingRateAttachment) flags |= VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
     // clang-format on
     return flags;
 }
@@ -757,7 +757,7 @@ VkStencilOp ToVkStencilOp(grfx::StencilOp value)
         case grfx::STENCIL_OP_DECREMENT_AND_CLAMP : return VK_STENCIL_OP_DECREMENT_AND_CLAMP; break;
         case grfx::STENCIL_OP_INVERT              : return VK_STENCIL_OP_INVERT             ; break;
         case grfx::STENCIL_OP_INCREMENT_AND_WRAP  : return VK_STENCIL_OP_INCREMENT_AND_WRAP ; break;
-        case grfx::STENCIL_OP_DECREMENT_AND_WRAP  : return VK_STENCIL_OP_DECREMENT_AND_WRAP ; break; 
+        case grfx::STENCIL_OP_DECREMENT_AND_WRAP  : return VK_STENCIL_OP_DECREMENT_AND_WRAP ; break;
     }
     // clang-format on
     return ppx::InvalidValue<VkStencilOp>();
@@ -955,6 +955,18 @@ static Result ToVkBarrier(
             accessMask = InvalidValue<VkAccessFlags>();
             layout     = InvalidValue<VkImageLayout>();
         } break;
+
+        case grfx::RESOURCE_STATE_FRAGMENT_DENSITY_MAP_ATTACHMENT: {
+            stageMask  = VK_PIPELINE_STAGE_FRAGMENT_DENSITY_PROCESS_BIT_EXT;
+            accessMask = VK_ACCESS_FRAGMENT_DENSITY_MAP_READ_BIT_EXT;
+            layout     = VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
+        } break;
+
+        case grfx::RESOURCE_STATE_FRAGMENT_SHADING_RATE_ATTACHMENT: {
+            stageMask  = VK_PIPELINE_STAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
+            accessMask = VK_ACCESS_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR;
+            layout     = VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR;
+        } break;
     }
 
     return ppx::SUCCESS;
@@ -1004,7 +1016,7 @@ VkImageAspectFlags DetermineAspectMask(VkFormat format)
         case VK_FORMAT_D32_SFLOAT_S8_UINT: {
             return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
         } break;
-        
+
             // Assume everything else is color
         default: break;
     }

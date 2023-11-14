@@ -352,6 +352,19 @@ void Device::DestroyFence(const grfx::Fence* pFence)
     DestroyObject(mFences, pFence);
 }
 
+Result Device::CreateShadingRatePattern(const grfx::ShadingRatePatternCreateInfo* pCreateInfo, grfx::ShadingRatePattern** ppShadingRatePattern)
+{
+    PPX_ASSERT_NULL_ARG(pCreateInfo);
+    PPX_ASSERT_NULL_ARG(ppShadingRatePattern);
+    return CreateObject(pCreateInfo, mShadingRatePatterns, ppShadingRatePattern);
+}
+
+void Device::DestroyShadingRatePattern(const grfx::ShadingRatePattern* pShadingRatePattern)
+{
+    PPX_ASSERT_NULL_ARG(pShadingRatePattern);
+    DestroyObject(mShadingRatePatterns, pShadingRatePattern);
+}
+
 Result Device::CreateFullscreenQuad(const grfx::FullscreenQuadCreateInfo* pCreateInfo, grfx::FullscreenQuad** ppFullscreenQuad)
 {
     PPX_ASSERT_NULL_ARG(pCreateInfo);
