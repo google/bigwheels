@@ -159,6 +159,7 @@ class SampledImageView;
 class Sampler;
 class Semaphore;
 class ShaderModule;
+class ShadingRatePattern;
 class StorageImageView;
 class Surface;
 class Swapchain;
@@ -342,6 +343,13 @@ struct ApiObjectLookUp<grfx::ShaderModule>
 {
     using GrfxType = grfx::ShaderModule;
     using ApiType  = vk::ShaderModule;
+};
+
+template <>
+struct ApiObjectLookUp<grfx::ShadingRatePattern>
+{
+    using GrfxType = grfx::ShadingRatePattern;
+    using ApiType  = vk::ShadingRatePattern;
 };
 
 template <>

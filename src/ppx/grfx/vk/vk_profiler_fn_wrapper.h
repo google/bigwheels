@@ -16,6 +16,7 @@
 #define PPX_GRFX_VK_PROFILER_FN_WRAPPHER_H
 
 #include "ppx/grfx/vk//vk_config_platform.h"
+#include "ppx/log.h"
 
 namespace ppx {
 namespace grfx {
@@ -54,6 +55,12 @@ VkResult CreateRenderPass(
     const VkRenderPassCreateInfo* pCreateInfo,
     const VkAllocationCallbacks*  pAllocator,
     VkRenderPass*                 pRenderPass);
+
+inline VkResult CreateRenderPass(
+    VkDevice                       device,
+    const VkRenderPassCreateInfo2* pCreateInfo,
+    const VkAllocationCallbacks*   pAllocator,
+    VkRenderPass*                  pRenderPass);
 
 VkResult AllocateCommandBuffers(
     VkDevice                           device,
@@ -216,6 +223,12 @@ inline VkResult CreateRenderPass(
 {
     return vkCreateRenderPass(device, pCreateInfo, pAllocator, pRenderPass);
 }
+
+VkResult CreateRenderPass(
+    VkDevice                       device,
+    const VkRenderPassCreateInfo2* pCreateInfo,
+    const VkAllocationCallbacks*   pAllocator,
+    VkRenderPass*                  pRenderPass);
 
 inline VkResult AllocateCommandBuffers(
     VkDevice                           device,

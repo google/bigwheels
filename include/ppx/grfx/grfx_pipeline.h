@@ -171,6 +171,7 @@ struct GraphicsPipelineCreateInfo
     grfx::DepthStencilState        depthStencilState  = {};
     grfx::ColorBlendState          colorBlendState    = {};
     grfx::OutputState              outputState        = {};
+    grfx::ShadingRateMode          shadingRateMode    = grfx::SHADING_RATE_NONE;
     const grfx::PipelineInterface* pPipelineInterface = nullptr;
     bool                           dynamicRenderPass  = false;
 };
@@ -189,6 +190,7 @@ struct GraphicsPipelineCreateInfo2
     grfx::CompareOp                depthCompareOp                     = grfx::COMPARE_OP_LESS;
     grfx::BlendMode                blendModes[PPX_MAX_RENDER_TARGETS] = {grfx::BLEND_MODE_NONE};
     grfx::OutputState              outputState                        = {};
+    grfx::ShadingRateMode          shadingRateMode                    = grfx::SHADING_RATE_NONE;
     const grfx::PipelineInterface* pPipelineInterface                 = nullptr;
     bool                           dynamicRenderPass                  = false;
 };

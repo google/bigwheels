@@ -238,15 +238,16 @@ Result Swapchain::CreateRenderPasses()
 
     // Create render passes with grfx::ATTACHMENT_LOAD_OP_CLEAR for render target.
     for (size_t i = 0; i < imageCount; ++i) {
-        grfx::RenderPassCreateInfo rpCreateInfo  = {};
-        rpCreateInfo.width                       = mCreateInfo.width;
-        rpCreateInfo.height                      = mCreateInfo.height;
-        rpCreateInfo.renderTargetCount           = 1;
-        rpCreateInfo.pRenderTargetViews[0]       = mClearRenderTargets[i];
-        rpCreateInfo.pDepthStencilView           = mDepthImages.empty() ? nullptr : mDepthStencilViews[i];
-        rpCreateInfo.renderTargetClearValues[0]  = {{0.0f, 0.0f, 0.0f, 0.0f}};
-        rpCreateInfo.depthStencilClearValue      = {1.0f, 0xFF};
-        rpCreateInfo.ownership                   = grfx::OWNERSHIP_RESTRICTED;
+        grfx::RenderPassCreateInfo rpCreateInfo = {};
+        rpCreateInfo.width                      = mCreateInfo.width;
+        rpCreateInfo.height                     = mCreateInfo.height;
+        rpCreateInfo.renderTargetCount          = 1;
+        rpCreateInfo.pRenderTargetViews[0]      = mClearRenderTargets[i];
+        rpCreateInfo.pDepthStencilView          = mDepthImages.empty() ? nullptr : mDepthStencilViews[i];
+        rpCreateInfo.renderTargetClearValues[0] = {{0.0f, 0.0f, 0.0f, 0.0f}};
+        rpCreateInfo.depthStencilClearValue     = {1.0f, 0xFF};
+        rpCreateInfo.ownership                  = grfx::OWNERSHIP_RESTRICTED;
+        rpCreateInfo.pShadingRatePattern        = mCreateInfo.pShadingRatePattern;
 
         grfx::RenderPassPtr renderPass;
         auto                ppxres = GetDevice()->CreateRenderPass(&rpCreateInfo, &renderPass);
@@ -260,15 +261,16 @@ Result Swapchain::CreateRenderPasses()
 
     // Create render passes with grfx::ATTACHMENT_LOAD_OP_LOAD for render target.
     for (size_t i = 0; i < imageCount; ++i) {
-        grfx::RenderPassCreateInfo rpCreateInfo  = {};
-        rpCreateInfo.width                       = mCreateInfo.width;
-        rpCreateInfo.height                      = mCreateInfo.height;
-        rpCreateInfo.renderTargetCount           = 1;
-        rpCreateInfo.pRenderTargetViews[0]       = mLoadRenderTargets[i];
-        rpCreateInfo.pDepthStencilView           = mDepthImages.empty() ? nullptr : mDepthStencilViews[i];
-        rpCreateInfo.renderTargetClearValues[0]  = {{0.0f, 0.0f, 0.0f, 0.0f}};
-        rpCreateInfo.depthStencilClearValue      = {1.0f, 0xFF};
-        rpCreateInfo.ownership                   = grfx::OWNERSHIP_RESTRICTED;
+        grfx::RenderPassCreateInfo rpCreateInfo = {};
+        rpCreateInfo.width                      = mCreateInfo.width;
+        rpCreateInfo.height                     = mCreateInfo.height;
+        rpCreateInfo.renderTargetCount          = 1;
+        rpCreateInfo.pRenderTargetViews[0]      = mLoadRenderTargets[i];
+        rpCreateInfo.pDepthStencilView          = mDepthImages.empty() ? nullptr : mDepthStencilViews[i];
+        rpCreateInfo.renderTargetClearValues[0] = {{0.0f, 0.0f, 0.0f, 0.0f}};
+        rpCreateInfo.depthStencilClearValue     = {1.0f, 0xFF};
+        rpCreateInfo.ownership                  = grfx::OWNERSHIP_RESTRICTED;
+        rpCreateInfo.pShadingRatePattern        = mCreateInfo.pShadingRatePattern;
 
         grfx::RenderPassPtr renderPass;
         auto                ppxres = GetDevice()->CreateRenderPass(&rpCreateInfo, &renderPass);

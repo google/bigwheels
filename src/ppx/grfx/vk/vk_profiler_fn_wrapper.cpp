@@ -24,6 +24,7 @@ static ProfilerEventToken s_vkCreateImage            = 0;
 static ProfilerEventToken s_vkCreateImageView        = 0;
 static ProfilerEventToken s_vkCreateCommandPool      = 0;
 static ProfilerEventToken s_vkCreateRenderPass       = 0;
+static ProfilerEventToken s_vkCreateRenderPass2      = 0;
 static ProfilerEventToken s_vkAllocateCommandBuffers = 0;
 static ProfilerEventToken s_vkFreeCommandBuffers     = 0;
 static ProfilerEventToken s_vkAllocateDescriptorSets = 0;
@@ -76,6 +77,31 @@ void RegisterProfilerFunctions()
 #undef REGISTER_EVENT_PARAMS
 }
 
+namespace {
+struct FuncVkCreateRenderPass2KHR
+{
+    VkDevice                   mDevice = VK_NULL_HANDLE;
+    PFN_vkCreateRenderPass2KHR mFunc   = nullptr;
+    FuncVkCreateRenderPass2KHR(VkDevice device)
+    {
+        mDevice = device;
+        mFunc   = reinterpret_cast<PFN_vkCreateRenderPass2KHR>(vkGetDeviceProcAddr(device, "vkCreateRenderPass2KHR"));
+    }
+    inline VkResult Call(
+        VkDevice                       device,
+        const VkRenderPassCreateInfo2* pCreateInfo,
+        const VkAllocationCallbacks*   pAllocator,
+        VkRenderPass*                  pRenderPass)
+    {
+        if (device != mDevice) {
+            PPX_LOG_WARN("vkRenderPass2KHR called with different VkDevice");
+            return VK_ERROR_UNKNOWN;
+        }
+        return mFunc(device, pCreateInfo, pAllocator, pRenderPass);
+    }
+};
+} // namespace
+
 #if defined(PPX_ENABLE_PROFILE_GRFX_API_FUNCTIONS)
 
 VkResult CreateBuffer(
@@ -126,6 +152,17 @@ VkResult CreateRenderPass(
 {
     ProfilerScopedEventSample eventSample(s_vkCreateRenderPass);
     return vkCreateRenderPass(device, pCreateInfo, pAllocator, pRenderPass);
+}
+
+VkResult CreateRenderPass(
+    VkDevice                       device,
+    const VkRenderPassCreateInfo2* pCreateInfo,
+    const VkAllocationCallbacks*   pAllocator,
+    VkRenderPass*                  pRenderPass)
+{
+    static FuncVkCreateRenderPass2KHR func(device);
+    ProfilerScopedEventSample         eventSample(s_vkCreateRenderPass2);
+    return func.Call(device, pCreateInfo, pAllocator, pRenderPass);
 }
 
 VkResult AllocateCommandBuffers(
@@ -317,6 +354,18 @@ void CmdDrawIndexed(
 {
     ProfilerScopedEventSample eventSample(s_vkCmdDrawIndexed);
     vkCmdDrawIndexed(commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+}
+
+#else
+
+VkResult CreateRenderPass(
+    VkDevice                       device,
+    const VkRenderPassCreateInfo2* pCreateInfo,
+    const VkAllocationCallbacks*   pAllocator,
+    VkRenderPass*                  pRenderPass)
+{
+    static FuncVkCreateRenderPass2KHR func(device);
+    return func.Call(device, pCreateInfo, pAllocator, pRenderPass);
 }
 
 #endif // defined(PPX_ENABLE_PROFILE_GRFX_FUNCTIONS)

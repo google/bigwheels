@@ -101,11 +101,12 @@ namespace internal {
 
 RenderPassCreateInfo::RenderPassCreateInfo(const grfx::RenderPassCreateInfo& obj)
 {
-    this->version           = CREATE_INFO_VERSION_1;
-    this->width             = obj.width;
-    this->height            = obj.height;
-    this->renderTargetCount = obj.renderTargetCount;
-    this->depthStencilState = obj.depthStencilState;
+    this->version             = CREATE_INFO_VERSION_1;
+    this->width               = obj.width;
+    this->height              = obj.height;
+    this->renderTargetCount   = obj.renderTargetCount;
+    this->depthStencilState   = obj.depthStencilState;
+    this->pShadingRatePattern = obj.pShadingRatePattern;
 
     // Views
     for (uint32_t i = 0; i < this->renderTargetCount; ++i) {
@@ -122,10 +123,11 @@ RenderPassCreateInfo::RenderPassCreateInfo(const grfx::RenderPassCreateInfo& obj
 
 RenderPassCreateInfo::RenderPassCreateInfo(const grfx::RenderPassCreateInfo2& obj)
 {
-    this->version           = CREATE_INFO_VERSION_2;
-    this->width             = obj.width;
-    this->height            = obj.height;
-    this->renderTargetCount = obj.renderTargetCount;
+    this->version             = CREATE_INFO_VERSION_2;
+    this->width               = obj.width;
+    this->height              = obj.height;
+    this->renderTargetCount   = obj.renderTargetCount;
+    this->pShadingRatePattern = obj.pShadingRatePattern;
 
     // Formats
     for (uint32_t i = 0; i < this->renderTargetCount; ++i) {
@@ -167,11 +169,12 @@ RenderPassCreateInfo::RenderPassCreateInfo(const grfx::RenderPassCreateInfo2& ob
 
 RenderPassCreateInfo::RenderPassCreateInfo(const grfx::RenderPassCreateInfo3& obj)
 {
-    this->version           = CREATE_INFO_VERSION_3;
-    this->width             = obj.width;
-    this->height            = obj.height;
-    this->renderTargetCount = obj.renderTargetCount;
-    this->depthStencilState = obj.depthStencilState;
+    this->version             = CREATE_INFO_VERSION_3;
+    this->width               = obj.width;
+    this->height              = obj.height;
+    this->renderTargetCount   = obj.renderTargetCount;
+    this->depthStencilState   = obj.depthStencilState;
+    this->pShadingRatePattern = obj.pShadingRatePattern;
 
     // Images
     for (uint32_t i = 0; i < this->renderTargetCount; ++i) {
@@ -244,7 +247,6 @@ Result RenderPass::CreateImagesAndViewsV2(const grfx::internal::RenderPassCreate
             if (pCreateInfo->V2.renderTargetInitialStates[i] != grfx::RESOURCE_STATE_UNDEFINED) {
                 initialState = pCreateInfo->V2.renderTargetInitialStates[i];
             }
-
             grfx::ImageCreateInfo imageCreateInfo = {};
             imageCreateInfo.type                  = grfx::IMAGE_TYPE_2D;
             imageCreateInfo.width                 = pCreateInfo->width;

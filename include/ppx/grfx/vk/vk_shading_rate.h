@@ -29,17 +29,99 @@ class ShadingRatePattern
     : public grfx::ShadingRatePattern
 {
 public:
-    virtual ~ShadingRatePattern() = default;
+    ShadingRatePattern() {}
+    virtual ~ShadingRatePattern() {}
 
     VkImageViewPtr GetAttachmentImageView() const
     {
         return mAttachmentView;
     }
 
-protected:
-    Result CreateApiObjects(const ShadingRatePatternCreateInfo* pCreateInfo) override;
-    void   DestroyApiObjects() override;
+    // ShadingRatePattern::RenderPassModifier
+    //
+    // Handles modification of VkRenderPassCreateInfo(2) to add support for a ShadingRatePattern.
+    class RenderPassModifier
+    {
+    public:
+        RenderPassModifier()          = default;
+        virtual ~RenderPassModifier() = default;
 
+        // Initializes the modified VkRenderPassCreateInfo2, based on the values
+        // in VkRenderPassCreateInfo.
+        void Initialize(const VkRenderPassCreateInfo& vkci);
+
+        // Initializes the modified VkRenderPassCreateInfo2, based on the values
+        // in VkRenderPassCreateInfo2.
+        void Initialize(const VkRenderPassCreateInfo2& vkci);
+
+        // Returns the modified VkRenderPassCreateInfo2.
+        const VkRenderPassCreateInfo2* GetVkRenderPassCreateInfo2()
+        {
+            return &mVkRenderPassCreateInfo2;
+        }
+
+    protected:
+        virtual void InitializeImpl() = 0;
+
+        VkRenderPassCreateInfo2               mVkRenderPassCreateInfo2 = {VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2};
+        std::vector<VkAttachmentDescription2> mAttachments;
+        std::vector<VkSubpassDescription2>    mSubpasses;
+        struct SubpassAttachments
+        {
+            std::vector<VkAttachmentReference2> inputAttachments;
+            std::vector<VkAttachmentReference2> colorAttachments;
+            std::vector<VkAttachmentReference2> resolveAttachments;
+            VkAttachmentReference2              depthStencilAttachment;
+            std::vector<uint32_t>               preserveAttachments;
+        };
+        std::vector<SubpassAttachments>   mSubpassAttachments;
+        std::vector<VkSubpassDependency2> mDependencies;
+    };
+
+    // Creates a RenderPassModifier that will modify VkRenderPassCreateInfo(2)
+    // to support this ShadingRatePattern.
+    std::unique_ptr<RenderPassModifier> CreateRenderPassModifier() const
+    {
+        return CreateRenderPassModifier(ToApi(GetDevice()), GetShadingRateMode());
+    }
+
+    // Creates a RenderPassModifier that will modify VkRenderPassCreateInfo(2)
+    // to support the given ShadingRateMode on the given device.
+    static std::unique_ptr<RenderPassModifier> CreateRenderPassModifier(vk::Device* device, ShadingRateMode mode);
+
+protected:
+    // ShadingRatePattern::FDMRenderPassModifier
+    //
+    // Handles modification of VkRenderPassCreateInfo(2) to add support for FDM.
+    class FDMRenderPassModifier : public RenderPassModifier
+    {
+    protected:
+        void InitializeImpl() override;
+
+    private:
+        VkRenderPassFragmentDensityMapCreateInfoEXT mFdmInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_FRAGMENT_DENSITY_MAP_CREATE_INFO_EXT};
+    };
+
+    // ShadingRatePattern::VRSRenderPassModifier
+    //
+    // Handles modification of VkRenderPassCreateInfo(2) to add support for VRS.
+    class VRSRenderPassModifier : public RenderPassModifier
+    {
+    public:
+        VRSRenderPassModifier(const ShadingRateCapabilities& capabilities)
+            : mCapabilities(capabilities) {}
+
+    protected:
+        void InitializeImpl() override;
+
+    private:
+        ShadingRateCapabilities                mCapabilities;
+        VkFragmentShadingRateAttachmentInfoKHR mVrsAttachmentInfo = {VK_STRUCTURE_TYPE_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR};
+        VkAttachmentReference2                 mVrsAttachmentRef  = {VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2_KHR};
+    };
+
+    Result         CreateApiObjects(const ShadingRatePatternCreateInfo* pCreateInfo) override;
+    void           DestroyApiObjects() override;
     VkImageViewPtr mAttachmentView;
 };
 

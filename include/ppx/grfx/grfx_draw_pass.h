@@ -42,6 +42,7 @@ struct DrawPassCreateInfo
     grfx::ResourceState          depthStencilInitialState                          = grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE;
     grfx::RenderTargetClearValue renderTargetClearValues[PPX_MAX_RENDER_TARGETS]   = {};
     grfx::DepthStencilClearValue depthStencilClearValue                            = {};
+    grfx::ShadingRatePattern*    pShadingRatePattern                               = nullptr;
 };
 
 //! @struct DrawPassCreateInfo2
@@ -58,6 +59,7 @@ struct DrawPassCreateInfo2
     grfx::ResourceState          depthStencilState                               = grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE;
     grfx::RenderTargetClearValue renderTargetClearValues[PPX_MAX_RENDER_TARGETS] = {};
     grfx::DepthStencilClearValue depthStencilClearValue                          = {};
+    grfx::ShadingRatePattern*    pShadingRatePattern                             = nullptr;
 };
 
 //! struct DrawPassCreateInfo3
@@ -66,12 +68,13 @@ struct DrawPassCreateInfo2
 //!
 struct DrawPassCreateInfo3
 {
-    uint32_t            width                                         = 0;
-    uint32_t            height                                        = 0;
-    uint32_t            renderTargetCount                             = 0;
-    grfx::Texture*      pRenderTargetTextures[PPX_MAX_RENDER_TARGETS] = {};
-    grfx::Texture*      pDepthStencilTexture                          = nullptr;
-    grfx::ResourceState depthStencilState                             = grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE;
+    uint32_t                  width                                         = 0;
+    uint32_t                  height                                        = 0;
+    uint32_t                  renderTargetCount                             = 0;
+    grfx::Texture*            pRenderTargetTextures[PPX_MAX_RENDER_TARGETS] = {};
+    grfx::Texture*            pDepthStencilTexture                          = nullptr;
+    grfx::ResourceState       depthStencilState                             = grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE;
+    grfx::ShadingRatePattern* pShadingRatePattern                           = nullptr;
 };
 
 namespace internal {
@@ -86,11 +89,12 @@ struct DrawPassCreateInfo
         CREATE_INFO_VERSION_3         = 3,
     };
 
-    CreateInfoVersion   version           = CREATE_INFO_VERSION_UNDEFINED;
-    uint32_t            width             = 0;
-    uint32_t            height            = 0;
-    uint32_t            renderTargetCount = 0;
-    grfx::ResourceState depthStencilState = grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE;
+    CreateInfoVersion         version             = CREATE_INFO_VERSION_UNDEFINED;
+    uint32_t                  width               = 0;
+    uint32_t                  height              = 0;
+    uint32_t                  renderTargetCount   = 0;
+    grfx::ResourceState       depthStencilState   = grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE;
+    grfx::ShadingRatePattern* pShadingRatePattern = nullptr;
 
     // Data unique to grfx::DrawPassCreateInfo1
     struct

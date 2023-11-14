@@ -189,6 +189,9 @@ void FillOutGraphicsPipelineCreateInfo(
         pDstCreateInfo->outputState.depthStencilFormat = pSrcCreateInfo->outputState.depthStencilFormat;
     }
 
+    // Shading rate mode
+    pDstCreateInfo->shadingRateMode = pSrcCreateInfo->shadingRateMode;
+
     // Pipeline internface
     pDstCreateInfo->pPipelineInterface = pSrcCreateInfo->pPipelineInterface;
 }
