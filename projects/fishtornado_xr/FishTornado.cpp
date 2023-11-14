@@ -389,7 +389,7 @@ void FishTornadoApp::SetupDebug()
         mDebugDrawPipeline = CreateForwardPipeline("fishtornado/shaders", "DebugDraw.vs", "DebugDraw.ps");
     }
 #endif
-    mViewCount = IsXrEnabled() ? GetXrComponent().GetViewCount() : 1;
+    mViewCount = IsXrEnabled() ? static_cast<int>(GetXrComponent().GetViewCount()) : 1;
     mViewGpuFrameTime.resize(mViewCount);
     mViewPipelineStatistics.resize(mViewCount);
 }
@@ -1165,17 +1165,17 @@ void FishTornadoApp::UpdateMetrics()
 
         data.gauge.value = prevGpuFrameTime;
         RecordMetricData(mMetricsData.metrics[MetricsData::kTypeGpuFrameTime], data);
-        data.gauge.value = mMetricsData.data[MetricsData::kTypeIAVertices];
+        data.gauge.value = static_cast<double>(mMetricsData.data[MetricsData::kTypeIAVertices]);
         RecordMetricData(mMetricsData.metrics[MetricsData::kTypeIAVertices], data);
-        data.gauge.value = mMetricsData.data[MetricsData::kTypeIAPrimitives];
+        data.gauge.value = static_cast<double>(mMetricsData.data[MetricsData::kTypeIAPrimitives]);
         RecordMetricData(mMetricsData.metrics[MetricsData::kTypeIAPrimitives], data);
-        data.gauge.value = mMetricsData.data[MetricsData::kTypeVSInvocations];
+        data.gauge.value = static_cast<double>(mMetricsData.data[MetricsData::kTypeVSInvocations]);
         RecordMetricData(mMetricsData.metrics[MetricsData::kTypeVSInvocations], data);
-        data.gauge.value = mMetricsData.data[MetricsData::kTypeCInvocations];
+        data.gauge.value = static_cast<double>(mMetricsData.data[MetricsData::kTypeCInvocations]);
         RecordMetricData(mMetricsData.metrics[MetricsData::kTypeCInvocations], data);
-        data.gauge.value = mMetricsData.data[MetricsData::kTypeCPrimitives];
+        data.gauge.value = static_cast<double>(mMetricsData.data[MetricsData::kTypeCPrimitives]);
         RecordMetricData(mMetricsData.metrics[MetricsData::kTypeCPrimitives], data);
-        data.gauge.value = mMetricsData.data[MetricsData::kTypePSInvocations];
+        data.gauge.value = static_cast<double>(mMetricsData.data[MetricsData::kTypePSInvocations]);
         RecordMetricData(mMetricsData.metrics[MetricsData::kTypePSInvocations], data);
     }
 }

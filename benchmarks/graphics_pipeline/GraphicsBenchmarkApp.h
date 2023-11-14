@@ -62,14 +62,14 @@ static constexpr std::array<const char*, 2> kAvailableVertexAttrLayouts = {
     "Interleaved",
     "Position_Planar"};
 
-static constexpr uint32_t kPipelineCount = kAvailablePsShaders.size() * kAvailableVsShaders.size() * kAvailableVbFormats.size() * kAvailableVertexAttrLayouts.size();
+static constexpr size_t kPipelineCount = kAvailablePsShaders.size() * kAvailableVsShaders.size() * kAvailableVbFormats.size() * kAvailableVertexAttrLayouts.size();
 
 static constexpr std::array<const char*, 3> kAvailableLODs = {
     "LOD_0",
     "LOD_1",
     "LOD_2"};
 
-static constexpr uint32_t kMeshCount = kAvailableVbFormats.size() * kAvailableVertexAttrLayouts.size() * kAvailableLODs.size();
+static constexpr size_t kMeshCount = kAvailableVbFormats.size() * kAvailableVertexAttrLayouts.size() * kAvailableLODs.size();
 
 static constexpr std::array<const char*, 3> kFullscreenQuadsTypes = {
     "Noise",

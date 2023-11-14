@@ -31,7 +31,7 @@ public:
     // Construct a grid of `count` # of points and shuffle the order
     OrderedGrid(uint32_t count, uint32_t randomSeed);
 
-    uint32_t GetCount() const { return mOrderedPointIndices.size(); }
+    uint32_t GetCount() const { return static_cast<uint32_t>(mOrderedPointIndices.size()); }
 
     // Get model matrix that can be applied to move a model space object to this point
     float4x4 GetModelMatrix(uint32_t pointIndex) const;
@@ -83,7 +83,7 @@ public:
     };
 
     // Creates a SphereMesh and populates info for one sphere
-    SphereMesh(uint32_t radius, uint32_t longitudeSegments, uint32_t latitudeSegments)
+    SphereMesh(float radius, uint32_t longitudeSegments, uint32_t latitudeSegments)
     {
         mSingleSphereMesh        = TriMesh::CreateSphere(radius, longitudeSegments, latitudeSegments, TriMeshOptions().Indices().TexCoords().Normals().Tangents());
         mSingleSphereVertexCount = mSingleSphereMesh.GetCountPositions();
@@ -117,7 +117,7 @@ private:
 
     // Resize dstGeom's vertex buffers and fill with srcGeom's vertex buffers repeated repeatCount times
     // If the position buffer is separate (position planar), do not touch it.
-    void RepeatGeometryNonPositionVertexData(const Geometry& srcGeom, VertexLayoutType vertexLayoutType, size_t repeatCount, Geometry& dstGeom);
+    void RepeatGeometryNonPositionVertexData(const Geometry& srcGeom, VertexLayoutType vertexLayoutType, uint32_t repeatCount, Geometry& dstGeom);
 
     // For a sphere in the grid, overwrite the position data for all its vertices within the full vertex buffers
     void WriteSpherePosition(const OrderedGrid& grid, uint32_t sphereIndex);
