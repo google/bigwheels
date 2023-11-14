@@ -170,7 +170,7 @@ void SphereMesh::PrepareFullGeometries()
     mHighPlanar.GetVertexBuffer(0)->SetSize(mSingleSphereTriCount * mSphereCount * elementSize);
 }
 
-void SphereMesh::RepeatGeometryNonPositionVertexData(const Geometry& srcGeom, VertexLayoutType vertexLayoutType, size_t repeatCount, Geometry& dstGeom)
+void SphereMesh::RepeatGeometryNonPositionVertexData(const Geometry& srcGeom, VertexLayoutType vertexLayoutType, uint32_t repeatCount, Geometry& dstGeom)
 {
     size_t nVertexBufferCount = srcGeom.GetVertexBufferCount();
     PPX_ASSERT_MSG(nVertexBufferCount == dstGeom.GetVertexBufferCount(), "Mismatched source and destination vertex data format");
@@ -180,13 +180,13 @@ void SphereMesh::RepeatGeometryNonPositionVertexData(const Geometry& srcGeom, Ve
 
     // If there is one interleaved (1 vb), repeat position data as well
     // For position planar (2 vb), repeat only non-position vertex data, starting from buffer 1
-    size_t firstBufferToCopy = isValidInterleaved ? 0 : 1;
+    uint32_t firstBufferToCopy = isValidInterleaved ? 0 : 1;
 
-    for (size_t vertexBufferIndex = firstBufferToCopy; vertexBufferIndex < nVertexBufferCount; vertexBufferIndex++) {
+    for (uint32_t vertexBufferIndex = firstBufferToCopy; vertexBufferIndex < nVertexBufferCount; vertexBufferIndex++) {
         const Geometry::Buffer* srcBufferPtr  = srcGeom.GetVertexBuffer(vertexBufferIndex);
         Geometry::Buffer*       dstBufferPtr  = dstGeom.GetVertexBuffer(vertexBufferIndex);
-        size_t                  srcBufferSize = srcBufferPtr->GetSize();
-        size_t                  dstBufferSize = srcBufferSize * repeatCount;
+        uint32_t                srcBufferSize = srcBufferPtr->GetSize();
+        uint32_t                dstBufferSize = srcBufferSize * repeatCount;
 
         dstBufferPtr->SetSize(dstBufferSize);
 
@@ -230,7 +230,7 @@ void SphereMesh::AppendSphereIndicesToInterleaved(uint32_t sphereIndex)
 
         // v0/v1/v2 contain the vertex index counting from the beginning of a sphere, so an offset of
         // (sphereIndex * mSingleSphereVertexCount) must be added when considering the full buffer
-        size_t offset = sphereIndex * mSingleSphereVertexCount;
+        uint32_t offset = sphereIndex * mSingleSphereVertexCount;
         mLowInterleaved.AppendIndicesTriangle(offset + v0, offset + v1, offset + v2);
         mHighInterleaved.AppendIndicesTriangle(offset + v0, offset + v1, offset + v2);
     }
