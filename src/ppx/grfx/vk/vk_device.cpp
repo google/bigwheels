@@ -26,6 +26,7 @@
 #include "ppx/grfx/vk/vk_shader.h"
 #include "ppx/grfx/vk/vk_swapchain.h"
 #include "ppx/grfx/vk/vk_sync.h"
+#include "ppx/grfx/vk/vk_profiler_fn_wrapper.h"
 
 #define VMA_IMPLEMENTATION
 #define VMA_VULKAN_VERSION 1002000 // Vulkan 1.2
@@ -159,6 +160,27 @@ Result Device::ConfigureExtensions(const grfx::DeviceCreateInfo* pCreateInfo)
         }
     }
 
+    // Variable rate shading
+    if (ElementExists(std::string(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME), mFoundExtensions) &&
+        ElementExists(std::string(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME), mFoundExtensions)) {
+        mExtensions.push_back(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME);
+        mExtensions.push_back(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
+
+        mHasVRSExtensions = true;
+    }
+
+    // Fragment density map
+    if (ElementExists(std::string(VK_EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME), mFoundExtensions) &&
+        ElementExists(std::string(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME), mFoundExtensions)) {
+        mExtensions.push_back(VK_EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME);
+
+        // VK_KHR_create_renderpass2 is not required for FDM, but simplifies
+        // code to create the RenderPass.
+        mExtensions.push_back(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
+
+        mHasFDMExtensions = true;
+    }
+
 #if defined(PPX_VK_EXTENDED_DYNAMIC_STATE)
     if (ElementExists(std::string(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME), mFoundExtensions)) {
         mExtensions.push_back(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME);
@@ -265,6 +287,117 @@ Result Device::ConfigureFeatures(const grfx::DeviceCreateInfo* pCreateInfo, VkPh
     return ppx::SUCCESS;
 }
 
+void Device::ConfigureShadingRateCapabilities(const grfx::DeviceCreateInfo* pCreateInfo, grfx::ShadingRateCapabilities* pShadingRateCapabilities)
+{
+    *pShadingRateCapabilities = {};
+
+    VkInstance       instance       = ToApi(GetInstance())->GetVkInstance();
+    VkPhysicalDevice physicalDevice = ToApi(pCreateInfo->pGpu)->GetVkGpu();
+
+    mFnGetPhysicalDeviceFeatures2 =
+        reinterpret_cast<PFN_vkGetPhysicalDeviceFeatures2>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceFeatures2"));
+    if (mFnGetPhysicalDeviceFeatures2 == nullptr) {
+        PPX_LOG_WARN("ConfigureShadingRateCapabilities: Failed to load vkGetPhysicalDeviceFeatures2");
+        return;
+    }
+
+    mFnGetPhysicalDeviceProperties2 =
+        reinterpret_cast<PFN_vkGetPhysicalDeviceProperties2>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceProperties2"));
+    if (mFnGetPhysicalDeviceProperties2 == nullptr) {
+        PPX_LOG_WARN("ConfigureShadingRateCapabilities: Failed to load vkGetPhysicalDeviceProperties2");
+        return;
+    }
+
+    if (mHasVRSExtensions) {
+        mFnGetPhysicalDeviceFragmentShadingRatesKHR =
+            reinterpret_cast<PFN_vkGetPhysicalDeviceFragmentShadingRatesKHR>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceFragmentShadingRatesKHR"));
+        if (mFnGetPhysicalDeviceFragmentShadingRatesKHR == nullptr) {
+            PPX_LOG_WARN("ConfigureShadingRateCapabilities: Failed to load vkGetPhysicalDeviceFragmentShadingRatesKHR");
+            return;
+        }
+    }
+
+    ConfigureFDMShadingRateCapabilities(physicalDevice, pShadingRateCapabilities);
+    ConfigureVRSShadingRateCapabilities(physicalDevice, pShadingRateCapabilities);
+}
+
+void Device::ConfigureFDMShadingRateCapabilities(
+    VkPhysicalDevice               physicalDevice,
+    grfx::ShadingRateCapabilities* pShadingRateCapabilities)
+{
+    if (!mHasFDMExtensions) {
+        return;
+    }
+
+    VkPhysicalDeviceFeatures2                     features    = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+    VkPhysicalDeviceFragmentDensityMapFeaturesEXT fdmFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_FEATURES_EXT};
+    InsertPNext(features, fdmFeatures);
+    mFnGetPhysicalDeviceFeatures2(physicalDevice, &features);
+
+    VkPhysicalDeviceProperties2                     properties = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+    VkPhysicalDeviceFragmentDensityMapPropertiesEXT fdmProperties{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_PROPERTIES_EXT};
+    InsertPNext(properties, fdmProperties);
+    mFnGetPhysicalDeviceProperties2(physicalDevice, &properties);
+
+    pShadingRateCapabilities->supportsFDM      = (fdmFeatures.fragmentDensityMap == VK_TRUE);
+    pShadingRateCapabilities->fdm.minTexelSize = {
+        fdmProperties.minFragmentDensityTexelSize.width,
+        fdmProperties.minFragmentDensityTexelSize.height};
+    pShadingRateCapabilities->fdm.maxTexelSize = {
+        fdmProperties.maxFragmentDensityTexelSize.width,
+        fdmProperties.maxFragmentDensityTexelSize.height};
+}
+
+void Device::ConfigureVRSShadingRateCapabilities(
+    VkPhysicalDevice               physicalDevice,
+    grfx::ShadingRateCapabilities* pShadingRateCapabilities)
+{
+    if (!mHasVRSExtensions) {
+        return;
+    }
+
+    VkPhysicalDeviceFeatures2                      features    = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+    VkPhysicalDeviceFragmentShadingRateFeaturesKHR vrsFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR};
+    InsertPNext(features, vrsFeatures);
+    mFnGetPhysicalDeviceFeatures2(physicalDevice, &features);
+
+    VkPhysicalDeviceProperties2                      properties = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+    VkPhysicalDeviceFragmentShadingRatePropertiesKHR vrsProperties{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_PROPERTIES_KHR};
+    InsertPNext(properties, vrsProperties);
+    mFnGetPhysicalDeviceProperties2(physicalDevice, &properties);
+
+    pShadingRateCapabilities->supportsPipelineVRS   = vrsFeatures.pipelineFragmentShadingRate;
+    pShadingRateCapabilities->supportsPrimitiveVRS  = vrsFeatures.primitiveFragmentShadingRate;
+    pShadingRateCapabilities->supportsAttachmentVRS = vrsFeatures.attachmentFragmentShadingRate;
+
+    if (!vrsFeatures.pipelineFragmentShadingRate && !vrsFeatures.primitiveFragmentShadingRate && !vrsFeatures.attachmentFragmentShadingRate) {
+        return;
+    }
+
+    pShadingRateCapabilities->vrs.minTexelSize = {
+        vrsProperties.minFragmentShadingRateAttachmentTexelSize.width,
+        vrsProperties.minFragmentShadingRateAttachmentTexelSize.height};
+    pShadingRateCapabilities->vrs.maxTexelSize = {
+        vrsProperties.maxFragmentShadingRateAttachmentTexelSize.width,
+        vrsProperties.maxFragmentShadingRateAttachmentTexelSize.height};
+
+    uint32_t& supportedRateCount = pShadingRateCapabilities->vrs.supportedRateCount;
+    Extent2D* supportedRates     = pShadingRateCapabilities->vrs.supportedRates;
+
+    VkResult vkres = mFnGetPhysicalDeviceFragmentShadingRatesKHR(physicalDevice, &supportedRateCount, nullptr);
+    PPX_ASSERT_MSG(vkres == VK_SUCCESS, "vkGetPhysicalDeviceFragmentShadingRatesKHR failed");
+
+    std::vector<VkPhysicalDeviceFragmentShadingRateKHR> fragmentShadingRates(
+        supportedRateCount, VkPhysicalDeviceFragmentShadingRateKHR{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_KHR});
+    vkres = mFnGetPhysicalDeviceFragmentShadingRatesKHR(physicalDevice, &supportedRateCount, fragmentShadingRates.data());
+    PPX_ASSERT_MSG(vkres == VK_SUCCESS, "vkGetPhysicalDeviceFragmentShadingRatesKHR failed");
+
+    for (uint32_t i = 0; i < supportedRateCount; ++i) {
+        const auto& rate  = fragmentShadingRates[i];
+        supportedRates[i] = {rate.fragmentSize.width, rate.fragmentSize.height};
+    }
+}
+
 Result Device::CreateQueues(const grfx::DeviceCreateInfo* pCreateInfo)
 {
     if (pCreateInfo->graphicsQueueCount > 0) {
@@ -324,16 +457,15 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
     if (Failed(ppxres)) {
         return ppxres;
     }
-
     ppxres = ConfigureExtensions(pCreateInfo);
     if (Failed(ppxres)) {
         return ppxres;
     }
-
     ppxres = ConfigureFeatures(pCreateInfo, mDeviceFeatures);
     if (Failed(ppxres)) {
         return ppxres;
     }
+    ConfigureShadingRateCapabilities(pCreateInfo, &mShadingRateCapabilities);
 
     // We can't include structs whose extesnions aren't enabled, so do the tracking.
     std::vector<VkBaseOutStructure*> extensionStructs;
@@ -393,6 +525,20 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
         extensionStructs.push_back(reinterpret_cast<VkBaseOutStructure*>(&dynamicRenderingFeatures));
     }
 #endif
+
+    VkPhysicalDeviceFragmentDensityMapFeaturesEXT fragmentDensityMapFeature = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_FEATURES_EXT};
+    {
+        fragmentDensityMapFeature.fragmentDensityMap = mShadingRateCapabilities.supportsFDM;
+        extensionStructs.push_back(reinterpret_cast<VkBaseOutStructure*>(&fragmentDensityMapFeature));
+    }
+
+    VkPhysicalDeviceFragmentShadingRateFeaturesKHR fragmentShadingRateFeature = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR};
+    {
+        fragmentShadingRateFeature.pipelineFragmentShadingRate   = mShadingRateCapabilities.supportsPipelineVRS;
+        fragmentShadingRateFeature.primitiveFragmentShadingRate  = mShadingRateCapabilities.supportsPrimitiveVRS;
+        fragmentShadingRateFeature.attachmentFragmentShadingRate = mShadingRateCapabilities.supportsAttachmentVRS;
+        extensionStructs.push_back(reinterpret_cast<VkBaseOutStructure*>(&fragmentShadingRateFeature));
+    }
 
     // Chain pNexts
     for (size_t i = 1; i < extensionStructs.size(); ++i) {

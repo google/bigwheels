@@ -90,23 +90,37 @@ private:
     Result ConfigureQueueInfo(const grfx::DeviceCreateInfo* pCreateInfo, std::vector<float>& queuePriorities, std::vector<VkDeviceQueueCreateInfo>& queueCreateInfos);
     Result ConfigureExtensions(const grfx::DeviceCreateInfo* pCreateInfo);
     Result ConfigureFeatures(const grfx::DeviceCreateInfo* pCreateInfo, VkPhysicalDeviceFeatures& features);
+    void   ConfigureShadingRateCapabilities(
+          const grfx::DeviceCreateInfo*  pCreateInfo,
+          grfx::ShadingRateCapabilities* pShadingRateCapabilities);
+    void ConfigureFDMShadingRateCapabilities(
+        VkPhysicalDevice               physicalDevice,
+        grfx::ShadingRateCapabilities* pShadingRateCapabilities);
+    void ConfigureVRSShadingRateCapabilities(
+        VkPhysicalDevice               physicalDevice,
+        grfx::ShadingRateCapabilities* pShadingRateCapabilities);
     Result CreateQueues(const grfx::DeviceCreateInfo* pCreateInfo);
 
 private:
-    std::vector<std::string> mFoundExtensions;
-    std::vector<std::string> mExtensions;
-    VkDevicePtr              mDevice;
-    VkPhysicalDeviceFeatures mDeviceFeatures = {};
-    VmaAllocatorPtr          mVmaAllocator;
-    bool                     mHasTimelineSemaphore      = false;
-    bool                     mHasExtendedDynamicState   = false;
-    bool                     mHasUnrestrictedDepthRange = false;
-    bool                     mHasDynamicRendering       = false;
-    PFN_vkResetQueryPoolEXT  mFnResetQueryPoolEXT       = nullptr;
-    uint32_t                 mGraphicsQueueFamilyIndex  = 0;
-    uint32_t                 mComputeQueueFamilyIndex   = 0;
-    uint32_t                 mTransferQueueFamilyIndex  = 0;
-    uint32_t                 mMaxPushDescriptors        = 0;
+    std::vector<std::string>                       mFoundExtensions;
+    std::vector<std::string>                       mExtensions;
+    VkDevicePtr                                    mDevice;
+    VkPhysicalDeviceFeatures                       mDeviceFeatures = {};
+    VmaAllocatorPtr                                mVmaAllocator;
+    bool                                           mHasTimelineSemaphore                       = false;
+    bool                                           mHasExtendedDynamicState                    = false;
+    bool                                           mHasUnrestrictedDepthRange                  = false;
+    bool                                           mHasDynamicRendering                        = false;
+    bool                                           mHasFDMExtensions                           = false;
+    bool                                           mHasVRSExtensions                           = false;
+    PFN_vkResetQueryPoolEXT                        mFnResetQueryPoolEXT                        = nullptr;
+    uint32_t                                       mGraphicsQueueFamilyIndex                   = 0;
+    uint32_t                                       mComputeQueueFamilyIndex                    = 0;
+    uint32_t                                       mTransferQueueFamilyIndex                   = 0;
+    uint32_t                                       mMaxPushDescriptors                         = 0;
+    PFN_vkGetPhysicalDeviceFeatures2               mFnGetPhysicalDeviceFeatures2               = nullptr;
+    PFN_vkGetPhysicalDeviceProperties2             mFnGetPhysicalDeviceProperties2             = nullptr;
+    PFN_vkGetPhysicalDeviceFragmentShadingRatesKHR mFnGetPhysicalDeviceFragmentShadingRatesKHR = nullptr;
 };
 
 extern PFN_vkCmdPushDescriptorSetKHR CmdPushDescriptorSetKHR;

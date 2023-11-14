@@ -80,6 +80,14 @@ VkImageAspectFlags DetermineAspectMask(VkFormat format);
 
 VmaMemoryUsage ToVmaMemoryUsage(grfx::MemoryUsage value);
 
+// Inserts nextStruct into the pNext chain of baseStruct.
+template <typename TVkStruct1, typename TVkStruct2>
+void InsertPNext(TVkStruct1& baseStruct, TVkStruct2& nextStruct)
+{
+    nextStruct.pNext = baseStruct.pNext;
+    baseStruct.pNext = &nextStruct;
+}
+
 } // namespace vk
 } // namespace grfx
 } // namespace ppx

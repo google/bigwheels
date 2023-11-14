@@ -28,6 +28,7 @@
 #include "ppx/grfx/grfx_query.h"
 #include "ppx/grfx/grfx_render_pass.h"
 #include "ppx/grfx/grfx_shader.h"
+#include "ppx/grfx/grfx_shading_rate.h"
 #include "ppx/grfx/grfx_swapchain.h"
 #include "ppx/grfx/grfx_sync.h"
 #include "ppx/grfx/grfx_text_draw.h"
@@ -178,11 +179,13 @@ public:
 
     grfx::QueuePtr GetAnyAvailableQueue() const;
 
+    const grfx::ShadingRateCapabilities& GetShadingRateCapabilities() const { return mShadingRateCapabilities; }
+
     virtual Result WaitIdle() = 0;
 
-    virtual bool PipelineStatsAvailable() const    = 0;
-    virtual bool DynamicRenderingSupported() const = 0;
-    virtual bool IndependentBlendingSupported() const = 0;
+    virtual bool PipelineStatsAvailable() const            = 0;
+    virtual bool DynamicRenderingSupported() const         = 0;
+    virtual bool IndependentBlendingSupported() const      = 0;
     virtual bool FragmentStoresAndAtomicsSupported() const = 0;
 
 protected:
@@ -272,6 +275,7 @@ protected:
     std::vector<grfx::QueuePtr>               mGraphicsQueues;
     std::vector<grfx::QueuePtr>               mComputeQueues;
     std::vector<grfx::QueuePtr>               mTransferQueues;
+    grfx::ShadingRateCapabilities             mShadingRateCapabilities;
 };
 
 } // namespace grfx

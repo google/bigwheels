@@ -243,6 +243,7 @@ list(
     ${INC_DIR}/ppx/grfx/grfx_render_pass.h
     ${INC_DIR}/ppx/grfx/grfx_scope.h
     ${INC_DIR}/ppx/grfx/grfx_shader.h
+    ${INC_DIR}/ppx/grfx/grfx_shading_rate.h
     ${INC_DIR}/ppx/grfx/grfx_swapchain.h
     ${INC_DIR}/ppx/grfx/grfx_sync.h
     ${INC_DIR}/ppx/grfx/grfx_text_draw.h
