@@ -35,6 +35,8 @@ struct ShadingRateCapabilities
 
     struct
     {
+        bool supportsNonSubsampledImages;
+
         // Minimum/maximum size of the region of the render target
         // corresponding to a single pixel in the FDM attachment.
         // This is *not* the minimum/maximum fragment density.

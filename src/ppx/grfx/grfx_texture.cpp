@@ -84,6 +84,7 @@ Result Texture::CreateApiObjects(const grfx::TextureCreateInfo* pCreateInfo)
         ci.pApiObject                = nullptr;
         ci.ownership                 = pCreateInfo->ownership;
         ci.concurrentMultiQueueUsage = pCreateInfo->concurrentMultiQueueUsage;
+        ci.subsampledFormat          = pCreateInfo->subsampledFormat;
 
         Result ppxres = GetDevice()->CreateImage(&ci, &mImage);
         if (Failed(ppxres)) {

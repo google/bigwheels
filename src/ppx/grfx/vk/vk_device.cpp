@@ -181,6 +181,9 @@ Result Device::ConfigureExtensions(const grfx::DeviceCreateInfo* pCreateInfo)
             "FDM shading rate requires unsupported extension " << VK_EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME);
         mExtensions.push_back(VK_EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME);
 
+        // VK_EXT_fragment_density_map2 is required on some drivers to enable subsampled images.
+        mExtensions.push_back(VK_EXT_FRAGMENT_DENSITY_MAP_2_EXTENSION_NAME);
+
         // VK_KHR_create_renderpass2 is not required for FDM, but simplifies
         // code to create the RenderPass.
         PPX_ASSERT_MSG(
@@ -347,6 +350,8 @@ void Device::ConfigureFDMShadingRateCapabilities(
     PPX_ASSERT_MSG(
         fdmFeatures.fragmentDensityMap == VK_TRUE,
         "FDM shading rate mode was requested, but not supported by the GPU.");
+
+    pShadingRateCapabilities->fdm.supportsNonSubsampledImages = fdmFeatures.fragmentDensityMapNonSubsampledImages;
 
     pShadingRateCapabilities->fdm.minTexelSize = {
         fdmProperties.minFragmentDensityTexelSize.width,
@@ -541,6 +546,9 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
     VkPhysicalDeviceFragmentDensityMapFeaturesEXT fragmentDensityMapFeature = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_FEATURES_EXT};
     if (pCreateInfo->supportShadingRateMode == SHADING_RATE_FDM) {
         fragmentDensityMapFeature.fragmentDensityMap = VK_TRUE;
+        if (mShadingRateCapabilities.fdm.supportsNonSubsampledImages) {
+            fragmentDensityMapFeature.fragmentDensityMapNonSubsampledImages = VK_TRUE;
+        }
         extensionStructs.push_back(reinterpret_cast<VkBaseOutStructure*>(&fragmentDensityMapFeature));
     }
 

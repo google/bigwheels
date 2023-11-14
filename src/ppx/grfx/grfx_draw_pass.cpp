@@ -58,6 +58,8 @@ DrawPassCreateInfo::DrawPassCreateInfo(const grfx::DrawPassCreateInfo& obj)
         this->renderTargetClearValues[i] = obj.renderTargetClearValues[i];
     }
     this->depthStencilClearValue = obj.depthStencilClearValue;
+
+    this->V1.subsampledFormat = obj.subsampledFormat;
 }
 
 DrawPassCreateInfo::DrawPassCreateInfo(const grfx::DrawPassCreateInfo2& obj)
@@ -129,6 +131,7 @@ Result DrawPass::CreateTexturesV1(const grfx::internal::DrawPassCreateInfo* pCre
             ci.depthStencilViewFormat  = grfx::FORMAT_UNDEFINED;
             ci.storageImageViewFormat  = grfx::FORMAT_UNDEFINED;
             ci.ownership               = grfx::OWNERSHIP_EXCLUSIVE;
+            ci.subsampledFormat        = pCreateInfo->V1.subsampledFormat;
 
             grfx::TexturePtr texture;
             Result           ppxres = GetDevice()->CreateTexture(&ci, &texture);
@@ -162,6 +165,7 @@ Result DrawPass::CreateTexturesV1(const grfx::internal::DrawPassCreateInfo* pCre
             ci.depthStencilViewFormat  = grfx::FORMAT_UNDEFINED;
             ci.storageImageViewFormat  = grfx::FORMAT_UNDEFINED;
             ci.ownership               = grfx::OWNERSHIP_EXCLUSIVE;
+            ci.subsampledFormat        = pCreateInfo->V1.subsampledFormat;
 
             grfx::TexturePtr texture;
             Result           ppxres = GetDevice()->CreateTexture(&ci, &texture);

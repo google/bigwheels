@@ -43,6 +43,7 @@ struct DrawPassCreateInfo
     grfx::RenderTargetClearValue renderTargetClearValues[PPX_MAX_RENDER_TARGETS]   = {};
     grfx::DepthStencilClearValue depthStencilClearValue                            = {};
     grfx::ShadingRatePattern*    pShadingRatePattern                               = nullptr;
+    bool                         subsampledFormat                                  = false;
 };
 
 //! @struct DrawPassCreateInfo2
@@ -106,6 +107,7 @@ struct DrawPassCreateInfo
         grfx::ImageUsageFlags depthStencilUsageFlags                            = {};
         grfx::ResourceState   renderTargetInitialStates[PPX_MAX_RENDER_TARGETS] = {grfx::RESOURCE_STATE_RENDER_TARGET};
         grfx::ResourceState   depthStencilInitialState                          = grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE;
+        bool                  subsampledFormat                                  = false;
     } V1;
 
     // Data unique to grfx::DrawPassCreateInfo2
