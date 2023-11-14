@@ -39,79 +39,79 @@ void GraphicsBenchmarkApp::InitKnobs()
     PPX_ASSERT_MSG(!cl_options.HasExtraOption("vs-shader-index"), "--vs-shader-index flag has been replaced, instead use --vs and specify the name of the vertex shader");
     PPX_ASSERT_MSG(!cl_options.HasExtraOption("ps-shader-index"), "--ps-shader-index flag has been replaced, instead use --ps and specify the name of the pixel shader");
 
-    pEnableSkyBox = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("enable-skybox", true);
+    GetKnobManager().InitKnob(&pEnableSkyBox, "enable-skybox", true);
     pEnableSkyBox->SetDisplayName("Enable SkyBox");
     pEnableSkyBox->SetFlagDescription("Enable the SkyBox in the scene.");
 
-    pEnableSpheres = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("enable-spheres", true);
+    GetKnobManager().InitKnob(&pEnableSpheres, "enable-spheres", true);
     pEnableSpheres->SetDisplayName("Enable Spheres");
     pEnableSpheres->SetFlagDescription("Enable the Spheres in the scene.");
 
-    pKnobVs = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("vs", 0, kAvailableVsShaders);
+    GetKnobManager().InitKnob(&pKnobVs, "vs", 0, kAvailableVsShaders);
     pKnobVs->SetDisplayName("Vertex Shader");
     pKnobVs->SetFlagDescription("Select the vertex shader for the graphics pipeline.");
     pKnobVs->SetIndent(1);
 
-    pKnobPs = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("ps", 0, kAvailablePsShaders);
+    GetKnobManager().InitKnob(&pKnobPs, "ps", 0, kAvailablePsShaders);
     pKnobPs->SetDisplayName("Pixel Shader");
     pKnobPs->SetFlagDescription("Select the pixel shader for the graphics pipeline.");
     pKnobPs->SetIndent(1);
 
-    pAllTexturesTo1x1 = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("all-textures-to-1x1", false);
+    GetKnobManager().InitKnob(&pAllTexturesTo1x1, "all-textures-to-1x1", false);
     pAllTexturesTo1x1->SetDisplayName("All Textures To 1x1");
     pAllTexturesTo1x1->SetFlagDescription("Replace all sphere textures with a 1x1 white texture.");
     pAllTexturesTo1x1->SetIndent(2);
 
-    pKnobLOD = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("LOD", 0, kAvailableLODs);
+    GetKnobManager().InitKnob(&pKnobLOD, "LOD", 0, kAvailableLODs);
     pKnobLOD->SetDisplayName("Level of Detail (LOD)");
     pKnobLOD->SetFlagDescription("Select the Level of Detail (LOD) for the sphere mesh.");
     pKnobLOD->SetIndent(1);
 
-    pKnobVbFormat = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("vertex-buffer-format", 0, kAvailableVbFormats);
+    GetKnobManager().InitKnob(&pKnobVbFormat, "vertex-buffer-format", 0, kAvailableVbFormats);
     pKnobVbFormat->SetDisplayName("Vertex Buffer Format");
     pKnobVbFormat->SetFlagDescription("Select the format for the vertex buffer.");
     pKnobVbFormat->SetIndent(1);
 
-    pKnobVertexAttrLayout = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("vertex-attr-layout", 0, kAvailableVertexAttrLayouts);
+    GetKnobManager().InitKnob(&pKnobVertexAttrLayout, "vertex-attr-layout", 0, kAvailableVertexAttrLayouts);
     pKnobVertexAttrLayout->SetDisplayName("Vertex Attribute Layout");
     pKnobVertexAttrLayout->SetFlagDescription("Select the Vertex Attribute Layout for the graphics pipeline.");
     pKnobVertexAttrLayout->SetIndent(1);
 
-    pSphereInstanceCount = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("sphere-count", /* defaultValue = */ 50, /* minValue = */ 1, kMaxSphereInstanceCount);
+    GetKnobManager().InitKnob(&pSphereInstanceCount, "sphere-count", /* defaultValue = */ 50, /* minValue = */ 1, kMaxSphereInstanceCount);
     pSphereInstanceCount->SetDisplayName("Sphere Count");
     pSphereInstanceCount->SetFlagDescription("Select the number of spheres to draw on the screen.");
     pSphereInstanceCount->SetIndent(1);
 
-    pDrawCallCount = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("drawcall-count", /* defaultValue = */ 1, /* minValue = */ 1, kMaxSphereInstanceCount);
+    GetKnobManager().InitKnob(&pDrawCallCount, "drawcall-count", /* defaultValue = */ 1, /* minValue = */ 1, kMaxSphereInstanceCount);
     pDrawCallCount->SetDisplayName("DrawCall Count");
     pDrawCallCount->SetFlagDescription("Select the number of draw calls to be used to draw the `sphere-count` spheres.");
     pDrawCallCount->SetIndent(1);
 
-    pAlphaBlend = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("alpha-blend", false);
+    GetKnobManager().InitKnob(&pAlphaBlend, "alpha-blend", false);
     pAlphaBlend->SetDisplayName("Alpha Blend");
     pAlphaBlend->SetFlagDescription("Set blend mode of the spheres to alpha blending.");
     pAlphaBlend->SetIndent(1);
 
-    pDepthTestWrite = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("depth-test-write", true);
+    GetKnobManager().InitKnob(&pDepthTestWrite, "depth-test-write", true);
     pDepthTestWrite->SetDisplayName("Depth Test & Write");
     pDepthTestWrite->SetFlagDescription("Enable depth test and depth write for spheres (Default: enabled).");
     pDepthTestWrite->SetIndent(1);
 
-    pFullscreenQuadsCount = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("fullscreen-quads-count", /* defaultValue = */ 0, /* minValue = */ 0, kMaxFullscreenQuadsCount);
+    GetKnobManager().InitKnob(&pFullscreenQuadsCount, "fullscreen-quads-count", /* defaultValue = */ 0, /* minValue = */ 0, kMaxFullscreenQuadsCount);
     pFullscreenQuadsCount->SetDisplayName("Number of Fullscreen Quads");
     pFullscreenQuadsCount->SetFlagDescription("Select the number of fullscreen quads to render.");
 
-    pFullscreenQuadsType = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("fullscreen-quads-type", 0, kFullscreenQuadsTypes);
+    GetKnobManager().InitKnob(&pFullscreenQuadsType, "fullscreen-quads-type", 0, kFullscreenQuadsTypes);
     pFullscreenQuadsType->SetDisplayName("Type");
     pFullscreenQuadsType->SetFlagDescription("Select the type of the fullscreen quads (see --fullscreen-quads-count).");
     pFullscreenQuadsType->SetIndent(1);
 
-    pFullscreenQuadsColor = GetKnobManager().CreateKnob<ppx::KnobDropdown<std::string>>("fullscreen-quads-color", 0, kFullscreenQuadsColors);
+    GetKnobManager().InitKnob(&pFullscreenQuadsColor, "fullscreen-quads-color", 0, kFullscreenQuadsColors);
     pFullscreenQuadsColor->SetDisplayName("Color");
     pFullscreenQuadsColor->SetFlagDescription("Select the hue for the solid color fullscreen quads (see --fullscreen-quads-count).");
     pFullscreenQuadsColor->SetIndent(2);
 
-    pFullscreenQuadsSingleRenderpass = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("fullscreen-quads-single-renderpass", true);
+    GetKnobManager().InitKnob(&pFullscreenQuadsSingleRenderpass, "fullscreen-quads-single-renderpass", true);
     pFullscreenQuadsSingleRenderpass->SetDisplayName("Single Renderpass");
     pFullscreenQuadsSingleRenderpass->SetFlagDescription("Render all fullscreen quads (see --fullscreen-quads-count) in a single renderpass.");
     pFullscreenQuadsSingleRenderpass->SetIndent(1);
