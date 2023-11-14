@@ -28,6 +28,12 @@ constexpr uint32_t kCausticsImageCount = 32;
 constexpr float3   kFogColor           = float3(15.0f, 86.0f, 107.0f) / 255.0f;
 constexpr float3   kFloorColor         = float3(145.0f, 189.0f, 155.0f) / 255.0f;
 
+#if defined(USE_DX12)
+const grfx::Api kApi = grfx::API_DX_12_0;
+#elif defined(USE_VK)
+const grfx::Api kApi = grfx::API_VK_1_1;
+#endif
+
 } // namespace
 
 FishTornadoApp* FishTornadoApp::GetThisApp()
