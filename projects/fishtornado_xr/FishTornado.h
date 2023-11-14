@@ -29,12 +29,6 @@
 #include <filesystem>
 #include <vector>
 
-#if defined(USE_DX12)
-const grfx::Api kApi = grfx::API_DX_12_0;
-#elif defined(USE_VK)
-const grfx::Api kApi = grfx::API_VK_1_1;
-#endif
-
 struct FishTornadoSettings
 {
     bool     usePCF                   = true;

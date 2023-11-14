@@ -26,12 +26,6 @@
 #include <array>
 #include <vector>
 
-#if defined(USE_DX12)
-const grfx::Api kApi = grfx::API_DX_12_0;
-#elif defined(USE_VK)
-const grfx::Api kApi = grfx::API_VK_1_1;
-#endif
-
 static constexpr uint32_t kMaxSphereInstanceCount  = 3000;
 static constexpr uint32_t kSeed                    = 89977;
 static constexpr uint32_t kMaxFullscreenQuadsCount = 1000;

@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <algorithm>
+
 #include "FreeCamera.h"
 
 #include "ppx/math_util.h"

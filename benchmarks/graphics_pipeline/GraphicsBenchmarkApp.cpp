@@ -33,6 +33,12 @@ static constexpr size_t SPHERE_METAL_ROUGHNESS_SAMPLER_REGISTER       = 6;
 
 static constexpr size_t QUADS_SAMPLED_IMAGE_REGISTER = 0;
 
+#if defined(USE_DX12)
+const grfx::Api kApi = grfx::API_DX_12_0;
+#elif defined(USE_VK)
+const grfx::Api kApi = grfx::API_VK_1_1;
+#endif
+
 void GraphicsBenchmarkApp::InitKnobs()
 {
     const auto& cl_options = GetExtraOptions();
