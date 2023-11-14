@@ -451,6 +451,15 @@ public:
         return knobPtr;
     }
 
+    // Initialize knob in-place, equivalent to
+    // *ppKnob = CreateKnob<std::remove_reference_t<decltype(*ppKnob)>>(name, ...)
+    template <typename T, typename... ArgsT>
+    void InitKnob(std::shared_ptr<T>* ppKnob, const std::string& flagName, ArgsT&&... args)
+    {
+        PPX_ASSERT_MSG(ppKnob != nullptr, "output parameter is nullptr");
+        *ppKnob = CreateKnob<T>(flagName, std::forward<ArgsT>(args)...);
+    }
+
     void        DrawAllKnobs(bool inExistingWindow = false);
     std::string GetUsageMsg();
     void        UpdateFromFlags(const CliOptions& opts);
