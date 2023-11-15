@@ -158,13 +158,6 @@ void GraphicsBenchmarkApp::Setup()
         mMeshesIndexer.AddDimension(kAvailableVbFormats.size());
         mMeshesIndexer.AddDimension(kAvailableVertexAttrLayouts.size());
     }
-    // Graphics pipelines indexer
-    {
-        mGraphicsPipelinesIndexer.AddDimension(kAvailableVsShaders.size());
-        mGraphicsPipelinesIndexer.AddDimension(kAvailablePsShaders.size());
-        mGraphicsPipelinesIndexer.AddDimension(kAvailableVbFormats.size());
-        mGraphicsPipelinesIndexer.AddDimension(kAvailableVertexAttrLayouts.size());
-    }
     // Sampler
     {
         grfx::SamplerCreateInfo samplerCreateInfo = {};
@@ -526,37 +519,69 @@ void GraphicsBenchmarkApp::SetupSpheresPipelines()
     piCreateInfo.sets[0].pLayout                   = mSphere.descriptorSetLayout;
     PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mSphere.pipelineInterface));
 
-    uint32_t pipelineIndex = 0;
-    for (size_t i = 0; i < kAvailableVsShaders.size(); i++) {
-        for (size_t j = 0; j < kAvailablePsShaders.size(); j++) {
-            for (size_t k = 0; k < kAvailableVbFormats.size(); k++) {
-                // Interleaved pipeline
-                grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
-                gpCreateInfo.VS                                 = {mVsShaders[i].Get(), "vsmain"};
-                gpCreateInfo.PS                                 = {mPsShaders[j].Get(), "psmain"};
-                gpCreateInfo.vertexInputState.bindingCount      = 1;
-                gpCreateInfo.vertexInputState.bindings[0]       = mSphereMeshes[2 * k + 0]->GetDerivedVertexBindings()[0];
-                gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-                gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
-                gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
-                gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
-                gpCreateInfo.depthReadEnable                    = pDepthTestWrite->GetValue();
-                gpCreateInfo.depthWriteEnable                   = pDepthTestWrite->GetValue();
-                gpCreateInfo.blendModes[0]                      = pAlphaBlend->GetValue() ? grfx::BLEND_MODE_ALPHA : grfx::BLEND_MODE_NONE;
-                gpCreateInfo.outputState.renderTargetCount      = 1;
-                gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
-                gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
-                gpCreateInfo.pPipelineInterface                 = mSphere.pipelineInterface;
-                PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mPipelines[pipelineIndex++]));
+    // Pre-load the current pipeline variant.
+    GetSpherePipeline();
+}
 
-                // Position Planar Pipeline
-                gpCreateInfo.vertexInputState.bindingCount = 2;
-                gpCreateInfo.vertexInputState.bindings[0]  = mSphereMeshes[2 * k + 1]->GetDerivedVertexBindings()[0];
-                gpCreateInfo.vertexInputState.bindings[1]  = mSphereMeshes[2 * k + 1]->GetDerivedVertexBindings()[1];
-                PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mPipelines[pipelineIndex++]));
-            }
-        }
+Result GraphicsBenchmarkApp::CompileSpherePipeline(const SpherePipelineKey& key)
+{
+    if (mPipelines.find(key) != mPipelines.end()) {
+        return SUCCESS;
     }
+
+    grfx::GraphicsPipelinePtr pipeline    = nullptr;
+    bool                      interleaved = (key.vertexAttributeLayout == 0);
+    size_t                    meshIndex   = kAvailableVertexAttrLayouts.size() * key.vertexFormat + key.vertexAttributeLayout;
+    grfx::BlendMode           blendMode   = (key.enableAlphaBlend ? grfx::BLEND_MODE_ALPHA : grfx::BLEND_MODE_NONE);
+
+    grfx::GraphicsPipelineCreateInfo2 gpCreateInfo = {};
+    gpCreateInfo.VS                                = {mVsShaders[key.vs].Get(), "vsmain"};
+    gpCreateInfo.PS                                = {mPsShaders[key.ps].Get(), "psmain"};
+    if (interleaved) {
+        // Interleaved pipeline
+        gpCreateInfo.vertexInputState.bindingCount = 1;
+        gpCreateInfo.vertexInputState.bindings[0]  = mSphereMeshes[meshIndex]->GetDerivedVertexBindings()[0];
+    }
+    else {
+        // Position Planar Pipeline
+        gpCreateInfo.vertexInputState.bindingCount = 2;
+        gpCreateInfo.vertexInputState.bindings[0]  = mSphereMeshes[meshIndex]->GetDerivedVertexBindings()[0];
+        gpCreateInfo.vertexInputState.bindings[1]  = mSphereMeshes[meshIndex]->GetDerivedVertexBindings()[1];
+    }
+    gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
+    gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
+    gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
+    gpCreateInfo.depthReadEnable                    = key.enableDepth;
+    gpCreateInfo.depthWriteEnable                   = key.enableDepth;
+    gpCreateInfo.blendModes[0]                      = blendMode;
+    gpCreateInfo.outputState.renderTargetCount      = 1;
+    gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
+    gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
+    gpCreateInfo.pPipelineInterface                 = mSphere.pipelineInterface;
+
+    Result ppxres = GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &pipeline);
+    if (ppxres == SUCCESS) {
+        // Insert a new pipeline to the cache.
+        // We don't delete old pipeline while we run benchmark
+        // which require this function to be synchronized to end of frame.
+        mPipelines[key] = pipeline;
+    }
+    return ppxres;
+}
+
+// Compile or load from cache currently required pipeline.
+grfx::GraphicsPipelinePtr GraphicsBenchmarkApp::GetSpherePipeline()
+{
+    SpherePipelineKey key     = {};
+    key.ps                    = static_cast<uint8_t>(pKnobPs->GetIndex());
+    key.vs                    = static_cast<uint8_t>(pKnobVs->GetIndex());
+    key.vertexFormat          = static_cast<uint8_t>(pKnobVbFormat->GetIndex());
+    key.vertexAttributeLayout = static_cast<uint8_t>(pKnobVertexAttrLayout->GetIndex());
+    key.enableDepth           = pDepthTestWrite->GetValue();
+    key.enableAlphaBlend      = pAlphaBlend->GetValue();
+    PPX_CHECKED_CALL(CompileSpherePipeline(key));
+    return mPipelines[key];
 }
 
 void GraphicsBenchmarkApp::SetupFullscreenQuadsPipelines()
@@ -1068,8 +1093,7 @@ void GraphicsBenchmarkApp::RecordCommandBufferSkyBox(PerFrame& frame)
 void GraphicsBenchmarkApp::RecordCommandBufferSpheres(PerFrame& frame)
 {
     // Bind resources
-    const size_t pipelineIndex = mGraphicsPipelinesIndexer.GetIndex({pKnobVs->GetIndex(), pKnobPs->GetIndex(), pKnobVbFormat->GetIndex(), pKnobVertexAttrLayout->GetIndex()});
-    frame.cmd->BindGraphicsPipeline(mPipelines[pipelineIndex]);
+    frame.cmd->BindGraphicsPipeline(GetSpherePipeline());
     const size_t meshIndex = mMeshesIndexer.GetIndex({pKnobLOD->GetIndex(), pKnobVbFormat->GetIndex(), pKnobVertexAttrLayout->GetIndex()});
     frame.cmd->BindIndexBuffer(mSphereMeshes[meshIndex]);
     frame.cmd->BindVertexBuffers(mSphereMeshes[meshIndex]);
