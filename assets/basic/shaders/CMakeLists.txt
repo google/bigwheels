@@ -25,6 +25,7 @@ generate_rules_for_shader("shader_diffuse_shadow" SOURCE "${PPX_DIR}/assets/basi
 generate_rules_for_shader("shader_normal_map" SOURCE "${PPX_DIR}/assets/basic/shaders/NormalMap.hlsl" STAGES "vs" "ps")
 generate_rules_for_shader("shader_pbr_metallic_roughness" SOURCE "${PPX_DIR}/assets/basic/shaders/PbrMetallicRoughness.hlsl" STAGES "vs" "ps")
 generate_rules_for_shader("shader_fullscreen_triangle" SOURCE "${PPX_DIR}/assets/basic/shaders/FullScreenTriangle.hlsl" STAGES "vs" "ps")
+generate_rules_for_shader("shader_fullscreen_triangle_combined" SOURCE "${PPX_DIR}/assets/basic/shaders/FullScreenTriangleCombined.hlsl" STAGES "vs" "ps")
 generate_rules_for_shader("shader_text_draw" SOURCE "${PPX_DIR}/assets/basic/shaders/TextDraw.hlsl" STAGES "vs" "ps")
 generate_rules_for_shader("shader_image_filter" SOURCE "${PPX_DIR}/assets/basic/shaders/ImageFilter.hlsl" STAGES "cs")
 generate_rules_for_shader("shader_static_texture" SOURCE "${PPX_DIR}/assets/basic/shaders/StaticTexture.hlsl" STAGES "vs" "ps")
