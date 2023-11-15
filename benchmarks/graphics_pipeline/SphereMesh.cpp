@@ -111,13 +111,13 @@ void SphereMesh::CreateSphereGeometry(PrecisionType precisionType, VertexLayoutT
 
     if (precisionType == PrecisionType::PRECISION_TYPE_LOW_PRECISION) {
         if (vertexLayoutType == VertexLayoutType::VERTEX_LAYOUT_TYPE_INTERLEAVED) {
-            geoOpts = GeometryOptions::InterleavedU32(grfx::FORMAT_R16G16B16_FLOAT)
+            geoOpts = GeometryOptions::InterleavedU32(grfx::FORMAT_R16G16B16A16_FLOAT)
                           .AddTexCoord(grfx::FORMAT_R16G16_FLOAT)
                           .AddNormal(grfx::FORMAT_R8G8B8A8_SNORM)
                           .AddTangent(grfx::FORMAT_R8G8B8A8_SNORM);
         }
         else if (vertexLayoutType == VertexLayoutType::VERTEX_LAYOUT_TYPE_POSITION_PLANAR) {
-            geoOpts = GeometryOptions::PositionPlanarU32(grfx::FORMAT_R16G16B16_FLOAT)
+            geoOpts = GeometryOptions::PositionPlanarU32(grfx::FORMAT_R16G16B16A16_FLOAT)
                           .AddTexCoord(grfx::FORMAT_R16G16_FLOAT)
                           .AddNormal(grfx::FORMAT_R8G8B8A8_SNORM)
                           .AddTangent(grfx::FORMAT_R8G8B8A8_SNORM);
@@ -210,7 +210,7 @@ void SphereMesh::WriteSpherePosition(const OrderedGrid& grid, uint32_t sphereInd
         vertexData.position = modelMatrix * float4(vertexData.position, 1);
 
         TriMeshVertexDataCompressed vertexDataCompressed;
-        vertexDataCompressed.position = half3(glm::packHalf1x16(vertexData.position.x), glm::packHalf1x16(vertexData.position.y), glm::packHalf1x16(vertexData.position.z));
+        vertexDataCompressed.position = half4(glm::packHalf1x16(vertexData.position.x), glm::packHalf1x16(vertexData.position.y), glm::packHalf1x16(vertexData.position.z), glm::packHalf1x16(0.0f));
 
         size_t elementIndex = sphereIndex * mSingleSphereVertexCount + j;
         OverwritePositionData(mLowInterleaved.GetVertexBuffer(0), vertexDataCompressed, elementIndex);
@@ -240,7 +240,7 @@ TriMeshVertexDataCompressed SphereMesh::CompressVertexData(const TriMeshVertexDa
 {
     TriMeshVertexDataCompressed vertexDataCompressed;
 
-    vertexDataCompressed.position = half3(glm::packHalf1x16(vertexData.position.x), glm::packHalf1x16(vertexData.position.y), glm::packHalf1x16(vertexData.position.z));
+    vertexDataCompressed.position = half4(glm::packHalf1x16(vertexData.position.x), glm::packHalf1x16(vertexData.position.y), glm::packHalf1x16(vertexData.position.z), glm::packHalf1x16(0.0f));
     vertexDataCompressed.texCoord = half2(glm::packHalf1x16(vertexData.texCoord.x), glm::packHalf1x16(vertexData.texCoord.y));
     vertexDataCompressed.normal   = i8vec4(MapFloatToInt8(vertexData.normal.x), MapFloatToInt8(vertexData.normal.y), MapFloatToInt8(vertexData.normal.z), MapFloatToInt8(1.0f));
     vertexDataCompressed.tangent  = i8vec4(MapFloatToInt8(vertexData.tangent.x), MapFloatToInt8(vertexData.tangent.y), MapFloatToInt8(vertexData.tangent.z), MapFloatToInt8(vertexData.tangent.a));

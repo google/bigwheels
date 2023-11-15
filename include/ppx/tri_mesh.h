@@ -65,7 +65,7 @@ struct TriMeshVertexData
 //!
 struct TriMeshVertexDataCompressed
 {
-    half3  position;
+    half4  position;
     half3  color;
     i8vec4 normal;
     half2  texCoord;
