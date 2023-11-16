@@ -25,6 +25,7 @@
 
 #include <array>
 #include <vector>
+#include <unordered_map>
 
 static constexpr uint32_t kMaxSphereInstanceCount  = 3000;
 static constexpr uint32_t kSeed                    = 89977;
@@ -164,7 +165,51 @@ private:
         std::string name;
     };
 
+    struct SpherePipelineKey
+    {
+        uint8_t ps;
+        uint8_t vs;
+        uint8_t vertexFormat;
+        uint8_t vertexAttributeLayout;
+        bool    enableDepth;
+        bool    enableAlphaBlend;
+
+        static_assert(kAvailablePsShaders.size() < (1 << (8 * sizeof(ps))));
+        static_assert(kAvailableVsShaders.size() < (1 << (8 * sizeof(vs))));
+        static_assert(kAvailableVbFormats.size() < (1 << (8 * sizeof(vertexFormat))));
+        static_assert(kAvailableVertexAttrLayouts.size() < (1 << (8 * sizeof(vertexAttributeLayout))));
+
+        bool operator==(const SpherePipelineKey& rhs) const
+        {
+            return ps == rhs.ps &&
+                   vs == rhs.vs &&
+                   vertexFormat == rhs.vertexFormat &&
+                   vertexAttributeLayout == rhs.vertexAttributeLayout &&
+                   enableDepth == rhs.enableDepth &&
+                   enableAlphaBlend == rhs.enableAlphaBlend;
+        }
+
+        struct Hash
+        {
+            // Not a good hash function, but good enough.
+            size_t operator()(const SpherePipelineKey& key) const
+            {
+                size_t res = 0;
+
+                res = (res * kAvailablePsShaders.size()) | key.ps;
+                res = (res * kAvailableVsShaders.size()) | key.vs;
+                res = (res * kAvailableVbFormats.size()) | key.vertexFormat;
+                res = (res * kAvailableVertexAttrLayouts.size()) | key.vertexAttributeLayout;
+                res = (res << 1) | (key.enableDepth ? 1 : 0);
+                res = (res << 1) | (key.enableAlphaBlend ? 1 : 0);
+                return res;
+            }
+        };
+    };
+
 private:
+    using SpherePipelineMap = std::unordered_map<SpherePipelineKey, grfx::GraphicsPipelinePtr, SpherePipelineKey::Hash>;
+
     std::vector<PerFrame>             mPerFrame;
     FreeCamera                        mCamera;
     float3                            mLightPosition       = float3(10, 250, 10);
@@ -188,10 +233,9 @@ private:
     grfx::TexturePtr                                              mNormalMapTexture;
     grfx::TexturePtr                                              mMetalRoughnessTexture;
     grfx::TexturePtr                                              mWhitePixelTexture;
-    std::array<grfx::GraphicsPipelinePtr, kPipelineCount>         mPipelines;
+    SpherePipelineMap                                             mPipelines;
     std::array<grfx::MeshPtr, kMeshCount>                         mSphereMeshes;
     std::vector<LOD>                                              mSphereLODs;
-    MultiDimensionalIndexer                                       mGraphicsPipelinesIndexer;
     MultiDimensionalIndexer                                       mMeshesIndexer;
 
     // Fullscreen quads resources
@@ -246,6 +290,8 @@ private:
     void SetupSpheresPipelines();
     void SetupFullscreenQuadsPipelines();
 
+    Result CompileSpherePipeline(const SpherePipelineKey& key);
+
     // Update descriptors
     // Note: Descriptors can be updated within rendering loop
     void UpdateSkyBoxDescriptors();
@@ -284,6 +330,9 @@ private:
 
     // Loads shader at shaderBaseDir/fileName and creates it at ppShaderModule
     void SetupShader(const std::filesystem::path& fileName, grfx::ShaderModule** ppShaderModule);
+
+    // Compile or load from cache currently required pipeline.
+    grfx::GraphicsPipelinePtr GetSpherePipeline();
 };
 
 #endif // BENCHMARKS_GRAPHICS_PIPELINE_GRAPHICS_BENCHMARK_APP_H
