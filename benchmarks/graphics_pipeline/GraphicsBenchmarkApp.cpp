@@ -122,6 +122,48 @@ void GraphicsBenchmarkApp::InitKnobs()
     pFullscreenQuadsSingleRenderpass->SetDisplayName("Single Renderpass");
     pFullscreenQuadsSingleRenderpass->SetFlagDescription("Render all fullscreen quads (see --fullscreen-quads-count) in a single renderpass.");
     pFullscreenQuadsSingleRenderpass->SetIndent(1);
+
+    // Offscreen rendering knobs:
+    {
+        GetKnobManager().InitKnob(&pRenderOffscreen, "enable-offscreen-rendering", false);
+        pRenderOffscreen->SetDisplayName("Offscreen rendering");
+        pRenderOffscreen->SetFlagDescription("Enable rendering to an offscreen/non-swapchain framebuffer.");
+
+        GetKnobManager().InitKnob(&pBlitOffscreen, "offscreen-blit-to-swapchain", true);
+        pBlitOffscreen->SetDisplayName("Blit to swapchain");
+        pBlitOffscreen->SetFlagDescription("Blit offscreen rendering result to swapchain.");
+        pBlitOffscreen->SetIndent(1);
+
+        std::array<std::string, std::size(kFramebufferFormatTypes)> formatNames;
+        for (int i = 0; i < std::size(kFramebufferFormatTypes); ++i) {
+            formatNames[i] = ToString(kFramebufferFormatTypes[i]);
+        }
+        formatNames[0] = "Swapchain";
+        GetKnobManager().InitKnob(&pFramebufferFormat, "offscreen-framebuffer-format", 0, formatNames);
+        pFramebufferFormat->SetDisplayName("Framebuffer format");
+        pFramebufferFormat->SetFlagDescription("Select the pixel format used in offscreen framebuffer.");
+        pFramebufferFormat->SetIndent(1);
+
+        std::vector<std::string> resolutionString;
+        mResolutionOptions.push_back(std::pair<int, int>(0, 0)); // Swapchain native
+        resolutionString.push_back("Swapchain");
+        for (const auto& res : kSimpleResolutions) {
+            mResolutionOptions.push_back(res);
+            resolutionString.push_back(std::to_string(res.first) + "x" + std::to_string(res.second));
+        }
+        for (const auto& res : kCommonResolutions) {
+            mResolutionOptions.push_back(res);
+            resolutionString.push_back(std::to_string(res.first) + "x" + std::to_string(res.second));
+        }
+        for (const auto& res : kVRPerEyeResolutions) {
+            mResolutionOptions.push_back(std::pair<int, int>(res.first * 2, res.second));
+            resolutionString.push_back(std::to_string(res.first) + "x2" + "x" + std::to_string(res.second));
+        }
+        GetKnobManager().InitKnob(&pResolution, "offscreen-framebuffer-resolution", 0, resolutionString);
+        pResolution->SetDisplayName("Framebuffer resolution");
+        pResolution->SetFlagDescription("Select the size of offscreen framebuffer.");
+        pResolution->SetIndent(1);
+    }
 }
 
 void GraphicsBenchmarkApp::Config(ppx::ApplicationSettings& settings)
@@ -172,8 +214,8 @@ void GraphicsBenchmarkApp::Setup()
     // Descriptor Pool
     {
         grfx::DescriptorPoolCreateInfo createInfo = {};
-        createInfo.sampler                        = 4 * GetNumFramesInFlight(); // 1 for skybox, 3 for spheres
-        createInfo.sampledImage                   = 5 * GetNumFramesInFlight(); // 1 for skybox, 3 for spheres, 1 for quads
+        createInfo.sampler                        = 5 * GetNumFramesInFlight(); // 1 for skybox, 3 for spheres, 1 for blit
+        createInfo.sampledImage                   = 6 * GetNumFramesInFlight(); // 1 for skybox, 3 for spheres, 1 for quads, 1 for blit
         createInfo.uniformBuffer                  = 2 * GetNumFramesInFlight(); // 1 for skybox, 1 for spheres
 
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&createInfo, &mDescriptorPool));
@@ -196,6 +238,12 @@ void GraphicsBenchmarkApp::Setup()
     SetupFullscreenQuadsResources();
     SetupFullscreenQuadsMeshes();
     SetupFullscreenQuadsPipelines();
+
+    // =====================================================================
+    // BLIT (DX12 does not have vkCmdBlitImage equivalent)
+    // =====================================================================
+
+    PPX_CHECKED_CALL(CreateBlitContext(mBlit));
 
     // =====================================================================
     // PER FRAME DATA
@@ -231,6 +279,12 @@ void GraphicsBenchmarkApp::Setup()
 #endif
 
         mPerFrame.push_back(frame);
+    }
+
+    {
+        OffscreenFrame frame = {};
+        PPX_CHECKED_CALL(CreateOffscreenFrame(frame, RenderFormat(), GetSwapchain()->GetDepthFormat(), GetSwapchain()->GetWidth(), GetSwapchain()->GetHeight()));
+        mOffscreenFrame.push_back(frame);
     }
 }
 
@@ -493,23 +547,8 @@ void GraphicsBenchmarkApp::SetupSkyBoxPipelines()
     piCreateInfo.sets[0].pLayout                   = mSkyBox.descriptorSetLayout;
     PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mSkyBox.pipelineInterface));
 
-    grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
-    gpCreateInfo.VS                                 = {mVSSkyBox.Get(), "vsmain"};
-    gpCreateInfo.PS                                 = {mPSSkyBox.Get(), "psmain"};
-    gpCreateInfo.vertexInputState.bindingCount      = 1;
-    gpCreateInfo.vertexInputState.bindings[0]       = mSkyBox.mesh->GetDerivedVertexBindings()[0];
-    gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
-    gpCreateInfo.cullMode                           = grfx::CULL_MODE_FRONT;
-    gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
-    gpCreateInfo.depthReadEnable                    = true;
-    gpCreateInfo.depthWriteEnable                   = false;
-    gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
-    gpCreateInfo.outputState.renderTargetCount      = 1;
-    gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
-    gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
-    gpCreateInfo.pPipelineInterface                 = mSkyBox.pipelineInterface;
-    PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mSkyBox.pipeline));
+    // Pre-load the current pipeline variant.
+    GetSkyBoxPipeline();
 }
 
 void GraphicsBenchmarkApp::SetupSpheresPipelines()
@@ -524,16 +563,49 @@ void GraphicsBenchmarkApp::SetupSpheresPipelines()
     GetSpherePipeline();
 }
 
-Result GraphicsBenchmarkApp::CompileSpherePipeline(const SpherePipelineKey& key)
+Result GraphicsBenchmarkApp::CompilePipeline(const SkyBoxPipelineKey& key)
+{
+    if (mSkyBoxPipelines.find(key) != mSkyBoxPipelines.end()) {
+        return SUCCESS;
+    }
+
+    grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
+    gpCreateInfo.VS                                 = {mVSSkyBox.Get(), "vsmain"};
+    gpCreateInfo.PS                                 = {mPSSkyBox.Get(), "psmain"};
+    gpCreateInfo.vertexInputState.bindingCount      = 1;
+    gpCreateInfo.vertexInputState.bindings[0]       = mSkyBox.mesh->GetDerivedVertexBindings()[0];
+    gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
+    gpCreateInfo.cullMode                           = grfx::CULL_MODE_FRONT;
+    gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
+    gpCreateInfo.depthReadEnable                    = true;
+    gpCreateInfo.depthWriteEnable                   = false;
+    gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
+    gpCreateInfo.outputState.renderTargetCount      = 1;
+    gpCreateInfo.outputState.renderTargetFormats[0] = key.renderFormat;
+    gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
+    gpCreateInfo.pPipelineInterface                 = mSkyBox.pipelineInterface;
+
+    grfx::GraphicsPipelinePtr pipeline = nullptr;
+    Result                    ppxres   = GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &pipeline);
+    if (ppxres == SUCCESS) {
+        // Insert a new pipeline to the cache.
+        // We don't delete old pipeline while we run benchmark
+        // which require this function to be synchronized to end of frame.
+        mSkyBoxPipelines[key] = pipeline;
+    }
+    return ppxres;
+}
+
+Result GraphicsBenchmarkApp::CompilePipeline(const SpherePipelineKey& key)
 {
     if (mPipelines.find(key) != mPipelines.end()) {
         return SUCCESS;
     }
 
-    grfx::GraphicsPipelinePtr pipeline    = nullptr;
-    bool                      interleaved = (key.vertexAttributeLayout == 0);
-    size_t                    meshIndex   = kAvailableVertexAttrLayouts.size() * key.vertexFormat + key.vertexAttributeLayout;
-    grfx::BlendMode           blendMode   = (key.enableAlphaBlend ? grfx::BLEND_MODE_ALPHA : grfx::BLEND_MODE_NONE);
+    bool            interleaved = (key.vertexAttributeLayout == 0);
+    size_t          meshIndex   = kAvailableVertexAttrLayouts.size() * key.vertexFormat + key.vertexAttributeLayout;
+    grfx::BlendMode blendMode   = (key.enableAlphaBlend ? grfx::BLEND_MODE_ALPHA : grfx::BLEND_MODE_NONE);
 
     grfx::GraphicsPipelineCreateInfo2 gpCreateInfo = {};
     gpCreateInfo.VS                                = {mVsShaders[key.vs].Get(), "vsmain"};
@@ -557,16 +629,48 @@ Result GraphicsBenchmarkApp::CompileSpherePipeline(const SpherePipelineKey& key)
     gpCreateInfo.depthWriteEnable                   = key.enableDepth;
     gpCreateInfo.blendModes[0]                      = blendMode;
     gpCreateInfo.outputState.renderTargetCount      = 1;
-    gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
+    gpCreateInfo.outputState.renderTargetFormats[0] = key.renderFormat;
     gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
     gpCreateInfo.pPipelineInterface                 = mSphere.pipelineInterface;
 
-    Result ppxres = GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &pipeline);
+    grfx::GraphicsPipelinePtr pipeline = nullptr;
+    Result                    ppxres   = GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &pipeline);
     if (ppxres == SUCCESS) {
         // Insert a new pipeline to the cache.
         // We don't delete old pipeline while we run benchmark
         // which require this function to be synchronized to end of frame.
         mPipelines[key] = pipeline;
+    }
+    return ppxres;
+}
+
+Result GraphicsBenchmarkApp::CompilePipeline(const QuadPipelineKey& key)
+{
+    const size_t                      quadTypeIndex = static_cast<size_t>(key.quadType);
+    grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
+    gpCreateInfo.VS                                 = {mVSQuads.Get(), "vsmain"};
+    gpCreateInfo.PS                                 = {mQuadsPs[quadTypeIndex].Get(), "psmain"};
+    gpCreateInfo.vertexInputState.bindingCount      = 1;
+    gpCreateInfo.vertexInputState.bindings[0]       = mFullscreenQuads.vertexBinding;
+    gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
+    gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
+    gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CW;
+    gpCreateInfo.depthReadEnable                    = false;
+    gpCreateInfo.depthWriteEnable                   = false;
+    gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
+    gpCreateInfo.outputState.renderTargetCount      = 1;
+    gpCreateInfo.outputState.renderTargetFormats[0] = key.renderFormat;
+    gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
+    gpCreateInfo.pPipelineInterface                 = mQuadsPipelineInterfaces[quadTypeIndex];
+
+    grfx::GraphicsPipelinePtr pipeline = nullptr;
+    Result                    ppxres   = GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &pipeline);
+    if (ppxres == SUCCESS) {
+        // Insert a new pipeline to the cache.
+        // We don't delete old pipeline while we run benchmark
+        // which require this function to be synchronized to end of frame.
+        mQuadsPipelines[key] = pipeline;
     }
     return ppxres;
 }
@@ -581,8 +685,26 @@ grfx::GraphicsPipelinePtr GraphicsBenchmarkApp::GetSpherePipeline()
     key.vertexAttributeLayout = static_cast<uint8_t>(pKnobVertexAttrLayout->GetIndex());
     key.enableDepth           = pDepthTestWrite->GetValue();
     key.enableAlphaBlend      = pAlphaBlend->GetValue();
-    PPX_CHECKED_CALL(CompileSpherePipeline(key));
+    key.renderFormat          = RenderFormat();
+    PPX_CHECKED_CALL(CompilePipeline(key));
     return mPipelines[key];
+}
+
+grfx::GraphicsPipelinePtr GraphicsBenchmarkApp::GetFullscreenQuadPipeline()
+{
+    QuadPipelineKey key = {};
+    key.renderFormat    = RenderFormat();
+    key.quadType        = static_cast<FullscreenQuadsType>(pFullscreenQuadsType->GetIndex());
+    PPX_CHECKED_CALL(CompilePipeline(key));
+    return mQuadsPipelines[key];
+}
+
+grfx::GraphicsPipelinePtr GraphicsBenchmarkApp::GetSkyBoxPipeline()
+{
+    SkyBoxPipelineKey key = {};
+    key.renderFormat      = RenderFormat();
+    PPX_CHECKED_CALL(CompilePipeline(key));
+    return mSkyBoxPipelines[key];
 }
 
 void GraphicsBenchmarkApp::SetupFullscreenQuadsPipelines()
@@ -617,24 +739,23 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsPipelines()
         PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mQuadsPipelineInterfaces[2]));
     }
 
-    for (size_t i = 0; i < kFullscreenQuadsTypes.size(); i++) {
-        grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
-        gpCreateInfo.VS                                 = {mVSQuads.Get(), "vsmain"};
-        gpCreateInfo.PS                                 = {mQuadsPs[i].Get(), "psmain"};
-        gpCreateInfo.vertexInputState.bindingCount      = 1;
-        gpCreateInfo.vertexInputState.bindings[0]       = mFullscreenQuads.vertexBinding;
-        gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
-        gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
-        gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CW;
-        gpCreateInfo.depthReadEnable                    = false;
-        gpCreateInfo.depthWriteEnable                   = false;
-        gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
-        gpCreateInfo.outputState.renderTargetCount      = 1;
-        gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
-        gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
-        gpCreateInfo.pPipelineInterface                 = mQuadsPipelineInterfaces[i];
-        PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mQuadsPipelines[i]));
+    // Pre-load the current pipeline variant.
+    GetFullscreenQuadPipeline();
+}
+
+void GraphicsBenchmarkApp::UpdateOffscreenBuffer(grfx::Format format, int w, int h)
+{
+    {
+        // Checking if we still have the same buffer format.
+        const auto& frame = mOffscreenFrame.back();
+        if ((frame.colorFormat == format) && (frame.width == w) && (frame.height == h)) {
+            return;
+        }
+    }
+    GetDevice()->WaitIdle();
+    for (auto& frame : mOffscreenFrame) {
+        DestroyOffscreenFrame(frame);
+        PPX_CHECKED_CALL(CreateOffscreenFrame(frame, format, GetSwapchain()->GetDepthFormat(), w, h));
     }
 }
 
@@ -745,6 +866,22 @@ void GraphicsBenchmarkApp::ProcessKnobs()
     }
 
     ProcessQuadsKnobs();
+
+    bool offscreenChanged = pRenderOffscreen->DigestUpdate();
+    if (offscreenChanged) {
+        pBlitOffscreen->SetVisible(pRenderOffscreen->GetValue());
+        pFramebufferFormat->SetVisible(pRenderOffscreen->GetValue());
+        pResolution->SetVisible(pRenderOffscreen->GetValue());
+    }
+    bool framebufferChanged = pResolution->DigestUpdate() || pFramebufferFormat->DigestUpdate();
+
+    if ((offscreenChanged && pRenderOffscreen->GetValue()) || framebufferChanged) {
+        std::pair<int, int> resolution = mResolutionOptions[pResolution->GetIndex()];
+
+        int fbWidth  = (resolution.first > 0 ? resolution.first : GetSwapchain()->GetWidth());
+        int fbHeight = (resolution.second > 0 ? resolution.second : GetSwapchain()->GetHeight());
+        UpdateOffscreenBuffer(RenderFormat(), fbWidth, fbHeight);
+    }
 }
 
 void GraphicsBenchmarkApp::ProcessQuadsKnobs()
@@ -863,7 +1000,22 @@ void GraphicsBenchmarkApp::Render()
     }
 #endif
 
-    RecordCommandBuffer(frame, swapchain, imageIndex);
+    RenderPasses swapchainRenderPasses = SwapchainRenderPasses(swapchain, imageIndex);
+    RenderPasses renderPasses          = swapchainRenderPasses;
+    if (pRenderOffscreen->GetValue()) {
+        renderPasses = OffscreenRenderPasses(mOffscreenFrame[0]);
+        if (pBlitOffscreen->GetValue()) {
+            renderPasses.uiRenderPass      = swapchainRenderPasses.uiRenderPass;
+            renderPasses.uiClearRenderPass = swapchainRenderPasses.uiClearRenderPass;
+            renderPasses.blitRenderPass    = swapchainRenderPasses.noloadRenderPass;
+        }
+        else {
+            renderPasses.uiRenderPass      = swapchainRenderPasses.uiClearRenderPass;
+            renderPasses.uiClearRenderPass = swapchainRenderPasses.uiClearRenderPass;
+        }
+    }
+
+    RecordCommandBuffer(frame, renderPasses, imageIndex);
 
     grfx::SubmitInfo submitInfo   = {};
     submitInfo.commandBufferCount = 1;
@@ -982,16 +1134,29 @@ void GraphicsBenchmarkApp::DrawExtraInfo()
     ImGui::Text("%.2f fps ", gpuFPS);
     ImGui::NextColumn();
 
-    const uint32_t width  = GetSwapchain()->GetWidth();
-    const uint32_t height = GetSwapchain()->GetHeight();
+    const grfx::Format swapchainColorFormat = GetSwapchain()->GetColorFormat();
+    const uint32_t     swapchainWidth       = GetSwapchain()->GetWidth();
+    const uint32_t     swapchainHeight      = GetSwapchain()->GetHeight();
     ImGui::Text("Swapchain resolution");
     ImGui::NextColumn();
-    ImGui::Text("%d x %d", width, height);
+    ImGui::Text("%d x %d", swapchainWidth, swapchainHeight);
     ImGui::NextColumn();
+
+    bool               isOffscreen = pRenderOffscreen->GetValue();
+    const grfx::Format colorFormat = isOffscreen ? mOffscreenFrame.back().colorFormat : swapchainColorFormat;
+    const uint32_t     width       = isOffscreen ? mOffscreenFrame.back().width : swapchainWidth;
+    const uint32_t     height      = isOffscreen ? mOffscreenFrame.back().height : swapchainHeight;
+    if (isOffscreen) {
+        ImGui::Text("Framebuffer");
+        ImGui::NextColumn();
+        ImGui::Text("%d x %d (%s)", width, height, ToString(colorFormat));
+        ImGui::NextColumn();
+    }
 
     const uint32_t quad_count = pFullscreenQuadsCount->GetValue();
     if (quad_count) {
-        const float dataWriteInGb = (static_cast<float>(width) * static_cast<float>(height) * 4.f * quad_count) / (1024.f * 1024.f * 1024.f);
+        const auto  texelSize     = static_cast<float>(grfx::GetFormatDescription(colorFormat)->bytesPerTexel);
+        const float dataWriteInGb = (static_cast<float>(width) * static_cast<float>(height) * texelSize * quad_count) / (1024.f * 1024.f * 1024.f);
         ImGui::Text("Write Data");
         ImGui::NextColumn();
         ImGui::Text("%.2f GB", dataWriteInGb);
@@ -1006,25 +1171,233 @@ void GraphicsBenchmarkApp::DrawExtraInfo()
     ImGui::Columns(1);
 }
 
-void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainPtr swapchain, uint32_t imageIndex)
+GraphicsBenchmarkApp::RenderPasses GraphicsBenchmarkApp::SwapchainRenderPasses(grfx::SwapchainPtr swapchain, uint32_t imageIndex)
+{
+    return RenderPasses{
+        swapchain->GetRenderPass(imageIndex, ppx::grfx::AttachmentLoadOp::ATTACHMENT_LOAD_OP_LOAD),
+        swapchain->GetRenderPass(imageIndex, ppx::grfx::AttachmentLoadOp::ATTACHMENT_LOAD_OP_CLEAR),
+        swapchain->GetRenderPass(imageIndex, ppx::grfx::AttachmentLoadOp::ATTACHMENT_LOAD_OP_DONT_CARE),
+        swapchain->GetRenderPass(imageIndex, ppx::grfx::AttachmentLoadOp::ATTACHMENT_LOAD_OP_LOAD),
+        swapchain->GetRenderPass(imageIndex, ppx::grfx::AttachmentLoadOp::ATTACHMENT_LOAD_OP_CLEAR),
+    };
+}
+
+ppx::Result GraphicsBenchmarkApp::CreateBlitContext(BlitContext& blit)
+{
+    // Descriptor set layout
+    {
+        // Descriptor set layout
+        grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(0, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(1, grfx::DESCRIPTOR_TYPE_SAMPLER));
+
+        PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &blit.descriptorSetLayout));
+    }
+
+    // Pipeline
+    {
+        SetupShader("basic/shaders", "FullScreenTriangle.vs", &blit.vs);
+        SetupShader("basic/shaders", "FullScreenTriangle.ps", &blit.ps);
+
+        grfx::FullscreenQuadCreateInfo createInfo = {};
+        createInfo.VS                             = blit.vs;
+        createInfo.PS                             = blit.ps;
+        createInfo.setCount                       = 1;
+        createInfo.sets[0].set                    = 0;
+        createInfo.sets[0].pLayout                = blit.descriptorSetLayout;
+        createInfo.renderTargetCount              = 1;
+        createInfo.renderTargetFormats[0]         = GetSwapchain()->GetColorFormat();
+        createInfo.depthStencilFormat             = GetSwapchain()->GetDepthFormat();
+
+        PPX_CHECKED_CALL(GetDevice()->CreateFullscreenQuad(&createInfo, &blit.quad));
+    }
+
+    return ppx::SUCCESS;
+}
+
+GraphicsBenchmarkApp::RenderPasses GraphicsBenchmarkApp::OffscreenRenderPasses(const OffscreenFrame& frame)
+{
+    return RenderPasses{
+        frame.loadRenderPass,
+        frame.clearRenderPass,
+        frame.noloadRenderPass,
+        nullptr,
+        nullptr,
+        nullptr,
+        &frame,
+    };
+}
+
+void GraphicsBenchmarkApp::DestroyOffscreenFrame(OffscreenFrame& frame)
+{
+    GetDevice()->DestroyRenderPass(frame.loadRenderPass);
+    GetDevice()->DestroyRenderPass(frame.clearRenderPass);
+    GetDevice()->DestroyRenderPass(frame.noloadRenderPass);
+
+    for (auto& rtv : frame.renderTargetViews) {
+        GetDevice()->DestroyRenderTargetView(rtv);
+    }
+    GetDevice()->DestroyDepthStencilView(frame.depthStencilView);
+
+    GetDevice()->FreeDescriptorSet(frame.blitDescriptorSet);
+    GetDevice()->DestroyTexture(frame.blitSource);
+
+    GetDevice()->DestroyImage(frame.colorImage);
+    GetDevice()->DestroyImage(frame.depthImage);
+
+    // Reset all the pointers to nullptr.
+    frame = {};
+}
+
+ppx::Result GraphicsBenchmarkApp::CreateOffscreenFrame(OffscreenFrame& frame, grfx::Format colorFormat, grfx::Format depthFormat, uint32_t width, uint32_t height)
+{
+    frame = OffscreenFrame{width, height, colorFormat, depthFormat};
+    {
+        grfx::ImageCreateInfo colorCreateInfo   = grfx::ImageCreateInfo::RenderTarget2D(width, height, colorFormat);
+        colorCreateInfo.initialState            = grfx::RESOURCE_STATE_PRESENT;
+        colorCreateInfo.usageFlags.bits.sampled = true;
+        ppx::Result ppxres                      = GetDevice()->CreateImage(&colorCreateInfo, &frame.colorImage);
+        if (ppxres != ppx::SUCCESS) {
+            return ppxres;
+        }
+    }
+
+    if (depthFormat != grfx::Format::FORMAT_UNDEFINED) {
+        grfx::ImageCreateInfo depthCreateInfo = grfx::ImageCreateInfo::DepthStencilTarget(width, height, depthFormat);
+        ppx::Result           ppxres          = GetDevice()->CreateImage(&depthCreateInfo, &frame.depthImage);
+        if (ppxres != ppx::SUCCESS) {
+            return ppxres;
+        }
+    }
+
+    if (frame.depthImage) {
+        grfx::DepthStencilViewCreateInfo dsvCreateInfo = {};
+        dsvCreateInfo =
+            grfx::DepthStencilViewCreateInfo::GuessFromImage(frame.depthImage);
+        dsvCreateInfo.depthLoadOp   = ppx::grfx::ATTACHMENT_LOAD_OP_CLEAR;
+        dsvCreateInfo.stencilLoadOp = ppx::grfx::ATTACHMENT_LOAD_OP_CLEAR;
+        dsvCreateInfo.ownership     = ppx::grfx::OWNERSHIP_RESTRICTED;
+
+        Result ppxres = GetDevice()->CreateDepthStencilView(&dsvCreateInfo, &frame.depthStencilView);
+        if (ppxres != ppx::SUCCESS) {
+            return ppxres;
+        }
+    }
+
+    struct
+    {
+        grfx::RenderPassPtr&       ptr;
+        grfx::AttachmentLoadOp     op;
+        grfx::RenderTargetViewPtr& rtv;
+    } renderpasses[] = {
+        {frame.loadRenderPass, grfx::ATTACHMENT_LOAD_OP_LOAD, frame.renderTargetViews[0]},
+        {frame.clearRenderPass, grfx::ATTACHMENT_LOAD_OP_CLEAR, frame.renderTargetViews[1]},
+        {frame.noloadRenderPass, grfx::ATTACHMENT_LOAD_OP_DONT_CARE, frame.renderTargetViews[2]},
+    };
+
+    for (auto& renderpass : renderpasses) {
+        grfx::RenderTargetViewCreateInfo rtvCreateInfo =
+            grfx::RenderTargetViewCreateInfo::GuessFromImage(frame.colorImage);
+        rtvCreateInfo.loadOp    = renderpass.op;
+        rtvCreateInfo.ownership = grfx::OWNERSHIP_RESTRICTED;
+        Result ppxres           = GetDevice()->CreateRenderTargetView(&rtvCreateInfo, &renderpass.rtv);
+
+        grfx::RenderPassCreateInfo rpCreateInfo = {};
+        rpCreateInfo.width                      = width;
+        rpCreateInfo.height                     = height;
+        rpCreateInfo.renderTargetCount          = 1;
+        rpCreateInfo.pRenderTargetViews[0]      = renderpass.rtv;
+        rpCreateInfo.pDepthStencilView          = frame.depthStencilView;
+        rpCreateInfo.renderTargetClearValues[0] = {{0.0f, 0.0f, 0.0f, 0.0f}};
+        rpCreateInfo.depthStencilClearValue     = {1.0f, 0xFF};
+        rpCreateInfo.ownership                  = grfx::OWNERSHIP_RESTRICTED;
+
+        GetDevice()->CreateRenderPass(&rpCreateInfo, &renderpass.ptr);
+    }
+
+    {
+        grfx::TextureCreateInfo createInfo         = {};
+        createInfo.pImage                          = frame.colorImage;
+        createInfo.imageType                       = grfx::IMAGE_TYPE_2D;
+        createInfo.width                           = width;
+        createInfo.height                          = height;
+        createInfo.depth                           = 1;
+        createInfo.imageFormat                     = colorFormat;
+        createInfo.sampleCount                     = grfx::SAMPLE_COUNT_1;
+        createInfo.mipLevelCount                   = 1;
+        createInfo.arrayLayerCount                 = 1;
+        createInfo.usageFlags.bits.inputAttachment = true;
+        createInfo.usageFlags.bits.sampled         = true;
+        createInfo.usageFlags.bits.colorAttachment = true;
+        createInfo.usageFlags.bits.storage         = true;
+        createInfo.memoryUsage                     = grfx::MEMORY_USAGE_GPU_ONLY;
+        createInfo.initialState                    = grfx::RESOURCE_STATE_SHADER_RESOURCE;
+
+        PPX_CHECKED_CALL(GetDevice()->CreateTexture(&createInfo, &frame.blitSource));
+    }
+
+    // Allocate descriptor set
+    PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mBlit.descriptorSetLayout, &frame.blitDescriptorSet));
+
+    // Write descriptors
+    {
+        grfx::WriteDescriptor writes[2] = {};
+        writes[0].binding               = 0;
+        writes[0].arrayIndex            = 0;
+        writes[0].type                  = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        writes[0].pImageView            = frame.blitSource->GetSampledImageView();
+
+        writes[1].binding  = 1;
+        writes[1].type     = grfx::DESCRIPTOR_TYPE_SAMPLER;
+        writes[1].pSampler = mLinearSampler;
+
+        PPX_CHECKED_CALL(frame.blitDescriptorSet->UpdateDescriptors(2, writes));
+    }
+
+    return ppx::SUCCESS;
+}
+
+ppx::grfx::Format GraphicsBenchmarkApp::RenderFormat()
+{
+    grfx::Format renderFormat = kFramebufferFormatTypes[pFramebufferFormat->GetIndex()];
+    if (!pRenderOffscreen->GetValue() || renderFormat == grfx::Format::FORMAT_UNDEFINED) {
+        return GetSwapchain()->GetColorFormat();
+    }
+    return renderFormat;
+}
+
+void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, const RenderPasses& renderpasses, uint32_t imageIndex)
 {
     PPX_CHECKED_CALL(frame.cmd->Begin());
 
     // Write start timestamp
     frame.cmd->WriteTimestamp(frame.timestampQuery, grfx::PIPELINE_STAGE_TOP_OF_PIPE_BIT, /* queryIndex = */ 0);
+    if (!pRenderOffscreen->GetValue()) {
+        frame.cmd->SetScissors(GetScissor());
+        frame.cmd->SetViewports(GetViewport());
+    }
+    else {
+        uint32_t width  = mOffscreenFrame.back().width;
+        uint32_t height = mOffscreenFrame.back().height;
+        frame.cmd->SetScissors({0, 0, width, height});
+        frame.cmd->SetViewports({0, 0, static_cast<float>(width), static_cast<float>(height), 0.0, 1.0});
+    }
 
-    frame.cmd->SetScissors(GetScissor());
-    frame.cmd->SetViewports(GetViewport());
-
-    grfx::RenderPassPtr currentRenderPass = swapchain->GetRenderPass(imageIndex, grfx::ATTACHMENT_LOAD_OP_CLEAR);
+    grfx::RenderPassPtr currentRenderPass = renderpasses.clearRenderPass;
     PPX_ASSERT_MSG(!currentRenderPass.IsNull(), "render pass object is null");
 
-#if defined(PPX_BUILD_XR)
-    if (!IsXrEnabled())
-#endif
-    {
+    const grfx::ImagePtr framebufferImage = currentRenderPass->GetRenderTargetImage(0);
+    const grfx::ImagePtr swapchainImage   = (renderpasses.offscreen ? renderpasses.uiRenderPass->GetRenderTargetImage(0) : framebufferImage);
+
+    const grfx::ResourceState presentState      = IsXrEnabled() ? grfx::RESOURCE_STATE_RENDER_TARGET : grfx::RESOURCE_STATE_PRESENT;
+    grfx::ResourceState       resourceStates[2] = {presentState, presentState};
+    grfx::ResourceState*      swapchainState    = &resourceStates[0];
+    grfx::ResourceState*      framebufferState  = (renderpasses.offscreen ? &resourceStates[1] : &resourceStates[0]);
+
+    if (*framebufferState != grfx::RESOURCE_STATE_RENDER_TARGET) {
         // Transition image layout PRESENT->RENDER before the first renderpass
-        frame.cmd->TransitionImageLayout(currentRenderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_RENDER_TARGET);
+        frame.cmd->TransitionImageLayout(framebufferImage, PPX_ALL_SUBRESOURCES, *framebufferState, grfx::RESOURCE_STATE_RENDER_TARGET);
+        *framebufferState = grfx::RESOURCE_STATE_RENDER_TARGET;
     }
 
     bool renderScene = pEnableSkyBox->GetValue() || pEnableSpheres->GetValue();
@@ -1044,8 +1417,8 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainP
     uint32_t quadsCount       = pFullscreenQuadsCount->GetValue();
     bool     singleRenderpass = pFullscreenQuadsSingleRenderpass->GetValue();
     if (quadsCount > 0) {
-        currentRenderPass = swapchain->GetRenderPass(imageIndex, grfx::ATTACHMENT_LOAD_OP_DONT_CARE);
-        frame.cmd->BindGraphicsPipeline(mQuadsPipelines[pFullscreenQuadsType->GetIndex()]);
+        currentRenderPass = renderpasses.noloadRenderPass;
+        frame.cmd->BindGraphicsPipeline(GetFullscreenQuadPipeline());
         frame.cmd->BindVertexBuffers(1, &mFullscreenQuads.vertexBuffer, &mFullscreenQuads.vertexBinding.GetStride());
 
         if (pFullscreenQuadsType->GetIndex() == static_cast<size_t>(FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_TEXTURE)) {
@@ -1059,8 +1432,8 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainP
             if (!singleRenderpass) {
                 // If quads are using multiple renderpasses, transition image layout in between to force resolve
                 frame.cmd->EndRenderPass();
-                frame.cmd->TransitionImageLayout(currentRenderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_SHADER_RESOURCE);
-                frame.cmd->TransitionImageLayout(currentRenderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_RENDER_TARGET);
+                frame.cmd->TransitionImageLayout(framebufferImage, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_SHADER_RESOURCE);
+                frame.cmd->TransitionImageLayout(framebufferImage, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_SHADER_RESOURCE, grfx::RESOURCE_STATE_RENDER_TARGET);
 
                 if (i == (quadsCount - 1)) { // For the last quad, do not begin another renderpass
                     break;
@@ -1074,7 +1447,30 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainP
     }
 
     // Write end timestamp
+    // Note the framebuffer is still in RENDER_TARGET state, although it should not really be a problem.
     frame.cmd->WriteTimestamp(frame.timestampQuery, grfx::PIPELINE_STAGE_TOP_OF_PIPE_BIT, /* queryIndex = */ 1);
+
+    if (renderpasses.blitRenderPass) {
+        currentRenderPass = renderpasses.blitRenderPass;
+        PPX_ASSERT_MSG(!currentRenderPass.IsNull(), "render pass object is null");
+
+        if (*framebufferState != grfx::RESOURCE_STATE_SHADER_RESOURCE) {
+            frame.cmd->TransitionImageLayout(framebufferImage, PPX_ALL_SUBRESOURCES, *framebufferState, grfx::RESOURCE_STATE_SHADER_RESOURCE);
+            *framebufferState = grfx::RESOURCE_STATE_SHADER_RESOURCE;
+        }
+        if (*swapchainState != grfx::RESOURCE_STATE_RENDER_TARGET) {
+            frame.cmd->TransitionImageLayout(swapchainImage, PPX_ALL_SUBRESOURCES, *swapchainState, grfx::RESOURCE_STATE_RENDER_TARGET);
+            *swapchainState = grfx::RESOURCE_STATE_RENDER_TARGET;
+        }
+
+        frame.cmd->SetScissors(GetScissor());
+        frame.cmd->SetViewports(GetViewport());
+
+        frame.cmd->BeginRenderPass(currentRenderPass);
+        const grfx::DescriptorSet* descriptorSet = renderpasses.offscreen->blitDescriptorSet.Get();
+        frame.cmd->Draw(mBlit.quad, 1, &descriptorSet);
+        frame.cmd->EndRenderPass();
+    }
 
     // Record commands for the GUI using one last renderpass
     if (
@@ -1082,7 +1478,12 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainP
         !IsXrEnabled() &&
 #endif
         GetSettings()->enableImGui) {
-        currentRenderPass = swapchain->GetRenderPass(imageIndex, (renderScene || quadsCount > 0) ? grfx::ATTACHMENT_LOAD_OP_LOAD : grfx::ATTACHMENT_LOAD_OP_CLEAR);
+
+        if (*swapchainState != grfx::RESOURCE_STATE_RENDER_TARGET) {
+            frame.cmd->TransitionImageLayout(swapchainImage, PPX_ALL_SUBRESOURCES, *swapchainState, grfx::RESOURCE_STATE_RENDER_TARGET);
+            *swapchainState = grfx::RESOURCE_STATE_RENDER_TARGET;
+        }
+        currentRenderPass = (renderScene || quadsCount > 0) ? renderpasses.uiRenderPass : renderpasses.uiClearRenderPass;
         PPX_ASSERT_MSG(!currentRenderPass.IsNull(), "render pass object is null");
         frame.cmd->BeginRenderPass(currentRenderPass);
         UpdateGUI();
@@ -1090,12 +1491,14 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainP
         frame.cmd->EndRenderPass();
     }
 
-#if defined(PPX_BUILD_XR)
-    if (!IsXrEnabled())
-#endif
-    {
-        // Transition image layout RENDER->PRESENT after the last renderpass
-        frame.cmd->TransitionImageLayout(currentRenderPass->GetRenderTargetImage(0), PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_RENDER_TARGET, grfx::RESOURCE_STATE_PRESENT);
+    if (*framebufferState != presentState) {
+        frame.cmd->TransitionImageLayout(framebufferImage, PPX_ALL_SUBRESOURCES, *framebufferState, presentState);
+        *framebufferState = presentState;
+    }
+
+    if (*swapchainState != presentState) {
+        frame.cmd->TransitionImageLayout(swapchainImage, PPX_ALL_SUBRESOURCES, *swapchainState, presentState);
+        *swapchainState = presentState;
     }
 
     // Resolve queries
@@ -1107,7 +1510,7 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, grfx::SwapchainP
 void GraphicsBenchmarkApp::RecordCommandBufferSkyBox(PerFrame& frame)
 {
     // Bind resources
-    frame.cmd->BindGraphicsPipeline(mSkyBox.pipeline);
+    frame.cmd->BindGraphicsPipeline(GetSkyBoxPipeline());
     frame.cmd->BindIndexBuffer(mSkyBox.mesh);
     frame.cmd->BindVertexBuffers(mSkyBox.mesh);
 
@@ -1191,7 +1594,12 @@ void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, si
 
 void GraphicsBenchmarkApp::SetupShader(const std::filesystem::path& fileName, grfx::ShaderModule** ppShaderModule)
 {
-    std::vector<char> bytecode = LoadShader(kShaderBaseDir, fileName);
+    SetupShader(kShaderBaseDir, fileName, ppShaderModule);
+}
+
+void GraphicsBenchmarkApp::SetupShader(const char* baseDir, const std::filesystem::path& fileName, grfx::ShaderModule** ppShaderModule)
+{
+    std::vector<char> bytecode = LoadShader(baseDir, fileName);
     PPX_ASSERT_MSG(!bytecode.empty(), "shader bytecode load failed for " << kShaderBaseDir << " " << fileName);
     grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
     PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, ppShaderModule));

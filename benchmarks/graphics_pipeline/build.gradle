@@ -1,4 +1,5 @@
 ArrayList projectAssets = [
+    "basic/shaders/spv",
     "benchmarks/shaders/spv",
     "benchmarks/textures",
     "basic/models",

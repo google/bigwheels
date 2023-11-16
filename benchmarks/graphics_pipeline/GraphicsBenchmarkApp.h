@@ -19,6 +19,7 @@
 #include "MultiDimensionalIndexer.h"
 
 #include "ppx/grfx/grfx_config.h"
+#include "ppx/grfx/grfx_format.h"
 #include "ppx/knob.h"
 #include "ppx/math_config.h"
 #include "ppx/ppx.h"
@@ -90,6 +91,78 @@ static constexpr std::array<float3, 4> kFullscreenQuadsColorsValues = {
     float3(0.0f, 1.0f, 0.0f),
     float3(1.0f, 1.0f, 1.0f)};
 
+static constexpr std::array<grfx::Format, 14> kFramebufferFormatTypes = {
+    // Some format may not be supported on all devices.
+    // We may want to filter based on device capability.
+    grfx::Format::FORMAT_UNDEFINED, // Use Swapchain format
+    grfx::Format::FORMAT_R8G8B8A8_UNORM,
+    grfx::Format::FORMAT_B8G8R8A8_UNORM,
+    grfx::Format::FORMAT_R8G8B8A8_SRGB,
+    grfx::Format::FORMAT_B8G8R8A8_SRGB,
+    grfx::Format::FORMAT_R16G16B16A16_UNORM,
+    grfx::Format::FORMAT_R16G16B16A16_FLOAT,
+    grfx::Format::FORMAT_R32G32B32A32_FLOAT,
+    grfx::Format::FORMAT_R10G10B10A2_UNORM,
+    grfx::Format::FORMAT_R11G11B10_FLOAT,
+    grfx::Format::FORMAT_R8_UNORM,
+    grfx::Format::FORMAT_R16_UNORM,
+    grfx::Format::FORMAT_R8G8_UNORM,
+    grfx::Format::FORMAT_R16G16_UNORM,
+};
+
+static constexpr std::array<std::pair<int, int>, 1 + 8> kSimpleResolutions = {{
+    // 1x1
+    {1, 1},
+    // 2^n square
+    {64, 64},
+    {128, 128},
+    {256, 256},
+    {512, 512},
+    {1024, 1024},
+    {2048, 2048},
+    {4096, 4096},
+    {8192, 8192},
+}};
+
+static constexpr std::array<std::pair<int, int>, 6 + 5 + 2> kCommonResolutions = {{
+    // 16:9 Wide screen
+    {1280, 720},  // 720p
+    {1920, 1080}, // 1080p
+    {2560, 1440}, // 1440p
+    {3840, 2160}, // 4K
+    {5120, 2880}, // 5K
+    {7680, 4320}, // 8K
+    // VGA
+    {320, 240},  // QVGA
+    {480, 320},  // HVGA
+    {640, 480},  // VGA
+    {800, 600},  // SVGA
+    {1024, 768}, // XGA
+    // Other common display resolution
+    {3840, 1600}, // 4K ultrawide
+    {5120, 2160}, // 5K ultrawide
+}};
+
+static constexpr std::array<std::pair<int, int>, 8 + 9> kVRPerEyeResolutions = {{
+    {720, 720},
+    {960, 960},
+    {1440, 1440},
+    {1920, 1920},
+    {2880, 2880},
+    {3840, 3840},
+    {5760, 5760},
+    {7680, 7680},
+    {1800, 1920}, // Quest Pro
+    {1832, 1920}, // Quest 2
+    {2064, 2208}, // Quest 3
+    {1440, 1600}, // Valve Index
+    {1080, 1200}, // HTC Vive
+    {2448, 2448}, // HTC Vive Pro 2
+    {960, 1080},  // PlayStation VR
+    {2000, 2040}, // PlayStation VR 2
+    {3680, 3140}, // Vision Pro, estimation from Wikipedia
+}};
+
 class GraphicsBenchmarkApp
     : public ppx::Application
 {
@@ -146,7 +219,6 @@ private:
         grfx::BufferPtr                     uniformBuffer;
         grfx::DescriptorSetLayoutPtr        descriptorSetLayout;
         grfx::PipelineInterfacePtr          pipelineInterface;
-        grfx::GraphicsPipelinePtr           pipeline;
         std::vector<grfx::DescriptorSetPtr> descriptorSets;
     };
 
@@ -165,14 +237,52 @@ private:
         std::string name;
     };
 
+    struct SkyBoxPipelineKey
+    {
+        grfx::Format renderFormat;
+
+        bool operator==(const SkyBoxPipelineKey& rhs) const
+        {
+            return renderFormat == rhs.renderFormat;
+        }
+
+        struct Hash
+        {
+            size_t operator()(const SkyBoxPipelineKey& key) const
+            {
+                return static_cast<size_t>(key.renderFormat);
+            }
+        };
+    };
+
+    struct QuadPipelineKey
+    {
+        grfx::Format        renderFormat;
+        FullscreenQuadsType quadType;
+
+        bool operator==(const QuadPipelineKey& rhs) const
+        {
+            return renderFormat == rhs.renderFormat && quadType == rhs.quadType;
+        }
+
+        struct Hash
+        {
+            size_t operator()(const QuadPipelineKey& key) const
+            {
+                return (static_cast<size_t>(key.renderFormat) * kFullscreenQuadsTypes.size()) | static_cast<size_t>(key.quadType);
+            }
+        };
+    };
+
     struct SpherePipelineKey
     {
-        uint8_t ps;
-        uint8_t vs;
-        uint8_t vertexFormat;
-        uint8_t vertexAttributeLayout;
-        bool    enableDepth;
-        bool    enableAlphaBlend;
+        uint8_t      ps;
+        uint8_t      vs;
+        uint8_t      vertexFormat;
+        uint8_t      vertexAttributeLayout;
+        bool         enableDepth;
+        bool         enableAlphaBlend;
+        grfx::Format renderFormat;
 
         static_assert(kAvailablePsShaders.size() < (1 << (8 * sizeof(ps))));
         static_assert(kAvailableVsShaders.size() < (1 << (8 * sizeof(vs))));
@@ -186,7 +296,8 @@ private:
                    vertexFormat == rhs.vertexFormat &&
                    vertexAttributeLayout == rhs.vertexAttributeLayout &&
                    enableDepth == rhs.enableDepth &&
-                   enableAlphaBlend == rhs.enableAlphaBlend;
+                   enableAlphaBlend == rhs.enableAlphaBlend &&
+                   renderFormat == rhs.renderFormat;
         }
 
         struct Hash
@@ -194,7 +305,7 @@ private:
             // Not a good hash function, but good enough.
             size_t operator()(const SpherePipelineKey& key) const
             {
-                size_t res = 0;
+                size_t res = static_cast<size_t>(key.renderFormat);
 
                 res = (res * kAvailablePsShaders.size()) | key.ps;
                 res = (res * kAvailableVsShaders.size()) | key.vs;
@@ -214,8 +325,53 @@ private:
         double average;
     };
 
+    struct OffscreenFrame
+    {
+        uint32_t width;
+        uint32_t height;
+
+        grfx::Format colorFormat;
+        grfx::Format depthFormat;
+
+        grfx::RenderPassPtr loadRenderPass;
+        grfx::RenderPassPtr clearRenderPass;
+        grfx::RenderPassPtr noloadRenderPass;
+
+        grfx::RenderTargetViewPtr renderTargetViews[3];
+        grfx::DepthStencilViewPtr depthStencilView;
+        // The actual image
+        grfx::ImagePtr depthImage;
+        grfx::ImagePtr colorImage;
+
+        grfx::TexturePtr       blitSource;
+        grfx::DescriptorSetPtr blitDescriptorSet;
+    };
+
+    struct RenderPasses
+    {
+        grfx::RenderPassPtr   loadRenderPass;
+        grfx::RenderPassPtr   clearRenderPass;
+        grfx::RenderPassPtr   noloadRenderPass;
+        grfx::RenderPassPtr   uiRenderPass;
+        grfx::RenderPassPtr   uiClearRenderPass;
+        grfx::RenderPassPtr   blitRenderPass;
+        const OffscreenFrame* offscreen = nullptr;
+    };
+
+    struct BlitContext
+    {
+        grfx::ShaderModulePtr vs;
+        grfx::ShaderModulePtr ps;
+
+        // Note: the blit implementated here does not perserve aspect ratio.
+        grfx::DescriptorSetLayoutPtr descriptorSetLayout;
+        grfx::FullscreenQuadPtr      quad;
+    };
+
 private:
     using SpherePipelineMap = std::unordered_map<SpherePipelineKey, grfx::GraphicsPipelinePtr, SpherePipelineKey::Hash>;
+    using SkyboxPipelineMap = std::unordered_map<SkyBoxPipelineKey, grfx::GraphicsPipelinePtr, SkyBoxPipelineKey::Hash>;
+    using QuadPipelineMap   = std::unordered_map<QuadPipelineKey, grfx::GraphicsPipelinePtr, QuadPipelineKey::Hash>;
 
     std::vector<PerFrame>             mPerFrame;
     FreeCamera                        mCamera;
@@ -226,12 +382,14 @@ private:
     grfx::SamplerPtr                  mLinearSampler;
     grfx::DescriptorPoolPtr           mDescriptorPool;
     SubmissionTime                    mSubmissionTime;
+    std::vector<OffscreenFrame>       mOffscreenFrame;
 
     // SkyBox resources
     Entity                mSkyBox;
     grfx::ShaderModulePtr mVSSkyBox;
     grfx::ShaderModulePtr mPSSkyBox;
     grfx::TexturePtr      mSkyBoxTexture;
+    SkyboxPipelineMap     mSkyBoxPipelines;
 
     // Spheres resources
     Entity                                                        mSphere;
@@ -250,9 +408,11 @@ private:
     Entity2D                                                             mFullscreenQuads;
     grfx::ShaderModulePtr                                                mVSQuads;
     grfx::TexturePtr                                                     mQuadsTexture;
-    std::array<grfx::GraphicsPipelinePtr, kFullscreenQuadsTypes.size()>  mQuadsPipelines;
+    QuadPipelineMap                                                      mQuadsPipelines;
     std::array<grfx::PipelineInterfacePtr, kFullscreenQuadsTypes.size()> mQuadsPipelineInterfaces;
     std::array<grfx::ShaderModulePtr, kFullscreenQuadsTypes.size()>      mQuadsPs;
+
+    BlitContext mBlit;
 
 private:
     std::shared_ptr<KnobDropdown<std::string>> pKnobVs;
@@ -271,6 +431,12 @@ private:
     std::shared_ptr<KnobCheckbox>              pEnableSkyBox;
     std::shared_ptr<KnobCheckbox>              pEnableSpheres;
     std::shared_ptr<KnobCheckbox>              pAllTexturesTo1x1;
+
+    std::shared_ptr<KnobCheckbox>              pRenderOffscreen;
+    std::shared_ptr<KnobCheckbox>              pBlitOffscreen;
+    std::shared_ptr<KnobDropdown<std::string>> pFramebufferFormat;
+    std::shared_ptr<KnobDropdown<std::string>> pResolution;
+    std::vector<std::pair<int, int>>           mResolutionOptions;
 
 private:
     // =====================================================================
@@ -298,13 +464,17 @@ private:
     void SetupSpheresPipelines();
     void SetupFullscreenQuadsPipelines();
 
-    Result CompileSpherePipeline(const SpherePipelineKey& key);
+    Result CompilePipeline(const SkyBoxPipelineKey& key);
+    Result CompilePipeline(const SpherePipelineKey& key);
+    Result CompilePipeline(const QuadPipelineKey& key);
 
     // Update descriptors
     // Note: Descriptors can be updated within rendering loop
     void UpdateSkyBoxDescriptors();
     void UpdateSphereDescriptors();
     void UpdateFullscreenQuadsDescriptors();
+
+    void UpdateOffscreenBuffer(grfx::Format format, int w, int h);
 
     // =====================================================================
     // RENDERING LOOP (Called every frame)
@@ -320,7 +490,7 @@ private:
     void DrawExtraInfo();
 
     // Record this frame's command buffer with multiple renderpasses
-    void RecordCommandBuffer(PerFrame& frame, grfx::SwapchainPtr swapchain, uint32_t imageIndex);
+    void RecordCommandBuffer(PerFrame& frame, const RenderPasses& renderPasses, uint32_t imageIndex);
 
     // Records commands to render * in this frame's command buffer, with the current renderpass
     void RecordCommandBufferSkyBox(PerFrame& frame);
@@ -338,9 +508,19 @@ private:
 
     // Loads shader at shaderBaseDir/fileName and creates it at ppShaderModule
     void SetupShader(const std::filesystem::path& fileName, grfx::ShaderModule** ppShaderModule);
+    void SetupShader(const char* baseDir, const std::filesystem::path& fileName, grfx::ShaderModule** ppShaderModule);
 
     // Compile or load from cache currently required pipeline.
     grfx::GraphicsPipelinePtr GetSpherePipeline();
+    grfx::GraphicsPipelinePtr GetFullscreenQuadPipeline();
+    grfx::GraphicsPipelinePtr GetSkyBoxPipeline();
+
+    Result       CreateOffscreenFrame(OffscreenFrame&, grfx::Format colorFormat, grfx::Format depthFormat, uint32_t width, uint32_t height);
+    void         DestroyOffscreenFrame(OffscreenFrame&);
+    Result       CreateBlitContext(BlitContext& blit);
+    RenderPasses SwapchainRenderPasses(grfx::SwapchainPtr swapchain, uint32_t imageIndex);
+    RenderPasses OffscreenRenderPasses(const OffscreenFrame&);
+    grfx::Format RenderFormat();
 };
 
 #endif // BENCHMARKS_GRAPHICS_PIPELINE_GRAPHICS_BENCHMARK_APP_H
