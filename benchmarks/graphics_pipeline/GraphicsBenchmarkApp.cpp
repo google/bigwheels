@@ -16,6 +16,7 @@
 #include "SphereMesh.h"
 
 #include "ppx/graphics_util.h"
+#include "ppx/timer.h"
 
 using namespace ppx;
 
@@ -885,7 +886,21 @@ void GraphicsBenchmarkApp::Render()
     }
     submitInfo.pFence = frame.renderCompleteFence;
 
+    Timer timerSubmit;
+    PPX_ASSERT_MSG(timerSubmit.Start() == TIMER_RESULT_SUCCESS, "Error starting the Timer");
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
+    double t = timerSubmit.MillisSinceStart();
+
+    uint64_t frameCount     = GetFrameCount();
+    mSubmissionTime.average = (mSubmissionTime.average * frameCount + t) / (frameCount + 1);
+    if (frameCount == 0) {
+        mSubmissionTime.min = t;
+        mSubmissionTime.max = t;
+    }
+    else {
+        mSubmissionTime.min = std::min(mSubmissionTime.min, t);
+        mSubmissionTime.max = std::max(mSubmissionTime.max, t);
+    }
 
 #if defined(PPX_BUILD_XR)
     // No need to present when XR is enabled.
@@ -936,6 +951,22 @@ void GraphicsBenchmarkApp::DrawExtraInfo()
 {
     uint64_t frequency = 0;
     GetGraphicsQueue()->GetTimestampFrequency(&frequency);
+
+    ImGui::Columns(2);
+    ImGui::Text("CPU Average Submission Time");
+    ImGui::NextColumn();
+    ImGui::Text("%.2f ms ", mSubmissionTime.average);
+    ImGui::NextColumn();
+
+    ImGui::Text("CPU Min Submission Time");
+    ImGui::NextColumn();
+    ImGui::Text("%.2f ms ", mSubmissionTime.min);
+    ImGui::NextColumn();
+
+    ImGui::Text("CPU Max Submission Time");
+    ImGui::NextColumn();
+    ImGui::Text("%.2f ms ", mSubmissionTime.max);
+    ImGui::NextColumn();
 
     ImGui::Columns(2);
     const float gpuWorkDurationInSec = static_cast<float>(mGpuWorkDuration / static_cast<double>(frequency));
