@@ -90,7 +90,7 @@ void GraphicsBenchmarkApp::InitKnobs()
     pSphereInstanceCount->SetFlagDescription("Select the number of spheres to draw on the screen.");
     pSphereInstanceCount->SetIndent(1);
 
-    GetKnobManager().InitKnob(&pDrawCallCount, "drawcall-count", /* defaultValue = */ 1, /* minValue = */ 1, kMaxSphereInstanceCount);
+    GetKnobManager().InitKnob(&pDrawCallCount, "drawcall-count", /* defaultValue = */ kDefaultSphereInstanceCount, /* minValue = */ 1, kMaxSphereInstanceCount);
     pDrawCallCount->SetDisplayName("DrawCall Count");
     pDrawCallCount->SetFlagDescription("Select the number of draw calls to be used to draw the `--sphere-count` spheres.");
     pDrawCallCount->SetIndent(1);
@@ -415,15 +415,6 @@ void GraphicsBenchmarkApp::SetupSphereResources()
         PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mSphere.uniformBuffer));
     }
 
-    // Uniform buffers for draw calls
-    {
-        grfx::BufferCreateInfo bufferCreateInfo        = {};
-        bufferCreateInfo.size                          = PPX_MINIMUM_UNIFORM_BUFFER_SIZE;
-        bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
-        bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
-        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mSphere.uniformBuffer));
-    }
-
     // Descriptor set layout
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
@@ -439,7 +430,7 @@ void GraphicsBenchmarkApp::SetupSphereResources()
 
     // Allocate descriptor sets
     uint32_t n = GetNumFramesInFlight();
-    for (size_t i = 0; i < n; i++) {
+    while (mSphere.descriptorSets.size() < n) {
         grfx::DescriptorSetPtr pDescriptorSet;
         PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mSphere.descriptorSetLayout, &pDescriptorSet));
         mSphere.descriptorSets.push_back(pDescriptorSet);
@@ -546,7 +537,20 @@ void GraphicsBenchmarkApp::SetupSkyBoxMeshes()
 
 void GraphicsBenchmarkApp::SetupSphereMeshes()
 {
-    OrderedGrid grid(kMaxSphereInstanceCount, kSeed);
+    const uint32_t requiredSphereCount = std::max<uint32_t>(pSphereInstanceCount->GetValue(), kDefaultSphereInstanceCount);
+    const uint32_t initSphereCount     = std::min<uint32_t>(kMaxSphereInstanceCount, 2 * std::max(requiredSphereCount, mInitializedSpheres));
+
+    OrderedGrid grid(initSphereCount, kSeed);
+    mInitializedSpheres = initSphereCount;
+
+    GetDevice()->WaitIdle();
+    // Destroy the meshes if they were created.
+    for (auto& mesh : mSphereMeshes) {
+        if (mesh != nullptr) {
+            GetDevice()->DestroyMesh(mesh);
+            mesh = nullptr;
+        }
+    }
 
     // Create the meshes
     uint32_t meshIndex = 0;
@@ -554,7 +558,6 @@ void GraphicsBenchmarkApp::SetupSphereMeshes()
         PPX_LOG_INFO("LOD: " << lod.name);
         SphereMesh sphereMesh(/* radius = */ 1, lod.value.longitudeSegments, lod.value.latitudeSegments);
         sphereMesh.ApplyGrid(grid);
-
         // Create a giant vertex buffer for each vb type to accommodate all copies of the sphere mesh
         PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), sphereMesh.GetLowPrecisionInterleaved(), &mSphereMeshes[meshIndex++]));
         PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), sphereMesh.GetLowPrecisionPositionPlanar(), &mSphereMeshes[meshIndex++]));
@@ -872,18 +875,21 @@ void GraphicsBenchmarkApp::ProcessKnobs()
 {
     // Detect if any knob value has been changed
     // Note: DigestUpdate should be called only once per frame (DigestUpdate unflags the internal knob variable)!
-    const bool allTexturesTo1x1KnobChanged = pAllTexturesTo1x1->DigestUpdate();
-    const bool alphaBlendKnobChanged       = pAlphaBlend->DigestUpdate();
-    const bool depthTestWriteKnobChanged   = pDepthTestWrite->DigestUpdate();
-    const bool enableSpheresKnobChanged    = pEnableSpheres->DigestUpdate();
+    const bool allTexturesTo1x1KnobChanged    = pAllTexturesTo1x1->DigestUpdate();
+    const bool alphaBlendKnobChanged          = pAlphaBlend->DigestUpdate();
+    const bool depthTestWriteKnobChanged      = pDepthTestWrite->DigestUpdate();
+    const bool enableSpheresKnobChanged       = pEnableSpheres->DigestUpdate();
+    const bool sphereInstanceCountKnobChanged = pSphereInstanceCount->DigestUpdate();
 
     const bool enableSpheres = pEnableSpheres->GetValue();
     // If the LOD is empty, assuming we skipped the setup for all sphere resources at start
     // So need to do the intial setup for all resources here
-    const bool spheresAreSetUp               = mSpheresAreSetUp;
-    const bool updateSphereDescriptors       = spheresAreSetUp && allTexturesTo1x1KnobChanged;
-    const bool setupSphereResourcesAndMeshes = (!spheresAreSetUp) && enableSpheres;
-    const bool rebuildSpherePipeline         = setupSphereResourcesAndMeshes || (spheresAreSetUp && (alphaBlendKnobChanged || depthTestWriteKnobChanged));
+    const bool spheresAreSetUp         = mSpheresAreSetUp;
+    const bool requireMoreSpheres      = sphereInstanceCountKnobChanged && (pSphereInstanceCount->GetValue() > mInitializedSpheres);
+    const bool updateSphereDescriptors = spheresAreSetUp && allTexturesTo1x1KnobChanged;
+    const bool setupSphereResources    = (!spheresAreSetUp) && enableSpheres;
+    const bool setupSphereMeshes       = ((!spheresAreSetUp) || requireMoreSpheres) && enableSpheres;
+    const bool rebuildSpherePipeline   = setupSphereMeshes || (spheresAreSetUp && (alphaBlendKnobChanged || depthTestWriteKnobChanged));
 
     // TODO: Ideally, the `maxValue` of the drawcall-count slider knob should be changed at runtime.
     // Currently, the value of the drawcall-count is adjusted to the sphere-count in case the
@@ -907,8 +913,10 @@ void GraphicsBenchmarkApp::ProcessKnobs()
     pAllTexturesTo1x1->SetVisible(enableSpheres && (pKnobPs->GetValue() == SpherePS::SPHERE_PS_MEM_BOUND));
 
     // Update sphere resources and mesh
-    if (setupSphereResourcesAndMeshes) {
+    if (setupSphereResources) {
         SetupSphereResources();
+    }
+    if (setupSphereMeshes) {
         SetupSphereMeshes();
     }
 
@@ -1164,6 +1172,13 @@ void GraphicsBenchmarkApp::DrawExtraInfo()
         ImGui::Text("CPU Max Submission Time");
         ImGui::NextColumn();
         ImGui::Text("%.2f ms", cpuSubmissionTime.max);
+        ImGui::NextColumn();
+    }
+
+    if (mInitializedSpheres) {
+        ImGui::Text("Initialized Spheres");
+        ImGui::NextColumn();
+        ImGui::Text("%d ", mInitializedSpheres);
         ImGui::NextColumn();
     }
 
@@ -1467,7 +1482,7 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, const RenderPass
         if (pEnableSkyBox->GetValue()) {
             RecordCommandBufferSkyBox(frame);
         }
-        if (pEnableSpheres->GetValue()) {
+        if (pEnableSpheres->GetValue() && mInitializedSpheres > 0) {
             RecordCommandBufferSpheres(frame);
         }
         frame.cmd->EndRenderPass();
@@ -1595,9 +1610,9 @@ void GraphicsBenchmarkApp::RecordCommandBufferSpheres(PerFrame& frame)
     frame.cmd->BindGraphicsDescriptorSets(mSphere.pipelineInterface, 1, &mSphere.descriptorSets.at(GetInFlightFrameIndex()));
 
     // Snapshot some scene-related values for the current frame
-    uint32_t currentSphereCount   = pSphereInstanceCount->GetValue();
+    uint32_t currentSphereCount   = std::min<uint32_t>(pSphereInstanceCount->GetValue(), mInitializedSpheres);
     uint32_t currentDrawCallCount = pDrawCallCount->GetValue();
-    uint32_t mSphereIndexCount    = mSphereMeshes[meshIndex]->GetIndexCount() / kMaxSphereInstanceCount;
+    uint32_t mSphereIndexCount    = mSphereMeshes[meshIndex]->GetIndexCount() / mInitializedSpheres;
     uint32_t indicesPerDrawCall   = (currentSphereCount * mSphereIndexCount) / currentDrawCallCount;
 
     // Make `indicesPerDrawCall` multiple of 3 given that each consecutive three vertices (3*i + 0, 3*i + 1, 3*i + 2)

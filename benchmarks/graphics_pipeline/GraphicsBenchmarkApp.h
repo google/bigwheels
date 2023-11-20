@@ -28,9 +28,10 @@
 #include <vector>
 #include <unordered_map>
 
-static constexpr uint32_t kMaxSphereInstanceCount  = 3000;
-static constexpr uint32_t kSeed                    = 89977;
-static constexpr uint32_t kMaxFullscreenQuadsCount = 1000;
+static constexpr uint32_t kMaxSphereInstanceCount     = 3000;
+static constexpr uint32_t kDefaultSphereInstanceCount = 50;
+static constexpr uint32_t kSeed                       = 89977;
+static constexpr uint32_t kMaxFullscreenQuadsCount    = 1000;
 
 static constexpr const char* kShaderBaseDir   = "benchmarks/shaders";
 static constexpr const char* kQuadTextureFile = "benchmarks/textures/resolution.jpg";
@@ -431,7 +432,8 @@ private:
     std::array<grfx::MeshPtr, kMeshCount>                         mSphereMeshes;
     std::vector<LOD>                                              mSphereLODs;
     MultiDimensionalIndexer                                       mMeshesIndexer;
-    bool                                                          mSpheresAreSetUp = false;
+    bool                                                          mSpheresAreSetUp    = false;
+    uint32_t                                                      mInitializedSpheres = 0;
 
     // Fullscreen quads resources
     Entity2D                                                             mFullscreenQuads;
