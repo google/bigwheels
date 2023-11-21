@@ -109,6 +109,31 @@ public:
 // derived from the sampling process.
 // The most typical case is the frame time, but memory consumption and image
 // quality are also good examples.
+
+// Basic statistics are computed on the fly as metrics entries are recorded.
+// They can be retrieved without any significant run-time cost.
+struct GaugeBasicStatistics
+{
+    double min       = std::numeric_limits<double>::max();
+    double max       = std::numeric_limits<double>::min();
+    double average   = 0.0;
+    double timeRatio = 0.0;
+};
+
+// Complex statistics cannot be computed on the fly.
+// They require significant computation (e.g. sorting).
+struct GaugeComplexStatistics
+{
+    double median            = 0.0;
+    double standardDeviation = 0.0;
+    double percentile01      = 0.0;
+    double percentile05      = 0.0;
+    double percentile10      = 0.0;
+    double percentile90      = 0.0;
+    double percentile95      = 0.0;
+    double percentile99      = 0.0;
+};
+
 class MetricGauge final : public Metric
 {
     friend class Run;
@@ -133,6 +158,8 @@ public:
         return MetricType::GAUGE;
     }
 
+    const GaugeBasicStatistics GetBasicStatistics() const { return mStats.basic; };
+
 private:
     struct TimeSeriesEntry
     {
@@ -142,21 +169,8 @@ private:
 
     struct Stats
     {
-        // Basic - updated every entry.
-        double min       = std::numeric_limits<double>::max();
-        double max       = std::numeric_limits<double>::min();
-        double average   = 0.0;
-        double timeRatio = 0.0;
-
-        // Complex - computed on request.
-        double median            = 0.0;
-        double standardDeviation = 0.0;
-        double percentile01      = 0.0;
-        double percentile05      = 0.0;
-        double percentile10      = 0.0;
-        double percentile90      = 0.0;
-        double percentile95      = 0.0;
-        double percentile99      = 0.0;
+        GaugeBasicStatistics   basic;
+        GaugeComplexStatistics complex;
     };
 
 private:
@@ -172,7 +186,7 @@ private:
 private:
     MetricMetadata               mMetadata;
     std::vector<TimeSeriesEntry> mTimeSeries;
-    Stats                        mBasicStats;
+    Stats                        mStats;
     double                       mAccumulatedValue = 0.0;
 };
 
@@ -291,6 +305,9 @@ public:
     // Exports all the runs and metrics information into a report. Does NOT close the
     // current run.
     Report CreateReport(const std::string& reportPath) const;
+
+    // Get Gauge Basic Statistics, only works for type GAUGE
+    GaugeBasicStatistics GetGaugeBasicStatistics(MetricID id) const;
 
 private:
     METRICS_NO_COPY(Manager)

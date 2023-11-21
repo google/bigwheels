@@ -291,6 +291,56 @@ void GraphicsBenchmarkApp::Setup()
     }
 }
 
+void GraphicsBenchmarkApp::SetupMetrics()
+{
+    Application::SetupMetrics();
+    ppx::metrics::MetricMetadata metadata                     = {ppx::metrics::MetricType::GAUGE, "CPU Submission Time", "ms", ppx::metrics::MetricInterpretation::LOWER_IS_BETTER, {0.f, 10000.f}};
+    mMetricsData.metrics[MetricsData::kTypeCPUSubmissionTime] = AddMetric(metadata);
+    PPX_ASSERT_MSG(mMetricsData.metrics[MetricsData::kTypeCPUSubmissionTime] != ppx::metrics::kInvalidMetricID, "Failed to add CPU Submission Time metric");
+
+    metadata                                          = {ppx::metrics::MetricType::GAUGE, "Bandwidth", "GB/s", ppx::metrics::MetricInterpretation::HIGHER_IS_BETTER, {0.f, 10000.f}};
+    mMetricsData.metrics[MetricsData::kTypeBandwidth] = AddMetric(metadata);
+    PPX_ASSERT_MSG(mMetricsData.metrics[MetricsData::kTypeBandwidth] != ppx::metrics::kInvalidMetricID, "Failed to add Bandwidth metric");
+}
+
+void GraphicsBenchmarkApp::UpdateMetrics()
+{
+    uint64_t frequency = 0;
+    GetGraphicsQueue()->GetTimestampFrequency(&frequency);
+
+    ppx::metrics::MetricData data = {ppx::metrics::MetricType::GAUGE};
+    data.gauge.seconds            = GetElapsedSeconds();
+    data.gauge.value              = mCPUSubmissionTime;
+    RecordMetricData(mMetricsData.metrics[MetricsData::kTypeCPUSubmissionTime], data);
+
+    const float    gpuWorkDurationInSec = static_cast<float>(mGpuWorkDuration / static_cast<double>(frequency));
+    const uint32_t width                = GetSwapchain()->GetWidth();
+    const uint32_t height               = GetSwapchain()->GetHeight();
+    const uint32_t quadCount            = pFullscreenQuadsCount->GetValue();
+
+    if (quadCount) {
+        // Skip the first kSkipFrameCount frames after the knob of quad count being changed to avoid noise
+        constexpr uint32_t kSkipFrameCount  = 2;
+        static uint32_t    skipFrameCounter = 0;
+        if (pFullscreenQuadsCount->DigestUpdate()) {
+            skipFrameCounter = kSkipFrameCount;
+        }
+
+        if (skipFrameCounter == 0) {
+            const float dataWriteInGb = (static_cast<float>(width) * static_cast<float>(height) * 4.f * quadCount) / (1024.f * 1024.f * 1024.f);
+            const float bandwidth     = dataWriteInGb / gpuWorkDurationInSec;
+
+            ppx::metrics::MetricData data = {ppx::metrics::MetricType::GAUGE};
+            data.gauge.seconds            = GetElapsedSeconds();
+            data.gauge.value              = bandwidth;
+            RecordMetricData(mMetricsData.metrics[MetricsData::kTypeBandwidth], data);
+        }
+        else {
+            --skipFrameCounter;
+        }
+    }
+}
+
 void GraphicsBenchmarkApp::SetupSkyBoxResources()
 {
     // Textures
@@ -1044,18 +1094,7 @@ void GraphicsBenchmarkApp::Render()
     Timer timerSubmit;
     PPX_ASSERT_MSG(timerSubmit.Start() == TIMER_RESULT_SUCCESS, "Error starting the Timer");
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
-    double t = timerSubmit.MillisSinceStart();
-
-    uint64_t frameCount     = GetFrameCount();
-    mSubmissionTime.average = (mSubmissionTime.average * frameCount + t) / (frameCount + 1);
-    if (frameCount == 0) {
-        mSubmissionTime.min = t;
-        mSubmissionTime.max = t;
-    }
-    else {
-        mSubmissionTime.min = std::min(mSubmissionTime.min, t);
-        mSubmissionTime.max = std::max(mSubmissionTime.max, t);
-    }
+    mCPUSubmissionTime = timerSubmit.MillisSinceStart();
 
 #if defined(PPX_BUILD_XR)
     // No need to present when XR is enabled.
@@ -1104,25 +1143,27 @@ void GraphicsBenchmarkApp::UpdateGUI()
 
 void GraphicsBenchmarkApp::DrawExtraInfo()
 {
-    uint64_t frequency = 0;
-    GetGraphicsQueue()->GetTimestampFrequency(&frequency);
+    const auto cpuSubmissionTime = GetGaugeBasicStatistics(mMetricsData.metrics[MetricsData::kTypeCPUSubmissionTime]);
+    const auto bandwidth         = GetGaugeBasicStatistics(mMetricsData.metrics[MetricsData::kTypeBandwidth]);
 
     ImGui::Columns(2);
     ImGui::Text("CPU Average Submission Time");
     ImGui::NextColumn();
-    ImGui::Text("%.2f ms ", mSubmissionTime.average);
+    ImGui::Text("%.2f ms", cpuSubmissionTime.average);
     ImGui::NextColumn();
 
     ImGui::Text("CPU Min Submission Time");
     ImGui::NextColumn();
-    ImGui::Text("%.2f ms ", mSubmissionTime.min);
+    ImGui::Text("%.2f ms", cpuSubmissionTime.min);
     ImGui::NextColumn();
 
     ImGui::Text("CPU Max Submission Time");
     ImGui::NextColumn();
-    ImGui::Text("%.2f ms ", mSubmissionTime.max);
+    ImGui::Text("%.2f ms", cpuSubmissionTime.max);
     ImGui::NextColumn();
 
+    uint64_t frequency = 0;
+    GetGraphicsQueue()->GetTimestampFrequency(&frequency);
     ImGui::Columns(2);
     const float gpuWorkDurationInSec = static_cast<float>(mGpuWorkDuration / static_cast<double>(frequency));
     const float gpuWorkDurationInMs  = gpuWorkDurationInSec * 1000.0f;
@@ -1165,10 +1206,19 @@ void GraphicsBenchmarkApp::DrawExtraInfo()
         ImGui::Text("%.2f GB", dataWriteInGb);
         ImGui::NextColumn();
 
-        const float bandwidth = dataWriteInGb / gpuWorkDurationInSec;
-        ImGui::Text("Write Bandwidth");
+        ImGui::Text("Average Write Bandwidth");
         ImGui::NextColumn();
-        ImGui::Text("%.2f GB/s", bandwidth);
+        ImGui::Text("%.2f GB/s", bandwidth.average);
+        ImGui::NextColumn();
+
+        ImGui::Text("Min Write Bandwidth");
+        ImGui::NextColumn();
+        ImGui::Text("%.2f GB/s", bandwidth.min);
+        ImGui::NextColumn();
+
+        ImGui::Text("Max Write Bandwidth");
+        ImGui::NextColumn();
+        ImGui::Text("%.2f GB/s", bandwidth.max);
         ImGui::NextColumn();
     }
     ImGui::Columns(1);

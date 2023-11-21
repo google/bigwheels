@@ -384,6 +384,8 @@ protected:
     // Thus it should always be called once per frame. Virtual for unit testing purposes.
     virtual void UpdateMetrics() {}
 
+    virtual metrics::GaugeBasicStatistics GetGaugeBasicStatistics(metrics::MetricID id) const;
+
     void TakeScreenshot();
 
     void DrawImGui(grfx::CommandBuffer* pCommandBuffer);

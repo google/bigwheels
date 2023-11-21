@@ -786,6 +786,15 @@ void Application::ShutdownMetrics()
     StopMetricsRun();
 }
 
+metrics::GaugeBasicStatistics Application::GetGaugeBasicStatistics(metrics::MetricID id) const
+{
+    if (!mStandardOpts.pEnableMetrics->GetValue()) {
+        PPX_LOG_WARN("Metrics is not enabled.");
+        return metrics::GaugeBasicStatistics();
+    }
+    return mMetrics.manager.GetGaugeBasicStatistics(id);
+}
+
 void Application::SaveMetricsReportToDisk()
 {
     // Ensure the base metrics knob was initialized by the KnobManager.
@@ -855,8 +864,9 @@ void Application::InitStandardKnobs()
         "Prints a list of the available GPUs on the current system with their "
         "index and exits (see --gpu).");
 
+    const std::string defaultPath = std::filesystem::current_path().u8string();
     mStandardOpts.pMetricsFilename =
-        mKnobManager.CreateKnob<KnobFlag<std::string>>("metrics-filename", "");
+        mKnobManager.CreateKnob<KnobFlag<std::string>>("metrics-filename", defaultPath);
     mStandardOpts.pMetricsFilename->SetFlagDescription(
         "If metrics are enabled, save the metrics report to the "
         "provided filename (including path). If used, any `@` "
@@ -1708,7 +1718,7 @@ void Application::StartMetricsRun(const std::string& name)
         metadata.unit                    = "";
         metadata.interpretation          = metrics::MetricInterpretation::HIGHER_IS_BETTER;
         mMetrics.framerateId             = mMetrics.manager.AddMetric(metadata);
-        PPX_ASSERT_MSG(mMetrics.cpuFrameTimeId != metrics::kInvalidMetricID, "Failed to create framerate metric");
+        PPX_ASSERT_MSG(mMetrics.framerateId != metrics::kInvalidMetricID, "Failed to create framerate metric");
     }
     {
         metrics::MetricMetadata metadata = {};
@@ -1717,7 +1727,7 @@ void Application::StartMetricsRun(const std::string& name)
         metadata.unit                    = "";
         metadata.interpretation          = metrics::MetricInterpretation::NONE;
         mMetrics.frameCountId            = mMetrics.manager.AddMetric(metadata);
-        PPX_ASSERT_MSG(mMetrics.cpuFrameTimeId != metrics::kInvalidMetricID, "Failed to create frame count metric");
+        PPX_ASSERT_MSG(mMetrics.frameCountId != metrics::kInvalidMetricID, "Failed to create frame count metric");
     }
 
     mMetrics.resetFramerateTracking = true;
