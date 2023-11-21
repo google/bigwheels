@@ -789,7 +789,7 @@ void Application::ShutdownMetrics()
 metrics::GaugeBasicStatistics Application::GetGaugeBasicStatistics(metrics::MetricID id) const
 {
     if (!mStandardOpts.pEnableMetrics->GetValue()) {
-        PPX_LOG_WARN("Metrics is not enabled.");
+        PPX_ASSERT_MSG(false, "Metrics is not enabled.");
         return metrics::GaugeBasicStatistics();
     }
     return mMetrics.manager.GetGaugeBasicStatistics(id);

@@ -158,19 +158,13 @@ public:
         return MetricType::GAUGE;
     }
 
-    const GaugeBasicStatistics GetBasicStatistics() const { return mStats.basic; };
+    const GaugeBasicStatistics GetBasicStatistics() const { return mBasicStats; };
 
 private:
     struct TimeSeriesEntry
     {
         double seconds;
         double value;
-    };
-
-    struct Stats
-    {
-        GaugeBasicStatistics   basic;
-        GaugeComplexStatistics complex;
     };
 
 private:
@@ -181,12 +175,12 @@ private:
     }
     METRICS_NO_COPY(MetricGauge)
 
-    Stats ComputeStats() const;
+    GaugeComplexStatistics ComputeComplexStats() const;
 
 private:
     MetricMetadata               mMetadata;
     std::vector<TimeSeriesEntry> mTimeSeries;
-    Stats                        mStats;
+    GaugeBasicStatistics         mBasicStats;
     double                       mAccumulatedValue = 0.0;
 };
 

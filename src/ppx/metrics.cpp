@@ -62,24 +62,24 @@ bool MetricGauge::RecordEntry(const MetricData& data)
 
     // Update the basic stats.
     mAccumulatedValue += entry.value;
-    mStats.basic.min     = std::min(mStats.basic.min, entry.value);
-    mStats.basic.max     = std::max(mStats.basic.max, entry.value);
-    mStats.basic.average = mAccumulatedValue / entryCount;
+    mBasicStats.min     = std::min(mBasicStats.min, entry.value);
+    mBasicStats.max     = std::max(mBasicStats.max, entry.value);
+    mBasicStats.average = mAccumulatedValue / entryCount;
     // Above checks guarantee the 'seconds' field monotonically increases with each entry.
-    mStats.basic.timeRatio = (entryCount > 1)
-                                 ? mAccumulatedValue / (entry.seconds - mTimeSeries.front().seconds)
-                                 : entry.value;
+    mBasicStats.timeRatio = (entryCount > 1)
+                                ? mAccumulatedValue / (entry.seconds - mTimeSeries.front().seconds)
+                                : entry.value;
 
     mTimeSeries.emplace_back(std::move(entry));
     return true;
 }
 
-MetricGauge::Stats MetricGauge::ComputeStats() const
+ppx::metrics::GaugeComplexStatistics MetricGauge::ComputeComplexStats() const
 {
-    Stats  stats      = mStats;
-    size_t entryCount = mTimeSeries.size();
+    GaugeComplexStatistics complex;
+    size_t                 entryCount = mTimeSeries.size();
     if (entryCount == 0) {
-        return stats;
+        return complex;
     }
 
     std::vector<TimeSeriesEntry> sorted = mTimeSeries;
@@ -90,26 +90,26 @@ MetricGauge::Stats MetricGauge::ComputeStats() const
 
     auto medianIndex = entryCount / 2;
     // medianIndex is guaranteed to be > 0 when even from above check.
-    stats.complex.median = (entryCount % 2 == 0)
-                               ? (sorted[medianIndex - 1].value + sorted[medianIndex].value) * 0.5
-                               : sorted[medianIndex].value;
+    complex.median = (entryCount % 2 == 0)
+                         ? (sorted[medianIndex - 1].value + sorted[medianIndex].value) * 0.5
+                         : sorted[medianIndex].value;
 
     double squareDiffSum = 0.0;
     for (const auto& entry : mTimeSeries) {
-        double diff = entry.value - stats.basic.average;
+        double diff = entry.value - mBasicStats.average;
         squareDiffSum += (diff * diff);
     }
-    double variance                 = squareDiffSum / entryCount;
-    stats.complex.standardDeviation = sqrt(variance);
+    double variance           = squareDiffSum / entryCount;
+    complex.standardDeviation = sqrt(variance);
 
-    stats.complex.percentile01 = sorted[entryCount * 1 / 100].value;
-    stats.complex.percentile05 = sorted[entryCount * 5 / 100].value;
-    stats.complex.percentile10 = sorted[entryCount * 10 / 100].value;
-    stats.complex.percentile90 = sorted[entryCount * 90 / 100].value;
-    stats.complex.percentile95 = sorted[entryCount * 95 / 100].value;
-    stats.complex.percentile99 = sorted[entryCount * 99 / 100].value;
+    complex.percentile01 = sorted[entryCount * 1 / 100].value;
+    complex.percentile05 = sorted[entryCount * 5 / 100].value;
+    complex.percentile10 = sorted[entryCount * 10 / 100].value;
+    complex.percentile90 = sorted[entryCount * 90 / 100].value;
+    complex.percentile95 = sorted[entryCount * 95 / 100].value;
+    complex.percentile99 = sorted[entryCount * 99 / 100].value;
 
-    return stats;
+    return complex;
 }
 
 nlohmann::json MetricGauge::Export() const
@@ -119,19 +119,19 @@ nlohmann::json MetricGauge::Export() const
 
     metricObject["metadata"] = mMetadata.Export();
 
-    Stats stats                       = ComputeStats();
-    statsObject["min"]                = stats.basic.min;
-    statsObject["max"]                = stats.basic.max;
-    statsObject["average"]            = stats.basic.average;
-    statsObject["time_ratio"]         = stats.basic.timeRatio;
-    statsObject["median"]             = stats.complex.median;
-    statsObject["standard_deviation"] = stats.complex.standardDeviation;
-    statsObject["percentile_01"]      = stats.complex.percentile01;
-    statsObject["percentile_05"]      = stats.complex.percentile05;
-    statsObject["percentile_10"]      = stats.complex.percentile10;
-    statsObject["percentile_90"]      = stats.complex.percentile90;
-    statsObject["percentile_95"]      = stats.complex.percentile95;
-    statsObject["percentile_99"]      = stats.complex.percentile99;
+    GaugeComplexStatistics complex    = ComputeComplexStats();
+    statsObject["min"]                = mBasicStats.min;
+    statsObject["max"]                = mBasicStats.max;
+    statsObject["average"]            = mBasicStats.average;
+    statsObject["time_ratio"]         = mBasicStats.timeRatio;
+    statsObject["median"]             = complex.median;
+    statsObject["standard_deviation"] = complex.standardDeviation;
+    statsObject["percentile_01"]      = complex.percentile01;
+    statsObject["percentile_05"]      = complex.percentile05;
+    statsObject["percentile_10"]      = complex.percentile10;
+    statsObject["percentile_90"]      = complex.percentile90;
+    statsObject["percentile_95"]      = complex.percentile95;
+    statsObject["percentile_99"]      = complex.percentile99;
 
     metricObject["statistics"] = statsObject;
 

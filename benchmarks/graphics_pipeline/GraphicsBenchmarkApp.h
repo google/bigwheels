@@ -32,7 +32,7 @@ static constexpr uint32_t kMaxSphereInstanceCount  = 3000;
 static constexpr uint32_t kSeed                    = 89977;
 static constexpr uint32_t kMaxFullscreenQuadsCount = 1000;
 
-static constexpr const char* kShaderBaseDir = "benchmarks/shaders";
+static constexpr const char* kShaderBaseDir   = "benchmarks/shaders";
 static constexpr const char* kQuadTextureFile = "benchmarks/textures/resolution.jpg";
 
 static constexpr std::array<const char*, 2> kAvailableVsShaders = {
@@ -277,12 +277,12 @@ private:
 
     struct SpherePipelineKey
     {
-        uint8_t ps;
-        uint8_t vs;
-        uint8_t vertexFormat;
-        uint8_t vertexAttributeLayout;
-        bool    enableDepth;
-        bool    enableAlphaBlend;
+        uint8_t      ps;
+        uint8_t      vs;
+        uint8_t      vertexFormat;
+        uint8_t      vertexAttributeLayout;
+        bool         enableDepth;
+        bool         enableAlphaBlend;
         grfx::Format renderFormat;
 
         static_assert(kAvailablePsShaders.size() < (1 << (8 * sizeof(ps))));
@@ -417,7 +417,7 @@ private:
     // Metrics Data
     struct MetricsData
     {
-        enum EMetricsTypes : size_t
+        enum MetricsType : size_t
         {
             kTypeCPUSubmissionTime = 0,
             kTypeBandwidth,
@@ -427,6 +427,8 @@ private:
         ppx::metrics::MetricID metrics[kCount] = {};
     };
     MetricsData mMetricsData;
+    // This is used to skip first several frames after the knob of quad count being changed
+    uint32_t mSkipRecordBandwidthMetricFrameCounter = 0;
 
 private:
     std::shared_ptr<KnobCheckbox>              pEnableSkyBox;
