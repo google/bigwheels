@@ -32,7 +32,8 @@ static constexpr uint32_t kMaxSphereInstanceCount  = 3000;
 static constexpr uint32_t kSeed                    = 89977;
 static constexpr uint32_t kMaxFullscreenQuadsCount = 1000;
 
-static constexpr const char* kShaderBaseDir = "benchmarks/shaders";
+static constexpr const char* kShaderBaseDir   = "benchmarks/shaders";
+static constexpr const char* kQuadTextureFile = "benchmarks/textures/resolution.jpg";
 
 static constexpr std::array<const char*, 2> kAvailableVsShaders = {
     "Benchmark_VsSimple",
@@ -415,6 +416,8 @@ private:
     BlitContext mBlit;
 
 private:
+    std::shared_ptr<KnobCheckbox>              pEnableSkyBox;
+    std::shared_ptr<KnobCheckbox>              pEnableSpheres;
     std::shared_ptr<KnobDropdown<std::string>> pKnobVs;
     std::shared_ptr<KnobDropdown<std::string>> pKnobPs;
     std::shared_ptr<KnobDropdown<std::string>> pKnobLOD;
@@ -422,15 +425,15 @@ private:
     std::shared_ptr<KnobDropdown<std::string>> pKnobVertexAttrLayout;
     std::shared_ptr<KnobSlider<int>>           pSphereInstanceCount;
     std::shared_ptr<KnobSlider<int>>           pDrawCallCount;
+    std::shared_ptr<KnobCheckbox>              pAlphaBlend;
+    std::shared_ptr<KnobCheckbox>              pDepthTestWrite;
+    std::shared_ptr<KnobCheckbox>              pAllTexturesTo1x1;
+
     std::shared_ptr<KnobSlider<int>>           pFullscreenQuadsCount;
     std::shared_ptr<KnobDropdown<std::string>> pFullscreenQuadsType;
     std::shared_ptr<KnobDropdown<std::string>> pFullscreenQuadsColor;
     std::shared_ptr<KnobCheckbox>              pFullscreenQuadsSingleRenderpass;
-    std::shared_ptr<KnobCheckbox>              pAlphaBlend;
-    std::shared_ptr<KnobCheckbox>              pDepthTestWrite;
-    std::shared_ptr<KnobCheckbox>              pEnableSkyBox;
-    std::shared_ptr<KnobCheckbox>              pEnableSpheres;
-    std::shared_ptr<KnobCheckbox>              pAllTexturesTo1x1;
+    std::shared_ptr<KnobFlag<std::string>>     pQuadTextureFile;
 
     std::shared_ptr<KnobCheckbox>              pRenderOffscreen;
     std::shared_ptr<KnobCheckbox>              pBlitOffscreen;

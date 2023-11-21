@@ -118,6 +118,9 @@ void GraphicsBenchmarkApp::InitKnobs()
     pFullscreenQuadsColor->SetFlagDescription("Select the hue for the solid color fullscreen quads (see --fullscreen-quads-count).");
     pFullscreenQuadsColor->SetIndent(2);
 
+    GetKnobManager().InitKnob(&pQuadTextureFile, "fullscreen-quads-texture-path", kQuadTextureFile);
+    pQuadTextureFile->SetFlagDescription("Texture used in fullscreen quads (see --fullscreen-quads-count) texture mode (see --fullscreen-quads-type).");
+
     GetKnobManager().InitKnob(&pFullscreenQuadsSingleRenderpass, "fullscreen-quads-single-renderpass", true);
     pFullscreenQuadsSingleRenderpass->SetDisplayName("Single Renderpass");
     pFullscreenQuadsSingleRenderpass->SetFlagDescription("Render all fullscreen quads (see --fullscreen-quads-count) in a single renderpass.");
@@ -404,7 +407,7 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsResources()
     {
         // Large resolution image
         grfx_util::TextureOptions options = grfx_util::TextureOptions().MipLevelCount(1);
-        PPX_CHECKED_CALL(CreateTextureFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("benchmarks/textures/resolution.jpg"), &mQuadsTexture, options));
+        PPX_CHECKED_CALL(CreateTextureFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath(pQuadTextureFile->GetValue()), &mQuadsTexture, options));
     }
 
     // Descriptor set layout for texture shader
