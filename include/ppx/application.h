@@ -325,6 +325,33 @@ struct ApplicationSettings
     } grfx;
 };
 
+// Default values for standard knobs
+struct StandardKnobsDefaultValue
+{
+    std::vector<std::string> assetsPaths     = {};
+    std::vector<std::string> configJsonPaths = {};
+    bool                     deterministic   = false;
+    bool                     enableMetrics   = false;
+    uint64_t                 frameCount      = UINT64_MAX;
+    int                      gpuIndex        = INT_MAX;
+#if !defined(PPX_LINUX_HEADLESS)
+    bool headless = false;
+#endif
+    bool                listGpus              = false;
+    std::string         metricsFilename       = std::filesystem::current_path().u8string();
+    bool                overwriteMetricsFile  = false;
+    std::pair<int, int> resolution            = std::make_pair(0, 0);
+    int                 runTimeMs             = INT_MAX;
+    int                 screenshotFrameNumber = INT_MAX;
+    std::string         screenshotPath        = "";
+    int                 statsFrameWindow      = INT_MAX;
+    bool                useSoftwareRenderer   = false;
+#if defined(PPX_BUILD_XR)
+    std::pair<int, int>      xrUiResolution       = std::make_pair(0, 0);
+    std::vector<std::string> xrRequiredExtensions = {};
+#endif
+};
+
 //! @class Application
 //!
 //!
@@ -354,6 +381,8 @@ public:
     virtual void Render() {}
     // Init knobs (adjustable parameters in the GUI that can be set at startup with commandline flags)
     virtual void InitKnobs() {}
+    // This is used by derived class to overwrite standard knobs default value
+    virtual void SetupStandardKnobsDefaultValue(StandardKnobsDefaultValue& value) {}
 
 protected:
     virtual void DispatchConfig();
@@ -552,6 +581,7 @@ private:
     StandardOptions                 mStandardOpts;
     float                           mRunTimeSeconds;
     ApplicationSettings             mSettings = {};
+    StandardKnobsDefaultValue       mStandardKnobsDefaultValue;
     std::string                     mDecoratedApiName;
     Timer                           mTimer;
     std::unique_ptr<Window>         mWindow                     = nullptr; // Requires enableDisplay
