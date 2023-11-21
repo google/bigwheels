@@ -219,6 +219,9 @@ struct FormatComponentOffset
 
 struct FormatDesc
 {
+    // BigWheels specific format name.
+    const char* name;
+
     // The texel data type, e.g. UNORM, SNORM, UINT, etc.
     FormatDataType dataType;
 
@@ -241,7 +244,7 @@ struct FormatDesc
     // and will be set to -1.
     int8_t bytesPerComponent;
 
-    //The layout of the format (linear, packed, or compressed).
+    // The layout of the format (linear, packed, or compressed).
     FormatLayout layout;
 
     // The components (channels) represented by the format,
@@ -256,6 +259,8 @@ struct FormatDesc
 
 //! @brief Gets a description of the given /b format.
 const FormatDesc* GetFormatDescription(grfx::Format format);
+
+const char* ToString(grfx::Format format);
 
 } // namespace grfx
 } // namespace ppx
