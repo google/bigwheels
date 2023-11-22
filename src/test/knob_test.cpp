@@ -282,6 +282,28 @@ TEST_F(KnobTestFixture, KnobDropdown_CreateAndSetBasicMembers)
     EXPECT_EQ(strKnob.GetValue(), "c2");
 }
 
+TEST_F(KnobTestFixture, KnobDropdown_CreateNumbers)
+{
+    std::vector<int>  choices = {1, 2, 3, 5, 8};
+    KnobDropdown<int> strKnob = KnobDropdown<int>("flag_name1", 1, choices.cbegin(), choices.cend());
+    EXPECT_EQ(strKnob.GetIndex(), 1);
+    EXPECT_EQ(strKnob.GetValue(), 2);
+    strKnob.SetIndex(2);
+    EXPECT_EQ(strKnob.GetIndex(), 2);
+    EXPECT_EQ(strKnob.GetValue(), 3);
+}
+
+TEST_F(KnobTestFixture, KnobDropdown_CreateCustom)
+{
+    std::vector<DropdownEntry<int>> choices = {{"a", 1}, {"b", 2}, {"c", 3}};
+    KnobDropdown<int>               strKnob = KnobDropdown<int>("flag_name1", 1, choices.cbegin(), choices.cend());
+    EXPECT_EQ(strKnob.GetIndex(), 1);
+    EXPECT_EQ(strKnob.GetValue(), 2);
+    strKnob.SetIndex(2);
+    EXPECT_EQ(strKnob.GetIndex(), 2);
+    EXPECT_EQ(strKnob.GetValue(), 3);
+}
+
 TEST_F(KnobTestFixture, KnobDropdown_CreateVaried)
 {
     std::vector<std::string>  choices1 = {"c1", "c2"};
@@ -334,15 +356,6 @@ TEST_F(KnobTestFixture, KnobDropdown_CanSetIndexInt)
     EXPECT_EQ(strKnob.GetIndex(), 0);
 }
 
-TEST_F(KnobTestFixture, KnobDropdown_CanSetIndexStr)
-{
-    std::vector<std::string>  choices = {"c1", "c2"};
-    KnobDropdown<std::string> strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.cbegin(), choices.cend());
-    strKnob.SetIndex("c1");
-    EXPECT_EQ(strKnob.GetIndex(), 0);
-    EXPECT_EQ(strKnob.GetValue(), "c1");
-}
-
 TEST_F(KnobTestFixture, KnobDropdown_MinIndexClamped)
 {
     std::vector<std::string>  choices = {"c1", "c2"};
@@ -357,15 +370,6 @@ TEST_F(KnobTestFixture, KnobDropdown_MaxIndexClamped)
     KnobDropdown<std::string> strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.cbegin(), choices.cend());
     strKnob.SetIndex(2);
     EXPECT_EQ(strKnob.GetIndex(), 1);
-}
-
-TEST_F(KnobTestFixture, KnobDropdown_WontSetUnknownStr)
-{
-    std::vector<std::string>  choices = {"c1", "c2"};
-    KnobDropdown<std::string> strKnob = KnobDropdown<std::string>("flag_name1", 1, choices.cbegin(), choices.cend());
-    strKnob.SetIndex("c3");
-    EXPECT_EQ(strKnob.GetIndex(), 1);
-    EXPECT_EQ(strKnob.GetValue(), "c2");
 }
 
 TEST_F(KnobTestFixture, KnobDropdown_CanDigestIndexUpdate)
