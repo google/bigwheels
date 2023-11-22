@@ -645,14 +645,16 @@ void Application::DestroyPlatformWindow()
 
 void Application::DispatchInitKnobs()
 {
-    SetupStandardKnobsDefaultValue(mStandardKnobsDefaultValue);
     InitStandardKnobs();
     InitKnobs();
 }
 
-void Application::DispatchConfig()
+void Application::DispatchConfigAndInitKnobs()
 {
     Config(mSettings);
+
+    // Knobs need to be set up before commandline parsing.
+    DispatchInitKnobs();
 
     if (mSettings.appName.empty()) {
         mSettings.appName = "PPX Application";
@@ -817,12 +819,12 @@ void Application::InitStandardKnobs()
 {
     // Flag names in alphabetical order
     mStandardOpts.pAssetsPaths =
-        mKnobManager.CreateKnob<KnobFlag<std::vector<std::string>>>("assets-path", mStandardKnobsDefaultValue.assetsPaths);
+        mKnobManager.CreateKnob<KnobFlag<std::vector<std::string>>>("assets-path", mSettings.standardKnobsDefaultValue.assetsPaths);
     mStandardOpts.pAssetsPaths->SetFlagDescription(
         "Add a path before the default assets folder in the search list.");
     mStandardOpts.pAssetsPaths->SetFlagParameters("<path>");
 
-    mStandardOpts.pConfigJsonPaths = mKnobManager.CreateKnob<KnobFlag<std::vector<std::string>>>(mCommandLineParser.GetJsonConfigFlagName(), mStandardKnobsDefaultValue.configJsonPaths);
+    mStandardOpts.pConfigJsonPaths = mKnobManager.CreateKnob<KnobFlag<std::vector<std::string>>>(mCommandLineParser.GetJsonConfigFlagName(), mSettings.standardKnobsDefaultValue.configJsonPaths);
     mStandardOpts.pConfigJsonPaths->SetFlagDescription(
         "Additional commandline flags specified in a JSON file. Values specified in JSON files are "
         "always overwritten by those specified on the command line. Between different files, the "
@@ -830,42 +832,42 @@ void Application::InitStandardKnobs()
     mStandardOpts.pConfigJsonPaths->SetFlagParameters("<path>");
 
     mStandardOpts.pDeterministic =
-        mKnobManager.CreateKnob<KnobFlag<bool>>("deterministic", mStandardKnobsDefaultValue.deterministic);
+        mKnobManager.CreateKnob<KnobFlag<bool>>("deterministic", mSettings.standardKnobsDefaultValue.deterministic);
     mStandardOpts.pDeterministic->SetFlagDescription(
         "Disable non-deterministic behaviors, like clocks.");
 
     mStandardOpts.pEnableMetrics =
-        mKnobManager.CreateKnob<KnobFlag<bool>>("enable-metrics", mStandardKnobsDefaultValue.enableMetrics);
+        mKnobManager.CreateKnob<KnobFlag<bool>>("enable-metrics", mSettings.standardKnobsDefaultValue.enableMetrics);
     mStandardOpts.pEnableMetrics->SetFlagDescription(
         "Enable metrics report output. See also: `--metrics-filename` and `--overwrite-metrics-file`.");
 
     mStandardOpts.pFrameCount =
-        mKnobManager.CreateKnob<KnobFlag<uint64_t>>("frame-count", 0, 0, mStandardKnobsDefaultValue.frameCount);
+        mKnobManager.CreateKnob<KnobFlag<uint64_t>>("frame-count", 0, 0, mSettings.standardKnobsDefaultValue.frameCount);
     mStandardOpts.pFrameCount->SetFlagDescription(
         "Shutdown the application after successfully rendering N frames. "
         "Default: 0 (infinite)");
 
     mStandardOpts.pGpuIndex =
-        mKnobManager.CreateKnob<KnobFlag<int>>("gpu", 0, 0, mStandardKnobsDefaultValue.gpuIndex);
+        mKnobManager.CreateKnob<KnobFlag<int>>("gpu", 0, 0, mSettings.standardKnobsDefaultValue.gpuIndex);
     mStandardOpts.pGpuIndex->SetFlagDescription(
         "Select the gpu with the given index. To determine the set of valid "
         "indices use --list-gpus.");
 
 #if !defined(PPX_LINUX_HEADLESS)
     mStandardOpts.pHeadless =
-        mKnobManager.CreateKnob<KnobFlag<bool>>("headless", mStandardKnobsDefaultValue.headless);
+        mKnobManager.CreateKnob<KnobFlag<bool>>("headless", mSettings.standardKnobsDefaultValue.headless);
     mStandardOpts.pHeadless->SetFlagDescription(
         "Run the sample without creating windows.");
 #endif
 
     mStandardOpts.pListGpus =
-        mKnobManager.CreateKnob<KnobFlag<bool>>("list-gpus", mStandardKnobsDefaultValue.listGpus);
+        mKnobManager.CreateKnob<KnobFlag<bool>>("list-gpus", mSettings.standardKnobsDefaultValue.listGpus);
     mStandardOpts.pListGpus->SetFlagDescription(
         "Prints a list of the available GPUs on the current system with their "
         "index and exits (see --gpu).");
 
     mStandardOpts.pMetricsFilename =
-        mKnobManager.CreateKnob<KnobFlag<std::string>>("metrics-filename", mStandardKnobsDefaultValue.metricsFilename);
+        mKnobManager.CreateKnob<KnobFlag<std::string>>("metrics-filename", mSettings.standardKnobsDefaultValue.metricsFilename);
     mStandardOpts.pMetricsFilename->SetFlagDescription(
         "If metrics are enabled, save the metrics report to the "
         "provided filename (including path). If used, any `@` "
@@ -875,7 +877,7 @@ void Application::InitStandardKnobs()
         "`--enable-metrics` and `--overwrite-metrics-file`.");
 
     mStandardOpts.pOverwriteMetricsFile =
-        mKnobManager.CreateKnob<KnobFlag<bool>>("overwrite-metrics-file", mStandardKnobsDefaultValue.overwriteMetricsFile);
+        mKnobManager.CreateKnob<KnobFlag<bool>>("overwrite-metrics-file", mSettings.standardKnobsDefaultValue.overwriteMetricsFile);
     mStandardOpts.pOverwriteMetricsFile->SetFlagDescription(
         "Only applies if metrics are enabled with `--enable-metrics`. "
         "If an existing file at the path set with `--metrics-filename` is found, it will be overwritten. "
@@ -883,7 +885,7 @@ void Application::InitStandardKnobs()
 
     mStandardOpts.pResolution =
         mKnobManager.CreateKnob<KnobFlag<std::pair<int, int>>>(
-            "resolution", mStandardKnobsDefaultValue.resolution);
+            "resolution", mSettings.standardKnobsDefaultValue.resolution);
     mStandardOpts.pResolution->SetFlagDescription(
         "Specify the main window resolution in pixels. Width and Height must be "
         "two positive integers greater or equal to 1. (Default: Window dimensions)");
@@ -898,31 +900,31 @@ void Application::InitStandardKnobs()
     });
 
     mStandardOpts.pRunTimeMs =
-        mKnobManager.CreateKnob<KnobFlag<int>>("run-time-ms", 0, 0, mStandardKnobsDefaultValue.runTimeMs);
+        mKnobManager.CreateKnob<KnobFlag<int>>("run-time-ms", 0, 0, mSettings.standardKnobsDefaultValue.runTimeMs);
     mStandardOpts.pRunTimeMs->SetFlagDescription(
         "Shutdown the application after N milliseconds. Default: 0 (infinite).");
 
     mStandardOpts.pScreenshotFrameNumber =
-        mKnobManager.CreateKnob<KnobFlag<int>>("screenshot-frame-number", -1, -1, mStandardKnobsDefaultValue.screenshotFrameNumber);
+        mKnobManager.CreateKnob<KnobFlag<int>>("screenshot-frame-number", -1, -1, mSettings.standardKnobsDefaultValue.screenshotFrameNumber);
     mStandardOpts.pScreenshotFrameNumber->SetFlagDescription(
         "Take a screenshot of frame number N and save it in PPM format. See also "
         "`--screenshot-path`.");
 
     mStandardOpts.pScreenshotPath =
-        mKnobManager.CreateKnob<KnobFlag<std::string>>("screenshot-path", mStandardKnobsDefaultValue.screenshotPath);
+        mKnobManager.CreateKnob<KnobFlag<std::string>>("screenshot-path", mSettings.standardKnobsDefaultValue.screenshotPath);
     mStandardOpts.pScreenshotPath->SetFlagDescription(
         "Save the screenshot to this path. Default: \"screenshot_frame<N>.ppm\" "
         "in the current working directory.");
     mStandardOpts.pScreenshotPath->SetFlagParameters("<path>");
 
     mStandardOpts.pStatsFrameWindow = mKnobManager.CreateKnob<KnobFlag<int>>(
-        "stats-frame-window", -1, -1, mStandardKnobsDefaultValue.statsFrameWindow);
+        "stats-frame-window", -1, -1, mSettings.standardKnobsDefaultValue.statsFrameWindow);
     mStandardOpts.pStatsFrameWindow->SetFlagDescription(
         "Calculate frame statistics over the last N frames only. Set to 0 to use "
         "all frames since the beginning of the application.");
 
     mStandardOpts.pUseSoftwareRenderer =
-        mKnobManager.CreateKnob<KnobFlag<bool>>("use-software-renderer", mStandardKnobsDefaultValue.useSoftwareRenderer);
+        mKnobManager.CreateKnob<KnobFlag<bool>>("use-software-renderer", mSettings.standardKnobsDefaultValue.useSoftwareRenderer);
     mStandardOpts.pUseSoftwareRenderer->SetFlagDescription(
         "Use a software renderer instead of a hardware device, if available.");
     mStandardOpts.pUseSoftwareRenderer->SetValidator([gpuIndex{mStandardOpts.pGpuIndex->GetValue()}](bool useSoftwareRenderer) {
@@ -933,7 +935,7 @@ void Application::InitStandardKnobs()
 #if defined(PPX_BUILD_XR)
     mStandardOpts.pXrUiResolution =
         mKnobManager.CreateKnob<KnobFlag<std::pair<int, int>>>(
-            "xr-ui-resolution", mStandardKnobsDefaultValue.xrUiResolution);
+            "xr-ui-resolution", mSettings.standardKnobsDefaultValue.xrUiResolution);
     mStandardOpts.pXrUiResolution->SetFlagDescription(
         "Specify the UI quad resolution in pixels. Width and Height must be two "
         "positive integers greater or equal to 1.");
@@ -944,7 +946,7 @@ void Application::InitStandardKnobs()
 
     mStandardOpts.pXrRequiredExtensions =
         mKnobManager.CreateKnob<KnobFlag<std::vector<std::string>>>(
-            "xr-required-extension", mStandardKnobsDefaultValue.xrRequiredExtensions);
+            "xr-required-extension", mSettings.standardKnobsDefaultValue.xrRequiredExtensions);
     mStandardOpts.pXrRequiredExtensions->SetFlagDescription(
         "Specify any additional OpenXR extensions that need to be loaded in addition "
         "to the base extensions. Any required extensions that are not supported by the "
@@ -1183,8 +1185,9 @@ int Application::Run(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    // Knobs need to be set up before commandline parsing.
-    DispatchInitKnobs();
+    // Call config.
+    // Put this early because it might disable the display.
+    DispatchConfigAndInitKnobs();
 
     if (!mKnobManager.IsEmpty()) {
         mCommandLineParser.AppendUsageMsg(mKnobManager.GetUsageMsg());
@@ -1199,10 +1202,6 @@ int Application::Run(int argc, char** argv)
         auto options = mCommandLineParser.GetOptions();
         mKnobManager.UpdateFromFlags(options);
     }
-
-    // Call config.
-    // Put this early because it might disable the display.
-    DispatchConfig();
 
 #if defined(PPX_LINUX_HEADLESS)
     // Force headless if BigWheels was built without surface support.
