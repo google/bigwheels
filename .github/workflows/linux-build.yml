@@ -17,6 +17,7 @@ jobs:
     steps:
       - name: Setup necessary packages
         run: |
+          sudo add-apt-repository ppa:kisak/kisak-mesa -y
           sudo apt update && sudo apt install libxrandr-dev libxinerama-dev libx11-dev libxcursor-dev libxi-dev libx11-xcb-dev clang \
           mesa-vulkan-drivers
       - name: Setup Vulkan SDK

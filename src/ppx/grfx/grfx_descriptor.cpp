@@ -108,7 +108,10 @@ Result DescriptorSet::UpdateUniformBuffer(
 Result DescriptorSetLayout::Create(const grfx::DescriptorSetLayoutCreateInfo* pCreateInfo)
 {
     // Bail if there's any binding overlaps - overlaps are not permitted to
-    // make D3D12 and Vulkan agreeable.
+    // make D3D12 and Vulkan agreeable. Even though we use descriptor arrays
+    // in Vulkan, we do not allow the subsequent bindings to be occupied,
+    // to keep descriptor binding register occupancy consistent between
+    // Vulkan and D3D12.
     //
     std::vector<ppx::RangeU32> ranges;
     const size_t               bindingCount = pCreateInfo->bindings.size();
