@@ -409,8 +409,8 @@ private:
     uint64_t                          mGpuWorkDuration;
     grfx::SamplerPtr                  mLinearSampler;
     grfx::DescriptorPoolPtr           mDescriptorPool;
-    SubmissionTime                    mSubmissionTime;
     std::vector<OffscreenFrame>       mOffscreenFrame;
+    double                            mCPUSubmissionTime = 0.0;
 
     // SkyBox resources
     Entity                mSkyBox;
@@ -442,6 +442,21 @@ private:
     std::array<grfx::ShaderModulePtr, kFullscreenQuadsTypes.size()>      mQuadsPs;
 
     BlitContext mBlit;
+    // Metrics Data
+    struct MetricsData
+    {
+        enum MetricsType : size_t
+        {
+            kTypeCPUSubmissionTime = 0,
+            kTypeBandwidth,
+            kCount
+        };
+
+        ppx::metrics::MetricID metrics[kCount] = {};
+    };
+    MetricsData mMetricsData;
+    // This is used to skip first several frames after the knob of quad count being changed
+    uint32_t mSkipRecordBandwidthMetricFrameCounter = 0;
 
 private:
     std::shared_ptr<KnobCheckbox>              pEnableSkyBox;
@@ -494,6 +509,11 @@ private:
     void SetupSpheresPipelines();
     void SetupFullscreenQuadsPipelines();
 
+    // Metrics related functions
+    virtual void SetupMetrics() override;
+    virtual void UpdateMetrics() override;
+
+    Result CompileSpherePipeline(const SpherePipelineKey& key);
     Result CompilePipeline(const SkyBoxPipelineKey& key);
     Result CompilePipeline(const SpherePipelineKey& key);
     Result CompilePipeline(const QuadPipelineKey& key);
