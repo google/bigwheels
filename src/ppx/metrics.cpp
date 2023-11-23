@@ -74,12 +74,12 @@ bool MetricGauge::RecordEntry(const MetricData& data)
     return true;
 }
 
-MetricGauge::Stats MetricGauge::ComputeStats() const
+ppx::metrics::GaugeComplexStatistics MetricGauge::ComputeComplexStats() const
 {
-    Stats  stats      = mBasicStats;
-    size_t entryCount = mTimeSeries.size();
+    GaugeComplexStatistics complex;
+    size_t                 entryCount = mTimeSeries.size();
     if (entryCount == 0) {
-        return stats;
+        return complex;
     }
 
     std::vector<TimeSeriesEntry> sorted = mTimeSeries;
@@ -90,26 +90,26 @@ MetricGauge::Stats MetricGauge::ComputeStats() const
 
     auto medianIndex = entryCount / 2;
     // medianIndex is guaranteed to be > 0 when even from above check.
-    stats.median = (entryCount % 2 == 0)
-                       ? (sorted[medianIndex - 1].value + sorted[medianIndex].value) * 0.5
-                       : sorted[medianIndex].value;
+    complex.median = (entryCount % 2 == 0)
+                         ? (sorted[medianIndex - 1].value + sorted[medianIndex].value) * 0.5
+                         : sorted[medianIndex].value;
 
     double squareDiffSum = 0.0;
     for (const auto& entry : mTimeSeries) {
-        double diff = entry.value - stats.average;
+        double diff = entry.value - mBasicStats.average;
         squareDiffSum += (diff * diff);
     }
-    double variance         = squareDiffSum / entryCount;
-    stats.standardDeviation = sqrt(variance);
+    double variance           = squareDiffSum / entryCount;
+    complex.standardDeviation = sqrt(variance);
 
-    stats.percentile01 = sorted[entryCount * 1 / 100].value;
-    stats.percentile05 = sorted[entryCount * 5 / 100].value;
-    stats.percentile10 = sorted[entryCount * 10 / 100].value;
-    stats.percentile90 = sorted[entryCount * 90 / 100].value;
-    stats.percentile95 = sorted[entryCount * 95 / 100].value;
-    stats.percentile99 = sorted[entryCount * 99 / 100].value;
+    complex.percentile01 = sorted[entryCount * 1 / 100].value;
+    complex.percentile05 = sorted[entryCount * 5 / 100].value;
+    complex.percentile10 = sorted[entryCount * 10 / 100].value;
+    complex.percentile90 = sorted[entryCount * 90 / 100].value;
+    complex.percentile95 = sorted[entryCount * 95 / 100].value;
+    complex.percentile99 = sorted[entryCount * 99 / 100].value;
 
-    return stats;
+    return complex;
 }
 
 nlohmann::json MetricGauge::Export() const
@@ -119,19 +119,19 @@ nlohmann::json MetricGauge::Export() const
 
     metricObject["metadata"] = mMetadata.Export();
 
-    Stats stats                       = ComputeStats();
-    statsObject["min"]                = stats.min;
-    statsObject["max"]                = stats.max;
-    statsObject["average"]            = stats.average;
-    statsObject["time_ratio"]         = stats.timeRatio;
-    statsObject["median"]             = stats.median;
-    statsObject["standard_deviation"] = stats.standardDeviation;
-    statsObject["percentile_01"]      = stats.percentile01;
-    statsObject["percentile_05"]      = stats.percentile05;
-    statsObject["percentile_10"]      = stats.percentile10;
-    statsObject["percentile_90"]      = stats.percentile90;
-    statsObject["percentile_95"]      = stats.percentile95;
-    statsObject["percentile_99"]      = stats.percentile99;
+    GaugeComplexStatistics complex    = ComputeComplexStats();
+    statsObject["min"]                = mBasicStats.min;
+    statsObject["max"]                = mBasicStats.max;
+    statsObject["average"]            = mBasicStats.average;
+    statsObject["time_ratio"]         = mBasicStats.timeRatio;
+    statsObject["median"]             = complex.median;
+    statsObject["standard_deviation"] = complex.standardDeviation;
+    statsObject["percentile_01"]      = complex.percentile01;
+    statsObject["percentile_05"]      = complex.percentile05;
+    statsObject["percentile_10"]      = complex.percentile10;
+    statsObject["percentile_90"]      = complex.percentile90;
+    statsObject["percentile_95"]      = complex.percentile95;
+    statsObject["percentile_99"]      = complex.percentile99;
 
     metricObject["statistics"] = statsObject;
 
@@ -160,8 +160,8 @@ bool MetricCounter::RecordEntry(const MetricData& data)
 nlohmann::json MetricCounter::Export() const
 {
     nlohmann::json metricObject;
-    metricObject["metadata"] = mMetadata.Export();
-    metricObject["value"]    = mCounter;
+    metricObject["metadata"]    = mMetadata.Export();
+    metricObject["value"]       = mCounter;
     metricObject["entry_count"] = mEntryCount;
     return metricObject;
 }
@@ -205,7 +205,7 @@ bool Run::HasMetric(const std::string& name) const
 nlohmann::json Run::Export() const
 {
     nlohmann::json object;
-    object["name"] = mName;
+    object["name"]     = mName;
     object["gauges"]   = nlohmann::json::array();
     object["counters"] = nlohmann::json::array();
     for (const auto& metric : mMetrics) {
@@ -292,6 +292,26 @@ Report Manager::CreateReport(const std::string& reportPath) const
     }
 
     return Report(std::move(content), reportPath);
+}
+
+GaugeBasicStatistics Manager::GetGaugeBasicStatistics(MetricID id) const
+{
+    if (mActiveRun == nullptr) {
+        PPX_LOG_WARN("Attempted to record a metric entry with no active run.");
+        return GaugeBasicStatistics();
+    }
+    auto findResult = mActiveMetrics.find(id);
+    if (findResult == mActiveMetrics.end()) {
+        PPX_LOG_ERROR("Attempted to record a metric entry against an invalid ID.");
+        return GaugeBasicStatistics();
+    }
+
+    if (findResult->second->GetType() != MetricType::GAUGE) {
+        PPX_LOG_ERROR("Attempted to get gauge basic statistics from non MetricType::GAUGE type.");
+        return GaugeBasicStatistics();
+    }
+
+    return static_cast<MetricGauge*>(findResult->second)->GetBasicStatistics();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
