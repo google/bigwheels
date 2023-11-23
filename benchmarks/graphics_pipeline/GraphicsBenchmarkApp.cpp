@@ -16,6 +16,7 @@
 #include "SphereMesh.h"
 
 #include "ppx/graphics_util.h"
+#include "ppx/grfx/grfx_format.h"
 #include "ppx/timer.h"
 
 using namespace ppx;
@@ -137,32 +138,31 @@ void GraphicsBenchmarkApp::InitKnobs()
         pBlitOffscreen->SetFlagDescription("Blit offscreen rendering result to swapchain.");
         pBlitOffscreen->SetIndent(1);
 
-        std::array<std::string, std::size(kFramebufferFormatTypes)> formatNames;
-        for (int i = 0; i < std::size(kFramebufferFormatTypes); ++i) {
-            formatNames[i] = ToString(kFramebufferFormatTypes[i]);
+        std::vector<DropdownEntry<grfx::Format, std::string>> formats;
+        formats.push_back({"Swapchain", grfx::Format::FORMAT_UNDEFINED});
+        for (const auto& format : kFramebufferFormatTypes) {
+            formats.push_back({ToString(format), format});
         }
-        formatNames[0] = "Swapchain";
-        GetKnobManager().InitKnob(&pFramebufferFormat, "offscreen-framebuffer-format", 0, formatNames);
+        GetKnobManager().InitKnob(&pFramebufferFormat, "offscreen-framebuffer-format", 0, formats);
         pFramebufferFormat->SetDisplayName("Framebuffer format");
         pFramebufferFormat->SetFlagDescription("Select the pixel format used in offscreen framebuffer.");
         pFramebufferFormat->SetIndent(1);
 
-        std::vector<std::string> resolutionString;
-        mResolutionOptions.push_back(std::pair<int, int>(0, 0)); // Swapchain native
-        resolutionString.push_back("Swapchain");
+        std::vector<DropdownEntry<std::pair<int, int>, std::string>> resolutions;
+        resolutions.push_back({"Swapchain", {0, 0}});
         for (const auto& res : kSimpleResolutions) {
-            mResolutionOptions.push_back(res);
-            resolutionString.push_back(std::to_string(res.first) + "x" + std::to_string(res.second));
+            resolutions.push_back({std::to_string(res.first) + "x" + std::to_string(res.second), res});
         }
         for (const auto& res : kCommonResolutions) {
-            mResolutionOptions.push_back(res);
-            resolutionString.push_back(std::to_string(res.first) + "x" + std::to_string(res.second));
+            resolutions.push_back({std::to_string(res.first) + "x" + std::to_string(res.second), res});
         }
         for (const auto& res : kVRPerEyeResolutions) {
-            mResolutionOptions.push_back(std::pair<int, int>(res.first * 2, res.second));
-            resolutionString.push_back(std::to_string(res.first) + "x2" + "x" + std::to_string(res.second));
+            resolutions.push_back({
+                std::to_string(res.first) + "x2x" + std::to_string(res.second),
+                std::pair<int, int>(res.first * 2, res.second),
+            });
         }
-        GetKnobManager().InitKnob(&pResolution, "offscreen-framebuffer-resolution", 0, resolutionString);
+        GetKnobManager().InitKnob(&pResolution, "offscreen-framebuffer-resolution", 0, resolutions);
         pResolution->SetDisplayName("Framebuffer resolution");
         pResolution->SetFlagDescription("Select the size of offscreen framebuffer.");
         pResolution->SetIndent(1);
@@ -447,12 +447,12 @@ void GraphicsBenchmarkApp::SetupSphereResources()
 
     // Vertex Shaders
     for (size_t i = 0; i < kAvailableVsShaders.size(); i++) {
-        const std::string vsShaderBaseName = kAvailableVsShaders[i];
+        const std::string vsShaderBaseName = ToString(kAvailableVsShaders[i]);
         SetupShader(vsShaderBaseName + ".vs", &mVsShaders[i]);
     }
     // Pixel Shaders
     for (size_t j = 0; j < kAvailablePsShaders.size(); j++) {
-        const std::string psShaderBaseName = kAvailablePsShaders[j];
+        const std::string psShaderBaseName = ToString(kAvailablePsShaders[j]);
         SetupShader(psShaderBaseName + ".ps", &mPsShaders[j]);
     }
 }
@@ -546,17 +546,11 @@ void GraphicsBenchmarkApp::SetupSphereMeshes()
 {
     OrderedGrid grid(kMaxSphereInstanceCount, kSeed);
 
-    // LODs for spheres
-    mSphereLODs.push_back(LOD{/* longitudeSegments = */ 50, /* latitudeSegments = */ 50, kAvailableLODs[0]});
-    mSphereLODs.push_back(LOD{/* longitudeSegments = */ 20, /* latitudeSegments = */ 20, kAvailableLODs[1]});
-    mSphereLODs.push_back(LOD{/* longitudeSegments = */ 10, /* latitudeSegments = */ 10, kAvailableLODs[2]});
-    PPX_ASSERT_MSG(mSphereLODs.size() == kAvailableLODs.size(), "LODs for spheres must be the same as the available LODs");
-
     // Create the meshes
     uint32_t meshIndex = 0;
-    for (LOD lod : mSphereLODs) {
+    for (const auto& lod : kAvailableLODs) {
         PPX_LOG_INFO("LOD: " << lod.name);
-        SphereMesh sphereMesh(/* radius = */ 1, lod.longitudeSegments, lod.latitudeSegments);
+        SphereMesh sphereMesh(/* radius = */ 1, lod.value.longitudeSegments, lod.value.latitudeSegments);
         sphereMesh.ApplyGrid(grid);
 
         // Create a giant vertex buffer for each vb type to accommodate all copies of the sphere mesh
@@ -565,6 +559,8 @@ void GraphicsBenchmarkApp::SetupSphereMeshes()
         PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), sphereMesh.GetHighPrecisionInterleaved(), &mSphereMeshes[meshIndex++]));
         PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), sphereMesh.GetHighPrecisionPositionPlanar(), &mSphereMeshes[meshIndex++]));
     }
+
+    mSpheresAreSetUp = true;
 }
 
 void GraphicsBenchmarkApp::SetupFullscreenQuadsMeshes()
@@ -882,7 +878,7 @@ void GraphicsBenchmarkApp::ProcessKnobs()
     const bool enableSpheres = pEnableSpheres->GetValue();
     // If the LOD is empty, assuming we skipped the setup for all sphere resources at start
     // So need to do the intial setup for all resources here
-    const bool spheresAreSetUp               = !mSphereLODs.empty();
+    const bool spheresAreSetUp               = mSpheresAreSetUp;
     const bool updateSphereDescriptors       = spheresAreSetUp && allTexturesTo1x1KnobChanged;
     const bool setupSphereResourcesAndMeshes = (!spheresAreSetUp) && enableSpheres;
     const bool rebuildSpherePipeline         = setupSphereResourcesAndMeshes || (spheresAreSetUp && (alphaBlendKnobChanged || depthTestWriteKnobChanged));
@@ -906,7 +902,7 @@ void GraphicsBenchmarkApp::ProcessKnobs()
         pAlphaBlend->SetVisible(enableSpheres);
         pDepthTestWrite->SetVisible(enableSpheres);
     }
-    pAllTexturesTo1x1->SetVisible(enableSpheres && (pKnobPs->GetIndex() == static_cast<size_t>(SpherePS::SPHERE_PS_MEM_BOUND)));
+    pAllTexturesTo1x1->SetVisible(enableSpheres && (pKnobPs->GetValue() == SpherePS::SPHERE_PS_MEM_BOUND));
 
     // Update sphere resources and mesh
     if (setupSphereResourcesAndMeshes) {
@@ -935,7 +931,7 @@ void GraphicsBenchmarkApp::ProcessKnobs()
     bool framebufferChanged = pResolution->DigestUpdate() || pFramebufferFormat->DigestUpdate();
 
     if ((offscreenChanged && pRenderOffscreen->GetValue()) || framebufferChanged) {
-        std::pair<int, int> resolution = mResolutionOptions[pResolution->GetIndex()];
+        std::pair<int, int> resolution = pResolution->GetValue();
 
         int fbWidth  = (resolution.first > 0 ? resolution.first : GetSwapchain()->GetWidth());
         int fbHeight = (resolution.second > 0 ? resolution.second : GetSwapchain()->GetHeight());
@@ -1645,7 +1641,7 @@ void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, si
             else {
                 intensity = (1.0f - (index / 10.f));
             }
-            float3 colorValues = kFullscreenQuadsColorsValues[pFullscreenQuadsColor->GetIndex()];
+            float3 colorValues = pFullscreenQuadsColor->GetValue();
             colorValues *= intensity;
             frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[1], 3, &colorValues);
             break;

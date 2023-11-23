@@ -212,32 +212,60 @@ private:
     T mMaxValue;
 };
 
+template <typename T, typename NameT = const char*>
+struct DropdownEntry
+{
+    NameT name;
+    T     value;
+};
+
 // KnobDropdown will be displayed as a dropdown in the UI
 // The knob stores the index of a selected choice from a list of allowed options
 template <typename T>
 class KnobDropdown final
     : public Knob
 {
-public:
-    static_assert(std::is_same_v<T, std::string>, "KnobDropdown must be created with type: std::string");
+private:
+    using Entry = DropdownEntry<T, std::string>;
+    Entry ConvertToEntry(const T& value)
+    {
+        using string_util::ToString;
+        std::string name;
+        if constexpr (std::is_same_v<T, std::string>) {
+            name = value;
+        }
+        else {
+            name = ToString(value);
+        }
+        return {std::move(name), value};
+    }
+    template <typename NameT>
+    Entry ConvertToEntry(const DropdownEntry<T, NameT>& entry)
+    {
+        return {entry.name, entry.value};
+    }
 
+public:
     template <typename Iter>
     KnobDropdown(
         const std::string& flagName,
         size_t             defaultIndex,
         Iter               choicesBegin,
         Iter               choicesEnd)
-        : Knob(flagName, true), mIndex(defaultIndex), mDefaultIndex(defaultIndex), mChoices(choicesBegin, choicesEnd)
+        : Knob(flagName, true), mIndex(defaultIndex), mDefaultIndex(defaultIndex)
     {
+        for (auto iter = choicesBegin; iter != choicesEnd; ++iter) {
+            mChoices.push_back(ConvertToEntry(*iter));
+        }
         PPX_ASSERT_MSG(defaultIndex < mChoices.size(), "defaultIndex is out of range");
         std::string choiceStr = "";
         for (const auto& choice : mChoices) {
-            bool hasSpace = choice.find_first_of("\t ") != std::string::npos;
+            bool hasSpace = choice.name.find_first_of("\t ") != std::string::npos;
             if (hasSpace) {
-                choiceStr += "\"" + choice + "\"|";
+                choiceStr += "\"" + choice.name + "\"|";
             }
             else {
-                choiceStr += choice + "|";
+                choiceStr += choice.name + "|";
             }
         }
         if (!choiceStr.empty()) {
@@ -256,7 +284,7 @@ public:
         : KnobDropdown(flagName, defaultIndex, std::begin(container), std::end(container)) {}
 
     size_t   GetIndex() const { return mIndex; }
-    const T& GetValue() const { return mChoices[mIndex]; }
+    const T& GetValue() const { return mChoices[mIndex].value; }
 
     // Used for when mIndex needs to be updated outside of UI
     void ResetToDefault() override { SetIndex(mDefaultIndex); }
@@ -272,27 +300,16 @@ public:
         mIndex = newIndex;
         RaiseUpdatedFlag();
     }
-    // Needed for setting from flags but use is discouraged otherwise
-    void SetIndex(const std::string& newValue)
-    {
-        auto temp = std::find(mChoices.cbegin(), mChoices.cend(), newValue);
-        if (temp == mChoices.cend()) {
-            PPX_LOG_ERROR(mFlagName << " does not have this value in allowed range: " << newValue);
-            return;
-        }
-
-        SetIndex(std::distance(mChoices.cbegin(), temp));
-    }
 
 private:
     void Draw() override
     {
-        if (!ImGui::BeginCombo(mDisplayName.c_str(), mChoices.at(mIndex).c_str())) {
+        if (!ImGui::BeginCombo(mDisplayName.c_str(), mChoices.at(mIndex).name.c_str())) {
             return;
         }
         for (size_t i = 0; i < mChoices.size(); ++i) {
             bool isSelected = (i == mIndex);
-            if (ImGui::Selectable(mChoices.at(i).c_str(), isSelected)) {
+            if (ImGui::Selectable(mChoices.at(i).name.c_str(), isSelected)) {
                 if (i != mIndex) { // A new choice is selected
                     mIndex = i;
                     RaiseUpdatedFlag();
@@ -307,14 +324,14 @@ private:
 
     std::string ValueString() override
     {
-        return mChoices[mIndex];
+        return mChoices[mIndex].name;
     }
 
     // Expected commandline flag format:
     // --flag_name <str>
     void UpdateFromFlags(const CliOptions& opts) override
     {
-        SetDefaultAndIndex(opts.GetOptionValueOrDefault(mFlagName, GetValue()));
+        SetDefaultAndIndex(opts.GetOptionValueOrDefault(mFlagName, ValueString()));
     }
 
     bool IsValidIndex(size_t index)
@@ -331,7 +348,12 @@ private:
 
     void SetDefaultAndIndex(std::string newValue)
     {
-        auto temp = std::find(mChoices.cbegin(), mChoices.cend(), newValue);
+        auto temp = std::find_if(
+            mChoices.cbegin(),
+            mChoices.cend(),
+            [&newValue](const Entry& entry) {
+                return entry.name == newValue;
+            });
         PPX_ASSERT_MSG(temp != mChoices.cend(), "invalid default value");
 
         mDefaultIndex = std::distance(mChoices.cbegin(), temp);
@@ -340,9 +362,9 @@ private:
 
 private:
     // mIndex indicates which of the mChoices is selected
-    size_t         mIndex;
-    size_t         mDefaultIndex;
-    std::vector<T> mChoices;
+    size_t             mIndex;
+    size_t             mDefaultIndex;
+    std::vector<Entry> mChoices;
 };
 
 // KnobFlag is intended for parameters that cannot be adjusted when the application is run

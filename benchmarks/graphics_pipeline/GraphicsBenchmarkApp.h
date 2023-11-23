@@ -35,14 +35,24 @@ static constexpr uint32_t kMaxFullscreenQuadsCount = 1000;
 static constexpr const char* kShaderBaseDir   = "benchmarks/shaders";
 static constexpr const char* kQuadTextureFile = "benchmarks/textures/resolution.jpg";
 
-static constexpr std::array<const char*, 2> kAvailableVsShaders = {
-    "Benchmark_VsSimple",
-    "Benchmark_VsAluBound"};
+enum class SphereVS
+{
+    SPHERE_VS_SIMPLE,
+    SPHERE_VS_ALU_BOUND
+};
 
-static constexpr std::array<const char*, 3> kAvailablePsShaders = {
-    "Benchmark_PsSimple",
-    "Benchmark_PsAluBound",
-    "Benchmark_PsMemBound"};
+inline const char* ToString(SphereVS vs)
+{
+    switch (vs) {
+        case SphereVS::SPHERE_VS_SIMPLE: return "Benchmark_VsSimple";
+        case SphereVS::SPHERE_VS_ALU_BOUND: return "Benchmark_VsAluBound";
+        default: return "?";
+    }
+}
+
+static constexpr std::array<SphereVS, 2> kAvailableVsShaders = {
+    SphereVS::SPHERE_VS_SIMPLE,
+    SphereVS::SPHERE_VS_ALU_BOUND};
 
 enum class SpherePS
 {
@@ -50,6 +60,21 @@ enum class SpherePS
     SPHERE_PS_ALU_BOUND,
     SPHERE_PS_MEM_BOUND
 };
+
+inline const char* ToString(SpherePS vs)
+{
+    switch (vs) {
+        case SpherePS::SPHERE_PS_SIMPLE: return "Benchmark_PsSimple";
+        case SpherePS::SPHERE_PS_ALU_BOUND: return "Benchmark_PsAluBound";
+        case SpherePS::SPHERE_PS_MEM_BOUND: return "Benchmark_PsMemBound";
+        default: return "?";
+    }
+}
+
+static constexpr std::array<SpherePS, 3> kAvailablePsShaders = {
+    SpherePS::SPHERE_PS_SIMPLE,
+    SpherePS::SPHERE_PS_ALU_BOUND,
+    SpherePS::SPHERE_PS_MEM_BOUND};
 
 static constexpr std::array<const char*, 2> kAvailableVbFormats = {
     "Low_Precision",
@@ -61,17 +86,19 @@ static constexpr std::array<const char*, 2> kAvailableVertexAttrLayouts = {
 
 static constexpr size_t kPipelineCount = kAvailablePsShaders.size() * kAvailableVsShaders.size() * kAvailableVbFormats.size() * kAvailableVertexAttrLayouts.size();
 
-static constexpr std::array<const char*, 3> kAvailableLODs = {
-    "LOD_0",
-    "LOD_1",
-    "LOD_2"};
+struct SphereLOD
+{
+    uint32_t longitudeSegments;
+    uint32_t latitudeSegments;
+};
+
+static constexpr std::array<DropdownEntry<SphereLOD>, 3> kAvailableLODs = {{
+    {"LOD_0", {50, 50}},
+    {"LOD_1", {20, 20}},
+    {"LOD_2", {10, 10}},
+}};
 
 static constexpr size_t kMeshCount = kAvailableVbFormats.size() * kAvailableVertexAttrLayouts.size() * kAvailableLODs.size();
-
-static constexpr std::array<const char*, 3> kFullscreenQuadsTypes = {
-    "Noise",
-    "Solid_Color",
-    "Texture"};
 
 enum class FullscreenQuadsType
 {
@@ -80,22 +107,22 @@ enum class FullscreenQuadsType
     FULLSCREEN_QUADS_TYPE_TEXTURE
 };
 
-static constexpr std::array<const char*, 4> kFullscreenQuadsColors = {
-    "Red",
-    "Blue",
-    "Green",
-    "White"};
+static constexpr std::array<DropdownEntry<FullscreenQuadsType>, 3> kFullscreenQuadsTypes = {{
+    {"Noise", FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_NOISE},
+    {"Solid_Color", FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_NOISE},
+    {"Texture", FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_NOISE},
+}};
 
-static constexpr std::array<float3, 4> kFullscreenQuadsColorsValues = {
-    float3(1.0f, 0.0f, 0.0f),
-    float3(0.0f, 0.0f, 1.0f),
-    float3(0.0f, 1.0f, 0.0f),
-    float3(1.0f, 1.0f, 1.0f)};
+static constexpr std::array<DropdownEntry<float3>, 4> kFullscreenQuadsColors = {{
+    {"Red", float3(1.0f, 0.0f, 0.0f)},
+    {"Blue", float3(0.0f, 0.0f, 1.0f)},
+    {"Green", float3(0.0f, 1.0f, 0.0f)},
+    {"White", float3(1.0f, 1.0f, 1.0f)},
+}};
 
-static constexpr std::array<grfx::Format, 14> kFramebufferFormatTypes = {
+static constexpr std::array<grfx::Format, 13> kFramebufferFormatTypes = {
     // Some format may not be supported on all devices.
     // We may want to filter based on device capability.
-    grfx::Format::FORMAT_UNDEFINED, // Use Swapchain format
     grfx::Format::FORMAT_R8G8B8A8_UNORM,
     grfx::Format::FORMAT_B8G8R8A8_UNORM,
     grfx::Format::FORMAT_R8G8B8A8_SRGB,
@@ -404,6 +431,7 @@ private:
     std::array<grfx::MeshPtr, kMeshCount>                         mSphereMeshes;
     std::vector<LOD>                                              mSphereLODs;
     MultiDimensionalIndexer                                       mMeshesIndexer;
+    bool                                                          mSpheresAreSetUp = false;
 
     // Fullscreen quads resources
     Entity2D                                                             mFullscreenQuads;
@@ -433,9 +461,9 @@ private:
 private:
     std::shared_ptr<KnobCheckbox>              pEnableSkyBox;
     std::shared_ptr<KnobCheckbox>              pEnableSpheres;
-    std::shared_ptr<KnobDropdown<std::string>> pKnobVs;
-    std::shared_ptr<KnobDropdown<std::string>> pKnobPs;
-    std::shared_ptr<KnobDropdown<std::string>> pKnobLOD;
+    std::shared_ptr<KnobDropdown<SphereVS>>    pKnobVs;
+    std::shared_ptr<KnobDropdown<SpherePS>>    pKnobPs;
+    std::shared_ptr<KnobDropdown<SphereLOD>>   pKnobLOD;
     std::shared_ptr<KnobDropdown<std::string>> pKnobVbFormat;
     std::shared_ptr<KnobDropdown<std::string>> pKnobVertexAttrLayout;
     std::shared_ptr<KnobSlider<int>>           pSphereInstanceCount;
@@ -444,17 +472,16 @@ private:
     std::shared_ptr<KnobCheckbox>              pDepthTestWrite;
     std::shared_ptr<KnobCheckbox>              pAllTexturesTo1x1;
 
-    std::shared_ptr<KnobSlider<int>>           pFullscreenQuadsCount;
-    std::shared_ptr<KnobDropdown<std::string>> pFullscreenQuadsType;
-    std::shared_ptr<KnobDropdown<std::string>> pFullscreenQuadsColor;
-    std::shared_ptr<KnobCheckbox>              pFullscreenQuadsSingleRenderpass;
-    std::shared_ptr<KnobFlag<std::string>>     pQuadTextureFile;
+    std::shared_ptr<KnobSlider<int>>                   pFullscreenQuadsCount;
+    std::shared_ptr<KnobDropdown<FullscreenQuadsType>> pFullscreenQuadsType;
+    std::shared_ptr<KnobDropdown<float3>>              pFullscreenQuadsColor;
+    std::shared_ptr<KnobCheckbox>                      pFullscreenQuadsSingleRenderpass;
+    std::shared_ptr<KnobFlag<std::string>>             pQuadTextureFile;
 
-    std::shared_ptr<KnobCheckbox>              pRenderOffscreen;
-    std::shared_ptr<KnobCheckbox>              pBlitOffscreen;
-    std::shared_ptr<KnobDropdown<std::string>> pFramebufferFormat;
-    std::shared_ptr<KnobDropdown<std::string>> pResolution;
-    std::vector<std::pair<int, int>>           mResolutionOptions;
+    std::shared_ptr<KnobCheckbox>                      pRenderOffscreen;
+    std::shared_ptr<KnobCheckbox>                      pBlitOffscreen;
+    std::shared_ptr<KnobDropdown<grfx::Format>>        pFramebufferFormat;
+    std::shared_ptr<KnobDropdown<std::pair<int, int>>> pResolution;
 
 private:
     // =====================================================================
