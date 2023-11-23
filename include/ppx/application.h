@@ -383,7 +383,7 @@ public:
     virtual void InitKnobs() {}
 
 protected:
-    virtual void DispatchConfigAndInitKnobs();
+    virtual void DispatchConfig();
     virtual void DispatchSetup();
     virtual void DispatchShutdown();
     virtual void DispatchMove(int32_t x, int32_t y);
@@ -547,6 +547,9 @@ private:
     Result CreatePlatformWindow();
     void   DestroyPlatformWindow();
     bool   IsRunning() const;
+
+    // Update the asset directories
+    void UpdateAssetDirs();
 
     // Updates the shared, app-level metrics.
     void UpdateAppMetrics();

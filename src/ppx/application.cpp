@@ -649,37 +649,9 @@ void Application::DispatchInitKnobs()
     InitKnobs();
 }
 
-void Application::DispatchConfigAndInitKnobs()
+void Application::DispatchConfig()
 {
     Config(mSettings);
-
-    // Knobs need to be set up before commandline parsing.
-    DispatchInitKnobs();
-
-    if (mSettings.appName.empty()) {
-        mSettings.appName = "PPX Application";
-    }
-
-    if (mSettings.window.title.empty()) {
-        mSettings.window.title = mSettings.appName;
-    }
-
-    mDecoratedApiName = ToString(mSettings.grfx.api);
-
-    if (mSettings.allowThirdPartyAssets) {
-        std::filesystem::path path = GetApplicationPath();
-        path.remove_filename();
-        path /= RELATIVE_PATH_TO_PROJECT_ROOT;
-        AddAssetDir(path / "third_party/assets");
-    }
-
-    auto assetPaths = mStandardOpts.pAssetsPaths->GetValue();
-    if (!assetPaths.empty()) {
-        // Insert at front, in reverse order, so we respect the command line ordering for priority.
-        for (auto it = assetPaths.rbegin(); it < assetPaths.rend(); it++) {
-            AddAssetDir(*it, /* insert_at_front= */ true);
-        }
-    }
 }
 
 void Application::DispatchSetup()
@@ -1187,7 +1159,11 @@ int Application::Run(int argc, char** argv)
 
     // Call config.
     // Put this early because it might disable the display.
-    DispatchConfigAndInitKnobs();
+    DispatchConfig();
+
+    // Knobs need to be set up before commandline parsing.
+    // This has dependency on DispatchConfig() where standard knob default values are set
+    DispatchInitKnobs();
 
     if (!mKnobManager.IsEmpty()) {
         mCommandLineParser.AppendUsageMsg(mKnobManager.GetUsageMsg());
@@ -1198,10 +1174,23 @@ int Application::Run(int argc, char** argv)
         return EXIT_SUCCESS;
     }
 
+    // Command line will overwrite the knob settings from the application
     if (!mKnobManager.IsEmpty()) {
         auto options = mCommandLineParser.GetOptions();
         mKnobManager.UpdateFromFlags(options);
     }
+
+    // Asset directories based on settings in mSettings, mCommandLineParser and mKnobManager
+    // note that mKnobManager needs to be updated by options from mCommandLineParser before this call
+    UpdateAssetDirs();
+
+    if (mSettings.appName.empty()) {
+        mSettings.appName = "PPX Application";
+    }
+    if (mSettings.window.title.empty()) {
+        mSettings.window.title = mSettings.appName;
+    }
+    mDecoratedApiName = ToString(mSettings.grfx.api);
 
 #if defined(PPX_LINUX_HEADLESS)
     // Force headless if BigWheels was built without surface support.
@@ -1772,6 +1761,24 @@ bool Application::RecordMetricData(metrics::MetricID id, const metrics::MetricDa
 
     // This function already covers all other cases.
     return mMetrics.manager.RecordMetricData(id, data);
+}
+
+void Application::UpdateAssetDirs()
+{
+    if (mSettings.allowThirdPartyAssets) {
+        std::filesystem::path path = GetApplicationPath();
+        path.remove_filename();
+        path /= RELATIVE_PATH_TO_PROJECT_ROOT;
+        AddAssetDir(path / "third_party/assets");
+    }
+
+    auto assetPaths = mStandardOpts.pAssetsPaths->GetValue();
+    if (!assetPaths.empty()) {
+        // Insert at front, in reverse order, so we respect the command line ordering for priority.
+        for (auto it = assetPaths.rbegin(); it < assetPaths.rend(); it++) {
+            AddAssetDir(*it, /* insert_at_front= */ true);
+        }
+    }
 }
 
 void Application::UpdateAppMetrics()
