@@ -208,6 +208,38 @@ Result Device::ConfigureFeatures(const grfx::DeviceCreateInfo* pCreateInfo, VkPh
         features                                  = *pFeatures;
     }
 
+    // Enable shader resource array dynamic indexing.
+    // This can be used to choose a texture within an array based on
+    // a push constant, among other things.
+    std::vector<std::string_view> missingFeatures;
+    if (!foundFeatures.shaderUniformBufferArrayDynamicIndexing) {
+        missingFeatures.push_back("shaderUniformBufferArrayDynamicIndexing");
+    }
+    if (!foundFeatures.shaderSampledImageArrayDynamicIndexing) {
+        missingFeatures.push_back("shaderSampledImageArrayDynamicIndexing");
+    }
+    if (!foundFeatures.shaderStorageBufferArrayDynamicIndexing) {
+        missingFeatures.push_back("shaderStorageBufferArrayDynamicIndexing");
+    }
+    if (!foundFeatures.shaderStorageImageArrayDynamicIndexing) {
+        missingFeatures.push_back("shaderStorageImageArrayDynamicIndexing");
+    }
+
+    if (!missingFeatures.empty()) {
+        std::stringstream ss;
+        ss << "Device does not support required features:" << PPX_LOG_ENDL;
+        for (const auto& elem : missingFeatures) {
+            ss << " " << elem << PPX_LOG_ENDL;
+        }
+        PPX_ASSERT_MSG(false, ss.str());
+        return ppx::ERROR_REQUIRED_FEATURE_UNAVAILABLE;
+    }
+
+    features.shaderUniformBufferArrayDynamicIndexing = VK_TRUE;
+    features.shaderSampledImageArrayDynamicIndexing  = VK_TRUE;
+    features.shaderStorageBufferArrayDynamicIndexing = VK_TRUE;
+    features.shaderStorageImageArrayDynamicIndexing  = VK_TRUE;
+
     return ppx::SUCCESS;
 }
 
@@ -389,7 +421,7 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
     if (vkres != VK_SUCCESS) {
         // clang-format off
         std::stringstream ss;
-        ss << "vkCreateInstance failed: " << ToString(vkres);
+        ss << "vkCreateDevice failed: " << ToString(vkres);
         if (vkres == VK_ERROR_EXTENSION_NOT_PRESENT) {
             std::vector<std::string> missing = GetNotFound(mExtensions, mFoundExtensions);
             ss << PPX_LOG_ENDL;
