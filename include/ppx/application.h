@@ -323,6 +323,33 @@ struct ApplicationSettings
             uint32_t     imageCount  = 2;
         } swapchain;
     } grfx;
+
+    // Default values for standard knobs
+    struct StandardKnobsDefaultValue
+    {
+        std::vector<std::string> assetsPaths     = {};
+        std::vector<std::string> configJsonPaths = {};
+        bool                     deterministic   = false;
+        bool                     enableMetrics   = false;
+        uint64_t                 frameCount      = UINT64_MAX;
+        int                      gpuIndex        = INT_MAX;
+#if !defined(PPX_LINUX_HEADLESS)
+        bool headless = false;
+#endif
+        bool                listGpus              = false;
+        std::string         metricsFilename       = std::filesystem::current_path().u8string();
+        bool                overwriteMetricsFile  = false;
+        std::pair<int, int> resolution            = std::make_pair(0, 0);
+        int                 runTimeMs             = INT_MAX;
+        int                 screenshotFrameNumber = INT_MAX;
+        std::string         screenshotPath        = "";
+        int                 statsFrameWindow      = INT_MAX;
+        bool                useSoftwareRenderer   = false;
+#if defined(PPX_BUILD_XR)
+        std::pair<int, int>      xrUiResolution       = std::make_pair(0, 0);
+        std::vector<std::string> xrRequiredExtensions = {};
+#endif
+    } standardKnobsDefaultValue;
 };
 
 //! @class Application
@@ -520,6 +547,9 @@ private:
     Result CreatePlatformWindow();
     void   DestroyPlatformWindow();
     bool   IsRunning() const;
+
+    // Update the asset directories
+    void UpdateAssetDirs();
 
     // Updates the shared, app-level metrics.
     void UpdateAppMetrics();
