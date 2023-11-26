@@ -17,19 +17,42 @@ Binaries have prefixes indicating the target graphics API and shader format:
 
 Build instructions vary slightly depending on the host and target platforms.
 
-## Linux
+## Prerequisites
+
+### DXC
+
+**All targets require DXC.**
+
+The build system will look for `dxc.exe` or `dxc` in the Vulkan SDK bin directory. To download and install the Vulkan SDK, follow the instructions here:
+* Linux: https://vulkan.lunarg.com/doc/sdk/latest/linux/getting_started.html
+* Windows: https://vulkan.lunarg.com/doc/sdk/latest/windows/getting_started.html
+
+Alternatively, a DXC path can be provided using `-DDXC_PATH=<path to DXC executable>`.
+
+### Packages
+
+#### Linux
+
+Install the following prerequisite packages before building:
+
 ```
-git clone --recursive https://github.com/google/BigWheels
-cmake . -GNinja
-ninja
+sudo apt install libxrandr-dev libxinerama-dev libx11-dev libxcursor-dev libxi-dev libx11-xcb-dev clang mesa-vulkan-drivers
 ```
 
-Built binaries are written to `bin/`.
+## Linux
+```
+git clone --recursive https://github.com/google/bigwheels
+cd bigwheels
+cmake -B build . -GNinja
+ninja -C build
+```
+
+Built binaries are written to `build/bin/`.
 
 ## Windows
 ```
-git clone --recursive https://github.com/google/BigWheels
-cd BigWheels
+git clone --recursive https://github.com/google/bigwheels
+cd bigwheels
 cmake -B build -G "Visual Studio 16 2019" -A x64
 ```
 
@@ -54,7 +77,7 @@ Install the Android SDK and NDK with CMake support.
 (Can be done through the SDK manager of Android Studio).
 
 ```
-git clone --recursive https://github.com/google/BigWheels
+git clone --recursive https://github.com/google/bigwheels
 ```
 
 ### With Android Studio
@@ -128,9 +151,3 @@ for each API depending on the need. API support depends on the system nature and
 To request a specific API, flags can be passed to Cmake:
  - `PPX_D3D12`: DirectX 12 support.
  - `PPX_VULKAN`: Vulkan support.
-
-**All targets require DXC.**
-
-## DXC
-The build system will look for `dxc.exe` or `dxc` in the Vulkan SDK bin directory.
-The DXC path can also be provided using `-DDXC_PATH=<path to DXC executable>`.
