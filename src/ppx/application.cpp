@@ -1142,6 +1142,268 @@ bool Application::IsRunning() const
     return mWindow->IsRunning();
 }
 
+void Application::FinalizeSettings()
+{
+    if (mSettings.appName.empty()) {
+        mSettings.appName = "PPX Application";
+    }
+    if (mSettings.window.title.empty()) {
+        mSettings.window.title = mSettings.appName;
+    }
+
+#if defined(PPX_LINUX_HEADLESS)
+    // Force headless if BigWheels was built without surface support.
+    mSettings.headless = true;
+#else
+    mSettings.headless = mStandardOpts.pHeadless->GetValue();
+#endif
+
+    // If command line argument provided width and height
+    auto       resolution        = mStandardOpts.pResolution->GetValue();
+    const bool hasResolutionFlag = (resolution.first > 0 && resolution.second > 0);
+    if (hasResolutionFlag) {
+        mSettings.window.width  = resolution.first;
+        mSettings.window.height = resolution.second;
+    }
+
+#if defined(PPX_BUILD_XR)
+    resolution = mStandardOpts.pXrUiResolution->GetValue();
+    if (resolution.first > 0 && resolution.second > 0) {
+        mSettings.xr.uiWidth  = resolution.first;
+        mSettings.xr.uiHeight = resolution.second;
+    }
+#endif
+
+    // Disable ImGui in headless or deterministic mode.
+    // ImGUI is not non-deterministic, but the visible informations (stats, timers) are.
+    if ((mSettings.headless || mStandardOpts.pDeterministic->GetValue()) && mSettings.enableImGui) {
+        mSettings.enableImGui = false;
+        PPX_LOG_WARN("Headless or deterministic mode: disabling ImGui");
+    }
+}
+
+#if defined(PPX_BUILD_XR)
+void Application::InitializeXRComponentBeforeGrfxDeviceInit()
+{
+    if (mSettings.xr.enable) {
+        XrComponentCreateInfo createInfo = {};
+        createInfo.api                   = mSettings.grfx.api;
+        createInfo.appName               = mSettings.appName;
+#if defined(PPX_ANDROID)
+        createInfo.androidContext = GetAndroidContext();
+        createInfo.colorFormat    = grfx::FORMAT_R8G8B8A8_SRGB;
+#else
+        createInfo.colorFormat = grfx::FORMAT_B8G8R8A8_SRGB;
+#endif
+        createInfo.depthFormat          = grfx::FORMAT_D32_FLOAT;
+        createInfo.refSpaceType         = XrRefSpace::XR_STAGE;
+        createInfo.viewConfigType       = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
+        createInfo.enableDebug          = mSettings.grfx.enableDebug;
+        createInfo.enableQuadLayer      = mSettings.enableImGui;
+        createInfo.enableDepthSwapchain = mSettings.xr.enableDepthSwapchain;
+        const auto resolution           = mStandardOpts.pResolution->GetValue();
+        const bool hasResolutionFlag    = (resolution.first > 0 && resolution.second > 0);
+        if (hasResolutionFlag) {
+            createInfo.resolution.width  = mSettings.window.width;
+            createInfo.resolution.height = mSettings.window.height;
+        }
+        createInfo.uiResolution.width  = mSettings.xr.uiWidth;
+        createInfo.uiResolution.height = mSettings.xr.uiHeight;
+        createInfo.requiredExtensions  = mStandardOpts.pXrRequiredExtensions->GetValue();
+
+        mXrComponent.InitializeBeforeGrfxDeviceInit(createInfo);
+    }
+}
+
+void Application::InitializeXRComponentAndUpdateSettingsAfterGrfxDeviceInit()
+{
+    if (mSettings.xr.enable) {
+        mXrComponent.InitializeAfterGrfxDeviceInit(mInstance);
+        mSettings.window.width  = mXrComponent.GetWidth();
+        mSettings.window.height = mXrComponent.GetHeight();
+    }
+}
+
+void Application::DestroyXRComponent()
+{
+    if (mSettings.xr.enable) {
+        mXrComponent.Destroy();
+    }
+}
+#endif
+
+void Application::ListGPUs() const
+{
+    uint32_t          count = GetInstance()->GetGpuCount();
+    std::stringstream ss;
+    for (uint32_t i = 0; i < count; ++i) {
+        grfx::GpuPtr gpu;
+        GetInstance()->GetGpu(i, &gpu);
+        ss << i << " " << gpu->GetDeviceName() << std::endl;
+    }
+    PPX_LOG_INFO(ss.str());
+}
+
+Result Application::InitializeWindow()
+{
+    if (!mWindow) {
+        if (mSettings.headless) {
+            mWindow = Window::GetImplHeadless(this);
+        }
+        else {
+            mWindow = Window::GetImplNative(this);
+        }
+        if (!mWindow) {
+            PPX_ASSERT_MSG(false, "out of memory");
+            return ERROR_OUT_OF_MEMORY;
+        }
+    }
+    return SUCCESS;
+}
+
+bool Application::Mainloop()
+{
+    // Frame start
+    mFrameStartTime = static_cast<float>(mTimer.MillisSinceStart());
+
+#if defined(PPX_BUILD_XR)
+    if (mSettings.xr.enable) {
+        bool exitRenderLoop = false;
+        mXrComponent.PollEvents(exitRenderLoop);
+        if (exitRenderLoop) {
+            return true;
+        }
+
+        if (mXrComponent.IsSessionRunning()) {
+            mXrComponent.BeginFrame();
+            if (mXrComponent.ShouldRender()) {
+                XrSwapchainImageReleaseInfo releaseInfo = {XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
+                uint32_t                    viewCount   = static_cast<uint32_t>(mXrComponent.GetViewCount());
+                // Start new Imgui frame
+                if (mImGui) {
+                    mImGui->NewFrame();
+                }
+                for (uint32_t k = 0; k < viewCount; ++k) {
+                    mSwapchainIndex = k;
+                    mXrComponent.SetCurrentViewIndex(k);
+                    DispatchRender();
+                    grfx::SwapchainPtr swapchain = GetSwapchain(k + mStereoscopicSwapchainIndex);
+                    CHECK_XR_CALL(xrReleaseSwapchainImage(swapchain->GetXrColorSwapchain(), &releaseInfo));
+                    if (swapchain->GetXrDepthSwapchain() != XR_NULL_HANDLE) {
+                        CHECK_XR_CALL(xrReleaseSwapchainImage(swapchain->GetXrDepthSwapchain(), &releaseInfo));
+                    }
+                }
+
+                if (GetSettings()->enableImGui) {
+                    grfx::SwapchainPtr swapchain = GetSwapchain(mUISwapchainIndex);
+                    CHECK_XR_CALL(xrReleaseSwapchainImage(swapchain->GetXrColorSwapchain(), &releaseInfo));
+                    if (swapchain->GetXrDepthSwapchain() != XR_NULL_HANDLE) {
+                        CHECK_XR_CALL(xrReleaseSwapchainImage(swapchain->GetXrDepthSwapchain(), &releaseInfo));
+                    }
+                }
+            }
+            mXrComponent.EndFrame(mSwapchains, 0, mUISwapchainIndex);
+        }
+    }
+    else
+#endif
+    {
+        mWindow->ProcessEvent();
+
+        // Start new Imgui frame
+        if (mImGui && !IsWindowIconified()) {
+            mImGui->NewFrame();
+        }
+
+        // Call render
+        DispatchRender();
+
+#if defined(PPX_MSW)
+        //
+        // This is for D3D12 only.
+        //
+        // Why is it necessary to force invalidate the client area?
+        //
+        // Due to a bug (or feature) in the Windows event loop when interacting
+        // with IDXGISwapchain::ResizeBuffers() - the client area is incorrectly
+        // updated. The paint message seems to get missed or is using the an
+        // outdated rect. The result is that the left and bottom of edges of the
+        // window's client area is filled with garbage.
+        //
+        // Moving the window one pixel to the left and back again causes the client
+        // area to be correctly invalidated.
+        //
+        // https://stackoverflow.com/questions/72956884/idxgiswapchain-resizebuffers-does-not-work-as-expected-with-wm-sizing
+        //
+        if (mForceInvalidateClientArea) {
+            bool isD3D12 = (mDevice->GetApi() == grfx::API_DX_12_0) || (mDevice->GetApi() == grfx::API_DX_12_1);
+            PPX_ASSERT_MSG(isD3D12, "Force invalidation of client area should only happen on D3D12");
+
+            grfx::SurfaceCreateInfo ci = {};
+            GetWindow()->FillSurfaceInfo(&ci);
+
+            RECT wr = {};
+            GetWindowRect(ci.hwnd, &wr);
+            MoveWindow(ci.hwnd, wr.left + 1, wr.top, (wr.right - wr.left), (wr.bottom - wr.top), TRUE);
+            MoveWindow(ci.hwnd, wr.left, wr.top, (wr.right - wr.left), (wr.bottom - wr.top), TRUE);
+
+            mForceInvalidateClientArea = false;
+        }
+#endif
+    }
+
+    // Take screenshot if this is the requested frame.
+    if (mFrameCount == static_cast<uint64_t>(mStandardOpts.pScreenshotFrameNumber->GetValue())) {
+        TakeScreenshot();
+    }
+
+    // Frame end general metrics data, used for recorded metrics, display, screenshots, and pacing.
+    double nowMs       = mTimer.MillisSinceStart();
+    mFrameCount        = mFrameCount + 1;
+    mPreviousFrameTime = static_cast<float>(nowMs) - mFrameStartTime;
+
+    // Keep a rolling window of frame times to calculate stats, if requested.
+    if (mStandardOpts.pStatsFrameWindow->GetValue() > 0) {
+        mFrameTimesMs.push_back(mPreviousFrameTime);
+        if (mFrameTimesMs.size() > mStandardOpts.pStatsFrameWindow->GetValue()) {
+            mFrameTimesMs.pop_front();
+        }
+        float totalFrameTimeMs = std::accumulate(mFrameTimesMs.begin(), mFrameTimesMs.end(), 0.f);
+        mAverageFPS            = mFrameTimesMs.size() / (totalFrameTimeMs / 1000.f);
+        mAverageFrameTime      = totalFrameTimeMs / mFrameTimesMs.size();
+    }
+    else {
+        mAverageFPS       = static_cast<float>(mFrameCount / (nowMs / 1000.f));
+        mAverageFrameTime = static_cast<float>(nowMs / mFrameCount);
+    }
+
+    // Update the metrics. This can be used for both recorded AND displayed metrics,
+    // and therefore should always be called.
+    DispatchUpdateMetrics();
+
+    // Pace frames - if needed
+    if (mSettings.grfx.pacedFrameRate > 0) {
+        if (mFrameCount > 0) {
+            double currentTime  = nowMs / 1000.f;
+            double pacedFPS     = 1.0 / static_cast<double>(mSettings.grfx.pacedFrameRate);
+            double expectedTime = mFirstFrameTime + (mFrameCount * pacedFPS);
+            double diff         = expectedTime - currentTime;
+            if (diff > 0) {
+                Timer::SleepSeconds(diff);
+            }
+        }
+        else {
+            mFirstFrameTime = nowMs / 1000.f;
+        }
+    }
+    // If we reach the maximum number of frames allowed
+    if ((mStandardOpts.pFrameCount->GetValue() > 0 && mFrameCount >= mStandardOpts.pFrameCount->GetValue()) ||
+        (nowMs / 1000.f) > mRunTimeSeconds) {
+        Quit();
+    }
+    return false;
+}
+
 int Application::Run(int argc, char** argv)
 {
     // Only allow one instance of Application. Since we can't stop
@@ -1184,95 +1446,29 @@ int Application::Run(int argc, char** argv)
     // note that mKnobManager needs to be updated by options from mCommandLineParser before this call
     UpdateAssetDirs();
 
-    if (mSettings.appName.empty()) {
-        mSettings.appName = "PPX Application";
-    }
-    if (mSettings.window.title.empty()) {
-        mSettings.window.title = mSettings.appName;
-    }
+    FinalizeSettings();
+
     mDecoratedApiName = ToString(mSettings.grfx.api);
 
-#if defined(PPX_LINUX_HEADLESS)
-    // Force headless if BigWheels was built without surface support.
-    mSettings.headless = true;
-#else
-    mSettings.headless = mStandardOpts.pHeadless->GetValue();
-#endif
-
-    if (!mWindow) {
-        if (mSettings.headless) {
-            mWindow = Window::GetImplHeadless(this);
-        }
-        else {
-            mWindow = Window::GetImplNative(this);
-        }
-        if (!mWindow) {
-            PPX_ASSERT_MSG(false, "out of memory");
-            return EXIT_FAILURE;
-        }
+    // Initialize the window
+    Result ppxres = InitializeWindow();
+    if (Failed(ppxres)) {
+        return EXIT_FAILURE;
     }
-
-    // If command line argument provided width and height
-    auto resolution        = mStandardOpts.pResolution->GetValue();
-    bool hasResolutionFlag = (resolution.first > 0 && resolution.second > 0);
-    if (hasResolutionFlag) {
-        mSettings.window.width  = resolution.first;
-        mSettings.window.height = resolution.second;
-    }
-
-#if defined(PPX_BUILD_XR)
-    resolution = mStandardOpts.pXrUiResolution->GetValue();
-    if (resolution.first > 0 && resolution.second > 0) {
-        mSettings.xr.uiWidth  = resolution.first;
-        mSettings.xr.uiHeight = resolution.second;
-    }
-#endif
 
     mRunTimeSeconds = mStandardOpts.pRunTimeMs->GetValue() / 1000.f;
     if (mRunTimeSeconds == 0) {
         mRunTimeSeconds = std::numeric_limits<float>::max();
     }
 
-    // Disable ImGui in headless or deterministic mode.
-    // ImGUI is not non-deterministic, but the visible informations (stats, timers) are.
-    if ((mSettings.headless || mStandardOpts.pDeterministic->GetValue()) && mSettings.enableImGui) {
-        mSettings.enableImGui = false;
-        PPX_LOG_WARN("Headless or deterministic mode: disabling ImGui");
-    }
-
     // Initialize the platform
-    Result ppxres = InitializePlatform();
+    ppxres = InitializePlatform();
     if (Failed(ppxres)) {
         return EXIT_FAILURE;
     }
 
 #if defined(PPX_BUILD_XR)
-    if (mSettings.xr.enable) {
-        XrComponentCreateInfo createInfo = {};
-        createInfo.api                   = mSettings.grfx.api;
-        createInfo.appName               = mSettings.appName;
-#if defined(PPX_ANDROID)
-        createInfo.androidContext = GetAndroidContext();
-        createInfo.colorFormat    = grfx::FORMAT_R8G8B8A8_SRGB;
-#else
-        createInfo.colorFormat = grfx::FORMAT_B8G8R8A8_SRGB;
-#endif
-        createInfo.depthFormat          = grfx::FORMAT_D32_FLOAT;
-        createInfo.refSpaceType         = XrRefSpace::XR_STAGE;
-        createInfo.viewConfigType       = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
-        createInfo.enableDebug          = mSettings.grfx.enableDebug;
-        createInfo.enableQuadLayer      = mSettings.enableImGui;
-        createInfo.enableDepthSwapchain = mSettings.xr.enableDepthSwapchain;
-        if (hasResolutionFlag) {
-            createInfo.resolution.width  = mSettings.window.width;
-            createInfo.resolution.height = mSettings.window.height;
-        }
-        createInfo.uiResolution.width  = mSettings.xr.uiWidth;
-        createInfo.uiResolution.height = mSettings.xr.uiHeight;
-        createInfo.requiredExtensions  = mStandardOpts.pXrRequiredExtensions->GetValue();
-
-        mXrComponent.InitializeBeforeGrfxDeviceInit(createInfo);
-    }
+    InitializeXRComponentBeforeGrfxDeviceInit();
 #endif
 
     // Create graphics instance
@@ -1282,23 +1478,12 @@ int Application::Run(int argc, char** argv)
     }
 
 #if defined(PPX_BUILD_XR)
-    if (mSettings.xr.enable) {
-        mXrComponent.InitializeAfterGrfxDeviceInit(mInstance);
-        mSettings.window.width  = mXrComponent.GetWidth();
-        mSettings.window.height = mXrComponent.GetHeight();
-    }
+    InitializeXRComponentAndUpdateSettingsAfterGrfxDeviceInit();
 #endif
 
     // List gpus
     if (mStandardOpts.pListGpus->GetValue()) {
-        uint32_t          count = GetInstance()->GetGpuCount();
-        std::stringstream ss;
-        for (uint32_t i = 0; i < count; ++i) {
-            grfx::GpuPtr gpu;
-            GetInstance()->GetGpu(i, &gpu);
-            ss << i << " " << gpu->GetDeviceName() << std::endl;
-        }
-        PPX_LOG_INFO(ss.str());
+        ListGPUs();
         return EXIT_SUCCESS;
     }
 
@@ -1352,143 +1537,9 @@ int Application::Run(int argc, char** argv)
     }
 
     while (IsRunning()) {
-        // Frame start
-        mFrameStartTime = static_cast<float>(mTimer.MillisSinceStart());
-
-#if defined(PPX_BUILD_XR)
-        if (mSettings.xr.enable) {
-            bool exitRenderLoop = false;
-            mXrComponent.PollEvents(exitRenderLoop);
-            if (exitRenderLoop) {
-                break;
-            }
-
-            if (mXrComponent.IsSessionRunning()) {
-                mXrComponent.BeginFrame();
-                if (mXrComponent.ShouldRender()) {
-                    XrSwapchainImageReleaseInfo releaseInfo = {XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO};
-                    uint32_t                    viewCount   = static_cast<uint32_t>(mXrComponent.GetViewCount());
-                    // Start new Imgui frame
-                    if (mImGui) {
-                        mImGui->NewFrame();
-                    }
-                    for (uint32_t k = 0; k < viewCount; ++k) {
-                        mSwapchainIndex = k;
-                        mXrComponent.SetCurrentViewIndex(k);
-                        DispatchRender();
-                        grfx::SwapchainPtr swapchain = GetSwapchain(k + mStereoscopicSwapchainIndex);
-                        CHECK_XR_CALL(xrReleaseSwapchainImage(swapchain->GetXrColorSwapchain(), &releaseInfo));
-                        if (swapchain->GetXrDepthSwapchain() != XR_NULL_HANDLE) {
-                            CHECK_XR_CALL(xrReleaseSwapchainImage(swapchain->GetXrDepthSwapchain(), &releaseInfo));
-                        }
-                    }
-
-                    if (GetSettings()->enableImGui) {
-                        grfx::SwapchainPtr swapchain = GetSwapchain(mUISwapchainIndex);
-                        CHECK_XR_CALL(xrReleaseSwapchainImage(swapchain->GetXrColorSwapchain(), &releaseInfo));
-                        if (swapchain->GetXrDepthSwapchain() != XR_NULL_HANDLE) {
-                            CHECK_XR_CALL(xrReleaseSwapchainImage(swapchain->GetXrDepthSwapchain(), &releaseInfo));
-                        }
-                    }
-                }
-                mXrComponent.EndFrame(mSwapchains, 0, mUISwapchainIndex);
-            }
-        }
-        else
-#endif
-        {
-            mWindow->ProcessEvent();
-
-            // Start new Imgui frame
-            if (mImGui && !IsWindowIconified()) {
-                mImGui->NewFrame();
-            }
-
-            // Call render
-            DispatchRender();
-
-#if defined(PPX_MSW)
-            //
-            // This is for D3D12 only.
-            //
-            // Why is it necessary to force invalidate the client area?
-            //
-            // Due to a bug (or feature) in the Windows event loop when interacting
-            // with IDXGISwapchain::ResizeBuffers() - the client area is incorrectly
-            // updated. The paint message seems to get missed or is using the an
-            // outdated rect. The result is that the left and bottom of edges of the
-            // window's client area is filled with garbage.
-            //
-            // Moving the window one pixel to the left and back again causes the client
-            // area to be correctly invalidated.
-            //
-            // https://stackoverflow.com/questions/72956884/idxgiswapchain-resizebuffers-does-not-work-as-expected-with-wm-sizing
-            //
-            if (mForceInvalidateClientArea) {
-                bool isD3D12 = (mDevice->GetApi() == grfx::API_DX_12_0) || (mDevice->GetApi() == grfx::API_DX_12_1);
-                PPX_ASSERT_MSG(isD3D12, "Force invalidation of client area should only happen on D3D12");
-
-                grfx::SurfaceCreateInfo ci = {};
-                GetWindow()->FillSurfaceInfo(&ci);
-
-                RECT wr = {};
-                GetWindowRect(ci.hwnd, &wr);
-                MoveWindow(ci.hwnd, wr.left + 1, wr.top, (wr.right - wr.left), (wr.bottom - wr.top), TRUE);
-                MoveWindow(ci.hwnd, wr.left, wr.top, (wr.right - wr.left), (wr.bottom - wr.top), TRUE);
-
-                mForceInvalidateClientArea = false;
-            }
-#endif
-        }
-
-        // Take screenshot if this is the requested frame.
-        if (mFrameCount == static_cast<uint64_t>(mStandardOpts.pScreenshotFrameNumber->GetValue())) {
-            TakeScreenshot();
-        }
-
-        // Frame end general metrics data, used for recorded metrics, display, screenshots, and pacing.
-        double nowMs       = mTimer.MillisSinceStart();
-        mFrameCount        = mFrameCount + 1;
-        mPreviousFrameTime = static_cast<float>(nowMs) - mFrameStartTime;
-
-        // Keep a rolling window of frame times to calculate stats, if requested.
-        if (mStandardOpts.pStatsFrameWindow->GetValue() > 0) {
-            mFrameTimesMs.push_back(mPreviousFrameTime);
-            if (mFrameTimesMs.size() > mStandardOpts.pStatsFrameWindow->GetValue()) {
-                mFrameTimesMs.pop_front();
-            }
-            float totalFrameTimeMs = std::accumulate(mFrameTimesMs.begin(), mFrameTimesMs.end(), 0.f);
-            mAverageFPS            = mFrameTimesMs.size() / (totalFrameTimeMs / 1000.f);
-            mAverageFrameTime      = totalFrameTimeMs / mFrameTimesMs.size();
-        }
-        else {
-            mAverageFPS       = static_cast<float>(mFrameCount / (nowMs / 1000.f));
-            mAverageFrameTime = static_cast<float>(nowMs / mFrameCount);
-        }
-
-        // Update the metrics. This can be used for both recorded AND displayed metrics,
-        // and therefore should always be called.
-        DispatchUpdateMetrics();
-
-        // Pace frames - if needed
-        if (mSettings.grfx.pacedFrameRate > 0) {
-            if (mFrameCount > 0) {
-                double currentTime  = nowMs / 1000.f;
-                double pacedFPS     = 1.0 / static_cast<double>(mSettings.grfx.pacedFrameRate);
-                double expectedTime = mFirstFrameTime + (mFrameCount * pacedFPS);
-                double diff         = expectedTime - currentTime;
-                if (diff > 0) {
-                    Timer::SleepSeconds(diff);
-                }
-            }
-            else {
-                mFirstFrameTime = nowMs / 1000.f;
-            }
-        }
-        // If we reach the maximum number of frames allowed
-        if ((mStandardOpts.pFrameCount->GetValue() > 0 && mFrameCount >= mStandardOpts.pFrameCount->GetValue()) ||
-            (nowMs / 1000.f) > mRunTimeSeconds) {
-            Quit();
+        const bool exitMainLoop = Mainloop();
+        if (exitMainLoop) {
+            break;
         }
     }
     // ---------------------------------------------------------------------------------------------
@@ -1511,9 +1562,7 @@ int Application::Run(int argc, char** argv)
 
 #if defined(PPX_BUILD_XR)
     // Destroy Xr
-    if (mSettings.xr.enable) {
-        mXrComponent.Destroy();
-    }
+    DestroyXRComponent();
 #endif
 
     // Destroy window
