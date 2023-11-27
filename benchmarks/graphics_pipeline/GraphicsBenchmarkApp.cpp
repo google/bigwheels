@@ -1419,7 +1419,7 @@ ppx::Result GraphicsBenchmarkApp::CreateOffscreenFrame(OffscreenFrame& frame, gr
 
 ppx::grfx::Format GraphicsBenchmarkApp::RenderFormat()
 {
-    grfx::Format renderFormat = kFramebufferFormatTypes[pFramebufferFormat->GetIndex()];
+    grfx::Format renderFormat = pFramebufferFormat->GetValue();
     if (!pRenderOffscreen->GetValue() || renderFormat == grfx::Format::FORMAT_UNDEFINED) {
         return GetSwapchain()->GetColorFormat();
     }
