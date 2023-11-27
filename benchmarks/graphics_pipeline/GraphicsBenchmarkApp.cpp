@@ -185,6 +185,8 @@ void GraphicsBenchmarkApp::Config(ppx::ApplicationSettings& settings)
     settings.xr.enable             = false; // Change this to true to enable the XR mode
     settings.xr.enableDebugCapture = false;
 #endif
+    settings.standardKnobsDefaultValue.enableMetrics        = true;
+    settings.standardKnobsDefaultValue.overwriteMetricsFile = true;
 }
 
 void GraphicsBenchmarkApp::Setup()
