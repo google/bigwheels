@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -160,6 +160,40 @@ struct ImageToImageCopyInfo
         uint32_t y = 0; // [pixels]
         uint32_t z = 0; // [pixels]
     } extent;
+};
+
+//! @struct ImageBlitInfo
+//!
+//!
+struct ImageBlitInfo
+{
+    struct
+    {
+        uint32_t mipLevel        = 0;
+        uint32_t arrayLayer      = 0; // Must be 0 for 3D images
+        uint32_t arrayLayerCount = 1; // Must be 1 for 3D images
+        struct
+        {
+            uint32_t x = 0; // [pixels]
+            uint32_t y = 0; // [pixels]
+            uint32_t z = 0; // [pixels]
+        } offsets[2];
+    } srcImage;
+
+    struct
+    {
+        uint32_t mipLevel        = 0;
+        uint32_t arrayLayer      = 0; // Must be 0 for 3D images
+        uint32_t arrayLayerCount = 1; // Must be 1 for 3D images
+        struct
+        {
+            uint32_t x = 0; // [pixels]
+            uint32_t y = 0; // [pixels]
+            uint32_t z = 0; // [pixels]
+        } offsets[2];
+    } dstImage;
+
+    Filter filter = FILTER_LINEAR;
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -497,6 +531,11 @@ public:
         const grfx::ImageToImageCopyInfo* pCopyInfo,
         grfx::Image*                      pSrcImage,
         grfx::Image*                      pDstImage) = 0;
+
+    virtual void BlitImage(
+        const grfx::ImageBlitInfo* pCopyInfo,
+        grfx::Image*               pSrcImage,
+        grfx::Image*               pDstImage) = 0;
 
     virtual void BeginQuery(
         const grfx::Query* pQuery,
