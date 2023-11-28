@@ -1261,19 +1261,30 @@ Result Application::InitializeWindow()
     return SUCCESS;
 }
 
-bool Application::Mainloop()
+void Application::FrameUpdate()
 {
-    // Frame start
-    mFrameStartTime = static_cast<float>(mTimer.MillisSinceStart());
-
 #if defined(PPX_BUILD_XR)
     if (mSettings.xr.enable) {
         bool exitRenderLoop = false;
         mXrComponent.PollEvents(exitRenderLoop);
         if (exitRenderLoop) {
-            return true;
+            Quit();
+            return;
         }
+    }
+    else
+#endif
+    {
+        mWindow->ProcessEvent();
+        if (!IsRunning())
+            return;
+    }
+}
 
+void Application::FrameRender()
+{
+#if defined(PPX_BUILD_XR)
+    if (mSettings.xr.enable) {
         if (mXrComponent.IsSessionRunning()) {
             mXrComponent.BeginFrame();
             if (mXrComponent.ShouldRender()) {
@@ -1308,8 +1319,6 @@ bool Application::Mainloop()
     else
 #endif
     {
-        mWindow->ProcessEvent();
-
         // Start new Imgui frame
         if (mImGui && !IsWindowIconified()) {
             mImGui->NewFrame();
@@ -1351,6 +1360,17 @@ bool Application::Mainloop()
         }
 #endif
     }
+}
+
+void Application::Mainloop()
+{
+    // Frame start
+    mFrameStartTime = static_cast<float>(mTimer.MillisSinceStart());
+
+    FrameUpdate();
+    if (!IsRunning())
+        return;
+    FrameRender();
 
     // Take screenshot if this is the requested frame.
     if (mFrameCount == static_cast<uint64_t>(mStandardOpts.pScreenshotFrameNumber->GetValue())) {
@@ -1401,7 +1421,7 @@ bool Application::Mainloop()
         (nowMs / 1000.f) > mRunTimeSeconds) {
         Quit();
     }
-    return false;
+    return;
 }
 
 int Application::Run(int argc, char** argv)
@@ -1537,10 +1557,7 @@ int Application::Run(int argc, char** argv)
     }
 
     while (IsRunning()) {
-        const bool exitMainLoop = Mainloop();
-        if (exitMainLoop) {
-            break;
-        }
+        Mainloop();
     }
     // ---------------------------------------------------------------------------------------------
     // Main loop [END]

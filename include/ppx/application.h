@@ -550,7 +550,8 @@ private:
     bool   IsRunning() const;
 
     // DispatchConfig() allows derived classes to update settings
-    // This function will finalize the settings
+    // This is the final step of updating the settings
+    // based on the values defined in DispatchConfig() and mStandardOpts
     void FinalizeSettings();
 
     // Update the asset directories
@@ -567,8 +568,10 @@ private:
     // List gpus
     void ListGPUs() const;
 
-    // Returns true to exit the loop
-    bool Mainloop();
+    void FrameUpdate();
+    void FrameRender();
+
+    void Mainloop();
 
 #if defined(PPX_BUILD_XR)
     void InitializeXRComponentBeforeGrfxDeviceInit();
