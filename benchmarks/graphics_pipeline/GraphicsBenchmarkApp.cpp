@@ -41,8 +41,11 @@ const grfx::Api kApi = grfx::API_DX_12_0;
 const grfx::Api kApi = grfx::API_VK_1_1;
 #endif
 
-void GraphicsBenchmarkApp::InitKnobs()
+void GraphicsBenchmarkApp::InitKnobs(ppx::StandardKnobsDefaultValues& defaultValues)
 {
+    defaultValues.enableMetrics        = true;
+    defaultValues.overwriteMetricsFile = true;
+
     const auto& cl_options = GetExtraOptions();
     PPX_ASSERT_MSG(!cl_options.HasExtraOption("vs-shader-index"), "--vs-shader-index flag has been replaced, instead use --vs and specify the name of the vertex shader");
     PPX_ASSERT_MSG(!cl_options.HasExtraOption("ps-shader-index"), "--ps-shader-index flag has been replaced, instead use --ps and specify the name of the pixel shader");
@@ -185,8 +188,6 @@ void GraphicsBenchmarkApp::Config(ppx::ApplicationSettings& settings)
     settings.xr.enable             = false; // Change this to true to enable the XR mode
     settings.xr.enableDebugCapture = false;
 #endif
-    settings.standardKnobsDefaultValue.enableMetrics        = true;
-    settings.standardKnobsDefaultValue.overwriteMetricsFile = true;
 }
 
 void GraphicsBenchmarkApp::Setup()

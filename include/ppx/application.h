@@ -323,33 +323,33 @@ struct ApplicationSettings
             uint32_t     imageCount  = 2;
         } swapchain;
     } grfx;
+};
 
-    // Default values for standard knobs
-    struct StandardKnobsDefaultValue
-    {
-        std::vector<std::string> assetsPaths     = {};
-        std::vector<std::string> configJsonPaths = {};
-        bool                     deterministic   = false;
-        bool                     enableMetrics   = false;
-        uint64_t                 frameCount      = UINT64_MAX;
-        int                      gpuIndex        = INT_MAX;
+// Default values for standard knobs
+struct StandardKnobsDefaultValues
+{
+    std::vector<std::string> assetsPaths     = {};
+    std::vector<std::string> configJsonPaths = {};
+    bool                     deterministic   = false;
+    bool                     enableMetrics   = false;
+    uint64_t                 frameCount      = UINT64_MAX;
+    int                      gpuIndex        = INT_MAX;
 #if !defined(PPX_LINUX_HEADLESS)
-        bool headless = false;
+    bool headless = false;
 #endif
-        bool                listGpus              = false;
-        std::string         metricsFilename       = std::filesystem::current_path().u8string();
-        bool                overwriteMetricsFile  = false;
-        std::pair<int, int> resolution            = std::make_pair(0, 0);
-        int                 runTimeMs             = INT_MAX;
-        int                 screenshotFrameNumber = INT_MAX;
-        std::string         screenshotPath        = "";
-        int                 statsFrameWindow      = INT_MAX;
-        bool                useSoftwareRenderer   = false;
+    bool                listGpus              = false;
+    std::string         metricsFilename       = std::filesystem::current_path().u8string();
+    bool                overwriteMetricsFile  = false;
+    std::pair<int, int> resolution            = std::make_pair(0, 0);
+    int                 runTimeMs             = INT_MAX;
+    int                 screenshotFrameNumber = INT_MAX;
+    std::string         screenshotPath        = "";
+    int                 statsFrameWindow      = INT_MAX;
+    bool                useSoftwareRenderer   = false;
 #if defined(PPX_BUILD_XR)
-        std::pair<int, int>      xrUiResolution       = std::make_pair(0, 0);
-        std::vector<std::string> xrRequiredExtensions = {};
+    std::pair<int, int>      xrUiResolution       = std::make_pair(0, 0);
+    std::vector<std::string> xrRequiredExtensions = {};
 #endif
-    } standardKnobsDefaultValue;
 };
 
 //! @class Application
@@ -380,7 +380,7 @@ public:
     virtual void Scroll(float dx, float dy) {}                                                // Mouse wheel or touchpad scroll event
     virtual void Render() {}
     // Init knobs (adjustable parameters in the GUI that can be set at startup with commandline flags)
-    virtual void InitKnobs() {}
+    virtual void InitKnobs(ppx::StandardKnobsDefaultValues& defaults) {}
 
 protected:
     virtual void DispatchConfig();
@@ -397,6 +397,8 @@ protected:
     virtual void DispatchMouseUp(int32_t x, int32_t y, uint32_t buttons);
     virtual void DispatchScroll(float dx, float dy);
     virtual void DispatchRender();
+    // Is there even value in having protected DispatchInitKnobs
+    // if InitStandardKnobs is private?
     virtual void DispatchInitKnobs();
     virtual void DispatchUpdateMetrics();
     virtual void DrawGui(){}; // Draw additional project-related information to ImGui.
@@ -557,7 +559,12 @@ private:
     void SaveMetricsReportToDisk();
 
     // Initializes standard knobs
-    void InitStandardKnobs();
+    void InitStandardKnobs(const StandardKnobsDefaultValues& defaultValues);
+
+    void PrintHelpMessage() const;
+
+    // After this function mSettings has all values initialized and updated.
+    void InitializeAllSettings();
 
 private:
     friend struct WindowEvents;

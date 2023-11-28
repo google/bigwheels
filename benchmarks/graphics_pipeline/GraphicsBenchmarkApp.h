@@ -197,7 +197,7 @@ class GraphicsBenchmarkApp
 public:
     GraphicsBenchmarkApp()
         : mCamera(float3(0, 0, -5), pi<float>() / 2.0f, pi<float>() / 2.0f) {}
-    virtual void InitKnobs() override;
+    virtual void InitKnobs(ppx::StandardKnobsDefaultValues& defaultValues) override;
     virtual void Config(ppx::ApplicationSettings& settings) override;
     virtual void Setup() override;
     virtual void MouseMove(int32_t x, int32_t y, int32_t dx, int32_t dy, uint32_t buttons) override;

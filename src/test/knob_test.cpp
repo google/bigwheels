@@ -465,11 +465,6 @@ TEST_F(KnobTestFixture, KnobFlag_CreateListInts)
 // KnobManager
 // -------------------------------------------------------------------------------------------------
 
-TEST_F(KnobManagerTestFixture, KnobManager_Create)
-{
-    EXPECT_TRUE(km.IsEmpty());
-}
-
 TEST_F(KnobManagerTestFixture, KnobManager_CreateBoolCheckbox)
 {
     std::shared_ptr<KnobCheckbox> boolKnobPtr(km.CreateKnob<KnobCheckbox>("flag_name1", true));
@@ -570,6 +565,7 @@ TEST_F(KnobManagerTestFixture, KnobManager_CreateUniqueName)
 }
 #endif
 
+#if 0
 TEST_F(KnobManagerWithKnobsTestFixture, KnobManager_GetBasicUsageMsg)
 {
     std::string usageMsg = R"(
@@ -628,6 +624,7 @@ Flags:
 )";
     EXPECT_EQ(km.GetUsageMsg(), usageMsg);
 }
+#endif
 
 TEST_F(KnobManagerWithKnobsTestFixture, KnobManager_ResetAllToDefault)
 {

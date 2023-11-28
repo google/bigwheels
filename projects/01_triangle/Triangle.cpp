@@ -29,6 +29,14 @@ void TriangleApp::Config(ApplicationSettings& settings)
     settings.grfx.api         = kApi;
     settings.grfx.enableDebug = false;
     settings.window.resizable = true;
+
+#if 0
+    // Same thing
+    settings.window.width = 512;
+    settings.window.height = 512;
+    // The following will always take precedence
+    settings.standardKnobsDefaultValue.resolution = std::make_pair(1024, 1024);
+#endif
 }
 
 void TriangleApp::Setup()

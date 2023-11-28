@@ -48,7 +48,7 @@
 
 namespace FluidSim {
 
-void ProjApp::InitKnobs()
+void ProjApp::InitKnobs(ppx::StandardKnobsDefaultValues&)
 {
     size_t indent = 2;
 
