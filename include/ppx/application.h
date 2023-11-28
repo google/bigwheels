@@ -383,7 +383,6 @@ public:
     virtual void InitKnobs() {}
 
 protected:
-    virtual void DispatchConfig();
     virtual void DispatchSetup();
     virtual void DispatchShutdown();
     virtual void DispatchMove(int32_t x, int32_t y);
@@ -549,10 +548,9 @@ private:
     void   DestroyPlatformWindow();
     bool   IsRunning() const;
 
-    // DispatchConfig() allows derived classes to update settings
-    // This is the final step of updating the settings
-    // based on the values defined in DispatchConfig() and mStandardOpts
-    void FinalizeSettings();
+    // Config() allows derived classes to update settings
+    // Updates the standard application settings to reflect the knob values.
+    void UpdateStandardSettings();
 
     // Update the asset directories
     void UpdateAssetDirs();
@@ -568,10 +566,13 @@ private:
     // List gpus
     void ListGPUs() const;
 
-    void FrameUpdate();
-    void FrameRender();
+    // Process events which could change the Running status of the application
+    void ProcessEvents();
 
-    void Mainloop();
+    // Render the frame, handles both XR and non-XR cases
+    void RenderFrame();
+
+    void MainLoop();
 
 #if defined(PPX_BUILD_XR)
     void InitializeXRComponentBeforeGrfxDeviceInit();

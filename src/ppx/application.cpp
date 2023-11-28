@@ -232,6 +232,7 @@ Application::Application()
     mSettings.appName       = kDefaultAppName;
     mSettings.window.width  = kDefaultWindowWidth;
     mSettings.window.height = kDefaultWindowHeight;
+    mSettings.window.title  = kDefaultAppName;
 }
 
 Application::Application(uint32_t windowWidth, uint32_t windowHeight, const char* windowTitle)
@@ -647,11 +648,6 @@ void Application::DispatchInitKnobs()
 {
     InitStandardKnobs();
     InitKnobs();
-}
-
-void Application::DispatchConfig()
-{
-    Config(mSettings);
 }
 
 void Application::DispatchSetup()
@@ -1142,15 +1138,8 @@ bool Application::IsRunning() const
     return mWindow->IsRunning();
 }
 
-void Application::FinalizeSettings()
+void Application::UpdateStandardSettings()
 {
-    if (mSettings.appName.empty()) {
-        mSettings.appName = "PPX Application";
-    }
-    if (mSettings.window.title.empty()) {
-        mSettings.window.title = mSettings.appName;
-    }
-
 #if defined(PPX_LINUX_HEADLESS)
     // Force headless if BigWheels was built without surface support.
     mSettings.headless = true;
@@ -1246,22 +1235,26 @@ void Application::ListGPUs() const
 
 Result Application::InitializeWindow()
 {
-    if (!mWindow) {
-        if (mSettings.headless) {
-            mWindow = Window::GetImplHeadless(this);
-        }
-        else {
-            mWindow = Window::GetImplNative(this);
-        }
-        if (!mWindow) {
-            PPX_ASSERT_MSG(false, "out of memory");
-            return ERROR_OUT_OF_MEMORY;
-        }
+    if (mWindow) {
+        return SUCCESS;
     }
+
+    if (mSettings.headless) {
+        mWindow = Window::GetImplHeadless(this);
+    }
+    else {
+        mWindow = Window::GetImplNative(this);
+    }
+
+    if (!mWindow) {
+        PPX_ASSERT_MSG(false, "out of memory");
+        return ERROR_OUT_OF_MEMORY;
+    }
+
     return SUCCESS;
 }
 
-void Application::FrameUpdate()
+void Application::ProcessEvents()
 {
 #if defined(PPX_BUILD_XR)
     if (mSettings.xr.enable) {
@@ -1276,12 +1269,13 @@ void Application::FrameUpdate()
 #endif
     {
         mWindow->ProcessEvent();
-        if (!IsRunning())
+        if (!IsRunning()) {
             return;
+        }
     }
 }
 
-void Application::FrameRender()
+void Application::RenderFrame()
 {
 #if defined(PPX_BUILD_XR)
     if (mSettings.xr.enable) {
@@ -1362,66 +1356,68 @@ void Application::FrameRender()
     }
 }
 
-void Application::Mainloop()
+void Application::MainLoop()
 {
-    // Frame start
-    mFrameStartTime = static_cast<float>(mTimer.MillisSinceStart());
+    while (IsRunning()) {
+        // Frame start
+        mFrameStartTime = static_cast<float>(mTimer.MillisSinceStart());
 
-    FrameUpdate();
-    if (!IsRunning())
-        return;
-    FrameRender();
-
-    // Take screenshot if this is the requested frame.
-    if (mFrameCount == static_cast<uint64_t>(mStandardOpts.pScreenshotFrameNumber->GetValue())) {
-        TakeScreenshot();
-    }
-
-    // Frame end general metrics data, used for recorded metrics, display, screenshots, and pacing.
-    double nowMs       = mTimer.MillisSinceStart();
-    mFrameCount        = mFrameCount + 1;
-    mPreviousFrameTime = static_cast<float>(nowMs) - mFrameStartTime;
-
-    // Keep a rolling window of frame times to calculate stats, if requested.
-    if (mStandardOpts.pStatsFrameWindow->GetValue() > 0) {
-        mFrameTimesMs.push_back(mPreviousFrameTime);
-        if (mFrameTimesMs.size() > mStandardOpts.pStatsFrameWindow->GetValue()) {
-            mFrameTimesMs.pop_front();
+        ProcessEvents();
+        if (!IsRunning()) {
+            return;
         }
-        float totalFrameTimeMs = std::accumulate(mFrameTimesMs.begin(), mFrameTimesMs.end(), 0.f);
-        mAverageFPS            = mFrameTimesMs.size() / (totalFrameTimeMs / 1000.f);
-        mAverageFrameTime      = totalFrameTimeMs / mFrameTimesMs.size();
-    }
-    else {
-        mAverageFPS       = static_cast<float>(mFrameCount / (nowMs / 1000.f));
-        mAverageFrameTime = static_cast<float>(nowMs / mFrameCount);
-    }
+        RenderFrame();
 
-    // Update the metrics. This can be used for both recorded AND displayed metrics,
-    // and therefore should always be called.
-    DispatchUpdateMetrics();
+        // Take screenshot if this is the requested frame.
+        if (mFrameCount == static_cast<uint64_t>(mStandardOpts.pScreenshotFrameNumber->GetValue())) {
+            TakeScreenshot();
+        }
 
-    // Pace frames - if needed
-    if (mSettings.grfx.pacedFrameRate > 0) {
-        if (mFrameCount > 0) {
-            double currentTime  = nowMs / 1000.f;
-            double pacedFPS     = 1.0 / static_cast<double>(mSettings.grfx.pacedFrameRate);
-            double expectedTime = mFirstFrameTime + (mFrameCount * pacedFPS);
-            double diff         = expectedTime - currentTime;
-            if (diff > 0) {
-                Timer::SleepSeconds(diff);
+        // Frame end general metrics data, used for recorded metrics, display, screenshots, and pacing.
+        double nowMs       = mTimer.MillisSinceStart();
+        mFrameCount        = mFrameCount + 1;
+        mPreviousFrameTime = static_cast<float>(nowMs) - mFrameStartTime;
+
+        // Keep a rolling window of frame times to calculate stats, if requested.
+        if (mStandardOpts.pStatsFrameWindow->GetValue() > 0) {
+            mFrameTimesMs.push_back(mPreviousFrameTime);
+            if (mFrameTimesMs.size() > mStandardOpts.pStatsFrameWindow->GetValue()) {
+                mFrameTimesMs.pop_front();
             }
+            float totalFrameTimeMs = std::accumulate(mFrameTimesMs.begin(), mFrameTimesMs.end(), 0.f);
+            mAverageFPS            = mFrameTimesMs.size() / (totalFrameTimeMs / 1000.f);
+            mAverageFrameTime      = totalFrameTimeMs / mFrameTimesMs.size();
         }
         else {
-            mFirstFrameTime = nowMs / 1000.f;
+            mAverageFPS       = static_cast<float>(mFrameCount / (nowMs / 1000.f));
+            mAverageFrameTime = static_cast<float>(nowMs / mFrameCount);
+        }
+
+        // Update the metrics. This can be used for both recorded AND displayed metrics,
+        // and therefore should always be called.
+        DispatchUpdateMetrics();
+
+        // Pace frames - if needed
+        if (mSettings.grfx.pacedFrameRate > 0) {
+            if (mFrameCount > 0) {
+                double currentTime  = nowMs / 1000.f;
+                double pacedFPS     = 1.0 / static_cast<double>(mSettings.grfx.pacedFrameRate);
+                double expectedTime = mFirstFrameTime + (mFrameCount * pacedFPS);
+                double diff         = expectedTime - currentTime;
+                if (diff > 0) {
+                    Timer::SleepSeconds(diff);
+                }
+            }
+            else {
+                mFirstFrameTime = nowMs / 1000.f;
+            }
+        }
+        // If we reach the maximum number of frames allowed
+        if ((mStandardOpts.pFrameCount->GetValue() > 0 && mFrameCount >= mStandardOpts.pFrameCount->GetValue()) ||
+            (nowMs / 1000.f) > mRunTimeSeconds) {
+            Quit();
         }
     }
-    // If we reach the maximum number of frames allowed
-    if ((mStandardOpts.pFrameCount->GetValue() > 0 && mFrameCount >= mStandardOpts.pFrameCount->GetValue()) ||
-        (nowMs / 1000.f) > mRunTimeSeconds) {
-        Quit();
-    }
-    return;
 }
 
 int Application::Run(int argc, char** argv)
@@ -1441,10 +1437,10 @@ int Application::Run(int argc, char** argv)
 
     // Call config.
     // Put this early because it might disable the display.
-    DispatchConfig();
+    Config(mSettings);
 
-    // Knobs need to be set up before commandline parsing.
-    // This has dependency on DispatchConfig() where standard knob default values are set
+    // Knobs need to be set up after commandline parsing.
+    // This has dependency on Config() where standard knob default values are set
     DispatchInitKnobs();
 
     if (!mKnobManager.IsEmpty()) {
@@ -1466,7 +1462,7 @@ int Application::Run(int argc, char** argv)
     // note that mKnobManager needs to be updated by options from mCommandLineParser before this call
     UpdateAssetDirs();
 
-    FinalizeSettings();
+    UpdateStandardSettings();
 
     mDecoratedApiName = ToString(mSettings.grfx.api);
 
@@ -1556,9 +1552,8 @@ int Application::Run(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    while (IsRunning()) {
-        Mainloop();
-    }
+    MainLoop();
+
     // ---------------------------------------------------------------------------------------------
     // Main loop [END]
     // ---------------------------------------------------------------------------------------------
