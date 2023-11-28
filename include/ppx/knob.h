@@ -456,7 +456,6 @@ private:
     std::unordered_set<std::string> mFlagNames;
 
 public:
-    bool IsEmpty() { return mKnobs.empty(); }
     void ResetAllToDefault(); // The knobs can be reset to default by a button in the UI
 
     // Examples of available knobs:
@@ -483,7 +482,7 @@ public:
     }
 
     void        DrawAllKnobs(bool inExistingWindow = false);
-    std::string GetUsageMsg();
+    void        PrintFlags() const;
     void        UpdateFromFlags(const CliOptions& opts);
 
 private:

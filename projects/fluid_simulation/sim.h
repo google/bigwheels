@@ -249,7 +249,7 @@ private:
 class ProjApp : public ppx::Application
 {
 public:
-    virtual void            InitKnobs() override;
+    virtual void            InitKnobs(ppx::StandardKnobsDefaultValues&) override;
     virtual void            Config(ppx::ApplicationSettings& settings) override;
     virtual void            Setup() override;
     virtual void            Render() override;

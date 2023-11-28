@@ -148,24 +148,10 @@ public:
 
     std::string       GetJsonConfigFlagName() const { return mJsonConfigFlagName; }
     const CliOptions& GetOptions() const { return mOpts; }
-    std::string       GetUsageMsg() const { return mUsageMsg; }
-
-    void AppendUsageMsg(const std::string& additionalMsg) { mUsageMsg += additionalMsg; }
 
 private:
     CliOptions  mOpts;
     std::string mJsonConfigFlagName = "config-json-path";
-    std::string mUsageMsg           = R"(
-USAGE
-==============================
-Boolean options can be turned on with:
-  --flag-name true, --flag-name 1, --flag-name
-And turned off with:
-  --flag-name false, --flag-name 0, --no-flag-name
-
---help : Prints this help message and exits.
-==============================
-)";
 };
 
 } // namespace ppx

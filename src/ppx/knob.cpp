@@ -124,7 +124,7 @@ void KnobManager::DrawAllKnobs(bool inExistingWindow)
     }
 }
 
-std::string KnobManager::GetUsageMsg()
+void KnobManager::PrintFlags() const
 {
     std::string usageMsg = "\nFlags:\n";
     for (const auto& knobPtr : mKnobs) {
@@ -138,7 +138,7 @@ std::string KnobManager::GetUsageMsg()
         }
         usageMsg += knobMsg + "\n";
     }
-    return usageMsg;
+    PPX_LOG_INFO(usageMsg);
 }
 
 void KnobManager::UpdateFromFlags(const CliOptions& opts)

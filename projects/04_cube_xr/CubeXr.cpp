@@ -33,6 +33,14 @@ void CubeXrApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.pacedFrameRate        = 0;
     settings.xr.enable                  = true;
     settings.xr.enableDebugCapture      = false;
+
+#if 0
+    // Same thing
+    settings.xr.uiWidth = 256;
+    settings.xr.uiHeight = 256;
+    // The following will always take precedence.
+    settings.standardKnobsDefaultValue.xrUiResolution = std::make_pair(512, 1024);
+#endif
 }
 
 void CubeXrApp::Setup()
