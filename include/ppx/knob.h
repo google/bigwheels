@@ -92,124 +92,198 @@ private:
     friend class KnobManager;
 };
 
-// KnobCheckbox will be displayed as a checkbox in the UI
-class KnobCheckbox final
-    : public Knob
+template <typename ValueT>
+class KnobDefaultSpec
 {
 public:
-    KnobCheckbox(const std::string& flagName, bool defaultValue);
+    using ValueType = ValueT;
 
-    bool GetValue() const { return mValue; }
-
-    // Used for when mValue needs to be updated outside of UI
-    void ResetToDefault() override { SetValue(mDefaultValue); }
-    void SetValue(bool newValue);
-
-private:
-    void        Draw() override;
-    std::string ValueString() override;
-
-    // Expected commandline flag format:
-    // --flag_name <true|false>
-    void UpdateFromFlags(const CliOptions& opts) override;
-
-    void SetDefaultAndValue(bool newValue);
+    explicit KnobDefaultSpec(const ValueType& defaultValue)
+        : mDefaultValue(defaultValue) {}
+    virtual bool Validate(const ValueType&) { return true; }
+    ValueType    GetDefault() { return mDefaultValue; }
+    void         SetDefault(const ValueType& value) { mDefaultValue = value; }
+    std::string  CommandLinePlaceholder() const;
 
 private:
-    bool mValue;
-    bool mDefaultValue;
+    ValueType mDefaultValue;
 };
 
-// KnobSlider will be displayed as a slider in the UI
-// ImGui sliders can also become input boxes with ctrl + right click
-template <typename T>
-class KnobSlider final
-    : public Knob
+template <>
+inline std::string KnobDefaultSpec<bool>::CommandLinePlaceholder() const
+{
+    return "<true|false>";
+}
+
+template <typename ValueT>
+class KnobRangeSpec
 {
 public:
-    static_assert(std::is_same_v<T, int> || std::is_same_v<T, float>, "KnobSlider must be created with type: int, float");
+    using ValueType = ValueT;
 
-    KnobSlider(const std::string& flagName, T defaultValue, T minValue, T maxValue)
-        : Knob(flagName, true), mValue(defaultValue), mDefaultValue(defaultValue), mMinValue(minValue), mMaxValue(maxValue)
+    KnobRangeSpec(ValueType defaultValue, ValueType minValue, ValueType maxValue)
+        : mDefaultValue(defaultValue), mMinValue(minValue), mMaxValue(maxValue)
     {
         PPX_ASSERT_MSG(minValue < maxValue, "invalid range to initialize slider");
-        PPX_ASSERT_MSG(minValue <= defaultValue && defaultValue <= maxValue, "defaultValue is out of range");
-        if constexpr (std::is_same_v<T, int>) {
-            SetFlagParameters("<" + std::to_string(mMinValue) + "~" + std::to_string(mMaxValue) + ">");
-        }
-        else if constexpr (std::is_same_v<T, float>) {
-            std::stringstream ss;
-            ss.precision(1);
-            ss << std::fixed << "<" << mMinValue << "~" << mMaxValue << ">";
-            SetFlagParameters(ss.str());
-        }
+        PPX_ASSERT_MSG(Validate(defaultValue), "defaultValue is out of range");
+    }
+    bool Validate(const ValueType& value) const { return mMinValue <= value && value <= mMaxValue; }
 
+    const ValueType& GetDefault() const { return mDefaultValue; }
+    void             SetDefault(const ValueType& defaultValue)
+    {
+        PPX_ASSERT_MSG(Validate(defaultValue), "defaultValue is out of range");
+        mDefaultValue = defaultValue;
+    }
+    const ValueType& GetMin() const { return mMinValue; }
+    const ValueType& GetMax() const { return mMaxValue; }
+    std::string      CommandLinePlaceholder() const;
+
+private:
+    ValueType mDefaultValue;
+    ValueType mMinValue;
+    ValueType mMaxValue;
+};
+
+template <>
+inline std::string KnobRangeSpec<int>::CommandLinePlaceholder() const
+{
+    return std::string("<") + std::to_string(mMinValue) + "~" + std::to_string(mMaxValue) + ">";
+}
+
+template <>
+inline std::string KnobRangeSpec<float>::CommandLinePlaceholder() const
+{
+    std::stringstream ss;
+    ss.precision(1);
+    ss << std::fixed << "<" << mMinValue << "~" << mMaxValue << ">";
+    return ss.str();
+}
+
+template <typename Spec>
+class KnobValue : public Knob
+{
+public:
+    using SpecType      = Spec;
+    using KnobValueType = KnobValue<SpecType>;
+    using ValueType     = typename SpecType::ValueType;
+
+    using DrawPlugin = std::function<bool(const std::string&, const SpecType&, ValueType&)>;
+
+    KnobValue(const std::string& name, const Spec& spec, DrawPlugin draw = {})
+        : Knob(name, static_cast<bool>(draw)), mSpec(spec), mValue(mSpec.GetDefault()), mDraw(draw)
+    {
+        SetFlagParameters(mSpec.CommandLinePlaceholder());
         RaiseUpdatedFlag();
     }
 
-    T GetValue() const { return mValue; }
-
-    // Used for when mValue needs to be updated outside of UI
-    void ResetToDefault() override { SetValue(mDefaultValue); }
-    void SetValue(T newValue)
+    virtual ValueType GetValue() { return mValue; }
+    virtual void      SetValue(ValueType newValue)
     {
-        if (!IsValidValue(newValue)) {
-            PPX_LOG_ERROR(mFlagName << " cannot be set to " << newValue << " because it's out of range " << mMinValue << "~" << mMaxValue);
+        if (!mSpec.Validate(newValue)) {
             return;
         }
-        if (newValue == mValue) {
+        if (mValue == newValue) {
             return;
         }
         mValue = newValue;
         RaiseUpdatedFlag();
     }
 
-private:
-    void Draw() override
+    const SpecType& GetSpec() { return mSpec; }
+    void            SetSpec(const SpecType& spec)
     {
-        if constexpr (std::is_same_v<T, int>) {
-            ImGui::SliderInt(mDisplayName.c_str(), &mValue, mMinValue, mMaxValue, NULL, ImGuiSliderFlags_AlwaysClamp);
-        }
-        else if constexpr (std::is_same_v<T, float>) {
-            ImGui::SliderFloat(mDisplayName.c_str(), &mValue, mMinValue, mMaxValue, "%.3f", ImGuiSliderFlags_AlwaysClamp);
-        }
-
-        if (ImGui::IsItemDeactivatedAfterEdit()) {
-            RaiseUpdatedFlag();
+        mSpec = spec;
+        if (!mSpec.Validate(mValue)) {
+            mValue = mSpec.GetDefault();
         }
     }
 
-    std::string ValueString() override
+    virtual void SetDefaultAndValue(ValueType newValue)
     {
-        return ppx::string_util::ToString(mValue);
+        mSpec.SetDefault(newValue);
+        ResetToDefault();
     }
 
-    // Expected commandline flag format:
-    // --flag_name <int>
     void UpdateFromFlags(const CliOptions& opts) override
     {
         SetDefaultAndValue(opts.GetOptionValueOrDefault(mFlagName, mValue));
     }
 
-    bool IsValidValue(T val)
+    void ResetToDefault() override { SetValue(mSpec.GetDefault()); }
+    void SetDrawPlugin(DrawPlugin draw)
     {
-        return mMinValue <= val && val <= mMaxValue;
+        mDraw = draw;
     }
 
-    void SetDefaultAndValue(T newValue)
+    void Draw() override
     {
-        PPX_ASSERT_MSG(IsValidValue(newValue), "invalid default value");
-        mDefaultValue = newValue;
-        ResetToDefault();
+        if (!mDraw) {
+            return;
+        }
+        const bool digestUpdate = mDraw(mDisplayName, mSpec, mValue);
+        if (digestUpdate) {
+            RaiseUpdatedFlag();
+        }
     }
+
+protected:
+    ValueType& GetMutableValue() { return mValue; }
 
 private:
-    T mValue;
-    T mDefaultValue;
+    std::string ValueString() override
+    {
+        return ppx::string_util::ToString(GetValue());
+    }
+    Spec       mSpec;
+    ValueType  mValue;
+    DrawPlugin mDraw;
+};
 
-    // mValue will be clamped to the mMinValue to mMaxValue range, inclusive
-    T mMinValue;
-    T mMaxValue;
+inline bool KnobImguiCheckbox(const std::string& name, const KnobDefaultSpec<bool>&, bool& value)
+{
+    if (!ImGui::Checkbox(name.c_str(), &value)) {
+        return false;
+    }
+    return true;
+}
+
+template <typename Spec>
+bool KnobImguiSlider(const std::string& name, const Spec& spec, typename Spec::ValueType& value)
+{
+    using ValueType = typename Spec::ValueType;
+    if constexpr (std::is_same_v<ValueType, int>) {
+        ImGui::SliderInt(name.c_str(), &value, spec.GetMin(), spec.GetMax(), NULL, ImGuiSliderFlags_AlwaysClamp);
+    }
+    else if constexpr (std::is_same_v<ValueType, float>) {
+        ImGui::SliderFloat(name.c_str(), &value, spec.GetMin(), spec.GetMax(), "%.3f", ImGuiSliderFlags_AlwaysClamp);
+    }
+
+    return ImGui::IsItemDeactivatedAfterEdit();
+}
+
+// KnobCheckbox will be displayed as a checkbox in the UI
+struct KnobCheckbox final
+    : public KnobValue<KnobDefaultSpec<bool>>
+{
+public:
+    KnobCheckbox(const std::string& flagName, bool defaultValue)
+        : KnobValueType(flagName, SpecType(defaultValue), KnobImguiCheckbox) {}
+};
+
+// KnobSlider will be displayed as a slider in the UI
+// ImGui sliders can also become input boxes with ctrl + right click
+template <typename T>
+struct KnobSlider final
+    : public KnobValue<KnobRangeSpec<T>>
+{
+public:
+    using typename KnobValue<KnobRangeSpec<T>>::SpecType;
+
+    static_assert(std::is_same_v<T, int> || std::is_same_v<T, float>, "KnobSlider must be created with type: int, float");
+
+    KnobSlider(const std::string& flagName, T defaultValue, T minValue, T maxValue)
+        : KnobValue<KnobRangeSpec<T>>(flagName, SpecType(defaultValue, minValue, maxValue), &KnobImguiSlider<SpecType>) {}
 };
 
 template <typename T, typename NameT = const char*>
@@ -446,6 +520,7 @@ class KnobManager
 public:
     KnobManager()                   = default;
     KnobManager(const KnobManager&) = delete;
+
     KnobManager& operator=(const KnobManager&) = delete;
 
 private:
