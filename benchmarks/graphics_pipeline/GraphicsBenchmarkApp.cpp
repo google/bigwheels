@@ -92,7 +92,7 @@ void GraphicsBenchmarkApp::InitKnobs()
 
     GetKnobManager().InitKnob(&pDrawCallCount, "drawcall-count", /* defaultValue = */ 1, /* minValue = */ 1, kMaxSphereInstanceCount);
     pDrawCallCount->SetDisplayName("DrawCall Count");
-    pDrawCallCount->SetFlagDescription("Select the number of draw calls to be used to draw the `sphere-count` spheres.");
+    pDrawCallCount->SetFlagDescription("Select the number of draw calls to be used to draw the `--sphere-count` spheres.");
     pDrawCallCount->SetIndent(1);
 
     GetKnobManager().InitKnob(&pAlphaBlend, "alpha-blend", false);
@@ -102,7 +102,7 @@ void GraphicsBenchmarkApp::InitKnobs()
 
     GetKnobManager().InitKnob(&pDepthTestWrite, "depth-test-write", true);
     pDepthTestWrite->SetDisplayName("Depth Test & Write");
-    pDepthTestWrite->SetFlagDescription("Enable depth test and depth write for spheres (Default: enabled).");
+    pDepthTestWrite->SetFlagDescription("Enable depth test and depth write for spheres.");
     pDepthTestWrite->SetIndent(1);
 
     GetKnobManager().InitKnob(&pFullscreenQuadsCount, "fullscreen-quads-count", /* defaultValue = */ 0, /* minValue = */ 0, kMaxFullscreenQuadsCount);
@@ -111,20 +111,20 @@ void GraphicsBenchmarkApp::InitKnobs()
 
     GetKnobManager().InitKnob(&pFullscreenQuadsType, "fullscreen-quads-type", 0, kFullscreenQuadsTypes);
     pFullscreenQuadsType->SetDisplayName("Type");
-    pFullscreenQuadsType->SetFlagDescription("Select the type of the fullscreen quads (see --fullscreen-quads-count).");
+    pFullscreenQuadsType->SetFlagDescription("Select the type of the fullscreen quads. See also `--fullscreen-quads-count`.");
     pFullscreenQuadsType->SetIndent(1);
 
     GetKnobManager().InitKnob(&pFullscreenQuadsColor, "fullscreen-quads-color", 0, kFullscreenQuadsColors);
     pFullscreenQuadsColor->SetDisplayName("Color");
-    pFullscreenQuadsColor->SetFlagDescription("Select the hue for the solid color fullscreen quads (see --fullscreen-quads-count).");
+    pFullscreenQuadsColor->SetFlagDescription("Select the hue for the solid color fullscreen quads. See also `--fullscreen-quads-count`.");
     pFullscreenQuadsColor->SetIndent(2);
 
     GetKnobManager().InitKnob(&pQuadTextureFile, "fullscreen-quads-texture-path", kQuadTextureFile);
-    pQuadTextureFile->SetFlagDescription("Texture used in fullscreen quads (see --fullscreen-quads-count) texture mode (see --fullscreen-quads-type).");
+    pQuadTextureFile->SetFlagDescription("Texture used in fullscreen quads texture mode. See also `--fullscreen-quads-count` and `--fullscreen-quads-type`.");
 
     GetKnobManager().InitKnob(&pFullscreenQuadsSingleRenderpass, "fullscreen-quads-single-renderpass", true);
     pFullscreenQuadsSingleRenderpass->SetDisplayName("Single Renderpass");
-    pFullscreenQuadsSingleRenderpass->SetFlagDescription("Render all fullscreen quads (see --fullscreen-quads-count) in a single renderpass.");
+    pFullscreenQuadsSingleRenderpass->SetFlagDescription("Render all fullscreen quads in a single renderpass. See also `--fullscreen-quads-count`");
     pFullscreenQuadsSingleRenderpass->SetIndent(1);
 
     // Offscreen rendering knobs:

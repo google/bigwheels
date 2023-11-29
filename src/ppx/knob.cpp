@@ -132,8 +132,10 @@ std::string KnobManager::GetUsageMsg()
         if (knobPtr->mFlagParameters != "") {
             knobMsg += " " + knobPtr->mFlagParameters;
         }
+        knobMsg += "\n";
+        std::string knobDefault = "(Default: " + knobPtr->ValueString() + ")";
+        knobMsg += ppx::string_util::WrapText(knobDefault, kUsageMsgTotalWidth, kUsageMsgIndentWidth);
         if (knobPtr->mFlagDescription != "") {
-            knobMsg += "\n";
             knobMsg += ppx::string_util::WrapText(knobPtr->mFlagDescription, kUsageMsgTotalWidth, kUsageMsgIndentWidth);
         }
         usageMsg += knobMsg + "\n";

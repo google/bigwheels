@@ -575,15 +575,35 @@ TEST_F(KnobManagerWithKnobsTestFixture, KnobManager_GetBasicUsageMsg)
     std::string usageMsg = R"(
 Flags:
 --flag_name1 <true|false>
+                    (Default: true)
+
 --flag_name2 <true|false>
+                    (Default: true)
+
 --flag_name3 <0~10>
+                    (Default: 5)
+
 --flag_name4 <c1|c2|"c3 and more">
+                    (Default: c2)
+
 --flag_name5
+                    (Default: true)
+
 --flag_name6
+                    (Default: 6.6)
+
 --flag_name7
+                    (Default: 8)
+
 --flag_name8 <0.0~10.0>
+                    (Default: 5)
+
 --flag_name9
+                    (Default: 1, 2)
+
 --flag_name10
+                    (Default: a, b, c, d and more)
+
 )";
     EXPECT_EQ(km.GetUsageMsg(), usageMsg);
 }
@@ -606,25 +626,40 @@ TEST_F(KnobManagerWithKnobsTestFixture, KnobManager_GetCustomizedUsageMsg)
     std::string usageMsg = R"(
 Flags:
 --flag_name1 <bool>
+                    (Default: true)
                     description1
 
 --flag_name2 <true|false>
+                    (Default: true)
+
 --flag_name3 <N>
+                    (Default: 5)
                     description3
 
 --flag_name4 <c1|c2|"c3 and more">
+                    (Default: c2)
                     description4
 
 --flag_name5 <0|1>
+                    (Default: true)
+
 --flag_name6 <0.0~10.0>
+                    (Default: 6.6)
                     description6
 
 --flag_name7 <0~INT_MAX>
+                    (Default: 8)
+
 --flag_name8 <0.000~10.000>
+                    (Default: 5)
+
 --flag_name9
+                    (Default: 1, 2)
                     description9
 
 --flag_name10 <string>
+                    (Default: a, b, c, d and more)
+
 )";
     EXPECT_EQ(km.GetUsageMsg(), usageMsg);
 }
