@@ -794,13 +794,13 @@ void Application::InitStandardKnobs()
         "Enable metrics report output. See also: `--metrics-filename` and `--overwrite-metrics-file`.");
 
     mStandardOpts.pFrameCount =
-        mKnobManager.CreateKnob<KnobFlag<uint64_t>>("frame-count", 0, 0, mSettings.standardKnobsDefaultValue.frameCount);
+        mKnobManager.CreateKnob<KnobFlag<uint64_t>>("frame-count", mSettings.standardKnobsDefaultValue.frameCount, 0, UINT64_MAX);
     mStandardOpts.pFrameCount->SetFlagDescription(
         "Shutdown the application after successfully rendering N frames. "
         "If 0, this is disabled.");
 
     mStandardOpts.pGpuIndex =
-        mKnobManager.CreateKnob<KnobFlag<int>>("gpu", 0, 0, mSettings.standardKnobsDefaultValue.gpuIndex);
+        mKnobManager.CreateKnob<KnobFlag<int>>("gpu", mSettings.standardKnobsDefaultValue.gpuIndex, 0, INT_MAX);
     mStandardOpts.pGpuIndex->SetFlagDescription(
         "Select the gpu with the given index. To determine the set of valid "
         "indices use `--list-gpus`.");
@@ -852,12 +852,12 @@ void Application::InitStandardKnobs()
     });
 
     mStandardOpts.pRunTimeMs =
-        mKnobManager.CreateKnob<KnobFlag<int>>("run-time-ms", 0, 0, mSettings.standardKnobsDefaultValue.runTimeMs);
+        mKnobManager.CreateKnob<KnobFlag<int>>("run-time-ms", mSettings.standardKnobsDefaultValue.runTimeMs, 0, INT_MAX);
     mStandardOpts.pRunTimeMs->SetFlagDescription(
         "Shutdown the application after N milliseconds. If 0, this is disabled.");
 
     mStandardOpts.pScreenshotFrameNumber =
-        mKnobManager.CreateKnob<KnobFlag<int>>("screenshot-frame-number", -1, -1, mSettings.standardKnobsDefaultValue.screenshotFrameNumber);
+        mKnobManager.CreateKnob<KnobFlag<int>>("screenshot-frame-number", mSettings.standardKnobsDefaultValue.screenshotFrameNumber, -1, INT_MAX);
     mStandardOpts.pScreenshotFrameNumber->SetFlagDescription(
         "Take a screenshot of frame number N and save it in PPM format. See also "
         "`--screenshot-path`.");
@@ -870,7 +870,7 @@ void Application::InitStandardKnobs()
     mStandardOpts.pScreenshotPath->SetFlagParameters("<path>");
 
     mStandardOpts.pStatsFrameWindow = mKnobManager.CreateKnob<KnobFlag<int>>(
-        "stats-frame-window", -1, -1, mSettings.standardKnobsDefaultValue.statsFrameWindow);
+        "stats-frame-window", mSettings.standardKnobsDefaultValue.statsFrameWindow, -1, INT_MAX);
     mStandardOpts.pStatsFrameWindow->SetFlagDescription(
         "Calculate frame statistics over the last N frames only. If 0, "
         "all frames since the beginning of the application will be used.");
