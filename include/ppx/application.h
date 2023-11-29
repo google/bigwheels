@@ -327,23 +327,23 @@ struct ApplicationSettings
     // Default values for standard knobs
     struct StandardKnobsDefaultValue
     {
-        std::vector<std::string> assetsPaths     = {};
-        std::vector<std::string> configJsonPaths = {};
-        bool                     deterministic   = false;
-        bool                     enableMetrics   = false;
-        uint64_t                 frameCount      = UINT64_MAX;
-        int                      gpuIndex        = INT_MAX;
+        const std::vector<std::string> assetsPaths     = {};
+        const std::vector<std::string> configJsonPaths = {};
+        bool                           deterministic   = false;
+        bool                           enableMetrics   = false;
+        uint64_t                       frameCount      = 0;
+        int                            gpuIndex        = 0;
 #if !defined(PPX_LINUX_HEADLESS)
         bool headless = false;
 #endif
         bool                listGpus              = false;
-        std::string         metricsFilename       = std::filesystem::current_path().u8string();
+        std::string         metricsFilename       = "report_@.json";
         bool                overwriteMetricsFile  = false;
         std::pair<int, int> resolution            = std::make_pair(0, 0);
-        int                 runTimeMs             = INT_MAX;
-        int                 screenshotFrameNumber = INT_MAX;
-        std::string         screenshotPath        = "";
-        int                 statsFrameWindow      = INT_MAX;
+        int                 runTimeMs             = 0;
+        int                 screenshotFrameNumber = -1;
+        std::string         screenshotPath        = "screenshot_frame#.ppm";
+        int                 statsFrameWindow      = -1;
         bool                useSoftwareRenderer   = false;
 #if defined(PPX_BUILD_XR)
         std::pair<int, int>      xrUiResolution       = std::make_pair(0, 0);
@@ -534,7 +534,6 @@ public:
 #endif
 private:
     void   InternalCtor();
-    void   InitializeAssetDirs();
     Result InitializePlatform();
     Result InitializeGrfxDevice();
     Result InitializeGrfxSurface();

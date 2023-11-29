@@ -261,27 +261,11 @@ void Application::InternalCtor()
     if (tmres != ppx::TIMER_RESULT_SUCCESS) {
         PPX_ASSERT_MSG(false, "failed to initialize timer's statick data");
     }
-
-    InitializeAssetDirs();
 }
 
 Application* Application::Get()
 {
     return sApplicationInstance;
-}
-
-void Application::InitializeAssetDirs()
-{
-#if defined(PPX_ANDROID)
-    // On Android, the assets folder is independently specified
-    // Assets are loaded relative to this folder
-    AddAssetDir("");
-#else
-    std::filesystem::path path = GetApplicationPath();
-    path.remove_filename();
-    path /= RELATIVE_PATH_TO_PROJECT_ROOT;
-    AddAssetDir(path / "assets");
-#endif
 }
 
 Result Application::InitializePlatform()
@@ -779,7 +763,7 @@ void Application::SaveMetricsReportToDisk()
     }
 
     // Ensure the needed knobs were initialized by the KnobManager.
-    PPX_ASSERT_MSG(mStandardOpts.pMetricsFilename != nullptr, "The --metrics-filename knob was not initialized.");
+    PPX_ASSERT_MSG(mStandardOpts.pMetricsFilename != nullptr, "The --metrics-path knob was not initialized.");
     PPX_ASSERT_MSG(mStandardOpts.pOverwriteMetricsFile != nullptr, "The --overwrite-metrics-file knob was not initialized.");
 
     // Export the report from the metrics manager to the disk.
@@ -790,113 +774,100 @@ void Application::SaveMetricsReportToDisk()
 void Application::InitStandardKnobs()
 {
     // Flag names in alphabetical order
-    mStandardOpts.pAssetsPaths =
-        mKnobManager.CreateKnob<KnobFlag<std::vector<std::string>>>("assets-path", mSettings.standardKnobsDefaultValue.assetsPaths);
+    GetKnobManager().InitKnob(&mStandardOpts.pAssetsPaths, "extra-assets-path", mSettings.standardKnobsDefaultValue.assetsPaths);
     mStandardOpts.pAssetsPaths->SetFlagDescription(
-        "Add a path before the default assets folder in the search list.");
+        "Add a path to the front of the assets folder search list.");
     mStandardOpts.pAssetsPaths->SetFlagParameters("<path>");
 
-    mStandardOpts.pConfigJsonPaths = mKnobManager.CreateKnob<KnobFlag<std::vector<std::string>>>(mCommandLineParser.GetJsonConfigFlagName(), mSettings.standardKnobsDefaultValue.configJsonPaths);
+    GetKnobManager().InitKnob(&mStandardOpts.pConfigJsonPaths, mCommandLineParser.GetJsonConfigFlagName(), mSettings.standardKnobsDefaultValue.configJsonPaths);
     mStandardOpts.pConfigJsonPaths->SetFlagDescription(
         "Additional commandline flags specified in a JSON file. Values specified in JSON files are "
         "always overwritten by those specified on the command line. Between different files, the "
         "later ones take priority.");
     mStandardOpts.pConfigJsonPaths->SetFlagParameters("<path>");
 
-    mStandardOpts.pDeterministic =
-        mKnobManager.CreateKnob<KnobFlag<bool>>("deterministic", mSettings.standardKnobsDefaultValue.deterministic);
+    GetKnobManager().InitKnob(&mStandardOpts.pDeterministic, "deterministic", mSettings.standardKnobsDefaultValue.deterministic);
     mStandardOpts.pDeterministic->SetFlagDescription(
-        "Disable non-deterministic behaviors, like clocks.");
+        "Disable non-deterministic behaviors, like clocks and ImGui");
 
-    mStandardOpts.pEnableMetrics =
-        mKnobManager.CreateKnob<KnobFlag<bool>>("enable-metrics", mSettings.standardKnobsDefaultValue.enableMetrics);
+    GetKnobManager().InitKnob(&mStandardOpts.pEnableMetrics, "enable-metrics", mSettings.standardKnobsDefaultValue.enableMetrics);
     mStandardOpts.pEnableMetrics->SetFlagDescription(
-        "Enable metrics report output. See also: `--metrics-filename` and `--overwrite-metrics-file`.");
+        "Enable metrics report output. See also: `--metrics-path` and `--overwrite-metrics-file`.");
 
-    mStandardOpts.pFrameCount =
-        mKnobManager.CreateKnob<KnobFlag<uint64_t>>("frame-count", 0, 0, mSettings.standardKnobsDefaultValue.frameCount);
+    GetKnobManager().InitKnob(&mStandardOpts.pFrameCount, "frame-count", mSettings.standardKnobsDefaultValue.frameCount, 0, UINT64_MAX);
     mStandardOpts.pFrameCount->SetFlagDescription(
         "Shutdown the application after successfully rendering N frames. "
-        "Default: 0 (infinite)");
+        "If 0, this is disabled.");
 
-    mStandardOpts.pGpuIndex =
-        mKnobManager.CreateKnob<KnobFlag<int>>("gpu", 0, 0, mSettings.standardKnobsDefaultValue.gpuIndex);
+    GetKnobManager().InitKnob(&mStandardOpts.pGpuIndex, "gpu", mSettings.standardKnobsDefaultValue.gpuIndex, 0, INT_MAX);
     mStandardOpts.pGpuIndex->SetFlagDescription(
         "Select the gpu with the given index. To determine the set of valid "
         "indices use --list-gpus.");
 
 #if !defined(PPX_LINUX_HEADLESS)
-    mStandardOpts.pHeadless =
-        mKnobManager.CreateKnob<KnobFlag<bool>>("headless", mSettings.standardKnobsDefaultValue.headless);
+    GetKnobManager().InitKnob(&mStandardOpts.pHeadless, "headless", mSettings.standardKnobsDefaultValue.headless);
     mStandardOpts.pHeadless->SetFlagDescription(
         "Run the sample without creating windows.");
 #endif
 
-    mStandardOpts.pListGpus =
-        mKnobManager.CreateKnob<KnobFlag<bool>>("list-gpus", mSettings.standardKnobsDefaultValue.listGpus);
+    GetKnobManager().InitKnob(&mStandardOpts.pListGpus, "list-gpus", mSettings.standardKnobsDefaultValue.listGpus);
     mStandardOpts.pListGpus->SetFlagDescription(
         "Prints a list of the available GPUs on the current system with their "
-        "index and exits (see --gpu).");
+        "index and exits. See also `--gpu`.");
 
-    mStandardOpts.pMetricsFilename =
-        mKnobManager.CreateKnob<KnobFlag<std::string>>("metrics-filename", mSettings.standardKnobsDefaultValue.metricsFilename);
+    GetKnobManager().InitKnob(&mStandardOpts.pMetricsFilename, "metrics-path", mSettings.standardKnobsDefaultValue.metricsFilename);
     mStandardOpts.pMetricsFilename->SetFlagDescription(
         "If metrics are enabled, save the metrics report to the "
-        "provided filename (including path). If used, any `@` "
-        "symbols in the filename (not the path) will be replaced "
-        "with the current timestamp. If the filename does not end in "
-        "`.json`, it will be appended. Default: `report_@`. See also: "
-        "`--enable-metrics` and `--overwrite-metrics-file`.");
+        "provided path. If used, any `@` symbols in the filename "
+        "(not the path) will be replaced with the current timestamp. "
+        "If the filename does not end in `.json`, it will be appended. "
+        "If there is just a filename, it will be saved in the current "
+        "folder. See also: `--enable-metrics` and `--overwrite-metrics-file`.");
 
-    mStandardOpts.pOverwriteMetricsFile =
-        mKnobManager.CreateKnob<KnobFlag<bool>>("overwrite-metrics-file", mSettings.standardKnobsDefaultValue.overwriteMetricsFile);
+    GetKnobManager().InitKnob(&mStandardOpts.pOverwriteMetricsFile, "overwrite-metrics-file", mSettings.standardKnobsDefaultValue.overwriteMetricsFile);
     mStandardOpts.pOverwriteMetricsFile->SetFlagDescription(
         "Only applies if metrics are enabled with `--enable-metrics`. "
-        "If an existing file at the path set with `--metrics-filename` is found, it will be overwritten. "
-        "Default: false. See also: `--enable-metrics` and `--metrics-filename`.");
+        "If an existing file at the path set with `--metrics-path` is found, it will be overwritten. "
+        "See also: `--enable-metrics` and `--metrics-path`.");
 
-    mStandardOpts.pResolution =
-        mKnobManager.CreateKnob<KnobFlag<std::pair<int, int>>>(
-            "resolution", mSettings.standardKnobsDefaultValue.resolution);
+    GetKnobManager().InitKnob(&mStandardOpts.pResolution, "resolution", mSettings.standardKnobsDefaultValue.resolution);
     mStandardOpts.pResolution->SetFlagDescription(
         "Specify the main window resolution in pixels. Width and Height must be "
-        "two positive integers greater or equal to 1. (Default: Window dimensions)");
+        "two positive integers greater or equal to 1. If 0, window resolution will be used.");
 #if defined(PPX_BUILD_XR)
     mStandardOpts.pResolution->SetFlagDescription(
         "Specify the per-eye resolution in pixels. Width and Height must be two "
-        "positive integers greater or equal to 1. (Default: Window dimensions)");
+        "positive integers greater or equal to 1. If 0, window resolution will be used.");
 #endif
     mStandardOpts.pResolution->SetFlagParameters("<width>x<height>");
     mStandardOpts.pResolution->SetValidator([](std::pair<int, int> res) {
         return res.first >= 0 && res.second >= 0;
     });
 
-    mStandardOpts.pRunTimeMs =
-        mKnobManager.CreateKnob<KnobFlag<int>>("run-time-ms", 0, 0, mSettings.standardKnobsDefaultValue.runTimeMs);
+    GetKnobManager().InitKnob(&mStandardOpts.pRunTimeMs, "run-time-ms", mSettings.standardKnobsDefaultValue.runTimeMs, 0, INT_MAX);
     mStandardOpts.pRunTimeMs->SetFlagDescription(
-        "Shutdown the application after N milliseconds. Default: 0 (infinite).");
+        "Shutdown the application after N milliseconds. If 0, this is disabled.");
 
-    mStandardOpts.pScreenshotFrameNumber =
-        mKnobManager.CreateKnob<KnobFlag<int>>("screenshot-frame-number", -1, -1, mSettings.standardKnobsDefaultValue.screenshotFrameNumber);
+    GetKnobManager().InitKnob(&mStandardOpts.pScreenshotFrameNumber, "screenshot-frame-number", mSettings.standardKnobsDefaultValue.screenshotFrameNumber, -1, INT_MAX);
     mStandardOpts.pScreenshotFrameNumber->SetFlagDescription(
         "Take a screenshot of frame number N and save it in PPM format. See also "
         "`--screenshot-path`.");
 
-    mStandardOpts.pScreenshotPath =
-        mKnobManager.CreateKnob<KnobFlag<std::string>>("screenshot-path", mSettings.standardKnobsDefaultValue.screenshotPath);
+    GetKnobManager().InitKnob(&mStandardOpts.pScreenshotPath, "screenshot-path", mSettings.standardKnobsDefaultValue.screenshotPath);
     mStandardOpts.pScreenshotPath->SetFlagDescription(
-        "Save the screenshot to this path. Default: \"screenshot_frame<N>.ppm\" "
-        "in the current working directory.");
+        "Save the screenshot to this path. If used, any `#` symbols in the filename "
+        "(not the path) will be replaced with the number of the screenshotted frame. "
+        "If the filename does not end in `.ppm`, it will be appended. "
+        "If there is just a filename, it will be saved in the current folder. "
+        "See also `--screenshot-frame-number`");
     mStandardOpts.pScreenshotPath->SetFlagParameters("<path>");
 
-    mStandardOpts.pStatsFrameWindow = mKnobManager.CreateKnob<KnobFlag<int>>(
-        "stats-frame-window", -1, -1, mSettings.standardKnobsDefaultValue.statsFrameWindow);
+    GetKnobManager().InitKnob(&mStandardOpts.pStatsFrameWindow, "stats-frame-window", mSettings.standardKnobsDefaultValue.statsFrameWindow, -1, INT_MAX);
     mStandardOpts.pStatsFrameWindow->SetFlagDescription(
         "Calculate frame statistics over the last N frames only. Set to 0 to use "
         "all frames since the beginning of the application.");
 
-    mStandardOpts.pUseSoftwareRenderer =
-        mKnobManager.CreateKnob<KnobFlag<bool>>("use-software-renderer", mSettings.standardKnobsDefaultValue.useSoftwareRenderer);
+    GetKnobManager().InitKnob(&mStandardOpts.pUseSoftwareRenderer, "use-software-renderer", mSettings.standardKnobsDefaultValue.useSoftwareRenderer);
     mStandardOpts.pUseSoftwareRenderer->SetFlagDescription(
         "Use a software renderer instead of a hardware device, if available.");
     mStandardOpts.pUseSoftwareRenderer->SetValidator([gpuIndex{mStandardOpts.pGpuIndex->GetValue()}](bool useSoftwareRenderer) {
@@ -905,20 +876,16 @@ void Application::InitStandardKnobs()
     });
 
 #if defined(PPX_BUILD_XR)
-    mStandardOpts.pXrUiResolution =
-        mKnobManager.CreateKnob<KnobFlag<std::pair<int, int>>>(
-            "xr-ui-resolution", mSettings.standardKnobsDefaultValue.xrUiResolution);
+    GetKnobManager().InitKnob(&mStandardOpts.pXrUiResolution, "xr-ui-resolution", mSettings.standardKnobsDefaultValue.xrUiResolution);
     mStandardOpts.pXrUiResolution->SetFlagDescription(
         "Specify the UI quad resolution in pixels. Width and Height must be two "
-        "positive integers greater or equal to 1.");
+        "positive integers greater or equal to 1. If 0, window resolution will be used.");
     mStandardOpts.pXrUiResolution->SetFlagParameters("<width>x<height>");
     mStandardOpts.pXrUiResolution->SetValidator([](std::pair<int, int> res) {
         return res.first >= 0 && res.second >= 0;
     });
 
-    mStandardOpts.pXrRequiredExtensions =
-        mKnobManager.CreateKnob<KnobFlag<std::vector<std::string>>>(
-            "xr-required-extension", mSettings.standardKnobsDefaultValue.xrRequiredExtensions);
+    GetKnobManager().InitKnob(&mStandardOpts.pXrRequiredExtensions, "xr-required-extension", mSettings.standardKnobsDefaultValue.xrRequiredExtensions);
     mStandardOpts.pXrRequiredExtensions->SetFlagDescription(
         "Specify any additional OpenXR extensions that need to be loaded in addition "
         "to the base extensions. Any required extensions that are not supported by the "
@@ -929,6 +896,9 @@ void Application::InitStandardKnobs()
 
 void Application::TakeScreenshot()
 {
+    std::filesystem::path screenshotPath;
+    screenshotPath = ppx::fs::GetFullPath(mStandardOpts.pScreenshotPath->GetValue(), std::filesystem::current_path(), ".ppm", "#", std::to_string(mFrameCount));
+
     auto swapchainImg = GetSwapchain()->GetColorImage(GetSwapchain()->GetCurrentImageIndex());
     auto queue        = mDevice->GetGraphicsQueue();
 
@@ -983,11 +953,8 @@ void Application::TakeScreenshot()
     unsigned char* texels = nullptr;
     screenshotBuf->MapMemory(0, (void**)&texels);
 
-    std::string filepath = mStandardOpts.pScreenshotPath->GetValue();
-    if (filepath == "") {
-        filepath = "screenshot_frame" + std::to_string(mFrameCount) + ".ppm";
-    }
-    PPX_CHECKED_CALL(ExportToPPM(filepath, swapchainImg->GetFormat(), texels, width, height, outPitch.rowPitch));
+    PPX_CHECKED_CALL(ExportToPPM(screenshotPath.u8string(), swapchainImg->GetFormat(), texels, width, height, outPitch.rowPitch));
+    PPX_LOG_INFO("Screenshot of frame " << mFrameCount << " saved to: " << screenshotPath.u8string());
 
     screenshotBuf->UnmapMemory();
 
@@ -1765,18 +1732,30 @@ bool Application::RecordMetricData(metrics::MetricID id, const metrics::MetricDa
 
 void Application::UpdateAssetDirs()
 {
+    std::filesystem::path projectRootPath = GetApplicationPath().remove_filename() / RELATIVE_PATH_TO_PROJECT_ROOT;
+
+    // On Android, the assets folder is independently specified
+    // Assets are loaded relative to this folder
+#if defined(PPX_ANDROID)
+    AddAssetDir("");
+#else
+    AddAssetDir(projectRootPath / "assets");
+#endif
+
     if (mSettings.allowThirdPartyAssets) {
-        std::filesystem::path path = GetApplicationPath();
-        path.remove_filename();
-        path /= RELATIVE_PATH_TO_PROJECT_ROOT;
-        AddAssetDir(path / "third_party/assets");
+        AddAssetDir(projectRootPath / "third_party/assets");
     }
 
     auto assetPaths = mStandardOpts.pAssetsPaths->GetValue();
     if (!assetPaths.empty()) {
         // Insert at front, in reverse order, so we respect the command line ordering for priority.
-        for (auto it = assetPaths.rbegin(); it < assetPaths.rend(); it++) {
-            AddAssetDir(*it, /* insert_at_front= */ true);
+        for (auto& assetPathString : assetPaths) {
+            std::filesystem::path assetPath(assetPathString);
+            // If `@` is present at front of string, replace with project root path
+            if (assetPathString.at(0) == '@') {
+                assetPath = projectRootPath / assetPathString.substr(1);
+            }
+            AddAssetDir(assetPath, /* insert_at_front= */ true);
         }
     }
 }

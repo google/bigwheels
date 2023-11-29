@@ -16,8 +16,9 @@
 #include "ppx/config.h"
 
 #include <filesystem>
-#include <vector>
+#include <regex>
 #include <optional>
+#include <vector>
 
 #if defined(PPX_ANDROID)
 #include <android_native_app_glue.h>
@@ -189,5 +190,29 @@ std::filesystem::path GetExternalDataPath()
     return std::filesystem::path(gAndroidContext->activity->externalDataPath);
 }
 #endif
+
+std::filesystem::path GetFullPath(const std::filesystem::path& partialPath, const std::filesystem::path& defaultFolder, const std::filesystem::path& ext, const std::string& regexToReplace, const std::string& replaceString)
+{
+    PPX_ASSERT_MSG(partialPath.u8string() != "", "Partial path cannot be empty string");
+    PPX_ASSERT_MSG(partialPath.has_filename(), "Partial path cannot be a folder");
+
+    std::filesystem::path fullPath = partialPath;
+
+    if (regexToReplace != "") {
+        std::string fileName    = fullPath.filename().string();
+        std::string newfileName = std::regex_replace(fileName, std::regex(regexToReplace), replaceString);
+        fullPath.replace_filename(std::filesystem::path(newfileName));
+    }
+
+    if (!fullPath.has_parent_path()) {
+        fullPath = defaultFolder / fullPath;
+    }
+
+    if (fullPath.extension() != ext) {
+        fullPath.replace_extension(ext);
+    }
+
+    return fullPath;
+}
 
 } // namespace ppx::fs
