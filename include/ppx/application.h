@@ -533,7 +533,6 @@ public:
 #endif
 private:
     void   InternalCtor();
-    void   InitializeAssetDirs();
     Result InitializeWindow();
     Result InitializePlatform();
     Result InitializeGrfxDevice();
@@ -552,8 +551,8 @@ private:
     // Updates the standard application settings to reflect the knob values.
     void UpdateStandardSettings();
 
-    // Update the asset directories
-    void UpdateAssetDirs();
+    // Add the asset directories
+    void AddAssetDirs();
 
     // Updates the shared, app-level metrics.
     void UpdateAppMetrics();
