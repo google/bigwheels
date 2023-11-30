@@ -332,22 +332,22 @@ struct ApplicationSettings
         bool                     deterministic   = false;
         bool                     enableMetrics   = false;
         uint64_t                 frameCount      = 0;
-        int                      gpuIndex        = 0;
+        uint32_t                 gpuIndex        = 0;
 #if !defined(PPX_LINUX_HEADLESS)
         bool headless = false;
 #endif
-        bool                listGpus              = false;
-        std::string         metricsFilename       = std::filesystem::current_path().string();
-        bool                overwriteMetricsFile  = false;
-        std::pair<int, int> resolution            = std::make_pair(0, 0);
-        int                 runTimeMs             = 0;
-        int                 screenshotFrameNumber = -1;
-        std::string         screenshotPath        = "";
-        int                 statsFrameWindow      = -1;
-        bool                useSoftwareRenderer   = false;
+        bool                          listGpus              = false;
+        std::string                   metricsFilename       = std::filesystem::current_path().string();
+        bool                          overwriteMetricsFile  = false;
+        std::pair<uint32_t, uint32_t> resolution            = std::make_pair(0, 0);
+        uint32_t                      runTimeMs             = 0;
+        int                           screenshotFrameNumber = -1;
+        std::string                   screenshotPath        = "";
+        int                           statsFrameWindow      = -1;
+        bool                          useSoftwareRenderer   = false;
 #if defined(PPX_BUILD_XR)
-        std::pair<int, int>      xrUiResolution       = std::make_pair(0, 0);
-        std::vector<std::string> xrRequiredExtensions = {};
+        std::pair<uint32_t, uint32_t> xrUiResolution       = std::make_pair(0, 0);
+        std::vector<std::string>      xrRequiredExtensions = {};
 #endif
     } standardKnobsDefaultValue;
 };
