@@ -383,7 +383,6 @@ public:
     virtual void InitKnobs() {}
 
 protected:
-    virtual void DispatchConfig();
     virtual void DispatchSetup();
     virtual void DispatchShutdown();
     virtual void DispatchMove(int32_t x, int32_t y);
@@ -535,6 +534,7 @@ public:
 private:
     void   InternalCtor();
     void   InitializeAssetDirs();
+    Result InitializeWindow();
     Result InitializePlatform();
     Result InitializeGrfxDevice();
     Result InitializeGrfxSurface();
@@ -548,6 +548,10 @@ private:
     void   DestroyPlatformWindow();
     bool   IsRunning() const;
 
+    // Config() allows derived classes to update settings
+    // Updates the standard application settings to reflect the knob values.
+    void UpdateStandardSettings();
+
     // Update the asset directories
     void UpdateAssetDirs();
 
@@ -558,6 +562,23 @@ private:
 
     // Initializes standard knobs
     void InitStandardKnobs();
+
+    // List gpus
+    void ListGPUs() const;
+
+    // Process events which could change the Running status of the application
+    void ProcessEvents();
+
+    // Render the frame, handles both XR and non-XR cases
+    void RenderFrame();
+
+    void MainLoop();
+
+#if defined(PPX_BUILD_XR)
+    void InitializeXRComponentBeforeGrfxDeviceInit();
+    void InitializeXRComponentAndUpdateSettingsAfterGrfxDeviceInit();
+    void DestroyXRComponent();
+#endif
 
 private:
     friend struct WindowEvents;
