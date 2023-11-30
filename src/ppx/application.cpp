@@ -800,7 +800,7 @@ void Application::InitStandardKnobs()
         "If 0, this is disabled.");
 
     mStandardOpts.pGpuIndex =
-        mKnobManager.CreateKnob<KnobFlag<int>>("gpu", mSettings.standardKnobsDefaultValue.gpuIndex, 0, INT_MAX);
+        mKnobManager.CreateKnob<KnobFlag<uint32_t>>("gpu", mSettings.standardKnobsDefaultValue.gpuIndex, 0, UINT_MAX);
     mStandardOpts.pGpuIndex->SetFlagDescription(
         "Select the gpu with the given index. To determine the set of valid "
         "indices use `--list-gpus`.");
@@ -852,7 +852,7 @@ void Application::InitStandardKnobs()
     });
 
     mStandardOpts.pRunTimeMs =
-        mKnobManager.CreateKnob<KnobFlag<int>>("run-time-ms", mSettings.standardKnobsDefaultValue.runTimeMs, 0, INT_MAX);
+        mKnobManager.CreateKnob<KnobFlag<uint32_t>>("run-time-ms", mSettings.standardKnobsDefaultValue.runTimeMs, 0, UINT_MAX);
     mStandardOpts.pRunTimeMs->SetFlagDescription(
         "Shutdown the application after N milliseconds. If 0, this is disabled.");
 

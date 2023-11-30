@@ -237,9 +237,9 @@ struct StandardOptions
     std::shared_ptr<KnobFlag<bool>> pOverwriteMetricsFile;
 
     // Options
-    std::shared_ptr<KnobFlag<int>>      pGpuIndex;
+    std::shared_ptr<KnobFlag<uint32_t>> pGpuIndex;
     std::shared_ptr<KnobFlag<uint64_t>> pFrameCount;
-    std::shared_ptr<KnobFlag<int>>      pRunTimeMs;
+    std::shared_ptr<KnobFlag<uint32_t>> pRunTimeMs;
     std::shared_ptr<KnobFlag<int>>      pStatsFrameWindow;
     std::shared_ptr<KnobFlag<int>>      pScreenshotFrameNumber;
 
