@@ -14,6 +14,8 @@
 
 #include "ppx/ppm_export.h"
 
+#include <filesystem>
+
 namespace ppx {
 
 unsigned char ConvertToUint(const char* value, grfx::FormatDataType dataType)
@@ -44,6 +46,7 @@ bool IsOptimalFormat(const grfx::FormatDesc* desc, uint32_t width, uint32_t rowS
 
 Result ExportToPPM(const std::string& outputFilename, grfx::Format inputFormat, const void* texels, uint32_t width, uint32_t height, uint32_t rowStride)
 {
+    std::filesystem::create_directories(std::filesystem::path(outputFilename).parent_path());
     std::ofstream file(outputFilename, std::ios::out | std::ios::binary | std::ios::trunc);
     ppx::Result   result = ExportToPPM(file, inputFormat, texels, width, height, rowStride);
     file.close();

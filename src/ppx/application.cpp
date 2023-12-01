@@ -814,11 +814,11 @@ void Application::InitStandardKnobs()
     GetKnobManager().InitKnob(&mStandardOpts.pMetricsFilename, "metrics-filename", mSettings.standardKnobsDefaultValue.metricsFilename);
     mStandardOpts.pMetricsFilename->SetFlagDescription(
         "If metrics are enabled, save the metrics report to the "
-        "provided filename (including path). If used, any `@` "
-        "symbols in the filename (not the path) will be replaced "
-        "with the current timestamp. If the filename does not end in "
-        "`.json`, it will be appended. Default: `report_@`. See also: "
-        "`--enable-metrics` and `--overwrite-metrics-file`.");
+        "provided path. If used, any `@` symbols in the filename "
+        "(not the path) will be replaced with the current timestamp. "
+        "If the filename does not end in `.json`, it will be appended. "
+        "If there is just a filename, it will be saved in the current working "
+        "folder. See also `--enable-metrics` and `--overwrite-metrics-file`.");
 
     GetKnobManager().InitKnob(&mStandardOpts.pOverwriteMetricsFile, "overwrite-metrics-file", mSettings.standardKnobsDefaultValue.overwriteMetricsFile);
     mStandardOpts.pOverwriteMetricsFile->SetFlagDescription(
@@ -851,8 +851,11 @@ void Application::InitStandardKnobs()
 
     GetKnobManager().InitKnob(&mStandardOpts.pScreenshotPath, "screenshot-path", mSettings.standardKnobsDefaultValue.screenshotPath);
     mStandardOpts.pScreenshotPath->SetFlagDescription(
-        "Save the screenshot to this path. Default: \"screenshot_frame<N>.ppm\" "
-        "in the current working directory.");
+        "Save the screenshot to this path. If used, any `#` symbols in the filename "
+        "(not the path) will be replaced with the number of the screenshotted frame. "
+        "If the filename does not end in `.ppm`, it will be appended. "
+        "If there is just a filename, it will be saved in the current working folder. "
+        "See also `--screenshot-frame-number`");
     mStandardOpts.pScreenshotPath->SetFlagParameters("<path>");
 
     GetKnobManager().InitKnob(&mStandardOpts.pStatsFrameWindow, "stats-frame-window", mSettings.standardKnobsDefaultValue.statsFrameWindow, -1, INT_MAX);
@@ -889,6 +892,9 @@ void Application::InitStandardKnobs()
 
 void Application::TakeScreenshot()
 {
+    std::filesystem::path screenshotPath;
+    screenshotPath = ppx::fs::GetFullPath(mStandardOpts.pScreenshotPath->GetValue(), std::filesystem::current_path(), ".ppm", "#", std::to_string(mFrameCount));
+
     auto swapchainImg = GetSwapchain()->GetColorImage(GetSwapchain()->GetCurrentImageIndex());
     auto queue        = mDevice->GetGraphicsQueue();
 
@@ -943,11 +949,8 @@ void Application::TakeScreenshot()
     unsigned char* texels = nullptr;
     screenshotBuf->MapMemory(0, (void**)&texels);
 
-    std::string filepath = mStandardOpts.pScreenshotPath->GetValue();
-    if (filepath == "") {
-        filepath = "screenshot_frame" + std::to_string(mFrameCount) + ".ppm";
-    }
-    PPX_CHECKED_CALL(ExportToPPM(filepath, swapchainImg->GetFormat(), texels, width, height, outPitch.rowPitch));
+    PPX_CHECKED_CALL(ExportToPPM(screenshotPath.string(), swapchainImg->GetFormat(), texels, width, height, outPitch.rowPitch));
+    PPX_LOG_INFO("Screenshot of frame " << mFrameCount << " saved to: " << screenshotPath.string());
 
     screenshotBuf->UnmapMemory();
 
