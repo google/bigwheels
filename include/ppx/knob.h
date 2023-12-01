@@ -459,27 +459,17 @@ public:
     bool IsEmpty() { return mKnobs.empty(); }
     void ResetAllToDefault(); // The knobs can be reset to default by a button in the UI
 
-    // Examples of available knobs:
-    //   CreateKnob<KnobCheckbox>("flag_name", bool defaultValue);
-    //   CreateKnob<KnobSlider<int>>("flag_name", int defaultValue, minValue, maxValue);
-    //   CreateKnob<KnobDropdown<std::string>>("flag_name", size_t defaultIndex, std::vector<std::string> choices);
-    template <typename T, typename... ArgsT>
-    std::shared_ptr<T> CreateKnob(const std::string& flagName, ArgsT... args)
-    {
-        PPX_ASSERT_MSG(mFlagNames.count(flagName) == 0, "knob with this name already exists: " + flagName);
-
-        std::shared_ptr<T> knobPtr(new T(flagName, std::forward<ArgsT>(args)...));
-        RegisterKnob(flagName, knobPtr);
-        return knobPtr;
-    }
-
-    // Initialize knob in-place, equivalent to
-    // *ppKnob = CreateKnob<std::remove_reference_t<decltype(*ppKnob)>>(name, ...)
+    // Initialize the knob in-place and register it with the knob manager
     template <typename T, typename... ArgsT>
     void InitKnob(std::shared_ptr<T>* ppKnob, const std::string& flagName, ArgsT&&... args)
     {
         PPX_ASSERT_MSG(ppKnob != nullptr, "output parameter is nullptr");
-        *ppKnob = CreateKnob<T>(flagName, std::forward<ArgsT>(args)...);
+        PPX_ASSERT_MSG(mFlagNames.count(flagName) == 0, "knob with this name already exists: " + flagName);
+
+        std::shared_ptr<T> knobPtr(new T(flagName, std::forward<ArgsT>(args)...));
+        RegisterKnob(flagName, knobPtr);
+
+        *ppKnob = knobPtr;
     }
 
     void        DrawAllKnobs(bool inExistingWindow = false);

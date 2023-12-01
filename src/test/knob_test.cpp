@@ -51,16 +51,16 @@ protected:
     {
         ppx::Log::Initialize(ppx::LOG_MODE_CONSOLE, nullptr);
 
-        k1  = km.CreateKnob<ppx::KnobCheckbox>("flag_name1", true);
-        k2  = km.CreateKnob<ppx::KnobCheckbox>("flag_name2", true);
-        k3  = km.CreateKnob<ppx::KnobSlider<int>>("flag_name3", 5, 0, 10);
-        k4  = km.CreateKnob<ppx::KnobDropdown<std::string>>("flag_name4", 1, choices4);
-        k5  = km.CreateKnob<ppx::KnobFlag<bool>>("flag_name5", true);
-        k6  = km.CreateKnob<ppx::KnobFlag<float>>("flag_name6", 6.6f, 0.0f, 10.0f);
-        k7  = km.CreateKnob<ppx::KnobFlag<int>>("flag_name7", 8, 0, INT_MAX);
-        k8  = km.CreateKnob<ppx::KnobSlider<float>>("flag_name8", 5.0f, 0.0f, 10.0f);
-        k9  = km.CreateKnob<ppx::KnobFlag<std::pair<int, int>>>("flag_name9", std::make_pair(1, 2));
-        k10 = km.CreateKnob<ppx::KnobFlag<std::vector<std::string>>>("flag_name10", defaultValues10);
+        km.InitKnob(&k1, "flag_name1", true);
+        km.InitKnob(&k2, "flag_name2", true);
+        km.InitKnob(&k3, "flag_name3", 5, 0, 10);
+        km.InitKnob(&k4, "flag_name4", 1, choices4);
+        km.InitKnob(&k5, "flag_name5", true);
+        km.InitKnob(&k6, "flag_name6", 6.6f, 0.0f, 10.0f);
+        km.InitKnob(&k7, "flag_name7", 8, 0, INT_MAX);
+        km.InitKnob(&k8, "flag_name8", 5.0f, 0.0f, 10.0f);
+        km.InitKnob(&k9, "flag_name9", std::make_pair(1, 2));
+        km.InitKnob(&k10, "flag_name10", defaultValues10);
     }
 
 protected:
@@ -472,99 +472,114 @@ TEST_F(KnobManagerTestFixture, KnobManager_Create)
 
 TEST_F(KnobManagerTestFixture, KnobManager_CreateBoolCheckbox)
 {
-    std::shared_ptr<KnobCheckbox> boolKnobPtr(km.CreateKnob<KnobCheckbox>("flag_name1", true));
-    EXPECT_TRUE(boolKnobPtr->GetValue());
+    std::shared_ptr<KnobCheckbox> pKnob;
+    km.InitKnob(&pKnob, "flag_name1", true);
+    EXPECT_TRUE(pKnob->GetValue());
 }
 
 TEST_F(KnobManagerTestFixture, KnobManager_CreateIntSlider)
 {
-    std::shared_ptr<KnobSlider<int>> k(km.CreateKnob<KnobSlider<int>>("flag_name1", 5, 0, 10));
-    EXPECT_EQ(k->GetValue(), 5);
+    std::shared_ptr<KnobSlider<int>> pKnob;
+    km.InitKnob(&pKnob, "flag_name1", 5, 0, 10);
+    EXPECT_EQ(pKnob->GetValue(), 5);
 }
 
 TEST_F(KnobManagerTestFixture, KnobManager_CreateFloatSlider)
 {
-    std::shared_ptr<KnobSlider<float>> k(km.CreateKnob<KnobSlider<float>>("flag_name1", 5.0f, 0.0f, 10.0f));
-    EXPECT_EQ(k->GetValue(), 5.0f);
+    std::shared_ptr<KnobSlider<float>> pKnob;
+    km.InitKnob(&pKnob, "flag_name1", 5.0f, 0.0f, 10.0f);
+    EXPECT_EQ(pKnob->GetValue(), 5.0f);
 }
 
 TEST_F(KnobManagerTestFixture, KnobManager_CreateStrDropdown)
 {
     std::vector<std::string>                   choices = {"c1", "c2", "c3"};
-    std::shared_ptr<KnobDropdown<std::string>> strKnobPtr(km.CreateKnob<KnobDropdown<std::string>>("flag_name1", 1, choices.cbegin(), choices.cend()));
-    EXPECT_EQ(strKnobPtr->GetIndex(), 1);
+    std::shared_ptr<KnobDropdown<std::string>> pKnob;
+    km.InitKnob(&pKnob, "flag_name1", 1, choices.cbegin(), choices.cend());
+    EXPECT_EQ(pKnob->GetIndex(), 1);
 }
 
 TEST_F(KnobManagerTestFixture, KnobManager_CreateKnobFlagBool)
 {
-    std::shared_ptr<KnobFlag<bool>> knobPtr(km.CreateKnob<KnobFlag<bool>>("flag_name1", true));
-    EXPECT_EQ(knobPtr->GetValue(), true);
+    std::shared_ptr<KnobFlag<bool>> pKnob;
+    km.InitKnob(&pKnob, "flag_name1", true);
+    EXPECT_EQ(pKnob->GetValue(), true);
 }
 
 TEST_F(KnobManagerTestFixture, KnobManager_CreateKnobFlagStr)
 {
-    std::shared_ptr<KnobFlag<std::string>> knobPtr(km.CreateKnob<KnobFlag<std::string>>("flag_name1", "placeholder"));
-    EXPECT_EQ(knobPtr->GetValue(), "placeholder");
+    std::shared_ptr<KnobFlag<std::string>> pKnob;
+    km.InitKnob(&pKnob, "flag_name1", "placeholder");
+    EXPECT_EQ(pKnob->GetValue(), "placeholder");
 }
 
 TEST_F(KnobManagerTestFixture, KnobManager_CreateKnobFlagInt)
 {
-    std::shared_ptr<KnobFlag<int>> knobPtr(km.CreateKnob<KnobFlag<int>>("flag_name1", 5));
-    EXPECT_EQ(knobPtr->GetValue(), 5);
+    std::shared_ptr<KnobFlag<int>> pKnob;
+    km.InitKnob(&pKnob, "flag_name1", 5);
+    EXPECT_EQ(pKnob->GetValue(), 5);
 }
 
 TEST_F(KnobManagerTestFixture, KnobManager_CreateKnobFlagFloat)
 {
-    std::shared_ptr<KnobFlag<float>> knobPtr(km.CreateKnob<KnobFlag<float>>("flag_name1", 5.5f));
-    EXPECT_EQ(knobPtr->GetValue(), 5.5f);
+    std::shared_ptr<KnobFlag<float>> pKnob;
+    km.InitKnob(&pKnob, "flag_name1", 5.5f);
+    EXPECT_EQ(pKnob->GetValue(), 5.5f);
 }
 
 TEST_F(KnobManagerTestFixture, KnobManager_CreateKnobFlagIntWithRange)
 {
-    std::shared_ptr<KnobFlag<int>> knobPtr(km.CreateKnob<KnobFlag<int>>("flag_name1", 5, 0, 10));
-    EXPECT_EQ(knobPtr->GetValue(), 5);
+    std::shared_ptr<KnobFlag<int>> pKnob;
+    km.InitKnob(&pKnob, "flag_name1", 5, 0, 10);
+    EXPECT_EQ(pKnob->GetValue(), 5);
 }
 
 TEST_F(KnobManagerTestFixture, KnobManager_CreateKnobFlagFloatWithRange)
 {
-    std::shared_ptr<KnobFlag<float>> knobPtr(km.CreateKnob<KnobFlag<float>>("flag_name1", 1.5f, 0.0f, 3.0f));
-    EXPECT_EQ(knobPtr->GetValue(), 1.5f);
+    std::shared_ptr<KnobFlag<float>> pKnob;
+    km.InitKnob(&pKnob, "flag_name1", 1.5f, 0.0f, 3.0f);
+    EXPECT_EQ(pKnob->GetValue(), 1.5f);
 }
 
 TEST_F(KnobManagerTestFixture, KnobManager_CreateKnobFlagPairInts)
 {
-    std::shared_ptr<KnobFlag<std::pair<int, int>>> knobPtr(km.CreateKnob<KnobFlag<std::pair<int, int>>>("flag_name1", std::make_pair(1, 2)));
-    EXPECT_EQ(knobPtr->GetValue().first, 1);
-    EXPECT_EQ(knobPtr->GetValue().second, 2);
+    std::shared_ptr<KnobFlag<std::pair<int, int>>> pKnob;
+    km.InitKnob(&pKnob, "flag_name1", std::make_pair(1, 2));
+    EXPECT_EQ(pKnob->GetValue().first, 1);
+    EXPECT_EQ(pKnob->GetValue().second, 2);
 }
 
 TEST_F(KnobManagerTestFixture, KnobManager_CreateKnobFlagListStrings)
 {
     std::vector<std::string>                            stringList = {"hi1", "hi2", "hi3"};
-    std::shared_ptr<KnobFlag<std::vector<std::string>>> knobPtr(km.CreateKnob<KnobFlag<std::vector<std::string>>>("flag_name1", stringList));
-    EXPECT_EQ(knobPtr->GetValue().size(), 3);
-    EXPECT_EQ(knobPtr->GetValue().at(0), "hi1");
-    EXPECT_EQ(knobPtr->GetValue().at(1), "hi2");
-    EXPECT_EQ(knobPtr->GetValue().at(2), "hi3");
+    std::shared_ptr<KnobFlag<std::vector<std::string>>> pKnob;
+    km.InitKnob(&pKnob, "flag_name1", stringList);
+    EXPECT_EQ(pKnob->GetValue().size(), 3);
+    EXPECT_EQ(pKnob->GetValue().at(0), "hi1");
+    EXPECT_EQ(pKnob->GetValue().at(1), "hi2");
+    EXPECT_EQ(pKnob->GetValue().at(2), "hi3");
 }
 
 TEST_F(KnobManagerTestFixture, KnobManager_CreateKnobFlagListInts)
 {
     std::vector<int>                            intList = {1, 2, 3};
-    std::shared_ptr<KnobFlag<std::vector<int>>> knobPtr(km.CreateKnob<KnobFlag<std::vector<int>>>("flag_name1", intList));
-    EXPECT_EQ(knobPtr->GetValue().size(), 3);
-    EXPECT_EQ(knobPtr->GetValue().at(0), 1);
-    EXPECT_EQ(knobPtr->GetValue().at(1), 2);
-    EXPECT_EQ(knobPtr->GetValue().at(2), 3);
+    std::shared_ptr<KnobFlag<std::vector<int>>> pKnob;
+    km.InitKnob(&pKnob, "flag_name1", intList);
+    EXPECT_EQ(pKnob->GetValue().size(), 3);
+    EXPECT_EQ(pKnob->GetValue().at(0), 1);
+    EXPECT_EQ(pKnob->GetValue().at(1), 2);
+    EXPECT_EQ(pKnob->GetValue().at(2), 3);
 }
 
 #if defined(PERFORM_DEATH_TESTS)
 TEST_F(KnobManagerTestFixture, KnobManager_CreateUniqueName)
 {
-    std::shared_ptr<KnobCheckbox> boolKnobPtr1(km.CreateKnob<KnobCheckbox>("flag_name1", true));
+    std::shared_ptr<KnobCheckbox> pKnob;
+    km.InitKnob(&pKnob, "flag_name1", true);
     EXPECT_DEATH(
         {
-            std::shared_ptr<KnobCheckbox> boolKnobPtr2(km.CreateKnob<KnobCheckbox>("flag_name1", true));
+            std::shared_ptr<KnobCheckbox> pKnob;
+            km.InitKnob(&pKnob, "flag_name1", true);
         },
         "");
 }

@@ -53,112 +53,112 @@ void ProjApp::InitKnobs()
     size_t indent = 2;
 
     // Fluid
-    mConfig.pCurl = GetKnobManager().CreateKnob<ppx::KnobSlider<float>>("curl", 30.0f, 0.0f, 100.0f);
+    GetKnobManager().InitKnob(&mConfig.pCurl, "curl", 30.0f, 0.0f, 100.0f);
     mConfig.pCurl->SetDisplayName("Curl");
     mConfig.pCurl->SetFlagDescription("Curl represents the rotational component of the fluid. It determines the spin (vorticity) of the fluid at each point of the simulation. Higher values indicate stronger vortices or swirling motions in the fluid.");
 
-    mConfig.pDensityDissipation = GetKnobManager().CreateKnob<ppx::KnobSlider<float>>("density-dissipation", 1.0f, 0.0f, 10.0f);
+    GetKnobManager().InitKnob(&mConfig.pDensityDissipation, "density-dissipation", 1.0f, 0.0f, 10.0f);
     mConfig.pDensityDissipation->SetDisplayName("Density Dissipation");
     mConfig.pDensityDissipation->SetFlagDescription("This controls the decay of the density field. It determines how quickly the density in the fluid diminshes over time. Higher values result in faster dissipation and smoother density fields.");
 
-    mConfig.pDyeResolution = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("dye-resolution", 1024, 1, 2048);
+    GetKnobManager().InitKnob(&mConfig.pDyeResolution, "dye-resolution", 1024, 1, 2048);
     mConfig.pDyeResolution->SetDisplayName("Dye Resolution");
     mConfig.pDyeResolution->SetFlagDescription("This determines the level of detail in which the dye is represented. This changes the clarity of the dye patterns in the simulation. Higher values provide finer details and sharper patterns.");
 
-    mConfig.pPressure = GetKnobManager().CreateKnob<ppx::KnobSlider<float>>("pressure", 0.8f, 0.0f, 1.0f);
+    GetKnobManager().InitKnob(&mConfig.pPressure, "pressure", 0.8f, 0.0f, 1.0f);
     mConfig.pPressure->SetDisplayName("Pressure");
     mConfig.pPressure->SetFlagDescription("Indicates the force exerted by the fluid on its surrounding boundaries. Higher values cause a greater force exerted on the boundaries. This can lead to denser regions in the fluid.");
 
-    mConfig.pPressureIterations = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("pressure-iterations", 20, 1, 100);
+    GetKnobManager().InitKnob(&mConfig.pPressureIterations, "pressure-iterations", 20, 1, 100);
     mConfig.pPressureIterations->SetDisplayName("Pressure Iterations");
     mConfig.pPressureIterations->SetFlagDescription("This is the number of iterations performed when solving the pressure field. Higher values produce a more accurate and detailed pressure computation.");
 
-    mConfig.pVelocityDissipation = GetKnobManager().CreateKnob<ppx::KnobSlider<float>>("velocity-dissipation", 0.2f, 0.0f, 1.0f);
+    GetKnobManager().InitKnob(&mConfig.pVelocityDissipation, "velocity-dissipation", 0.2f, 0.0f, 1.0f);
     mConfig.pVelocityDissipation->SetDisplayName("Velocity Dissipations");
     mConfig.pVelocityDissipation->SetFlagDescription("This simulates the loss of energy within the fluid system. Higher values result in faster velocity reduction.");
 
     // Bloom
-    mConfig.pEnableBloom = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("enable-bloom", true);
+    GetKnobManager().InitKnob(&mConfig.pEnableBloom, "enable-bloom", true);
     mConfig.pEnableBloom->SetDisplayName("Enable Bloom");
     mConfig.pEnableBloom->SetFlagDescription("Enables bloom effects.");
 
-    mConfig.pBloomIntensity = GetKnobManager().CreateKnob<ppx::KnobSlider<float>>("bloom-intensity", 0.8f, 0.0f, 1.0f);
+    GetKnobManager().InitKnob(&mConfig.pBloomIntensity, "bloom-intensity", 0.8f, 0.0f, 1.0f);
     mConfig.pBloomIntensity->SetDisplayName("Intensity");
     mConfig.pBloomIntensity->SetFlagDescription("Strength of the bloom effect applied to the image. It determines how to enhance the bright areas and how pronounced the bloom effect is. Higher values result in a more pronounced effect that will make bright areas of the image appear brighter and more radiant. Lower values produce a more subdued glow.");
     mConfig.pBloomIntensity->SetIndent(indent);
 
-    mConfig.pBloomIterations = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("bloom-iterations", 8, 1, 20);
+    GetKnobManager().InitKnob(&mConfig.pBloomIterations, "bloom-iterations", 8, 1, 20);
     mConfig.pBloomIterations->SetDisplayName("Iterations");
     mConfig.pBloomIterations->SetFlagDescription("Number of iterations to use in the post-processing bloom pass. Each iteration blurs a downsampled version of the image with the original one. The number of iterations determines how intense the bloom effect is.");
     mConfig.pBloomIterations->SetIndent(indent);
 
-    mConfig.pBloomResolution = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("bloom-resolution", 256, 1, 2048);
+    GetKnobManager().InitKnob(&mConfig.pBloomResolution, "bloom-resolution", 256, 1, 2048);
     mConfig.pBloomResolution->SetDisplayName("Resolution");
     mConfig.pBloomResolution->SetFlagDescription("Sets the size at which the bloom effect is applied. Higher values provide a more precise bloom result at the expense of computation complexity.");
     mConfig.pBloomResolution->SetIndent(indent);
 
-    mConfig.pBloomSoftKnee = GetKnobManager().CreateKnob<ppx::KnobSlider<float>>("bloom-soft-knee", 0.7f, 0.0f, 1.0f);
+    GetKnobManager().InitKnob(&mConfig.pBloomSoftKnee, "bloom-soft-knee", 0.7f, 0.0f, 1.0f);
     mConfig.pBloomSoftKnee->SetDisplayName("Soft Knee");
     mConfig.pBloomSoftKnee->SetFlagDescription("This controls the transition between bloomed and non-bloomed regions of the image. It determines the smoothness of the blending between regions. Higher values result in smoother transitions.");
     mConfig.pBloomSoftKnee->SetIndent(indent);
 
-    mConfig.pBloomThreshold = GetKnobManager().CreateKnob<ppx::KnobSlider<float>>("bloom-threshold", 0.6f, 0.0f, 1.0f);
+    GetKnobManager().InitKnob(&mConfig.pBloomThreshold, "bloom-threshold", 0.6f, 0.0f, 1.0f);
     mConfig.pBloomThreshold->SetDisplayName("Threshold");
     mConfig.pBloomThreshold->SetFlagDescription("Minimum brightness for a pixel to be considered as a candidate for bloom. Pixels with intensities below this threshold are not included in the bloom effect. Higher values limit bloom to the brighter areas of the image.");
     mConfig.pBloomThreshold->SetIndent(indent);
 
     // Marble
-    mConfig.pEnableMarble = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("enable-marble", true);
+    GetKnobManager().InitKnob(&mConfig.pEnableMarble, "enable-marble", true);
     mConfig.pEnableMarble->SetDisplayName("Enable Marble");
     mConfig.pEnableMarble->SetFlagDescription("When set, this instantiates a marble that bounces around the simulation field. The marble bounces above the fluid, but it splashes down with certain frequency (controlled by --marble-drop-frequency). This option is not available in the original WebGL implementation.");
 
-    mConfig.pColorUpdateFrequency = GetKnobManager().CreateKnob<ppx::KnobSlider<float>>("color-update-frequency", 0.9f, 0.0f, 1.0f);
+    GetKnobManager().InitKnob(&mConfig.pColorUpdateFrequency, "color-update-frequency", 0.9f, 0.0f, 1.0f);
     mConfig.pColorUpdateFrequency->SetDisplayName("Color Update Frequency");
     mConfig.pColorUpdateFrequency->SetFlagDescription("This takes effect only if the bouncing marble is enabled. This controls how often to change the bouncing marble color. This is the color used to produce the splash every time the marble drops.");
     mConfig.pColorUpdateFrequency->SetIndent(indent);
 
-    mConfig.pMarbleDropFrequency = GetKnobManager().CreateKnob<ppx::KnobSlider<float>>("marble-drop-frequency", 0.9f, 0.0f, 1.0f);
+    GetKnobManager().InitKnob(&mConfig.pMarbleDropFrequency, "marble-drop-frequency", 0.9f, 0.0f, 1.0f);
     mConfig.pMarbleDropFrequency->SetDisplayName("Drop Frequency");
     mConfig.pMarbleDropFrequency->SetFlagDescription("The probability that the marble will splash on the fluid as it bounces around the field.");
     mConfig.pMarbleDropFrequency->SetIndent(indent);
 
     // Splats
-    mConfig.pNumSplats = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("num-splats", 0, 0, 20);
+    GetKnobManager().InitKnob(&mConfig.pNumSplats, "num-splats", 0, 0, 20);
     mConfig.pNumSplats->SetDisplayName("Number of Splats");
     mConfig.pNumSplats->SetFlagDescription("This is the number of splashes of color to use at the start of the simulation. This is also used when --splat-frequency is given. A value of 0 means a random number of splats.");
 
-    mConfig.pSplatForce = GetKnobManager().CreateKnob<ppx::KnobSlider<float>>("splat-force", 6000.0f, 3000.0f, 10000.0f);
+    GetKnobManager().InitKnob(&mConfig.pSplatForce, "splat-force", 6000.0f, 3000.0f, 10000.0f);
     mConfig.pSplatForce->SetDisplayName("Force");
     mConfig.pSplatForce->SetFlagDescription("This represents the magnitude of the impact applied when an external force (e.g. marble drops) on the fluid.");
     mConfig.pSplatForce->SetIndent(indent);
 
-    mConfig.pSplatFrequency = GetKnobManager().CreateKnob<ppx::KnobSlider<float>>("splat-frequency", 0.4f, 0.0f, 1.0f);
+    GetKnobManager().InitKnob(&mConfig.pSplatFrequency, "splat-frequency", 0.4f, 0.0f, 1.0f);
     mConfig.pSplatFrequency->SetDisplayName("Frequency");
     mConfig.pSplatFrequency->SetFlagDescription("How frequent should new splats be generated at random.");
     mConfig.pSplatFrequency->SetIndent(indent);
 
-    mConfig.pSplatRadius = GetKnobManager().CreateKnob<ppx::KnobSlider<float>>("splat-radius", 0.25f, 0.0f, 1.0f);
+    GetKnobManager().InitKnob(&mConfig.pSplatRadius, "splat-radius", 0.25f, 0.0f, 1.0f);
     mConfig.pSplatRadius->SetDisplayName("Radius");
     mConfig.pSplatRadius->SetFlagDescription("This represents the extent of the influence region around a specific point where the splat force is applied.");
     mConfig.pSplatRadius->SetIndent(indent);
 
     // Sunrays
-    mConfig.pEnableSunrays = GetKnobManager().CreateKnob<ppx::KnobCheckbox>("enable-sunrays", true);
+    GetKnobManager().InitKnob(&mConfig.pEnableSunrays, "enable-sunrays", true);
     mConfig.pEnableSunrays->SetDisplayName("Enable Sunrays");
     mConfig.pEnableSunrays->SetFlagDescription("This enables the effect of rays of light shining through the fluid.");
 
-    mConfig.pSunraysResolution = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("sunrays-resolution", 196, 1, 500);
+    GetKnobManager().InitKnob(&mConfig.pSunraysResolution, "sunrays-resolution", 196, 1, 500);
     mConfig.pSunraysResolution->SetDisplayName("Resolution");
     mConfig.pSunraysResolution->SetFlagDescription("Indicates the level of detail for the light rays. Higher values produce a finer level of detail for the light.");
     mConfig.pSunraysResolution->SetIndent(indent);
 
-    mConfig.pSunraysWeight = GetKnobManager().CreateKnob<ppx::KnobSlider<float>>("sunrays-weight", 1.0f, 0.0f, 5.0f);
+    GetKnobManager().InitKnob(&mConfig.pSunraysWeight, "sunrays-weight", 1.0f, 0.0f, 5.0f);
     mConfig.pSunraysWeight->SetDisplayName("Weight");
     mConfig.pSunraysWeight->SetFlagDescription("Indicates the intensity of the light scattering effect. Higher values result in more prominent sun rays, making them appear brighter.");
     mConfig.pSunraysWeight->SetIndent(indent);
 
     // Misc
-    mConfig.pSimResolution = GetKnobManager().CreateKnob<ppx::KnobSlider<int>>("sim-resolution", 128, 1, 1000);
+    GetKnobManager().InitKnob(&mConfig.pSimResolution, "sim-resolution", 128, 1, 1000);
     mConfig.pSimResolution->SetDisplayName("Simulation Resolution");
     mConfig.pSimResolution->SetFlagDescription("This determines the grid size of the compute textures used during simulation. Higher values produce finer grids which produce a more accurate representation.");
 }
