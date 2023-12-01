@@ -337,7 +337,7 @@ struct ApplicationSettings
         bool headless = false;
 #endif
         bool                listGpus              = false;
-        std::string         metricsFilename       = std::filesystem::current_path().u8string();
+        std::string         metricsFilename       = std::filesystem::current_path().string();
         bool                overwriteMetricsFile  = false;
         std::pair<int, int> resolution            = std::make_pair(0, 0);
         int                 runTimeMs             = INT_MAX;
