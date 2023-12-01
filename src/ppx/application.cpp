@@ -262,27 +262,11 @@ void Application::InternalCtor()
     if (tmres != ppx::TIMER_RESULT_SUCCESS) {
         PPX_ASSERT_MSG(false, "failed to initialize timer's statick data");
     }
-
-    InitializeAssetDirs();
 }
 
 Application* Application::Get()
 {
     return sApplicationInstance;
-}
-
-void Application::InitializeAssetDirs()
-{
-#if defined(PPX_ANDROID)
-    // On Android, the assets folder is independently specified
-    // Assets are loaded relative to this folder
-    AddAssetDir("");
-#else
-    std::filesystem::path path = GetApplicationPath();
-    path.remove_filename();
-    path /= RELATIVE_PATH_TO_PROJECT_ROOT;
-    AddAssetDir(path / "assets");
-#endif
 }
 
 Result Application::InitializePlatform()
@@ -787,7 +771,7 @@ void Application::InitStandardKnobs()
 {
     // Flag names in alphabetical order
     mStandardOpts.pAssetsPaths =
-        mKnobManager.CreateKnob<KnobFlag<std::vector<std::string>>>("assets-path", mSettings.standardKnobsDefaultValue.assetsPaths);
+        mKnobManager.CreateKnob<KnobFlag<std::vector<std::string>>>("extra-assets-path", mSettings.standardKnobsDefaultValue.assetsPaths);
     mStandardOpts.pAssetsPaths->SetFlagDescription(
         "Add a path before the default assets folder in the search list.");
     mStandardOpts.pAssetsPaths->SetFlagParameters("<path>");
@@ -1435,6 +1419,9 @@ int Application::Run(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
+    // Check deprecated flags
+    PPX_ASSERT_MSG(!mCommandLineParser.GetOptions().HasExtraOption("assets-path"), "The --assets-path knob has been renamed to --extra-assets-path.");
+
     // Call config.
     // Put this early because it might disable the display.
     Config(mSettings);
@@ -1460,7 +1447,7 @@ int Application::Run(int argc, char** argv)
 
     // Asset directories based on settings in mSettings, mCommandLineParser and mKnobManager
     // note that mKnobManager needs to be updated by options from mCommandLineParser before this call
-    UpdateAssetDirs();
+    AddAssetDirs();
 
     UpdateStandardSettings();
 
@@ -1824,13 +1811,20 @@ bool Application::RecordMetricData(metrics::MetricID id, const metrics::MetricDa
     return mMetrics.manager.RecordMetricData(id, data);
 }
 
-void Application::UpdateAssetDirs()
+void Application::AddAssetDirs()
 {
+    std::filesystem::path projectRootPath = GetApplicationPath().remove_filename() / RELATIVE_PATH_TO_PROJECT_ROOT;
+
+    // On Android, the assets folder is independently specified
+    // Assets are loaded relative to this folder
+#if defined(PPX_ANDROID)
+    AddAssetDir("");
+#else
+    AddAssetDir(projectRootPath / "assets");
+#endif
+
     if (mSettings.allowThirdPartyAssets) {
-        std::filesystem::path path = GetApplicationPath();
-        path.remove_filename();
-        path /= RELATIVE_PATH_TO_PROJECT_ROOT;
-        AddAssetDir(path / "third_party/assets");
+        AddAssetDir(projectRootPath / "third_party/assets");
     }
 
     auto assetPaths = mStandardOpts.pAssetsPaths->GetValue();
