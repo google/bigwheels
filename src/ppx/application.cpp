@@ -786,7 +786,7 @@ void Application::InitStandardKnobs()
     mStandardOpts.pDeterministic =
         mKnobManager.CreateKnob<KnobFlag<bool>>("deterministic", mSettings.standardKnobsDefaultValue.deterministic);
     mStandardOpts.pDeterministic->SetFlagDescription(
-        "Disable non-deterministic behaviors, like clocks.");
+        "Disable non-deterministic behaviors, like clocks and ImGui.");
 
     mStandardOpts.pEnableMetrics =
         mKnobManager.CreateKnob<KnobFlag<bool>>("enable-metrics", mSettings.standardKnobsDefaultValue.enableMetrics);
@@ -797,13 +797,13 @@ void Application::InitStandardKnobs()
         mKnobManager.CreateKnob<KnobFlag<uint64_t>>("frame-count", 0, 0, mSettings.standardKnobsDefaultValue.frameCount);
     mStandardOpts.pFrameCount->SetFlagDescription(
         "Shutdown the application after successfully rendering N frames. "
-        "Default: 0 (infinite)");
+        "If 0, this is disabled.");
 
     mStandardOpts.pGpuIndex =
         mKnobManager.CreateKnob<KnobFlag<int>>("gpu", 0, 0, mSettings.standardKnobsDefaultValue.gpuIndex);
     mStandardOpts.pGpuIndex->SetFlagDescription(
         "Select the gpu with the given index. To determine the set of valid "
-        "indices use --list-gpus.");
+        "indices use `--list-gpus`.");
 
 #if !defined(PPX_LINUX_HEADLESS)
     mStandardOpts.pHeadless =
@@ -816,7 +816,7 @@ void Application::InitStandardKnobs()
         mKnobManager.CreateKnob<KnobFlag<bool>>("list-gpus", mSettings.standardKnobsDefaultValue.listGpus);
     mStandardOpts.pListGpus->SetFlagDescription(
         "Prints a list of the available GPUs on the current system with their "
-        "index and exits (see --gpu).");
+        "index and exits. See also `--gpu`.");
 
     mStandardOpts.pMetricsFilename =
         mKnobManager.CreateKnob<KnobFlag<std::string>>("metrics-filename", mSettings.standardKnobsDefaultValue.metricsFilename);
@@ -833,18 +833,18 @@ void Application::InitStandardKnobs()
     mStandardOpts.pOverwriteMetricsFile->SetFlagDescription(
         "Only applies if metrics are enabled with `--enable-metrics`. "
         "If an existing file at the path set with `--metrics-filename` is found, it will be overwritten. "
-        "Default: false. See also: `--enable-metrics` and `--metrics-filename`.");
+        "See also: `--enable-metrics` and `--metrics-filename`.");
 
     mStandardOpts.pResolution =
         mKnobManager.CreateKnob<KnobFlag<std::pair<int, int>>>(
             "resolution", mSettings.standardKnobsDefaultValue.resolution);
     mStandardOpts.pResolution->SetFlagDescription(
         "Specify the main window resolution in pixels. Width and Height must be "
-        "two positive integers greater or equal to 1. (Default: Window dimensions)");
+        "two positive integers greater or equal to 1. If 0, window dimensions will be used.");
 #if defined(PPX_BUILD_XR)
     mStandardOpts.pResolution->SetFlagDescription(
         "Specify the per-eye resolution in pixels. Width and Height must be two "
-        "positive integers greater or equal to 1. (Default: Window dimensions)");
+        "positive integers greater or equal to 1. If 0, window dimensions will be used.");
 #endif
     mStandardOpts.pResolution->SetFlagParameters("<width>x<height>");
     mStandardOpts.pResolution->SetValidator([](std::pair<int, int> res) {
@@ -854,7 +854,7 @@ void Application::InitStandardKnobs()
     mStandardOpts.pRunTimeMs =
         mKnobManager.CreateKnob<KnobFlag<int>>("run-time-ms", 0, 0, mSettings.standardKnobsDefaultValue.runTimeMs);
     mStandardOpts.pRunTimeMs->SetFlagDescription(
-        "Shutdown the application after N milliseconds. Default: 0 (infinite).");
+        "Shutdown the application after N milliseconds. If 0, this is disabled.");
 
     mStandardOpts.pScreenshotFrameNumber =
         mKnobManager.CreateKnob<KnobFlag<int>>("screenshot-frame-number", -1, -1, mSettings.standardKnobsDefaultValue.screenshotFrameNumber);
@@ -872,8 +872,8 @@ void Application::InitStandardKnobs()
     mStandardOpts.pStatsFrameWindow = mKnobManager.CreateKnob<KnobFlag<int>>(
         "stats-frame-window", -1, -1, mSettings.standardKnobsDefaultValue.statsFrameWindow);
     mStandardOpts.pStatsFrameWindow->SetFlagDescription(
-        "Calculate frame statistics over the last N frames only. Set to 0 to use "
-        "all frames since the beginning of the application.");
+        "Calculate frame statistics over the last N frames only. If 0, "
+        "all frames since the beginning of the application will be used.");
 
     mStandardOpts.pUseSoftwareRenderer =
         mKnobManager.CreateKnob<KnobFlag<bool>>("use-software-renderer", mSettings.standardKnobsDefaultValue.useSoftwareRenderer);
@@ -890,7 +890,7 @@ void Application::InitStandardKnobs()
             "xr-ui-resolution", mSettings.standardKnobsDefaultValue.xrUiResolution);
     mStandardOpts.pXrUiResolution->SetFlagDescription(
         "Specify the UI quad resolution in pixels. Width and Height must be two "
-        "positive integers greater or equal to 1.");
+        "positive integers greater or equal to 1. If 0, window dimensions will be used.");
     mStandardOpts.pXrUiResolution->SetFlagParameters("<width>x<height>");
     mStandardOpts.pXrUiResolution->SetValidator([](std::pair<int, int> res) {
         return res.first >= 0 && res.second >= 0;
