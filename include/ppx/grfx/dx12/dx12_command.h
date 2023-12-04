@@ -38,7 +38,7 @@ private:
     virtual void BeginRenderPassImpl(const grfx::RenderPassBeginInfo* pBeginInfo) override;
     virtual void EndRenderPassImpl() override;
 
-    virtual void BeginRenderingImpl(const grfx::RenderingInfo* renderingInfo) override;
+    virtual void BeginRenderingImpl(const grfx::RenderingInfo* pRenderingInfo) override;
     virtual void EndRenderingImpl() override;
 
     virtual void PushDescriptorImpl(

@@ -187,7 +187,6 @@ struct RenderingInfo
     grfx::RenderTargetView* pRenderTargetViews[PPX_MAX_RENDER_TARGETS] = {};
     grfx::DepthStencilView* pDepthStencilView                          = nullptr;
 
-    uint32_t                     RTVClearCount                          = 0;
     grfx::RenderTargetClearValue RTVClearValues[PPX_MAX_RENDER_TARGETS] = {0.0f, 0.0f, 0.0f, 0.0f};
     grfx::DepthStencilClearValue DSVClearValue                          = {1.0f, 0xFF};
 };

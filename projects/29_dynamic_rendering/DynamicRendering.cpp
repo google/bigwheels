@@ -126,7 +126,6 @@ void DynamicRenderingApp::Setup()
             grfx::RenderingInfo renderingInfo   = {};
             renderingInfo.flags.bits.suspending = true;
             renderingInfo.renderArea            = {0, 0, swapchain->GetWidth(), swapchain->GetHeight()};
-            renderingInfo.RTVClearCount         = 1;
             renderingInfo.RTVClearValues[0]     = {{0.7f, 0.7f, 0.7f, 1.0f}};
             renderingInfo.DSVClearValue         = {1.0f, 0xFF};
             renderingInfo.renderTargetCount     = 1;

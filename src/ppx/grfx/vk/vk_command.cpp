@@ -124,12 +124,12 @@ void CommandBuffer::EndRenderPassImpl()
 
 void CommandBuffer::BeginRenderingImpl(const grfx::RenderingInfo* pRenderingInfo)
 {
-#if defined(VK_KHR_dynamic_rendering)
     vk::Device* pDevice = ToApi(GetDevice());
     if (!pDevice->DynamicRenderingSupported()) {
         PPX_ASSERT_MSG(false, "Device does not support VK_KHR_dynamic_rendering");
         return;
     }
+#if defined(VK_KHR_dynamic_rendering)
     VkRect2D rect = {};
     rect.offset   = {pRenderingInfo->renderArea.x, pRenderingInfo->renderArea.x};
     rect.extent   = {pRenderingInfo->renderArea.width, pRenderingInfo->renderArea.height};
@@ -143,7 +143,7 @@ void CommandBuffer::BeginRenderingImpl(const grfx::RenderingInfo* pRenderingInfo
         colorAttachment.resolveMode                      = VK_RESOLVE_MODE_NONE;
         colorAttachment.loadOp                           = ToVkAttachmentLoadOp(rtv->GetLoadOp());
         colorAttachment.storeOp                          = ToVkAttachmentStoreOp(rtv->GetStoreOp());
-        colorAttachment.clearValue.color                 = ToVkClearColorValue(pRenderingInfo->RTVClearValues[0]);
+        colorAttachment.clearValue.color                 = ToVkClearColorValue(pRenderingInfo->RTVClearValues[i]);
         colorAttachmentDescs.push_back(colorAttachment);
     }
 
