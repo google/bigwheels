@@ -237,9 +237,9 @@ struct StandardOptions
     std::shared_ptr<KnobFlag<bool>> pOverwriteMetricsFile;
 
     // Options
-    std::shared_ptr<KnobFlag<int>>      pGpuIndex;
+    std::shared_ptr<KnobFlag<uint32_t>> pGpuIndex;
     std::shared_ptr<KnobFlag<uint64_t>> pFrameCount;
-    std::shared_ptr<KnobFlag<int>>      pRunTimeMs;
+    std::shared_ptr<KnobFlag<uint32_t>> pRunTimeMs;
     std::shared_ptr<KnobFlag<int>>      pStatsFrameWindow;
     std::shared_ptr<KnobFlag<int>>      pScreenshotFrameNumber;
 
@@ -331,8 +331,8 @@ struct ApplicationSettings
         std::vector<std::string> configJsonPaths = {};
         bool                     deterministic   = false;
         bool                     enableMetrics   = false;
-        uint64_t                 frameCount      = UINT64_MAX;
-        int                      gpuIndex        = INT_MAX;
+        uint64_t                 frameCount      = 0;
+        uint32_t                 gpuIndex        = 0;
 #if !defined(PPX_LINUX_HEADLESS)
         bool headless = false;
 #endif
@@ -340,10 +340,10 @@ struct ApplicationSettings
         std::string         metricsFilename       = std::filesystem::current_path().string();
         bool                overwriteMetricsFile  = false;
         std::pair<int, int> resolution            = std::make_pair(0, 0);
-        int                 runTimeMs             = INT_MAX;
-        int                 screenshotFrameNumber = INT_MAX;
+        uint32_t            runTimeMs             = 0;
+        int                 screenshotFrameNumber = -1;
         std::string         screenshotPath        = "";
-        int                 statsFrameWindow      = INT_MAX;
+        int                 statsFrameWindow      = -1;
         bool                useSoftwareRenderer   = false;
 #if defined(PPX_BUILD_XR)
         std::pair<int, int>      xrUiResolution       = std::make_pair(0, 0);
