@@ -910,8 +910,7 @@ void GraphicsBenchmarkApp::ProcessKnobs()
 
     if (enableSpheres) {
         // Update sphere resources and mesh
-        const bool spheresAreSetUp = mSpheresAreSetUp;
-        if (!spheresAreSetUp) {
+        if (!mSpheresAreSetUp) {
             // This creates all resources.
             SetupSpheres();
         }
@@ -919,10 +918,6 @@ void GraphicsBenchmarkApp::ProcessKnobs()
             const bool requireMoreSpheres = sphereInstanceCountKnobChanged && (pSphereInstanceCount->GetValue() > mInitializedSpheres);
             if (requireMoreSpheres) {
                 SetupSphereMeshes();
-            }
-            // Rebuild pipelines
-            if (alphaBlendKnobChanged || depthTestWriteKnobChanged) {
-                SetupSpheresPipelines();
             }
             // Update descriptors
             if (allTexturesTo1x1KnobChanged) {
