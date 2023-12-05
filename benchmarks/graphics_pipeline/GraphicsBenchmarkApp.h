@@ -511,6 +511,10 @@ private:
     void SetupSpheresPipelines();
     void SetupFullscreenQuadsPipelines();
 
+    // Setup everything:
+    // - Resources, vertex data and pipelines
+    void SetupSpheres();
+
     // Metrics related functions
     virtual void SetupMetrics() override;
     virtual void UpdateMetrics() override;
