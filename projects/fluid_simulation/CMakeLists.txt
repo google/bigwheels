@@ -4,8 +4,6 @@
 # Use of this source code is governed by an MIT-style
 # license that can be found in the LICENSE file or at
 # https://opensource.org/licenses/MIT.
-cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
-
 project(fluid_simulation)
 
 add_samples_for_all_apis(

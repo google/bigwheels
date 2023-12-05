@@ -11,8 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
-
 project(19_camera_fit_scene)
 
 add_samples_for_all_apis(
