@@ -816,9 +816,8 @@ void Application::InitStandardKnobs()
         "If metrics are enabled, save the metrics report to the "
         "provided path. If used, any `@` symbols in the filename "
         "(not the path) will be replaced with the current timestamp. "
-        "If the filename does not end in `.json`, it will be appended. "
-        "If there is just a filename, it will be saved in the current working "
-        "folder. See also `--enable-metrics` and `--overwrite-metrics-file`.");
+        "If not a full path, will be defined relative to the default "
+        "output directory. See also `--enable-metrics` and `--overwrite-metrics-file`.");
 
     GetKnobManager().InitKnob(&mStandardOpts.pOverwriteMetricsFile, "overwrite-metrics-file", mSettings.standardKnobsDefaultValue.overwriteMetricsFile);
     mStandardOpts.pOverwriteMetricsFile->SetFlagDescription(
@@ -853,8 +852,7 @@ void Application::InitStandardKnobs()
     mStandardOpts.pScreenshotPath->SetFlagDescription(
         "Save the screenshot to this path. If used, any `#` symbols in the filename "
         "(not the path) will be replaced with the number of the screenshotted frame. "
-        "If the filename does not end in `.ppm`, it will be appended. "
-        "If there is just a filename, it will be saved in the current working folder. "
+        "If not a full path, will be defined relative to the default output directory. "
         "See also `--screenshot-frame-number`");
     mStandardOpts.pScreenshotPath->SetFlagParameters("<path>");
 
@@ -893,7 +891,7 @@ void Application::InitStandardKnobs()
 void Application::TakeScreenshot()
 {
     std::filesystem::path screenshotPath;
-    screenshotPath = ppx::fs::GetFullPath(mStandardOpts.pScreenshotPath->GetValue(), std::filesystem::current_path(), ".ppm", "#", std::to_string(mFrameCount));
+    screenshotPath = ppx::fs::GetFullPath(mStandardOpts.pScreenshotPath->GetValue(), ppx::fs::GetDefaultOutputDirectory(), "#", std::to_string(mFrameCount));
 
     auto swapchainImg = GetSwapchain()->GetColorImage(GetSwapchain()->GetCurrentImageIndex());
     auto queue        = mDevice->GetGraphicsQueue();

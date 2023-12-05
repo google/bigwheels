@@ -191,7 +191,16 @@ std::filesystem::path GetExternalDataPath()
 }
 #endif
 
-std::filesystem::path GetFullPath(const std::filesystem::path& partialPath, const std::filesystem::path& defaultFolder, const std::filesystem::path& ext, const std::string& regexToReplace, const std::string& replaceString)
+std::filesystem::path GetDefaultOutputDirectory()
+{
+#if defined(PPX_ANDROID)
+    return ppx::fs::GetExternalDataPath();
+#else
+    return std::filesystem::current_path();
+#endif
+}
+
+std::filesystem::path GetFullPath(const std::filesystem::path& partialPath, const std::filesystem::path& defaultFolder, const std::string& regexToReplace, const std::string& replaceString)
 {
     PPX_ASSERT_MSG(partialPath.string() != "", "Partial path cannot be empty string");
     PPX_ASSERT_MSG(partialPath.has_filename(), "Partial path cannot be a folder");
@@ -204,12 +213,8 @@ std::filesystem::path GetFullPath(const std::filesystem::path& partialPath, cons
         fullPath.replace_filename(std::filesystem::path(newfileName));
     }
 
-    if (!fullPath.has_parent_path()) {
+    if (!fullPath.has_root_path()) {
         fullPath = defaultFolder / fullPath;
-    }
-
-    if (fullPath.extension() != ext) {
-        fullPath.replace_extension(ext);
     }
 
     return fullPath;

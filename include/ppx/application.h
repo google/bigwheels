@@ -348,7 +348,7 @@ struct ApplicationSettings
         std::pair<int, int> resolution            = std::make_pair(0, 0);
         uint32_t            runTimeMs             = 0;
         int                 screenshotFrameNumber = -1;
-        std::string         screenshotPath        = "screenshot_frame#.ppm";
+        std::string         screenshotPath        = "screenshot_frame_#.ppm";
         int                 statsFrameWindow      = -1;
         bool                useSoftwareRenderer   = false;
 #if defined(PPX_BUILD_XR)

@@ -106,7 +106,7 @@ TEST(MetricsTest, ManagerStartSimultaneousRunsFails)
 
 TEST(MetricsTest, ManagerStartDuplicateRunFails)
 {
-    metrics::Manager      manager;
+    metrics::Manager manager;
     manager.StartRun("run");
     manager.EndRun();
     EXPECT_DEATH({
@@ -122,7 +122,7 @@ TEST(MetricsTest, ManagerStartDuplicateRunFails)
 
 TEST(MetricsTest, ManagerAddMetricWithNoRun)
 {
-    metrics::Manager manager;
+    metrics::Manager        manager;
     metrics::MetricMetadata metadata = {};
     metadata.type                    = metrics::MetricType::COUNTER;
     metadata.name                    = "metric";
@@ -217,7 +217,7 @@ TEST_F(MetricsTestFixture, ManagerAddDuplicateMetricName)
 
 TEST_F(MetricsTestFixture, ReportEmptyRun)
 {
-    auto           result = pManager->CreateReport("report1").GetContentString();
+    auto           result = pManager->CreateReport("report1.json").GetContentString();
     nlohmann::json parsed = nlohmann::json::parse(result);
     EXPECT_EQ(parsed["filename"], "report1.json");
     ASSERT_EQ(parsed["runs"].size(), 1);
@@ -227,16 +227,9 @@ TEST_F(MetricsTestFixture, ReportEmptyRun)
     EXPECT_EQ(run["counters"].size(), 0);
 }
 
-TEST_F(MetricsTestFixture, ReportDoesNotAddJsonIfNotNeeded)
-{
-    auto           result = pManager->CreateReport("report2.json").GetContentString();
-    nlohmann::json parsed = nlohmann::json::parse(result);
-    EXPECT_EQ(parsed["filename"], "report2.json");
-}
-
 TEST_F(MetricsTestFixture, ReportAddsTimestampWithAt)
 {
-    auto           result   = pManager->CreateReport("re_@_port_@").GetContentString();
+    auto           result   = pManager->CreateReport("re_@_port_@.json").GetContentString();
     nlohmann::json parsed   = nlohmann::json::parse(result);
     std::string    filename = parsed["filename"];
     std::regex     regex("re_([\\d]+)_port_([\\d]+).json");

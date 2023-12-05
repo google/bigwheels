@@ -360,13 +360,8 @@ void Report::SetReportPath(const std::string& reportPath)
     std::stringstream timeStream;
     timeStream << std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 
-#if defined(PPX_ANDROID)
-    mFilePath = ppx::fs::GetExternalDataPath();
-#else
-    mFilePath = std::filesystem::current_path();
-#endif
-
-    mFilePath = ppx::fs::GetFullPath(std::filesystem::path(reportPath), mFilePath, kFileExtension, "@", timeStream.str());
+    mFilePath = ppx::fs::GetDefaultOutputDirectory();
+    mFilePath = ppx::fs::GetFullPath(std::filesystem::path(reportPath), mFilePath, "@", timeStream.str());
 
     mContent["filename"]     = mFilePath.filename().string();
     mContent["generated_at"] = timeStream.str();
