@@ -271,6 +271,8 @@ Result ImGuiImplVk::InitApiObjects(ppx::Application* pApp)
         init_info.ImageCount                = pApp->GetUISwapchain()->GetImageCount();
         init_info.Allocator                 = VK_NULL_HANDLE;
         init_info.CheckVkResultFn           = nullptr;
+        init_info.UseDynamicRendering       = pApp->GetSettings()->grfx.enableImGuiDynamicRendering;
+        init_info.ColorAttachmentFormat     = grfx::vk::ToVkFormat(pApp->GetUISwapchain()->GetColorFormat());
 
         grfx::RenderPassPtr renderPass = pApp->GetUISwapchain()->GetRenderPass(0, grfx::ATTACHMENT_LOAD_OP_LOAD);
         PPX_ASSERT_MSG(!renderPass.IsNull(), "[imgui:vk] failed to get swapchain renderpass");

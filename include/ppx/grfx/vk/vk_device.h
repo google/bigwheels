@@ -111,6 +111,11 @@ private:
 
 extern PFN_vkCmdPushDescriptorSetKHR CmdPushDescriptorSetKHR;
 
+#if defined(VK_KHR_dynamic_rendering)
+extern PFN_vkCmdBeginRenderingKHR CmdBeginRenderingKHR;
+extern PFN_vkCmdEndRenderingKHR   CmdEndRenderingKHR;
+#endif
+
 } // namespace vk
 } // namespace grfx
 } // namespace ppx

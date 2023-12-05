@@ -30,9 +30,14 @@ CommandType CommandPool::GetCommandType() const
     return mCreateInfo.pQueue->GetCommandType();
 }
 
+bool CommandBuffer::HasActiveRenderPass() const
+{
+    return !IsNull(mCurrentRenderPass) || mDynamicRenderPassActive;
+}
+
 void CommandBuffer::BeginRenderPass(const grfx::RenderPassBeginInfo* pBeginInfo)
 {
-    if (!IsNull(mCurrentRenderPass)) {
+    if (HasActiveRenderPass()) {
         PPX_ASSERT_MSG(false, "cannot nest render passes");
     }
 
@@ -53,9 +58,28 @@ void CommandBuffer::EndRenderPass()
     if (IsNull(mCurrentRenderPass)) {
         PPX_ASSERT_MSG(false, "no render pass to end");
     }
+    PPX_ASSERT_MSG(!mDynamicRenderPassActive, "Dynamic render pass active, use EndRendering instead");
 
     EndRenderPassImpl();
     mCurrentRenderPass = nullptr;
+}
+
+void CommandBuffer::BeginRendering(const grfx::RenderingInfo* pRenderingInfo)
+{
+    PPX_ASSERT_NULL_ARG(pRenderingInfo);
+    PPX_ASSERT_MSG(!HasActiveRenderPass(), "cannot nest render passes");
+
+    BeginRenderingImpl(pRenderingInfo);
+    mDynamicRenderPassActive = true;
+}
+
+void CommandBuffer::EndRendering()
+{
+    PPX_ASSERT_MSG(mDynamicRenderPassActive, "no render pass to end")
+    PPX_ASSERT_MSG(IsNull(mCurrentRenderPass), "Non-dynamic render pass active, use EndRendering instead");
+
+    EndRenderingImpl();
+    mDynamicRenderPassActive = false;
 }
 
 void CommandBuffer::BeginRenderPass(const grfx::RenderPass* pRenderPass)

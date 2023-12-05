@@ -322,6 +322,12 @@ struct ApplicationSettings
             grfx::Format depthFormat = grfx::FORMAT_UNDEFINED;
             uint32_t     imageCount  = 2;
         } swapchain;
+
+        // imGuiDynamicRendering controls whether ImGui window is
+        // drawn within a dynamic render pass. Dynamic render pass
+        // must have begun with a single color attachment (no depth
+        // stencil attachment).
+        bool enableImGuiDynamicRendering = false;
     } grfx;
 
     // Default values for standard knobs

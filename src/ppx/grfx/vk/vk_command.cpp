@@ -122,6 +122,76 @@ void CommandBuffer::EndRenderPassImpl()
     vk::CmdEndRenderPass(mCommandBuffer);
 }
 
+void CommandBuffer::BeginRenderingImpl(const grfx::RenderingInfo* pRenderingInfo)
+{
+    vk::Device* pDevice = ToApi(GetDevice());
+    if (!pDevice->DynamicRenderingSupported()) {
+        PPX_ASSERT_MSG(false, "Device does not support VK_KHR_dynamic_rendering");
+        return;
+    }
+#if defined(VK_KHR_dynamic_rendering)
+    VkRect2D rect = {};
+    rect.offset   = {pRenderingInfo->renderArea.x, pRenderingInfo->renderArea.x};
+    rect.extent   = {pRenderingInfo->renderArea.width, pRenderingInfo->renderArea.height};
+
+    std::vector<VkRenderingAttachmentInfo> colorAttachmentDescs;
+    for (uint32_t i = 0; i < pRenderingInfo->renderTargetCount; ++i) {
+        const grfx::RenderTargetViewPtr& rtv             = pRenderingInfo->pRenderTargetViews[i];
+        VkRenderingAttachmentInfo        colorAttachment = {VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
+        colorAttachment.imageView                        = ToApi(rtv.Get())->GetVkImageView();
+        colorAttachment.imageLayout                      = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        colorAttachment.resolveMode                      = VK_RESOLVE_MODE_NONE;
+        colorAttachment.loadOp                           = ToVkAttachmentLoadOp(rtv->GetLoadOp());
+        colorAttachment.storeOp                          = ToVkAttachmentStoreOp(rtv->GetStoreOp());
+        colorAttachment.clearValue.color                 = ToVkClearColorValue(pRenderingInfo->RTVClearValues[i]);
+        colorAttachmentDescs.push_back(colorAttachment);
+    }
+
+    VkRenderingInfo vkri      = {VK_STRUCTURE_TYPE_RENDERING_INFO};
+    vkri.renderArea           = rect;
+    vkri.layerCount           = 1;
+    vkri.viewMask             = 0;
+    vkri.colorAttachmentCount = CountU32(colorAttachmentDescs);
+    vkri.pColorAttachments    = DataPtr(colorAttachmentDescs);
+
+    if (pRenderingInfo->pDepthStencilView) {
+        grfx::DepthStencilViewPtr dsv             = pRenderingInfo->pDepthStencilView;
+        VkRenderingAttachmentInfo depthAttachment = {VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
+        depthAttachment.imageView                 = ToApi(dsv.Get())->GetVkImageView();
+        depthAttachment.imageLayout               = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        depthAttachment.resolveMode               = VK_RESOLVE_MODE_NONE;
+        depthAttachment.loadOp                    = ToVkAttachmentLoadOp(dsv->GetDepthLoadOp());
+        depthAttachment.storeOp                   = ToVkAttachmentStoreOp(dsv->GetDepthStoreOp());
+        depthAttachment.clearValue.depthStencil   = ToVkClearDepthStencilValue(pRenderingInfo->DSVClearValue);
+        vkri.pDepthAttachment                     = &depthAttachment;
+    }
+
+    if (pRenderingInfo->flags.bits.resuming) {
+        vkri.flags |= VK_RENDERING_RESUMING_BIT;
+    }
+    if (pRenderingInfo->flags.bits.suspending) {
+        vkri.flags |= VK_RENDERING_SUSPENDING_BIT;
+    }
+
+    PPX_ASSERT_MSG(vk::CmdBeginRenderingKHR != nullptr, "Function not found");
+    vk::CmdBeginRenderingKHR(mCommandBuffer, &vkri);
+#endif
+}
+
+void CommandBuffer::EndRenderingImpl()
+{
+#if defined(VK_KHR_dynamic_rendering)
+    vk::Device* pDevice = ToApi(GetDevice());
+    if (!pDevice->DynamicRenderingSupported()) {
+        PPX_ASSERT_MSG(false, "Device does not support VK_KHR_dynamic_rendering");
+        return;
+    }
+    PPX_ASSERT_MSG(vk::CmdEndRenderingKHR != nullptr, "Function not found");
+
+    vk::CmdEndRenderingKHR(mCommandBuffer);
+#endif
+}
+
 void CommandBuffer::PushDescriptorImpl(
     grfx::CommandType              pipelineBindPoint,
     const grfx::PipelineInterface* pInterface,

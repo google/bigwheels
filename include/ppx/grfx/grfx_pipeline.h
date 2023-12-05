@@ -172,6 +172,7 @@ struct GraphicsPipelineCreateInfo
     grfx::ColorBlendState          colorBlendState    = {};
     grfx::OutputState              outputState        = {};
     const grfx::PipelineInterface* pPipelineInterface = nullptr;
+    bool                           dynamicRenderPass  = false;
 };
 
 struct GraphicsPipelineCreateInfo2
@@ -189,6 +190,7 @@ struct GraphicsPipelineCreateInfo2
     grfx::BlendMode                blendModes[PPX_MAX_RENDER_TARGETS] = {grfx::BLEND_MODE_NONE};
     grfx::OutputState              outputState                        = {};
     const grfx::PipelineInterface* pPipelineInterface                 = nullptr;
+    bool                           dynamicRenderPass                  = false;
 };
 
 namespace internal {
