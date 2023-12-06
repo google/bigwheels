@@ -245,6 +245,7 @@ list(
     ${INC_DIR}/ppx/grfx/grfx_scope.h
     ${INC_DIR}/ppx/grfx/grfx_shader.h
     ${INC_DIR}/ppx/grfx/grfx_shading_rate.h
+    ${INC_DIR}/ppx/grfx/grfx_shading_rate_util.h
     ${INC_DIR}/ppx/grfx/grfx_swapchain.h
     ${INC_DIR}/ppx/grfx/grfx_sync.h
     ${INC_DIR}/ppx/grfx/grfx_text_draw.h
@@ -273,6 +274,7 @@ list(
     ${SRC_DIR}/ppx/grfx/grfx_scope.cpp
     ${SRC_DIR}/ppx/grfx/grfx_shader.cpp
     ${SRC_DIR}/ppx/grfx/grfx_shading_rate.cpp
+    ${SRC_DIR}/ppx/grfx/grfx_shading_rate_util.cpp
     ${SRC_DIR}/ppx/grfx/grfx_swapchain.cpp
     ${SRC_DIR}/ppx/grfx/grfx_sync.cpp
     ${SRC_DIR}/ppx/grfx/grfx_text_draw.cpp
