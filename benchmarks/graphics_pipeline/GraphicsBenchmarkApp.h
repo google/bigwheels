@@ -23,6 +23,7 @@
 #include "ppx/knob.h"
 #include "ppx/math_config.h"
 #include "ppx/ppx.h"
+#include "ppx/random.h"
 
 #include <array>
 #include <vector>
@@ -33,12 +34,34 @@ static constexpr uint32_t kDefaultSphereInstanceCount = 50;
 static constexpr uint32_t kSeed                       = 89977;
 static constexpr uint32_t kMaxFullscreenQuadsCount    = 1000;
 
+static constexpr float4   kDefaultDrawCallColor        = float4(1.0f, 0.175f, 0.365f, 0.5f);
+static constexpr uint32_t kDebugColorPushConstantCount = sizeof(float4) / sizeof(uint32_t);
+
 static constexpr const char* kShaderBaseDir   = "benchmarks/shaders";
 static constexpr const char* kQuadTextureFile = "benchmarks/textures/resolution.jpg";
 
+enum class DebugView
+{
+    DISABLED = 0,
+    SHOW_DRAWCALLS
+};
+
+inline const char* ToString(DebugView dv)
+{
+    switch (dv) {
+        case DebugView::DISABLED: return "Disabled";
+        case DebugView::SHOW_DRAWCALLS: return "Show Drawcalls";
+        default: return "?";
+    }
+}
+
+static constexpr std::array<DebugView, 2> kAvailableDebugViews = {
+    DebugView::DISABLED,
+    DebugView::SHOW_DRAWCALLS};
+
 enum class SphereVS
 {
-    SPHERE_VS_SIMPLE,
+    SPHERE_VS_SIMPLE = 0,
     SPHERE_VS_ALU_BOUND
 };
 
@@ -57,14 +80,14 @@ static constexpr std::array<SphereVS, 2> kAvailableVsShaders = {
 
 enum class SpherePS
 {
-    SPHERE_PS_SIMPLE,
+    SPHERE_PS_SIMPLE = 0,
     SPHERE_PS_ALU_BOUND,
     SPHERE_PS_MEM_BOUND
 };
 
-inline const char* ToString(SpherePS vs)
+inline const char* ToString(SpherePS ps)
 {
-    switch (vs) {
+    switch (ps) {
         case SpherePS::SPHERE_PS_SIMPLE: return "Benchmark_PsSimple";
         case SpherePS::SPHERE_PS_ALU_BOUND: return "Benchmark_PsAluBound";
         case SpherePS::SPHERE_PS_MEM_BOUND: return "Benchmark_PsMemBound";
@@ -432,6 +455,8 @@ private:
     std::array<grfx::MeshPtr, kMeshCount>                         mSphereMeshes;
     std::vector<LOD>                                              mSphereLODs;
     MultiDimensionalIndexer                                       mMeshesIndexer;
+    std::vector<float4>                                           mColorsForDrawCalls;
+    Random                                                        mRandom;
     bool                                                          mSpheresAreSetUp    = false;
     uint32_t                                                      mInitializedSpheres = 0;
 
@@ -463,6 +488,7 @@ private:
 private:
     std::shared_ptr<KnobCheckbox>              pEnableSkyBox;
     std::shared_ptr<KnobCheckbox>              pEnableSpheres;
+    std::shared_ptr<KnobDropdown<DebugView>>   pDebugViews;
     std::shared_ptr<KnobDropdown<SphereVS>>    pKnobVs;
     std::shared_ptr<KnobDropdown<SpherePS>>    pKnobPs;
     std::shared_ptr<KnobDropdown<SphereLOD>>   pKnobLOD;
@@ -577,6 +603,7 @@ private:
     RenderPasses SwapchainRenderPasses(grfx::SwapchainPtr swapchain, uint32_t imageIndex);
     RenderPasses OffscreenRenderPasses(const OffscreenFrame&);
     grfx::Format RenderFormat();
+    void         CreateColorsForDrawCalls();
 };
 
 #endif // BENCHMARKS_GRAPHICS_PIPELINE_GRAPHICS_BENCHMARK_APP_H

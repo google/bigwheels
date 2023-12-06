@@ -25,13 +25,14 @@ static constexpr size_t SKYBOX_UNIFORM_BUFFER_REGISTER = 0;
 static constexpr size_t SKYBOX_SAMPLED_IMAGE_REGISTER  = 1;
 static constexpr size_t SKYBOX_SAMPLER_REGISTER        = 2;
 
-static constexpr size_t SPHERE_UNIFORM_BUFFER_REGISTER                = 0;
-static constexpr size_t SPHERE_ALBEDO_SAMPLED_IMAGE_REGISTER          = 1;
-static constexpr size_t SPHERE_ALBEDO_SAMPLER_REGISTER                = 2;
-static constexpr size_t SPHERE_NORMAL_SAMPLED_IMAGE_REGISTER          = 3;
-static constexpr size_t SPHERE_NORMAL_SAMPLER_REGISTER                = 4;
-static constexpr size_t SPHERE_METAL_ROUGHNESS_SAMPLED_IMAGE_REGISTER = 5;
-static constexpr size_t SPHERE_METAL_ROUGHNESS_SAMPLER_REGISTER       = 6;
+static constexpr size_t SPHERE_COLOR_UNIFORM_BUFFER_REGISTER          = 0;
+static constexpr size_t SPHERE_SCENEDATA_UNIFORM_BUFFER_REGISTER      = 1;
+static constexpr size_t SPHERE_ALBEDO_SAMPLED_IMAGE_REGISTER          = 2;
+static constexpr size_t SPHERE_ALBEDO_SAMPLER_REGISTER                = 3;
+static constexpr size_t SPHERE_NORMAL_SAMPLED_IMAGE_REGISTER          = 4;
+static constexpr size_t SPHERE_NORMAL_SAMPLER_REGISTER                = 5;
+static constexpr size_t SPHERE_METAL_ROUGHNESS_SAMPLED_IMAGE_REGISTER = 6;
+static constexpr size_t SPHERE_METAL_ROUGHNESS_SAMPLER_REGISTER       = 7;
 
 static constexpr size_t QUADS_SAMPLED_IMAGE_REGISTER = 0;
 
@@ -54,6 +55,11 @@ void GraphicsBenchmarkApp::InitKnobs()
     GetKnobManager().InitKnob(&pEnableSpheres, "enable-spheres", true);
     pEnableSpheres->SetDisplayName("Enable Spheres");
     pEnableSpheres->SetFlagDescription("Enable the Spheres in the scene.");
+
+    GetKnobManager().InitKnob(&pDebugViews, "debug-view", 0, kAvailableDebugViews);
+    pDebugViews->SetDisplayName("Debug View");
+    pDebugViews->SetFlagDescription("Select the debug view for spheres.");
+    pDebugViews->SetIndent(1);
 
     GetKnobManager().InitKnob(&pKnobVs, "vs", 0, kAvailableVsShaders);
     pKnobVs->SetDisplayName("Vertex Shader");
@@ -230,6 +236,7 @@ void GraphicsBenchmarkApp::Setup()
     SetupSkyBoxMeshes();
     SetupSkyBoxPipelines();
 
+    CreateColorsForDrawCalls();
     if (pEnableSpheres->GetValue()) {
         SetupSpheres();
     }
@@ -416,7 +423,7 @@ void GraphicsBenchmarkApp::SetupSphereResources()
     // Descriptor set layout
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(SPHERE_UNIFORM_BUFFER_REGISTER, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(SPHERE_SCENEDATA_UNIFORM_BUFFER_REGISTER, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER));
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(SPHERE_ALBEDO_SAMPLED_IMAGE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(SPHERE_ALBEDO_SAMPLER_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER));
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(SPHERE_NORMAL_SAMPLED_IMAGE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
@@ -497,7 +504,7 @@ void GraphicsBenchmarkApp::UpdateSphereDescriptors()
     for (size_t i = 0; i < n; i++) {
         grfx::DescriptorSetPtr pDescriptorSet = mSphere.descriptorSets[i];
 
-        PPX_CHECKED_CALL(pDescriptorSet->UpdateUniformBuffer(SPHERE_UNIFORM_BUFFER_REGISTER, 0, mSphere.uniformBuffer));
+        PPX_CHECKED_CALL(pDescriptorSet->UpdateUniformBuffer(SPHERE_SCENEDATA_UNIFORM_BUFFER_REGISTER, 0, mSphere.uniformBuffer));
 
         PPX_CHECKED_CALL(pDescriptorSet->UpdateSampler(SPHERE_ALBEDO_SAMPLER_REGISTER, 0, mLinearSampler));
         PPX_CHECKED_CALL(pDescriptorSet->UpdateSampler(SPHERE_NORMAL_SAMPLER_REGISTER, 0, mLinearSampler));
@@ -612,6 +619,10 @@ void GraphicsBenchmarkApp::SetupSpheresPipelines()
     piCreateInfo.setCount                          = 1;
     piCreateInfo.sets[0].set                       = 0;
     piCreateInfo.sets[0].pLayout                   = mSphere.descriptorSetLayout;
+    piCreateInfo.pushConstants.count               = kDebugColorPushConstantCount;
+    piCreateInfo.pushConstants.shaderVisiblity     = grfx::SHADER_STAGE_PS;
+    piCreateInfo.pushConstants.binding             = SPHERE_COLOR_UNIFORM_BUFFER_REGISTER;
+    piCreateInfo.pushConstants.set                 = 0;
     PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mSphere.pipelineInterface));
 
     // Pre-load the current pipeline variant.
@@ -892,12 +903,16 @@ void GraphicsBenchmarkApp::ProcessKnobs()
         pDrawCallCount->SetValue(pSphereInstanceCount->GetValue());
     }
 
-    const bool enableSpheres = pEnableSpheres->GetValue();
+    // If the debug view is enabled, then change the pixel shader to PsSimple.
+    if (pDebugViews->GetIndex() == static_cast<size_t>(DebugView::SHOW_DRAWCALLS)) {
+        pKnobPs->SetIndex(static_cast<size_t>(SpherePS::SPHERE_PS_SIMPLE));
+    }
 
+    const bool enableSpheres = pEnableSpheres->GetValue();
     // Set visibilities
     if (enableSpheresKnobChanged) {
+        pDebugViews->SetVisible(enableSpheres);
         pKnobVs->SetVisible(enableSpheres);
-        pKnobPs->SetVisible(enableSpheres);
         pKnobLOD->SetVisible(enableSpheres);
         pKnobVbFormat->SetVisible(enableSpheres);
         pKnobVertexAttrLayout->SetVisible(enableSpheres);
@@ -906,6 +921,7 @@ void GraphicsBenchmarkApp::ProcessKnobs()
         pAlphaBlend->SetVisible(enableSpheres);
         pDepthTestWrite->SetVisible(enableSpheres);
     }
+    pKnobPs->SetVisible(enableSpheres && (pDebugViews->GetIndex() != static_cast<size_t>(DebugView::SHOW_DRAWCALLS)));
     pAllTexturesTo1x1->SetVisible(enableSpheres && (pKnobPs->GetValue() == SpherePS::SPHERE_PS_MEM_BOUND));
 
     if (enableSpheres) {
@@ -1437,6 +1453,15 @@ ppx::grfx::Format GraphicsBenchmarkApp::RenderFormat()
     return renderFormat;
 }
 
+void GraphicsBenchmarkApp::CreateColorsForDrawCalls()
+{
+    // Create colors randomly.
+    mColorsForDrawCalls.resize(kMaxSphereInstanceCount);
+    for (size_t i = 0; i < kMaxSphereInstanceCount; i++) {
+        mColorsForDrawCalls[i] = float4(mRandom.Float(), mRandom.Float(), mRandom.Float(), 0.5f);
+    }
+}
+
 void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, const RenderPasses& renderpasses, uint32_t imageIndex)
 {
     PPX_CHECKED_CALL(frame.cmd->Begin());
@@ -1622,8 +1647,13 @@ void GraphicsBenchmarkApp::RecordCommandBufferSpheres(PerFrame& frame)
     data.lightPosition              = float4(mLightPosition, 0.0f);
     data.eyePosition                = float4(mCamera.GetEyePosition(), 0.0f);
     mSphere.uniformBuffer->CopyFromSource(sizeof(data), &data);
+    frame.cmd->PushGraphicsConstants(mSphere.pipelineInterface, kDebugColorPushConstantCount, &kDefaultDrawCallColor);
 
     for (uint32_t i = 0; i < currentDrawCallCount; i++) {
+        if (pDebugViews->GetIndex() == static_cast<size_t>(DebugView::SHOW_DRAWCALLS)) {
+            frame.cmd->PushGraphicsConstants(mSphere.pipelineInterface, kDebugColorPushConstantCount, &mColorsForDrawCalls[i]);
+        }
+
         uint32_t indexCount = indicesPerDrawCall;
         // Add the remaining indices to the last drawcall
         if (i == (currentDrawCallCount - 1)) {
