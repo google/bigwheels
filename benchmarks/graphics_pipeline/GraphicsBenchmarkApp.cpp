@@ -326,10 +326,15 @@ void GraphicsBenchmarkApp::UpdateMetrics()
     data.gauge.value              = mCPUSubmissionTime;
     RecordMetricData(mMetricsData.metrics[MetricsData::kTypeCPUSubmissionTime], data);
 
-    const float    gpuWorkDurationInSec = static_cast<float>(mGpuWorkDuration / static_cast<double>(frequency));
-    const uint32_t width                = GetSwapchain()->GetWidth();
-    const uint32_t height               = GetSwapchain()->GetHeight();
-    const uint32_t quadCount            = pFullscreenQuadsCount->GetValue();
+    const float        gpuWorkDurationInSec = static_cast<float>(mGpuWorkDuration / static_cast<double>(frequency));
+    const grfx::Format swapchainColorFormat = GetSwapchain()->GetColorFormat();
+    const uint32_t     swapchainWidth       = GetSwapchain()->GetWidth();
+    const uint32_t     swapchainHeight      = GetSwapchain()->GetHeight();
+    const bool         isOffscreen          = pRenderOffscreen->GetValue();
+    const grfx::Format colorFormat          = isOffscreen ? mOffscreenFrame.back().colorFormat : swapchainColorFormat;
+    const uint32_t     width                = isOffscreen ? mOffscreenFrame.back().width : swapchainWidth;
+    const uint32_t     height               = isOffscreen ? mOffscreenFrame.back().height : swapchainHeight;
+    const uint32_t     quadCount            = pFullscreenQuadsCount->GetValue();
 
     if (quadCount) {
         // Skip the first kSkipFrameCount frames after the knob of quad count being changed to avoid noise
@@ -339,7 +344,8 @@ void GraphicsBenchmarkApp::UpdateMetrics()
         }
 
         if (mSkipRecordBandwidthMetricFrameCounter == 0) {
-            const float dataWriteInGb = (static_cast<float>(width) * static_cast<float>(height) * 4.f * quadCount) / (1024.f * 1024.f * 1024.f);
+            const auto  texelSize     = static_cast<float>(grfx::GetFormatDescription(colorFormat)->bytesPerTexel);
+            const float dataWriteInGb = (static_cast<float>(width) * static_cast<float>(height) * texelSize * quadCount) / (1024.f * 1024.f * 1024.f);
             const float bandwidth     = dataWriteInGb / gpuWorkDurationInSec;
 
             ppx::metrics::MetricData data = {ppx::metrics::MetricType::GAUGE};
@@ -1217,7 +1223,7 @@ void GraphicsBenchmarkApp::DrawExtraInfo()
     ImGui::Text("%d x %d", swapchainWidth, swapchainHeight);
     ImGui::NextColumn();
 
-    bool               isOffscreen = pRenderOffscreen->GetValue();
+    const bool         isOffscreen = pRenderOffscreen->GetValue();
     const grfx::Format colorFormat = isOffscreen ? mOffscreenFrame.back().colorFormat : swapchainColorFormat;
     const uint32_t     width       = isOffscreen ? mOffscreenFrame.back().width : swapchainWidth;
     const uint32_t     height      = isOffscreen ? mOffscreenFrame.back().height : swapchainHeight;
