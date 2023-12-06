@@ -271,8 +271,12 @@ Result ImGuiImplVk::InitApiObjects(ppx::Application* pApp)
         init_info.ImageCount                = pApp->GetUISwapchain()->GetImageCount();
         init_info.Allocator                 = VK_NULL_HANDLE;
         init_info.CheckVkResultFn           = nullptr;
+#if IMGUI_VERSION_NUM > 18970
         init_info.UseDynamicRendering       = pApp->GetSettings()->grfx.enableImGuiDynamicRendering;
         init_info.ColorAttachmentFormat     = grfx::vk::ToVkFormat(pApp->GetUISwapchain()->GetColorFormat());
+#else
+        PPX_ASSERT_MSG(!pApp->GetSettings()->grfx.enableImGuiDynamicRendering, "This version of ImGui does not have dynamic rendering support");
+#endif
 
         grfx::RenderPassPtr renderPass = pApp->GetUISwapchain()->GetRenderPass(0, grfx::ATTACHMENT_LOAD_OP_LOAD);
         PPX_ASSERT_MSG(!renderPass.IsNull(), "[imgui:vk] failed to get swapchain renderpass");
