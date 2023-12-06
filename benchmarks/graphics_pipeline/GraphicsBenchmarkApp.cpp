@@ -1508,7 +1508,7 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, const RenderPass
 
     // Write end timestamp
     // Note the framebuffer is still in RENDER_TARGET state, although it should not really be a problem.
-    frame.cmd->WriteTimestamp(frame.timestampQuery, grfx::PIPELINE_STAGE_TOP_OF_PIPE_BIT, /* queryIndex = */ 1);
+    frame.cmd->WriteTimestamp(frame.timestampQuery, grfx::PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, /* queryIndex = */ 1);
 
     if (renderpasses.blitRenderPass) {
         currentRenderPass = renderpasses.blitRenderPass;
