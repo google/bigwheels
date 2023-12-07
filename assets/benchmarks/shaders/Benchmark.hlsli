@@ -22,13 +22,22 @@ struct SceneData
     float4   EyePosition;                // Eye (camera) position.
 };
 
-ConstantBuffer<SceneData> Scene : register(b0);
-Texture2D                 AlbedoTexture         : register(t1);
-SamplerState              AlbedoSampler         : register(s2);
-Texture2D                 NormalMap             : register(t3);
-SamplerState              NormalMapSampler      : register(s4);
-Texture2D                 MetalRoughness        : register(t5);
-SamplerState              MetalRoughnessSampler : register(s6);
+struct ColorParams
+{
+    float4 Value;
+};
+
+#if defined(__spirv__)
+[[vk::push_constant]]
+#endif
+ConstantBuffer<ColorParams> Color : register(b0);
+ConstantBuffer<SceneData>   Scene : register(b1);
+Texture2D                   AlbedoTexture         : register(t2);
+SamplerState                AlbedoSampler         : register(s3);
+Texture2D                   NormalMap             : register(t4);
+SamplerState                NormalMapSampler      : register(s5);
+Texture2D                   MetalRoughness        : register(t6);
+SamplerState                MetalRoughnessSampler : register(s7);
 
 struct VSOutput {
   float4 world_position : POSITION;
