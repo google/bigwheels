@@ -481,6 +481,7 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
         mHasTimelineSemaphore = ElementExists(std::string(VK_KHR_TIMELINE_SEMAPHORE_EXTENSION_NAME), mExtensions);
     }
     else {
+        mFnResetQueryPoolEXT = (PFN_vkResetQueryPoolEXT)vkGetDeviceProcAddr(mDevice, "vkResetQueryPool");
         mHasTimelineSemaphore = true;
     }
     PPX_LOG_INFO("Vulkan timeline semaphore is present: " << mHasTimelineSemaphore);

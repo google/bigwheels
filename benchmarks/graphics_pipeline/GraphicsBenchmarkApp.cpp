@@ -39,7 +39,7 @@ static constexpr size_t QUADS_SAMPLED_IMAGE_REGISTER = 0;
 #if defined(USE_DX12)
 const grfx::Api kApi = grfx::API_DX_12_0;
 #elif defined(USE_VK)
-const grfx::Api kApi = grfx::API_VK_1_1;
+const grfx::Api kApi = grfx::API_VK_1_3;
 #endif
 
 void GraphicsBenchmarkApp::InitKnobs()
@@ -182,7 +182,7 @@ void GraphicsBenchmarkApp::Config(ppx::ApplicationSettings& settings)
     settings.window.width               = 1920;
     settings.window.height              = 1080;
     settings.grfx.api                   = kApi;
-    settings.grfx.enableDebug           = false;
+    settings.grfx.enableDebug           = true;
     settings.grfx.numFramesInFlight     = 1;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
 #if defined(PPX_BUILD_XR)
@@ -626,7 +626,6 @@ void GraphicsBenchmarkApp::SetupSpheresPipelines()
     piCreateInfo.sets[0].set                       = 0;
     piCreateInfo.sets[0].pLayout                   = mSphere.descriptorSetLayout;
     piCreateInfo.pushConstants.count               = kDebugColorPushConstantCount;
-    piCreateInfo.pushConstants.shaderVisiblity     = grfx::SHADER_STAGE_PS;
     piCreateInfo.pushConstants.binding             = SPHERE_COLOR_UNIFORM_BUFFER_REGISTER;
     piCreateInfo.pushConstants.set                 = 0;
     PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mSphere.pipelineInterface));

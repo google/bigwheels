@@ -354,6 +354,11 @@ Result Instance::CreateApiObjects(const grfx::InstanceCreateInfo* pCreateInfo)
             vkVersion = VK_MAKE_VERSION(1, 2, 0);
             PPX_LOG_INFO("Using Vulkan 1.2");
         } break;
+
+        case grfx::API_VK_1_3: {
+            vkVersion = VK_MAKE_VERSION(1, 3, 0);
+            PPX_LOG_INFO("Using Vulkan 1.3");
+        } break;
     }
     if ((vkVersion == ppx::InvalidValue<uint32_t>()) || (vkVersion > foundVkVersion)) {
         std::stringstream ss;

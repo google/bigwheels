@@ -252,7 +252,8 @@ Result CreateInstance(const grfx::InstanceCreateInfo* pCreateInfo, grfx::Instanc
 
 #if defined(PPX_VULKAN)
         case grfx::API_VK_1_1:
-        case grfx::API_VK_1_2: {
+        case grfx::API_VK_1_2:
+        case grfx::API_VK_1_3: {
             pObject = new vk::Instance();
             if (IsNull(pObject)) {
                 return ppx::ERROR_ALLOCATION_FAILED;

@@ -550,7 +550,8 @@ Result Application::InitializeImGui()
 
 #if defined(PPX_VULKAN)
         case grfx::API_VK_1_1:
-        case grfx::API_VK_1_2: {
+        case grfx::API_VK_1_2:
+        case grfx::API_VK_1_3: {
             mImGui = std::unique_ptr<ImGuiImpl>(new ImGuiImplVk());
         } break;
 #endif // defined(PPX_VULKAN)
@@ -1620,6 +1621,7 @@ std::optional<std::filesystem::path> GetShaderPathSuffix(const ppx::ApplicationS
             return (std::filesystem::path("dxil") / baseName).concat(".dxil");
         case grfx::API_VK_1_1:
         case grfx::API_VK_1_2:
+        case grfx::API_VK_1_3:
             return (std::filesystem::path("spv") / baseName).concat(".spv");
         default:
             return std::nullopt;
