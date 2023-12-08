@@ -25,13 +25,14 @@ static constexpr size_t SKYBOX_UNIFORM_BUFFER_REGISTER = 0;
 static constexpr size_t SKYBOX_SAMPLED_IMAGE_REGISTER  = 1;
 static constexpr size_t SKYBOX_SAMPLER_REGISTER        = 2;
 
-static constexpr size_t SPHERE_UNIFORM_BUFFER_REGISTER                = 0;
-static constexpr size_t SPHERE_ALBEDO_SAMPLED_IMAGE_REGISTER          = 1;
-static constexpr size_t SPHERE_ALBEDO_SAMPLER_REGISTER                = 2;
-static constexpr size_t SPHERE_NORMAL_SAMPLED_IMAGE_REGISTER          = 3;
-static constexpr size_t SPHERE_NORMAL_SAMPLER_REGISTER                = 4;
-static constexpr size_t SPHERE_METAL_ROUGHNESS_SAMPLED_IMAGE_REGISTER = 5;
-static constexpr size_t SPHERE_METAL_ROUGHNESS_SAMPLER_REGISTER       = 6;
+static constexpr size_t SPHERE_COLOR_UNIFORM_BUFFER_REGISTER          = 0;
+static constexpr size_t SPHERE_SCENEDATA_UNIFORM_BUFFER_REGISTER      = 1;
+static constexpr size_t SPHERE_ALBEDO_SAMPLED_IMAGE_REGISTER          = 2;
+static constexpr size_t SPHERE_ALBEDO_SAMPLER_REGISTER                = 3;
+static constexpr size_t SPHERE_NORMAL_SAMPLED_IMAGE_REGISTER          = 4;
+static constexpr size_t SPHERE_NORMAL_SAMPLER_REGISTER                = 5;
+static constexpr size_t SPHERE_METAL_ROUGHNESS_SAMPLED_IMAGE_REGISTER = 6;
+static constexpr size_t SPHERE_METAL_ROUGHNESS_SAMPLER_REGISTER       = 7;
 
 static constexpr size_t QUADS_SAMPLED_IMAGE_REGISTER = 0;
 
@@ -54,6 +55,11 @@ void GraphicsBenchmarkApp::InitKnobs()
     GetKnobManager().InitKnob(&pEnableSpheres, "enable-spheres", true);
     pEnableSpheres->SetDisplayName("Enable Spheres");
     pEnableSpheres->SetFlagDescription("Enable the Spheres in the scene.");
+
+    GetKnobManager().InitKnob(&pDebugViews, "debug-view", 0, kAvailableDebugViews);
+    pDebugViews->SetDisplayName("Debug View");
+    pDebugViews->SetFlagDescription("Select the debug view for spheres.");
+    pDebugViews->SetIndent(1);
 
     GetKnobManager().InitKnob(&pKnobVs, "vs", 0, kAvailableVsShaders);
     pKnobVs->SetDisplayName("Vertex Shader");
@@ -85,7 +91,7 @@ void GraphicsBenchmarkApp::InitKnobs()
     pKnobVertexAttrLayout->SetFlagDescription("Select the Vertex Attribute Layout for the graphics pipeline.");
     pKnobVertexAttrLayout->SetIndent(1);
 
-    GetKnobManager().InitKnob(&pSphereInstanceCount, "sphere-count", /* defaultValue = */ 50, /* minValue = */ 1, kMaxSphereInstanceCount);
+    GetKnobManager().InitKnob(&pSphereInstanceCount, "sphere-count", /* defaultValue = */ kDefaultSphereInstanceCount, /* minValue = */ 1, kMaxSphereInstanceCount);
     pSphereInstanceCount->SetDisplayName("Sphere Count");
     pSphereInstanceCount->SetFlagDescription("Select the number of spheres to draw on the screen.");
     pSphereInstanceCount->SetIndent(1);
@@ -230,10 +236,9 @@ void GraphicsBenchmarkApp::Setup()
     SetupSkyBoxMeshes();
     SetupSkyBoxPipelines();
 
+    CreateColorsForDrawCalls();
     if (pEnableSpheres->GetValue()) {
-        SetupSphereResources();
-        SetupSphereMeshes();
-        SetupSpheresPipelines();
+        SetupSpheres();
     }
 
     // =====================================================================
@@ -321,10 +326,15 @@ void GraphicsBenchmarkApp::UpdateMetrics()
     data.gauge.value              = mCPUSubmissionTime;
     RecordMetricData(mMetricsData.metrics[MetricsData::kTypeCPUSubmissionTime], data);
 
-    const float    gpuWorkDurationInSec = static_cast<float>(mGpuWorkDuration / static_cast<double>(frequency));
-    const uint32_t width                = GetSwapchain()->GetWidth();
-    const uint32_t height               = GetSwapchain()->GetHeight();
-    const uint32_t quadCount            = pFullscreenQuadsCount->GetValue();
+    const float        gpuWorkDurationInSec = static_cast<float>(mGpuWorkDuration / static_cast<double>(frequency));
+    const grfx::Format swapchainColorFormat = GetSwapchain()->GetColorFormat();
+    const uint32_t     swapchainWidth       = GetSwapchain()->GetWidth();
+    const uint32_t     swapchainHeight      = GetSwapchain()->GetHeight();
+    const bool         isOffscreen          = pRenderOffscreen->GetValue();
+    const grfx::Format colorFormat          = isOffscreen ? mOffscreenFrame.back().colorFormat : swapchainColorFormat;
+    const uint32_t     width                = isOffscreen ? mOffscreenFrame.back().width : swapchainWidth;
+    const uint32_t     height               = isOffscreen ? mOffscreenFrame.back().height : swapchainHeight;
+    const uint32_t     quadCount            = pFullscreenQuadsCount->GetValue();
 
     if (quadCount) {
         // Skip the first kSkipFrameCount frames after the knob of quad count being changed to avoid noise
@@ -334,7 +344,8 @@ void GraphicsBenchmarkApp::UpdateMetrics()
         }
 
         if (mSkipRecordBandwidthMetricFrameCounter == 0) {
-            const float dataWriteInGb = (static_cast<float>(width) * static_cast<float>(height) * 4.f * quadCount) / (1024.f * 1024.f * 1024.f);
+            const auto  texelSize     = static_cast<float>(grfx::GetFormatDescription(colorFormat)->bytesPerTexel);
+            const float dataWriteInGb = (static_cast<float>(width) * static_cast<float>(height) * texelSize * quadCount) / (1024.f * 1024.f * 1024.f);
             const float bandwidth     = dataWriteInGb / gpuWorkDurationInSec;
 
             ppx::metrics::MetricData data = {ppx::metrics::MetricType::GAUGE};
@@ -415,19 +426,10 @@ void GraphicsBenchmarkApp::SetupSphereResources()
         PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mSphere.uniformBuffer));
     }
 
-    // Uniform buffers for draw calls
-    {
-        grfx::BufferCreateInfo bufferCreateInfo        = {};
-        bufferCreateInfo.size                          = PPX_MINIMUM_UNIFORM_BUFFER_SIZE;
-        bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
-        bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
-        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mSphere.uniformBuffer));
-    }
-
     // Descriptor set layout
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(SPHERE_UNIFORM_BUFFER_REGISTER, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(SPHERE_SCENEDATA_UNIFORM_BUFFER_REGISTER, grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER));
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(SPHERE_ALBEDO_SAMPLED_IMAGE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(SPHERE_ALBEDO_SAMPLER_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLER));
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(SPHERE_NORMAL_SAMPLED_IMAGE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
@@ -439,7 +441,7 @@ void GraphicsBenchmarkApp::SetupSphereResources()
 
     // Allocate descriptor sets
     uint32_t n = GetNumFramesInFlight();
-    for (size_t i = 0; i < n; i++) {
+    while (mSphere.descriptorSets.size() < n) {
         grfx::DescriptorSetPtr pDescriptorSet;
         PPX_CHECKED_CALL(GetDevice()->AllocateDescriptorSet(mDescriptorPool, mSphere.descriptorSetLayout, &pDescriptorSet));
         mSphere.descriptorSets.push_back(pDescriptorSet);
@@ -508,7 +510,7 @@ void GraphicsBenchmarkApp::UpdateSphereDescriptors()
     for (size_t i = 0; i < n; i++) {
         grfx::DescriptorSetPtr pDescriptorSet = mSphere.descriptorSets[i];
 
-        PPX_CHECKED_CALL(pDescriptorSet->UpdateUniformBuffer(SPHERE_UNIFORM_BUFFER_REGISTER, 0, mSphere.uniformBuffer));
+        PPX_CHECKED_CALL(pDescriptorSet->UpdateUniformBuffer(SPHERE_SCENEDATA_UNIFORM_BUFFER_REGISTER, 0, mSphere.uniformBuffer));
 
         PPX_CHECKED_CALL(pDescriptorSet->UpdateSampler(SPHERE_ALBEDO_SAMPLER_REGISTER, 0, mLinearSampler));
         PPX_CHECKED_CALL(pDescriptorSet->UpdateSampler(SPHERE_NORMAL_SAMPLER_REGISTER, 0, mLinearSampler));
@@ -546,23 +548,32 @@ void GraphicsBenchmarkApp::SetupSkyBoxMeshes()
 
 void GraphicsBenchmarkApp::SetupSphereMeshes()
 {
-    OrderedGrid grid(kMaxSphereInstanceCount, kSeed);
+    GetDevice()->WaitIdle();
+    // Destroy the meshes if they were created.
+    for (auto& mesh : mSphereMeshes) {
+        if (mesh != nullptr) {
+            GetDevice()->DestroyMesh(mesh);
+            mesh = nullptr;
+        }
+    }
+
+    const uint32_t requiredSphereCount = std::max<uint32_t>(pSphereInstanceCount->GetValue(), kDefaultSphereInstanceCount);
+    const uint32_t initSphereCount     = std::min<uint32_t>(kMaxSphereInstanceCount, 2 * std::max(requiredSphereCount, mInitializedSpheres));
 
     // Create the meshes
-    uint32_t meshIndex = 0;
+    OrderedGrid grid(initSphereCount, kSeed);
+    uint32_t    meshIndex = 0;
     for (const auto& lod : kAvailableLODs) {
         PPX_LOG_INFO("LOD: " << lod.name);
         SphereMesh sphereMesh(/* radius = */ 1, lod.value.longitudeSegments, lod.value.latitudeSegments);
         sphereMesh.ApplyGrid(grid);
-
         // Create a giant vertex buffer for each vb type to accommodate all copies of the sphere mesh
         PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), sphereMesh.GetLowPrecisionInterleaved(), &mSphereMeshes[meshIndex++]));
         PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), sphereMesh.GetLowPrecisionPositionPlanar(), &mSphereMeshes[meshIndex++]));
         PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), sphereMesh.GetHighPrecisionInterleaved(), &mSphereMeshes[meshIndex++]));
         PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), sphereMesh.GetHighPrecisionPositionPlanar(), &mSphereMeshes[meshIndex++]));
     }
-
-    mSpheresAreSetUp = true;
+    mInitializedSpheres = initSphereCount;
 }
 
 void GraphicsBenchmarkApp::SetupFullscreenQuadsMeshes()
@@ -614,6 +625,10 @@ void GraphicsBenchmarkApp::SetupSpheresPipelines()
     piCreateInfo.setCount                          = 1;
     piCreateInfo.sets[0].set                       = 0;
     piCreateInfo.sets[0].pLayout                   = mSphere.descriptorSetLayout;
+    piCreateInfo.pushConstants.count               = kDebugColorPushConstantCount;
+    piCreateInfo.pushConstants.shaderVisiblity     = grfx::SHADER_STAGE_PS;
+    piCreateInfo.pushConstants.binding             = SPHERE_COLOR_UNIFORM_BUFFER_REGISTER;
+    piCreateInfo.pushConstants.set                 = 0;
     PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mSphere.pipelineInterface));
 
     // Pre-load the current pipeline variant.
@@ -800,6 +815,15 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsPipelines()
     GetFullscreenQuadPipeline();
 }
 
+void GraphicsBenchmarkApp::SetupSpheres()
+{
+    SetupSphereResources();
+    SetupSphereMeshes();
+    // Pipelines must be setup after meshes to use in vertex bindings.
+    SetupSpheresPipelines();
+    mSpheresAreSetUp = true;
+}
+
 void GraphicsBenchmarkApp::UpdateOffscreenBuffer(grfx::Format format, int w, int h)
 {
     {
@@ -872,18 +896,11 @@ void GraphicsBenchmarkApp::ProcessKnobs()
 {
     // Detect if any knob value has been changed
     // Note: DigestUpdate should be called only once per frame (DigestUpdate unflags the internal knob variable)!
-    const bool allTexturesTo1x1KnobChanged = pAllTexturesTo1x1->DigestUpdate();
-    const bool alphaBlendKnobChanged       = pAlphaBlend->DigestUpdate();
-    const bool depthTestWriteKnobChanged   = pDepthTestWrite->DigestUpdate();
-    const bool enableSpheresKnobChanged    = pEnableSpheres->DigestUpdate();
-
-    const bool enableSpheres = pEnableSpheres->GetValue();
-    // If the LOD is empty, assuming we skipped the setup for all sphere resources at start
-    // So need to do the intial setup for all resources here
-    const bool spheresAreSetUp               = mSpheresAreSetUp;
-    const bool updateSphereDescriptors       = spheresAreSetUp && allTexturesTo1x1KnobChanged;
-    const bool setupSphereResourcesAndMeshes = (!spheresAreSetUp) && enableSpheres;
-    const bool rebuildSpherePipeline         = setupSphereResourcesAndMeshes || (spheresAreSetUp && (alphaBlendKnobChanged || depthTestWriteKnobChanged));
+    const bool allTexturesTo1x1KnobChanged    = pAllTexturesTo1x1->DigestUpdate();
+    const bool alphaBlendKnobChanged          = pAlphaBlend->DigestUpdate();
+    const bool depthTestWriteKnobChanged      = pDepthTestWrite->DigestUpdate();
+    const bool enableSpheresKnobChanged       = pEnableSpheres->DigestUpdate();
+    const bool sphereInstanceCountKnobChanged = pSphereInstanceCount->DigestUpdate();
 
     // TODO: Ideally, the `maxValue` of the drawcall-count slider knob should be changed at runtime.
     // Currently, the value of the drawcall-count is adjusted to the sphere-count in case the
@@ -892,10 +909,16 @@ void GraphicsBenchmarkApp::ProcessKnobs()
         pDrawCallCount->SetValue(pSphereInstanceCount->GetValue());
     }
 
+    // If the debug view is enabled, then change the pixel shader to PsSimple.
+    if (pDebugViews->GetIndex() == static_cast<size_t>(DebugView::SHOW_DRAWCALLS)) {
+        pKnobPs->SetIndex(static_cast<size_t>(SpherePS::SPHERE_PS_SIMPLE));
+    }
+
+    const bool enableSpheres = pEnableSpheres->GetValue();
     // Set visibilities
     if (enableSpheresKnobChanged) {
+        pDebugViews->SetVisible(enableSpheres);
         pKnobVs->SetVisible(enableSpheres);
-        pKnobPs->SetVisible(enableSpheres);
         pKnobLOD->SetVisible(enableSpheres);
         pKnobVbFormat->SetVisible(enableSpheres);
         pKnobVertexAttrLayout->SetVisible(enableSpheres);
@@ -904,22 +927,25 @@ void GraphicsBenchmarkApp::ProcessKnobs()
         pAlphaBlend->SetVisible(enableSpheres);
         pDepthTestWrite->SetVisible(enableSpheres);
     }
+    pKnobPs->SetVisible(enableSpheres && (pDebugViews->GetIndex() != static_cast<size_t>(DebugView::SHOW_DRAWCALLS)));
     pAllTexturesTo1x1->SetVisible(enableSpheres && (pKnobPs->GetValue() == SpherePS::SPHERE_PS_MEM_BOUND));
 
-    // Update sphere resources and mesh
-    if (setupSphereResourcesAndMeshes) {
-        SetupSphereResources();
-        SetupSphereMeshes();
-    }
-
-    // Rebuild pipelines
-    if (rebuildSpherePipeline) {
-        SetupSpheresPipelines();
-    }
-
-    // Update descriptors
-    if (updateSphereDescriptors) {
-        UpdateSphereDescriptors();
+    if (enableSpheres) {
+        // Update sphere resources and mesh
+        if (!mSpheresAreSetUp) {
+            // This creates all resources.
+            SetupSpheres();
+        }
+        else {
+            const bool requireMoreSpheres = sphereInstanceCountKnobChanged && (pSphereInstanceCount->GetValue() > mInitializedSpheres);
+            if (requireMoreSpheres) {
+                SetupSphereMeshes();
+            }
+            // Update descriptors
+            if (allTexturesTo1x1KnobChanged) {
+                UpdateSphereDescriptors();
+            }
+        }
     }
 
     ProcessQuadsKnobs();
@@ -1167,6 +1193,13 @@ void GraphicsBenchmarkApp::DrawExtraInfo()
         ImGui::NextColumn();
     }
 
+    if (mInitializedSpheres) {
+        ImGui::Text("Initialized Spheres");
+        ImGui::NextColumn();
+        ImGui::Text("%d ", mInitializedSpheres);
+        ImGui::NextColumn();
+    }
+
     uint64_t frequency = 0;
     PPX_CHECKED_CALL(GetGraphicsQueue()->GetTimestampFrequency(&frequency));
     const float gpuWorkDurationInSec = static_cast<float>(mGpuWorkDuration / static_cast<double>(frequency));
@@ -1190,7 +1223,7 @@ void GraphicsBenchmarkApp::DrawExtraInfo()
     ImGui::Text("%d x %d", swapchainWidth, swapchainHeight);
     ImGui::NextColumn();
 
-    bool               isOffscreen = pRenderOffscreen->GetValue();
+    const bool         isOffscreen = pRenderOffscreen->GetValue();
     const grfx::Format colorFormat = isOffscreen ? mOffscreenFrame.back().colorFormat : swapchainColorFormat;
     const uint32_t     width       = isOffscreen ? mOffscreenFrame.back().width : swapchainWidth;
     const uint32_t     height      = isOffscreen ? mOffscreenFrame.back().height : swapchainHeight;
@@ -1426,6 +1459,15 @@ ppx::grfx::Format GraphicsBenchmarkApp::RenderFormat()
     return renderFormat;
 }
 
+void GraphicsBenchmarkApp::CreateColorsForDrawCalls()
+{
+    // Create colors randomly.
+    mColorsForDrawCalls.resize(kMaxSphereInstanceCount);
+    for (size_t i = 0; i < kMaxSphereInstanceCount; i++) {
+        mColorsForDrawCalls[i] = float4(mRandom.Float(), mRandom.Float(), mRandom.Float(), 0.5f);
+    }
+}
+
 void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, const RenderPasses& renderpasses, uint32_t imageIndex)
 {
     PPX_CHECKED_CALL(frame.cmd->Begin());
@@ -1467,7 +1509,7 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, const RenderPass
         if (pEnableSkyBox->GetValue()) {
             RecordCommandBufferSkyBox(frame);
         }
-        if (pEnableSpheres->GetValue()) {
+        if (pEnableSpheres->GetValue() && mInitializedSpheres > 0) {
             RecordCommandBufferSpheres(frame);
         }
         frame.cmd->EndRenderPass();
@@ -1595,9 +1637,9 @@ void GraphicsBenchmarkApp::RecordCommandBufferSpheres(PerFrame& frame)
     frame.cmd->BindGraphicsDescriptorSets(mSphere.pipelineInterface, 1, &mSphere.descriptorSets.at(GetInFlightFrameIndex()));
 
     // Snapshot some scene-related values for the current frame
-    uint32_t currentSphereCount   = pSphereInstanceCount->GetValue();
+    uint32_t currentSphereCount   = std::min<uint32_t>(pSphereInstanceCount->GetValue(), mInitializedSpheres);
     uint32_t currentDrawCallCount = pDrawCallCount->GetValue();
-    uint32_t mSphereIndexCount    = mSphereMeshes[meshIndex]->GetIndexCount() / kMaxSphereInstanceCount;
+    uint32_t mSphereIndexCount    = mSphereMeshes[meshIndex]->GetIndexCount() / mInitializedSpheres;
     uint32_t indicesPerDrawCall   = (currentSphereCount * mSphereIndexCount) / currentDrawCallCount;
 
     // Make `indicesPerDrawCall` multiple of 3 given that each consecutive three vertices (3*i + 0, 3*i + 1, 3*i + 2)
@@ -1611,8 +1653,13 @@ void GraphicsBenchmarkApp::RecordCommandBufferSpheres(PerFrame& frame)
     data.lightPosition              = float4(mLightPosition, 0.0f);
     data.eyePosition                = float4(mCamera.GetEyePosition(), 0.0f);
     mSphere.uniformBuffer->CopyFromSource(sizeof(data), &data);
+    frame.cmd->PushGraphicsConstants(mSphere.pipelineInterface, kDebugColorPushConstantCount, &kDefaultDrawCallColor);
 
     for (uint32_t i = 0; i < currentDrawCallCount; i++) {
+        if (pDebugViews->GetIndex() == static_cast<size_t>(DebugView::SHOW_DRAWCALLS)) {
+            frame.cmd->PushGraphicsConstants(mSphere.pipelineInterface, kDebugColorPushConstantCount, &mColorsForDrawCalls[i]);
+        }
+
         uint32_t indexCount = indicesPerDrawCall;
         // Add the remaining indices to the last drawcall
         if (i == (currentDrawCallCount - 1)) {
