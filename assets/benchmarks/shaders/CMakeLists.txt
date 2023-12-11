@@ -17,100 +17,89 @@ set(INCLUDE_FILES
 
 generate_rules_for_shader("shader_benchmarks_compute_filter_3"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/ComputeFilter3.hlsl"
-    INCLUDES ${INCLUDE_FILES}
     STAGES "cs")
 
 generate_rules_for_shader("shader_benchmarks_compute_filter_5"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/ComputeFilter5.hlsl"
-    INCLUDES ${INCLUDE_FILES}
     STAGES "cs")
 
 generate_rules_for_shader("shader_benchmarks_compute_filter_7"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/ComputeFilter7.hlsl"
-    INCLUDES ${INCLUDE_FILES}
     STAGES "cs")
 
 generate_rules_for_shader("shader_benchmarks_passthrough_pos"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/PassThroughPos.hlsl"
-    INCLUDES ${INCLUDE_FILES}
     STAGES "vs" "ps")
 
 generate_rules_for_shader("shader_benchmarks_compute_buffer_increment"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/ComputeBufferIncrement.hlsl"
-    INCLUDES ${INCLUDE_FILES}
     STAGES "cs")
 
 generate_rules_for_shader("shader_benchmarks_texture_sample"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/TextureSample.hlsl"
-    INCLUDES ${INCLUDE_FILES}
     STAGES "vs" "ps")
 
 generate_rules_for_shader("shader_benchmarks_texture_sample_explicit_early_z"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/TextureSample_ExplicitEarlyZ.hlsl"
-    INCLUDES ${INCLUDE_FILES}
     STAGES "vs" "ps")
 
 generate_rules_for_shader("shader_benchmarks_multiple_rt"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/MultipleRT.hlsl"
-    INCLUDES ${INCLUDE_FILES}
     STAGES "vs" "ps")
 
 generate_rules_for_shader("shader_benchmarks_texture_load"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/TextureLoad.hlsl"
-    INCLUDES ${INCLUDE_FILES}
     STAGES "vs" "ps")
 
 generate_rules_for_shader("shader_benchmarks_texture_load_4_textures"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/TextureLoad4Textures.hlsl"
-    INCLUDES ${INCLUDE_FILES}
     STAGES "vs" "ps")
 
 generate_rules_for_shader("shader_benchmark_vs_simple"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_VsSimple.hlsl"
-    INCLUDES ${INCLUDE_FILES}
+    INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/Benchmark.hlsli"
     STAGES "vs")
 
 generate_rules_for_shader("shader_benchmark_vs_alu_bound"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_VsAluBound.hlsl"
-    INCLUDES ${INCLUDE_FILES}
+    INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/Benchmark.hlsli"
     STAGES "vs")
 
 generate_rules_for_shader("shader_benchmark_ps_simple"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_PsSimple.hlsl"
-    INCLUDES ${INCLUDE_FILES}
+    INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/Benchmark.hlsli"
     STAGES "ps")
 
 generate_rules_for_shader("shader_benchmark_ps_alu_bound"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_PsAluBound.hlsl"
-    INCLUDES ${INCLUDE_FILES}
+    INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/Benchmark.hlsli"
     STAGES "ps")
 
 generate_rules_for_shader("shader_benchmark_ps_mem_bound"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_PsMemBound.hlsl"
-    INCLUDES ${INCLUDE_FILES}
+    INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/Benchmark.hlsli"
     STAGES "ps")
 
 generate_rules_for_shader("shader_benchmark_skybox"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_SkyBox.hlsl"
-    INCLUDES ${INCLUDE_FILES}
     STAGES "vs" "ps")
 
 generate_rules_for_shader("shader_benchmark_vs_simple_quads"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_VsSimpleQuads.hlsl"
-    INCLUDES ${INCLUDE_FILES}
+    INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/VsOutput.hlsli"
     STAGES "vs")
 
 generate_rules_for_shader("shader_benchmark_random_noise"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_RandomNoise.hlsl"
-    INCLUDES ${INCLUDE_FILES}
+    INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/VsOutput.hlsli"
     STAGES "ps")
 
 generate_rules_for_shader("shader_benchmark_solid_color"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_SolidColor.hlsl"
-    INCLUDES ${INCLUDE_FILES}
+    INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/VsOutput.hlsli"
     STAGES "ps")
 
 generate_rules_for_shader("shader_benchmark_texture"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_Texture.hlsl"
-    INCLUDES ${INCLUDE_FILES}
+    INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/VsOutput.hlsli"
     STAGES "ps")
