@@ -17,6 +17,7 @@
 
 #include "FreeCamera.h"
 #include "MultiDimensionalIndexer.h"
+#include "SphereMesh.h"
 
 #include "ppx/grfx/grfx_config.h"
 #include "ppx/grfx/grfx_format.h"
@@ -59,6 +60,25 @@ static constexpr std::array<DebugView, 2> kAvailableDebugViews = {
     DebugView::DISABLED,
     DebugView::SHOW_DRAWCALLS};
 
+enum class CacheMode
+{
+    MIN = 0,
+    ALL
+};
+
+inline const char* ToString(CacheMode dv)
+{
+    switch (dv) {
+        case CacheMode::MIN: return "Min";
+        case CacheMode::ALL: return "All";
+        default: return "?";
+    }
+}
+
+static constexpr std::array<CacheMode, 2> kAvailableCacheModes = {
+    CacheMode::ALL,
+    CacheMode::MIN};
+
 enum class SphereVS
 {
     SPHERE_VS_SIMPLE = 0,
@@ -95,18 +115,36 @@ inline const char* ToString(SpherePS ps)
     }
 }
 
+inline const char* ToString(SphereMesh::PrecisionType precision)
+{
+    switch (precision) {
+        case SphereMesh::PrecisionType::PRECISION_TYPE_LOW_PRECISION: return "Low_Precision";
+        case SphereMesh::PrecisionType::PRECISION_TYPE_HIGH_PRECISION: return "High_Precision";
+        default: return "?";
+    }
+}
+
+inline const char* ToString(SphereMesh::VertexLayoutType layout)
+{
+    switch (layout) {
+        case SphereMesh::VertexLayoutType::VERTEX_LAYOUT_TYPE_INTERLEAVED: return "Interleaved";
+        case SphereMesh::VertexLayoutType::VERTEX_LAYOUT_TYPE_POSITION_PLANAR: return "Position_Planar";
+        default: return "?";
+    }
+}
+
 static constexpr std::array<SpherePS, 3> kAvailablePsShaders = {
     SpherePS::SPHERE_PS_SIMPLE,
     SpherePS::SPHERE_PS_ALU_BOUND,
     SpherePS::SPHERE_PS_MEM_BOUND};
 
-static constexpr std::array<const char*, 2> kAvailableVbFormats = {
-    "Low_Precision",
-    "High_Precision"};
+static constexpr std::array<SphereMesh::PrecisionType, 2> kAvailableVbFormats = {
+    SphereMesh::PrecisionType::PRECISION_TYPE_LOW_PRECISION,
+    SphereMesh::PrecisionType::PRECISION_TYPE_HIGH_PRECISION};
 
-static constexpr std::array<const char*, 2> kAvailableVertexAttrLayouts = {
-    "Interleaved",
-    "Position_Planar"};
+static constexpr std::array<SphereMesh::VertexLayoutType, 2> kAvailableVertexAttrLayouts = {
+    SphereMesh::VertexLayoutType::VERTEX_LAYOUT_TYPE_INTERLEAVED,
+    SphereMesh::VertexLayoutType::VERTEX_LAYOUT_TYPE_POSITION_PLANAR};
 
 static constexpr size_t kPipelineCount = kAvailablePsShaders.size() * kAvailableVsShaders.size() * kAvailableVbFormats.size() * kAvailableVertexAttrLayouts.size();
 
@@ -123,6 +161,11 @@ static constexpr std::array<DropdownEntry<SphereLOD>, 3> kAvailableLODs = {{
 }};
 
 static constexpr size_t kMeshCount = kAvailableVbFormats.size() * kAvailableVertexAttrLayouts.size() * kAvailableLODs.size();
+
+static constexpr size_t SphereMeshIndex(size_t vbFormat, size_t attrLayout, size_t lod)
+{
+    return (lod * kAvailableVbFormats.size() + vbFormat) * kAvailableVertexAttrLayouts.size() + attrLayout;
+}
 
 enum class FullscreenQuadsType
 {
@@ -486,19 +529,21 @@ private:
     uint32_t mSkipRecordBandwidthMetricFrameCounter = 0;
 
 private:
-    std::shared_ptr<KnobCheckbox>              pEnableSkyBox;
-    std::shared_ptr<KnobCheckbox>              pEnableSpheres;
-    std::shared_ptr<KnobDropdown<DebugView>>   pDebugViews;
-    std::shared_ptr<KnobDropdown<SphereVS>>    pKnobVs;
-    std::shared_ptr<KnobDropdown<SpherePS>>    pKnobPs;
-    std::shared_ptr<KnobDropdown<SphereLOD>>   pKnobLOD;
-    std::shared_ptr<KnobDropdown<std::string>> pKnobVbFormat;
-    std::shared_ptr<KnobDropdown<std::string>> pKnobVertexAttrLayout;
-    std::shared_ptr<KnobSlider<int>>           pSphereInstanceCount;
-    std::shared_ptr<KnobSlider<int>>           pDrawCallCount;
-    std::shared_ptr<KnobCheckbox>              pAlphaBlend;
-    std::shared_ptr<KnobCheckbox>              pDepthTestWrite;
-    std::shared_ptr<KnobCheckbox>              pAllTexturesTo1x1;
+    std::shared_ptr<KnobDropdown<CacheMode>> pCacheMode;
+
+    std::shared_ptr<KnobCheckbox>                               pEnableSkyBox;
+    std::shared_ptr<KnobCheckbox>                               pEnableSpheres;
+    std::shared_ptr<KnobDropdown<DebugView>>                    pDebugViews;
+    std::shared_ptr<KnobDropdown<SphereVS>>                     pKnobVs;
+    std::shared_ptr<KnobDropdown<SpherePS>>                     pKnobPs;
+    std::shared_ptr<KnobDropdown<SphereLOD>>                    pKnobLOD;
+    std::shared_ptr<KnobDropdown<SphereMesh::PrecisionType>>    pKnobVbFormat;
+    std::shared_ptr<KnobDropdown<SphereMesh::VertexLayoutType>> pKnobVertexAttrLayout;
+    std::shared_ptr<KnobSlider<int>>                            pSphereInstanceCount;
+    std::shared_ptr<KnobSlider<int>>                            pDrawCallCount;
+    std::shared_ptr<KnobCheckbox>                               pAlphaBlend;
+    std::shared_ptr<KnobCheckbox>                               pDepthTestWrite;
+    std::shared_ptr<KnobCheckbox>                               pAllTexturesTo1x1;
 
     std::shared_ptr<KnobSlider<int>>                   pFullscreenQuadsCount;
     std::shared_ptr<KnobDropdown<FullscreenQuadsType>> pFullscreenQuadsType;
@@ -528,7 +573,7 @@ private:
     // Setup vertex data:
     // - Geometries (or raw vertices & bindings), meshes
     void SetupSkyBoxMeshes();
-    void SetupSphereMeshes();
+    void SetupSphereMeshes(bool deferUpdate = false); // deferUpdate if slider is still moving
     void SetupFullscreenQuadsMeshes();
 
     // Setup pipelines:

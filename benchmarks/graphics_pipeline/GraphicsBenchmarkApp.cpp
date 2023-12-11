@@ -52,6 +52,10 @@ void GraphicsBenchmarkApp::InitKnobs()
     pEnableSkyBox->SetDisplayName("Enable SkyBox");
     pEnableSkyBox->SetFlagDescription("Enable the SkyBox in the scene.");
 
+    GetKnobManager().InitKnob(&pCacheMode, "cache-mode", 0, kAvailableCacheModes);
+    pCacheMode->SetDisplayName("Resource cache mode");
+    pCacheMode->SetFlagDescription("Resource caching mode.");
+
     GetKnobManager().InitKnob(&pEnableSpheres, "enable-spheres", true);
     pEnableSpheres->SetDisplayName("Enable Spheres");
     pEnableSpheres->SetFlagDescription("Enable the Spheres in the scene.");
@@ -182,7 +186,7 @@ void GraphicsBenchmarkApp::Config(ppx::ApplicationSettings& settings)
     settings.window.width               = 1920;
     settings.window.height              = 1080;
     settings.grfx.api                   = kApi;
-    settings.grfx.enableDebug           = false;
+    settings.grfx.enableDebug           = true;
     settings.grfx.numFramesInFlight     = 1;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
 #if defined(PPX_BUILD_XR)
@@ -546,8 +550,22 @@ void GraphicsBenchmarkApp::SetupSkyBoxMeshes()
     PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mSkyBox.mesh));
 }
 
-void GraphicsBenchmarkApp::SetupSphereMeshes()
+void GraphicsBenchmarkApp::SetupSphereMeshes(bool deferUpdate)
 {
+    size_t vbFormatIndex     = pKnobVbFormat->GetIndex();
+    size_t attrLayoutIndex   = pKnobVertexAttrLayout->GetIndex();
+    size_t requiredMeshIndex = SphereMeshIndex(vbFormatIndex, attrLayoutIndex, pKnobLOD->GetIndex());
+
+    bool needUpdate = false;
+    needUpdate      = needUpdate || mSphereMeshes[requiredMeshIndex].IsNull();
+    if (!deferUpdate) {
+        const uint32_t requestedCount = static_cast<uint32_t>(pSphereInstanceCount->GetValue());
+        needUpdate                    = needUpdate || (requestedCount > mInitializedSpheres);
+    }
+    if (!needUpdate) {
+        return;
+    }
+
     GetDevice()->WaitIdle();
     // Destroy the meshes if they were created.
     for (auto& mesh : mSphereMeshes) {
@@ -558,20 +576,39 @@ void GraphicsBenchmarkApp::SetupSphereMeshes()
     }
 
     const uint32_t requiredSphereCount = std::max<uint32_t>(pSphereInstanceCount->GetValue(), kDefaultSphereInstanceCount);
-    const uint32_t initSphereCount     = std::min<uint32_t>(kMaxSphereInstanceCount, 2 * std::max(requiredSphereCount, mInitializedSpheres));
+    // Don't initialize more than needed if we starts from zero (set by commandline?), otherwise initialize double the amount.
+    const uint32_t heuristicSphereCount = (mInitializedSpheres > 0 ? 2 : 1) * std::max(requiredSphereCount, mInitializedSpheres);
+    const uint32_t initSphereCount      = std::min<uint32_t>(kMaxSphereInstanceCount, heuristicSphereCount);
 
+    auto getGeometry = [](SphereMesh& mesh, size_t vbFormatIndex, size_t attrLayoutIndex) {
+        if (vbFormatIndex > 0) {
+            return (attrLayoutIndex > 0 ? mesh.GetHighPrecisionPositionPlanar() : mesh.GetHighPrecisionInterleaved());
+        }
+        else {
+            return (attrLayoutIndex > 0 ? mesh.GetLowPrecisionPositionPlanar() : mesh.GetLowPrecisionInterleaved());
+        }
+    };
     // Create the meshes
     OrderedGrid grid(initSphereCount, kSeed);
-    uint32_t    meshIndex = 0;
-    for (const auto& lod : kAvailableLODs) {
-        PPX_LOG_INFO("LOD: " << lod.name);
-        SphereMesh sphereMesh(/* radius = */ 1, lod.value.longitudeSegments, lod.value.latitudeSegments);
+
+    if (pCacheMode->GetValue() == CacheMode::MIN) {
+        auto&      lod = pKnobLOD->GetValue();
+        SphereMesh sphereMesh(/* radius = */ 1, lod.longitudeSegments, lod.latitudeSegments);
         sphereMesh.ApplyGrid(grid);
-        // Create a giant vertex buffer for each vb type to accommodate all copies of the sphere mesh
-        PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), sphereMesh.GetLowPrecisionInterleaved(), &mSphereMeshes[meshIndex++]));
-        PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), sphereMesh.GetLowPrecisionPositionPlanar(), &mSphereMeshes[meshIndex++]));
-        PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), sphereMesh.GetHighPrecisionInterleaved(), &mSphereMeshes[meshIndex++]));
-        PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), sphereMesh.GetHighPrecisionPositionPlanar(), &mSphereMeshes[meshIndex++]));
+        PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), sphereMesh.Get(pKnobVbFormat->GetValue(), pKnobVertexAttrLayout->GetValue()), &mSphereMeshes[requiredMeshIndex]));
+    }
+    else {
+        for (size_t lodIndex = 0; lodIndex < kAvailableLODs.size(); ++lodIndex) {
+            auto&      lod = kAvailableLODs[lodIndex].value;
+            SphereMesh sphereMesh(/* radius = */ 1, lod.longitudeSegments, lod.latitudeSegments);
+            sphereMesh.ApplyGrid(grid);
+            for (size_t vbFormatIndex = 0; vbFormatIndex < kAvailableVbFormats.size(); ++vbFormatIndex) {
+                for (size_t attrLayoutIndex = 0; attrLayoutIndex < kAvailableVertexAttrLayouts.size(); ++attrLayoutIndex) {
+                    size_t meshIndex = SphereMeshIndex(vbFormatIndex, attrLayoutIndex, lodIndex);
+                    PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), getGeometry(sphereMesh, vbFormatIndex, attrLayoutIndex), &mSphereMeshes[meshIndex]));
+                }
+            }
+        }
     }
     mInitializedSpheres = initSphereCount;
 }
@@ -675,8 +712,11 @@ Result GraphicsBenchmarkApp::CompilePipeline(const SpherePipelineKey& key)
         return SUCCESS;
     }
 
+    // Note: lod does not affect pipeline. Use the one that is initialized.
+    size_t lod = pKnobLOD->GetIndex();
+
     bool            interleaved = (key.vertexAttributeLayout == 0);
-    size_t          meshIndex   = kAvailableVertexAttrLayouts.size() * key.vertexFormat + key.vertexAttributeLayout;
+    size_t          meshIndex   = SphereMeshIndex(key.vertexFormat, key.vertexAttributeLayout, lod);
     grfx::BlendMode blendMode   = (key.enableAlphaBlend ? grfx::BLEND_MODE_ALPHA : grfx::BLEND_MODE_NONE);
 
     grfx::GraphicsPipelineCreateInfo2 gpCreateInfo = {};
@@ -937,11 +977,7 @@ void GraphicsBenchmarkApp::ProcessKnobs()
             SetupSpheres();
         }
         else {
-            const uint32_t initializedCount   = static_cast<uint32_t>(pSphereInstanceCount->GetValue());
-            const bool     requireMoreSpheres = sphereInstanceCountKnobChanged && (initializedCount > mInitializedSpheres);
-            if (requireMoreSpheres) {
-                SetupSphereMeshes();
-            }
+            SetupSphereMeshes(!sphereInstanceCountKnobChanged);
             // Update descriptors
             if (allTexturesTo1x1KnobChanged) {
                 UpdateSphereDescriptors();

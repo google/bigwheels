@@ -101,6 +101,25 @@ public:
     const Geometry* GetLowPrecisionPositionPlanar() const { return &mLowPlanar; }
     const Geometry* GetHighPrecisionInterleaved() const { return &mHighInterleaved; }
     const Geometry* GetHighPrecisionPositionPlanar() const { return &mHighPlanar; }
+    const Geometry* Get(PrecisionType precision, VertexLayoutType layout) const
+    {
+        if (precision == PrecisionType::PRECISION_TYPE_LOW_PRECISION) {
+            if (layout == VertexLayoutType::VERTEX_LAYOUT_TYPE_INTERLEAVED) {
+                return &mLowInterleaved;
+            }
+            else {
+                return &mLowPlanar;
+            }
+        }
+        else {
+            if (layout == VertexLayoutType::VERTEX_LAYOUT_TYPE_INTERLEAVED) {
+                return &mHighInterleaved;
+            }
+            else {
+                return &mHighPlanar;
+            }
+        }
+    }
 
 private:
     // Create all single sphere and full geometries
