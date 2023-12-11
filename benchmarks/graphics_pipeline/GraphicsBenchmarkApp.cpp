@@ -758,7 +758,7 @@ grfx::GraphicsPipelinePtr GraphicsBenchmarkApp::GetSpherePipeline()
     key.enableDepth           = pDepthTestWrite->GetValue();
     key.enableAlphaBlend      = pAlphaBlend->GetValue();
     key.renderFormat          = RenderFormat();
-    key.enablePolygonModeLine = (pDebugViews->GetIndex() == static_cast<size_t>(DebugView::WIREFRAME_MODE));
+    key.enablePolygonModeLine = (pDebugViews->GetValue() == DebugView::WIREFRAME_MODE);
     PPX_CHECKED_CALL(CompilePipeline(key));
     return mPipelines[key];
 }
