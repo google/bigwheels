@@ -297,7 +297,13 @@ struct ApplicationSettings
     struct
     {
         grfx::Api api               = grfx::API_UNDEFINED;
-        bool      enableDebug       = false;
+
+#if !defined(NDEBUG) and !defined(PPX_ANDROID)
+        bool enableDebug = true;
+#else
+        bool enableDebug = false;
+#endif
+
         uint32_t  numFramesInFlight = 1;
         uint32_t  pacedFrameRate    = 60;
 

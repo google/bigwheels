@@ -21,17 +21,17 @@ jobs:
           sdk-version: 22621
       - name: Setup Vulkan SDK
         run: |
-          Start-BitsTransfer -Source https://sdk.lunarg.com/sdk/download/1.3.216.0/windows/VulkanSDK-1.3.216.0-Installer.exe
-          if ((Get-FileHash .\VulkanSDK-1.3.216.0-Installer.exe).Hash -ne "32c0bba765bd42d6e321fbb14a0abbb6d305da06f53db7d369a3cc295de111f8") {
+          Start-BitsTransfer -Source https://sdk.lunarg.com/sdk/download/1.3.268.0/windows/VulkanSDK-1.3.268.0-Installer.exe
+          if ((Get-FileHash .\VulkanSDK-1.3.268.0-Installer.exe).Hash -ne "8459ef49bd06b697115ddd3d97c9aec729e849cd775f5be70897718a9b3b9db5") {
             exit 1
           }
-          .\VulkanSDK-1.3.216.0-Installer.exe install --accept-licenses --default-answer --confirm-command --root "$HOME\vulkan-sdk"
+          .\VulkanSDK-1.3.268.0-Installer.exe install --accept-licenses --default-answer --confirm-command --root "$HOME\vulkan-sdk"
           "VULKAN_SDK=${HOME}\vulkan-sdk" >> $env:GITHUB_ENV
 
           # Get the vulkan-1.dll and add it to the PATH, which is required when we execute binaries.
-          Start-BitsTransfer -Source https://sdk.lunarg.com/sdk/download/1.3.216.0/windows/VulkanRT-1.3.216.0-Components.zip
-          Expand-Archive VulkanRT-1.3.216.0-Components.zip -DestinationPath "$HOME\vulkan-sdk\RTComponents"
-          "$HOME\vulkan-sdk\RTComponents\VulkanRT-1.3.216.0-Components\x64" >> $env:GITHUB_PATH
+          Start-BitsTransfer -Source https://sdk.lunarg.com/sdk/download/1.3.268.0/windows/VulkanRT-1.3.268.0-Components.zip
+          Expand-Archive VulkanRT-1.3.268.0-Components.zip -DestinationPath "$HOME\vulkan-sdk\RTComponents"
+          "$HOME\vulkan-sdk\RTComponents\VulkanRT-1.3.268.0-Components\x64" >> $env:GITHUB_PATH
       - name: Setup software renderer (WARP)
         run: |
           # We download the latest version of WARP instead of using the one provided by Windows
@@ -60,15 +60,15 @@ jobs:
           # TODO(https://github.com/google/bigwheels/issues/97): an issue
           # around duplicated targets requires us to build shader targets
           # with a single core.
-          cmake --build . --target all-shaders --config Release -- /nologo /verbosity:minimal /maxcpucount:1
-          cmake --build . --target all-dx12 build-tests --config Release -- /nologo /verbosity:minimal /maxcpucount
+          cmake --build . --target all-shaders --config Debug -- /nologo /verbosity:minimal /maxcpucount:1
+          cmake --build . --target all-dx12 build-tests --config Debug -- /nologo /verbosity:minimal /maxcpucount
       - name: Run unit tests
         run: |
           cd build
-          cmake --build . --target RUN_TESTS --config Release -- /nologo /verbosity:minimal /maxcpucount
+          cmake --build . --target RUN_TESTS --config Debug -- /nologo /verbosity:minimal /maxcpucount
       - name: Run runtime tests
         run: |
-          cd build\bin\Release
+          cd build\bin\Debug
 
           # Copy software renderer DLL. Note the DLL is called `d3d10` but
           # this is used for all DirectX versions.
@@ -85,8 +85,11 @@ jobs:
 
           .\dx12_fishtornado --headless --frame-count 2 --screenshot-frame-number 1
           magick convert screenshot_frame_1.ppm dx12_fishtornado_screenshot.png
+
+          .\dx12_graphics_pipeline --headless --frame-count 2 --screenshot-frame-number 1
+          magick convert screenshot_frame_1.ppm dx12_graphics_pipeline_screenshot.png
       - name: Upload screenshots
         uses: actions/upload-artifact@v3
         with:
           name: screenshots
-          path: build\bin\Release\*.png
+          path: build\bin\Debug\*.png
