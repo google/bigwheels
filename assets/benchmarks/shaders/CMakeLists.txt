@@ -11,10 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-set(INCLUDE_FILES
-  "${PPX_DIR}/assets/benchmarks/shaders/Benchmark.hlsli"
-)
-
 generate_rules_for_shader("shader_benchmarks_compute_filter_3"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/ComputeFilter3.hlsl"
     STAGES "cs")
