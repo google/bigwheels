@@ -22,6 +22,117 @@
 namespace ppx {
 namespace grfx {
 namespace vk {
+namespace internal {
+uint32_t FDMShadingRateEncoder::EncodeFragmentDensityImpl(uint8_t xDensity, uint8_t yDensity)
+{
+    return (static_cast<uint16_t>(yDensity) << 8) | xDensity;
+}
+
+uint32_t FDMShadingRateEncoder::EncodeFragmentDensity(uint8_t xDensity, uint8_t yDensity) const
+{
+    return EncodeFragmentDensityImpl(xDensity, yDensity);
+}
+
+uint32_t FDMShadingRateEncoder::EncodeFragmentSize(uint8_t fragmentWidth, uint8_t fragmentHeight) const
+{
+    return EncodeFragmentDensityImpl(255u / fragmentWidth, 255u / fragmentHeight);
+}
+
+uint32_t VRSShadingRateEncoder::RawEncode(uint8_t width, uint8_t height)
+{
+    uint32_t widthEnc  = std::min<uint8_t>(width, 4) / 2;
+    uint32_t heightEnc = std::min<uint8_t>(height, 4) / 2;
+    return (widthEnc << 2) | heightEnc;
+}
+
+void VRSShadingRateEncoder::Initialize(const ShadingRateCapabilities& capabilities)
+{
+    // Calculate the mapping from requested shading rates to supported shading rates.
+
+    // Initialize all shading rate values with UINT8_MAX to mark as unsupported.
+    std::fill(mMapRateToSupported.begin(), mMapRateToSupported.end(), UINT8_MAX);
+
+    // Supported shading rates map to themselves.
+    for (uint32_t i = 0; i < capabilities.vrs.supportedRateCount; ++i) {
+        auto     rate                = capabilities.vrs.supportedRates[i];
+        uint32_t encoded             = RawEncode(rate.width, rate.height);
+        mMapRateToSupported[encoded] = encoded;
+    }
+
+    // Calculate the mapping for unsupported shading rates.
+    for (uint32_t i = 0; i < 3; ++i) {
+        uint32_t width = 1u << i;
+        for (uint32_t j = 0; j < 3; ++j) {
+            uint32_t height  = 1u << j;
+            uint32_t encoded = RawEncode(width, height);
+            if (mMapRateToSupported[encoded] == UINT8_MAX) {
+                // This shading rate is not supported. Find the largest
+                // supported shading rate where neither width nor height is
+                // greater than this fragment size.
+                //
+                // Ties are broken lexicographically, e.g. if 2x2, 1x4 and 4x1
+                // are supported, then 2x4 will be mapped to 2x2 but 4x2 will
+                // map to 4x1.
+                if (width == 1) {
+                    // Width is minimum, can only shrink height.
+                    mMapRateToSupported[encoded] = mMapRateToSupported[RawEncode(width, height - 1)];
+                }
+                else if (height == 1) {
+                    // Height is minimum, can only shrink width.
+                    mMapRateToSupported[encoded] = mMapRateToSupported[RawEncode(width - 1, height)];
+                }
+                else {
+                    // mMapRateToSupported is correctly filled in for smaller
+                    // values of i and j, so find supported the largest
+                    // supported shading rate with smaller width...
+                    uint8_t supportedSmallerWidth = mMapRateToSupported[RawEncode((i - 1) * 2, j * 2)];
+
+                    // ...and the largest supported shading rate with smaller height.
+                    uint8_t supportedSmallerHeight = mMapRateToSupported[RawEncode(i * 2, (j - 1) * 2)];
+
+                    // The largest supported shading rate
+                    mMapRateToSupported[encoded] = std::max(supportedSmallerWidth, supportedSmallerHeight);
+                }
+            }
+        }
+    }
+}
+
+uint32_t
+VRSShadingRateEncoder::EncodeFragmentSizeImpl(uint8_t fragmentWidth, uint8_t fragmentHeight) const
+{
+    uint32_t encoded = RawEncode(fragmentWidth, fragmentHeight);
+    return mMapRateToSupported[encoded];
+}
+
+uint32_t VRSShadingRateEncoder::EncodeFragmentDensity(uint8_t xDensity, uint8_t yDensity) const
+{
+    return EncodeFragmentSizeImpl(255u / std::max<uint8_t>(xDensity, 1), 255u / std::max<uint8_t>(yDensity, 1));
+}
+
+uint32_t VRSShadingRateEncoder::EncodeFragmentSize(uint8_t fragmentWidth, uint8_t fragmentHeight) const
+{
+    return EncodeFragmentSizeImpl(fragmentWidth, fragmentHeight);
+}
+
+} // namespace internal
+
+Bitmap::Format ShadingRatePattern::GetBitmapFormat() const
+{
+    switch (GetShadingRateMode()) {
+        case SHADING_RATE_FDM:
+            return Bitmap::FORMAT_RG_UINT8;
+        case SHADING_RATE_VRS:
+            return Bitmap::FORMAT_R_UINT8;
+        default:
+            return Bitmap::FORMAT_UNDEFINED;
+    }
+}
+
+const ShadingRateEncoder* ShadingRatePattern::GetShadingRateEncoder() const
+{
+    return mShadingRateEncoder.get();
+}
 
 Result ShadingRatePattern::CreateApiObjects(const ShadingRatePatternCreateInfo* pCreateInfo)
 {
@@ -39,6 +150,7 @@ Result ShadingRatePattern::CreateApiObjects(const ShadingRatePatternCreateInfo* 
             imageCreateInfo.format                             = FORMAT_R8G8_UNORM;
             imageCreateInfo.usageFlags.bits.fragmentDensityMap = true;
             imageCreateInfo.initialState                       = RESOURCE_STATE_FRAGMENT_DENSITY_MAP_ATTACHMENT;
+            mShadingRateEncoder                                = std::make_shared<internal::FDMShadingRateEncoder>();
         } break;
         case SHADING_RATE_VRS: {
             minTexelSize                                                  = capabilities.vrs.minTexelSize;
@@ -46,6 +158,10 @@ Result ShadingRatePattern::CreateApiObjects(const ShadingRatePatternCreateInfo* 
             imageCreateInfo.format                                        = FORMAT_R8_UINT;
             imageCreateInfo.usageFlags.bits.fragmentShadingRateAttachment = true;
             imageCreateInfo.initialState                                  = RESOURCE_STATE_FRAGMENT_SHADING_RATE_ATTACHMENT;
+
+            auto vrsShadingRateEncoder = std::make_shared<internal::VRSShadingRateEncoder>();
+            vrsShadingRateEncoder->Initialize(capabilities);
+            mShadingRateEncoder = vrsShadingRateEncoder;
         } break;
         default:
             PPX_ASSERT_MSG(false, "Cannot create ShadingRatePattern for ShadingRateMode " << pCreateInfo->shadingRateMode);

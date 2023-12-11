@@ -271,6 +271,7 @@ list(
     ${SRC_DIR}/ppx/grfx/grfx_render_pass.cpp
     ${SRC_DIR}/ppx/grfx/grfx_scope.cpp
     ${SRC_DIR}/ppx/grfx/grfx_shader.cpp
+    ${SRC_DIR}/ppx/grfx/grfx_shading_rate.cpp
     ${SRC_DIR}/ppx/grfx/grfx_swapchain.cpp
     ${SRC_DIR}/ppx/grfx/grfx_sync.cpp
     ${SRC_DIR}/ppx/grfx/grfx_text_draw.cpp
