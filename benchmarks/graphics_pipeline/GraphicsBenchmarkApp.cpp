@@ -937,7 +937,8 @@ void GraphicsBenchmarkApp::ProcessKnobs()
             SetupSpheres();
         }
         else {
-            const bool requireMoreSpheres = sphereInstanceCountKnobChanged && (pSphereInstanceCount->GetValue() > mInitializedSpheres);
+            const uint32_t initializedCount   = static_cast<uint32_t>(pSphereInstanceCount->GetValue());
+            const bool     requireMoreSpheres = sphereInstanceCountKnobChanged && (initializedCount > mInitializedSpheres);
             if (requireMoreSpheres) {
                 SetupSphereMeshes();
             }
@@ -1682,7 +1683,7 @@ void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, si
             // zigzag the intensity between (0.5 ~ 1.0) in steps of 0.1
             //     index:   0,   1,   2,   3,   4,   5,   6,   7,   8,   9,   0...
             // intensity: 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0...
-            float index = seed % 10;
+            float index = static_cast<float>(seed % 10);
             float intensity;
             if (index > 4.5) {
                 intensity = (index / 10.0f);
