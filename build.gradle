@@ -35,6 +35,15 @@ subprojects {
                     into intoFile
                 }
             }
+            // Copy the rest of the assets - generated shaders.
+            project.assets.each {
+                def fromFile = "${rootProject.projectDir}/build/assets/${it}"
+                def intoFile = "${buildDir}/assets/${it}"
+                copy {
+                    from fromFile
+                    into intoFile
+                }
+            }
             project.thirdPartyAssets.each {
                 def fromFile = "${rootProject.projectDir}/third_party/assets/${it}"
                 def intoFile = "${buildDir}/assets/${it}"

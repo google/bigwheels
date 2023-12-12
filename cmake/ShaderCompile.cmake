@@ -95,10 +95,9 @@ function(internal_generate_rules_for_shader TARGET_NAME)
     if (PPX_VULKAN)
         set(SHADER_OUTPUT_PATH "${CMAKE_BINARY_DIR}/${PATH_PREFIX}/spv/${BASE_NAME}.${ARG_SHADER_STAGE}.spv")
         if (PPX_ANDROID)
-            # Android has a designated asset folder, which is set to the root asset folder
-            # The compiled SPVs must be placed there. There might be a way to set a secondary asset folder, but so far
-            # attempts at doing that have failed
-            set(SHADER_OUTPUT_PATH "spv/${BASE_NAME}.${ARG_SHADER_STAGE}.spv")
+            # Place the generated files into build directory. They will be copied into the APK
+            # assets folder (see build.gradle).
+            set(SHADER_OUTPUT_PATH "${PPX_DIR}/build/${PATH_PREFIX}/spv/${BASE_NAME}.${ARG_SHADER_STAGE}.spv")
         endif()
 
         internal_add_compile_shader_target(
