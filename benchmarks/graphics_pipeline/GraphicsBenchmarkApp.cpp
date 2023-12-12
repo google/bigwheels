@@ -694,7 +694,7 @@ Result GraphicsBenchmarkApp::CompilePipeline(const SpherePipelineKey& key)
         gpCreateInfo.vertexInputState.bindings[1]  = mSphereMeshes[meshIndex]->GetDerivedVertexBindings()[1];
     }
     gpCreateInfo.topology                           = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    gpCreateInfo.polygonMode                        = grfx::POLYGON_MODE_FILL;
+    gpCreateInfo.polygonMode                        = (key.enablePolygonModeLine ? grfx::POLYGON_MODE_LINE : grfx::POLYGON_MODE_FILL);
     gpCreateInfo.cullMode                           = grfx::CULL_MODE_BACK;
     gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CCW;
     gpCreateInfo.depthReadEnable                    = key.enableDepth;
@@ -758,6 +758,7 @@ grfx::GraphicsPipelinePtr GraphicsBenchmarkApp::GetSpherePipeline()
     key.enableDepth           = pDepthTestWrite->GetValue();
     key.enableAlphaBlend      = pAlphaBlend->GetValue();
     key.renderFormat          = RenderFormat();
+    key.enablePolygonModeLine = (pDebugViews->GetValue() == DebugView::WIREFRAME_MODE);
     PPX_CHECKED_CALL(CompilePipeline(key));
     return mPipelines[key];
 }

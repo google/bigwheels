@@ -43,7 +43,8 @@ static constexpr const char* kQuadTextureFile = "benchmarks/textures/resolution.
 enum class DebugView
 {
     DISABLED = 0,
-    SHOW_DRAWCALLS
+    SHOW_DRAWCALLS,
+    WIREFRAME_MODE
 };
 
 inline const char* ToString(DebugView dv)
@@ -51,13 +52,15 @@ inline const char* ToString(DebugView dv)
     switch (dv) {
         case DebugView::DISABLED: return "Disabled";
         case DebugView::SHOW_DRAWCALLS: return "Show Drawcalls";
+        case DebugView::WIREFRAME_MODE: return "Wireframe Mode";
         default: return "?";
     }
 }
 
-static constexpr std::array<DebugView, 2> kAvailableDebugViews = {
+static constexpr std::array<DebugView, 3> kAvailableDebugViews = {
     DebugView::DISABLED,
-    DebugView::SHOW_DRAWCALLS};
+    DebugView::SHOW_DRAWCALLS,
+    DebugView::WIREFRAME_MODE};
 
 enum class SphereVS
 {
@@ -335,6 +338,7 @@ private:
         bool         enableDepth;
         bool         enableAlphaBlend;
         grfx::Format renderFormat;
+        bool         enablePolygonModeLine;
 
         static_assert(kAvailablePsShaders.size() < (1 << (8 * sizeof(ps))));
         static_assert(kAvailableVsShaders.size() < (1 << (8 * sizeof(vs))));
@@ -349,7 +353,8 @@ private:
                    vertexAttributeLayout == rhs.vertexAttributeLayout &&
                    enableDepth == rhs.enableDepth &&
                    enableAlphaBlend == rhs.enableAlphaBlend &&
-                   renderFormat == rhs.renderFormat;
+                   renderFormat == rhs.renderFormat &&
+                   enablePolygonModeLine == rhs.enablePolygonModeLine;
         }
 
         struct Hash
@@ -365,6 +370,7 @@ private:
                 res = (res * kAvailableVertexAttrLayouts.size()) | key.vertexAttributeLayout;
                 res = (res << 1) | (key.enableDepth ? 1 : 0);
                 res = (res << 1) | (key.enableAlphaBlend ? 1 : 0);
+                res = (res << 1) | (key.enablePolygonModeLine ? 1 : 0);
                 return res;
             }
         };
