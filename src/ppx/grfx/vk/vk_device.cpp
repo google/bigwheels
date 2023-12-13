@@ -528,13 +528,13 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
 #endif
 
     VkPhysicalDeviceFragmentDensityMapFeaturesEXT fragmentDensityMapFeature = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_FEATURES_EXT};
-    {
+    if (pCreateInfo->supportShadingRateMode == SHADING_RATE_FDM) {
         fragmentDensityMapFeature.fragmentDensityMap = mShadingRateCapabilities.supportsFDM;
         extensionStructs.push_back(reinterpret_cast<VkBaseOutStructure*>(&fragmentDensityMapFeature));
     }
 
     VkPhysicalDeviceFragmentShadingRateFeaturesKHR fragmentShadingRateFeature = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR};
-    {
+    if (pCreateInfo->supportShadingRateMode == SHADING_RATE_VRS) {
         fragmentShadingRateFeature.pipelineFragmentShadingRate   = mShadingRateCapabilities.supportsPipelineVRS;
         fragmentShadingRateFeature.primitiveFragmentShadingRate  = mShadingRateCapabilities.supportsPrimitiveVRS;
         fragmentShadingRateFeature.attachmentFragmentShadingRate = mShadingRateCapabilities.supportsAttachmentVRS;

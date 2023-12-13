@@ -351,6 +351,7 @@ Result Application::InitializeGrfxDevice()
         ci.transferQueueCount     = mSettings.grfx.device.transferQueueCount;
         ci.vulkanExtensions       = {};
         ci.pVulkanDeviceFeatures  = nullptr;
+        ci.supportShadingRateMode = mSettings.grfx.device.supportShadingRateMode;
 #if defined(PPX_BUILD_XR)
         ci.pXrComponent = mSettings.xr.enable ? &mXrComponent : nullptr;
 #endif

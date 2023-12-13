@@ -42,12 +42,13 @@ namespace grfx {
 //!
 struct DeviceCreateInfo
 {
-    grfx::Gpu*               pGpu                  = nullptr;
-    uint32_t                 graphicsQueueCount    = 0;
-    uint32_t                 computeQueueCount     = 0;
-    uint32_t                 transferQueueCount    = 0;
-    std::vector<std::string> vulkanExtensions      = {};      // [OPTIONAL] Additional device extensions
-    const void*              pVulkanDeviceFeatures = nullptr; // [OPTIONAL] Pointer to custom VkPhysicalDeviceFeatures
+    grfx::Gpu*               pGpu                   = nullptr;
+    uint32_t                 graphicsQueueCount     = 0;
+    uint32_t                 computeQueueCount      = 0;
+    uint32_t                 transferQueueCount     = 0;
+    std::vector<std::string> vulkanExtensions       = {};      // [OPTIONAL] Additional device extensions
+    const void*              pVulkanDeviceFeatures  = nullptr; // [OPTIONAL] Pointer to custom VkPhysicalDeviceFeatures
+    ShadingRateMode          supportShadingRateMode = SHADING_RATE_NONE;
 #if defined(PPX_BUILD_XR)
     XrComponent* pXrComponent = nullptr;
 #endif
