@@ -43,7 +43,7 @@ Result ShadingRatePattern::CreateApiObjects(const ShadingRatePatternCreateInfo* 
         case SHADING_RATE_VRS: {
             minTexelSize                                                  = capabilities.vrs.minTexelSize;
             maxTexelSize                                                  = capabilities.vrs.maxTexelSize;
-            imageCreateInfo.format                                        = FORMAT_R8_UNORM;
+            imageCreateInfo.format                                        = FORMAT_R8_UINT;
             imageCreateInfo.usageFlags.bits.fragmentShadingRateAttachment = true;
             imageCreateInfo.initialState                                  = RESOURCE_STATE_FRAGMENT_SHADING_RATE_ATTACHMENT;
         } break;
@@ -74,6 +74,7 @@ Result ShadingRatePattern::CreateApiObjects(const ShadingRatePatternCreateInfo* 
 
     imageCreateInfo.width  = (pCreateInfo->framebufferSize.width + mTexelSize.width - 1) / mTexelSize.width;
     imageCreateInfo.height = (pCreateInfo->framebufferSize.height + mTexelSize.height - 1) / mTexelSize.height;
+    imageCreateInfo.depth  = 1;
 
     PPX_CHECKED_CALL(GetDevice()->CreateImage(&imageCreateInfo, &mAttachmentImage));
 
