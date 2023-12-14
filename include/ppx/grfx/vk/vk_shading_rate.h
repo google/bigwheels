@@ -15,6 +15,8 @@
 #ifndef ppx_grfx_vk_shading_rate_h
 #define ppx_grfx_vk_shading_rate_h
 
+#include <memory>
+
 #include "ppx/grfx/vk/vk_config.h"
 #include "ppx/grfx/grfx_shading_rate.h"
 
@@ -37,31 +39,59 @@ public:
         return mAttachmentView;
     }
 
-    // ShadingRatePattern::RenderPassModifier
+    // Creates a modified version of the render pass create info which supports
+    // the required shading rate mode.
     //
-    // Handles modification of VkRenderPassCreateInfo(2) to add support for a ShadingRatePattern.
-    class RenderPassModifier
+    // The shared_ptr also manages the memory of all referenced pointers and
+    // arrays in the VkRenderPassCreateInfo2 struct.
+    std::shared_ptr<const VkRenderPassCreateInfo2>        GetModifiedRenderPassCreateInfo(const VkRenderPassCreateInfo& vkci);
+    std::shared_ptr<const VkRenderPassCreateInfo2>        GetModifiedRenderPassCreateInfo(const VkRenderPassCreateInfo2& vkci);
+    static std::shared_ptr<const VkRenderPassCreateInfo2> GetModifiedRenderPassCreateInfo(vk::Device* device, ShadingRateMode mode, const VkRenderPassCreateInfo& vkci);
+    static std::shared_ptr<const VkRenderPassCreateInfo2> GetModifiedRenderPassCreateInfo(vk::Device* device, ShadingRateMode mode, const VkRenderPassCreateInfo2& vkci);
+
+protected:
+    // ShadingRatePattern::ModifiedRenderPassCreateInfo
+    //
+    // Handles modification of VkRenderPassCreateInfo/VkRenderPassCreateInfo2
+    // to add support for a ShadingRatePattern.
+    //
+    // The ModifiedRenderPassCreateInfo object handles the lifetimes of the
+    // pointers and arrays referenced in the modified VkRenderPassCreateInfo2.
+    class ModifiedRenderPassCreateInfo : public std::enable_shared_from_this<ModifiedRenderPassCreateInfo>
     {
     public:
-        RenderPassModifier()          = default;
-        virtual ~RenderPassModifier() = default;
+        ModifiedRenderPassCreateInfo()          = default;
+        virtual ~ModifiedRenderPassCreateInfo() = default;
 
-        // Initializes the modified VkRenderPassCreateInfo2, based on the values
-        // in VkRenderPassCreateInfo.
-        void Initialize(const VkRenderPassCreateInfo& vkci);
-
-        // Initializes the modified VkRenderPassCreateInfo2, based on the values
-        // in VkRenderPassCreateInfo2.
-        void Initialize(const VkRenderPassCreateInfo2& vkci);
+        // Initializes the modified VkRenderPassCreateInfo2, based on the
+        // values in the input VkRenderPassCreateInfo/VkRenderPassCreateInfo2,
+        // with appropriate modifications for the shading rate implementation.
+        ModifiedRenderPassCreateInfo& Initialize(const VkRenderPassCreateInfo& vkci);
+        ModifiedRenderPassCreateInfo& Initialize(const VkRenderPassCreateInfo2& vkci);
 
         // Returns the modified VkRenderPassCreateInfo2.
-        const VkRenderPassCreateInfo2* GetVkRenderPassCreateInfo2()
+        //
+        // The returned pointer, as well as pointers and arrays inside the
+        // VkRenderPassCreateInfo2 struct, point to memory owned by this
+        /// ModifiedRenderPassCreateInfo object, and so cannot be used after
+        // this object is destroyed.
+        std::shared_ptr<const VkRenderPassCreateInfo2> Get()
         {
-            return &mVkRenderPassCreateInfo2;
+            return std::shared_ptr<const VkRenderPassCreateInfo2>(shared_from_this(), &mVkRenderPassCreateInfo2);
         }
 
     protected:
-        virtual void InitializeImpl() = 0;
+        // Initializes the internal VkRenderPassCreateInfo2, based on the
+        // values in the input VkRenderPassCreateInfo/VkRenderPassCreateInfo2.
+        // All arrays are copied to internal vectors, and the internal
+        // VkRenderPassCreateInfo2 references the data in these vectors, rather
+        // than the poitners in the input VkRenderPassCreateInfo.
+        void LoadVkRenderPassCreateInfo(const VkRenderPassCreateInfo& vkci);
+        void LoadVkRenderPassCreateInfo2(const VkRenderPassCreateInfo2& vkci);
+
+        // Modifies the internal VkRenderPassCreateInfo2 to enable the shading
+        // rate implementation.
+        virtual void UpdateRenderPassForShadingRateImplementation() = 0;
 
         VkRenderPassCreateInfo2               mVkRenderPassCreateInfo2 = {VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO_2};
         std::vector<VkAttachmentDescription2> mAttachments;
@@ -78,41 +108,42 @@ public:
         std::vector<VkSubpassDependency2> mDependencies;
     };
 
-    // Creates a RenderPassModifier that will modify VkRenderPassCreateInfo(2)
-    // to support this ShadingRatePattern.
-    std::unique_ptr<RenderPassModifier> CreateRenderPassModifier() const
+    // Creates a ModifiedRenderPassCreateInfo that will modify
+    // VkRenderPassCreateInfo/VkRenderPassCreateInfo2  to support the given
+    // ShadingRateMode on the given device.
+    static std::shared_ptr<ModifiedRenderPassCreateInfo> CreateModifiedRenderPassCreateInfo(vk::Device* device, ShadingRateMode mode);
+
+    // Creates a ModifiedRenderPassCreateInfo that will modify
+    // VkRenderPassCreateInfo/VkRenderPassCreateInfo2 to support this
+    // ShadingRatePattern.
+    std::shared_ptr<ModifiedRenderPassCreateInfo> CreateModifiedRenderPassCreateInfo() const
     {
-        return CreateRenderPassModifier(ToApi(GetDevice()), GetShadingRateMode());
+        return CreateModifiedRenderPassCreateInfo(ToApi(GetDevice()), GetShadingRateMode());
     }
 
-    // Creates a RenderPassModifier that will modify VkRenderPassCreateInfo(2)
-    // to support the given ShadingRateMode on the given device.
-    static std::unique_ptr<RenderPassModifier> CreateRenderPassModifier(vk::Device* device, ShadingRateMode mode);
-
-protected:
-    // ShadingRatePattern::FDMRenderPassModifier
+    // ShadingRatePattern::FDMModifiedRenderPassCreateInfo
     //
     // Handles modification of VkRenderPassCreateInfo(2) to add support for FDM.
-    class FDMRenderPassModifier : public RenderPassModifier
+    class FDMModifiedRenderPassCreateInfo : public ModifiedRenderPassCreateInfo
     {
     protected:
-        void InitializeImpl() override;
+        void UpdateRenderPassForShadingRateImplementation() override;
 
     private:
         VkRenderPassFragmentDensityMapCreateInfoEXT mFdmInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_FRAGMENT_DENSITY_MAP_CREATE_INFO_EXT};
     };
 
-    // ShadingRatePattern::VRSRenderPassModifier
+    // ShadingRatePattern::VRSModifiedRenderPassCreateInfo
     //
     // Handles modification of VkRenderPassCreateInfo(2) to add support for VRS.
-    class VRSRenderPassModifier : public RenderPassModifier
+    class VRSModifiedRenderPassCreateInfo : public ModifiedRenderPassCreateInfo
     {
     public:
-        VRSRenderPassModifier(const ShadingRateCapabilities& capabilities)
+        VRSModifiedRenderPassCreateInfo(const ShadingRateCapabilities& capabilities)
             : mCapabilities(capabilities) {}
 
     protected:
-        void InitializeImpl() override;
+        void UpdateRenderPassForShadingRateImplementation() override;
 
     private:
         ShadingRateCapabilities                mCapabilities;

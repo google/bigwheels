@@ -117,18 +117,71 @@ void ShadingRatePattern::DestroyApiObjects()
     }
 }
 
-std::unique_ptr<ShadingRatePattern::RenderPassModifier> ShadingRatePattern::CreateRenderPassModifier(vk::Device* device, ShadingRateMode mode)
+std::shared_ptr<const VkRenderPassCreateInfo2> ShadingRatePattern::GetModifiedRenderPassCreateInfo(const VkRenderPassCreateInfo& vkci)
+{
+    return CreateModifiedRenderPassCreateInfo()->Initialize(vkci).Get();
+}
+
+std::shared_ptr<const VkRenderPassCreateInfo2> ShadingRatePattern::GetModifiedRenderPassCreateInfo(const VkRenderPassCreateInfo2& vkci)
+{
+    return CreateModifiedRenderPassCreateInfo()->Initialize(vkci).Get();
+}
+
+std::shared_ptr<const VkRenderPassCreateInfo2> ShadingRatePattern::GetModifiedRenderPassCreateInfo(vk::Device* device, ShadingRateMode mode, const VkRenderPassCreateInfo& vkci)
+{
+    return CreateModifiedRenderPassCreateInfo(device, mode)->Initialize(vkci).Get();
+}
+
+std::shared_ptr<const VkRenderPassCreateInfo2> ShadingRatePattern::GetModifiedRenderPassCreateInfo(vk::Device* device, ShadingRateMode mode, const VkRenderPassCreateInfo2& vkci)
+{
+    return CreateModifiedRenderPassCreateInfo(device, mode)->Initialize(vkci).Get();
+}
+
+std::shared_ptr<ShadingRatePattern::ModifiedRenderPassCreateInfo> ShadingRatePattern::CreateModifiedRenderPassCreateInfo(vk::Device* device, ShadingRateMode mode)
 {
     switch (mode) {
         case SHADING_RATE_FDM:
-            return std::make_unique<ShadingRatePattern::FDMRenderPassModifier>();
+            return std::make_shared<ShadingRatePattern::FDMModifiedRenderPassCreateInfo>();
         case SHADING_RATE_VRS:
-            return std::make_unique<ShadingRatePattern::VRSRenderPassModifier>(device->GetShadingRateCapabilities());
+            return std::make_shared<ShadingRatePattern::VRSModifiedRenderPassCreateInfo>(device->GetShadingRateCapabilities());
         default:
             return nullptr;
     }
 }
 
+ShadingRatePattern::ModifiedRenderPassCreateInfo& ShadingRatePattern::ModifiedRenderPassCreateInfo::Initialize(const VkRenderPassCreateInfo& vkci)
+{
+    LoadVkRenderPassCreateInfo(vkci);
+    UpdateRenderPassForShadingRateImplementation();
+    return *this;
+}
+
+ShadingRatePattern::ModifiedRenderPassCreateInfo& ShadingRatePattern::ModifiedRenderPassCreateInfo::Initialize(const VkRenderPassCreateInfo2& vkci)
+{
+    LoadVkRenderPassCreateInfo2(vkci);
+    UpdateRenderPassForShadingRateImplementation();
+    return *this;
+}
+
+namespace {
+
+// Converts VkAttachmentDescription to VkAttachmentDescription2
+VkAttachmentDescription2 ToVkAttachmentDescription2(const VkAttachmentDescription& attachment)
+{
+    VkAttachmentDescription2 attachment2 = {VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2};
+    attachment2.flags                    = attachment.flags;
+    attachment2.format                   = attachment.format;
+    attachment2.samples                  = attachment.samples;
+    attachment2.loadOp                   = attachment.loadOp;
+    attachment2.storeOp                  = attachment.storeOp;
+    attachment2.stencilLoadOp            = attachment.stencilLoadOp;
+    attachment2.stencilStoreOp           = attachment.stencilStoreOp;
+    attachment2.initialLayout            = attachment.initialLayout;
+    attachment2.finalLayout              = attachment.finalLayout;
+    return attachment2;
+}
+
+// Converts VkAttachmentReference to VkAttachmentReference2
 VkAttachmentReference2 ToVkAttachmentReference2(const VkAttachmentReference& ref)
 {
     VkAttachmentReference2 ref2 = {VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2};
@@ -137,124 +190,112 @@ VkAttachmentReference2 ToVkAttachmentReference2(const VkAttachmentReference& ref
     return ref2;
 }
 
-std::vector<VkAttachmentReference2> ToVkAttachmentReference2(uint32_t referenceCount, const VkAttachmentReference* pReferences)
+// Converts VkSubpassDependency to VkSubpassDependency2
+VkSubpassDependency2 ToVkSubpassDependency2(const VkSubpassDependency& dependency)
 {
-    std::vector<VkAttachmentReference2> references2(referenceCount);
-    for (uint32_t i = 0; i < referenceCount; ++i) {
-        references2[i] = ToVkAttachmentReference2(pReferences[i]);
-    }
-    return references2;
+    VkSubpassDependency2 dependency2 = {VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2};
+    dependency2.srcSubpass           = dependency.srcSubpass;
+    dependency2.dstSubpass           = dependency.dstSubpass;
+    dependency2.srcStageMask         = dependency.srcStageMask;
+    dependency2.dstStageMask         = dependency.dstStageMask;
+    dependency2.srcAccessMask        = dependency.srcAccessMask;
+    dependency2.dstAccessMask        = dependency.dstAccessMask;
+    dependency2.dependencyFlags      = dependency.dependencyFlags;
+    return dependency2;
 }
 
-void ShadingRatePattern::RenderPassModifier::Initialize(const VkRenderPassCreateInfo& vkci)
+// Copy an array to a vector and initialize an output count and data pointer.
+template <typename T>
+void CopyArrayWithVectorStorage(uint32_t inCount, const T* inData, std::vector<T>& vec, uint32_t& outCount, T const*& outData)
+{
+    vec.clear();
+    if (inCount == 0) {
+        outCount = 0;
+        outData  = nullptr;
+    }
+    vec.resize(inCount);
+    std::copy_n(inData, inCount, vec.begin());
+    outCount = CountU32(vec);
+    outData  = DataPtr(vec);
+}
+
+// Convert the elements in an array, store in a vector, and initialize an output count and data pointer.
+template <typename T1, typename T2, typename Conv>
+void ConvertArrayWithVectorStorage(uint32_t inCount, const T1* inData, std::vector<T2>& vec, uint32_t& outCount, T2 const*& outData, Conv&& conv)
+{
+    vec.clear();
+    if (inCount == 0) {
+        outCount = 0;
+        outData  = nullptr;
+    }
+    vec.resize(inCount);
+    for (uint32_t i = 0; i < inCount; ++i) {
+        vec[i] = conv(inData[i]);
+    }
+    outCount = CountU32(vec);
+    outData  = DataPtr(vec);
+}
+
+} // namespace
+
+void ShadingRatePattern::ModifiedRenderPassCreateInfo::LoadVkRenderPassCreateInfo(const VkRenderPassCreateInfo& vkci)
 {
     auto& vkci2 = mVkRenderPassCreateInfo2;
     vkci2.pNext = vkci.pNext;
     vkci2.flags = vkci.flags;
 
-    mAttachments.clear();
-    mAttachments.reserve(vkci.attachmentCount + 1);
-    mAttachments.resize(vkci.attachmentCount);
-    for (uint32_t i = 0; i < vkci.attachmentCount; ++i) {
-        const VkAttachmentDescription& attachment  = vkci.pAttachments[i];
-        VkAttachmentDescription2&      attachment2 = mAttachments[i];
-        attachment2.sType                          = VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION_2;
-        attachment2.flags                          = attachment.flags;
-        attachment2.format                         = attachment.format;
-        attachment2.samples                        = attachment.samples;
-        attachment2.loadOp                         = attachment.loadOp;
-        attachment2.storeOp                        = attachment.storeOp;
-        attachment2.stencilLoadOp                  = attachment.stencilLoadOp;
-        attachment2.stencilStoreOp                 = attachment.stencilStoreOp;
-        attachment2.initialLayout                  = attachment.initialLayout;
-        attachment2.finalLayout                    = attachment.finalLayout;
-    }
-    vkci2.attachmentCount = CountU32(mAttachments);
-    vkci2.pAttachments    = DataPtr(mAttachments);
+    ConvertArrayWithVectorStorage(vkci.attachmentCount, vkci.pAttachments, mAttachments, vkci2.attachmentCount, vkci2.pAttachments, &ToVkAttachmentDescription2);
+    ConvertArrayWithVectorStorage(vkci.subpassCount, vkci.pSubpasses, mSubpasses, vkci2.subpassCount, vkci2.pSubpasses, [this](const VkSubpassDescription& subpass) {
+        VkSubpassDescription2 subpass2 = {VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2};
+        subpass2.flags                 = subpass.flags;
+        subpass2.pipelineBindPoint     = subpass.pipelineBindPoint;
 
-    mSubpasses.clear();
-    mSubpasses.resize(vkci.subpassCount);
-    mSubpassAttachments.resize(vkci.subpassCount);
-    for (uint32_t i = 0; i < vkci.subpassCount; ++i) {
-        const VkSubpassDescription& subpass  = vkci.pSubpasses[i];
-        VkSubpassDescription2&      subpass2 = mSubpasses[i];
-        subpass2.sType                       = VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION_2;
-        subpass2.flags                       = subpass.flags;
-        subpass2.pipelineBindPoint           = subpass.pipelineBindPoint;
-
-        auto& inputAttachments        = mSubpassAttachments[i].inputAttachments;
-        inputAttachments              = ToVkAttachmentReference2(subpass.inputAttachmentCount, subpass.pInputAttachments);
-        subpass2.inputAttachmentCount = CountU32(inputAttachments);
-        subpass2.pInputAttachments    = DataPtr(inputAttachments);
-
-        auto& colorAttachments        = mSubpassAttachments[i].colorAttachments;
-        colorAttachments              = ToVkAttachmentReference2(subpass.colorAttachmentCount, subpass.pColorAttachments);
-        subpass2.colorAttachmentCount = CountU32(colorAttachments);
-        subpass2.pColorAttachments    = DataPtr(colorAttachments);
-
+        auto& subpassAttachments = mSubpassAttachments.emplace_back();
+        ConvertArrayWithVectorStorage(subpass.inputAttachmentCount, subpass.pInputAttachments, subpassAttachments.inputAttachments, subpass2.inputAttachmentCount, subpass2.pInputAttachments, &ToVkAttachmentReference2);
+        ConvertArrayWithVectorStorage(subpass.colorAttachmentCount, subpass.pColorAttachments, subpassAttachments.colorAttachments, subpass2.colorAttachmentCount, subpass2.pColorAttachments, &ToVkAttachmentReference2);
         if (!IsNull(subpass.pResolveAttachments)) {
-            auto& resolveAttachments     = mSubpassAttachments[i].resolveAttachments;
-            resolveAttachments           = ToVkAttachmentReference2(subpass.colorAttachmentCount, subpass.pResolveAttachments);
-            subpass2.pResolveAttachments = DataPtr(resolveAttachments);
+            uint32_t resolveAttachmentCount = 0;
+            ConvertArrayWithVectorStorage(subpass.colorAttachmentCount, subpass.pResolveAttachments, subpassAttachments.resolveAttachments, resolveAttachmentCount, subpass2.pResolveAttachments, &ToVkAttachmentReference2);
         }
-
         if (!IsNull(subpass.pDepthStencilAttachment)) {
-            auto& depthStencilAttachment     = mSubpassAttachments[i].depthStencilAttachment;
+            auto& depthStencilAttachment     = subpassAttachments.depthStencilAttachment;
             depthStencilAttachment           = ToVkAttachmentReference2(*subpass.pDepthStencilAttachment);
             subpass2.pDepthStencilAttachment = &depthStencilAttachment;
         }
-
-        auto& preserveAttachments = mSubpassAttachments[i].preserveAttachments;
-        preserveAttachments.resize(subpass.preserveAttachmentCount);
-        std::copy_n(subpass.pPreserveAttachments, subpass.preserveAttachmentCount, preserveAttachments.begin());
-        subpass2.preserveAttachmentCount = CountU32(preserveAttachments);
-        subpass2.pPreserveAttachments    = DataPtr(preserveAttachments);
-    }
-    vkci2.subpassCount = CountU32(mSubpasses);
-    vkci2.pSubpasses   = DataPtr(mSubpasses);
-
-    mDependencies.clear();
-    mDependencies.resize(vkci.dependencyCount);
-    for (uint32_t i = 0; i < vkci.dependencyCount; ++i) {
-        const VkSubpassDependency& dependency  = vkci.pDependencies[i];
-        VkSubpassDependency2&      dependency2 = mDependencies[i];
-        dependency2.sType                      = VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY_2;
-        dependency2.srcSubpass                 = dependency.srcSubpass;
-        dependency2.dstSubpass                 = dependency.dstSubpass;
-        dependency2.srcStageMask               = dependency.srcStageMask;
-        dependency2.dstStageMask               = dependency.dstStageMask;
-        dependency2.srcAccessMask              = dependency.srcAccessMask;
-        dependency2.dstAccessMask              = dependency.dstAccessMask;
-        dependency2.dependencyFlags            = dependency.dependencyFlags;
-    }
-    vkci2.dependencyCount = CountU32(mDependencies);
-    vkci2.pDependencies   = DataPtr(mDependencies);
-
-    InitializeImpl();
+        CopyArrayWithVectorStorage(subpass.preserveAttachmentCount, subpass.pPreserveAttachments, subpassAttachments.preserveAttachments, subpass2.preserveAttachmentCount, subpass2.pPreserveAttachments);
+        return subpass2;
+    });
+    ConvertArrayWithVectorStorage(vkci.dependencyCount, vkci.pDependencies, mDependencies, vkci2.dependencyCount, vkci2.pDependencies, &ToVkSubpassDependency2);
 }
 
-void ShadingRatePattern::RenderPassModifier::Initialize(const VkRenderPassCreateInfo2& vkci)
+void ShadingRatePattern::ModifiedRenderPassCreateInfo::LoadVkRenderPassCreateInfo2(const VkRenderPassCreateInfo2& vkci)
 {
     VkRenderPassCreateInfo2& vkci2 = mVkRenderPassCreateInfo2;
     vkci2                          = vkci;
 
-    mAttachments.reserve(vkci.attachmentCount + 1);
-    mAttachments.resize(vkci.attachmentCount);
-    std::copy_n(vkci.pAttachments, vkci.attachmentCount, mAttachments.begin());
-    vkci2.pAttachments = DataPtr(mAttachments);
+    CopyArrayWithVectorStorage(vkci.attachmentCount, vkci.pAttachments, mAttachments, vkci2.attachmentCount, vkci2.pAttachments);
+    ConvertArrayWithVectorStorage(vkci.subpassCount, vkci.pSubpasses, mSubpasses, vkci2.subpassCount, vkci2.pSubpasses, [this](const VkSubpassDescription2& subpass) {
+        VkSubpassDescription2 subpass2 = subpass;
 
-    mSubpasses.resize(vkci.subpassCount);
-    std::copy_n(vkci.pSubpasses, vkci.subpassCount, mSubpasses.begin());
-    vkci2.pSubpasses = DataPtr(mSubpasses);
-
-    mDependencies.resize(vkci.dependencyCount);
-    std::copy_n(vkci.pDependencies, vkci.dependencyCount, mDependencies.begin());
-    vkci2.pDependencies = DataPtr(mDependencies);
-
-    InitializeImpl();
+        auto& subpassAttachments = mSubpassAttachments.emplace_back();
+        CopyArrayWithVectorStorage(subpass.inputAttachmentCount, subpass.pInputAttachments, subpassAttachments.inputAttachments, subpass2.inputAttachmentCount, subpass2.pInputAttachments);
+        CopyArrayWithVectorStorage(subpass.colorAttachmentCount, subpass.pColorAttachments, subpassAttachments.colorAttachments, subpass2.colorAttachmentCount, subpass2.pColorAttachments);
+        if (!IsNull(subpass.pResolveAttachments)) {
+            uint32_t resolveAttachmentCount = 0;
+            CopyArrayWithVectorStorage(subpass.colorAttachmentCount, subpass.pResolveAttachments, subpassAttachments.resolveAttachments, resolveAttachmentCount, subpass2.pResolveAttachments);
+        }
+        if (!IsNull(subpass.pDepthStencilAttachment)) {
+            auto& depthStencilAttachment     = subpassAttachments.depthStencilAttachment;
+            depthStencilAttachment           = *subpass.pDepthStencilAttachment;
+            subpass2.pDepthStencilAttachment = &depthStencilAttachment;
+        }
+        CopyArrayWithVectorStorage(subpass.preserveAttachmentCount, subpass.pPreserveAttachments, subpassAttachments.preserveAttachments, subpass2.preserveAttachmentCount, subpass2.pPreserveAttachments);
+        return subpass2;
+    });
+    CopyArrayWithVectorStorage(vkci.dependencyCount, vkci.pDependencies, mDependencies, vkci2.dependencyCount, vkci2.pDependencies);
 }
 
-void ShadingRatePattern::FDMRenderPassModifier::InitializeImpl()
+void ShadingRatePattern::FDMModifiedRenderPassCreateInfo::UpdateRenderPassForShadingRateImplementation()
 {
     VkRenderPassCreateInfo2& vkci = mVkRenderPassCreateInfo2;
 
@@ -279,7 +320,7 @@ void ShadingRatePattern::FDMRenderPassModifier::InitializeImpl()
     vkci.pAttachments    = DataPtr(mAttachments);
 }
 
-void ShadingRatePattern::VRSRenderPassModifier::InitializeImpl()
+void ShadingRatePattern::VRSModifiedRenderPassCreateInfo::UpdateRenderPassForShadingRateImplementation()
 {
     VkRenderPassCreateInfo2& vkci = mVkRenderPassCreateInfo2;
 

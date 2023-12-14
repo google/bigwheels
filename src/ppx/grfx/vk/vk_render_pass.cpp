@@ -134,11 +134,10 @@ Result RenderPass::CreateRenderPass(const grfx::internal::RenderPassCreateInfo* 
     vkci.pDependencies          = &subpassDependencies;
 
     if (!IsNull(pCreateInfo->pShadingRatePattern)) {
-        auto modifier = ToApi(pCreateInfo->pShadingRatePattern)->CreateRenderPassModifier();
-        modifier->Initialize(vkci);
-        VkResult vkres = vk::CreateRenderPass(
+        auto     modifiedCreateInfo = ToApi(pCreateInfo->pShadingRatePattern)->GetModifiedRenderPassCreateInfo(vkci);
+        VkResult vkres              = vk::CreateRenderPass(
             ToApi(GetDevice())->GetVkDevice(),
-            modifier->GetVkRenderPassCreateInfo2(),
+            modifiedCreateInfo.get(),
             nullptr,
             &mRenderPass);
         if (vkres != VK_SUCCESS) {
@@ -324,11 +323,10 @@ VkResult CreateTransientRenderPass(
     vkci.pDependencies          = &subpassDependencies;
 
     if (shadingRateMode != SHADING_RATE_NONE) {
-        auto modifier = vk::ShadingRatePattern::CreateRenderPassModifier(device, shadingRateMode);
-        modifier->Initialize(vkci);
-        VkResult vkres = vk::CreateRenderPass(
+        auto     modifiedCreateInfo = vk::ShadingRatePattern::GetModifiedRenderPassCreateInfo(device, shadingRateMode, vkci);
+        VkResult vkres              = vk::CreateRenderPass(
             device->GetVkDevice(),
-            modifier->GetVkRenderPassCreateInfo2(),
+            modifiedCreateInfo.get(),
             nullptr,
             pRenderPass);
         if (vkres != VK_SUCCESS) {
