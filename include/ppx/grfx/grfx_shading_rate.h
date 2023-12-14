@@ -29,19 +29,8 @@ static constexpr size_t kMaxSupportedShadingRateCount = 16;
 // Information about GPU support for shading rate features.
 struct ShadingRateCapabilities
 {
-    // Does the device&API support Fragment Density Map?
-    bool supportsFDM = false;
-
-    // Does the device&API support Variable Rate Shading at the graphics
-    // pipeline level?
-    bool supportsPipelineVRS = false;
-
-    // Does the device&API support Variable Rate Shading at the primitive
-    // level?
-    bool supportsPrimitiveVRS = false;
-
-    // Does the device&API support Variable Rate Shading attachments?
-    bool supportsAttachmentVRS = false;
+    // The shading rate mode supported by this device.
+    ShadingRateMode supportedShadingRateMode = SHADING_RATE_NONE;
 
     struct
     {

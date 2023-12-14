@@ -318,8 +318,15 @@ void Device::ConfigureShadingRateCapabilities(const grfx::DeviceCreateInfo* pCre
         }
     }
 
-    ConfigureFDMShadingRateCapabilities(physicalDevice, pShadingRateCapabilities);
-    ConfigureVRSShadingRateCapabilities(physicalDevice, pShadingRateCapabilities);
+    pShadingRateCapabilities->supportedShadingRateMode = pCreateInfo->supportShadingRateMode;
+
+    if (pCreateInfo->supportShadingRateMode == SHADING_RATE_FDM) {
+        ConfigureFDMShadingRateCapabilities(physicalDevice, pShadingRateCapabilities);
+    }
+
+    if (pCreateInfo->supportShadingRateMode == SHADING_RATE_VRS) {
+        ConfigureVRSShadingRateCapabilities(physicalDevice, pShadingRateCapabilities);
+    }
 }
 
 void Device::ConfigureFDMShadingRateCapabilities(
@@ -340,7 +347,10 @@ void Device::ConfigureFDMShadingRateCapabilities(
     InsertPNext(properties, fdmProperties);
     mFnGetPhysicalDeviceProperties2(physicalDevice, &properties);
 
-    pShadingRateCapabilities->supportsFDM      = (fdmFeatures.fragmentDensityMap == VK_TRUE);
+    PPX_ASSERT_MSG(
+        fdmFeatures.fragmentDensityMap == VK_TRUE,
+        "FDM shading rate mode was requested, but not supported by the GPU.");
+
     pShadingRateCapabilities->fdm.minTexelSize = {
         fdmProperties.minFragmentDensityTexelSize.width,
         fdmProperties.minFragmentDensityTexelSize.height};
@@ -367,9 +377,10 @@ void Device::ConfigureVRSShadingRateCapabilities(
     InsertPNext(properties, vrsProperties);
     mFnGetPhysicalDeviceProperties2(physicalDevice, &properties);
 
-    pShadingRateCapabilities->supportsPipelineVRS   = vrsFeatures.pipelineFragmentShadingRate;
-    pShadingRateCapabilities->supportsPrimitiveVRS  = vrsFeatures.primitiveFragmentShadingRate;
-    pShadingRateCapabilities->supportsAttachmentVRS = vrsFeatures.attachmentFragmentShadingRate;
+    PPX_ASSERT_MSG(
+        (vrsFeatures.pipelineFragmentShadingRate == VK_TRUE) &&
+            (vrsFeatures.attachmentFragmentShadingRate == VK_TRUE),
+        "VRS shading rate mode was requested, but not supported by the GPU.");
 
     if (!vrsFeatures.pipelineFragmentShadingRate && !vrsFeatures.primitiveFragmentShadingRate && !vrsFeatures.attachmentFragmentShadingRate) {
         return;
@@ -529,15 +540,14 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
 
     VkPhysicalDeviceFragmentDensityMapFeaturesEXT fragmentDensityMapFeature = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_FEATURES_EXT};
     if (pCreateInfo->supportShadingRateMode == SHADING_RATE_FDM) {
-        fragmentDensityMapFeature.fragmentDensityMap = mShadingRateCapabilities.supportsFDM;
+        fragmentDensityMapFeature.fragmentDensityMap = VK_TRUE;
         extensionStructs.push_back(reinterpret_cast<VkBaseOutStructure*>(&fragmentDensityMapFeature));
     }
 
     VkPhysicalDeviceFragmentShadingRateFeaturesKHR fragmentShadingRateFeature = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR};
     if (pCreateInfo->supportShadingRateMode == SHADING_RATE_VRS) {
-        fragmentShadingRateFeature.pipelineFragmentShadingRate   = mShadingRateCapabilities.supportsPipelineVRS;
-        fragmentShadingRateFeature.primitiveFragmentShadingRate  = mShadingRateCapabilities.supportsPrimitiveVRS;
-        fragmentShadingRateFeature.attachmentFragmentShadingRate = mShadingRateCapabilities.supportsAttachmentVRS;
+        fragmentShadingRateFeature.pipelineFragmentShadingRate   = VK_TRUE;
+        fragmentShadingRateFeature.attachmentFragmentShadingRate = VK_TRUE;
         extensionStructs.push_back(reinterpret_cast<VkBaseOutStructure*>(&fragmentShadingRateFeature));
     }
 
