@@ -254,6 +254,10 @@ struct StandardOptions
 
     std::shared_ptr<KnobFlag<std::vector<std::string>>> pAssetsPaths;
     std::shared_ptr<KnobFlag<std::vector<std::string>>> pConfigJsonPaths;
+
+    std::shared_ptr<KnobFlag<bool>> pEnableFDM;
+    std::shared_ptr<KnobFlag<bool>> pEnableVRS;
+    std::shared_ptr<KnobFlag<bool>> pDisableShadingRate;
 };
 
 // -------------------------------------------------------------------------------------------------
