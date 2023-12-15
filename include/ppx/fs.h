@@ -143,7 +143,7 @@ std::filesystem::path GetInternalDataPath();
 std::filesystem::path GetExternalDataPath();
 #endif
 
-// Returns the default output directory where test artifacts will be written.
+// Returns the default output directory where artifacts will be written.
 std::filesystem::path GetDefaultOutputDirectory();
 
 // Constructs the full path from a possibly partial path
