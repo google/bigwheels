@@ -14,6 +14,7 @@
 
 #include "ppx/metrics.h"
 
+#include <regex>
 #include <sstream>
 
 #include "ppx/fs.h"
@@ -356,24 +357,12 @@ std::string Report::GetContentString() const
 
 void Report::SetReportPath(const std::string& reportPath)
 {
-    std::filesystem::path path(reportPath.empty() ? std::string(kDefaultReportPath) : reportPath);
-    auto                  filename   = path.filename().string();
-    auto                  atLocation = filename.find("@");
-    auto                  now        = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    std::stringstream     timeStream;
-    timeStream << now;
-    while (atLocation != std::string::npos) {
-        filename.replace(atLocation, 1, timeStream.str());
-        atLocation = filename.find("@");
-    }
-    path.replace_filename(std::filesystem::path(filename));
-    if (path.extension() != std::filesystem::path(kFileExtension)) {
-        path += kFileExtension;
-    }
-#if defined(PPX_ANDROID)
-    mFilePath = ppx::fs::GetExternalDataPath();
-#endif
-    mFilePath /= path;
+    std::stringstream timeStream;
+    timeStream << std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+
+    mFilePath = ppx::fs::GetDefaultOutputDirectory();
+    mFilePath = ppx::fs::GetFullPath(std::filesystem::path(reportPath), mFilePath, "@", timeStream.str());
+
     mContent["filename"]     = mFilePath.filename().string();
     mContent["generated_at"] = timeStream.str();
 }

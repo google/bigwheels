@@ -54,16 +54,16 @@ jobs:
           cd build/bin
 
           xvfb-run -a ./vk_03_square_textured --frame-count 2 --screenshot-frame-number 1
-          convert screenshot_frame1.ppm vk_03_square_textured_screenshot.png
+          convert screenshot_frame_1.ppm vk_03_square_textured_screenshot.png
 
           xvfb-run -a ./vk_09_obj_geometry --frame-count 2 --screenshot-frame-number 1
-          convert screenshot_frame1.ppm vk_09_obj_geometry_screenshot.png
+          convert screenshot_frame_1.ppm vk_09_obj_geometry_screenshot.png
 
           xvfb-run -a ./vk_13_normal_map --frame-count 2 --screenshot-frame-number 1
-          convert screenshot_frame1.ppm vk_13_normal_map_screenshot.png
+          convert screenshot_frame_1.ppm vk_13_normal_map_screenshot.png
 
           xvfb-run -a ./vk_fishtornado --frame-count 2 --screenshot-frame-number 1
-          convert screenshot_frame1.ppm vk_fishtornado_screenshot.png
+          convert screenshot_frame_1.ppm vk_fishtornado_screenshot.png
       - name: Upload screenshots
         uses: actions/upload-artifact@v3
         with:

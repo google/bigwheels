@@ -143,6 +143,13 @@ std::filesystem::path GetInternalDataPath();
 std::filesystem::path GetExternalDataPath();
 #endif
 
+// Returns the default output directory where artifacts will be written.
+std::filesystem::path GetDefaultOutputDirectory();
+
+// Constructs the full path from a possibly partial path
+// If `regexToReplace` is specified, replace all instances of that symbol in the filename with `replaceString`
+std::filesystem::path GetFullPath(const std::filesystem::path& partialPath, const std::filesystem::path& defaultFolder, const std::string& regexToReplace = "", const std::string& replaceString = "");
+
 } // namespace ppx::fs
 
 #endif // ppx_fs_h

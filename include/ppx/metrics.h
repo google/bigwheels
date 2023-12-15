@@ -265,10 +265,6 @@ public:
     std::string GetContentString() const;
 
 private:
-    static constexpr const char* kFileExtension     = ".json";
-    static constexpr const char* kDefaultReportPath = "report_@";
-
-private:
     void SetReportPath(const std::string& reportPath);
 
     nlohmann::json        mContent;
