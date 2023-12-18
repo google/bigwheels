@@ -97,7 +97,7 @@ function(internal_generate_rules_for_shader TARGET_NAME)
         if (PPX_ANDROID)
             # Place the generated files into build directory. They will be copied into the APK
             # assets folder (see build.gradle).
-            set(SHADER_OUTPUT_PATH "${PPX_DIR}/build/${PATH_PREFIX}/spv/${BASE_NAME}.${ARG_SHADER_STAGE}.spv")
+            set(SHADER_OUTPUT_PATH "${PPX_DIR}/build_android/${PATH_PREFIX}/spv/${BASE_NAME}.${ARG_SHADER_STAGE}.spv")
         endif()
 
         internal_add_compile_shader_target(

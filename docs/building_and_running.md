@@ -126,7 +126,7 @@ To generate APKs for all available samples:
 ```
 
 The generated APKs can be found in the
-`build/android/<project_name>/outputs/apk/<flavour>` directory.
+`build_android/<project_name>/outputs/apk/<flavour>` directory.
 
 ### Adding a new Android sample
 

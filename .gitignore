@@ -21,6 +21,7 @@ bin/
 build-*/
 build.ninja
 build/
+build_android/
 cmake_install.cmake
 lib/
 out/
