@@ -136,8 +136,8 @@ enum class FullscreenQuadsType
 
 static constexpr std::array<DropdownEntry<FullscreenQuadsType>, 3> kFullscreenQuadsTypes = {{
     {"Noise", FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_NOISE},
-    {"Solid_Color", FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_NOISE},
-    {"Texture", FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_NOISE},
+    {"Solid_Color", FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_SOLID_COLOR},
+    {"Texture", FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_TEXTURE},
 }};
 
 static constexpr std::array<DropdownEntry<float3>, 4> kFullscreenQuadsColors = {{
