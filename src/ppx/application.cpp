@@ -888,20 +888,13 @@ void Application::InitStandardKnobs()
     mStandardOpts.pXrRequiredExtensions->SetFlagParameters("<extension>");
 #endif
 
-    GetKnobManager().InitKnob(&mStandardOpts.pEnableFDM, "enable-fdm", false);
-    mStandardOpts.pEnableFDM->SetFlagDescription(
-        "Enable device support for controlling the shading rate using "
-        "Fragment Density Map (FDM).");
-
-    GetKnobManager()
-        .InitKnob(&mStandardOpts.pEnableVRS, "enable-vrs", false);
-    mStandardOpts.pEnableVRS->SetFlagDescription(
-        "Enable device support for controlling the shading rate using "
-        "Variable Rate Shading (VRS).");
-
-    GetKnobManager().InitKnob(&mStandardOpts.pDisableShadingRate, "disable-shading-rate", false);
-    mStandardOpts.pDisableShadingRate->SetFlagDescription(
-        "Disable device support for controlling the shading rate.");
+    GetKnobManager().InitKnob(&mStandardOpts.pShadingRateMode, "shading-rate-mode", "");
+    mStandardOpts.pShadingRateMode->SetFlagDescription(
+        "Specify the shading rate mode to enable.");
+    mStandardOpts.pShadingRateMode->SetFlagParameters("<none|fdm|vrs>");
+    mStandardOpts.pShadingRateMode->SetValidator([](const std::string& res) {
+        return res == "" || res == "none" || res == "fdm" || res == "vrs";
+    });
 }
 
 void Application::TakeScreenshot()
@@ -1151,34 +1144,15 @@ void Application::UpdateStandardSettings()
         PPX_LOG_WARN("Headless or deterministic mode: disabling ImGui");
     }
 
-    if (mStandardOpts.pEnableFDM->GetValue()) {
-        PPX_ASSERT_MSG(
-            !mStandardOpts.pEnableVRS->GetValue(),
-            "--enable-fdm and --enable-vrs are mutually exclusive");
-        PPX_ASSERT_MSG(
-            !mStandardOpts.pDisableShadingRate->GetValue(),
-            "--enable-fdm and --disable-shading-rate are mutually exclusive");
+    std::string shadingRateModeString = mStandardOpts.pShadingRateMode->GetValue();
+    if (shadingRateModeString == "none") {
+        mSettings.grfx.device.supportShadingRateMode = grfx::SHADING_RATE_NONE;
+    }
+    else if (shadingRateModeString == "fdm") {
         mSettings.grfx.device.supportShadingRateMode = grfx::SHADING_RATE_FDM;
     }
-
-    if (mStandardOpts.pEnableVRS->GetValue()) {
-        PPX_ASSERT_MSG(
-            !mStandardOpts.pEnableFDM->GetValue(),
-            "--enable-vrs and --enable-fdm are mutually exclusive");
-        PPX_ASSERT_MSG(
-            !mStandardOpts.pDisableShadingRate->GetValue(),
-            "--enable-vrs and --disable-shading-rate are mutually exclusive");
+    else if (shadingRateModeString == "vrs") {
         mSettings.grfx.device.supportShadingRateMode = grfx::SHADING_RATE_VRS;
-    }
-
-    if (mStandardOpts.pDisableShadingRate->GetValue()) {
-        PPX_ASSERT_MSG(
-            !mStandardOpts.pEnableFDM->GetValue(),
-            "--disable-shading-rate and --enable-fdm are mutually exclusive");
-        PPX_ASSERT_MSG(
-            !mStandardOpts.pEnableVRS->GetValue(),
-            "--disable-shading-rate and --enable-vrs are mutually exclusive");
-        mSettings.grfx.device.supportShadingRateMode = grfx::SHADING_RATE_NONE;
     }
 }
 
