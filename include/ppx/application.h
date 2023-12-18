@@ -299,6 +299,9 @@ struct ApplicationSettings
         grfx::Api api               = grfx::API_UNDEFINED;
 
 #if !defined(NDEBUG) and !defined(PPX_ANDROID)
+        // Enable debug for debug builds, unless it is an android build.
+        // Validation on android requires additional setup, so it's not
+        // turned on by default.
         bool enableDebug = true;
 #else
         bool enableDebug = false;
