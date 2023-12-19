@@ -34,7 +34,7 @@ struct ShadingRateCapabilities
 
     struct
     {
-        // Minumum/maximum size of the region of the render target
+        // Minimum/maximum size of the region of the render target
         // corresponding to a single pixel in the FDM attachment.
         // This is *not* the minimum/maximum fragment density.
         Extent2D minTexelSize;
@@ -43,7 +43,7 @@ struct ShadingRateCapabilities
 
     struct
     {
-        // Minumum/maximum size of the region of the render target
+        // Minimum/maximum size of the region of the render target
         // corresponding to a single pixel in the VRS attachment.
         // This is *not* the shading rate itself.
         Extent2D minTexelSize;
