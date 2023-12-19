@@ -47,6 +47,17 @@
         PPX_ASSERT_MSG(RESULT__ == XR_SUCCESS, "XR call failed with result: " << RESULT__ << "!"); \
     }
 
+#define CHECK_XR_CALL_RETURN_ON_FAIL(CMD__)                                   \
+    {                                                                         \
+        auto RESULT__ = CMD__;                                                \
+        if (RESULT__ != XR_SUCCESS) {                                         \
+            PPX_LOG_WARN(                                                     \
+                "WARNING: XR call failed with result: "                       \
+                << RESULT__ << ", at " << __FILE__ << ":" << __LINE__ << ""); \
+            return RESULT__;                                                  \
+        }                                                                     \
+    }
+
 namespace ppx {
 namespace {
 
@@ -118,11 +129,13 @@ class XrComponent
 public:
     virtual ~XrComponent() = default;
 
-    void InitializeBeforeGrfxDeviceInit(const XrComponentCreateInfo& createInfo);
-    void InitializeAfterGrfxDeviceInit(const grfx::InstancePtr pGrfxInstance);
-    void Destroy();
+    void     InitializeBeforeGrfxDeviceInit(const XrComponentCreateInfo& createInfo);
+    void     InitializeAfterGrfxDeviceInit(const grfx::InstancePtr pGrfxInstance);
+    XrResult InitializeInteractionProfile();
+    void     Destroy();
 
-    void PollEvents(bool& exitRenderLoop);
+    void     PollEvents(bool& exitRenderLoop);
+    XrResult PollActions();
 
     void BeginFrame();
     void EndFrame(const std::vector<grfx::SwapchainPtr>& swapchains, uint32_t layerProjStartIndex, uint32_t layerQuadStartIndex);
@@ -234,11 +247,12 @@ private:
     bool                     mShouldRender       = false;
 
     // KHR controller input profile
-    XrActionSet mImguiInput          = XR_NULL_HANDLE;
-    XrSpace     mImguiPointingSpace  = XR_NULL_HANDLE;
-    XrAction    mImguiClickAction    = XR_NULL_HANDLE;
-    XrAction    mImguiPointingAction = XR_NULL_HANDLE;
-    XrTime      mImguiActionTime     = {};
+    bool        mInteractionProfileInitialized = false;
+    XrActionSet mImguiInput                    = XR_NULL_HANDLE;
+    XrSpace     mImguiPointingSpace            = XR_NULL_HANDLE;
+    XrAction    mImguiClickAction              = XR_NULL_HANDLE;
+    XrAction    mImguiPointingAction           = XR_NULL_HANDLE;
+    XrTime      mImguiActionTime               = {};
 
     std::optional<XrPosef> mImguiPointingState = {};
     std::optional<bool>    mImguiClickState    = {};
