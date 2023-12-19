@@ -1238,6 +1238,9 @@ void Application::ProcessEvents()
             return;
         }
     }
+    if (mImGui) {
+        mImGui->ProcessEvent();
+    }
 }
 
 void Application::RenderFrame()

@@ -14,6 +14,7 @@
 
 #if defined(PPX_BUILD_XR)
 #include <queue>
+#include <string_view>
 #include "ppx/xr_component.h"
 #include "ppx/xr_composition_layers.h"
 #include "ppx/grfx/grfx_instance.h"
@@ -22,6 +23,7 @@
 namespace {
 
 constexpr XrPosef kIdentityPose = {{0, 0, 0, 1}, {0, 0, 0}};
+constexpr float   kUIZPlane     = -0.5f;
 
 bool IsXrExtensionSupported(const std::vector<XrExtensionProperties>& supportedExts, const std::string& extName)
 {
@@ -46,6 +48,44 @@ static XrBool32 XrDebugUtilsMessengerCallback(XrDebugUtilsMessageSeverityFlagsEX
             break;
     }
     return XR_FALSE; /* OpenXR spec suggests always returning false. */
+}
+
+template <size_t N>
+void CharArrayStrCpy(char (&dst)[N], std::string_view src)
+{
+    PPX_ASSERT_MSG(src.length() < N, "source string too large");
+    size_t length = std::min<size_t>(N - 1, src.length());
+    memcpy(dst, src.data(), length);
+    dst[length] = '\0';
+}
+
+float Sign(float x)
+{
+    return (x < 0 ? -1 : (x > 0 ? 1 : 0));
+}
+
+XrVector3f ForwardVector(const XrPosef& controller)
+{
+    XrQuaternionf q = controller.orientation;
+    return XrVector3f{
+        -2.0f * (q.x * q.z + q.w * q.y),
+        -2.0f * (q.y * q.z - q.w * q.x),
+        2.0f * (q.x * q.x + q.y * q.y) - 1.0f,
+    };
+}
+
+std::optional<XrVector2f> ProjectCursor(XrPosef controller, float z)
+{
+    XrVector3f pos = controller.position;
+    XrVector3f fwd = ForwardVector(controller);
+
+    float zDistance = z - pos.z;
+    // Controller is not pointing forward (or very sideway)
+    if (Sign(zDistance) * fwd.z < 0.001) {
+        return std::nullopt;
+    }
+    float scalar = zDistance / fwd.z;
+    return XrVector2f{pos.x + fwd.x * scalar, pos.y + fwd.y * scalar};
 }
 
 } // namespace
@@ -162,7 +202,7 @@ void XrComponent::InitializeBeforeGrfxDeviceInit(const XrComponentCreateInfo& cr
     instanceCreateInfo.next = &instanceCreateInfoAndroid;
 #endif // defined(PPX_ANDROID)
 
-    strncpy(instanceCreateInfo.applicationInfo.applicationName, createInfo.appName.c_str(), sizeof(instanceCreateInfo.applicationInfo.applicationName));
+    CharArrayStrCpy(instanceCreateInfo.applicationInfo.applicationName, createInfo.appName.c_str());
     CHECK_XR_CALL(xrCreateInstance(&instanceCreateInfo, &mInstance));
     PPX_ASSERT_MSG(mInstance != XR_NULL_HANDLE, "XrInstance Creation Failed!");
 
@@ -257,6 +297,56 @@ void XrComponent::InitializeAfterGrfxDeviceInit(const grfx::InstancePtr pGrfxIns
         PPX_ASSERT_MSG(pfnXrCreatePassthroughFB != nullptr, "Cannot get xrCreatePassthroughFB function pointer!");
         CHECK_XR_CALL(pfnXrCreatePassthroughFB(mSession, &passthroughInfo, &mPassthrough));
         PPX_ASSERT_MSG(mPassthrough != XR_NULL_HANDLE, "XrPassthroughFB creation failed!");
+    }
+
+    {
+        XrActionSetCreateInfo actionSetInfo{XR_TYPE_ACTION_SET_CREATE_INFO};
+        actionSetInfo.priority = 0;
+        CharArrayStrCpy(actionSetInfo.actionSetName, "imgui");
+        CharArrayStrCpy(actionSetInfo.localizedActionSetName, "ImGui");
+        CHECK_XR_CALL(xrCreateActionSet(mInstance, &actionSetInfo, &mImguiInput));
+
+        XrActionCreateInfo clickActioninfo{XR_TYPE_ACTION_CREATE_INFO};
+        clickActioninfo.actionType = XR_ACTION_TYPE_BOOLEAN_INPUT;
+        CharArrayStrCpy(clickActioninfo.actionName, "click");
+        CharArrayStrCpy(clickActioninfo.localizedActionName, "Click");
+        CHECK_XR_CALL(xrCreateAction(mImguiInput, &clickActioninfo, &mImguiClickAction));
+
+        XrActionCreateInfo pointingActioninfo{XR_TYPE_ACTION_CREATE_INFO};
+        pointingActioninfo.actionType = XR_ACTION_TYPE_POSE_INPUT;
+        CharArrayStrCpy(pointingActioninfo.actionName, "pointing");
+        CharArrayStrCpy(pointingActioninfo.localizedActionName, "Pointing");
+        CHECK_XR_CALL(xrCreateAction(mImguiInput, &pointingActioninfo, &mImguiPointingAction));
+
+        XrPath selectClickPath;
+        CHECK_XR_CALL(xrStringToPath(mInstance, "/user/hand/right/input/select/click", &selectClickPath));
+        XrPath pointingPath;
+        CHECK_XR_CALL(xrStringToPath(mInstance, "/user/hand/right/input/aim/pose", &pointingPath));
+
+        XrPath khrSimpleControllerPath;
+        CHECK_XR_CALL(xrStringToPath(mInstance, "/interaction_profiles/khr/simple_controller", &khrSimpleControllerPath));
+
+        XrActionSuggestedBinding bindings[2];
+        bindings[0].action  = mImguiClickAction;
+        bindings[0].binding = selectClickPath;
+        bindings[1].action  = mImguiPointingAction;
+        bindings[1].binding = pointingPath;
+
+        XrInteractionProfileSuggestedBinding suggestedBindings{XR_TYPE_INTERACTION_PROFILE_SUGGESTED_BINDING};
+        suggestedBindings.interactionProfile     = khrSimpleControllerPath;
+        suggestedBindings.suggestedBindings      = bindings;
+        suggestedBindings.countSuggestedBindings = static_cast<uint32_t>(std::size(bindings));
+        CHECK_XR_CALL(xrSuggestInteractionProfileBindings(mInstance, &suggestedBindings));
+
+        XrSessionActionSetsAttachInfo attachInfo{XR_TYPE_SESSION_ACTION_SETS_ATTACH_INFO};
+        attachInfo.countActionSets = 1;
+        attachInfo.actionSets      = &mImguiInput;
+        CHECK_XR_CALL(xrAttachSessionActionSets(mSession, &attachInfo));
+
+        XrActionSpaceCreateInfo pointingSpaceInfo{XR_TYPE_ACTION_SPACE_CREATE_INFO};
+        pointingSpaceInfo.action            = mImguiPointingAction;
+        pointingSpaceInfo.poseInActionSpace = {{0, 0, 0, 1.0f}, {0, 0, 0}};
+        CHECK_XR_CALL(xrCreateActionSpace(mSession, &pointingSpaceInfo, &mImguiPointingSpace));
     }
 }
 
@@ -417,6 +507,45 @@ void XrComponent::PollEvents(bool& exitRenderLoop)
                 break;
         }
     }
+
+    XrActiveActionSet activeActionSet{mImguiInput, XR_NULL_PATH};
+    XrActionsSyncInfo syncInfo{XR_TYPE_ACTIONS_SYNC_INFO};
+    syncInfo.countActiveActionSets = 1;
+    syncInfo.activeActionSets      = &activeActionSet;
+    XrResult syncResult            = xrSyncActions(mSession, &syncInfo);
+    if (syncResult == XR_SESSION_NOT_FOCUSED) {
+        return;
+    }
+    CHECK_XR_CALL(syncResult);
+
+    XrActionStateBoolean clickActionState    = {XR_TYPE_ACTION_STATE_BOOLEAN};
+    XrActionStatePose    pointingActionState = {XR_TYPE_ACTION_STATE_POSE};
+
+    XrActionStateGetInfo getInfo{XR_TYPE_ACTION_STATE_GET_INFO};
+    getInfo.action = mImguiClickAction;
+    CHECK_XR_CALL(xrGetActionStateBoolean(mSession, &getInfo, &clickActionState));
+    getInfo.action = mImguiPointingAction;
+    CHECK_XR_CALL(xrGetActionStatePose(mSession, &getInfo, &pointingActionState));
+
+    if (clickActionState.isActive) {
+        mImguiClickState = clickActionState.currentState;
+    }
+    if (pointingActionState.isActive) {
+        XrSpaceLocation pointingLocation{XR_TYPE_SPACE_LOCATION};
+        XrResult        locateResult = xrLocateSpace(mImguiPointingSpace, mUISpace, mImguiActionTime, &pointingLocation);
+        if (locateResult != XR_SESSION_NOT_FOCUSED) {
+            CHECK_XR_CALL(locateResult);
+            mImguiPointingState = pointingLocation.pose;
+        }
+    }
+}
+
+std::optional<XrVector2f> XrComponent::GetUICursor() const
+{
+    if (!mImguiPointingState.has_value()) {
+        return std::nullopt;
+    }
+    return ProjectCursor(mImguiPointingState.value(), kUIZPlane);
 }
 
 void XrComponent::HandleSessionStateChangedEvent(const XrEventDataSessionStateChanged& stateChangedEvent, bool& exitRenderLoop)
@@ -463,6 +592,8 @@ void XrComponent::BeginFrame()
 
     CHECK_XR_CALL(xrWaitFrame(mSession, &frameWaitInfo, &mFrameState));
     mShouldRender = mFrameState.shouldRender;
+
+    mImguiActionTime = mFrameState.predictedDisplayTime;
 
     // Reset near and far plane values for this frame.
     mNearPlaneForFrame = std::nullopt;
@@ -621,7 +752,7 @@ void XrComponent::ConditionallyPopulateImGuiLayer(const std::vector<grfx::Swapch
     quadLayer.layer().subImage.swapchain        = swapchains[index]->GetXrColorSwapchain();
     quadLayer.layer().subImage.imageRect.offset = {0, 0};
     quadLayer.layer().subImage.imageRect.extent = {static_cast<int>(GetUIWidth()), static_cast<int>(GetUIHeight())};
-    quadLayer.layer().pose                      = {{0, 0, 0, 1}, {0, 0, -0.5f}};
+    quadLayer.layer().pose                      = {{0, 0, 0, 1}, {0, 0, kUIZPlane}};
     quadLayer.layer().size                      = {1, 1};
 
     layerQueue.push(&quadLayer);

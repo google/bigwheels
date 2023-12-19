@@ -92,23 +92,23 @@ Result ImGuiImpl::Init(ppx::Application* pApp)
     // clang-format on
 
     //// Get the logical width and height of the monitor
-    //MONITORINFOEX monitorInfoEx = {};
-    //monitorInfoEx.cbSize        = sizeof(monitorInfoEx);
-    //GetMonitorInfo(monitor, &monitorInfoEx);
-    //auto cxLogical = monitorInfoEx.rcMonitor.right - monitorInfoEx.rcMonitor.left;
-    //auto cyLogical = monitorInfoEx.rcMonitor.bottom - monitorInfoEx.rcMonitor.top;
+    // MONITORINFOEX monitorInfoEx = {};
+    // monitorInfoEx.cbSize        = sizeof(monitorInfoEx);
+    // GetMonitorInfo(monitor, &monitorInfoEx);
+    // auto cxLogical = monitorInfoEx.rcMonitor.right - monitorInfoEx.rcMonitor.left;
+    // auto cyLogical = monitorInfoEx.rcMonitor.bottom - monitorInfoEx.rcMonitor.top;
     //
     //// Get the physical width and height of the monitor
-    //DEVMODE devMode       = {};
-    //devMode.dmSize        = sizeof(devMode);
-    //devMode.dmDriverExtra = 0;
-    //EnumDisplaySettings(monitorInfoEx.szDevice, ENUM_CURRENT_SETTINGS, &devMode);
-    //auto cxPhysical = devMode.dmPelsWidth;
-    //auto cyPhysical = devMode.dmPelsHeight;
+    // DEVMODE devMode       = {};
+    // devMode.dmSize        = sizeof(devMode);
+    // devMode.dmDriverExtra = 0;
+    // EnumDisplaySettings(monitorInfoEx.szDevice, ENUM_CURRENT_SETTINGS, &devMode);
+    // auto cxPhysical = devMode.dmPelsWidth;
+    // auto cyPhysical = devMode.dmPelsHeight;
     //
     //// Calculate the scaling factor
-    //float horizontalScale = ((float)cxPhysical / (float)cxLogical);
-    //float verticalScale   = ((float)cyPhysical / (float)cyLogical);
+    // float horizontalScale = ((float)cxPhysical / (float)cxLogical);
+    // float verticalScale   = ((float)cyPhysical / (float)cyLogical);
 
     // Scale fontSize based on scaling factor
     fontSize *= fontScale;
@@ -135,9 +135,9 @@ Result ImGuiImpl::Init(ppx::Application* pApp)
 
 void ImGuiImpl::SetColorStyle()
 {
-    //ImGui::StyleColorsClassic();
+    // ImGui::StyleColorsClassic();
     ImGui::StyleColorsDark();
-    //ImGui::StyleColorsLight();
+    // ImGui::StyleColorsLight();
 }
 
 void ImGuiImpl::NewFrame()
@@ -272,8 +272,8 @@ Result ImGuiImplVk::InitApiObjects(ppx::Application* pApp)
         init_info.Allocator                 = VK_NULL_HANDLE;
         init_info.CheckVkResultFn           = nullptr;
 #if IMGUI_VERSION_NUM > 18970
-        init_info.UseDynamicRendering       = pApp->GetSettings()->grfx.enableImGuiDynamicRendering;
-        init_info.ColorAttachmentFormat     = grfx::vk::ToVkFormat(pApp->GetUISwapchain()->GetColorFormat());
+        init_info.UseDynamicRendering   = pApp->GetSettings()->grfx.enableImGuiDynamicRendering;
+        init_info.ColorAttachmentFormat = grfx::vk::ToVkFormat(pApp->GetUISwapchain()->GetColorFormat());
 #else
         PPX_ASSERT_MSG(!pApp->GetSettings()->grfx.enableImGuiDynamicRendering, "This version of ImGui does not have dynamic rendering support");
 #endif
@@ -374,6 +374,42 @@ void ImGuiImplVk::Render(grfx::CommandBuffer* pCommandBuffer)
     ImGui::Render();
     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), grfx::vk::ToApi(pCommandBuffer)->GetVkCommandBuffer());
 }
+
+void ImGuiImplVk::ProcessEvent()
+{
+#if defined(PPX_BUILD_XR)
+    ImGuiIO&     io   = ImGui::GetIO();
+    Application* pApp = Application::Get();
+    if (pApp->GetSettings()->xr.enable) {
+        XrComponent& xrComponent = pApp->GetXrComponent();
+
+        bool isMouseDown = xrComponent.GetUIClickState().value_or(false);
+        if (isMouseDown != mSimulatedMouseDown) {
+            mSimulatedMouseDown = isMouseDown;
+            io.AddMouseButtonEvent(0, isMouseDown);
+        }
+
+        std::optional<XrVector2f> cursor = xrComponent.GetUICursor();
+        if (cursor.has_value()) {
+            // Mappting cursor location from meters to Imgui screen coordinate
+            // x axis: [-0.5m, +0.5m] -> [0, 1] * swapchain.width
+            // y axis: [-0.5m, +0.5m] -> [1, 0] * swapchain.height
+            io.MousePos = ImVec2{
+                (cursor->x + 0.5f) * pApp->GetUISwapchain()->GetWidth(),
+                (-cursor->y + 0.5f) * pApp->GetUISwapchain()->GetHeight(),
+            };
+            io.MouseDrawCursor = true;
+            ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
+        }
+        else {
+            io.MousePos        = ImVec2{-FLT_MAX, -FLT_MAX};
+            io.MouseDrawCursor = false;
+            ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+        }
+    }
+#endif
+}
+
 #endif // defined(PPX_VULKAN)
 
 } // namespace ppx

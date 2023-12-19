@@ -37,6 +37,7 @@ public:
     virtual void   Shutdown(ppx::Application* pApp) = 0;
     virtual void   NewFrame();
     virtual void   Render(grfx::CommandBuffer* pCommandBuffer) = 0;
+    virtual void   ProcessEvent() {}
 
 protected:
     virtual Result InitApiObjects(ppx::Application* pApp) = 0;
@@ -53,6 +54,7 @@ public:
 
     virtual void Shutdown(ppx::Application* pApp) override;
     virtual void Render(grfx::CommandBuffer* pCommandBuffer) override;
+    virtual void ProcessEvent() override;
 
 protected:
     virtual Result InitApiObjects(ppx::Application* pApp) override;
@@ -60,6 +62,9 @@ protected:
 
 private:
     grfx::DescriptorPoolPtr mPool;
+#if defined(PPX_BUILD_XR)
+    bool mSimulatedMouseDown = false;
+#endif
 };
 
 #if defined(PPX_D3D12)
