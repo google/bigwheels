@@ -767,7 +767,7 @@ grfx::GraphicsPipelinePtr GraphicsBenchmarkApp::GetFullscreenQuadPipeline()
 {
     QuadPipelineKey key = {};
     key.renderFormat    = RenderFormat();
-    key.quadType        = static_cast<FullscreenQuadsType>(pFullscreenQuadsType->GetIndex());
+    key.quadType        = pFullscreenQuadsType->GetValue();
     PPX_CHECKED_CALL(CompilePipeline(key));
     return mQuadsPipelines[key];
 }
@@ -975,7 +975,7 @@ void GraphicsBenchmarkApp::ProcessQuadsKnobs()
     if (pFullscreenQuadsCount->GetValue() > 0) {
         pFullscreenQuadsType->SetVisible(true);
         pFullscreenQuadsSingleRenderpass->SetVisible(true);
-        if (pFullscreenQuadsType->GetIndex() == static_cast<size_t>(FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_SOLID_COLOR)) {
+        if (pFullscreenQuadsType->GetValue() == FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_SOLID_COLOR) {
             pFullscreenQuadsColor->SetVisible(true);
         }
         else {
@@ -1525,7 +1525,7 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, const RenderPass
         frame.cmd->BindGraphicsPipeline(GetFullscreenQuadPipeline());
         frame.cmd->BindVertexBuffers(1, &mFullscreenQuads.vertexBuffer, &mFullscreenQuads.vertexBinding.GetStride());
 
-        if (pFullscreenQuadsType->GetIndex() == static_cast<size_t>(FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_TEXTURE)) {
+        if (pFullscreenQuadsType->GetValue() == FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_TEXTURE) {
             frame.cmd->BindGraphicsDescriptorSets(mQuadsPipelineInterfaces.at(pFullscreenQuadsType->GetIndex()), 1, &mFullscreenQuads.descriptorSets.at(GetInFlightFrameIndex()));
         }
 
@@ -1674,13 +1674,13 @@ void GraphicsBenchmarkApp::RecordCommandBufferSpheres(PerFrame& frame)
 
 void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, size_t seed)
 {
-    switch (pFullscreenQuadsType->GetIndex()) {
-        case static_cast<size_t>(FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_NOISE): {
+    switch (pFullscreenQuadsType->GetValue()) {
+        case FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_NOISE: {
             uint32_t noiseQuadRandomSeed = (uint32_t)seed;
             frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[0], 1, &noiseQuadRandomSeed);
             break;
         }
-        case static_cast<size_t>(FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_SOLID_COLOR): {
+        case FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_SOLID_COLOR: {
             // zigzag the intensity between (0.5 ~ 1.0) in steps of 0.1
             //     index:   0,   1,   2,   3,   4,   5,   6,   7,   8,   9,   0...
             // intensity: 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0...
