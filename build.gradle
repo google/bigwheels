@@ -1,3 +1,5 @@
+layout.buildDirectory = layout.projectDirectory.dir("build_android")
+
 subprojects {
     repositories {
         mavenCentral()
@@ -14,7 +16,7 @@ subprojects {
         androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.0'
     }
 
-    buildDir = "${rootProject.buildDir}/android/${project.name}"
+    project.layout.buildDirectory = rootProject.layout.buildDirectory.dir(project.name)
 
     ext {
         assets = []
@@ -29,7 +31,16 @@ subprojects {
         doLast {
             project.assets.each {
                 def fromFile = "${rootProject.projectDir}/assets/${it}"
-                def intoFile = "${buildDir}/assets/${it}"
+                def intoFile = layout.buildDirectory.dir("assets/${it}")
+                copy {
+                    from fromFile
+                    into intoFile
+                }
+            }
+            // Copy the rest of the assets - generated shaders.
+            project.assets.each {
+                def fromFile = "${rootProject.projectDir}/build_android/assets/${it}"
+                def intoFile = layout.buildDirectory.dir("assets/${it}")
                 copy {
                     from fromFile
                     into intoFile
@@ -37,7 +48,7 @@ subprojects {
             }
             project.thirdPartyAssets.each {
                 def fromFile = "${rootProject.projectDir}/third_party/assets/${it}"
-                def intoFile = "${buildDir}/assets/${it}"
+                def intoFile = layout.buildDirectory.dir("assets/${it}")
                 copy {
                     from fromFile
                     into intoFile
@@ -130,7 +141,7 @@ subprojects {
             }
         }
 
-        sourceSets.main.assets.srcDirs += new File("${buildDir}/assets")
+        sourceSets.main.assets.srcDirs += layout.buildDirectory.dir("assets")
 
         applicationVariants.all { variant ->
             // copyTask copies generated shaders, so it must be run after
@@ -142,4 +153,8 @@ subprojects {
               .dependsOn(copyTask)
         }
     }
+}
+
+tasks.register("clean", Delete) {
+    delete layout.buildDirectory
 }
