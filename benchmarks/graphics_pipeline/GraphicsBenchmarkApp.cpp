@@ -1674,30 +1674,27 @@ void GraphicsBenchmarkApp::RecordCommandBufferSpheres(PerFrame& frame)
 
 void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, size_t seed)
 {
-    switch (pFullscreenQuadsType->GetValue()) {
-        case FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_NOISE: {
-            uint32_t noiseQuadRandomSeed = (uint32_t)seed;
-            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[0], 1, &noiseQuadRandomSeed);
-            break;
-        }
-        case FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_SOLID_COLOR: {
-            // zigzag the intensity between (0.5 ~ 1.0) in steps of 0.1
-            //     index:   0,   1,   2,   3,   4,   5,   6,   7,   8,   9,   0...
-            // intensity: 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0...
-            float index = static_cast<float>(seed % 10);
-            float intensity;
-            if (index > 4.5) {
-                intensity = (index / 10.0f);
-            }
-            else {
-                intensity = (1.0f - (index / 10.f));
-            }
-            float3 colorValues = pFullscreenQuadsColor->GetValue();
-            colorValues *= intensity;
-            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[1], 3, &colorValues);
-            break;
-        }
+    if (pFullscreenQuadsType->GetValue() == FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_NOISE) {
+        uint32_t noiseQuadRandomSeed = (uint32_t)seed;
+        frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[0], 1, &noiseQuadRandomSeed);
     }
+    else if (pFullscreenQuadsType->GetValue() == FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_SOLID_COLOR) {
+        // zigzag the intensity between (0.5 ~ 1.0) in steps of 0.1
+        //     index:   0,   1,   2,   3,   4,   5,   6,   7,   8,   9,   0...
+        // intensity: 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0...
+        float index = static_cast<float>(seed % 10);
+        float intensity;
+        if (index > 4.5) {
+            intensity = (index / 10.0f);
+        }
+        else {
+            intensity = (1.0f - (index / 10.f));
+        }
+        float3 colorValues = pFullscreenQuadsColor->GetValue();
+        colorValues *= intensity;
+        frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[1], 3, &colorValues);
+    }
+
     frame.cmd->Draw(3, 1, 0, 0);
 }
 
