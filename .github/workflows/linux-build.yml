@@ -22,14 +22,16 @@ jobs:
           mesa-vulkan-drivers
       - name: Setup Vulkan SDK
         run: |
-          wget -q https://sdk.lunarg.com/sdk/download/1.3.216.0/linux/vulkansdk-linux-x86_64-1.3.216.0.tar.gz
-          if ! echo "2cb10cb94ac656e9e454f1f5ae48e8a833253af5fe22562d27310db45b579212 vulkansdk-linux-x86_64-1.3.216.0.tar.gz" | sha256sum -c --status; then
+          wget -q https://sdk.lunarg.com/sdk/download/1.3.268.0/linux/vulkansdk-linux-x86_64-1.3.268.0.tar.xz
+          if ! echo "d23343736247828ff5b3b6b1b7fd83a72b5df1a54b2527ae3663cebdfee75842 vulkansdk-linux-x86_64-1.3.268.0.tar.xz" | sha256sum -c --status; then
             echo "Invalid SHA256 for VulkanSDK's binary. Aborting."
             exit 1
           fi
           mkdir "${HOME}/vulkan-sdk"
-          tar -xf vulkansdk-linux-x86_64-1.3.216.0.tar.gz -C "${HOME}/vulkan-sdk"
-          echo "VULKAN_SDK=${HOME}/vulkan-sdk/1.3.216.0/x86_64" >> $GITHUB_ENV
+          tar -xf vulkansdk-linux-x86_64-1.3.268.0.tar.xz -C "${HOME}/vulkan-sdk"
+          echo "VULKAN_SDK=${HOME}/vulkan-sdk/1.3.268.0/x86_64" >> $GITHUB_ENV
+          echo "VK_LAYER_PATH=${HOME}/vulkan-sdk/1.3.268.0/x86_64/etc/vulkan/explicit_layer.d" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=${HOME}/vulkan-sdk/1.3.268.0/x86_64/lib" >> $GITHUB_ENV
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
@@ -43,7 +45,7 @@ jobs:
           mkdir build
           cd build
           # -DBUILD_TESTS=OFF only disables the OpenXR tests
-          cmake .. -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DPPX_BUILD_TESTS=ON -DPPX_BUILD_XR=1 -DBUILD_TESTS=OFF
+          cmake .. -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DPPX_BUILD_TESTS=ON -DPPX_BUILD_XR=1 -DBUILD_TESTS=OFF -DCMAKE_BUILD_TYPE=Debug
           make -j $(nproc)
       - name: Run unit tests
         run: |
@@ -64,6 +66,9 @@ jobs:
 
           xvfb-run -a ./vk_fishtornado --frame-count 2 --screenshot-frame-number 1
           convert screenshot_frame_1.ppm vk_fishtornado_screenshot.png
+
+          xvfb-run -a ./vk_graphics_pipeline --frame-count 2 --screenshot-frame-number 1
+          convert screenshot_frame_1.ppm vk_graphics_pipeline_screenshot.png
       - name: Upload screenshots
         uses: actions/upload-artifact@v3
         with:
