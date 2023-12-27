@@ -55,6 +55,9 @@ public:
     virtual void Shutdown(ppx::Application* pApp) override;
     virtual void Render(grfx::CommandBuffer* pCommandBuffer) override;
     virtual void ProcessEvent() override;
+#if defined(PPX_BUILD_XR)
+    void ProcessXrInput();
+#endif
 
 protected:
     virtual Result InitApiObjects(ppx::Application* pApp) override;

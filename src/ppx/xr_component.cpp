@@ -64,14 +64,18 @@ float Sign(float x)
     return (x < 0 ? -1 : (x > 0 ? 1 : 0));
 }
 
+glm::quat FromXr(const XrQuaternionf& q)
+{
+    return glm::quat(q.w, q.x, q.y, q.z);
+}
+
 XrVector3f ForwardVector(const XrPosef& controller)
 {
-    XrQuaternionf q = controller.orientation;
-    return XrVector3f{
-        -2.0f * (q.x * q.z + q.w * q.y),
-        -2.0f * (q.y * q.z - q.w * q.x),
-        2.0f * (q.x * q.x + q.y * q.y) - 1.0f,
-    };
+    const glm::vec3 unitForward = glm::vec3(0, 0, -1);
+
+    const glm::quat q   = FromXr(controller.orientation);
+    const glm::vec3 res = glm::rotate(q, unitForward);
+    return XrVector3f{res.x, res.y, res.z};
 }
 
 std::optional<XrVector2f> ProjectCursor(XrPosef controller, float z)
