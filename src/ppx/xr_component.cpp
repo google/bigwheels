@@ -59,37 +59,35 @@ void CharArrayStrCpy(char (&dst)[N], std::string_view src)
     dst[length] = '\0';
 }
 
-float Sign(float x)
+ppx::float3 FromXr(const XrVector3f& v)
 {
-    return (x < 0 ? -1 : (x > 0 ? 1 : 0));
+    return ppx::float3(v.x, v.y, v.z);
 }
 
-glm::quat FromXr(const XrQuaternionf& q)
+ppx::quat FromXr(const XrQuaternionf& q)
 {
-    return glm::quat(q.w, q.x, q.y, q.z);
+    return ppx::quat(q.w, q.x, q.y, q.z);
 }
 
-XrVector3f ForwardVector(const XrPosef& controller)
+std::optional<XrVector2f> ProjectCursor(XrPosef controller, float uiPlaneZ)
 {
-    const glm::vec3 unitForward = glm::vec3(0, 0, -1);
+    // Assuming ui is on a x-y plane located at z = uiPlaneZ
 
-    const glm::quat q   = FromXr(controller.orientation);
-    const glm::vec3 res = glm::rotate(q, unitForward);
-    return XrVector3f{res.x, res.y, res.z};
-}
+    const ppx::float3 unitForward = ppx::float3(0, 0, -1);
+    const ppx::float3 direction   = glm::rotate(FromXr(controller.orientation), unitForward);
+    const ppx::float3 position    = FromXr(controller.position);
 
-std::optional<XrVector2f> ProjectCursor(XrPosef controller, float z)
-{
-    XrVector3f pos = controller.position;
-    XrVector3f fwd = ForwardVector(controller);
-
-    float zDistance = z - pos.z;
+    const float       zDistance        = uiPlaneZ - position.z;
+    const ppx::float3 uiPlaneDirection = glm::normalize(ppx::float3(0, 0, zDistance));
     // Controller is not pointing forward (or very sideway)
-    if (Sign(zDistance) * fwd.z < 0.001) {
+    if (glm::dot(uiPlaneDirection, direction) < 0.001) {
         return std::nullopt;
     }
-    float scalar = zDistance / fwd.z;
-    return XrVector2f{pos.x + fwd.x * scalar, pos.y + fwd.y * scalar};
+    float scalar = zDistance / direction.z;
+    return XrVector2f{
+        position.x + direction.x * scalar,
+        position.y + direction.y * scalar,
+    };
 }
 
 } // namespace
