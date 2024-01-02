@@ -1239,7 +1239,7 @@ void Application::ProcessEvents()
         }
     }
     if (mImGui) {
-        mImGui->ProcessEvent();
+        mImGui->ProcessEvents();
     }
 }
 

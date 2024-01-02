@@ -301,12 +301,15 @@ void XrComponent::InitializeAfterGrfxDeviceInit(const grfx::InstancePtr pGrfxIns
         PPX_ASSERT_MSG(mPassthrough != XR_NULL_HANDLE, "XrPassthroughFB creation failed!");
     }
 
-    InitializeInteractionProfile();
+    // Ignore return value, since controller support is not essential.
+    InitializeInteractionProfiles();
 }
 
-XrResult XrComponent::InitializeInteractionProfile()
+XrResult XrComponent::InitializeInteractionProfiles()
 {
-    // Controller support is not essential, so if anything fail, we just return.
+    if (mInteractionProfileInitialized) {
+        return XR_SUCCESS;
+    }
 
     XrActionSetCreateInfo actionSetInfo{XR_TYPE_ACTION_SET_CREATE_INFO};
     actionSetInfo.priority = 0;
@@ -314,31 +317,31 @@ XrResult XrComponent::InitializeInteractionProfile()
     CharArrayStrCpy(actionSetInfo.localizedActionSetName, "ImGui");
     CHECK_XR_CALL_RETURN_ON_FAIL(xrCreateActionSet(mInstance, &actionSetInfo, &mImguiInput));
 
-    XrActionCreateInfo clickActioninfo{XR_TYPE_ACTION_CREATE_INFO};
-    clickActioninfo.actionType = XR_ACTION_TYPE_BOOLEAN_INPUT;
-    CharArrayStrCpy(clickActioninfo.actionName, "click");
-    CharArrayStrCpy(clickActioninfo.localizedActionName, "Click");
-    CHECK_XR_CALL_RETURN_ON_FAIL(xrCreateAction(mImguiInput, &clickActioninfo, &mImguiClickAction));
+    XrActionCreateInfo clickActionInfo{XR_TYPE_ACTION_CREATE_INFO};
+    clickActionInfo.actionType = XR_ACTION_TYPE_BOOLEAN_INPUT;
+    CharArrayStrCpy(clickActionInfo.actionName, "controller_click");
+    CharArrayStrCpy(clickActionInfo.localizedActionName, "Click");
+    CHECK_XR_CALL_RETURN_ON_FAIL(xrCreateAction(mImguiInput, &clickActionInfo, &mImguiClickAction));
 
-    XrActionCreateInfo pointingActioninfo{XR_TYPE_ACTION_CREATE_INFO};
-    pointingActioninfo.actionType = XR_ACTION_TYPE_POSE_INPUT;
-    CharArrayStrCpy(pointingActioninfo.actionName, "pointing");
-    CharArrayStrCpy(pointingActioninfo.localizedActionName, "Pointing");
-    CHECK_XR_CALL_RETURN_ON_FAIL(xrCreateAction(mImguiInput, &pointingActioninfo, &mImguiPointingAction));
+    XrActionCreateInfo aimActioninfo{XR_TYPE_ACTION_CREATE_INFO};
+    aimActioninfo.actionType = XR_ACTION_TYPE_POSE_INPUT;
+    CharArrayStrCpy(aimActioninfo.actionName, "controller_aim");
+    CharArrayStrCpy(aimActioninfo.localizedActionName, "Aim");
+    CHECK_XR_CALL_RETURN_ON_FAIL(xrCreateAction(mImguiInput, &aimActioninfo, &mImguiAimAction));
 
     XrPath khrSimpleControllerPath;
     CHECK_XR_CALL_RETURN_ON_FAIL(xrStringToPath(mInstance, "/interaction_profiles/khr/simple_controller", &khrSimpleControllerPath));
 
     XrPath selectClickPath;
     CHECK_XR_CALL_RETURN_ON_FAIL(xrStringToPath(mInstance, "/user/hand/right/input/select/click", &selectClickPath));
-    XrPath pointingPath;
-    CHECK_XR_CALL_RETURN_ON_FAIL(xrStringToPath(mInstance, "/user/hand/right/input/aim/pose", &pointingPath));
+    XrPath aimPath;
+    CHECK_XR_CALL_RETURN_ON_FAIL(xrStringToPath(mInstance, "/user/hand/right/input/aim/pose", &aimPath));
 
     XrActionSuggestedBinding bindings[2];
     bindings[0].action  = mImguiClickAction;
     bindings[0].binding = selectClickPath;
-    bindings[1].action  = mImguiPointingAction;
-    bindings[1].binding = pointingPath;
+    bindings[1].action  = mImguiAimAction;
+    bindings[1].binding = aimPath;
 
     XrInteractionProfileSuggestedBinding suggestedBindings{XR_TYPE_INTERACTION_PROFILE_SUGGESTED_BINDING};
     suggestedBindings.interactionProfile     = khrSimpleControllerPath;
@@ -351,10 +354,10 @@ XrResult XrComponent::InitializeInteractionProfile()
     attachInfo.actionSets      = &mImguiInput;
     CHECK_XR_CALL_RETURN_ON_FAIL(xrAttachSessionActionSets(mSession, &attachInfo));
 
-    XrActionSpaceCreateInfo pointingSpaceInfo{XR_TYPE_ACTION_SPACE_CREATE_INFO};
-    pointingSpaceInfo.action            = mImguiPointingAction;
-    pointingSpaceInfo.poseInActionSpace = {{0, 0, 0, 1.0f}, {0, 0, 0}};
-    CHECK_XR_CALL_RETURN_ON_FAIL(xrCreateActionSpace(mSession, &pointingSpaceInfo, &mImguiPointingSpace));
+    XrActionSpaceCreateInfo aimSpaceInfo{XR_TYPE_ACTION_SPACE_CREATE_INFO};
+    aimSpaceInfo.action            = mImguiAimAction;
+    aimSpaceInfo.poseInActionSpace = {{0, 0, 0, 1.0f}, {0, 0, 0}};
+    CHECK_XR_CALL_RETURN_ON_FAIL(xrCreateActionSpace(mSession, &aimSpaceInfo, &mImguiAimSpace));
 
     mInteractionProfileInitialized = true;
 
@@ -363,12 +366,12 @@ XrResult XrComponent::InitializeInteractionProfile()
 
 void XrComponent::Destroy()
 {
-    if (mImguiPointingAction != XR_NULL_HANDLE) {
-        xrDestroyAction(mImguiPointingAction);
+    if (mImguiAimAction != XR_NULL_HANDLE) {
+        xrDestroyAction(mImguiAimAction);
     }
 
-    if (mImguiPointingSpace != XR_NULL_HANDLE) {
-        xrDestroySpace(mImguiPointingSpace);
+    if (mImguiAimSpace != XR_NULL_HANDLE) {
+        xrDestroySpace(mImguiAimSpace);
     }
 
     if (mImguiClickAction != XR_NULL_HANDLE) {
@@ -550,32 +553,32 @@ XrResult XrComponent::PollActions()
     syncInfo.activeActionSets      = &activeActionSet;
     CHECK_XR_CALL_RETURN_ON_FAIL(xrSyncActions(mSession, &syncInfo));
 
-    XrActionStateBoolean clickActionState    = {XR_TYPE_ACTION_STATE_BOOLEAN};
-    XrActionStatePose    pointingActionState = {XR_TYPE_ACTION_STATE_POSE};
+    XrActionStateBoolean clickActionState = {XR_TYPE_ACTION_STATE_BOOLEAN};
+    XrActionStatePose    aimActionState   = {XR_TYPE_ACTION_STATE_POSE};
 
     XrActionStateGetInfo getInfo{XR_TYPE_ACTION_STATE_GET_INFO};
     getInfo.action = mImguiClickAction;
     CHECK_XR_CALL_RETURN_ON_FAIL(xrGetActionStateBoolean(mSession, &getInfo, &clickActionState));
-    getInfo.action = mImguiPointingAction;
-    CHECK_XR_CALL_RETURN_ON_FAIL(xrGetActionStatePose(mSession, &getInfo, &pointingActionState));
+    getInfo.action = mImguiAimAction;
+    CHECK_XR_CALL_RETURN_ON_FAIL(xrGetActionStatePose(mSession, &getInfo, &aimActionState));
 
     if (clickActionState.isActive) {
         mImguiClickState = clickActionState.currentState;
     }
-    if (pointingActionState.isActive) {
-        XrSpaceLocation pointingLocation{XR_TYPE_SPACE_LOCATION};
-        CHECK_XR_CALL_RETURN_ON_FAIL(xrLocateSpace(mImguiPointingSpace, mUISpace, mImguiActionTime, &pointingLocation));
-        mImguiPointingState = pointingLocation.pose;
+    if (aimActionState.isActive) {
+        XrSpaceLocation aimLocation{XR_TYPE_SPACE_LOCATION};
+        CHECK_XR_CALL_RETURN_ON_FAIL(xrLocateSpace(mImguiAimSpace, mUISpace, mImguiActionTime, &aimLocation));
+        mImguiAimState = aimLocation.pose;
     }
     return XR_SUCCESS;
 }
 
 std::optional<XrVector2f> XrComponent::GetUICursor() const
 {
-    if (!mImguiPointingState.has_value()) {
+    if (!mImguiAimState.has_value()) {
         return std::nullopt;
     }
-    return ProjectCursor(mImguiPointingState.value(), kUIZPlane);
+    return ProjectCursor(mImguiAimState.value(), kUIZPlane);
 }
 
 void XrComponent::HandleSessionStateChangedEvent(const XrEventDataSessionStateChanged& stateChangedEvent, bool& exitRenderLoop)

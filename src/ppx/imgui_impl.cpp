@@ -389,7 +389,7 @@ void ImGuiImplVk::ProcessXrInput()
     bool isMouseDown = xrComponent.GetUIClickState().value_or(false);
     if (isMouseDown != mSimulatedMouseDown) {
         mSimulatedMouseDown = isMouseDown;
-        io.AddMouseButtonEvent(0, isMouseDown);
+        io.AddMouseButtonEvent(ImGuiMouseButton_Left, isMouseDown);
     }
 
     std::optional<XrVector2f> cursor = xrComponent.GetUICursor();
@@ -412,7 +412,7 @@ void ImGuiImplVk::ProcessXrInput()
 }
 #endif
 
-void ImGuiImplVk::ProcessEvent()
+void ImGuiImplVk::ProcessEvents()
 {
 #if defined(PPX_BUILD_XR)
     ProcessXrInput();
