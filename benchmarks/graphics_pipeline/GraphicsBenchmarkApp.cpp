@@ -1698,9 +1698,9 @@ void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, si
         }
         case FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_TEXTURE:
             break;
-        default: {
+        default:
             PPX_ASSERT_MSG(true, "unsupported FullscreenQuadsType: " << static_cast<int>(pFullscreenQuadsType->GetValue()));
-        }
+            break;
     }
     frame.cmd->Draw(3, 1, 0, 0);
 }
