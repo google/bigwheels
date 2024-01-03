@@ -490,16 +490,26 @@ void FishTornadoApp::UpdateTime()
     sPrevTime = curTime;
 }
 
+const Camera* FishTornadoApp::GetCamera() const
+{
+    bool useXrCamera = IsXrEnabled() && mSettings.useTracking;
+    if (useXrCamera) {
+        return &GetXrComponent().GetCamera();
+    }
+    return &mCamera;
+}
+
 void FishTornadoApp::UpdateScene(uint32_t frameIndex)
 {
     PerFrame& frame = mPerFrame[frameIndex];
 
+    const Camera&    camera                = *GetCamera();
     hlsl::SceneData* pSceneData            = static_cast<hlsl::SceneData*>(frame.sceneConstants.GetMappedAddress());
     pSceneData->time                       = GetTime();
-    pSceneData->eyePosition                = mCamera.GetEyePosition();
-    pSceneData->viewMatrix                 = mCamera.GetViewMatrix();
-    pSceneData->projectionMatrix           = mCamera.GetProjectionMatrix();
-    pSceneData->viewProjectionMatrix       = mCamera.GetViewProjectionMatrix();
+    pSceneData->eyePosition                = camera.GetEyePosition();
+    pSceneData->viewMatrix                 = camera.GetViewMatrix();
+    pSceneData->projectionMatrix           = camera.GetProjectionMatrix();
+    pSceneData->viewProjectionMatrix       = camera.GetViewProjectionMatrix();
     pSceneData->fogNearDistance            = 20.0f;
     pSceneData->fogFarDistance             = 900.0f;
     pSceneData->fogPower                   = 1.0f;
@@ -509,16 +519,6 @@ void FishTornadoApp::UpdateScene(uint32_t frameIndex)
     pSceneData->shadowViewProjectionMatrix = mShadowCamera.GetViewProjectionMatrix();
     pSceneData->shadowTextureDim           = float2(kShadowRes);
     pSceneData->usePCF                     = static_cast<uint32_t>(mSettings.usePCF);
-
-    if (IsXrEnabled() && mSettings.useTracking) {
-        const XrVector3f& pos            = GetXrComponent().GetPoseForCurrentView().position;
-        pSceneData->eyePosition          = {pos.x, pos.y, pos.z};
-        const glm::mat4 v                = GetXrComponent().GetViewMatrixForCurrentView();
-        const glm::mat4 p                = GetXrComponent().GetProjectionMatrixForCurrentViewAndSetFrustumPlanes(PPX_CAMERA_DEFAULT_NEAR_CLIP, PPX_CAMERA_DEFAULT_FAR_CLIP);
-        pSceneData->viewMatrix           = v;
-        pSceneData->projectionMatrix     = p;
-        pSceneData->viewProjectionMatrix = p * v;
-    }
 }
 
 void FishTornadoApp::RenderSceneUsingSingleCommandBuffer(
