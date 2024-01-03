@@ -12,9 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <algorithm>
 #if defined(PPX_BUILD_XR)
 #include <queue>
 #include <string_view>
+#include "ppx/timer.h"
 #include "ppx/xr_component.h"
 #include "ppx/xr_composition_layers.h"
 #include "ppx/grfx/grfx_instance.h"
@@ -567,9 +569,25 @@ XrResult XrComponent::PollActions()
     }
     if (aimActionState.isActive) {
         XrSpaceLocation aimLocation{XR_TYPE_SPACE_LOCATION};
-        CHECK_XR_CALL_RETURN_ON_FAIL(xrLocateSpace(mImguiAimSpace, mUISpace, mImguiActionTime, &aimLocation));
+        CHECK_XR_CALL_RETURN_ON_FAIL(xrLocateSpace(mImguiAimSpace, mUISpace, mFrameState.predictedDisplayTime, &aimLocation));
         mImguiAimState = aimLocation.pose;
     }
+
+    if (clickActionState.isActive && aimActionState.isActive && clickActionState.currentState == true) {
+        const float       maxTimeDeltaSeconds = 1.0;
+        const float       moveSpeed           = 1.0; // m/s
+        const ppx::float3 unitForward         = ppx::float3(0, 0, -1);
+        const float       elapsedSeconds      = static_cast<float>(mFrameState.predictedDisplayTime - mPositionTimestamp) * PPX_TIMER_NANOS_TO_SECONDS;
+
+        XrSpaceLocation aimLocation{XR_TYPE_SPACE_LOCATION};
+        CHECK_XR_CALL_RETURN_ON_FAIL(xrLocateSpace(mImguiAimSpace, mRefSpace, mFrameState.predictedDisplayTime, &aimLocation));
+        const float  moveTimeSecond = std::clamp<float>(elapsedSeconds, 0.0f, maxTimeDeltaSeconds);
+        const float  moveDistance   = moveTimeSecond * moveSpeed;
+        const float3 movement       = glm::rotate(FromXr(aimLocation.pose.orientation), unitForward) * moveDistance;
+        mPosition += movement;
+    }
+    // Update timestamp regardless if we moved or not.
+    mPositionTimestamp = mFrameState.predictedDisplayTime;
     return XR_SUCCESS;
 }
 
@@ -626,8 +644,6 @@ void XrComponent::BeginFrame()
     CHECK_XR_CALL(xrWaitFrame(mSession, &frameWaitInfo, &mFrameState));
     mShouldRender = mFrameState.shouldRender;
 
-    mImguiActionTime = mFrameState.predictedDisplayTime;
-
     // Reset near and far plane values for this frame.
     mNearPlaneForFrame = std::nullopt;
     mFarPlaneForFrame  = std::nullopt;
@@ -670,7 +686,11 @@ void XrComponent::BeginFrame()
     }
     mCameras.resize(mViews.size());
     for (size_t viewIndex = 0; viewIndex < mViews.size(); ++viewIndex) {
-        mCameras[viewIndex].UpdateView(mViews[viewIndex]);
+        XrView view = mViews[viewIndex];
+        view.pose.position.x += mPosition.x;
+        view.pose.position.y += mPosition.y;
+        view.pose.position.z += mPosition.z;
+        mCameras[viewIndex].UpdateView(view);
     }
 }
 

@@ -279,12 +279,14 @@ private:
     std::optional<XrPosef> mImguiAimState   = {};
     std::optional<bool>    mImguiClickState = {};
 
+    XrTime mPositionTimestamp = 0;  // Last time position is updated.
+    float3 mPosition          = {}; // Base position of the viewer
+
     // XR Action Set, using KHR controller input profile.
     XrActionSet mImguiInput       = XR_NULL_HANDLE;
     XrSpace     mImguiAimSpace    = XR_NULL_HANDLE;
     XrAction    mImguiClickAction = XR_NULL_HANDLE;
     XrAction    mImguiAimAction   = XR_NULL_HANDLE;
-    XrTime      mImguiActionTime  = {};
 
     std::optional<float> mNearPlaneForFrame     = std::nullopt;
     std::optional<float> mFarPlaneForFrame      = std::nullopt;
