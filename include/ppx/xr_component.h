@@ -47,6 +47,17 @@
         PPX_ASSERT_MSG(RESULT__ == XR_SUCCESS, "XR call failed with result: " << RESULT__ << "!"); \
     }
 
+#define CHECK_XR_CALL_RETURN_ON_FAIL(CMD__)                                   \
+    {                                                                         \
+        auto RESULT__ = CMD__;                                                \
+        if (RESULT__ != XR_SUCCESS) {                                         \
+            PPX_LOG_WARN(                                                     \
+                "WARNING: XR call failed with result: "                       \
+                << RESULT__ << ", at " << __FILE__ << ":" << __LINE__ << ""); \
+            return RESULT__;                                                  \
+        }                                                                     \
+    }
+
 namespace ppx {
 namespace {
 
@@ -122,7 +133,15 @@ public:
     void InitializeAfterGrfxDeviceInit(const grfx::InstancePtr pGrfxInstance);
     void Destroy();
 
-    void PollEvents(bool& exitRenderLoop);
+    // Initialize interaction profiles.
+    // Currently supported interaction profile:
+    //  - khr/simple_controller
+    //
+    // The error returned by this function can be safely ignored.
+    XrResult InitializeInteractionProfiles();
+
+    void     PollEvents(bool& exitRenderLoop);
+    XrResult PollActions();
 
     void BeginFrame();
     void EndFrame(const std::vector<grfx::SwapchainPtr>& swapchains, uint32_t layerProjStartIndex, uint32_t layerQuadStartIndex);
@@ -177,6 +196,12 @@ public:
     glm::mat4 GetViewMatrixForCurrentView() const;
     XrPosef   GetPoseForCurrentView() const;
 
+    std::optional<XrPosef> GetUIAimState() const { return mImguiAimState; }
+    std::optional<bool>    GetUIClickState() const { return mImguiClickState; }
+    // Return cursor location on the UI plane, from center in unit of meters
+    // Note, the current UI swapchain covers a region of [-0.5, +0.5] x [-0.5, +0.5]
+    std::optional<XrVector2f> GetUICursor() const;
+
     bool IsSessionRunning() const { return mIsSessionRunning; }
     bool ShouldRender() const { return mShouldRender; }
 
@@ -226,6 +251,19 @@ private:
     XrDebugUtilsMessengerEXT mDebugUtilMessenger = XR_NULL_HANDLE;
     bool                     mIsSessionRunning   = false;
     bool                     mShouldRender       = false;
+
+    // Interaction Profiles
+    bool mInteractionProfileInitialized = false;
+    // Current controller pose and "select" button status.
+    std::optional<XrPosef> mImguiAimState   = {};
+    std::optional<bool>    mImguiClickState = {};
+
+    // XR Action Set, using KHR controller input profile.
+    XrActionSet mImguiInput       = XR_NULL_HANDLE;
+    XrSpace     mImguiAimSpace    = XR_NULL_HANDLE;
+    XrAction    mImguiClickAction = XR_NULL_HANDLE;
+    XrAction    mImguiAimAction   = XR_NULL_HANDLE;
+    XrTime      mImguiActionTime  = {};
 
     std::optional<float> mNearPlaneForFrame     = std::nullopt;
     std::optional<float> mFarPlaneForFrame      = std::nullopt;

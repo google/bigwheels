@@ -272,8 +272,8 @@ Result ImGuiImplVk::InitApiObjects(ppx::Application* pApp)
         init_info.Allocator                 = VK_NULL_HANDLE;
         init_info.CheckVkResultFn           = nullptr;
 #if IMGUI_VERSION_NUM > 18970
-        init_info.UseDynamicRendering       = pApp->GetSettings()->grfx.enableImGuiDynamicRendering;
-        init_info.ColorAttachmentFormat     = grfx::vk::ToVkFormat(pApp->GetUISwapchain()->GetColorFormat());
+        init_info.UseDynamicRendering   = pApp->GetSettings()->grfx.enableImGuiDynamicRendering;
+        init_info.ColorAttachmentFormat = grfx::vk::ToVkFormat(pApp->GetUISwapchain()->GetColorFormat());
 #else
         PPX_ASSERT_MSG(!pApp->GetSettings()->grfx.enableImGuiDynamicRendering, "This version of ImGui does not have dynamic rendering support");
 #endif
@@ -374,6 +374,51 @@ void ImGuiImplVk::Render(grfx::CommandBuffer* pCommandBuffer)
     ImGui::Render();
     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), grfx::vk::ToApi(pCommandBuffer)->GetVkCommandBuffer());
 }
+
+#if defined(PPX_BUILD_XR)
+void ImGuiImplVk::ProcessXrInput()
+{
+    Application* pApp = Application::Get();
+    if (!pApp->IsXrEnabled()) {
+        return;
+    }
+
+    ImGuiIO&     io          = ImGui::GetIO();
+    XrComponent& xrComponent = pApp->GetXrComponent();
+
+    bool isMouseDown = xrComponent.GetUIClickState().value_or(false);
+    if (isMouseDown != mSimulatedMouseDown) {
+        mSimulatedMouseDown = isMouseDown;
+        io.AddMouseButtonEvent(ImGuiMouseButton_Left, isMouseDown);
+    }
+
+    std::optional<XrVector2f> cursor = xrComponent.GetUICursor();
+    if (cursor.has_value()) {
+        // Mapping cursor location from meters to Imgui screen coordinate
+        // x axis: [-0.5m, +0.5m] -> [0, 1] * swapchain.width
+        // y axis: [-0.5m, +0.5m] -> [1, 0] * swapchain.height
+        io.MousePos = ImVec2{
+            (cursor->x + 0.5f) * pApp->GetUISwapchain()->GetWidth(),
+            (-cursor->y + 0.5f) * pApp->GetUISwapchain()->GetHeight(),
+        };
+        io.MouseDrawCursor = true;
+        ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow);
+    }
+    else {
+        io.MousePos        = ImVec2{-FLT_MAX, -FLT_MAX};
+        io.MouseDrawCursor = false;
+        ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+    }
+}
+#endif
+
+void ImGuiImplVk::ProcessEvents()
+{
+#if defined(PPX_BUILD_XR)
+    ProcessXrInput();
+#endif
+}
+
 #endif // defined(PPX_VULKAN)
 
 } // namespace ppx
