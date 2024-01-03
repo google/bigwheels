@@ -594,6 +594,8 @@ private:
     // UTILITY
     // =====================================================================
 
+    const Camera& GetCamera();
+
     // Loads shader at shaderBaseDir/fileName and creates it at ppShaderModule
     void SetupShader(const std::filesystem::path& fileName, grfx::ShaderModule** ppShaderModule);
     void SetupShader(const char* baseDir, const std::filesystem::path& fileName, grfx::ShaderModule** ppShaderModule);
