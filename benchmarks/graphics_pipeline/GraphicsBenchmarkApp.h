@@ -22,6 +22,7 @@
 #include "ppx/grfx/grfx_format.h"
 #include "ppx/knob.h"
 #include "ppx/math_config.h"
+#include "ppx/ui_util.h"
 #include "ppx/ppx.h"
 #include "ppx/random.h"
 
@@ -436,11 +437,11 @@ private:
     float3                            mLightPosition       = float3(10, 250, 10);
     std::array<bool, TOTAL_KEY_COUNT> mPressedKeys         = {0};
     bool                              mEnableMouseMovement = true;
-    uint64_t                          mGpuWorkDuration;
+    RealtimeValue<uint64_t, float>    mGpuWorkDuration;
     grfx::SamplerPtr                  mLinearSampler;
     grfx::DescriptorPoolPtr           mDescriptorPool;
     std::vector<OffscreenFrame>       mOffscreenFrame;
-    double                            mCPUSubmissionTime = 0.0;
+    RealtimeValue<double>             mCPUSubmissionTime;
 
     // SkyBox resources
     Entity                mSkyBox;
@@ -571,7 +572,7 @@ private:
     // Processing changed state
     void ProcessInput();
     void ProcessKnobs();
-    void ProcessQuadsKnobs();
+    bool ProcessQuadsKnobs();
 
     // Drawing GUI
     void UpdateGUI();

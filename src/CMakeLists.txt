@@ -176,6 +176,7 @@ list(
     ${INC_DIR}/ppx/timer.h
     ${INC_DIR}/ppx/transform.h
     ${INC_DIR}/ppx/tri_mesh.h
+    ${INC_DIR}/ppx/ui_util.h
     ${INC_DIR}/ppx/util.h
     ${INC_DIR}/ppx/window.h
     ${INC_DIR}/ppx/wire_mesh.h

@@ -322,10 +322,10 @@ void GraphicsBenchmarkApp::UpdateMetrics()
 
     ppx::metrics::MetricData data = {ppx::metrics::MetricType::GAUGE};
     data.gauge.seconds            = GetElapsedSeconds();
-    data.gauge.value              = mCPUSubmissionTime;
+    data.gauge.value              = mCPUSubmissionTime.Value();
     RecordMetricData(mMetricsData.metrics[MetricsData::kTypeCPUSubmissionTime], data);
 
-    const float        gpuWorkDurationInSec = static_cast<float>(mGpuWorkDuration / static_cast<double>(frequency));
+    const float        gpuWorkDurationInSec = static_cast<float>(mGpuWorkDuration.Value() / static_cast<double>(frequency));
     const grfx::Format swapchainColorFormat = GetSwapchain()->GetColorFormat();
     const uint32_t     swapchainWidth       = GetSwapchain()->GetWidth();
     const uint32_t     swapchainHeight      = GetSwapchain()->GetHeight();
@@ -336,12 +336,6 @@ void GraphicsBenchmarkApp::UpdateMetrics()
     const uint32_t     quadCount            = pFullscreenQuadsCount->GetValue();
 
     if (quadCount) {
-        // Skip the first kSkipFrameCount frames after the knob of quad count being changed to avoid noise
-        constexpr uint32_t kSkipFrameCount = 2;
-        if (pFullscreenQuadsCount->DigestUpdate()) {
-            mSkipRecordBandwidthMetricFrameCounter = kSkipFrameCount;
-        }
-
         if (mSkipRecordBandwidthMetricFrameCounter == 0) {
             const auto  texelSize     = static_cast<float>(grfx::GetFormatDescription(colorFormat)->bytesPerTexel);
             const float dataWriteInGb = (static_cast<float>(width) * static_cast<float>(height) * texelSize * quadCount) / (1024.f * 1024.f * 1024.f);
@@ -894,6 +888,7 @@ void GraphicsBenchmarkApp::ProcessInput()
 
 void GraphicsBenchmarkApp::ProcessKnobs()
 {
+    bool invalidateStatistics = false;
     // Detect if any knob value has been changed
     // Note: DigestUpdate should be called only once per frame (DigestUpdate unflags the internal knob variable)!
     const bool allTexturesTo1x1KnobChanged    = pAllTexturesTo1x1->DigestUpdate();
@@ -901,6 +896,7 @@ void GraphicsBenchmarkApp::ProcessKnobs()
     const bool depthTestWriteKnobChanged      = pDepthTestWrite->DigestUpdate();
     const bool enableSpheresKnobChanged       = pEnableSpheres->DigestUpdate();
     const bool sphereInstanceCountKnobChanged = pSphereInstanceCount->DigestUpdate();
+    const bool debugViewChanged               = pDebugViews->DigestUpdate();
 
     // TODO: Ideally, the `maxValue` of the drawcall-count slider knob should be changed at runtime.
     // Currently, the value of the drawcall-count is adjusted to the sphere-count in case the
@@ -915,6 +911,10 @@ void GraphicsBenchmarkApp::ProcessKnobs()
     }
 
     const bool enableSpheres = pEnableSpheres->GetValue();
+    if (debugViewChanged || enableSpheresKnobChanged || allTexturesTo1x1KnobChanged || depthTestWriteKnobChanged || alphaBlendKnobChanged || sphereInstanceCountKnobChanged) {
+        invalidateStatistics = true;
+    }
+
     // Set visibilities
     if (enableSpheresKnobChanged) {
         pDebugViews->SetVisible(enableSpheres);
@@ -949,7 +949,9 @@ void GraphicsBenchmarkApp::ProcessKnobs()
         }
     }
 
-    ProcessQuadsKnobs();
+    if (ProcessQuadsKnobs()) {
+        invalidateStatistics = true;
+    };
 
     bool offscreenChanged = pRenderOffscreen->DigestUpdate();
     if (offscreenChanged) {
@@ -965,11 +967,28 @@ void GraphicsBenchmarkApp::ProcessKnobs()
         int fbWidth  = (resolution.first > 0 ? resolution.first : GetSwapchain()->GetWidth());
         int fbHeight = (resolution.second > 0 ? resolution.second : GetSwapchain()->GetHeight());
         UpdateOffscreenBuffer(RenderFormat(), fbWidth, fbHeight);
+        invalidateStatistics = true;
+    }
+    if (offscreenChanged || framebufferChanged) {
+        invalidateStatistics = true;
+    }
+    if (invalidateStatistics) {
+        mGpuWorkDuration.ClearHistory();
+        mCPUSubmissionTime.ClearHistory();
     }
 }
 
-void GraphicsBenchmarkApp::ProcessQuadsKnobs()
+bool GraphicsBenchmarkApp::ProcessQuadsKnobs()
 {
+    bool quadCountUpdated = pFullscreenQuadsCount->DigestUpdate();
+    bool anyUpdate        = quadCountUpdated || pFullscreenQuadsType->DigestUpdate() || pFullscreenQuadsSingleRenderpass->DigestUpdate() || pFullscreenQuadsColor->DigestUpdate();
+
+    // Skip the first kSkipFrameCount frames after the knob of quad count being changed to avoid noise
+    constexpr uint32_t kSkipFrameCount = 2;
+    if (quadCountUpdated) {
+        mSkipRecordBandwidthMetricFrameCounter = kSkipFrameCount;
+    }
+
     // Set Visibilities
     if (pFullscreenQuadsCount->GetValue() > 0) {
         pFullscreenQuadsType->SetVisible(true);
@@ -986,6 +1005,7 @@ void GraphicsBenchmarkApp::ProcessQuadsKnobs()
         pFullscreenQuadsSingleRenderpass->SetVisible(false);
         pFullscreenQuadsColor->SetVisible(false);
     }
+    return anyUpdate;
 }
 
 #if defined(PPX_BUILD_XR)
@@ -1069,7 +1089,7 @@ void GraphicsBenchmarkApp::Render()
     if (GetFrameCount() > 0) {
         uint64_t data[2] = {0, 0};
         PPX_CHECKED_CALL(frame.timestampQuery->GetData(data, sizeof(data)));
-        mGpuWorkDuration = data[1] - data[0];
+        mGpuWorkDuration.Update(data[1] - data[0]);
     }
     // Reset query
     frame.timestampQuery->Reset(/* firstQuery= */ 0, frame.timestampQuery->GetCount());
@@ -1125,7 +1145,7 @@ void GraphicsBenchmarkApp::Render()
     Timer timerSubmit;
     PPX_ASSERT_MSG(timerSubmit.Start() == TIMER_RESULT_SUCCESS, "Error starting the Timer");
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
-    mCPUSubmissionTime = timerSubmit.MillisSinceStart();
+    mCPUSubmissionTime.Update(timerSubmit.MillisSinceStart());
 
 #if defined(PPX_BUILD_XR)
     // No need to present when XR is enabled.
@@ -1174,7 +1194,15 @@ void GraphicsBenchmarkApp::UpdateGUI()
 
 void GraphicsBenchmarkApp::DrawExtraInfo()
 {
+    constexpr const char* utf8PlusMinus = "\xC2\xB1";
+
     ImGui::Columns(2);
+
+    ImGui::Text("CPU Submission Time");
+    ImGui::NextColumn();
+    ImGui::Text("%.4f ms\n%.4f%s%.4f ms", mCPUSubmissionTime.Value(), mCPUSubmissionTime.Mean(), utf8PlusMinus, mCPUSubmissionTime.Std());
+    ImGui::NextColumn();
+
     if (HasActiveMetricsRun()) {
         const auto cpuSubmissionTime = GetGaugeBasicStatistics(mMetricsData.metrics[MetricsData::kTypeCPUSubmissionTime]);
 
@@ -1203,17 +1231,23 @@ void GraphicsBenchmarkApp::DrawExtraInfo()
 
     uint64_t frequency = 0;
     PPX_CHECKED_CALL(GetGraphicsQueue()->GetTimestampFrequency(&frequency));
-    const float gpuWorkDurationInSec = static_cast<float>(mGpuWorkDuration / static_cast<double>(frequency));
-    const float gpuWorkDurationInMs  = gpuWorkDurationInSec * 1000.0f;
+    float sPerTick  = 1.0f / static_cast<float>(frequency);
+    float msPerTick = 1000.0f / static_cast<float>(frequency);
+
+    const float gpuWorkDurationInMs    = msPerTick * mGpuWorkDuration.Value();
+    const float gpuWorkDurationAvgInMs = msPerTick * mGpuWorkDuration.Mean();
+    const float gpuWorkDurationStdInMs = msPerTick * mGpuWorkDuration.Std();
     ImGui::Text("GPU Work Duration");
     ImGui::NextColumn();
-    ImGui::Text("%.2f ms ", gpuWorkDurationInMs);
+    ImGui::Text("%.4f ms\n%.4f%s%.4f ms", gpuWorkDurationInMs, gpuWorkDurationAvgInMs, utf8PlusMinus, gpuWorkDurationStdInMs);
     ImGui::NextColumn();
 
-    const float gpuFPS = static_cast<float>(frequency / static_cast<double>(mGpuWorkDuration));
+    const float gpuFPS    = 1.0f / (sPerTick * mGpuWorkDuration.Value());
+    const float gpuAvgFPS = 1.0f / (sPerTick * mGpuWorkDuration.Mean());
+    const float gpuStdFPS = 1.0f / (sPerTick * (mGpuWorkDuration.Mean() - mGpuWorkDuration.Std())) - gpuAvgFPS;
     ImGui::Text("GPU FPS");
     ImGui::NextColumn();
-    ImGui::Text("%.2f fps ", gpuFPS);
+    ImGui::Text("%.2f fps\n%.2f%s%.2f fps", gpuFPS, gpuAvgFPS, utf8PlusMinus, gpuStdFPS);
     ImGui::NextColumn();
 
     const grfx::Format swapchainColorFormat = GetSwapchain()->GetColorFormat();
@@ -1243,6 +1277,19 @@ void GraphicsBenchmarkApp::DrawExtraInfo()
         ImGui::NextColumn();
         ImGui::Text("%.2f GB", dataWriteInGb);
         ImGui::NextColumn();
+
+        const float gpuWorkDurationInS    = mGpuWorkDuration.Value() * sPerTick;
+        const float gpuWorkDurationAvgInS = mGpuWorkDuration.Mean() * sPerTick;
+        const float gpuWorkDurationStdInS = mGpuWorkDuration.Std() * sPerTick;
+        if (gpuWorkDurationAvgInS > 0.0001) {
+            const float gpuBandwidth    = dataWriteInGb / gpuWorkDurationInS;
+            const float gpuBandwidthAvg = dataWriteInGb / gpuWorkDurationAvgInS;
+            const float gpuBandwidthStd = dataWriteInGb / (gpuWorkDurationAvgInS - gpuWorkDurationStdInS) - gpuBandwidthAvg;
+            ImGui::Text("Write Bandwidth");
+            ImGui::NextColumn();
+            ImGui::Text("%.2f GB/s\n%.2f%s%.2f GB/s", gpuBandwidth, gpuBandwidthAvg, utf8PlusMinus, gpuBandwidthStd);
+            ImGui::NextColumn();
+        }
 
         if (HasActiveMetricsRun()) {
             const auto bandwidth = GetGaugeBasicStatistics(mMetricsData.metrics[MetricsData::kTypeBandwidth]);
