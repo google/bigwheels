@@ -48,12 +48,13 @@ private:
 // -------------------------------------------------------------------------------------------------
 
 VkResult CreateTransientRenderPass(
-    VkDevice              device,
+    vk::Device*           device,
     uint32_t              renderTargetCount,
     const VkFormat*       pRenderTargetFormats,
     VkFormat              depthStencilFormat,
     VkSampleCountFlagBits sampleCount,
-    VkRenderPass*         pRenderPass);
+    VkRenderPass*         pRenderPass,
+    grfx::ShadingRateMode shadingRateMode = grfx::SHADING_RATE_NONE);
 
 } // namespace vk
 } // namespace grfx

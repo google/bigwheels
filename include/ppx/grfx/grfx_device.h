@@ -28,6 +28,7 @@
 #include "ppx/grfx/grfx_query.h"
 #include "ppx/grfx/grfx_render_pass.h"
 #include "ppx/grfx/grfx_shader.h"
+#include "ppx/grfx/grfx_shading_rate.h"
 #include "ppx/grfx/grfx_swapchain.h"
 #include "ppx/grfx/grfx_sync.h"
 #include "ppx/grfx/grfx_text_draw.h"
@@ -41,12 +42,13 @@ namespace grfx {
 //!
 struct DeviceCreateInfo
 {
-    grfx::Gpu*               pGpu                  = nullptr;
-    uint32_t                 graphicsQueueCount    = 0;
-    uint32_t                 computeQueueCount     = 0;
-    uint32_t                 transferQueueCount    = 0;
-    std::vector<std::string> vulkanExtensions      = {};      // [OPTIONAL] Additional device extensions
-    const void*              pVulkanDeviceFeatures = nullptr; // [OPTIONAL] Pointer to custom VkPhysicalDeviceFeatures
+    grfx::Gpu*               pGpu                   = nullptr;
+    uint32_t                 graphicsQueueCount     = 0;
+    uint32_t                 computeQueueCount      = 0;
+    uint32_t                 transferQueueCount     = 0;
+    std::vector<std::string> vulkanExtensions       = {};      // [OPTIONAL] Additional device extensions
+    const void*              pVulkanDeviceFeatures  = nullptr; // [OPTIONAL] Pointer to custom VkPhysicalDeviceFeatures
+    ShadingRateMode          supportShadingRateMode = SHADING_RATE_NONE;
 #if defined(PPX_BUILD_XR)
     XrComponent* pXrComponent = nullptr;
 #endif
@@ -96,6 +98,9 @@ public:
 
     Result CreateFence(const grfx::FenceCreateInfo* pCreateInfo, grfx::Fence** ppFence);
     void   DestroyFence(const grfx::Fence* pFence);
+
+    Result CreateShadingRatePattern(const grfx::ShadingRatePatternCreateInfo* pCreateInfo, grfx::ShadingRatePattern** ppShadingRatePattern);
+    void   DestroyShadingRatePattern(const grfx::ShadingRatePattern* pShadingRatePattern);
 
     Result CreateFullscreenQuad(const grfx::FullscreenQuadCreateInfo* pCreateInfo, grfx::FullscreenQuad** ppFullscreenQuad);
     void   DestroyFullscreenQuad(const grfx::FullscreenQuad* pFullscreenQuad);
@@ -178,11 +183,13 @@ public:
 
     grfx::QueuePtr GetAnyAvailableQueue() const;
 
+    const grfx::ShadingRateCapabilities& GetShadingRateCapabilities() const { return mShadingRateCapabilities; }
+
     virtual Result WaitIdle() = 0;
 
-    virtual bool PipelineStatsAvailable() const    = 0;
-    virtual bool DynamicRenderingSupported() const = 0;
-    virtual bool IndependentBlendingSupported() const = 0;
+    virtual bool PipelineStatsAvailable() const            = 0;
+    virtual bool DynamicRenderingSupported() const         = 0;
+    virtual bool IndependentBlendingSupported() const      = 0;
     virtual bool FragmentStoresAndAtomicsSupported() const = 0;
 
 protected:
@@ -211,6 +218,7 @@ protected:
     virtual Result AllocateObject(grfx::Semaphore** ppObject)           = 0;
     virtual Result AllocateObject(grfx::ShaderModule** ppObject)        = 0;
     virtual Result AllocateObject(grfx::ShaderProgram** ppObject)       = 0;
+    virtual Result AllocateObject(grfx::ShadingRatePattern** ppObject)  = 0;
     virtual Result AllocateObject(grfx::StorageImageView** ppObject)    = 0;
     virtual Result AllocateObject(grfx::Swapchain** ppObject)           = 0;
 
@@ -251,6 +259,7 @@ protected:
     std::vector<grfx::DescriptorSetLayoutPtr> mDescriptorSetLayouts;
     std::vector<grfx::DrawPassPtr>            mDrawPasses;
     std::vector<grfx::FencePtr>               mFences;
+    std::vector<grfx::ShadingRatePatternPtr>  mShadingRatePatterns;
     std::vector<grfx::FullscreenQuadPtr>      mFullscreenQuads;
     std::vector<grfx::GraphicsPipelinePtr>    mGraphicsPipelines;
     std::vector<grfx::ImagePtr>               mImages;
@@ -272,6 +281,7 @@ protected:
     std::vector<grfx::QueuePtr>               mGraphicsQueues;
     std::vector<grfx::QueuePtr>               mComputeQueues;
     std::vector<grfx::QueuePtr>               mTransferQueues;
+    grfx::ShadingRateCapabilities             mShadingRateCapabilities;
 };
 
 } // namespace grfx

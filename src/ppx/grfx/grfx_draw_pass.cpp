@@ -26,10 +26,11 @@ namespace internal {
 
 DrawPassCreateInfo::DrawPassCreateInfo(const grfx::DrawPassCreateInfo& obj)
 {
-    this->version           = CREATE_INFO_VERSION_1;
-    this->width             = obj.width;
-    this->height            = obj.height;
-    this->renderTargetCount = obj.renderTargetCount;
+    this->version             = CREATE_INFO_VERSION_1;
+    this->width               = obj.width;
+    this->height              = obj.height;
+    this->renderTargetCount   = obj.renderTargetCount;
+    this->pShadingRatePattern = obj.pShadingRatePattern;
 
     // Formats
     for (uint32_t i = 0; i < this->renderTargetCount; ++i) {
@@ -61,11 +62,12 @@ DrawPassCreateInfo::DrawPassCreateInfo(const grfx::DrawPassCreateInfo& obj)
 
 DrawPassCreateInfo::DrawPassCreateInfo(const grfx::DrawPassCreateInfo2& obj)
 {
-    this->version           = CREATE_INFO_VERSION_2;
-    this->width             = obj.width;
-    this->height            = obj.height;
-    this->renderTargetCount = obj.renderTargetCount;
-    this->depthStencilState = obj.depthStencilState;
+    this->version             = CREATE_INFO_VERSION_2;
+    this->width               = obj.width;
+    this->height              = obj.height;
+    this->renderTargetCount   = obj.renderTargetCount;
+    this->depthStencilState   = obj.depthStencilState;
+    this->pShadingRatePattern = obj.pShadingRatePattern;
 
     // Images
     for (uint32_t i = 0; i < this->renderTargetCount; ++i) {
@@ -82,11 +84,12 @@ DrawPassCreateInfo::DrawPassCreateInfo(const grfx::DrawPassCreateInfo2& obj)
 
 DrawPassCreateInfo::DrawPassCreateInfo(const grfx::DrawPassCreateInfo3& obj)
 {
-    this->version           = CREATE_INFO_VERSION_3;
-    this->width             = obj.width;
-    this->height            = obj.height;
-    this->renderTargetCount = obj.renderTargetCount;
-    this->depthStencilState = obj.depthStencilState;
+    this->version             = CREATE_INFO_VERSION_3;
+    this->width               = obj.width;
+    this->height              = obj.height;
+    this->renderTargetCount   = obj.renderTargetCount;
+    this->depthStencilState   = obj.depthStencilState;
+    this->pShadingRatePattern = obj.pShadingRatePattern;
 
     // Textures
     for (uint32_t i = 0; i < this->renderTargetCount; ++i) {
@@ -333,6 +336,10 @@ Result DrawPass::CreateApiObjects(const grfx::internal::DrawPassCreateInfo* pCre
             rpCreateInfo.depthStoreOp           = grfx::ATTACHMENT_STORE_OP_STORE;
             rpCreateInfo.stencilLoadOp          = stencilLoadOp;
             rpCreateInfo.stencilStoreOp         = grfx::ATTACHMENT_STORE_OP_STORE;
+        }
+
+        if (!IsNull(pCreateInfo->pShadingRatePattern) && pCreateInfo->pShadingRatePattern->GetShadingRateMode() != grfx::SHADING_RATE_NONE) {
+            rpCreateInfo.pShadingRatePattern = pCreateInfo->pShadingRatePattern;
         }
 
         Pass pass      = {};

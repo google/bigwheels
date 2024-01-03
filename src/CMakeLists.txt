@@ -243,6 +243,7 @@ list(
     ${INC_DIR}/ppx/grfx/grfx_render_pass.h
     ${INC_DIR}/ppx/grfx/grfx_scope.h
     ${INC_DIR}/ppx/grfx/grfx_shader.h
+    ${INC_DIR}/ppx/grfx/grfx_shading_rate.h
     ${INC_DIR}/ppx/grfx/grfx_swapchain.h
     ${INC_DIR}/ppx/grfx/grfx_sync.h
     ${INC_DIR}/ppx/grfx/grfx_text_draw.h
@@ -370,6 +371,7 @@ if (PPX_VULKAN)
         ${INC_DIR}/ppx/grfx/vk/vk_queue.h
         ${INC_DIR}/ppx/grfx/vk/vk_render_pass.h
         ${INC_DIR}/ppx/grfx/vk/vk_shader.h
+        ${INC_DIR}/ppx/grfx/vk/vk_shading_rate.h
         ${INC_DIR}/ppx/grfx/vk/vk_swapchain.h
         ${INC_DIR}/ppx/grfx/vk/vk_sync.h
         ${INC_DIR}/ppx/grfx/vk/vk_util.h
@@ -391,6 +393,7 @@ if (PPX_VULKAN)
         ${SRC_DIR}/ppx/grfx/vk/vk_queue.cpp
         ${SRC_DIR}/ppx/grfx/vk/vk_render_pass.cpp
         ${SRC_DIR}/ppx/grfx/vk/vk_shader.cpp
+        ${SRC_DIR}/ppx/grfx/vk/vk_shading_rate.cpp
         ${SRC_DIR}/ppx/grfx/vk/vk_swapchain.cpp
         ${SRC_DIR}/ppx/grfx/vk/vk_sync.cpp
         ${SRC_DIR}/ppx/grfx/vk/vk_util.cpp

@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2023 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 #include "ppx/grfx/vk/vk_render_pass.h"
 #include "ppx/grfx/vk/vk_device.h"
 #include "ppx/grfx/vk/vk_image.h"
+#include "ppx/grfx/vk/vk_shading_rate.h"
 #include "ppx/grfx/vk/vk_util.h"
 
 #include "ppx/grfx/vk/vk_profiler_fn_wrapper.h"
@@ -25,9 +26,11 @@ namespace vk {
 
 Result RenderPass::CreateRenderPass(const grfx::internal::RenderPassCreateInfo* pCreateInfo)
 {
-    bool          hasDepthSencil     = mDepthStencilView ? true : false;
-    size_t        rtvCount           = CountU32(mRenderTargetViews);
-    VkImageLayout depthStencillayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    bool hasDepthSencil = mDepthStencilView ? true : false;
+
+    uint32_t      depthStencilAttachment = -1;
+    size_t        rtvCount               = CountU32(mRenderTargetViews);
+    VkImageLayout depthStencillayout     = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
     // Determine layout for depth/stencil
     {
@@ -46,7 +49,7 @@ Result RenderPass::CreateRenderPass(const grfx::internal::RenderPassCreateInfo* 
     }
 
     // Attachment descriptions
-    std::vector<VkAttachmentDescription> attachmentDesc;
+    std::vector<VkAttachmentDescription> attachmentDescs;
     {
         for (uint32_t i = 0; i < rtvCount; ++i) {
             grfx::RenderTargetViewPtr rtv = mRenderTargetViews[i];
@@ -62,7 +65,7 @@ Result RenderPass::CreateRenderPass(const grfx::internal::RenderPassCreateInfo* 
             desc.initialLayout           = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             desc.finalLayout             = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-            attachmentDesc.push_back(desc);
+            attachmentDescs.push_back(desc);
         }
 
         if (hasDepthSencil) {
@@ -79,7 +82,8 @@ Result RenderPass::CreateRenderPass(const grfx::internal::RenderPassCreateInfo* 
             desc.initialLayout           = depthStencillayout;
             desc.finalLayout             = depthStencillayout;
 
-            attachmentDesc.push_back(desc);
+            depthStencilAttachment = attachmentDescs.size();
+            attachmentDescs.push_back(desc);
         }
     }
 
@@ -95,7 +99,7 @@ Result RenderPass::CreateRenderPass(const grfx::internal::RenderPassCreateInfo* 
 
     VkAttachmentReference depthStencilRef = {};
     if (hasDepthSencil) {
-        depthStencilRef.attachment = static_cast<uint32_t>(attachmentDesc.size() - 1);
+        depthStencilRef.attachment = depthStencilAttachment;
         depthStencilRef.layout     = depthStencillayout;
     }
 
@@ -122,21 +126,35 @@ Result RenderPass::CreateRenderPass(const grfx::internal::RenderPassCreateInfo* 
 
     VkRenderPassCreateInfo vkci = {VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
     vkci.flags                  = 0;
-    vkci.attachmentCount        = CountU32(attachmentDesc);
-    vkci.pAttachments           = DataPtr(attachmentDesc);
+    vkci.attachmentCount        = CountU32(attachmentDescs);
+    vkci.pAttachments           = DataPtr(attachmentDescs);
     vkci.subpassCount           = 1;
     vkci.pSubpasses             = &subpassDescription;
     vkci.dependencyCount        = 1;
     vkci.pDependencies          = &subpassDependencies;
 
-    VkResult vkres = vk::CreateRenderPass(
-        ToApi(GetDevice())->GetVkDevice(),
-        &vkci,
-        nullptr,
-        &mRenderPass);
-    if (vkres != VK_SUCCESS) {
-        PPX_ASSERT_MSG(false, "vkCreateRenderPass failed: " << ToString(vkres));
-        return ppx::ERROR_API_FAILURE;
+    if (!IsNull(pCreateInfo->pShadingRatePattern)) {
+        auto     modifiedCreateInfo = ToApi(pCreateInfo->pShadingRatePattern)->GetModifiedRenderPassCreateInfo(vkci);
+        VkResult vkres              = vk::CreateRenderPass(
+            ToApi(GetDevice())->GetVkDevice(),
+            modifiedCreateInfo.get(),
+            nullptr,
+            &mRenderPass);
+        if (vkres != VK_SUCCESS) {
+            PPX_ASSERT_MSG(false, "vkCreateRenderPass failed: " << ToString(vkres));
+            return ppx::ERROR_API_FAILURE;
+        }
+    }
+    else {
+        VkResult vkres = vk::CreateRenderPass(
+            ToApi(GetDevice())->GetVkDevice(),
+            &vkci,
+            nullptr,
+            &mRenderPass);
+        if (vkres != VK_SUCCESS) {
+            PPX_ASSERT_MSG(false, "vkCreateRenderPass failed: " << ToString(vkres));
+            return ppx::ERROR_API_FAILURE;
+        }
     }
 
     return ppx::SUCCESS;
@@ -144,8 +162,9 @@ Result RenderPass::CreateRenderPass(const grfx::internal::RenderPassCreateInfo* 
 
 Result RenderPass::CreateFramebuffer(const grfx::internal::RenderPassCreateInfo* pCreateInfo)
 {
-    bool   hasDepthSencil = mDepthStencilView ? true : false;
-    size_t rtvCount       = CountU32(mRenderTargetViews);
+    bool hasDepthSencil = mDepthStencilView ? true : false;
+
+    size_t rtvCount = CountU32(mRenderTargetViews);
 
     std::vector<VkImageView> attachments;
     for (uint32_t i = 0; i < rtvCount; ++i) {
@@ -158,6 +177,9 @@ Result RenderPass::CreateFramebuffer(const grfx::internal::RenderPassCreateInfo*
         attachments.push_back(ToApi(dsv.Get())->GetVkImageView());
     }
 
+    if (!IsNull(pCreateInfo->pShadingRatePattern)) {
+        attachments.push_back(ToApi(pCreateInfo->pShadingRatePattern)->GetAttachmentImageView());
+    }
     VkFramebufferCreateInfo vkci = {VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};
     vkci.flags                   = 0;
     vkci.renderPass              = mRenderPass;
@@ -217,14 +239,17 @@ void RenderPass::DestroyApiObjects()
 // -------------------------------------------------------------------------------------------------
 
 VkResult CreateTransientRenderPass(
-    VkDevice              device,
+    vk::Device*           device,
     uint32_t              renderTargetCount,
     const VkFormat*       pRenderTargetFormats,
     VkFormat              depthStencilFormat,
     VkSampleCountFlagBits sampleCount,
-    VkRenderPass*         pRenderPass)
+    VkRenderPass*         pRenderPass,
+    grfx::ShadingRateMode shadingRateMode)
 {
     bool hasDepthSencil = (depthStencilFormat != VK_FORMAT_UNDEFINED);
+
+    uint32_t depthStencilAttachment = -1;
 
     std::vector<VkAttachmentDescription> attachmentDescs;
     {
@@ -246,6 +271,7 @@ VkResult CreateTransientRenderPass(
             desc.loadOp                  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             desc.stencilLoadOp           = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             desc.finalLayout             = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            depthStencilAttachment       = attachmentDescs.size();
             attachmentDescs.push_back(desc);
         }
     }
@@ -262,7 +288,7 @@ VkResult CreateTransientRenderPass(
 
     VkAttachmentReference depthStencilRef = {};
     if (hasDepthSencil) {
-        depthStencilRef.attachment = static_cast<uint32_t>(attachmentDescs.size() - 1);
+        depthStencilRef.attachment = depthStencilAttachment;
         depthStencilRef.layout     = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
     }
 
@@ -296,13 +322,26 @@ VkResult CreateTransientRenderPass(
     vkci.dependencyCount        = 1;
     vkci.pDependencies          = &subpassDependencies;
 
-    VkResult vkres = vkCreateRenderPass(
-        device,
-        &vkci,
-        nullptr,
-        pRenderPass);
-    if (vkres != VK_SUCCESS) {
-        return vkres;
+    if (shadingRateMode != SHADING_RATE_NONE) {
+        auto     modifiedCreateInfo = vk::ShadingRatePattern::GetModifiedRenderPassCreateInfo(device, shadingRateMode, vkci);
+        VkResult vkres              = vk::CreateRenderPass(
+            device->GetVkDevice(),
+            modifiedCreateInfo.get(),
+            nullptr,
+            pRenderPass);
+        if (vkres != VK_SUCCESS) {
+            return vkres;
+        }
+    }
+    else {
+        VkResult vkres = vk::CreateRenderPass(
+            device->GetVkDevice(),
+            &vkci,
+            nullptr,
+            pRenderPass);
+        if (vkres != VK_SUCCESS) {
+            return vkres;
+        }
     }
 
     return VK_SUCCESS;

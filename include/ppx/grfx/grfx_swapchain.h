@@ -97,14 +97,15 @@ public:
 //!
 struct SwapchainCreateInfo
 {
-    grfx::Queue*      pQueue      = nullptr;
-    grfx::Surface*    pSurface    = nullptr;
-    uint32_t          width       = 0;
-    uint32_t          height      = 0;
-    grfx::Format      colorFormat = grfx::FORMAT_UNDEFINED;
-    grfx::Format      depthFormat = grfx::FORMAT_UNDEFINED;
-    uint32_t          imageCount  = 0;
-    grfx::PresentMode presentMode = grfx::PRESENT_MODE_IMMEDIATE;
+    grfx::Queue*              pQueue              = nullptr;
+    grfx::Surface*            pSurface            = nullptr;
+    grfx::ShadingRatePattern* pShadingRatePattern = nullptr;
+    uint32_t                  width               = 0;
+    uint32_t                  height              = 0;
+    grfx::Format              colorFormat         = grfx::FORMAT_UNDEFINED;
+    grfx::Format              depthFormat         = grfx::FORMAT_UNDEFINED;
+    uint32_t                  imageCount          = 0;
+    grfx::PresentMode         presentMode         = grfx::PRESENT_MODE_IMMEDIATE;
 #if defined(PPX_BUILD_XR)
     XrComponent* pXrComponent = nullptr;
 #endif
@@ -134,9 +135,9 @@ public:
     Result GetDepthStencilView(uint32_t imageIndex, grfx::DepthStencilView** ppView) const;
 
     // Convenience functions - returns empty object if index is invalid
-    grfx::ImagePtr      GetColorImage(uint32_t imageIndex) const;
-    grfx::ImagePtr      GetDepthImage(uint32_t imageIndex) const;
-    grfx::RenderPassPtr GetRenderPass(uint32_t imageIndex, grfx::AttachmentLoadOp loadOp = grfx::ATTACHMENT_LOAD_OP_CLEAR) const;
+    grfx::ImagePtr            GetColorImage(uint32_t imageIndex) const;
+    grfx::ImagePtr            GetDepthImage(uint32_t imageIndex) const;
+    grfx::RenderPassPtr       GetRenderPass(uint32_t imageIndex, grfx::AttachmentLoadOp loadOp = grfx::ATTACHMENT_LOAD_OP_CLEAR) const;
     grfx::RenderTargetViewPtr GetRenderTargetView(uint32_t imageIndex, grfx::AttachmentLoadOp loadOp = grfx::ATTACHMENT_LOAD_OP_CLEAR) const;
     grfx::DepthStencilViewPtr GetDepthStencilView(uint32_t imageIndex) const;
 
@@ -211,14 +212,14 @@ private:
     std::vector<grfx::CommandBufferPtr> mHeadlessCommandBuffers;
 
 protected:
-    grfx::QueuePtr                   mQueue;
-    std::vector<grfx::ImagePtr>      mDepthImages;
-    std::vector<grfx::ImagePtr>      mColorImages;
+    grfx::QueuePtr                         mQueue;
+    std::vector<grfx::ImagePtr>            mDepthImages;
+    std::vector<grfx::ImagePtr>            mColorImages;
     std::vector<grfx::RenderTargetViewPtr> mClearRenderTargets;
     std::vector<grfx::RenderTargetViewPtr> mLoadRenderTargets;
     std::vector<grfx::DepthStencilViewPtr> mDepthStencilViews;
-    std::vector<grfx::RenderPassPtr> mClearRenderPasses;
-    std::vector<grfx::RenderPassPtr> mLoadRenderPasses;
+    std::vector<grfx::RenderPassPtr>       mClearRenderPasses;
+    std::vector<grfx::RenderPassPtr>       mLoadRenderPasses;
 
 #if defined(PPX_BUILD_XR)
     XrSwapchain mXrColorSwapchain = XR_NULL_HANDLE;

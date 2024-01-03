@@ -254,6 +254,8 @@ struct StandardOptions
 
     std::shared_ptr<KnobFlag<std::vector<std::string>>> pAssetsPaths;
     std::shared_ptr<KnobFlag<std::vector<std::string>>> pConfigJsonPaths;
+
+    std::shared_ptr<KnobFlag<std::string>> pShadingRateMode;
 };
 
 // -------------------------------------------------------------------------------------------------
@@ -316,6 +318,11 @@ struct ApplicationSettings
             uint32_t graphicsQueueCount = 1;
             uint32_t computeQueueCount  = 0;
             uint32_t transferQueueCount = 0;
+
+            // Enable support for this shading rate mode on the device.
+            // The application must not use FDM or VRS without setting this to
+            // the corresponding shading rate mode.
+            grfx::ShadingRateMode supportShadingRateMode = grfx::SHADING_RATE_NONE;
         } device;
 
         struct

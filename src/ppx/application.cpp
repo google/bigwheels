@@ -351,6 +351,7 @@ Result Application::InitializeGrfxDevice()
         ci.transferQueueCount     = mSettings.grfx.device.transferQueueCount;
         ci.vulkanExtensions       = {};
         ci.pVulkanDeviceFeatures  = nullptr;
+        ci.supportShadingRateMode = mSettings.grfx.device.supportShadingRateMode;
 #if defined(PPX_BUILD_XR)
         ci.pXrComponent = mSettings.xr.enable ? &mXrComponent : nullptr;
 #endif
@@ -886,6 +887,14 @@ void Application::InitStandardKnobs()
         "target system will cause the application to immediately exit.");
     mStandardOpts.pXrRequiredExtensions->SetFlagParameters("<extension>");
 #endif
+
+    GetKnobManager().InitKnob(&mStandardOpts.pShadingRateMode, "shading-rate-mode", "");
+    mStandardOpts.pShadingRateMode->SetFlagDescription(
+        "Specify the shading rate mode to enable.");
+    mStandardOpts.pShadingRateMode->SetFlagParameters("<none|fdm|vrs>");
+    mStandardOpts.pShadingRateMode->SetValidator([](const std::string& res) {
+        return res == "" || res == "none" || res == "fdm" || res == "vrs";
+    });
 }
 
 void Application::TakeScreenshot()
@@ -1133,6 +1142,17 @@ void Application::UpdateStandardSettings()
     if ((mSettings.headless || mStandardOpts.pDeterministic->GetValue()) && mSettings.enableImGui) {
         mSettings.enableImGui = false;
         PPX_LOG_WARN("Headless or deterministic mode: disabling ImGui");
+    }
+
+    std::string shadingRateModeString = mStandardOpts.pShadingRateMode->GetValue();
+    if (shadingRateModeString == "none") {
+        mSettings.grfx.device.supportShadingRateMode = grfx::SHADING_RATE_NONE;
+    }
+    else if (shadingRateModeString == "fdm") {
+        mSettings.grfx.device.supportShadingRateMode = grfx::SHADING_RATE_FDM;
+    }
+    else if (shadingRateModeString == "vrs") {
+        mSettings.grfx.device.supportShadingRateMode = grfx::SHADING_RATE_VRS;
     }
 }
 

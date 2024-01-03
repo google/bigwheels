@@ -36,6 +36,11 @@ struct RenderPassCreateInfo
     grfx::DepthStencilClearValue depthStencilClearValue                          = {};
     grfx::Ownership              ownership                                       = grfx::OWNERSHIP_REFERENCE;
 
+    // If `pShadingRatePattern` is not null, then the pipeline targeting this
+    // RenderPass must use the same shading rate mode
+    // (`GraphicsPipelineCreateInfo.shadingRateMode`).
+    grfx::ShadingRatePatternPtr pShadingRatePattern = nullptr;
+
     void SetAllRenderTargetClearValue(const grfx::RenderTargetClearValue& value);
 };
 
@@ -69,6 +74,11 @@ struct RenderPassCreateInfo2
     grfx::ResourceState          depthStencilInitialState                          = grfx::RESOURCE_STATE_UNDEFINED;
     grfx::Ownership              ownership                                         = grfx::OWNERSHIP_REFERENCE;
 
+    // If `pShadingRatePattern` is not null, then the pipeline targeting this
+    // RenderPass must use the same shading rate mode
+    // (`GraphicsPipelineCreateInfo.shadingRateMode`).
+    grfx::ShadingRatePatternPtr pShadingRatePattern = nullptr;
+
     void SetAllRenderTargetUsageFlags(const grfx::ImageUsageFlags& flags);
     void SetAllRenderTargetClearValue(const grfx::RenderTargetClearValue& value);
     void SetAllRenderTargetLoadOp(grfx::AttachmentLoadOp op);
@@ -98,6 +108,11 @@ struct RenderPassCreateInfo3
     grfx::AttachmentStoreOp      stencilStoreOp                                  = grfx::ATTACHMENT_STORE_OP_STORE;
     grfx::Ownership              ownership                                       = grfx::OWNERSHIP_REFERENCE;
 
+    // If `pShadingRatePattern` is not null, then the pipeline targeting this
+    // RenderPass must use the same shading rate mode
+    // (`GraphicsPipelineCreateInfo.shadingRateMode`).
+    grfx::ShadingRatePatternPtr pShadingRatePattern = nullptr;
+
     void SetAllRenderTargetClearValue(const grfx::RenderTargetClearValue& value);
     void SetAllRenderTargetLoadOp(grfx::AttachmentLoadOp op);
     void SetAllRenderTargetStoreOp(grfx::AttachmentStoreOp op);
@@ -116,12 +131,13 @@ struct RenderPassCreateInfo
         CREATE_INFO_VERSION_3         = 3,
     };
 
-    grfx::Ownership     ownership         = grfx::OWNERSHIP_REFERENCE;
-    CreateInfoVersion   version           = CREATE_INFO_VERSION_UNDEFINED;
-    uint32_t            width             = 0;
-    uint32_t            height            = 0;
-    uint32_t            renderTargetCount = 0;
-    grfx::ResourceState depthStencilState = grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE;
+    grfx::Ownership           ownership           = grfx::OWNERSHIP_REFERENCE;
+    CreateInfoVersion         version             = CREATE_INFO_VERSION_UNDEFINED;
+    uint32_t                  width               = 0;
+    uint32_t                  height              = 0;
+    uint32_t                  renderTargetCount   = 0;
+    grfx::ResourceState       depthStencilState   = grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE;
+    grfx::ShadingRatePattern* pShadingRatePattern = nullptr;
 
     // Data unique to grfx::RenderPassCreateInfo
     struct

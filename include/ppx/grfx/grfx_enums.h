@@ -259,6 +259,13 @@ enum Filter
     FILTER_LINEAR  = 1,
 };
 
+enum ShadingRateMode
+{
+    SHADING_RATE_NONE = 0,
+    SHADING_RATE_FDM  = 1, // Fragment Density Map
+    SHADING_RATE_VRS  = 2, // Variable Rate Shading
+};
+
 enum FrontFace
 {
     FRONT_FACE_CCW = 0, // Counter clockwise
@@ -405,6 +412,8 @@ enum ResourceState
     RESOURCE_STATE_PRESENT,
     RESOURCE_STATE_PREDICATION,
     RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE,
+    RESOURCE_STATE_FRAGMENT_DENSITY_MAP_ATTACHMENT,
+    RESOURCE_STATE_FRAGMENT_SHADING_RATE_ATTACHMENT,
 };
 
 enum SamplerAddressMode

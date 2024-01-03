@@ -231,6 +231,12 @@ inline std::string FloatString(float value, int precision = 6, int width = 6)
     return ss.str();
 }
 
+struct Extent2D
+{
+    uint32_t width;
+    uint32_t height;
+};
+
 } // namespace ppx
 
 #endif // ppx_util_h

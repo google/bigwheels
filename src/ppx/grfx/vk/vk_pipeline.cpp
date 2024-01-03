@@ -461,7 +461,7 @@ Result GraphicsPipeline::CreateApiObjects(const grfx::GraphicsPipelineCreateInfo
         return ppxres;
     }
 
-    VkRenderPassPtr renderPass = VK_NULL_HANDLE;
+    VkRenderPassPtr       renderPass = VK_NULL_HANDLE;
     std::vector<VkFormat> renderTargetFormats;
     for (uint32_t i = 0; i < pCreateInfo->outputState.renderTargetCount; ++i) {
         renderTargetFormats.push_back(ToVkFormat(pCreateInfo->outputState.renderTargetFormats[i]));
@@ -489,12 +489,13 @@ Result GraphicsPipeline::CreateApiObjects(const grfx::GraphicsPipelineCreateInfo
         //
 
         VkResult vkres = vk::CreateTransientRenderPass(
-            ToApi(GetDevice())->GetVkDevice(),
+            ToApi(GetDevice()),
             CountU32(renderTargetFormats),
             DataPtr(renderTargetFormats),
             depthStencilFormat,
             ToVkSampleCount(pCreateInfo->rasterState.rasterizationSamples),
-            &renderPass);
+            &renderPass,
+            pCreateInfo->shadingRateMode);
         if (vkres != VK_SUCCESS) {
             PPX_ASSERT_MSG(false, "vk::CreateTransientRenderPass failed: " << ToString(vkres));
             return ppx::ERROR_API_FAILURE;
@@ -520,6 +521,15 @@ Result GraphicsPipeline::CreateApiObjects(const grfx::GraphicsPipelineCreateInfo
     vkci.subpass             = 0; // One subpass to rule them all
     vkci.basePipelineHandle  = VK_NULL_HANDLE;
     vkci.basePipelineIndex   = -1;
+
+    // [VRS] set pipeline shading rate
+    VkPipelineFragmentShadingRateStateCreateInfoKHR shadingRate = {VK_STRUCTURE_TYPE_PIPELINE_FRAGMENT_SHADING_RATE_STATE_CREATE_INFO_KHR};
+    if (pCreateInfo->shadingRateMode == SHADING_RATE_VRS) {
+        shadingRate.fragmentSize   = VkExtent2D{1, 1};
+        shadingRate.combinerOps[0] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR;
+        shadingRate.combinerOps[1] = VK_FRAGMENT_SHADING_RATE_COMBINER_OP_REPLACE_KHR;
+        InsertPNext(vkci, shadingRate);
+    }
 
     VkResult vkres = vkCreateGraphicsPipelines(
         ToApi(GetDevice())->GetVkDevice(),

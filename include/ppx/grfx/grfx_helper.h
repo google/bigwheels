@@ -213,16 +213,16 @@ struct ImageUsageFlags
     {
         struct
         {
-            bool transferSrc            : 1;
-            bool transferDst            : 1;
-            bool sampled                : 1;
-            bool storage                : 1;
-            bool colorAttachment        : 1;
-            bool depthStencilAttachment : 1;
-            bool transientAttachment    : 1;
-            bool inputAttachment        : 1;
-            bool shadingRateImageNv     : 1;
-            bool fragmentDensityMap     : 1;
+            bool transferSrc                   : 1;
+            bool transferDst                   : 1;
+            bool sampled                       : 1;
+            bool storage                       : 1;
+            bool colorAttachment               : 1;
+            bool depthStencilAttachment        : 1;
+            bool transientAttachment           : 1;
+            bool inputAttachment               : 1;
+            bool fragmentDensityMap            : 1;
+            bool fragmentShadingRateAttachment : 1;
         } bits;
         uint32_t flags;
     };

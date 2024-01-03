@@ -225,6 +225,16 @@ static VkResult CmdTransitionImageLayout(
             srcStageMask  = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             srcAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
         } break;
+
+        case VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT: {
+            srcStageMask  = VK_PIPELINE_STAGE_FRAGMENT_DENSITY_PROCESS_BIT_EXT;
+            srcAccessMask = VK_ACCESS_FRAGMENT_DENSITY_MAP_READ_BIT_EXT;
+        } break;
+
+        case VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR: {
+            srcStageMask  = VK_PIPELINE_STAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
+            srcAccessMask = VK_ACCESS_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR;
+        } break;
     }
 
     switch (newLayout) {
@@ -283,6 +293,16 @@ static VkResult CmdTransitionImageLayout(
         case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR: {
             dstStageMask  = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
             dstAccessMask = 0;
+        } break;
+
+        case VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT: {
+            dstStageMask  = VK_PIPELINE_STAGE_FRAGMENT_DENSITY_PROCESS_BIT_EXT;
+            dstAccessMask = VK_ACCESS_FRAGMENT_DENSITY_MAP_READ_BIT_EXT;
+        } break;
+
+        case VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR: {
+            dstStageMask  = VK_PIPELINE_STAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
+            dstAccessMask = VK_ACCESS_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR;
         } break;
     }
 
