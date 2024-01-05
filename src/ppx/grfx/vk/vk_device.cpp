@@ -162,24 +162,31 @@ Result Device::ConfigureExtensions(const grfx::DeviceCreateInfo* pCreateInfo)
     }
 
     // Variable rate shading
-    if (ElementExists(std::string(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME), mFoundExtensions) &&
-        ElementExists(std::string(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME), mFoundExtensions)) {
+    if (pCreateInfo->supportShadingRateMode == SHADING_RATE_FDM) {
+        PPX_ASSERT_MSG(
+            ElementExists(std::string(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME), mFoundExtensions),
+            "VRS shading rate requires unsupported extension " << VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME);
         mExtensions.push_back(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME);
-        mExtensions.push_back(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
 
-        mHasVRSExtensions = true;
+        PPX_ASSERT_MSG(
+            ElementExists(std::string(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME), mFoundExtensions),
+            "VRS shading rate requires unsupported extension " << VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
+        mExtensions.push_back(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
     }
 
     // Fragment density map
-    if (ElementExists(std::string(VK_EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME), mFoundExtensions) &&
-        ElementExists(std::string(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME), mFoundExtensions)) {
+    if (pCreateInfo->supportShadingRateMode == SHADING_RATE_FDM) {
+        PPX_ASSERT_MSG(
+            ElementExists(std::string(VK_EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME), mFoundExtensions),
+            "FDM shading rate requires unsupported extension " << VK_EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME);
         mExtensions.push_back(VK_EXT_FRAGMENT_DENSITY_MAP_EXTENSION_NAME);
 
         // VK_KHR_create_renderpass2 is not required for FDM, but simplifies
         // code to create the RenderPass.
+        PPX_ASSERT_MSG(
+            ElementExists(std::string(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME), mFoundExtensions),
+            "FDM shading rate requires unsupported extension " << VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
         mExtensions.push_back(VK_KHR_CREATE_RENDERPASS_2_EXTENSION_NAME);
-
-        mHasFDMExtensions = true;
     }
 
 #if defined(PPX_VK_EXTENDED_DYNAMIC_STATE)
@@ -291,32 +298,24 @@ Result Device::ConfigureFeatures(const grfx::DeviceCreateInfo* pCreateInfo, VkPh
 void Device::ConfigureShadingRateCapabilities(const grfx::DeviceCreateInfo* pCreateInfo, grfx::ShadingRateCapabilities* pShadingRateCapabilities)
 {
     *pShadingRateCapabilities = {};
+    if (pCreateInfo->supportShadingRateMode == SHADING_RATE_NONE) {
+        return;
+    }
 
     VkInstance       instance       = ToApi(GetInstance())->GetVkInstance();
     VkPhysicalDevice physicalDevice = ToApi(pCreateInfo->pGpu)->GetVkGpu();
 
     mFnGetPhysicalDeviceFeatures2 =
         reinterpret_cast<PFN_vkGetPhysicalDeviceFeatures2>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceFeatures2"));
-    if (mFnGetPhysicalDeviceFeatures2 == nullptr) {
-        PPX_LOG_WARN("ConfigureShadingRateCapabilities: Failed to load vkGetPhysicalDeviceFeatures2");
-        return;
-    }
+    PPX_ASSERT_MSG(
+        mFnGetPhysicalDeviceFeatures2 != nullptr,
+        "ConfigureShadingRateCapabilities: Failed to load vkGetPhysicalDeviceFeatures2");
 
     mFnGetPhysicalDeviceProperties2 =
         reinterpret_cast<PFN_vkGetPhysicalDeviceProperties2>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceProperties2"));
-    if (mFnGetPhysicalDeviceProperties2 == nullptr) {
-        PPX_LOG_WARN("ConfigureShadingRateCapabilities: Failed to load vkGetPhysicalDeviceProperties2");
-        return;
-    }
-
-    if (mHasVRSExtensions) {
-        mFnGetPhysicalDeviceFragmentShadingRatesKHR =
-            reinterpret_cast<PFN_vkGetPhysicalDeviceFragmentShadingRatesKHR>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceFragmentShadingRatesKHR"));
-        if (mFnGetPhysicalDeviceFragmentShadingRatesKHR == nullptr) {
-            PPX_LOG_WARN("ConfigureShadingRateCapabilities: Failed to load vkGetPhysicalDeviceFragmentShadingRatesKHR");
-            return;
-        }
-    }
+    PPX_ASSERT_MSG(
+        mFnGetPhysicalDeviceProperties2 != nullptr,
+        "ConfigureShadingRateCapabilities: Failed to load vkGetPhysicalDeviceProperties2");
 
     pShadingRateCapabilities->supportedShadingRateMode = pCreateInfo->supportShadingRateMode;
 
@@ -333,10 +332,6 @@ void Device::ConfigureFDMShadingRateCapabilities(
     VkPhysicalDevice               physicalDevice,
     grfx::ShadingRateCapabilities* pShadingRateCapabilities)
 {
-    if (!mHasFDMExtensions) {
-        return;
-    }
-
     VkPhysicalDeviceFeatures2                     features    = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
     VkPhysicalDeviceFragmentDensityMapFeaturesEXT fdmFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_FEATURES_EXT};
     InsertPNext(features, fdmFeatures);
@@ -363,10 +358,6 @@ void Device::ConfigureVRSShadingRateCapabilities(
     VkPhysicalDevice               physicalDevice,
     grfx::ShadingRateCapabilities* pShadingRateCapabilities)
 {
-    if (!mHasVRSExtensions) {
-        return;
-    }
-
     VkPhysicalDeviceFeatures2                      features    = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
     VkPhysicalDeviceFragmentShadingRateFeaturesKHR vrsFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_FEATURES_KHR};
     InsertPNext(features, vrsFeatures);
@@ -395,6 +386,13 @@ void Device::ConfigureVRSShadingRateCapabilities(
 
     uint32_t& supportedRateCount = pShadingRateCapabilities->vrs.supportedRateCount;
     Extent2D* supportedRates     = pShadingRateCapabilities->vrs.supportedRates;
+
+    VkInstance instance = ToApi(GetInstance())->GetVkInstance();
+    mFnGetPhysicalDeviceFragmentShadingRatesKHR =
+        reinterpret_cast<PFN_vkGetPhysicalDeviceFragmentShadingRatesKHR>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceFragmentShadingRatesKHR"));
+    PPX_ASSERT_MSG(
+        mFnGetPhysicalDeviceFragmentShadingRatesKHR != nullptr,
+        "ConfigureVRSShadingRateCapabilities: Failed to load vkGetPhysicalDeviceFragmentShadingRatesKHR");
 
     VkResult vkres = mFnGetPhysicalDeviceFragmentShadingRatesKHR(physicalDevice, &supportedRateCount, nullptr);
     PPX_ASSERT_MSG(vkres == VK_SUCCESS, "vkGetPhysicalDeviceFragmentShadingRatesKHR failed");

@@ -112,8 +112,6 @@ private:
     bool                                           mHasExtendedDynamicState                    = false;
     bool                                           mHasUnrestrictedDepthRange                  = false;
     bool                                           mHasDynamicRendering                        = false;
-    bool                                           mHasFDMExtensions                           = false;
-    bool                                           mHasVRSExtensions                           = false;
     PFN_vkResetQueryPoolEXT                        mFnResetQueryPoolEXT                        = nullptr;
     uint32_t                                       mGraphicsQueueFamilyIndex                   = 0;
     uint32_t                                       mComputeQueueFamilyIndex                    = 0;
