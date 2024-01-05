@@ -162,7 +162,7 @@ Result Device::ConfigureExtensions(const grfx::DeviceCreateInfo* pCreateInfo)
     }
 
     // Variable rate shading
-    if (pCreateInfo->supportShadingRateMode == SHADING_RATE_FDM) {
+    if (pCreateInfo->supportShadingRateMode == SHADING_RATE_VRS) {
         PPX_ASSERT_MSG(
             ElementExists(std::string(VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME), mFoundExtensions),
             "VRS shading rate requires unsupported extension " << VK_KHR_FRAGMENT_SHADING_RATE_EXTENSION_NAME);
