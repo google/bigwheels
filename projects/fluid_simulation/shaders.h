@@ -15,7 +15,6 @@
 #include "ppx/math_config.h"
 
 #include <iostream>
-#include <unordered_map>
 
 namespace FluidSim {
 
@@ -101,222 +100,47 @@ private:
 // NOTE: Fields are organized so that they are packed into 4 word component vectors
 // to match the HLSL packing rules (https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-packing-rules)
 //
-// This must match the CSInputs structure in assets/fluid_simulation/shaders/config.hlsli.
+// This MUST match the CSInputs structure in assets/fluid_simulation/shaders/config.hlsli.
 struct alignas(16) ScalarInput
 {
-    ScalarInput(SimulationGrid* output)
-        : texelSize(),
-          coordinate(),
-          color(),
-          curve(),
-          intensity(),
-          ditherScale(),
-          dyeTexelSize(),
-          threshold(),
-          aspectRatio(),
-          clearValue(),
-          dissipation(),
-          dt(),
-          radius(),
-          weight(),
-          curl(),
-          normalizationScale(1.0f / output->GetWidth(), 1.0f / output->GetHeight()) {}
-
-    ppx::float2 texelSize;
-    ppx::float2 coordinate;
-
-    ppx::float4 color;
-
-    ppx::float3 curve;
-    float       intensity;
-
-    ppx::float2 ditherScale;
-    ppx::float2 dyeTexelSize;
-
-    float threshold;
-    float aspectRatio;
-    float clearValue;
-    float dissipation;
-
-    float dt;
-    float radius;
-    float weight;
-    float curl;
-
-    ppx::float2 normalizationScale;
+    ppx::float2 texelSize          = ppx::float2();
+    ppx::float2 coordinate         = ppx::float2();
+    ppx::float4 color              = ppx::float4();
+    ppx::float3 curve              = ppx::float3();
+    float       intensity          = .0f;
+    ppx::float2 ditherScale        = ppx::float2();
+    ppx::float2 dyeTexelSize       = ppx::float2();
+    float       threshold          = .0f;
+    float       aspectRatio        = .0f;
+    float       clearValue         = .0f;
+    float       dissipation        = .0f;
+    float       dt                 = .0f;
+    float       radius             = .0f;
+    float       weight             = .0f;
+    float       curl               = .0f;
+    ppx::float2 normalizationScale = ppx::float2();
 };
 
 class ComputeShader
 {
 public:
-    ComputeShader(const std::string& shaderFile);
+    ComputeShader(const std::string& shaderFile, const std::vector<uint32_t>& gridBindingSlots);
+
     const std::string& GetName() const { return mShaderFile; }
 
-protected:
     // Add a dispatch call to this shader in the given frame's command buffer.
     //
     // frame    The frame holding the command buffer to schedule into.
-    // output   The grid where the compute shader will emit its output to.
-    // ds       The descriptor set to use with all the input and output grinds bound.
-    // si       The scalar inputs to the compute shader.
-    void Dispatch(PerFrame* frame, SimulationGrid* output, ComputeDispatchData* ds, const ScalarInput& si);
+    // grids    A list of grids to be bound to the descriptor set. This list is assumed to be
+    //              in the same order as the list of binding slots (mGridBindingSlots) set during
+    //              construction.
+    // si       A pointer to the scalar inputs to the compute shader.
+    void Dispatch(PerFrame* pFrame, const std::vector<SimulationGrid*>& grids, ScalarInput* si);
 
 private:
     ppx::grfx::ComputePipelinePtr mPipeline;
     std::string                   mShaderFile;
-};
-
-class AdvectionShader : public ComputeShader
-{
-public:
-    AdvectionShader()
-        : ComputeShader("advection") {}
-
-    void Dispatch(PerFrame* frame, SimulationGrid* uVelocity, SimulationGrid* uSource, SimulationGrid* output, float delta, float dissipation, ppx::float2 texelSize, ppx::float2 dyeTexelSize);
-};
-
-class BloomBlurShader : public ComputeShader
-{
-public:
-    BloomBlurShader()
-        : ComputeShader("bloom_blur") {}
-
-    void Dispatch(PerFrame* frame, SimulationGrid* uTexture, SimulationGrid* output, ppx::float2 texelSize);
-};
-
-class BloomBlurAdditiveShader : public ComputeShader
-{
-public:
-    BloomBlurAdditiveShader()
-        : ComputeShader("bloom_blur_additive") {}
-
-    void Dispatch(PerFrame* frame, SimulationGrid* uTexture, SimulationGrid* output, ppx::float2 texelSize);
-};
-
-class BloomFinalShader : public ComputeShader
-{
-public:
-    BloomFinalShader()
-        : ComputeShader("bloom_final") {}
-
-    void Dispatch(PerFrame* frame, SimulationGrid* uTexture, SimulationGrid* output, ppx::float2 texelSize, float intensity);
-};
-
-class BloomPrefilterShader : public ComputeShader
-{
-public:
-    BloomPrefilterShader()
-        : ComputeShader("bloom_prefilter") {}
-
-    void Dispatch(PerFrame* frame, SimulationGrid* uTexture, SimulationGrid* output, ppx::float3 curve, float threshold);
-};
-
-class BlurShader : public ComputeShader
-{
-public:
-    BlurShader()
-        : ComputeShader("blur") {}
-
-    void Dispatch(PerFrame* frame, SimulationGrid* uTexture, SimulationGrid* output, ppx::float2 texelSize);
-};
-
-class ClearShader : public ComputeShader
-{
-public:
-    ClearShader()
-        : ComputeShader("clear") {}
-
-    void Dispatch(PerFrame* frame, SimulationGrid* uTexture, SimulationGrid* output, float clearValue);
-};
-
-class ColorShader : public ComputeShader
-{
-public:
-    ColorShader()
-        : ComputeShader("color") {}
-
-    void Dispatch(PerFrame* frame, SimulationGrid* output, ppx::float4 color);
-};
-
-class CurlShader : public ComputeShader
-{
-public:
-    CurlShader()
-        : ComputeShader("curl") {}
-
-    void Dispatch(PerFrame* frame, SimulationGrid* uVelocity, SimulationGrid* output, ppx::float2 texelSize);
-};
-
-class DisplayShader : public ComputeShader
-{
-public:
-    DisplayShader()
-        : ComputeShader("display") {}
-
-    void Dispatch(PerFrame* frame, SimulationGrid* uTexture, SimulationGrid* uBloom, SimulationGrid* uSunrays, SimulationGrid* uDithering, SimulationGrid* output, ppx::float2 texelSize, ppx::float2 ditherScale);
-};
-
-class DivergenceShader : public ComputeShader
-{
-public:
-    DivergenceShader()
-        : ComputeShader("divergence") {}
-
-    void Dispatch(PerFrame* frame, SimulationGrid* uVelocity, SimulationGrid* output, ppx::float2 texelSize);
-};
-
-class GradientSubtractShader : public ComputeShader
-{
-public:
-    GradientSubtractShader()
-        : ComputeShader("gradient_subtract") {}
-
-    void Dispatch(PerFrame* frame, SimulationGrid* uPressure, SimulationGrid* uVelocity, SimulationGrid* output, ppx::float2 texelSize);
-};
-
-class PressureShader : public ComputeShader
-{
-public:
-    PressureShader()
-        : ComputeShader("pressure") {}
-
-    void Dispatch(PerFrame* frame, SimulationGrid* uPressure, SimulationGrid* uDivergence, SimulationGrid* output, ppx::float2 texelSize);
-};
-
-class SplatShader : public ComputeShader
-{
-public:
-    SplatShader()
-        : ComputeShader("splat") {}
-
-    void Dispatch(PerFrame* frame, SimulationGrid* uTexture, SimulationGrid* output, ppx::float2 coordinate, float aspectRatio, float radius, ppx::float4 color);
-};
-
-class SunraysMaskShader : public ComputeShader
-{
-public:
-    SunraysMaskShader()
-        : ComputeShader("sunrays_mask") {}
-
-    void Dispatch(PerFrame* frame, SimulationGrid* uTexture, SimulationGrid* output);
-};
-
-class SunraysShader : public ComputeShader
-{
-public:
-    SunraysShader()
-        : ComputeShader("sunrays") {}
-
-    void Dispatch(PerFrame* frame, SimulationGrid* uTexture, SimulationGrid* output, float weight);
-};
-
-class VorticityShader : public ComputeShader
-{
-public:
-    VorticityShader()
-        : ComputeShader("vorticity") {}
-
-    void Dispatch(PerFrame* frame, SimulationGrid* uVelocity, SimulationGrid* uCurl, SimulationGrid* output, ppx::float2 texelSize, float curl, float delta);
+    std::vector<uint32_t>         mGridBindingSlots;
 };
 
 } // namespace FluidSim

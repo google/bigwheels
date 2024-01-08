@@ -47,11 +47,6 @@ generate_rules_for_shader("shader_fluidsim_clear"
     INCLUDES ${INCLUDE_FILES}
     STAGES "cs")
 
-generate_rules_for_shader("shader_fluidsim_color"
-    SOURCE "${PPX_DIR}/assets/fluid_simulation/shaders/color.hlsl"
-    INCLUDES ${INCLUDE_FILES}
-    STAGES "cs")
-
 generate_rules_for_shader("shader_fluidsim_copy"
     SOURCE "${PPX_DIR}/assets/fluid_simulation/shaders/copy.hlsl"
     INCLUDES ${INCLUDE_FILES}
@@ -125,7 +120,6 @@ generate_group_rule_for_shader(
     "shader_fluidsim_blur_vert"
     "shader_fluidsim_checkerboard"
     "shader_fluidsim_clear"
-    "shader_fluidsim_color"
     "shader_fluidsim_copy"
     "shader_fluidsim_curl"
     "shader_fluidsim_display"

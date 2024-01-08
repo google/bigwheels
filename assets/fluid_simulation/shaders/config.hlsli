@@ -84,7 +84,7 @@ ConstantBuffer<CSInput> Params : register(b0);
 
 SamplerState ClampSampler : register(s1);
 
-// Used by clear.hlsl and splat.hlsl.
+// Used by bloom*.hlsl, clear.hlsl, copy.hlsl, display.hlsl, splat.hlsl, sunrays*.hlsl.
 Texture2D UTexture : register(t2);
 
 // Used by vorticity.hlsl, advection.hlsl, curl.hlsl, divergence.hlsl, gradient_subtract.hlsl.
