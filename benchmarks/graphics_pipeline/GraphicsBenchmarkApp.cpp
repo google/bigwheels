@@ -1075,14 +1075,9 @@ void GraphicsBenchmarkApp::Render()
     frame.timestampQuery->Reset(/* firstQuery= */ 0, frame.timestampQuery->GetCount());
 
     // Update scene data
-    frame.sceneData.viewProjectionMatrix = mCamera.GetViewProjectionMatrix();
-#if defined(PPX_BUILD_XR)
-    if (IsXrEnabled()) {
-        const glm::mat4 v                    = GetXrComponent().GetViewMatrixForCurrentView();
-        const glm::mat4 p                    = GetXrComponent().GetProjectionMatrixForCurrentViewAndSetFrustumPlanes(PPX_CAMERA_DEFAULT_NEAR_CLIP, PPX_CAMERA_DEFAULT_FAR_CLIP);
-        frame.sceneData.viewProjectionMatrix = p * v;
-    }
-#endif
+
+    const Camera& camera                 = GetCamera();
+    frame.sceneData.viewProjectionMatrix = camera.GetViewProjectionMatrix();
 
     RenderPasses swapchainRenderPasses = SwapchainRenderPasses(swapchain, imageIndex);
     RenderPasses renderPasses          = swapchainRenderPasses;
@@ -1716,4 +1711,14 @@ void GraphicsBenchmarkApp::SetupShader(const char* baseDir, const std::filesyste
     PPX_ASSERT_MSG(!bytecode.empty(), "shader bytecode load failed for " << kShaderBaseDir << " " << fileName);
     grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
     PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, ppShaderModule));
+}
+
+const ppx::Camera& GraphicsBenchmarkApp::GetCamera()
+{
+#if defined(PPX_BUILD_XR)
+    if (IsXrEnabled()) {
+        return GetXrComponent().GetCamera();
+    }
+#endif
+    return mCamera;
 }

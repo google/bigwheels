@@ -136,7 +136,7 @@ void CubeXrApp::Setup()
     // Vertex buffer and geometry data
     {
         // clang-format off
-        std::vector<float> vertexData = {  
+        std::vector<float> vertexData = {
             // position          // vertex colors
             -1.0f,-1.0f,-1.0f,   1.0f, 0.0f, 0.0f,  // -Z side
              1.0f, 1.0f,-1.0f,   1.0f, 0.0f, 0.0f,
@@ -275,8 +275,10 @@ void CubeXrApp::Render()
         float4x4 V = glm::lookAt(float3(0, 0, 0), float3(0, 0, 1), float3(0, 1, 0));
 
         if (IsXrEnabled()) {
-            P = GetXrComponent().GetProjectionMatrixForCurrentViewAndSetFrustumPlanes(0.001f, 10000.0f);
-            V = GetXrComponent().GetViewMatrixForCurrentView();
+            GetXrComponent().SetFrustumPlanes(0.001f, 10000.0f);
+            const Camera& camera = GetXrComponent().GetCamera();
+            P                    = camera.GetProjectionMatrix();
+            V                    = camera.GetViewMatrix();
         }
         float4x4 M   = glm::translate(float3(0, 0, -3)) * glm::rotate(t, float3(0, 0, 1)) * glm::rotate(t, float3(0, 1, 0)) * glm::rotate(t, float3(1, 0, 0));
         float4x4 mat = P * V * M;

@@ -298,7 +298,7 @@ struct ApplicationSettings
 
     struct
     {
-        grfx::Api api               = grfx::API_UNDEFINED;
+        grfx::Api api = grfx::API_UNDEFINED;
 
 #if !defined(NDEBUG) && !defined(PPX_ANDROID)
         // Enable debug for debug builds, unless it is an android build.
@@ -309,8 +309,8 @@ struct ApplicationSettings
         bool enableDebug = false;
 #endif
 
-        uint32_t  numFramesInFlight = 1;
-        uint32_t  pacedFrameRate    = 60;
+        uint32_t numFramesInFlight = 1;
+        uint32_t pacedFrameRate    = 60;
 
         struct
         {
@@ -532,7 +532,12 @@ public:
     virtual bool RecordMetricData(metrics::MetricID id, const metrics::MetricData& data);
 
 #if defined(PPX_BUILD_XR)
-    virtual XrComponent& GetXrComponent()
+    XrComponent& GetXrComponent()
+    {
+        return mXrComponent;
+    }
+
+    const XrComponent& GetXrComponent() const
     {
         return mXrComponent;
     }
