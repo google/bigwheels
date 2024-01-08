@@ -205,7 +205,7 @@ public:
     // dr    Dispatch record to use.
     void Dispatch(const PerFrame& frame, const std::unique_ptr<ComputeDispatchRecord>& dr);
 
-    ComputeResources* GetResources() const { return mResources; }
+    const ComputeResources* GetResources() const { return mResources; }
 
 private:
     ppx::grfx::ComputePipelinePtr mPipeline;
@@ -627,7 +627,7 @@ public:
         return std::make_unique<GraphicsDispatchRecord>(this, image, coord, mResolution);
     }
 
-    GraphicsResources* GetResources() const { return mResources; }
+    const GraphicsResources* GetResources() const { return mResources; }
 
 private:
     ppx::grfx::GraphicsPipelinePtr mPipeline;
