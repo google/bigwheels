@@ -141,12 +141,12 @@ private:
 
     // Grids used for filtering.
     std::vector<std::unique_ptr<SimulationGrid>> mBloomGrids;
-    std::unique_ptr<SimulationGrid>              mBloomGrid        = nullptr;
-    std::unique_ptr<SimulationGrid>              mCurlGrid         = nullptr;
-    std::unique_ptr<SimulationGrid>              mDisplayGrid      = nullptr;
-    std::unique_ptr<SimulationGrid>              mDitheringGrid    = nullptr;
-    std::unique_ptr<SimulationGrid>              mDivergenceGrid   = nullptr;
-    std::unique_ptr<SimulationGrid>              mDrawColorGrid    = nullptr;
+    std::unique_ptr<SimulationGrid>              mBloomGrid      = nullptr;
+    std::unique_ptr<SimulationGrid>              mCurlGrid       = nullptr;
+    std::unique_ptr<SimulationGrid>              mDisplayGrid    = nullptr;
+    std::unique_ptr<SimulationGrid>              mDitheringGrid  = nullptr;
+    std::unique_ptr<SimulationGrid>              mDivergenceGrid = nullptr;
+    std::unique_ptr<SimulationGrid>              mDrawColorGrid  = nullptr;
     std::unique_ptr<SimulationGrid>              mDyeGrid[2];
     std::unique_ptr<SimulationGrid>              mPressureGrid[2];
     std::unique_ptr<SimulationGrid>              mSunraysTempGrid = nullptr;
