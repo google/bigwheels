@@ -15,6 +15,9 @@
 #ifndef PPX_XR_COMPONENT_H
 #define PPX_XR_COMPONENT_H
 
+// Keep before <d3d12.h>, so <windows.h> stop adding min/max macros.
+#include "ppx/config.h"
+
 #if defined(PPX_BUILD_XR)
 
 #if defined(PPX_D3D12)
