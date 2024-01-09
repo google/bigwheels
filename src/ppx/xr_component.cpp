@@ -15,6 +15,7 @@
 #if defined(PPX_BUILD_XR)
 #include <queue>
 #include <string_view>
+#include "ppx/math_config.h"
 #include "ppx/xr_component.h"
 #include "ppx/xr_composition_layers.h"
 #include "ppx/grfx/grfx_instance.h"
@@ -874,8 +875,8 @@ void XrCamera::SetFrustumPlanes(float nearZ, float farZ)
 
 void XrCamera::UpdateCamera()
 {
-    const float3 forward = float3(0, 0, -1);
-    const float3 up      = float3(0, 1, 0);
+    const float3 forward = PPX_CAMERA_DEFAULT_VIEW_DIRECTION;
+    const float3 up      = PPX_CAMERA_DEFAULT_WORLD_UP;
     // Given:
     //   - mPixelAligned
     //   - mNearClip, mFarClip
@@ -899,8 +900,8 @@ void XrCamera::UpdateCamera()
         const float down = tanf(fov.angleDown) * mNearClip;
         const float up   = tanf(fov.angleUp) * mNearClip;
 
-        // Not sure why it is frustumRH_ZO
-        mProjectionMatrix = glm::frustumRH_ZO(left, right, down, up, mNearClip, mFarClip);
+        // Note: the current variant in use is frustumRH_ZO.
+        mProjectionMatrix = glm::frustum(left, right, down, up, mNearClip, mFarClip);
     }
     // Calculate view
     {

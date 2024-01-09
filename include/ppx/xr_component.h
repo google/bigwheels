@@ -260,7 +260,8 @@ private:
     std::vector<XrView>                  mViews;
     std::vector<XrEnvironmentBlendMode>  mBlendModes;
     uint32_t                             mCurrentViewIndex = 0;
-    std::vector<XrCamera>                mCameras;
+    // mCameras[i] corresponds to mViews[i]
+    std::vector<XrCamera> mCameras;
 
     std::unordered_map<LayerRef, std::unique_ptr<XrLayerBase>> mLayers;
     LayerRef                                                   mNextLayerRef = 0;
