@@ -572,7 +572,10 @@ private:
     // Processing changed state
     void ProcessInput();
     void ProcessKnobs();
+    // Process quad/sphere knobs, return if any of them has been updated.
+    bool ProcessSphereKnobs();
     bool ProcessQuadsKnobs();
+    bool ProcessOffscreenRenderKnobs();
 
     // Drawing GUI
     void UpdateGUI();

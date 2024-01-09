@@ -1,4 +1,4 @@
-// Copyright 2023 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef ppx_moving_average_h
-#define ppx_moving_average_h
+#ifndef ppx_ui_util_h
+#define ppx_ui_util_h
 
 #include <cmath>
 #include <cstdint>
@@ -31,7 +31,11 @@ struct ParallelVariance
     FloatT mean   = 0.0;
     FloatT accVar = 0.0;
 
-    static ParallelVariance Combind(const ParallelVariance& a, const ParallelVariance& b)
+    FloatT Mean() const { return mean; }
+    FloatT PopulationVariance() const { return accVar / weight; }
+    FloatT SampleVariance() const { return accVar / (weight - 1.0); }
+
+    static ParallelVariance Combine(const ParallelVariance& a, const ParallelVariance& b)
     {
         // Chan et al. online variance algorithm
         // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Parallel_algorithm
@@ -42,8 +46,8 @@ struct ParallelVariance
         const FloatT weight = a.weight + b.weight;
         return {
             weight,
-            a.mean + delta * b.weight / weight,
-            a.accVar + b.accVar + delta * delta * a.weight * b.weight / weight,
+            a.mean + delta * (b.weight / weight),
+            a.accVar + b.accVar + (delta * delta) * (a.weight * b.weight / weight),
         };
     }
 };
@@ -52,31 +56,30 @@ template <typename FloatT>
 class MovingAverage
 {
 public:
-    FloatT Mean() const { return mData.mean; }
-    FloatT Variance() const
-    {
-        // Avoid devide by 0, since when mAccVar != 0.0, we have mWeight >= 1.0.
-        // This is a population variance, not a sample variance.
-        return mData.accVar / std::max<float>(mData.weight, 1.0);
-    }
+    FloatT Mean() const { return mData.Mean(); }
+    FloatT Variance() const { return mVariance; }
 
     // Decay the weight applied to previous variables by multiplier
     void Decay(float multiplier)
     {
         mData = {mData.weight * multiplier, mData.mean, mData.accVar * multiplier};
+        // No update to the population variance.
     }
 
     void Append(FloatT value, FloatT weight = 1.0)
     {
-        mData = ParallelVariance<FloatT>::Combind(mData, {weight, value, 0.0});
+        mData     = ParallelVariance<FloatT>::Combine(mData, {weight, value, 0.0});
+        mVariance = mData.PopulationVariance();
     }
 
 private:
     ParallelVariance<FloatT> mData;
+    FloatT                   mVariance;
 };
 
 // Sequence of value for realtime UI display.
 // It keep track of the latest value and a weighted average where w_i = e^{(t_i-t_{now})/halfLife}
+// T is the type of value, FloatT is used for collecting statistics.
 template <typename T, typename FloatT = std::conditional_t<std::is_floating_point_v<T>, T, float>>
 class RealtimeValue
 {
@@ -121,4 +124,4 @@ private:
 
 } // namespace ppx
 
-#endif // ppx_moving_average_h
+#endif // ppx_ui_util_h
