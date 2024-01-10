@@ -275,7 +275,6 @@ void CubeXrApp::Render()
         float4x4 V = glm::lookAt(float3(0, 0, 0), float3(0, 0, 1), float3(0, 1, 0));
 
         if (IsXrEnabled()) {
-            GetXrComponent().SetFrustumPlanes(0.001f, 10000.0f);
             const Camera& camera = GetXrComponent().GetCamera();
             P                    = camera.GetProjectionMatrix();
             V                    = camera.GetViewMatrix();
