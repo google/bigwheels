@@ -50,26 +50,9 @@ Result Swapchain::Create(const grfx::SwapchainCreateInfo* pCreateInfo)
 
     // Create color images if needed. This is only needed if we're creating
     // a headless swapchain.
-    if (mColorImages.empty()) {
-        for (uint32_t i = 0; i < mCreateInfo.imageCount; ++i) {
-            grfx::ImageCreateInfo rtCreateInfo = ImageCreateInfo::RenderTarget2D(mCreateInfo.width, mCreateInfo.height, mCreateInfo.colorFormat);
-            rtCreateInfo.ownership             = grfx::OWNERSHIP_RESTRICTED;
-            rtCreateInfo.RTVClearValue         = {0.0f, 0.0f, 0.0f, 0.0f};
-            rtCreateInfo.initialState          = grfx::RESOURCE_STATE_PRESENT;
-            rtCreateInfo.usageFlags =
-                grfx::IMAGE_USAGE_COLOR_ATTACHMENT |
-                grfx::IMAGE_USAGE_TRANSFER_SRC |
-                grfx::IMAGE_USAGE_TRANSFER_DST |
-                grfx::IMAGE_USAGE_SAMPLED;
-
-            grfx::ImagePtr renderTarget;
-            ppxres = GetDevice()->CreateImage(&rtCreateInfo, &renderTarget);
-            if (Failed(ppxres)) {
-                return ppxres;
-            }
-
-            mColorImages.push_back(renderTarget);
-        }
+    ppxres = CreateColorImages();
+    if (Failed(ppxres)) {
+        return ppxres;
     }
 
     // Create depth images if needed. This is usually needed for both normal swapchains
@@ -81,7 +64,7 @@ Result Swapchain::Create(const grfx::SwapchainCreateInfo* pCreateInfo)
         return ppxres;
     }
 
-    ppxres = CreateRenderTargets();
+    ppxres = CreateRenderTargetViews();
     if (Failed(ppxres)) {
         return ppxres;
     }
@@ -118,7 +101,7 @@ void Swapchain::Destroy()
 {
     DestroyRenderPasses();
 
-    DestroyRenderTargets();
+    DestroyRenderTargetViews();
 
     DestroyDepthImages();
 
@@ -143,6 +126,67 @@ void Swapchain::Destroy()
     grfx::DeviceObject<grfx::SwapchainCreateInfo>::Destroy();
 }
 
+Result Swapchain::CreateColorImages()
+{
+    if (!mColorImages.empty()) {
+        return ppx::SUCCESS;
+    }
+    for (uint32_t i = 0; i < mCreateInfo.imageCount; ++i) {
+        grfx::ImageCreateInfo rtCreateInfo = ImageCreateInfo::RenderTarget2D(mCreateInfo.width, mCreateInfo.height, mCreateInfo.colorFormat);
+        rtCreateInfo.ownership             = grfx::OWNERSHIP_RESTRICTED;
+        rtCreateInfo.RTVClearValue         = {0.0f, 0.0f, 0.0f, 0.0f};
+        rtCreateInfo.initialState          = grfx::RESOURCE_STATE_PRESENT;
+        rtCreateInfo.usageFlags =
+            grfx::IMAGE_USAGE_COLOR_ATTACHMENT |
+            grfx::IMAGE_USAGE_TRANSFER_SRC |
+            grfx::IMAGE_USAGE_TRANSFER_DST |
+            grfx::IMAGE_USAGE_SAMPLED;
+
+        grfx::ImagePtr renderTarget;
+        Result         ppxres = GetDevice()->CreateImage(&rtCreateInfo, &renderTarget);
+        if (Failed(ppxres)) {
+            return ppxres;
+        }
+
+        mColorImages.push_back(renderTarget);
+    }
+    return ppx::SUCCESS;
+}
+
+Result Swapchain::CreateColorImagesFromApiObjects(const std::vector<void*>& apiObjects)
+{
+    PPX_ASSERT_MSG(mColorImages.empty(), "Swapchain color images already initialized.");
+
+    for (size_t i = 0; i < apiObjects.size(); ++i) {
+        grfx::ImageCreateInfo imageCreateInfo           = {};
+        imageCreateInfo.type                            = grfx::IMAGE_TYPE_2D;
+        imageCreateInfo.width                           = mCreateInfo.width;
+        imageCreateInfo.height                          = mCreateInfo.height;
+        imageCreateInfo.depth                           = 1;
+        imageCreateInfo.format                          = mCreateInfo.colorFormat;
+        imageCreateInfo.sampleCount                     = grfx::SAMPLE_COUNT_1;
+        imageCreateInfo.mipLevelCount                   = 1;
+        imageCreateInfo.arrayLayerCount                 = 1;
+        imageCreateInfo.usageFlags.bits.transferSrc     = true;
+        imageCreateInfo.usageFlags.bits.transferDst     = true;
+        imageCreateInfo.usageFlags.bits.sampled         = true;
+        imageCreateInfo.usageFlags.bits.storage         = true;
+        imageCreateInfo.usageFlags.bits.colorAttachment = true;
+        imageCreateInfo.pApiObject                      = apiObjects[i];
+
+        grfx::ImagePtr image;
+        Result         ppxres = GetDevice()->CreateImage(&imageCreateInfo, &image);
+        if (Failed(ppxres)) {
+            PPX_ASSERT_MSG(false, "grfx::Swapchain::CreateColorImagesFromApiObjects() failed");
+            return ppxres;
+        }
+
+        mColorImages.push_back(image);
+    }
+
+    return ppx::SUCCESS;
+}
+
 void Swapchain::DestroyColorImages()
 {
     for (auto& elem : mColorImages) {
@@ -155,20 +199,46 @@ void Swapchain::DestroyColorImages()
 
 Result Swapchain::CreateDepthImages()
 {
-    if ((mCreateInfo.depthFormat != grfx::FORMAT_UNDEFINED) && mDepthImages.empty()) {
-        for (uint32_t i = 0; i < mCreateInfo.imageCount; ++i) {
-            grfx::ImageCreateInfo dpCreateInfo = ImageCreateInfo::DepthStencilTarget(mCreateInfo.width, mCreateInfo.height, mCreateInfo.depthFormat);
-            dpCreateInfo.ownership             = grfx::OWNERSHIP_RESTRICTED;
-            dpCreateInfo.DSVClearValue         = {1.0f, 0xFF};
+    if (!mDepthImages.empty()) {
+        return ppx::SUCCESS;
+    }
+    if (mCreateInfo.depthFormat == grfx::FORMAT_UNDEFINED) {
+        return ppx::SUCCESS;
+    }
+    for (uint32_t i = 0; i < mCreateInfo.imageCount; ++i) {
+        grfx::ImageCreateInfo dpCreateInfo = ImageCreateInfo::DepthStencilTarget(mCreateInfo.width, mCreateInfo.height, mCreateInfo.depthFormat);
+        dpCreateInfo.ownership             = grfx::OWNERSHIP_RESTRICTED;
+        dpCreateInfo.DSVClearValue         = {1.0f, 0xFF};
 
-            grfx::ImagePtr depthStencilTarget;
-            auto           ppxres = GetDevice()->CreateImage(&dpCreateInfo, &depthStencilTarget);
-            if (Failed(ppxres)) {
-                return ppxres;
-            }
-
-            mDepthImages.push_back(depthStencilTarget);
+        grfx::ImagePtr depthStencilTarget;
+        auto           ppxres = GetDevice()->CreateImage(&dpCreateInfo, &depthStencilTarget);
+        if (Failed(ppxres)) {
+            return ppxres;
         }
+
+        mDepthImages.push_back(depthStencilTarget);
+    }
+
+    return ppx::SUCCESS;
+}
+
+Result Swapchain::CreateDepthImagesFromApiObjects(const std::vector<void*>& apiObjects)
+{
+    PPX_ASSERT_MSG(mDepthImages.empty(), "Swapchain depth images already initialized.");
+    PPX_ASSERT_MSG(mCreateInfo.depthFormat != grfx::FORMAT_UNDEFINED, "Swapchain depth format not specified.");
+
+    for (size_t i = 0; i < apiObjects.size(); ++i) {
+        grfx::ImageCreateInfo imageCreateInfo = grfx::ImageCreateInfo::DepthStencilTarget(mCreateInfo.width, mCreateInfo.height, mCreateInfo.depthFormat, grfx::SAMPLE_COUNT_1);
+        imageCreateInfo.pApiObject            = apiObjects[i];
+
+        grfx::ImagePtr image;
+        Result         ppxres = GetDevice()->CreateImage(&imageCreateInfo, &image);
+        if (Failed(ppxres)) {
+            PPX_ASSERT_MSG(false, "grfx::Swapchain::CreateDepthImagesFromApiObjects() failed");
+            return ppxres;
+        }
+
+        mDepthImages.push_back(image);
     }
 
     return ppx::SUCCESS;
@@ -184,7 +254,7 @@ void Swapchain::DestroyDepthImages()
     mDepthImages.clear();
 }
 
-Result Swapchain::CreateRenderTargets()
+Result Swapchain::CreateRenderTargetViews()
 {
     uint32_t imageCount = CountU32(mColorImages);
     PPX_ASSERT_MSG((imageCount > 0), "No color images found for swapchain renderpasses");
@@ -197,7 +267,7 @@ Result Swapchain::CreateRenderTargets()
         grfx::RenderTargetViewPtr rtv;
         Result                    ppxres = GetDevice()->CreateRenderTargetView(&rtvCreateInfo, &rtv);
         if (Failed(ppxres)) {
-            PPX_ASSERT_MSG(false, "grfx::Swapchain::CreateRenderTargets() for LOAD_OP_CLEAR failed");
+            PPX_ASSERT_MSG(false, "grfx::Swapchain::CreateRenderTargetViews() for LOAD_OP_CLEAR failed");
             return ppxres;
         }
         mClearRenderTargets.push_back(rtv);
@@ -205,7 +275,7 @@ Result Swapchain::CreateRenderTargets()
         rtvCreateInfo.loadOp = ppx::grfx::ATTACHMENT_LOAD_OP_LOAD;
         ppxres               = GetDevice()->CreateRenderTargetView(&rtvCreateInfo, &rtv);
         if (Failed(ppxres)) {
-            PPX_ASSERT_MSG(false, "grfx::Swapchain::CreateRenderTargets() for LOAD_OP_LOAD failed");
+            PPX_ASSERT_MSG(false, "grfx::Swapchain::CreateRenderTargetViews() for LOAD_OP_LOAD failed");
             return ppxres;
         }
         mLoadRenderTargets.push_back(rtv);
@@ -220,7 +290,7 @@ Result Swapchain::CreateRenderTargets()
             grfx::DepthStencilViewPtr dsv;
             ppxres = GetDevice()->CreateDepthStencilView(&dsvCreateInfo, &dsv);
             if (Failed(ppxres)) {
-                PPX_ASSERT_MSG(false, "grfx::Swapchain::CreateRenderTargets() for depth stencil view failed");
+                PPX_ASSERT_MSG(false, "grfx::Swapchain::CreateRenderTargetViews() for depth stencil view failed");
                 return ppxres;
             }
 
@@ -285,7 +355,7 @@ Result Swapchain::CreateRenderPasses()
     return ppx::SUCCESS;
 }
 
-void Swapchain::DestroyRenderTargets()
+void Swapchain::DestroyRenderTargetViews()
 {
     for (auto& rtv : mClearRenderTargets) {
         GetDevice()->DestroyRenderTargetView(rtv);
