@@ -875,8 +875,6 @@ void XrCamera::SetFrustumPlanes(float nearZ, float farZ)
 
 void XrCamera::UpdateCamera()
 {
-    const float3 forward = PPX_CAMERA_DEFAULT_VIEW_DIRECTION;
-    const float3 up      = PPX_CAMERA_DEFAULT_WORLD_UP;
     // Given:
     //   - mPixelAligned
     //   - mNearClip, mFarClip
@@ -889,6 +887,14 @@ void XrCamera::UpdateCamera()
     //   - mTarget
     //   - mWorldUp
     //   - all matrices (using LookAt)
+    //
+    // Note: bigwheels defaults matches some of OpenXR specification,
+    //       if we need ever change the default we will need to update this calculation.
+    // - Forward direction is (0,0,-1), and up is (0, 1, 0)
+    // - Right handed coordinate system
+
+    const float3 forward = PPX_CAMERA_DEFAULT_VIEW_DIRECTION;
+    const float3 up      = PPX_CAMERA_DEFAULT_WORLD_UP;
 
     // Calculate projection matrix
     {
@@ -900,7 +906,6 @@ void XrCamera::UpdateCamera()
         const float down = tanf(fov.angleDown) * mNearClip;
         const float up   = tanf(fov.angleUp) * mNearClip;
 
-        // Note: the current variant in use is frustumRH_ZO.
         mProjectionMatrix = glm::frustum(left, right, down, up, mNearClip, mFarClip);
     }
     // Calculate view
