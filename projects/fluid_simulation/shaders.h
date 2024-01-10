@@ -8,7 +8,6 @@
 #ifndef FLUID_SIMULATION_SHADERS_H
 #define FLUID_SIMULATION_SHADERS_H
 
-#include "ppx/application.h"
 #include "ppx/graphics_util.h"
 #include "ppx/grfx/grfx_buffer.h"
 #include "ppx/grfx/grfx_config.h"
@@ -58,21 +57,29 @@ class Texture
 {
 public:
     // Initialize a new empty texture.
-    // sim      Pointer to the main simulator instance (for accessing global state).
     // name     Name of the texture.
     // width    Texture width.
     // height   Texture height.
     // format   Texture format.
-    Texture(FluidSimulation* sim, const std::string& name, uint32_t width, uint32_t height, ppx::grfx::Format format);
+    // device   Device to use to create the storage and sampled views.
+    Texture(const std::string& name, uint32_t width, uint32_t height, ppx::grfx::Format format, ppx::grfx::DevicePtr device);
 
     // Initialize a new texture from an image file.
-    // sim      Pointer to the main simulator instance (for accessing global state).
     // fileName Image file to load.
-    Texture(FluidSimulation* sim, const std::string& fileName);
+    // device   Device to use to create the storage and sampled views.
+    Texture(const std::string& fileName, ppx::grfx::DevicePtr device);
 
-    uint32_t                       GetWidth() const { return mTexture->GetWidth(); }
-    uint32_t                       GetHeight() const { return mTexture->GetHeight(); }
-    ppx::float2                    GetNormalizedSize() const;
+    uint32_t GetWidth() const { return mTexture->GetWidth(); }
+    uint32_t GetHeight() const { return mTexture->GetHeight(); }
+
+    // Compute and return the size of the texture normalized to the resolution.
+    // given in pixels.  This maps the size of the texture to the normalized
+    // coordinates ([-1, 1], [-1, 1]).
+    ppx::float2 GetNormalizedSize(ppx::uint2 resolution) const
+    {
+        return ppx::float2(GetWidth() * 2.0f / static_cast<float>(resolution.x), GetHeight() * 2.0f / static_cast<float>(resolution.y));
+    }
+
     const std::string&             GetName() const { return mName; }
     ppx::grfx::ImagePtr            GetImagePtr() { return mTexture; }
     ppx::grfx::SampledImageViewPtr GetSampledView() { return mSampledView; }
@@ -89,9 +96,6 @@ public:
     }
 
 private:
-    ppx::Application* GetApp() const;
-
-    FluidSimulation*               mSim;
     ppx::grfx::ImagePtr            mTexture;
     ppx::grfx::SampledImageViewPtr mSampledView;
     ppx::grfx::StorageImageViewPtr mStorageView;
@@ -153,18 +157,17 @@ struct alignas(16) ScalarInput
 class Shader
 {
 public:
-    Shader(FluidSimulation* sim, const std::string& shaderFile)
-        : mSim(sim), mShaderFile(shaderFile) {}
+    Shader(const std::string& shaderFile, ppx::grfx::DevicePtr device, ppx::grfx::DescriptorPoolPtr descriptorPool)
+        : mShaderFile(shaderFile), mDevice(device), mDescriptorPool(descriptorPool) {}
 
-    const std::string& GetName() const { return mShaderFile; }
-    FluidSimulation*   GetSim() const { return mSim; }
-    ppx::Application*  GetApp() const;
-    GraphicsResources* GetGraphicsResources() const;
-    ComputeResources*  GetComputeResources() const;
+    const std::string&           GetName() const { return mShaderFile; }
+    ppx::grfx::DevicePtr         GetDevice() const { return mDevice; }
+    ppx::grfx::DescriptorPoolPtr GetDescriptorPool() const { return mDescriptorPool; }
 
 protected:
-    FluidSimulation* mSim;
-    std::string      mShaderFile;
+    std::string                  mShaderFile;
+    ppx::grfx::DevicePtr         mDevice;
+    ppx::grfx::DescriptorPoolPtr mDescriptorPool;
 };
 
 // A dispatch record holds data needed to execute a compute shader.  The simulator will
@@ -202,8 +205,11 @@ public:
     // dr    Dispatch record to use.
     void Dispatch(const PerFrame& frame, const std::unique_ptr<ComputeDispatchRecord>& dr);
 
+    const ComputeResources* GetResources() const { return mResources; }
+
 private:
     ppx::grfx::ComputePipelinePtr mPipeline;
+    ComputeResources*             mResources;
 };
 
 class AdvectionShader : public ComputeShader
@@ -594,7 +600,7 @@ public:
 class GraphicsShader;
 struct GraphicsDispatchRecord
 {
-    GraphicsDispatchRecord(GraphicsShader* gs, Texture* image, ppx::float2 coord);
+    GraphicsDispatchRecord(GraphicsShader* gs, Texture* image, ppx::float2 coord, ppx::uint2 resolution);
     void FreeResources();
 
     GraphicsShader*             mShader;
@@ -618,11 +624,15 @@ public:
     // coord    Normalized coordinate where to draw the texture.
     std::unique_ptr<GraphicsDispatchRecord> GetDR(Texture* image, ppx::float2 coord)
     {
-        return std::make_unique<GraphicsDispatchRecord>(this, image, coord);
+        return std::make_unique<GraphicsDispatchRecord>(this, image, coord, mResolution);
     }
+
+    const GraphicsResources* GetResources() const { return mResources; }
 
 private:
     ppx::grfx::GraphicsPipelinePtr mPipeline;
+    GraphicsResources*             mResources;
+    ppx::uint2                     mResolution;
 };
 
 } // namespace FluidSim

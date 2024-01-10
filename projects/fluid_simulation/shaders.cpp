@@ -42,8 +42,8 @@ std::ostream& operator<<(std::ostream& os, const FluidSim::Texture& i)
 
 namespace FluidSim {
 
-Texture::Texture(FluidSimulation* sim, const std::string& name, uint32_t width, uint32_t height, ppx::grfx::Format format)
-    : mSim(sim), mName(name)
+Texture::Texture(const std::string& name, uint32_t width, uint32_t height, ppx::grfx::Format format, ppx::grfx::DevicePtr device)
+    : mName(name)
 {
     ppx::grfx::ImageCreateInfo ici  = {};
     ici.type                        = ppx::grfx::IMAGE_TYPE_2D;
@@ -60,81 +60,55 @@ Texture::Texture(FluidSimulation* sim, const std::string& name, uint32_t width, 
     ici.usageFlags.bits.storage     = true;
     ici.memoryUsage                 = ppx::grfx::MEMORY_USAGE_GPU_ONLY;
     ici.initialState                = ppx::grfx::RESOURCE_STATE_SHADER_RESOURCE;
-    PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateImage(&ici, &mTexture));
+    PPX_CHECKED_CALL(device->CreateImage(&ici, &mTexture));
 
     ppx::grfx::SampledImageViewCreateInfo vci = ppx::grfx::SampledImageViewCreateInfo::GuessFromImage(mTexture);
-    PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateSampledImageView(&vci, &mSampledView));
+    PPX_CHECKED_CALL(device->CreateSampledImageView(&vci, &mSampledView));
 
     ppx::grfx::StorageImageViewCreateInfo storageVCI = ppx::grfx::StorageImageViewCreateInfo::GuessFromImage(mTexture);
-    PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateStorageImageView(&storageVCI, &mStorageView));
-
-    mSim->AddTextureToInitialize(this);
+    PPX_CHECKED_CALL(device->CreateStorageImageView(&storageVCI, &mStorageView));
 }
 
-Texture::Texture(FluidSimulation* sim, const std::string& textureFile)
-    : mSim(sim), mName(textureFile)
+Texture::Texture(const std::string& textureFile, ppx::grfx::DevicePtr device)
+    : mName(textureFile)
 {
     ppx::grfx_util::ImageOptions options = ppx::grfx_util::ImageOptions().AdditionalUsage(ppx::grfx::IMAGE_USAGE_STORAGE).MipLevelCount(1);
-    PPX_CHECKED_CALL(ppx::grfx_util::CreateImageFromFile(GetApp()->GetDevice()->GetGraphicsQueue(), GetApp()->GetAssetPath(textureFile), &mTexture, options, false));
+    PPX_CHECKED_CALL(ppx::grfx_util::CreateImageFromFile(device->GetGraphicsQueue(), ppx::Application::Get()->GetAssetPath(textureFile), &mTexture, options, false));
 
     ppx::grfx::SampledImageViewCreateInfo vci = ppx::grfx::SampledImageViewCreateInfo::GuessFromImage(mTexture);
-    PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateSampledImageView(&vci, &mSampledView));
+    PPX_CHECKED_CALL(device->CreateSampledImageView(&vci, &mSampledView));
 
     ppx::grfx::StorageImageViewCreateInfo storageVCI = ppx::grfx::StorageImageViewCreateInfo::GuessFromImage(mTexture);
-    PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateStorageImageView(&storageVCI, &mStorageView));
-}
-
-ppx::Application* Texture::GetApp() const
-{
-    return mSim->GetApp();
-}
-
-ppx::float2 Texture::GetNormalizedSize() const
-{
-    return ppx::float2(GetWidth() * 2.0f / mSim->GetWidth(), GetHeight() * 2.0f / mSim->GetHeight());
-}
-
-ppx::Application* Shader::GetApp() const
-{
-    return mSim->GetApp();
-}
-
-GraphicsResources* Shader::GetGraphicsResources() const
-{
-    return mSim->GetGraphicsResources();
-}
-ComputeResources* Shader::GetComputeResources() const
-{
-    return mSim->GetComputeResources();
+    PPX_CHECKED_CALL(device->CreateStorageImageView(&storageVCI, &mStorageView));
 }
 
 ComputeShader::ComputeShader(FluidSimulation* sim, const std::string& shaderFile)
-    : Shader(sim, shaderFile)
+    : Shader(shaderFile, sim->GetDevice(), sim->GetDescriptorPool()), mResources(sim->GetComputeResources())
 {
     ppx::grfx::ShaderModulePtr cs;
-    std::vector<char>          bytecode = GetApp()->LoadShader("fluid_simulation/shaders", mShaderFile + ".cs");
+    std::vector<char>          bytecode = ppx::Application::Get()->LoadShader("fluid_simulation/shaders", mShaderFile + ".cs");
     PPX_ASSERT_MSG(!bytecode.empty(), "CS shader bytecode load failed");
     ppx::grfx::ShaderModuleCreateInfo sci = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-    PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateShaderModule(&sci, &cs));
+    PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&sci, &cs));
 
     ppx::grfx::ComputePipelineCreateInfo pci = {};
     pci.CS                                   = {cs.Get(), "csmain"};
-    pci.pPipelineInterface                   = GetComputeResources()->mPipelineInterface;
-    PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateComputePipeline(&pci, &mPipeline));
+    pci.pPipelineInterface                   = GetResources()->mPipelineInterface;
+    PPX_CHECKED_CALL(GetDevice()->CreateComputePipeline(&pci, &mPipeline));
 }
 
 ComputeDispatchRecord::ComputeDispatchRecord(ComputeShader* cs, Texture* output, const ScalarInput& si)
     : mShader(cs), mOutput(output)
 {
     // Allocate a new descriptor set.
-    PPX_CHECKED_CALL(mShader->GetApp()->GetDevice()->AllocateDescriptorSet(mShader->GetSim()->GetDescriptorPool(), mShader->GetComputeResources()->mDescriptorSetLayout, &mDescriptorSet));
+    PPX_CHECKED_CALL(mShader->GetDevice()->AllocateDescriptorSet(mShader->GetDescriptorPool(), mShader->GetResources()->mDescriptorSetLayout, &mDescriptorSet));
 
     // Allocate a new uniform buffer and initialize it with input data.
     ppx::grfx::BufferCreateInfo bci   = {};
     bci.size                          = PPX_MINIMUM_UNIFORM_BUFFER_SIZE;
     bci.usageFlags.bits.uniformBuffer = true;
     bci.memoryUsage                   = ppx::grfx::MEMORY_USAGE_CPU_TO_GPU;
-    PPX_CHECKED_CALL(mShader->GetApp()->GetDevice()->CreateBuffer(&bci, &mUniformBuffer));
+    PPX_CHECKED_CALL(mShader->GetDevice()->CreateBuffer(&bci, &mUniformBuffer));
 
     void* pData = nullptr;
     PPX_CHECKED_CALL(mUniformBuffer->MapMemory(0, &pData));
@@ -152,11 +126,11 @@ ComputeDispatchRecord::ComputeDispatchRecord(ComputeShader* cs, Texture* output,
 
     write[1].binding  = 1;
     write[1].type     = ppx::grfx::DESCRIPTOR_TYPE_SAMPLER;
-    write[1].pSampler = mShader->GetComputeResources()->mClampSampler;
+    write[1].pSampler = mShader->GetResources()->mClampSampler;
 
     write[2].binding  = 12;
     write[2].type     = ppx::grfx::DESCRIPTOR_TYPE_SAMPLER;
-    write[2].pSampler = mShader->GetComputeResources()->mRepeatSampler;
+    write[2].pSampler = mShader->GetResources()->mRepeatSampler;
 
     PPX_CHECKED_CALL(mDescriptorSet->UpdateDescriptors(numBindings, write));
 }
@@ -164,8 +138,8 @@ ComputeDispatchRecord::ComputeDispatchRecord(ComputeShader* cs, Texture* output,
 void ComputeDispatchRecord::FreeResources()
 {
     PPX_LOG_DEBUG("Freeing up uniform buffer and descriptor set for " << mShader->GetName());
-    mShader->GetApp()->GetDevice()->DestroyBuffer(mUniformBuffer);
-    mShader->GetApp()->GetDevice()->FreeDescriptorSet(mDescriptorSet);
+    mShader->GetDevice()->DestroyBuffer(mUniformBuffer);
+    mShader->GetDevice()->FreeDescriptorSet(mDescriptorSet);
 }
 
 void ComputeDispatchRecord::BindInputTexture(Texture* texture, uint32_t bindingSlot)
@@ -193,17 +167,17 @@ void ComputeShader::Dispatch(const PerFrame& frame, const std::unique_ptr<Comput
     PPX_LOG_DEBUG("Running compute shader '" << mShaderFile << ".cs' (" << dispatchSize << ")\n");
 
     frame.cmd->TransitionImageLayout(dr->mOutput->GetImagePtr(), PPX_ALL_SUBRESOURCES, ppx::grfx::RESOURCE_STATE_SHADER_RESOURCE, ppx::grfx::RESOURCE_STATE_UNORDERED_ACCESS);
-    frame.cmd->BindComputeDescriptorSets(dr->mShader->GetComputeResources()->mPipelineInterface, 1, &dr->mDescriptorSet);
+    frame.cmd->BindComputeDescriptorSets(dr->mShader->GetResources()->mPipelineInterface, 1, &dr->mDescriptorSet);
     frame.cmd->BindComputePipeline(mPipeline);
     frame.cmd->Dispatch(dispatchSize.x, dispatchSize.y, dispatchSize.z);
     frame.cmd->TransitionImageLayout(dr->mOutput->GetImagePtr(), PPX_ALL_SUBRESOURCES, ppx::grfx::RESOURCE_STATE_UNORDERED_ACCESS, ppx::grfx::RESOURCE_STATE_SHADER_RESOURCE);
 }
 
-GraphicsDispatchRecord::GraphicsDispatchRecord(GraphicsShader* gs, Texture* image, ppx::float2 coord)
+GraphicsDispatchRecord::GraphicsDispatchRecord(GraphicsShader* gs, Texture* image, ppx::float2 coord, ppx::uint2 resolution)
     : mShader(gs), mImage(image)
 {
     // Allocate a new descriptor set.
-    PPX_CHECKED_CALL(mShader->GetApp()->GetDevice()->AllocateDescriptorSet(mShader->GetSim()->GetDescriptorPool(), mShader->GetGraphicsResources()->mDescriptorSetLayout, &mDescriptorSet));
+    PPX_CHECKED_CALL(mShader->GetDevice()->AllocateDescriptorSet(mShader->GetDescriptorPool(), mShader->GetResources()->mDescriptorSetLayout, &mDescriptorSet));
 
     // Update descriptors.
     const size_t               numBindings = 2;
@@ -215,12 +189,12 @@ GraphicsDispatchRecord::GraphicsDispatchRecord(GraphicsShader* gs, Texture* imag
 
     write[1].binding  = 1;
     write[1].type     = ppx::grfx::DESCRIPTOR_TYPE_SAMPLER;
-    write[1].pSampler = mShader->GetGraphicsResources()->mSampler;
+    write[1].pSampler = mShader->GetResources()->mSampler;
 
     PPX_CHECKED_CALL(mDescriptorSet->UpdateDescriptors(numBindings, write));
 
     // Normalize image dimensions.
-    ppx::float2 normDim = image->GetNormalizedSize();
+    ppx::float2 normDim = image->GetNormalizedSize(resolution);
 
     // Compute the vertices for the texture position.
     ppx::float2 va = coord;
@@ -246,7 +220,7 @@ GraphicsDispatchRecord::GraphicsDispatchRecord(GraphicsShader* gs, Texture* imag
     bci.size                         = ppx::SizeInBytesU32(vertexData);
     bci.usageFlags.bits.vertexBuffer = true;
     bci.memoryUsage                  = ppx::grfx::MEMORY_USAGE_CPU_TO_GPU;
-    PPX_CHECKED_CALL(mShader->GetApp()->GetDevice()->CreateBuffer(&bci, &mVertexBuffer));
+    PPX_CHECKED_CALL(mShader->GetDevice()->CreateBuffer(&bci, &mVertexBuffer));
 
     void* pAddr = nullptr;
     PPX_CHECKED_CALL(mVertexBuffer->MapMemory(0, &pAddr));
@@ -259,30 +233,30 @@ GraphicsDispatchRecord::GraphicsDispatchRecord(GraphicsShader* gs, Texture* imag
 void GraphicsDispatchRecord::FreeResources()
 {
     PPX_LOG_DEBUG("Freeing up descriptor set for " << mShader->GetName());
-    mShader->GetApp()->GetDevice()->FreeDescriptorSet(mDescriptorSet);
+    mShader->GetDevice()->FreeDescriptorSet(mDescriptorSet);
 }
 
 GraphicsShader::GraphicsShader(FluidSimulation* sim)
-    : Shader(sim, "StaticTexture")
+    : Shader("StaticTexture", sim->GetDevice(), sim->GetDescriptorPool()), mResolution(sim->GetResolution()), mResources(sim->GetGraphicsResources())
 {
     // Graphics pipeline.
     ppx::grfx::ShaderModulePtr vs;
-    std::vector<char>          bytecode = GetApp()->LoadShader("basic/shaders", mShaderFile + ".vs");
+    std::vector<char>          bytecode = ppx::Application::Get()->LoadShader("basic/shaders", mShaderFile + ".vs");
     PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
     ppx::grfx::ShaderModuleCreateInfo sci = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-    PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateShaderModule(&sci, &vs));
+    PPX_CHECKED_CALL(mDevice->CreateShaderModule(&sci, &vs));
 
     ppx::grfx::ShaderModulePtr ps;
-    bytecode = GetApp()->LoadShader("basic/shaders", mShaderFile + ".ps");
+    bytecode = ppx::Application::Get()->LoadShader("basic/shaders", mShaderFile + ".ps");
     PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
     sci = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
-    PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateShaderModule(&sci, &ps));
+    PPX_CHECKED_CALL(mDevice->CreateShaderModule(&sci, &ps));
 
     ppx::grfx::GraphicsPipelineCreateInfo2 gpci = {};
     gpci.VS                                     = {vs.Get(), "vsmain"};
     gpci.PS                                     = {ps.Get(), "psmain"};
     gpci.vertexInputState.bindingCount          = 1;
-    gpci.vertexInputState.bindings[0]           = GetGraphicsResources()->mVertexBinding;
+    gpci.vertexInputState.bindings[0]           = GetResources()->mVertexBinding;
     gpci.topology                               = ppx::grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     gpci.polygonMode                            = ppx::grfx::POLYGON_MODE_FILL;
     gpci.cullMode                               = ppx::grfx::CULL_MODE_NONE;
@@ -291,16 +265,16 @@ GraphicsShader::GraphicsShader(FluidSimulation* sim)
     gpci.depthWriteEnable                       = false;
     gpci.blendModes[0]                          = ppx::grfx::BLEND_MODE_NONE;
     gpci.outputState.renderTargetCount          = 1;
-    gpci.outputState.renderTargetFormats[0]     = GetApp()->GetSwapchain()->GetColorFormat();
-    gpci.pPipelineInterface                     = GetGraphicsResources()->mPipelineInterface;
-    PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateGraphicsPipeline(&gpci, &mPipeline));
+    gpci.outputState.renderTargetFormats[0]     = ppx::Application::Get()->GetSwapchain()->GetColorFormat();
+    gpci.pPipelineInterface                     = GetResources()->mPipelineInterface;
+    PPX_CHECKED_CALL(mDevice->CreateGraphicsPipeline(&gpci, &mPipeline));
 }
 
 void GraphicsShader::Dispatch(const PerFrame& frame, const std::unique_ptr<GraphicsDispatchRecord>& dr)
 {
-    frame.cmd->BindGraphicsDescriptorSets(GetGraphicsResources()->mPipelineInterface, 1, &dr->mDescriptorSet);
+    frame.cmd->BindGraphicsDescriptorSets(GetResources()->mPipelineInterface, 1, &dr->mDescriptorSet);
     frame.cmd->BindGraphicsPipeline(mPipeline);
-    frame.cmd->BindVertexBuffers(1, &dr->mVertexBuffer, &GetGraphicsResources()->mVertexBinding.GetStride());
+    frame.cmd->BindVertexBuffers(1, &dr->mVertexBuffer, &GetResources()->mVertexBinding.GetStride());
     frame.cmd->Draw(6, 1, 0, 0);
 }
 

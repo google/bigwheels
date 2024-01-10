@@ -28,9 +28,9 @@ const ppx::grfx::Format kR    = ppx::grfx::FORMAT_R16_FLOAT;
 const ppx::grfx::Format kRG   = ppx::grfx::FORMAT_R16G16_FLOAT;
 const ppx::grfx::Format kRGBA = ppx::grfx::FORMAT_R16G16B16A16_FLOAT;
 
-ppx::Result FluidSimulation::Create(ppx::Application* app, ppx::grfx::DevicePtr device, ppx::uint2 resolution, const SimulationConfig& config, std::unique_ptr<FluidSimulation>* pSim)
+ppx::Result FluidSimulation::Create(ppx::grfx::DevicePtr device, ppx::uint2 resolution, const SimulationConfig& config, std::unique_ptr<FluidSimulation>* pSim)
 {
-    *pSim = std::make_unique<FluidSimulation>(app, device, resolution, config);
+    *pSim = std::make_unique<FluidSimulation>(device, resolution, config);
     return (*pSim)->Initialize();
 }
 
@@ -48,7 +48,7 @@ ppx::Result FluidSimulation::Initialize()
     PerFrame                       frame = {};
     ppx::grfx::SemaphoreCreateInfo sci   = {};
     ppx::grfx::FenceCreateInfo     fci   = {};
-    PPX_CHECKED_CALL(GetApp()->GetGraphicsQueue()->CreateCommandBuffer(&frame.cmd));
+    PPX_CHECKED_CALL(GetDevice()->GetGraphicsQueue()->CreateCommandBuffer(&frame.cmd));
     PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&sci, &frame.imageAcquiredSemaphore));
     PPX_CHECKED_CALL(GetDevice()->CreateFence(&fci, &frame.imageAcquiredFence));
     PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&sci, &frame.renderCompleteSemaphore));
@@ -85,14 +85,14 @@ void FluidSimulation::InitComputeShaders()
     lci.bindings.push_back(ppx::grfx::DescriptorBinding(10, ppx::grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
     lci.bindings.push_back(ppx::grfx::DescriptorBinding(11, ppx::grfx::DESCRIPTOR_TYPE_STORAGE_IMAGE));
     lci.bindings.push_back(ppx::grfx::DescriptorBinding(12, ppx::grfx::DESCRIPTOR_TYPE_SAMPLER));
-    PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateDescriptorSetLayout(&lci, &mCompute.mDescriptorSetLayout));
+    PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&lci, &mCompute.mDescriptorSetLayout));
 
     // Compute pipeline interface.
     ppx::grfx::PipelineInterfaceCreateInfo pici = {};
     pici.setCount                               = 1;
     pici.sets[0].set                            = 0;
     pici.sets[0].pLayout                        = mCompute.mDescriptorSetLayout;
-    PPX_CHECKED_CALL(GetApp()->GetDevice()->CreatePipelineInterface(&pici, &mCompute.mPipelineInterface));
+    PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&pici, &mCompute.mPipelineInterface));
 
     // Compute sampler.
     ppx::grfx::SamplerCreateInfo sci = {};
@@ -104,7 +104,7 @@ void FluidSimulation::InitComputeShaders()
     sci.addressModeW                 = ppx::grfx::SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     sci.minLod                       = 0.0f;
     sci.maxLod                       = FLT_MAX;
-    PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateSampler(&sci, &mCompute.mClampSampler));
+    PPX_CHECKED_CALL(GetDevice()->CreateSampler(&sci, &mCompute.mClampSampler));
 
     sci              = {};
     sci.magFilter    = ppx::grfx::FILTER_LINEAR;
@@ -115,7 +115,7 @@ void FluidSimulation::InitComputeShaders()
     sci.addressModeW = ppx::grfx::SAMPLER_ADDRESS_MODE_REPEAT;
     sci.minLod       = 0.0f;
     sci.maxLod       = FLT_MAX;
-    PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateSampler(&sci, &mCompute.mRepeatSampler));
+    PPX_CHECKED_CALL(GetDevice()->CreateSampler(&sci, &mCompute.mRepeatSampler));
 
     // Create compute shaders for filtering.
     mAdvection         = std::make_unique<AdvectionShader>(this);
@@ -148,7 +148,7 @@ void FluidSimulation::DispatchComputeShaders(const PerFrame& frame)
 void FluidSimulation::FreeComputeShaderResources()
 {
     // Wait for any command buffers in-flight before freeing up resources.
-    GetApp()->GetDevice()->WaitIdle();
+    GetDevice()->WaitIdle();
     for (auto& shader : mComputeDispatchQueue) {
         shader->FreeResources();
     }
@@ -165,7 +165,7 @@ void FluidSimulation::DispatchGraphicsShaders(const PerFrame& frame)
 void FluidSimulation::FreeGraphicsShaderResources()
 {
     // Wait for any command buffers in-flight before freeing up resources.
-    GetApp()->GetDevice()->WaitIdle();
+    GetDevice()->WaitIdle();
     for (auto& shader : mGraphicsDispatchQueue) {
         shader->FreeResources();
     }
@@ -178,7 +178,7 @@ void FluidSimulation::InitGraphicsShaders()
     ppx::grfx::DescriptorSetLayoutCreateInfo lci = {};
     lci.bindings.push_back(ppx::grfx::DescriptorBinding(0, ppx::grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
     lci.bindings.push_back(ppx::grfx::DescriptorBinding(1, ppx::grfx::DESCRIPTOR_TYPE_SAMPLER));
-    PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateDescriptorSetLayout(&lci, &mGraphics.mDescriptorSetLayout));
+    PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&lci, &mGraphics.mDescriptorSetLayout));
 
     mGraphics.mVertexBinding.AppendAttribute({"POSITION", 0, ppx::grfx::FORMAT_R32G32B32_FLOAT, 0, PPX_APPEND_OFFSET_ALIGNED, ppx::grfx::VERTEX_INPUT_RATE_VERTEX});
     mGraphics.mVertexBinding.AppendAttribute({"TEXCOORD", 1, ppx::grfx::FORMAT_R32G32_FLOAT, 0, PPX_APPEND_OFFSET_ALIGNED, ppx::grfx::VERTEX_INPUT_RATE_VERTEX});
@@ -186,13 +186,13 @@ void FluidSimulation::InitGraphicsShaders()
     ppx::grfx::SamplerCreateInfo sci = {};
     sci.magFilter                    = ppx::grfx::FILTER_LINEAR;
     sci.minFilter                    = ppx::grfx::FILTER_LINEAR;
-    PPX_CHECKED_CALL(GetApp()->GetDevice()->CreateSampler(&sci, &mGraphics.mSampler));
+    PPX_CHECKED_CALL(GetDevice()->CreateSampler(&sci, &mGraphics.mSampler));
 
     ppx::grfx::PipelineInterfaceCreateInfo pici = {};
     pici.setCount                               = 1;
     pici.sets[0].set                            = 0;
     pici.sets[0].pLayout                        = mGraphics.mDescriptorSetLayout;
-    PPX_CHECKED_CALL(GetApp()->GetDevice()->CreatePipelineInterface(&pici, &mGraphics.mPipelineInterface));
+    PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&pici, &mGraphics.mPipelineInterface));
 
     mDraw = std::make_unique<GraphicsShader>(this);
 }
@@ -216,18 +216,18 @@ void FluidSimulation::InitTextures()
     ppx::int2 dyeRes = GetResolution(GetConfig().pDyeResolution->GetValue());
 
     // Generate all the textures.
-    mCheckerboardTexture = std::make_unique<Texture>(this, "checkerboard", mResolution.x, mResolution.y, GetApp()->GetSwapchain()->GetColorFormat());
-    mCurlTexture         = std::make_unique<Texture>(this, "curl", simRes.x, simRes.y, kR);
-    mDivergenceTexture   = std::make_unique<Texture>(this, "divergence", simRes.x, simRes.y, kR);
-    mDisplayTexture      = std::make_unique<Texture>(this, "display", mResolution.x, mResolution.y, kRGBA);
-    mDitheringTexture    = std::make_unique<Texture>(this, "fluid_simulation/textures/LDR_LLL1_0.png");
-    mDrawColorTexture    = std::make_unique<Texture>(this, "draw color", mResolution.x, mResolution.y, kRGBA);
-    mDyeTexture[0]       = std::make_unique<Texture>(this, "dye[0]", dyeRes.x, dyeRes.y, kRGBA);
-    mDyeTexture[1]       = std::make_unique<Texture>(this, "dye[1]", dyeRes.x, dyeRes.y, kRGBA);
-    mPressureTexture[0]  = std::make_unique<Texture>(this, "pressure[0]", simRes.x, simRes.y, kR);
-    mPressureTexture[1]  = std::make_unique<Texture>(this, "pressure[1]", simRes.x, simRes.y, kR);
-    mVelocityTexture[0]  = std::make_unique<Texture>(this, "velocity[0]", simRes.x, simRes.y, kRG);
-    mVelocityTexture[1]  = std::make_unique<Texture>(this, "velocity[1]", simRes.x, simRes.y, kRG);
+    mCheckerboardTexture = std::make_unique<Texture>("checkerboard", mResolution.x, mResolution.y, ppx::Application::Get()->GetSwapchain()->GetColorFormat(), mDevice);
+    mCurlTexture         = std::make_unique<Texture>("curl", simRes.x, simRes.y, kR, mDevice);
+    mDivergenceTexture   = std::make_unique<Texture>("divergence", simRes.x, simRes.y, kR, mDevice);
+    mDisplayTexture      = std::make_unique<Texture>("display", mResolution.x, mResolution.y, kRGBA, mDevice);
+    mDitheringTexture    = std::make_unique<Texture>("fluid_simulation/textures/LDR_LLL1_0.png", mDevice);
+    mDrawColorTexture    = std::make_unique<Texture>("draw color", mResolution.x, mResolution.y, kRGBA, mDevice);
+    mDyeTexture[0]       = std::make_unique<Texture>("dye[0]", dyeRes.x, dyeRes.y, kRGBA, mDevice);
+    mDyeTexture[1]       = std::make_unique<Texture>("dye[1]", dyeRes.x, dyeRes.y, kRGBA, mDevice);
+    mPressureTexture[0]  = std::make_unique<Texture>("pressure[0]", simRes.x, simRes.y, kR, mDevice);
+    mPressureTexture[1]  = std::make_unique<Texture>("pressure[1]", simRes.x, simRes.y, kR, mDevice);
+    mVelocityTexture[0]  = std::make_unique<Texture>("velocity[0]", simRes.x, simRes.y, kRG, mDevice);
+    mVelocityTexture[1]  = std::make_unique<Texture>("velocity[1]", simRes.x, simRes.y, kRG, mDevice);
 
     InitBloomTextures();
     InitSunraysTextures();
@@ -236,36 +236,26 @@ void FluidSimulation::InitTextures()
 void FluidSimulation::InitBloomTextures()
 {
     ppx::int2 res = GetResolution(GetConfig().pBloomResolution->GetValue());
-    mBloomTexture = std::make_unique<Texture>(this, "bloom", res.x, res.y, kRGBA);
+    mBloomTexture = std::make_unique<Texture>("bloom", res.x, res.y, kRGBA, mDevice);
     PPX_ASSERT_MSG(mBloomTextures.empty(), "Bloom textures already initialized");
     for (int i = 0; i < GetConfig().pBloomIterations->GetValue(); i++) {
         uint32_t width  = res.x >> (i + 1);
         uint32_t height = res.y >> (i + 1);
         if (width < 2 || height < 2)
             break;
-        mBloomTextures.emplace_back(std::make_unique<Texture>(this, std::string("bloom frame buffer[") + std::to_string(i) + "]", width, height, kRGBA));
+        mBloomTextures.emplace_back(std::make_unique<Texture>(std::string("bloom frame buffer[") + std::to_string(i) + "]", width, height, kRGBA, mDevice));
     }
 }
 
 void FluidSimulation::InitSunraysTextures()
 {
     ppx::int2 res       = GetResolution(GetConfig().pSunraysResolution->GetValue());
-    mSunraysTexture     = std::make_unique<Texture>(this, "sunrays", res.x, res.y, kR);
-    mSunraysTempTexture = std::make_unique<Texture>(this, "sunrays temp", res.x, res.y, kR);
-}
-
-void FluidSimulation::AddTextureToInitialize(Texture* texture)
-{
-    mTexturesToInitialize.push_back(texture);
+    mSunraysTexture     = std::make_unique<Texture>("sunrays", res.x, res.y, kR, mDevice);
+    mSunraysTempTexture = std::make_unique<Texture>("sunrays temp", res.x, res.y, kR, mDevice);
 }
 
 void FluidSimulation::GenerateInitialSplat()
 {
-    for (const auto& texture : mTexturesToInitialize) {
-        ScheduleDR(mColor->GetDR(texture, ppx::float4(0.0f, 0.0f, 0.0f, 0.0f)));
-    }
-    mTexturesToInitialize.clear();
-
     MultipleSplats(GetConfig().pNumSplats->GetValue());
 }
 
@@ -354,7 +344,7 @@ void FluidSimulation::Render()
 
     DrawDisplay();
 
-    if (GetApp()->GetSettings()->grfx.enableDebug) {
+    if (ppx::Application::Get()->GetSettings()->grfx.enableDebug) {
         DrawTextures();
     }
 }
@@ -440,13 +430,13 @@ void FluidSimulation::DrawTextures()
     auto  coord   = ppx::float2(-1.0f, 1.0f);
     float maxDimY = 0.0f;
     for (const auto& t : v) {
-        auto dim = t->GetNormalizedSize();
+        auto dim = t->GetNormalizedSize(mResolution);
         if (coord.x + dim.x >= 1.0) {
             coord.x = -1.0;
             coord.y -= maxDimY;
             maxDimY = 0.0f;
         }
-        PPX_LOG_DEBUG("Scheduling texture draw for " << t->GetName() << " with normalized dimensions " << t->GetNormalizedSize() << " at coordinate " << coord << "\n");
+        PPX_LOG_DEBUG("Scheduling texture draw for " << t->GetName() << " with normalized dimensions " << dim << " at coordinate " << coord << "\n");
         ScheduleDR(mDraw->GetDR(t, coord));
         coord.x += dim.x + 0.005f;
         if (dim.y > maxDimY) {

@@ -67,8 +67,8 @@ class ProjApp;
 class FluidSimulation
 {
 public:
-    FluidSimulation(ppx::Application* app, ppx::grfx::DevicePtr device, ppx::uint2 resolution, const SimulationConfig& config)
-        : mApp(app), mDevice(device), mResolution(resolution), mConfig(config)
+    FluidSimulation(ppx::grfx::DevicePtr device, ppx::uint2 resolution, const SimulationConfig& config)
+        : mDevice(device), mResolution(resolution), mConfig(config)
     {
     }
 
@@ -79,9 +79,8 @@ public:
     // config       An instance of SimulationConfig describing all the inputs to the simulation.
     // ppSim        A pointer the the newly created simulator instance.  If an error occurred during creation,
     //              this will be set to nullptr and an error code will be returned.
-    static ppx::Result Create(ppx::Application* app, ppx::grfx::DevicePtr device, ppx::uint2 resolution, const SimulationConfig& config, std::unique_ptr<FluidSimulation>* ppSim);
+    static ppx::Result Create(ppx::grfx::DevicePtr device, ppx::uint2 resolution, const SimulationConfig& config, std::unique_ptr<FluidSimulation>* ppSim);
 
-    ppx::Application*            GetApp() const { return mApp; }
     const SimulationConfig&      GetConfig() const { return mConfig; }
     ppx::grfx::DescriptorPoolPtr GetDescriptorPool() const { return mDescriptorPool; }
     ComputeResources*            GetComputeResources() { return &mCompute; }
@@ -115,18 +114,11 @@ public:
     // the execution schedule.
     void FreeGraphicsShaderResources();
 
-    // Register the given texture to be filled with an initial color.
-    // texture Texture to initialize.
-    void AddTextureToInitialize(Texture* texture);
-
     // Update the state of the simulation.  This moves the virtual
     // bodies producing the wake.
     void Update();
 
 private:
-    // Parent application data.
-    ppx::Application* mApp;
-
     // Device to use.
     ppx::grfx::DevicePtr mDevice;
 
@@ -191,9 +183,6 @@ private:
 
     // Textures that should be rendered after a round of simulation.
     std::vector<std::unique_ptr<GraphicsDispatchRecord>> mGraphicsDispatchQueue;
-
-    // Textures that should be initialized before simulation starts.
-    std::vector<Texture*> mTexturesToInitialize;
 
     // Random numbers used to initialize the simulation.
     ppx::Random mRandom;
