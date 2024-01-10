@@ -94,6 +94,7 @@ public:
     virtual void Config(ppx::ApplicationSettings& settings) override;
     virtual void Setup() override;
     virtual void Render() override;
+    virtual void Resize(uint32_t width, uint32_t height) override;
 
     const SimulationConfig&           GetSimulationConfig() const { return mConfig; }
     ppx::grfx::SamplerPtr             GetClampSampler() const { return mClampSampler; }

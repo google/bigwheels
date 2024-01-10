@@ -205,8 +205,6 @@ void ComputeShader::Dispatch(PerFrame* pFrame, const std::vector<SimulationGrid*
 
     // Queue the dispatch operation.
     ppx::uint3 dispatchSize = ppx::uint3(output->GetWidth(), output->GetHeight(), 1);
-    PPX_LOG_DEBUG("Scheduling compute shader '" << mShaderFile << ".cs' (" << dispatchSize << ")\n");
-
     pFrame->cmd->TransitionImageLayout(output->GetImage(), PPX_ALL_SUBRESOURCES, ppx::grfx::RESOURCE_STATE_SHADER_RESOURCE, ppx::grfx::RESOURCE_STATE_UNORDERED_ACCESS);
     pFrame->cmd->BindComputeDescriptorSets(pApp->GetComputePipelineInterface(), 1, &dd->mDescriptorSet);
     pFrame->cmd->BindComputePipeline(mPipeline);
