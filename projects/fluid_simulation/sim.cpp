@@ -464,9 +464,9 @@ ppx::uint2 FluidSimulationApp::GetResolution(uint32_t resolution) const
     return (GetWindowWidth() > GetWindowHeight()) ? ppx::uint2(max, min) : ppx::uint2(min, max);
 }
 
-void FluidSimulationApp::GenerateInitialSplat(PerFrame* frame)
+void FluidSimulationApp::GenerateInitialSplat(PerFrame* pFrame)
 {
-    MultipleSplats(frame, GetConfig().pNumSplats->GetValue());
+    MultipleSplats(pFrame, GetConfig().pNumSplats->GetValue());
 }
 
 ppx::float3 FluidSimulationApp::HSVtoRGB(ppx::float3 hsv)
@@ -509,19 +509,19 @@ float FluidSimulationApp::CorrectRadius(float radius) const
     return (aspectRatio > 1) ? radius * aspectRatio : radius;
 }
 
-void FluidSimulationApp::Splat(PerFrame* frame, ppx::float2 point, ppx::float2 delta, ppx::float3 color)
+void FluidSimulationApp::Splat(PerFrame* pFrame, ppx::float2 point, ppx::float2 delta, ppx::float3 color)
 {
     float       aspect     = GetWindowAspect();
     float       radius     = CorrectRadius(GetConfig().pSplatRadius->GetValue() / 100.0f);
     ppx::float4 deltaColor = ppx::float4(delta.x, delta.y, 0.0f, 1.0f);
-    mSplat->Dispatch(frame, mVelocityGrid[0].get(), mVelocityGrid[1].get(), point, aspect, radius, deltaColor);
+    mSplat->Dispatch(pFrame, mVelocityGrid[0].get(), mVelocityGrid[1].get(), point, aspect, radius, deltaColor);
     std::swap(mVelocityGrid[0], mVelocityGrid[1]);
 
-    mSplat->Dispatch(frame, mDyeGrid[0].get(), mDyeGrid[1].get(), point, aspect, radius, ppx::float4(color, 1.0f));
+    mSplat->Dispatch(pFrame, mDyeGrid[0].get(), mDyeGrid[1].get(), point, aspect, radius, ppx::float4(color, 1.0f));
     std::swap(mDyeGrid[0], mDyeGrid[1]);
 }
 
-void FluidSimulationApp::MultipleSplats(PerFrame* frame, uint32_t amount)
+void FluidSimulationApp::MultipleSplats(PerFrame* pFrame, uint32_t amount)
 {
     // Emit a random number of splats if the stated amount is 0.
     if (amount == 0) {
@@ -537,7 +537,7 @@ void FluidSimulationApp::MultipleSplats(PerFrame* frame, uint32_t amount)
         ppx::float2 point(Random().Float(), Random().Float());
         ppx::float2 delta(1000.0f * (Random().Float() - 0.5f), 1000.0f * (Random().Float() - 0.5f));
         PPX_LOG_DEBUG("Splash #" << i << " at " << point << " with color " << color << "\n");
-        Splat(frame, point, delta, color);
+        Splat(pFrame, point, delta, color);
     }
 }
 
@@ -551,7 +551,7 @@ void FluidSimulationApp::RenderGrids(const PerFrame& frame)
     }
 }
 
-void FluidSimulationApp::ApplyBloom(PerFrame* frame, SimulationGrid* source, SimulationGrid* destination)
+void FluidSimulationApp::ApplyBloom(PerFrame* pFrame, SimulationGrid* source, SimulationGrid* destination)
 {
     if (mBloomGrids.size() < 2)
         return;
@@ -562,33 +562,33 @@ void FluidSimulationApp::ApplyBloom(PerFrame* frame, SimulationGrid* source, Sim
     float curve0 = GetConfig().pBloomThreshold->GetValue() - knee;
     float curve1 = knee * 2.0f;
     float curve2 = 0.25f / knee;
-    mBloomPrefilter->Dispatch(frame, source, last, ppx::float3(curve0, curve1, curve2), GetConfig().pBloomThreshold->GetValue());
+    mBloomPrefilter->Dispatch(pFrame, source, last, ppx::float3(curve0, curve1, curve2), GetConfig().pBloomThreshold->GetValue());
 
     for (auto& dest : mBloomGrids) {
-        mBloomBlur->Dispatch(frame, last, dest.get(), last->GetTexelSize());
+        mBloomBlur->Dispatch(pFrame, last, dest.get(), last->GetTexelSize());
         last = dest.get();
     }
 
     for (int i = static_cast<int>(mBloomGrids.size() - 2); i >= 0; i--) {
         SimulationGrid* baseTex = mBloomGrids[i].get();
-        mBloomBlurAdditive->Dispatch(frame, last, baseTex, last->GetTexelSize());
+        mBloomBlurAdditive->Dispatch(pFrame, last, baseTex, last->GetTexelSize());
         last = baseTex;
     }
 
-    mBloomFinal->Dispatch(frame, last, destination, last->GetTexelSize(), GetConfig().pBloomIntensity->GetValue());
+    mBloomFinal->Dispatch(pFrame, last, destination, last->GetTexelSize(), GetConfig().pBloomIntensity->GetValue());
 }
 
-void FluidSimulationApp::ApplySunrays(PerFrame* frame, SimulationGrid* source, SimulationGrid* mask, SimulationGrid* destination)
+void FluidSimulationApp::ApplySunrays(PerFrame* pFrame, SimulationGrid* source, SimulationGrid* mask, SimulationGrid* destination)
 {
-    mSunraysMask->Dispatch(frame, source, mask);
-    mSunrays->Dispatch(frame, mask, destination, GetConfig().pSunraysWeight->GetValue());
+    mSunraysMask->Dispatch(pFrame, source, mask);
+    mSunrays->Dispatch(pFrame, mask, destination, GetConfig().pSunraysWeight->GetValue());
 }
 
-void FluidSimulationApp::Blur(PerFrame* frame, SimulationGrid* target, SimulationGrid* temp, uint32_t iterations)
+void FluidSimulationApp::Blur(PerFrame* pFrame, SimulationGrid* target, SimulationGrid* temp, uint32_t iterations)
 {
     for (uint32_t i = 0; i < iterations; i++) {
-        mBlur->Dispatch(frame, target, temp, ppx::float2(target->GetTexelSize().x, 0.0f));
-        mBlur->Dispatch(frame, temp, target, ppx::float2(0.0f, target->GetTexelSize().y));
+        mBlur->Dispatch(pFrame, target, temp, ppx::float2(target->GetTexelSize().x, 0.0f));
+        mBlur->Dispatch(pFrame, temp, target, ppx::float2(0.0f, target->GetTexelSize().y));
     }
 }
 
@@ -626,7 +626,7 @@ void FluidSimulationApp::DebugGrids(const PerFrame& frame)
     }
 }
 
-void FluidSimulationApp::Update(PerFrame* frame)
+void FluidSimulationApp::Update(PerFrame* pFrame)
 {
     // If the marble has been selected, move it around and drop it at random.
     if (GetConfig().pEnableMarble->GetValue()) {
@@ -640,24 +640,24 @@ void FluidSimulationApp::Update(PerFrame* frame)
         // Drop the marble at random.
         if (mRandom.Float() <= GetConfig().pMarbleDropFrequency->GetValue()) {
             ppx::float2 delta = mMarble.delta * GetConfig().pSplatForce->GetValue();
-            Splat(frame, mMarble.coord, delta, mMarble.color);
+            Splat(pFrame, mMarble.coord, delta, mMarble.color);
         }
     }
 
     // Queue up some splats at random. But limit the amount of outstanding splats so it doesn't get too busy.
     if (Random().Float() <= GetConfig().pSplatFrequency->GetValue()) {
-        MultipleSplats(frame, 1);
+        MultipleSplats(pFrame, 1);
     }
 
-    Step(frame, kFrameDeltaTime);
+    Step(pFrame, kFrameDeltaTime);
 
     if (GetConfig().pEnableBloom->GetValue()) {
-        ApplyBloom(frame, mDyeGrid[0].get(), mBloomGrid.get());
+        ApplyBloom(pFrame, mDyeGrid[0].get(), mBloomGrid.get());
     }
 
     if (GetConfig().pEnableSunrays->GetValue()) {
-        ApplySunrays(frame, mDyeGrid[0].get(), mDyeGrid[1].get(), mSunraysGrid.get());
-        Blur(frame, mSunraysGrid.get(), mSunraysTempGrid.get(), 1);
+        ApplySunrays(pFrame, mDyeGrid[0].get(), mDyeGrid[1].get(), mSunraysGrid.get());
+        Blur(pFrame, mSunraysGrid.get(), mSunraysTempGrid.get(), 1);
     }
 }
 
@@ -684,32 +684,32 @@ void FluidSimulationApp::MoveMarble()
     }
 }
 
-void FluidSimulationApp::Step(PerFrame* frame, float delta)
+void FluidSimulationApp::Step(PerFrame* pFrame, float delta)
 {
     ppx::float2 texelSize = mVelocityGrid[0]->GetTexelSize();
 
-    mCurl->Dispatch(frame, mVelocityGrid[0].get(), mCurlGrid.get(), texelSize);
+    mCurl->Dispatch(pFrame, mVelocityGrid[0].get(), mCurlGrid.get(), texelSize);
 
-    mVorticity->Dispatch(frame, mVelocityGrid[0].get(), mCurlGrid.get(), mVelocityGrid[1].get(), texelSize, GetConfig().pCurl->GetValue(), delta);
+    mVorticity->Dispatch(pFrame, mVelocityGrid[0].get(), mCurlGrid.get(), mVelocityGrid[1].get(), texelSize, GetConfig().pCurl->GetValue(), delta);
     std::swap(mVelocityGrid[0], mVelocityGrid[1]);
 
-    mDivergence->Dispatch(frame, mVelocityGrid[0].get(), mDivergenceGrid.get(), texelSize);
+    mDivergence->Dispatch(pFrame, mVelocityGrid[0].get(), mDivergenceGrid.get(), texelSize);
 
-    mClear->Dispatch(frame, mPressureGrid[0].get(), mPressureGrid[1].get(), GetConfig().pPressure->GetValue());
+    mClear->Dispatch(pFrame, mPressureGrid[0].get(), mPressureGrid[1].get(), GetConfig().pPressure->GetValue());
     std::swap(mPressureGrid[0], mPressureGrid[1]);
 
     for (int i = 0; i < GetConfig().pPressureIterations->GetValue(); ++i) {
-        mPressure->Dispatch(frame, mPressureGrid[0].get(), mDivergenceGrid.get(), mPressureGrid[1].get(), texelSize);
+        mPressure->Dispatch(pFrame, mPressureGrid[0].get(), mDivergenceGrid.get(), mPressureGrid[1].get(), texelSize);
         std::swap(mPressureGrid[0], mPressureGrid[1]);
     }
 
-    mGradientSubtract->Dispatch(frame, mPressureGrid[0].get(), mVelocityGrid[0].get(), mVelocityGrid[1].get(), texelSize);
+    mGradientSubtract->Dispatch(pFrame, mPressureGrid[0].get(), mVelocityGrid[0].get(), mVelocityGrid[1].get(), texelSize);
     std::swap(mVelocityGrid[0], mVelocityGrid[1]);
 
-    mAdvection->Dispatch(frame, mVelocityGrid[0].get(), mVelocityGrid[0].get(), mVelocityGrid[1].get(), delta, GetConfig().pVelocityDissipation->GetValue(), texelSize, texelSize);
+    mAdvection->Dispatch(pFrame, mVelocityGrid[0].get(), mVelocityGrid[0].get(), mVelocityGrid[1].get(), delta, GetConfig().pVelocityDissipation->GetValue(), texelSize, texelSize);
     std::swap(mVelocityGrid[0], mVelocityGrid[1]);
 
-    mAdvection->Dispatch(frame, mVelocityGrid[0].get(), mDyeGrid[0].get(), mDyeGrid[1].get(), delta, GetConfig().pDensityDissipation->GetValue(), texelSize, mDyeGrid[0]->GetTexelSize());
+    mAdvection->Dispatch(pFrame, mVelocityGrid[0].get(), mDyeGrid[0].get(), mDyeGrid[1].get(), delta, GetConfig().pDensityDissipation->GetValue(), texelSize, mDyeGrid[0]->GetTexelSize());
     std::swap(mDyeGrid[0], mDyeGrid[1]);
 }
 

@@ -37,6 +37,10 @@ const uint32_t kComputeRepeatSamplerBindingSlot = 12;
 const uint32_t kSampledImageBindingSlot          = 0;
 const uint32_t kGraphicsRepeatSamplerBindingSlot = 1;
 
+// Grid pairs are used in iterative computations. Two identical grids
+// that switch between input and output in successive iterations.
+const uint32_t kGridPair = 2;
+
 struct SimulationConfig
 {
     // Fluid knobs.
@@ -109,10 +113,10 @@ public:
     static FluidSimulationApp*        GetThisApp() { return static_cast<FluidSimulationApp*>(ppx::Application::Get()); }
 
     // Generate the initial splash of color.
-    void GenerateInitialSplat(PerFrame* frame);
+    void GenerateInitialSplat(PerFrame* pFrame);
 
     // Update the state of the simulation for the given frame.
-    void Update(PerFrame* frame);
+    void Update(PerFrame* pFrame);
 
     // Render the grids computed in the Update() invocation.
     void RenderGrids(const PerFrame& frame);
@@ -147,11 +151,11 @@ private:
     std::unique_ptr<SimulationGrid>              mDitheringGrid  = nullptr;
     std::unique_ptr<SimulationGrid>              mDivergenceGrid = nullptr;
     std::unique_ptr<SimulationGrid>              mDrawColorGrid  = nullptr;
-    std::unique_ptr<SimulationGrid>              mDyeGrid[2];
-    std::unique_ptr<SimulationGrid>              mPressureGrid[2];
+    std::unique_ptr<SimulationGrid>              mDyeGrid[kGridPair];
+    std::unique_ptr<SimulationGrid>              mPressureGrid[kGridPair];
     std::unique_ptr<SimulationGrid>              mSunraysTempGrid = nullptr;
     std::unique_ptr<SimulationGrid>              mSunraysGrid     = nullptr;
-    std::unique_ptr<SimulationGrid>              mVelocityGrid[2];
+    std::unique_ptr<SimulationGrid>              mVelocityGrid[kGridPair];
 
     // Compute shader filters.
     std::unique_ptr<AdvectionShader>         mAdvection         = nullptr;
@@ -186,16 +190,16 @@ private:
     // the application window and can fit at least "resolution" pixels in it.
     ppx::uint2 GetResolution(uint32_t resolution) const;
 
-    void         ApplyBloom(PerFrame* frame, SimulationGrid* source, SimulationGrid* destination);
-    void         ApplySunrays(PerFrame* frame, SimulationGrid* source, SimulationGrid* mask, SimulationGrid* destination);
-    void         Blur(PerFrame* frame, SimulationGrid* target, SimulationGrid* temp, uint32_t iterations);
+    void         ApplyBloom(PerFrame* pFrame, SimulationGrid* source, SimulationGrid* destination);
+    void         ApplySunrays(PerFrame* pFrame, SimulationGrid* source, SimulationGrid* mask, SimulationGrid* destination);
+    void         Blur(PerFrame* pFrame, SimulationGrid* target, SimulationGrid* temp, uint32_t iterations);
     float        CorrectRadius(float radius) const;
     void         DebugGrids(const PerFrame& frame);
     void         DrawGrid(const PerFrame& frame, SimulationGrid* grid, ppx::float2 coord);
     ppx::float3  GenerateColor();
     ppx::float3  HSVtoRGB(ppx::float3 hsv);
     void         MoveMarble();
-    void         MultipleSplats(PerFrame* frame, uint32_t amount);
+    void         MultipleSplats(PerFrame* pFrame, uint32_t amount);
     ppx::float4  NormalizeColor(ppx::float4 input);
     ppx::Random& Random() { return mRandom; }
     void         SetupBloomGrids();
@@ -204,8 +208,8 @@ private:
     void         SetupGrids();
     void         SetupRenderingPipeline();
     void         SetupSunraysGrids();
-    void         Splat(PerFrame* frame, ppx::float2 point, ppx::float2 delta, ppx::float3 color);
-    void         Step(PerFrame* frame, float deltaTime);
+    void         Splat(PerFrame* pFrame, ppx::float2 point, ppx::float2 delta, ppx::float3 color);
+    void         Step(PerFrame* pFrame, float deltaTime);
     void         UpdateKnobVisibility();
 };
 

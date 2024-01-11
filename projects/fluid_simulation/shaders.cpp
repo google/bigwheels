@@ -163,7 +163,7 @@ ComputeDispatchData::ComputeDispatchData()
     PPX_CHECKED_CALL(mDescriptorSet->UpdateSampler(12, 0, pApp->GetRepeatSampler()));
 }
 
-void ComputeShader::Dispatch(PerFrame* frame, SimulationGrid* output, ComputeDispatchData* dd, const ScalarInput& si)
+void ComputeShader::Dispatch(PerFrame* pFrame, SimulationGrid* output, ComputeDispatchData* dd, const ScalarInput& si)
 {
     FluidSimulationApp* pApp         = FluidSimulationApp::GetThisApp();
     ppx::uint3          dispatchSize = ppx::uint3(output->GetWidth(), output->GetHeight(), 1);
@@ -179,17 +179,17 @@ void ComputeShader::Dispatch(PerFrame* frame, SimulationGrid* output, ComputeDis
     // Bind the output grid.
     PPX_CHECKED_CALL(dd->mDescriptorSet->UpdateStorageImage(kOutputBindingSlot, 0, output->GetTexture()));
 
-    frame->cmd->TransitionImageLayout(output->GetImage(), PPX_ALL_SUBRESOURCES, ppx::grfx::RESOURCE_STATE_SHADER_RESOURCE, ppx::grfx::RESOURCE_STATE_UNORDERED_ACCESS);
-    frame->cmd->BindComputeDescriptorSets(pApp->GetComputePipelineInterface(), 1, &dd->mDescriptorSet);
-    frame->cmd->BindComputePipeline(mPipeline);
-    frame->cmd->Dispatch(dispatchSize.x, dispatchSize.y, dispatchSize.z);
-    frame->cmd->TransitionImageLayout(output->GetImage(), PPX_ALL_SUBRESOURCES, ppx::grfx::RESOURCE_STATE_UNORDERED_ACCESS, ppx::grfx::RESOURCE_STATE_SHADER_RESOURCE);
+    pFrame->cmd->TransitionImageLayout(output->GetImage(), PPX_ALL_SUBRESOURCES, ppx::grfx::RESOURCE_STATE_SHADER_RESOURCE, ppx::grfx::RESOURCE_STATE_UNORDERED_ACCESS);
+    pFrame->cmd->BindComputeDescriptorSets(pApp->GetComputePipelineInterface(), 1, &dd->mDescriptorSet);
+    pFrame->cmd->BindComputePipeline(mPipeline);
+    pFrame->cmd->Dispatch(dispatchSize.x, dispatchSize.y, dispatchSize.z);
+    pFrame->cmd->TransitionImageLayout(output->GetImage(), PPX_ALL_SUBRESOURCES, ppx::grfx::RESOURCE_STATE_UNORDERED_ACCESS, ppx::grfx::RESOURCE_STATE_SHADER_RESOURCE);
 
     // Update the dispatch ID for the next dispatch operation.
-    frame->dispatchID++;
+    pFrame->dispatchID++;
 }
 
-void AdvectionShader::Dispatch(PerFrame* frame, SimulationGrid* uVelocity, SimulationGrid* uSource, SimulationGrid* output, float delta, float dissipation, ppx::float2 texelSize, ppx::float2 dyeTexelSize)
+void AdvectionShader::Dispatch(PerFrame* pFrame, SimulationGrid* uVelocity, SimulationGrid* uSource, SimulationGrid* output, float delta, float dissipation, ppx::float2 texelSize, ppx::float2 dyeTexelSize)
 {
     ScalarInput si(output);
     si.texelSize    = texelSize;
@@ -197,153 +197,153 @@ void AdvectionShader::Dispatch(PerFrame* frame, SimulationGrid* uVelocity, Simul
     si.dissipation  = dissipation;
     si.dt           = delta;
 
-    ComputeDispatchData* dd = frame->GetDispatchData();
+    ComputeDispatchData* dd = pFrame->GetDispatchData();
     PPX_CHECKED_CALL(dd->mDescriptorSet->UpdateSampledImage(kUVelocityBindingSlot, 0, uVelocity->GetTexture()));
     PPX_CHECKED_CALL(dd->mDescriptorSet->UpdateSampledImage(kUSourceBindingSlot, 0, uSource->GetTexture()));
 
-    ComputeShader::Dispatch(frame, output, dd, si);
+    ComputeShader::Dispatch(pFrame, output, dd, si);
 }
 
-void BloomBlurShader::Dispatch(PerFrame* frame, SimulationGrid* uTexture, SimulationGrid* output, ppx::float2 texelSize)
+void BloomBlurShader::Dispatch(PerFrame* pFrame, SimulationGrid* uTexture, SimulationGrid* output, ppx::float2 texelSize)
 {
     ScalarInput si(output);
     si.texelSize = texelSize;
 
-    ComputeDispatchData* dd = frame->GetDispatchData();
+    ComputeDispatchData* dd = pFrame->GetDispatchData();
     PPX_CHECKED_CALL(dd->mDescriptorSet->UpdateSampledImage(kUTextureBindingSlot, 0, uTexture->GetTexture()));
 
-    ComputeShader::Dispatch(frame, output, dd, si);
+    ComputeShader::Dispatch(pFrame, output, dd, si);
 }
 
-void BloomBlurAdditiveShader::Dispatch(PerFrame* frame, SimulationGrid* uTexture, SimulationGrid* output, ppx::float2 texelSize)
+void BloomBlurAdditiveShader::Dispatch(PerFrame* pFrame, SimulationGrid* uTexture, SimulationGrid* output, ppx::float2 texelSize)
 {
     ScalarInput si(output);
     si.texelSize = texelSize;
 
-    ComputeDispatchData* dd = frame->GetDispatchData();
+    ComputeDispatchData* dd = pFrame->GetDispatchData();
     PPX_CHECKED_CALL(dd->mDescriptorSet->UpdateSampledImage(kUTextureBindingSlot, 0, uTexture->GetTexture()));
 
-    ComputeShader::Dispatch(frame, output, dd, si);
+    ComputeShader::Dispatch(pFrame, output, dd, si);
 }
 
-void BloomFinalShader::Dispatch(PerFrame* frame, SimulationGrid* uTexture, SimulationGrid* output, ppx::float2 texelSize, float intensity)
+void BloomFinalShader::Dispatch(PerFrame* pFrame, SimulationGrid* uTexture, SimulationGrid* output, ppx::float2 texelSize, float intensity)
 {
     ScalarInput si(output);
     si.texelSize = texelSize;
     si.intensity = intensity;
 
-    ComputeDispatchData* dd = frame->GetDispatchData();
+    ComputeDispatchData* dd = pFrame->GetDispatchData();
     PPX_CHECKED_CALL(dd->mDescriptorSet->UpdateSampledImage(kUTextureBindingSlot, 0, uTexture->GetTexture()));
 
-    ComputeShader::Dispatch(frame, output, dd, si);
+    ComputeShader::Dispatch(pFrame, output, dd, si);
 }
 
-void BloomPrefilterShader::Dispatch(PerFrame* frame, SimulationGrid* uTexture, SimulationGrid* output, ppx::float3 curve, float threshold)
+void BloomPrefilterShader::Dispatch(PerFrame* pFrame, SimulationGrid* uTexture, SimulationGrid* output, ppx::float3 curve, float threshold)
 {
     ScalarInput si(output);
     si.curve     = curve;
     si.threshold = threshold;
 
-    ComputeDispatchData* dd = frame->GetDispatchData();
+    ComputeDispatchData* dd = pFrame->GetDispatchData();
     PPX_CHECKED_CALL(dd->mDescriptorSet->UpdateSampledImage(kUTextureBindingSlot, 0, uTexture->GetTexture()));
 
-    ComputeShader::Dispatch(frame, output, dd, si);
+    ComputeShader::Dispatch(pFrame, output, dd, si);
 }
 
-void BlurShader::Dispatch(PerFrame* frame, SimulationGrid* uTexture, SimulationGrid* output, ppx::float2 texelSize)
+void BlurShader::Dispatch(PerFrame* pFrame, SimulationGrid* uTexture, SimulationGrid* output, ppx::float2 texelSize)
 {
     ScalarInput si(output);
     si.texelSize = texelSize;
 
-    ComputeDispatchData* dd = frame->GetDispatchData();
+    ComputeDispatchData* dd = pFrame->GetDispatchData();
     PPX_CHECKED_CALL(dd->mDescriptorSet->UpdateSampledImage(kUTextureBindingSlot, 0, uTexture->GetTexture()));
 
-    ComputeShader::Dispatch(frame, output, dd, si);
+    ComputeShader::Dispatch(pFrame, output, dd, si);
 }
 
-void ClearShader::Dispatch(PerFrame* frame, SimulationGrid* uTexture, SimulationGrid* output, float clearValue)
+void ClearShader::Dispatch(PerFrame* pFrame, SimulationGrid* uTexture, SimulationGrid* output, float clearValue)
 {
     ScalarInput si(output);
     si.clearValue = clearValue;
 
-    ComputeDispatchData* dd = frame->GetDispatchData();
+    ComputeDispatchData* dd = pFrame->GetDispatchData();
     PPX_CHECKED_CALL(dd->mDescriptorSet->UpdateSampledImage(kUTextureBindingSlot, 0, uTexture->GetTexture()));
 
-    ComputeShader::Dispatch(frame, output, dd, si);
+    ComputeShader::Dispatch(pFrame, output, dd, si);
 }
 
-void ColorShader::Dispatch(PerFrame* frame, SimulationGrid* output, ppx::float4 color)
+void ColorShader::Dispatch(PerFrame* pFrame, SimulationGrid* output, ppx::float4 color)
 {
     ScalarInput si(output);
     si.color = color;
 
-    ComputeDispatchData* dd = frame->GetDispatchData();
+    ComputeDispatchData* dd = pFrame->GetDispatchData();
 
-    ComputeShader::Dispatch(frame, output, dd, si);
+    ComputeShader::Dispatch(pFrame, output, dd, si);
 }
 
-void CurlShader::Dispatch(PerFrame* frame, SimulationGrid* uVelocity, SimulationGrid* output, ppx::float2 texelSize)
+void CurlShader::Dispatch(PerFrame* pFrame, SimulationGrid* uVelocity, SimulationGrid* output, ppx::float2 texelSize)
 {
     ScalarInput si(output);
     si.texelSize = texelSize;
 
-    ComputeDispatchData* dd = frame->GetDispatchData();
+    ComputeDispatchData* dd = pFrame->GetDispatchData();
     PPX_CHECKED_CALL(dd->mDescriptorSet->UpdateSampledImage(kUVelocityBindingSlot, 0, uVelocity->GetTexture()));
 
-    ComputeShader::Dispatch(frame, output, dd, si);
+    ComputeShader::Dispatch(pFrame, output, dd, si);
 }
 
-void DisplayShader::Dispatch(PerFrame* frame, SimulationGrid* uTexture, SimulationGrid* uBloom, SimulationGrid* uSunrays, SimulationGrid* uDithering, SimulationGrid* output, ppx::float2 texelSize, ppx::float2 ditherScale)
+void DisplayShader::Dispatch(PerFrame* pFrame, SimulationGrid* uTexture, SimulationGrid* uBloom, SimulationGrid* uSunrays, SimulationGrid* uDithering, SimulationGrid* output, ppx::float2 texelSize, ppx::float2 ditherScale)
 {
     ScalarInput si(output);
     si.texelSize   = texelSize;
     si.ditherScale = ditherScale;
 
-    ComputeDispatchData* dd = frame->GetDispatchData();
+    ComputeDispatchData* dd = pFrame->GetDispatchData();
     PPX_CHECKED_CALL(dd->mDescriptorSet->UpdateSampledImage(kUTextureBindingSlot, 0, uTexture->GetTexture()));
     PPX_CHECKED_CALL(dd->mDescriptorSet->UpdateSampledImage(kUBloomBindingSlot, 0, uBloom->GetTexture()));
     PPX_CHECKED_CALL(dd->mDescriptorSet->UpdateSampledImage(kUSunraysBindingSlot, 0, uSunrays->GetTexture()));
     PPX_CHECKED_CALL(dd->mDescriptorSet->UpdateSampledImage(kUDitheringBindingSlot, 0, uDithering->GetTexture()));
 
-    ComputeShader::Dispatch(frame, output, dd, si);
+    ComputeShader::Dispatch(pFrame, output, dd, si);
 }
 
-void DivergenceShader::Dispatch(PerFrame* frame, SimulationGrid* uVelocity, SimulationGrid* output, ppx::float2 texelSize)
+void DivergenceShader::Dispatch(PerFrame* pFrame, SimulationGrid* uVelocity, SimulationGrid* output, ppx::float2 texelSize)
 {
     ScalarInput si(output);
     si.texelSize = texelSize;
 
-    ComputeDispatchData* dd = frame->GetDispatchData();
+    ComputeDispatchData* dd = pFrame->GetDispatchData();
     PPX_CHECKED_CALL(dd->mDescriptorSet->UpdateSampledImage(kUVelocityBindingSlot, 0, uVelocity->GetTexture()));
 
-    ComputeShader::Dispatch(frame, output, dd, si);
+    ComputeShader::Dispatch(pFrame, output, dd, si);
 }
 
-void GradientSubtractShader::Dispatch(PerFrame* frame, SimulationGrid* uPressure, SimulationGrid* uVelocity, SimulationGrid* output, ppx::float2 texelSize)
+void GradientSubtractShader::Dispatch(PerFrame* pFrame, SimulationGrid* uPressure, SimulationGrid* uVelocity, SimulationGrid* output, ppx::float2 texelSize)
 {
     ScalarInput si(output);
     si.texelSize = texelSize;
 
-    ComputeDispatchData* dd = frame->GetDispatchData();
+    ComputeDispatchData* dd = pFrame->GetDispatchData();
     PPX_CHECKED_CALL(dd->mDescriptorSet->UpdateSampledImage(kUPressureBindingSlot, 0, uPressure->GetTexture()));
     PPX_CHECKED_CALL(dd->mDescriptorSet->UpdateSampledImage(kUVelocityBindingSlot, 0, uVelocity->GetTexture()));
 
-    ComputeShader::Dispatch(frame, output, dd, si);
+    ComputeShader::Dispatch(pFrame, output, dd, si);
 }
 
-void PressureShader::Dispatch(PerFrame* frame, SimulationGrid* uPressure, SimulationGrid* uDivergence, SimulationGrid* output, ppx::float2 texelSize)
+void PressureShader::Dispatch(PerFrame* pFrame, SimulationGrid* uPressure, SimulationGrid* uDivergence, SimulationGrid* output, ppx::float2 texelSize)
 {
     ScalarInput si(output);
     si.texelSize = texelSize;
 
-    ComputeDispatchData* dd = frame->GetDispatchData();
+    ComputeDispatchData* dd = pFrame->GetDispatchData();
     PPX_CHECKED_CALL(dd->mDescriptorSet->UpdateSampledImage(kUPressureBindingSlot, 0, uPressure->GetTexture()));
     PPX_CHECKED_CALL(dd->mDescriptorSet->UpdateSampledImage(kUDivergenceBindingSlot, 0, uDivergence->GetTexture()));
 
-    ComputeShader::Dispatch(frame, output, dd, si);
+    ComputeShader::Dispatch(pFrame, output, dd, si);
 }
 
-void SplatShader::Dispatch(PerFrame* frame, SimulationGrid* uTexture, SimulationGrid* output, ppx::float2 coordinate, float aspectRatio, float radius, ppx::float4 color)
+void SplatShader::Dispatch(PerFrame* pFrame, SimulationGrid* uTexture, SimulationGrid* output, ppx::float2 coordinate, float aspectRatio, float radius, ppx::float4 color)
 {
     ScalarInput si(output);
     si.coordinate  = coordinate;
@@ -351,44 +351,44 @@ void SplatShader::Dispatch(PerFrame* frame, SimulationGrid* uTexture, Simulation
     si.radius      = radius;
     si.color       = color;
 
-    ComputeDispatchData* dd = frame->GetDispatchData();
+    ComputeDispatchData* dd = pFrame->GetDispatchData();
     PPX_CHECKED_CALL(dd->mDescriptorSet->UpdateSampledImage(kUTextureBindingSlot, 0, uTexture->GetTexture()));
 
-    ComputeShader::Dispatch(frame, output, dd, si);
+    ComputeShader::Dispatch(pFrame, output, dd, si);
 }
 
-void SunraysMaskShader::Dispatch(PerFrame* frame, SimulationGrid* uTexture, SimulationGrid* output)
+void SunraysMaskShader::Dispatch(PerFrame* pFrame, SimulationGrid* uTexture, SimulationGrid* output)
 {
     ScalarInput si(output);
 
-    ComputeDispatchData* dd = frame->GetDispatchData();
+    ComputeDispatchData* dd = pFrame->GetDispatchData();
     PPX_CHECKED_CALL(dd->mDescriptorSet->UpdateSampledImage(kUTextureBindingSlot, 0, uTexture->GetTexture()));
 
-    ComputeShader::Dispatch(frame, output, dd, si);
+    ComputeShader::Dispatch(pFrame, output, dd, si);
 }
 
-void SunraysShader::Dispatch(PerFrame* frame, SimulationGrid* uTexture, SimulationGrid* output, float weight)
+void SunraysShader::Dispatch(PerFrame* pFrame, SimulationGrid* uTexture, SimulationGrid* output, float weight)
 {
     ScalarInput si(output);
     si.weight = weight;
 
-    ComputeDispatchData* dd = frame->GetDispatchData();
+    ComputeDispatchData* dd = pFrame->GetDispatchData();
     PPX_CHECKED_CALL(dd->mDescriptorSet->UpdateSampledImage(kUTextureBindingSlot, 0, uTexture->GetTexture()));
 
-    ComputeShader::Dispatch(frame, output, dd, si);
+    ComputeShader::Dispatch(pFrame, output, dd, si);
 }
 
-void VorticityShader::Dispatch(PerFrame* frame, SimulationGrid* uVelocity, SimulationGrid* uCurl, SimulationGrid* output, ppx::float2 texelSize, float curl, float delta)
+void VorticityShader::Dispatch(PerFrame* pFrame, SimulationGrid* uVelocity, SimulationGrid* uCurl, SimulationGrid* output, ppx::float2 texelSize, float curl, float delta)
 {
     ScalarInput si(output);
     si.curl = curl;
     si.dt   = delta;
 
-    ComputeDispatchData* dd = frame->GetDispatchData();
+    ComputeDispatchData* dd = pFrame->GetDispatchData();
     PPX_CHECKED_CALL(dd->mDescriptorSet->UpdateSampledImage(kUVelocityBindingSlot, 0, uVelocity->GetTexture()));
     PPX_CHECKED_CALL(dd->mDescriptorSet->UpdateSampledImage(kUCurlBindingSlot, 0, uCurl->GetTexture()));
 
-    ComputeShader::Dispatch(frame, output, dd, si);
+    ComputeShader::Dispatch(pFrame, output, dd, si);
 }
 
 } // namespace FluidSim
