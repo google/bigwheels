@@ -11,44 +11,71 @@
 #include "shaders.h"
 
 #include "ppx/application.h"
+#include "ppx/grfx/grfx_config.h"
 #include "ppx/knob.h"
 #include "ppx/math_config.h"
 #include "ppx/random.h"
 
-#include <queue>
-
 namespace FluidSim {
+
+// Binding slots for compute shaders.
+const uint32_t kConstantBufferBindingSlot       = 0;
+const uint32_t kClampSamplerBindingSlot         = 1;
+const uint32_t kUTextureBindingSlot             = 2;
+const uint32_t kUVelocityBindingSlot            = 3;
+const uint32_t kUCurlBindingSlot                = 4;
+const uint32_t kUSourceBindingSlot              = 5;
+const uint32_t kUBloomBindingSlot               = 6;
+const uint32_t kUSunraysBindingSlot             = 7;
+const uint32_t kUDitheringBindingSlot           = 8;
+const uint32_t kUPressureBindingSlot            = 9;
+const uint32_t kUDivergenceBindingSlot          = 10;
+const uint32_t kOutputBindingSlot               = 11;
+const uint32_t kComputeRepeatSamplerBindingSlot = 12;
+
+// Binding slots for graphics shaders.
+const uint32_t kSampledImageBindingSlot          = 0;
+const uint32_t kGraphicsRepeatSamplerBindingSlot = 1;
+
+// Grid pairs are used in iterative computations. Two identical grids
+// that switch between input and output in successive iterations.
+const uint32_t kGridPair = 2;
 
 struct SimulationConfig
 {
-    // Fluid
+    // Fluid knobs.
     std::shared_ptr<ppx::KnobSlider<float>> pCurl;
     std::shared_ptr<ppx::KnobSlider<float>> pDensityDissipation;
     std::shared_ptr<ppx::KnobSlider<int>>   pDyeResolution;
     std::shared_ptr<ppx::KnobSlider<float>> pPressure;
     std::shared_ptr<ppx::KnobSlider<int>>   pPressureIterations;
     std::shared_ptr<ppx::KnobSlider<float>> pVelocityDissipation;
-    // Bloom
+
+    // Bloom knobs.
     std::shared_ptr<ppx::KnobCheckbox>      pEnableBloom;
     std::shared_ptr<ppx::KnobSlider<float>> pBloomIntensity;
     std::shared_ptr<ppx::KnobSlider<int>>   pBloomIterations;
     std::shared_ptr<ppx::KnobSlider<int>>   pBloomResolution;
     std::shared_ptr<ppx::KnobSlider<float>> pBloomSoftKnee;
     std::shared_ptr<ppx::KnobSlider<float>> pBloomThreshold;
-    // Marble
+
+    // Marble knobs.
     std::shared_ptr<ppx::KnobCheckbox>      pEnableMarble;
     std::shared_ptr<ppx::KnobSlider<float>> pColorUpdateFrequency;
     std::shared_ptr<ppx::KnobSlider<float>> pMarbleDropFrequency;
-    // Splats
+
+    // Splat knobs.
     std::shared_ptr<ppx::KnobSlider<int>>   pNumSplats;
     std::shared_ptr<ppx::KnobSlider<float>> pSplatForce;
     std::shared_ptr<ppx::KnobSlider<float>> pSplatFrequency;
     std::shared_ptr<ppx::KnobSlider<float>> pSplatRadius;
-    // Sunrays
+
+    // Sunray knobs.
     std::shared_ptr<ppx::KnobCheckbox>      pEnableSunrays;
     std::shared_ptr<ppx::KnobSlider<int>>   pSunraysResolution;
     std::shared_ptr<ppx::KnobSlider<float>> pSunraysWeight;
-    // Misc
+
+    // Misc knobs.
     std::shared_ptr<ppx::KnobSlider<int>> pSimResolution;
 
     ppx::float4 backColor = {0.0f, 0.0f, 0.0f, 1.0f};
@@ -62,69 +89,39 @@ struct Bouncer
     ppx::float3 color = {0.5, 0.5, 0};
 };
 
-class ProjApp;
-
-class FluidSimulation
+class FluidSimulationApp : public ppx::Application
 {
 public:
-    FluidSimulation(ppx::grfx::DevicePtr device, ppx::uint2 resolution, const SimulationConfig& config)
-        : mDevice(device), mResolution(resolution), mConfig(config)
-    {
-    }
+    virtual void InitKnobs() override;
+    virtual void Config(ppx::ApplicationSettings& settings) override;
+    virtual void Setup() override;
+    virtual void Render() override;
 
-    // Create a new fluid simulation instance.
-    //
-    // device       The device to use.
-    // resolution   A 2 element vector with the desired resolution in pixels.
-    // config       An instance of SimulationConfig describing all the inputs to the simulation.
-    // ppSim        A pointer the the newly created simulator instance.  If an error occurred during creation,
-    //              this will be set to nullptr and an error code will be returned.
-    static ppx::Result Create(ppx::grfx::DevicePtr device, ppx::uint2 resolution, const SimulationConfig& config, std::unique_ptr<FluidSimulation>* ppSim);
-
-    const SimulationConfig&      GetConfig() const { return mConfig; }
-    ppx::grfx::DescriptorPoolPtr GetDescriptorPool() const { return mDescriptorPool; }
-    ComputeResources*            GetComputeResources() { return &mCompute; }
-    GraphicsResources*           GetGraphicsResources() { return &mGraphics; }
-    PerFrame&                    GetFrame(size_t ix) { return mPerFrame[ix]; }
-    ppx::uint2                   GetResolution() const { return mResolution; }
-    float                        GetResolutionAspect() const { return static_cast<float>(GetWidth()) / static_cast<float>(GetHeight()); }
-    uint32_t                     GetWidth() const { return mResolution.x; }
-    uint32_t                     GetHeight() const { return mResolution.y; }
-    ppx::grfx::DevicePtr         GetDevice() const { return mDevice; }
-
-    // Initialize the simulation.
-    ppx::Result Initialize();
+    const SimulationConfig&           GetSimulationConfig() const { return mConfig; }
+    ppx::grfx::SamplerPtr             GetClampSampler() const { return mClampSampler; }
+    const SimulationConfig&           GetConfig() const { return mConfig; }
+    ppx::grfx::DescriptorSetLayoutPtr GetComputeDescriptorSetLayout() const { return mComputeDescriptorSetLayout; }
+    ppx::grfx::PipelineInterfacePtr   GetComputePipelineInterface() const { return mComputePipelineInterface; }
+    ppx::grfx::DescriptorPoolPtr      GetDescriptorPool() const { return mDescriptorPool; }
+    PerFrame&                         GetFrame(size_t ix) { return mPerFrame[ix]; }
+    ppx::grfx::QueuePtr               GetGraphicsQueue(uint32_t index = 0) const { return GetDevice()->GetGraphicsQueue(index); }
+    ppx::grfx::DescriptorSetLayoutPtr GetGraphicsDescriptorSetLayout() const { return mGraphicsDescriptorSetLayout; }
+    ppx::grfx::GraphicsPipelinePtr    GetGraphicsPipeline() const { return mGraphicsPipeline; }
+    ppx::grfx::PipelineInterfacePtr   GetGraphicsPipelineInterface() const { return mGraphicsPipelineInterface; }
+    ppx::grfx::VertexBinding*         GetGraphicsVertexBinding() { return &mGraphicsVertexBinding; }
+    ppx::grfx::SamplerPtr             GetRepeatSampler() const { return mRepeatSampler; }
+    static FluidSimulationApp*        GetThisApp() { return static_cast<FluidSimulationApp*>(ppx::Application::Get()); }
 
     // Generate the initial splash of color.
-    void GenerateInitialSplat();
+    void GenerateInitialSplat(PerFrame* pFrame);
 
-    // Execute all the scheduled compute shaders in sequence.
-    void DispatchComputeShaders(const PerFrame& frame);
+    // Update the state of the simulation for the given frame.
+    void Update(PerFrame* pFrame);
 
-    // Free descriptor sets and uniform buffers used by compute shaders. This
-    // also clears the execution schedule.
-    //
-    // TODO(https://github.com/google/bigwheels/issues/26): Implement resource pool.
-    void FreeComputeShaderResources();
-
-    // brief Execute all the scheduled graphics shaders in sequence.
-    void DispatchGraphicsShaders(const PerFrame& frame);
-
-    // Free descriptor sets used by graphics shaders. This also clears
-    // the execution schedule.
-    void FreeGraphicsShaderResources();
-
-    // Update the state of the simulation.  This moves the virtual
-    // bodies producing the wake.
-    void Update();
+    // Render the grids computed in the Update() invocation.
+    void RenderGrids(const PerFrame& frame);
 
 private:
-    // Device to use.
-    ppx::grfx::DevicePtr mDevice;
-
-    // Resolution to use for the simulation.
-    ppx::uint2 mResolution;
-
     // Simulation parameters.
     SimulationConfig mConfig;
 
@@ -132,57 +129,52 @@ private:
     std::vector<PerFrame> mPerFrame;
 
     // Descriptor pool for compute and graphics shaders.
-    ppx::grfx::DescriptorPoolPtr mDescriptorPool;
+    ppx::grfx::DescriptorPoolPtr mDescriptorPool = nullptr;
 
-    // Compute resources (pipeline interface, descriptor layout, sampler, etc).
-    ComputeResources mCompute;
+    // Pipeline interface, descriptor layout and sampler used by compute shaders.
+    ppx::grfx::PipelineInterfacePtr   mComputePipelineInterface   = nullptr;
+    ppx::grfx::DescriptorSetLayoutPtr mComputeDescriptorSetLayout = nullptr;
+    ppx::grfx::SamplerPtr             mClampSampler               = nullptr;
+    ppx::grfx::SamplerPtr             mRepeatSampler              = nullptr;
 
-    // Graphics resources (pipeline interface, descriptor layout, sampler, etc).
-    GraphicsResources mGraphics;
+    // Pipeline interface, descriptor layout and other resources used for rendering textures.
+    ppx::grfx::PipelineInterfacePtr   mGraphicsPipelineInterface   = nullptr;
+    ppx::grfx::DescriptorSetLayoutPtr mGraphicsDescriptorSetLayout = nullptr;
+    ppx::grfx::GraphicsPipelinePtr    mGraphicsPipeline            = nullptr;
+    ppx::grfx::VertexBinding          mGraphicsVertexBinding;
 
-    // Textures used for filtering.
-    std::unique_ptr<Texture>              mBloomTexture;
-    std::vector<std::unique_ptr<Texture>> mBloomTextures;
-    std::unique_ptr<Texture>              mCheckerboardTexture;
-    std::unique_ptr<Texture>              mCurlTexture;
-    std::unique_ptr<Texture>              mDisplayTexture;
-    std::unique_ptr<Texture>              mDitheringTexture;
-    std::unique_ptr<Texture>              mDivergenceTexture;
-    std::unique_ptr<Texture>              mDrawColorTexture;
-    std::unique_ptr<Texture>              mDyeTexture[2];
-    std::unique_ptr<Texture>              mPressureTexture[2];
-    std::unique_ptr<Texture>              mSunraysTempTexture;
-    std::unique_ptr<Texture>              mSunraysTexture;
-    std::unique_ptr<Texture>              mVelocityTexture[2];
+    // Grids used for filtering.
+    std::vector<std::unique_ptr<SimulationGrid>> mBloomGrids;
+    std::unique_ptr<SimulationGrid>              mBloomGrid      = nullptr;
+    std::unique_ptr<SimulationGrid>              mCurlGrid       = nullptr;
+    std::unique_ptr<SimulationGrid>              mDisplayGrid    = nullptr;
+    std::unique_ptr<SimulationGrid>              mDitheringGrid  = nullptr;
+    std::unique_ptr<SimulationGrid>              mDivergenceGrid = nullptr;
+    std::unique_ptr<SimulationGrid>              mDrawColorGrid  = nullptr;
+    std::unique_ptr<SimulationGrid>              mDyeGrid[kGridPair];
+    std::unique_ptr<SimulationGrid>              mPressureGrid[kGridPair];
+    std::unique_ptr<SimulationGrid>              mSunraysTempGrid = nullptr;
+    std::unique_ptr<SimulationGrid>              mSunraysGrid     = nullptr;
+    std::unique_ptr<SimulationGrid>              mVelocityGrid[kGridPair];
 
     // Compute shader filters.
-    std::unique_ptr<AdvectionShader>         mAdvection;
-    std::unique_ptr<BloomBlurShader>         mBloomBlur;
-    std::unique_ptr<BloomBlurAdditiveShader> mBloomBlurAdditive;
-    std::unique_ptr<BloomFinalShader>        mBloomFinal;
-    std::unique_ptr<BloomPrefilterShader>    mBloomPrefilter;
-    std::unique_ptr<BlurShader>              mBlur;
-    std::unique_ptr<CheckerboardShader>      mCheckerboard;
-    std::unique_ptr<ClearShader>             mClear;
-    std::unique_ptr<ColorShader>             mColor;
-    std::unique_ptr<CurlShader>              mCurl;
-    std::unique_ptr<DisplayShader>           mDisplay;
-    std::unique_ptr<DivergenceShader>        mDivergence;
-    std::unique_ptr<GradientSubtractShader>  mGradientSubtract;
-    std::unique_ptr<PressureShader>          mPressure;
-    std::unique_ptr<SplatShader>             mSplat;
-    std::unique_ptr<SunraysMaskShader>       mSunraysMask;
-    std::unique_ptr<SunraysShader>           mSunrays;
-    std::unique_ptr<VorticityShader>         mVorticity;
-
-    // Graphics shader for emitting textures to the swapchain.
-    std::unique_ptr<GraphicsShader> mDraw;
-
-    // Queue of compute shaders to execute.
-    std::vector<std::unique_ptr<ComputeDispatchRecord>> mComputeDispatchQueue;
-
-    // Textures that should be rendered after a round of simulation.
-    std::vector<std::unique_ptr<GraphicsDispatchRecord>> mGraphicsDispatchQueue;
+    std::unique_ptr<AdvectionShader>         mAdvection         = nullptr;
+    std::unique_ptr<BloomBlurShader>         mBloomBlur         = nullptr;
+    std::unique_ptr<BloomBlurAdditiveShader> mBloomBlurAdditive = nullptr;
+    std::unique_ptr<BloomFinalShader>        mBloomFinal        = nullptr;
+    std::unique_ptr<BloomPrefilterShader>    mBloomPrefilter    = nullptr;
+    std::unique_ptr<BlurShader>              mBlur              = nullptr;
+    std::unique_ptr<ClearShader>             mClear             = nullptr;
+    std::unique_ptr<ColorShader>             mColor             = nullptr;
+    std::unique_ptr<CurlShader>              mCurl              = nullptr;
+    std::unique_ptr<DisplayShader>           mDisplay           = nullptr;
+    std::unique_ptr<DivergenceShader>        mDivergence        = nullptr;
+    std::unique_ptr<GradientSubtractShader>  mGradientSubtract  = nullptr;
+    std::unique_ptr<PressureShader>          mPressure          = nullptr;
+    std::unique_ptr<SplatShader>             mSplat             = nullptr;
+    std::unique_ptr<SunraysMaskShader>       mSunraysMask       = nullptr;
+    std::unique_ptr<SunraysShader>           mSunrays           = nullptr;
+    std::unique_ptr<VorticityShader>         mVorticity         = nullptr;
 
     // Random numbers used to initialize the simulation.
     ppx::Random mRandom;
@@ -190,69 +182,35 @@ private:
     // Virtual object moving through the simulation field causing wakes in the fluid.
     Bouncer mMarble;
 
-    void        ApplyBloom(Texture* source, Texture* destination);
-    void        ApplySunrays(Texture* source, Texture* mask, Texture* destination);
-    void        Blur(Texture* target, Texture* temp, uint32_t iterations);
-    float       CorrectRadius(float radius);
-    void        DrawCheckerboard();
-    void        DrawColor(ppx::float4 color);
-    void        DrawDisplay();
-    void        DrawTextures();
-    ppx::float3 GenerateColor();
-    void        MoveMarble();
-    void        Step(float deltaTime);
-
     // Return a vector describing a rectangle with dimensions that can fit "resolution" pixels.
     //
     // resolution  The minimum size of the rectangle to fit this many pixels.
     //
     // Returns A vector of 2 dimensions. The dimensions have the same aspect ratio as
     // the application window and can fit at least "resolution" pixels in it.
-    ppx::uint2 GetResolution(uint32_t resolution);
+    ppx::uint2 GetResolution(uint32_t resolution) const;
 
+    void         ApplyBloom(PerFrame* pFrame, SimulationGrid* source, SimulationGrid* destination);
+    void         ApplySunrays(PerFrame* pFrame, SimulationGrid* source, SimulationGrid* mask, SimulationGrid* destination);
+    void         Blur(PerFrame* pFrame, SimulationGrid* target, SimulationGrid* temp, uint32_t iterations);
+    float        CorrectRadius(float radius) const;
+    void         DebugGrids(const PerFrame& frame);
+    void         DrawGrid(const PerFrame& frame, SimulationGrid* grid, ppx::float2 coord);
+    ppx::float3  GenerateColor();
     ppx::float3  HSVtoRGB(ppx::float3 hsv);
-    void         InitBloomTextures();
-    void         InitComputeShaders();
-    void         InitGraphicsShaders();
-    void         InitSunraysTextures();
-    void         InitTextures();
-    void         MultipleSplats(uint32_t amount);
+    void         MoveMarble();
+    void         MultipleSplats(PerFrame* pFrame, uint32_t amount);
     ppx::float4  NormalizeColor(ppx::float4 input);
-    void         Render();
     ppx::Random& Random() { return mRandom; }
-    void         Splat(ppx::float2 point, ppx::float2 delta, ppx::float3 color);
-
-    // Schedule a compute shader for execution.
-    //
-    // dr   The dispatch record describing the shader to be executed and
-    //      the data used to execute it (descriptor set and uniform buffer).
-    void ScheduleDR(std::unique_ptr<ComputeDispatchRecord> dr) { mComputeDispatchQueue.push_back(std::move(dr)); }
-
-    // Schedule a graphics shader for execution.
-    //
-    // dr   The dispatch record describing the shader to be executed and
-    //      the descriptor set and texture used to execute it.
-    void ScheduleDR(std::unique_ptr<GraphicsDispatchRecord> dr) { mGraphicsDispatchQueue.push_back(std::move(dr)); }
-};
-
-class ProjApp : public ppx::Application
-{
-public:
-    virtual void            InitKnobs() override;
-    virtual void            Config(ppx::ApplicationSettings& settings) override;
-    virtual void            Setup() override;
-    virtual void            Render() override;
-    const SimulationConfig& GetSimulationConfig() const { return mConfig; }
-
-    // Knob visibility logic
-    void UpdateKnobVisibility();
-
-private:
-    // Configuration parameters to the simulator.
-    SimulationConfig mConfig;
-
-    // Fluid simulation driver.
-    std::unique_ptr<FluidSimulation> mSim;
+    void         SetupBloomGrids();
+    void         SetupComputeShaders();
+    void         SetupGraphicsShaders();
+    void         SetupGrids();
+    void         SetupRenderingPipeline();
+    void         SetupSunraysGrids();
+    void         Splat(PerFrame* pFrame, ppx::float2 point, ppx::float2 delta, ppx::float3 color);
+    void         Step(PerFrame* pFrame, float deltaTime);
+    void         UpdateKnobVisibility();
 };
 
 } // namespace FluidSim
