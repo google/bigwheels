@@ -50,9 +50,12 @@ Result Swapchain::Create(const grfx::SwapchainCreateInfo* pCreateInfo)
 
     // Create color images if needed. This is only needed if we're creating
     // a headless swapchain.
-    ppxres = CreateColorImages();
-    if (Failed(ppxres)) {
-        return ppxres;
+    if (mColorImages.empty()) {
+        PPX_ASSERT_MSG(IsHeadless(), "Color image should be obtained from underlying swapchain");
+        ppxres = CreateColorImages();
+        if (Failed(ppxres)) {
+            return ppxres;
+        }
     }
 
     // Create depth images if needed. This is usually needed for both normal swapchains
