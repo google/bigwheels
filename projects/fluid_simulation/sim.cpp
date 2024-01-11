@@ -97,7 +97,7 @@ void FluidSimulationApp::InitKnobs()
     mConfig.pColorUpdateFrequency->SetFlagDescription("This takes effect only if the bouncing marble is enabled. This controls how often to change the bouncing marble color. This is the color used to produce the splash every time the marble drops.");
     mConfig.pColorUpdateFrequency->SetIndent(indent);
 
-    GetKnobManager().InitKnob(&mConfig.pMarbleDropFrequency, "marble-drop-frequency", 0.9f, 0.0f, 1.0f);
+    GetKnobManager().InitKnob(&mConfig.pMarbleDropFrequency, "marble-drop-frequency", 0.1f, 0.0f, 1.0f);
     mConfig.pMarbleDropFrequency->SetDisplayName("Drop Frequency");
     mConfig.pMarbleDropFrequency->SetFlagDescription("The probability that the marble will splash on the fluid as it bounces around the field.");
     mConfig.pMarbleDropFrequency->SetIndent(indent);
@@ -112,8 +112,8 @@ void FluidSimulationApp::InitKnobs()
     mConfig.pSplatForce->SetFlagDescription("This represents the magnitude of the impact applied when an external force (e.g. marble drops) on the fluid.");
     mConfig.pSplatForce->SetIndent(indent);
 
-    GetKnobManager().InitKnob(&mConfig.pSplatFrequency, "splat-frequency", 0.4f, 0.0f, 1.0f);
-    mConfig.pSplatFrequency->SetDisplayName("Frequency");
+    GetKnobManager().InitKnob(&mConfig.pSplatFrequency, "splat-frequency", 0.03f, 0.0f, 1.0f);
+    mConfig.pSplatFrequency->SetDisplayName("Splat frequency");
     mConfig.pSplatFrequency->SetFlagDescription("How frequent should new splats be generated at random.");
     mConfig.pSplatFrequency->SetIndent(indent);
 
@@ -243,23 +243,22 @@ void FluidSimulationApp::SetupComputeShaders()
     PPX_CHECKED_CALL(GetDevice()->CreateSampler(&sci, &mRepeatSampler));
 
     // Create compute shaders for filtering.
-    mAdvection         = std::make_unique<AdvectionShader>();
-    mBloomBlur         = std::make_unique<BloomBlurShader>();
-    mBloomBlurAdditive = std::make_unique<BloomBlurAdditiveShader>();
-    mBloomFinal        = std::make_unique<BloomFinalShader>();
-    mBloomPrefilter    = std::make_unique<BloomPrefilterShader>();
-    mBlur              = std::make_unique<BlurShader>();
-    mClear             = std::make_unique<ClearShader>();
-    mColor             = std::make_unique<ColorShader>();
-    mCurl              = std::make_unique<CurlShader>();
-    mDisplay           = std::make_unique<DisplayShader>();
-    mDivergence        = std::make_unique<DivergenceShader>();
-    mGradientSubtract  = std::make_unique<GradientSubtractShader>();
-    mPressure          = std::make_unique<PressureShader>();
-    mSplat             = std::make_unique<SplatShader>();
-    mSunraysMask       = std::make_unique<SunraysMaskShader>();
-    mSunrays           = std::make_unique<SunraysShader>();
-    mVorticity         = std::make_unique<VorticityShader>();
+    mAdvection         = std::make_unique<ComputeShader>("advection", std::vector<uint32_t>({kUVelocityBindingSlot, kUSourceBindingSlot, kOutputBindingSlot}));
+    mBloomBlur         = std::make_unique<ComputeShader>("bloom_blur", std::vector<uint32_t>({kUTextureBindingSlot, kOutputBindingSlot}));
+    mBloomBlurAdditive = std::make_unique<ComputeShader>("bloom_blur_additive", std::vector<uint32_t>({kUTextureBindingSlot, kOutputBindingSlot}));
+    mBloomFinal        = std::make_unique<ComputeShader>("bloom_final", std::vector<uint32_t>({kUTextureBindingSlot, kOutputBindingSlot}));
+    mBloomPrefilter    = std::make_unique<ComputeShader>("bloom_prefilter", std::vector<uint32_t>({kUTextureBindingSlot, kOutputBindingSlot}));
+    mBlur              = std::make_unique<ComputeShader>("blur", std::vector<uint32_t>({kUTextureBindingSlot, kOutputBindingSlot}));
+    mClear             = std::make_unique<ComputeShader>("clear", std::vector<uint32_t>({kUTextureBindingSlot, kOutputBindingSlot}));
+    mCurl              = std::make_unique<ComputeShader>("curl", std::vector<uint32_t>({kUVelocityBindingSlot, kOutputBindingSlot}));
+    mDisplay           = std::make_unique<ComputeShader>("display", std::vector<uint32_t>({kUTextureBindingSlot, kUBloomBindingSlot, kUSunraysBindingSlot, kUDitheringBindingSlot, kOutputBindingSlot}));
+    mDivergence        = std::make_unique<ComputeShader>("divergence", std::vector<uint32_t>({kUVelocityBindingSlot, kOutputBindingSlot}));
+    mGradientSubtract  = std::make_unique<ComputeShader>("gradient_subtract", std::vector<uint32_t>({kUPressureBindingSlot, kUVelocityBindingSlot, kOutputBindingSlot}));
+    mPressure          = std::make_unique<ComputeShader>("pressure", std::vector<uint32_t>({kUPressureBindingSlot, kUDivergenceBindingSlot, kOutputBindingSlot}));
+    mSplat             = std::make_unique<ComputeShader>("splat", std::vector<uint32_t>({kUTextureBindingSlot, kOutputBindingSlot}));
+    mSunrays           = std::make_unique<ComputeShader>("sunrays", std::vector<uint32_t>({kUTextureBindingSlot, kOutputBindingSlot}));
+    mSunraysMask       = std::make_unique<ComputeShader>("sunrays_mask", std::vector<uint32_t>({kUTextureBindingSlot, kOutputBindingSlot}));
+    mVorticity         = std::make_unique<ComputeShader>("vorticity", std::vector<uint32_t>({kUVelocityBindingSlot, kUCurlBindingSlot, kOutputBindingSlot}));
 }
 
 void FluidSimulationApp::SetupRenderingPipeline()
@@ -320,7 +319,6 @@ void FluidSimulationApp::SetupGrids()
     mDivergenceGrid  = std::make_unique<SimulationGrid>("divergence", simRes.x, simRes.y, kR);
     mDisplayGrid     = std::make_unique<SimulationGrid>("display", GetWindowWidth(), GetWindowHeight(), kRGBA);
     mDitheringGrid   = std::make_unique<SimulationGrid>("fluid_simulation/textures/LDR_LLL1_0.png");
-    mDrawColorGrid   = std::make_unique<SimulationGrid>("draw color", GetWindowWidth(), GetWindowHeight(), kRGBA);
     mDyeGrid[0]      = std::make_unique<SimulationGrid>("dye[0]", dyeRes.x, dyeRes.y, kRGBA);
     mDyeGrid[1]      = std::make_unique<SimulationGrid>("dye[1]", dyeRes.x, dyeRes.y, kRGBA);
     mPressureGrid[0] = std::make_unique<SimulationGrid>("pressure[0]", simRes.x, simRes.y, kR);
@@ -390,10 +388,10 @@ void FluidSimulationApp::Render()
         }
 
         // Prepare the image to present.
-        ppx::float2 texelSize   = ppx::float2(1.0f / GetWindowWidth(), 1.0f / GetWindowHeight());
-        ppx::float2 ditherScale = mDitheringGrid->GetDitherScale(GetWindowWidth(), GetWindowHeight());
-        mColor->Dispatch(&frame, mDrawColorGrid.get(), NormalizeColor(GetConfig().backColor));
-        mDisplay->Dispatch(&frame, mDyeGrid[0].get(), mBloomGrid.get(), mSunraysGrid.get(), mDitheringGrid.get(), mDisplayGrid.get(), texelSize, ditherScale);
+        ScalarInput si;
+        si.texelSize   = ppx::float2(1.0f / GetWindowWidth(), 1.0f / GetWindowHeight());
+        si.ditherScale = mDitheringGrid->GetDitherScale(GetWindowWidth(), GetWindowHeight());
+        mDisplay->Dispatch(&frame, {mDyeGrid[0].get(), mBloomGrid.get(), mSunraysGrid.get(), mDitheringGrid.get(), mDisplayGrid.get()}, &si);
 
         ppx::grfx::RenderPassPtr renderPass = GetSwapchain()->GetRenderPass(imageIndex);
         PPX_ASSERT_MSG(!renderPass.IsNull(), "render pass object is null");
@@ -509,15 +507,18 @@ float FluidSimulationApp::CorrectRadius(float radius) const
     return (aspectRatio > 1) ? radius * aspectRatio : radius;
 }
 
-void FluidSimulationApp::Splat(PerFrame* pFrame, ppx::float2 point, ppx::float2 delta, ppx::float3 color)
+void FluidSimulationApp::Splat(PerFrame* pFrame, ppx::float2 coordinate, ppx::float2 delta, ppx::float3 color)
 {
-    float       aspect     = GetWindowAspect();
-    float       radius     = CorrectRadius(GetConfig().pSplatRadius->GetValue() / 100.0f);
-    ppx::float4 deltaColor = ppx::float4(delta.x, delta.y, 0.0f, 1.0f);
-    mSplat->Dispatch(pFrame, mVelocityGrid[0].get(), mVelocityGrid[1].get(), point, aspect, radius, deltaColor);
+    ScalarInput si;
+    si.coordinate  = coordinate;
+    si.aspectRatio = GetWindowAspect();
+    si.radius      = CorrectRadius(GetConfig().pSplatRadius->GetValue() / 100.0f);
+    si.color       = ppx::float4(delta.x, delta.y, 0.0f, 1.0f);
+    mSplat->Dispatch(pFrame, {mVelocityGrid[0].get(), mVelocityGrid[1].get()}, &si);
     std::swap(mVelocityGrid[0], mVelocityGrid[1]);
 
-    mSplat->Dispatch(pFrame, mDyeGrid[0].get(), mDyeGrid[1].get(), point, aspect, radius, ppx::float4(color, 1.0f));
+    si.color = ppx::float4(color, 1.0f);
+    mSplat->Dispatch(pFrame, {mDyeGrid[0].get(), mDyeGrid[1].get()}, &si);
     std::swap(mDyeGrid[0], mDyeGrid[1]);
 }
 
@@ -534,16 +535,15 @@ void FluidSimulationApp::MultipleSplats(PerFrame* pFrame, uint32_t amount)
         color.r *= 10.0f;
         color.g *= 10.0f;
         color.b *= 10.0f;
-        ppx::float2 point(Random().Float(), Random().Float());
+        ppx::float2 coordinate(Random().Float(), Random().Float());
         ppx::float2 delta(1000.0f * (Random().Float() - 0.5f), 1000.0f * (Random().Float() - 0.5f));
-        PPX_LOG_DEBUG("Splash #" << i << " at " << point << " with color " << color << "\n");
-        Splat(pFrame, point, delta, color);
+        PPX_LOG_DEBUG("Splash #" << i << " at " << coordinate << " with color " << color << "\n");
+        Splat(pFrame, coordinate, delta, color);
     }
 }
 
 void FluidSimulationApp::RenderGrids(const PerFrame& frame)
 {
-    mDrawColorGrid->Draw(frame, ppx::float2(-1.0f, 1.0f));
     mDisplayGrid->Draw(frame, ppx::float2(-1.0f, 1.0f));
 
     if (GetSettings()->grfx.enableDebug) {
@@ -558,37 +558,54 @@ void FluidSimulationApp::ApplyBloom(PerFrame* pFrame, SimulationGrid* source, Si
 
     SimulationGrid* last = destination;
 
-    float knee   = GetConfig().pBloomThreshold->GetValue() * GetConfig().pBloomSoftKnee->GetValue() + 0.0001f;
-    float curve0 = GetConfig().pBloomThreshold->GetValue() - knee;
-    float curve1 = knee * 2.0f;
-    float curve2 = 0.25f / knee;
-    mBloomPrefilter->Dispatch(pFrame, source, last, ppx::float3(curve0, curve1, curve2), GetConfig().pBloomThreshold->GetValue());
+    float       knee   = GetConfig().pBloomThreshold->GetValue() * GetConfig().pBloomSoftKnee->GetValue() + 0.0001f;
+    float       curve0 = GetConfig().pBloomThreshold->GetValue() - knee;
+    float       curve1 = knee * 2.0f;
+    float       curve2 = 0.25f / knee;
+    ScalarInput si;
+    si.curve     = ppx::float3(curve0, curve1, curve2);
+    si.threshold = GetConfig().pBloomThreshold->GetValue();
+    mBloomPrefilter->Dispatch(pFrame, {source, last}, &si);
 
+    si = ScalarInput();
     for (auto& dest : mBloomGrids) {
-        mBloomBlur->Dispatch(pFrame, last, dest.get(), last->GetTexelSize());
+        si.texelSize = last->GetTexelSize();
+        mBloomBlur->Dispatch(pFrame, {last, dest.get()}, &si);
         last = dest.get();
     }
 
+    si = ScalarInput();
     for (int i = static_cast<int>(mBloomGrids.size() - 2); i >= 0; i--) {
         SimulationGrid* baseTex = mBloomGrids[i].get();
-        mBloomBlurAdditive->Dispatch(pFrame, last, baseTex, last->GetTexelSize());
+        si.texelSize            = last->GetTexelSize();
+        mBloomBlurAdditive->Dispatch(pFrame, {last, baseTex}, &si);
         last = baseTex;
     }
 
-    mBloomFinal->Dispatch(pFrame, last, destination, last->GetTexelSize(), GetConfig().pBloomIntensity->GetValue());
+    si           = ScalarInput();
+    si.texelSize = last->GetTexelSize();
+    si.intensity = GetConfig().pBloomIntensity->GetValue();
+    mBloomFinal->Dispatch(pFrame, {last, destination}, &si);
 }
 
 void FluidSimulationApp::ApplySunrays(PerFrame* pFrame, SimulationGrid* source, SimulationGrid* mask, SimulationGrid* destination)
 {
-    mSunraysMask->Dispatch(pFrame, source, mask);
-    mSunrays->Dispatch(pFrame, mask, destination, GetConfig().pSunraysWeight->GetValue());
+    ScalarInput si;
+    mSunraysMask->Dispatch(pFrame, {source, mask}, &si);
+
+    si.weight = GetConfig().pSunraysWeight->GetValue();
+    mSunrays->Dispatch(pFrame, {mask, destination}, &si);
 }
 
 void FluidSimulationApp::Blur(PerFrame* pFrame, SimulationGrid* target, SimulationGrid* temp, uint32_t iterations)
 {
+    ScalarInput si;
     for (uint32_t i = 0; i < iterations; i++) {
-        mBlur->Dispatch(pFrame, target, temp, ppx::float2(target->GetTexelSize().x, 0.0f));
-        mBlur->Dispatch(pFrame, temp, target, ppx::float2(0.0f, target->GetTexelSize().y));
+        si.texelSize = ppx::float2(target->GetTexelSize().x, 0.0f);
+        mBlur->Dispatch(pFrame, {target, temp}, &si);
+
+        si.texelSize = ppx::float2(0.0f, target->GetTexelSize().y);
+        mBlur->Dispatch(pFrame, {temp, target}, &si);
     }
 }
 
@@ -688,28 +705,52 @@ void FluidSimulationApp::Step(PerFrame* pFrame, float delta)
 {
     ppx::float2 texelSize = mVelocityGrid[0]->GetTexelSize();
 
-    mCurl->Dispatch(pFrame, mVelocityGrid[0].get(), mCurlGrid.get(), texelSize);
+    ScalarInput si;
+    si.texelSize = texelSize;
+    mCurl->Dispatch(pFrame, {mVelocityGrid[0].get(), mCurlGrid.get()}, &si);
 
-    mVorticity->Dispatch(pFrame, mVelocityGrid[0].get(), mCurlGrid.get(), mVelocityGrid[1].get(), texelSize, GetConfig().pCurl->GetValue(), delta);
+    si           = ScalarInput();
+    si.texelSize = texelSize;
+    si.curl      = GetConfig().pCurl->GetValue();
+    si.dt        = delta;
+    mVorticity->Dispatch(pFrame, {mVelocityGrid[0].get(), mCurlGrid.get(), mVelocityGrid[1].get()}, &si);
     std::swap(mVelocityGrid[0], mVelocityGrid[1]);
 
-    mDivergence->Dispatch(pFrame, mVelocityGrid[0].get(), mDivergenceGrid.get(), texelSize);
+    si           = ScalarInput();
+    si.texelSize = texelSize;
+    mDivergence->Dispatch(pFrame, {mVelocityGrid[0].get(), mDivergenceGrid.get()}, &si);
 
-    mClear->Dispatch(pFrame, mPressureGrid[0].get(), mPressureGrid[1].get(), GetConfig().pPressure->GetValue());
+    si            = ScalarInput();
+    si.clearValue = GetConfig().pPressure->GetValue();
+    mClear->Dispatch(pFrame, {mPressureGrid[0].get(), mPressureGrid[1].get()}, &si);
     std::swap(mPressureGrid[0], mPressureGrid[1]);
 
+    si           = ScalarInput();
+    si.texelSize = texelSize;
     for (int i = 0; i < GetConfig().pPressureIterations->GetValue(); ++i) {
-        mPressure->Dispatch(pFrame, mPressureGrid[0].get(), mDivergenceGrid.get(), mPressureGrid[1].get(), texelSize);
+        mPressure->Dispatch(pFrame, {mPressureGrid[0].get(), mDivergenceGrid.get(), mPressureGrid[1].get()}, &si);
         std::swap(mPressureGrid[0], mPressureGrid[1]);
     }
 
-    mGradientSubtract->Dispatch(pFrame, mPressureGrid[0].get(), mVelocityGrid[0].get(), mVelocityGrid[1].get(), texelSize);
+    si           = ScalarInput();
+    si.texelSize = texelSize;
+    mGradientSubtract->Dispatch(pFrame, {mPressureGrid[0].get(), mVelocityGrid[0].get(), mVelocityGrid[1].get()}, &si);
     std::swap(mVelocityGrid[0], mVelocityGrid[1]);
 
-    mAdvection->Dispatch(pFrame, mVelocityGrid[0].get(), mVelocityGrid[0].get(), mVelocityGrid[1].get(), delta, GetConfig().pVelocityDissipation->GetValue(), texelSize, texelSize);
+    si              = ScalarInput();
+    si.dt           = delta;
+    si.dissipation  = GetConfig().pVelocityDissipation->GetValue();
+    si.texelSize    = texelSize;
+    si.dyeTexelSize = texelSize;
+    mAdvection->Dispatch(pFrame, {mVelocityGrid[0].get(), mVelocityGrid[0].get(), mVelocityGrid[1].get()}, &si);
     std::swap(mVelocityGrid[0], mVelocityGrid[1]);
 
-    mAdvection->Dispatch(pFrame, mVelocityGrid[0].get(), mDyeGrid[0].get(), mDyeGrid[1].get(), delta, GetConfig().pDensityDissipation->GetValue(), texelSize, mDyeGrid[0]->GetTexelSize());
+    si              = ScalarInput();
+    si.dt           = delta;
+    si.dissipation  = GetConfig().pDensityDissipation->GetValue();
+    si.texelSize    = texelSize;
+    si.dyeTexelSize = mDyeGrid[0]->GetTexelSize();
+    mAdvection->Dispatch(pFrame, {mVelocityGrid[0].get(), mDyeGrid[0].get(), mDyeGrid[1].get()}, &si);
     std::swap(mDyeGrid[0], mDyeGrid[1]);
 }
 

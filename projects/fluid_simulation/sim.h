@@ -77,8 +77,6 @@ struct SimulationConfig
 
     // Misc knobs.
     std::shared_ptr<ppx::KnobSlider<int>> pSimResolution;
-
-    ppx::float4 backColor = {0.0f, 0.0f, 0.0f, 1.0f};
 };
 
 // Represents a virtual object bouncing around the field.
@@ -158,23 +156,22 @@ private:
     std::unique_ptr<SimulationGrid>              mVelocityGrid[kGridPair];
 
     // Compute shader filters.
-    std::unique_ptr<AdvectionShader>         mAdvection         = nullptr;
-    std::unique_ptr<BloomBlurShader>         mBloomBlur         = nullptr;
-    std::unique_ptr<BloomBlurAdditiveShader> mBloomBlurAdditive = nullptr;
-    std::unique_ptr<BloomFinalShader>        mBloomFinal        = nullptr;
-    std::unique_ptr<BloomPrefilterShader>    mBloomPrefilter    = nullptr;
-    std::unique_ptr<BlurShader>              mBlur              = nullptr;
-    std::unique_ptr<ClearShader>             mClear             = nullptr;
-    std::unique_ptr<ColorShader>             mColor             = nullptr;
-    std::unique_ptr<CurlShader>              mCurl              = nullptr;
-    std::unique_ptr<DisplayShader>           mDisplay           = nullptr;
-    std::unique_ptr<DivergenceShader>        mDivergence        = nullptr;
-    std::unique_ptr<GradientSubtractShader>  mGradientSubtract  = nullptr;
-    std::unique_ptr<PressureShader>          mPressure          = nullptr;
-    std::unique_ptr<SplatShader>             mSplat             = nullptr;
-    std::unique_ptr<SunraysMaskShader>       mSunraysMask       = nullptr;
-    std::unique_ptr<SunraysShader>           mSunrays           = nullptr;
-    std::unique_ptr<VorticityShader>         mVorticity         = nullptr;
+    std::unique_ptr<ComputeShader> mAdvection         = nullptr;
+    std::unique_ptr<ComputeShader> mBloomBlur         = nullptr;
+    std::unique_ptr<ComputeShader> mBloomBlurAdditive = nullptr;
+    std::unique_ptr<ComputeShader> mBloomFinal        = nullptr;
+    std::unique_ptr<ComputeShader> mBloomPrefilter    = nullptr;
+    std::unique_ptr<ComputeShader> mBlur              = nullptr;
+    std::unique_ptr<ComputeShader> mClear             = nullptr;
+    std::unique_ptr<ComputeShader> mCurl              = nullptr;
+    std::unique_ptr<ComputeShader> mDisplay           = nullptr;
+    std::unique_ptr<ComputeShader> mDivergence        = nullptr;
+    std::unique_ptr<ComputeShader> mGradientSubtract  = nullptr;
+    std::unique_ptr<ComputeShader> mPressure          = nullptr;
+    std::unique_ptr<ComputeShader> mSplat             = nullptr;
+    std::unique_ptr<ComputeShader> mSunrays           = nullptr;
+    std::unique_ptr<ComputeShader> mSunraysMask       = nullptr;
+    std::unique_ptr<ComputeShader> mVorticity         = nullptr;
 
     // Random numbers used to initialize the simulation.
     ppx::Random mRandom;
@@ -208,7 +205,7 @@ private:
     void         SetupGrids();
     void         SetupRenderingPipeline();
     void         SetupSunraysGrids();
-    void         Splat(PerFrame* pFrame, ppx::float2 point, ppx::float2 delta, ppx::float3 color);
+    void         Splat(PerFrame* pFrame, ppx::float2 coordinate, ppx::float2 delta, ppx::float3 color);
     void         Step(PerFrame* pFrame, float deltaTime);
     void         UpdateKnobVisibility();
 };
