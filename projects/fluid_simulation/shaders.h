@@ -93,6 +93,14 @@ private:
     ppx::grfx::DescriptorSetPtr mDescriptorSet = nullptr;
 };
 
+// Filter option bitmasks to use in ScalarInput::filterOptions.
+//
+// This MUST match the constants defined in assets/fluid_simulation/shaders/config.hlsli.
+const uint32_t kAdvectionManualFiltering = 1 << 0;
+const uint32_t kDisplayShading           = 1 << 1;
+const uint32_t kDisplayBloom             = 1 << 2;
+const uint32_t kDisplaySunrays           = 1 << 3;
+
 // Scalar inputs for the filter programs.
 //
 // This needs to be 16-bit aligned to be copied into a uniform buffer.
@@ -119,6 +127,7 @@ struct alignas(16) ScalarInput
     float       weight             = .0f;
     float       curl               = .0f;
     ppx::float2 normalizationScale = ppx::float2();
+    uint32_t    filterOptions      = 0;
 };
 
 class ComputeShader

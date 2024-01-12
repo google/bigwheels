@@ -47,6 +47,12 @@ Coord BlurVS(float2 xy, float2 normalizationScale, float2 texelSize)
     return coord;
 }
 
+// Filter option bitmasks to use in CSInput::filterOptions.
+#define kAdvectionManualFiltering  (1 << 0)
+#define kDisplayShading            (1 << 1)
+#define kDisplayBloom              (1 << 2)
+#define kDisplaySunrays            (1 << 3)
+
 // Scalar inputs for the filter programs. Needs to be 16-bit aligned to be copied
 // into a uniform buffer.
 //
@@ -78,6 +84,8 @@ struct CSInput
     float curl;
 
     float2 normalizationScale;
+
+    uint filterOptions;
 };
 
 ConstantBuffer<CSInput> Params : register(b0);

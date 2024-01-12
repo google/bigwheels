@@ -141,6 +141,14 @@ void FluidSimulationApp::InitKnobs()
     GetKnobManager().InitKnob(&mConfig.pSimResolution, "sim-resolution", 128, 1, 1000);
     mConfig.pSimResolution->SetDisplayName("Simulation Resolution");
     mConfig.pSimResolution->SetFlagDescription("This determines the grid size of the grids used during simulation. Higher values produce finer grids which produce a more accurate representation.");
+
+    GetKnobManager().InitKnob(&mConfig.pEnableShading, "shading", true);
+    mConfig.pEnableShading->SetDisplayName("Shading");
+    mConfig.pEnableShading->SetFlagDescription("Indicates whether to perform diffuse shading on the resulting output.");
+
+    GetKnobManager().InitKnob(&mConfig.pEnableManualAdvection, "manual-advection", false);
+    mConfig.pEnableManualAdvection->SetDisplayName("Manual advection");
+    mConfig.pEnableManualAdvection->SetFlagDescription("Indicates whether to perform manual advection on the velocity field. If enabled, advection is computed as a bi-linear interpolation on the velocity field. Otherwise, it is computed directly from velocity.");
 }
 
 void FluidSimulationApp::Config(ppx::ApplicationSettings& settings)
@@ -397,6 +405,15 @@ void FluidSimulationApp::Render()
         ScalarInput si;
         si.texelSize   = ppx::float2(1.0f / GetWindowWidth(), 1.0f / GetWindowHeight());
         si.ditherScale = mDitheringGrid->GetDitherScale(GetWindowWidth(), GetWindowHeight());
+        if (GetConfig().pEnableBloom->GetValue()) {
+            si.filterOptions |= kDisplayBloom;
+        }
+        if (GetConfig().pEnableSunrays->GetValue()) {
+            si.filterOptions |= kDisplaySunrays;
+        }
+        if (GetConfig().pEnableShading->GetValue()) {
+            si.filterOptions |= kDisplayShading;
+        }
         mDisplay->Dispatch(&frame, {mDyeGrid[0].get(), mBloomGrid.get(), mSunraysGrid.get(), mDitheringGrid.get(), mDisplayGrid.get()}, &si);
 
         ppx::grfx::RenderPassPtr renderPass = GetSwapchain()->GetRenderPass(imageIndex);
@@ -535,7 +552,6 @@ void FluidSimulationApp::MultipleSplats(PerFrame* pFrame, uint32_t amount)
         amount = Random().UInt32() % 20 + 5;
     }
 
-    PPX_LOG_DEBUG("Emitting " << amount << " splashes of color\n");
     for (uint32_t i = 0; i < amount; i++) {
         ppx::float3 color = GenerateColor();
         color.r *= 10.0f;
@@ -543,7 +559,6 @@ void FluidSimulationApp::MultipleSplats(PerFrame* pFrame, uint32_t amount)
         color.b *= 10.0f;
         ppx::float2 coordinate(Random().Float(), Random().Float());
         ppx::float2 delta(1000.0f * (Random().Float() - 0.5f), 1000.0f * (Random().Float() - 0.5f));
-        PPX_LOG_DEBUG("Splash #" << i << " at " << coordinate << " with color " << color << "\n");
         Splat(pFrame, coordinate, delta, color);
     }
 }
@@ -640,7 +655,6 @@ void FluidSimulationApp::DebugGrids(const PerFrame& frame)
             coord.y -= maxDimY;
             maxDimY = 0.0f;
         }
-        PPX_LOG_DEBUG("Scheduling grid draw for " << t->GetName() << " with normalized dimensions " << dim << " at coordinate " << coord << "\n");
         t->Draw(frame, coord);
         coord.x += dim.x + 0.005f;
         if (dim.y > maxDimY) {
@@ -743,11 +757,12 @@ void FluidSimulationApp::Step(PerFrame* pFrame, float delta)
     mGradientSubtract->Dispatch(pFrame, {mPressureGrid[0].get(), mVelocityGrid[0].get(), mVelocityGrid[1].get()}, &si);
     std::swap(mVelocityGrid[0], mVelocityGrid[1]);
 
-    si              = ScalarInput();
-    si.dt           = delta;
-    si.dissipation  = GetConfig().pVelocityDissipation->GetValue();
-    si.texelSize    = texelSize;
-    si.dyeTexelSize = texelSize;
+    si               = ScalarInput();
+    si.dt            = delta;
+    si.dissipation   = GetConfig().pVelocityDissipation->GetValue();
+    si.texelSize     = texelSize;
+    si.dyeTexelSize  = texelSize;
+    si.filterOptions = GetConfig().pEnableManualAdvection->GetValue() ? kAdvectionManualFiltering : 0;
     mAdvection->Dispatch(pFrame, {mVelocityGrid[0].get(), mVelocityGrid[0].get(), mVelocityGrid[1].get()}, &si);
     std::swap(mVelocityGrid[0], mVelocityGrid[1]);
 
