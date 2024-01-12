@@ -68,9 +68,11 @@ public:
     // Render this grid.
     void Draw(const PerFrame& frame, ppx::float2 coord);
 
-    // Compute and return the size of the texture normalized to the resolution.
-    // given in pixels.  This maps the size of the texture to the normalized
-    // coordinates ([-1, 1], [-1, 1]).
+    // Compute and return the size of the texture normalized to the given resolution
+    // in pixels. To compute the normalized size, we know that the width in pixels given
+    // by resolution.x corresponds to 2 normalized units (because normalized coordinates
+    // span the range [-1, 1]).  A similar calculation is done to map and scale the
+    // height.
     ppx::float2 GetNormalizedSize(ppx::uint2 resolution) const
     {
         return ppx::float2(GetWidth() * 2.0f / static_cast<float>(resolution.x), GetHeight() * 2.0f / static_cast<float>(resolution.y));
