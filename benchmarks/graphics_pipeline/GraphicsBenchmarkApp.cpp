@@ -541,7 +541,7 @@ void GraphicsBenchmarkApp::SetupSkyBoxMeshes()
 {
     TriMesh  mesh = TriMesh::CreateCube(float3(1, 1, 1), TriMeshOptions().TexCoords());
     Geometry geo;
-    PPX_CHECKED_CALL(Geometry::Create(GeometryOptions::InterleavedU16().AddTexCoord(), mesh, &geo));
+    PPX_CHECKED_CALL(Geometry::Create(GeometryCreateInfo::InterleavedU16().AddTexCoord(), mesh, &geo));
     PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mSkyBox.mesh));
 }
 
