@@ -51,8 +51,9 @@ public:
     static FishTornadoApp* GetThisApp();
     float                  GetTime() const { return mTime; }
     float                  GetDt() const { return mDt; }
-    const PerspCamera*     GetCamera() const { return &mCamera; }
-    const Shark*           GetShark() const { return &mShark; }
+
+    const Camera* GetCamera() const;
+    const Shark*  GetShark() const { return &mShark; }
 
     grfx::DescriptorPoolPtr      GetDescriptorPool() const { return mDescriptorPool; }
     grfx::DescriptorSetLayoutPtr GetSceneDataSetLayout() const { return mSceneDataSetLayout; }
