@@ -158,6 +158,7 @@ void FluidSimulationApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.api              = kApi;
     settings.grfx.enableDebug      = clOptions.HasExtraOption("enable-debug");
     settings.allowThirdPartyAssets = true;
+    settings.window.resizable      = true;
 }
 
 void FluidSimulationApp::Setup()
@@ -309,6 +310,11 @@ void FluidSimulationApp::SetupRenderingPipeline()
     PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpci, &mGraphicsPipeline));
 }
 
+void FluidSimulationApp::Resize(uint32_t width, uint32_t height)
+{
+    SetupGrids();
+}
+
 void FluidSimulationApp::SetupGrids()
 {
     ppx::int2 simRes = GetResolution(GetConfig().pSimResolution->GetValue());
@@ -334,7 +340,7 @@ void FluidSimulationApp::SetupBloomGrids()
 {
     ppx::int2 res = GetResolution(GetConfig().pBloomResolution->GetValue());
     mBloomGrid    = std::make_unique<SimulationGrid>("bloom", res.x, res.y, kRGBA);
-    PPX_ASSERT_MSG(mBloomGrids.empty(), "Bloom grids already initialized");
+    mBloomGrids.clear();
     for (int i = 0; i < GetConfig().pBloomIterations->GetValue(); i++) {
         uint32_t width  = res.x >> (i + 1);
         uint32_t height = res.y >> (i + 1);
