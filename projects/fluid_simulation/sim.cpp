@@ -405,12 +405,15 @@ void FluidSimulationApp::Render()
         ScalarInput si;
         si.texelSize   = ppx::float2(1.0f / GetWindowWidth(), 1.0f / GetWindowHeight());
         si.ditherScale = mDitheringGrid->GetDitherScale(GetWindowWidth(), GetWindowHeight());
-        if (GetConfig().pEnableBloom->GetValue())
+        if (GetConfig().pEnableBloom->GetValue()) {
             si.filterOptions |= kDisplayBloom;
-        if (GetConfig().pEnableSunrays->GetValue())
+        }
+        if (GetConfig().pEnableSunrays->GetValue()) {
             si.filterOptions |= kDisplaySunrays;
-        if (GetConfig().pEnableShading->GetValue())
+        }
+        if (GetConfig().pEnableShading->GetValue()) {
             si.filterOptions |= kDisplayShading;
+        }
         mDisplay->Dispatch(&frame, {mDyeGrid[0].get(), mBloomGrid.get(), mSunraysGrid.get(), mDitheringGrid.get(), mDisplayGrid.get()}, &si);
 
         ppx::grfx::RenderPassPtr renderPass = GetSwapchain()->GetRenderPass(imageIndex);
