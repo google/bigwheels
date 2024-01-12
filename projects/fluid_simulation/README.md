@@ -125,3 +125,11 @@ appear brighter.
 This determines the grid size of the compute textures used
 during simulation. Higher values produce finer grids which
 produce a more accurate representation.
+
+## --shading <true|false>
+Indicates whether to perform diffuse shading on the resulting output.
+
+## --manual-advection <true|false>
+Indicates whether to perform manual advection on the velocity field. If
+enabled, advection is computed as a bi-linear interpolation on the velocity
+field. Otherwise, it is computed directly from velocity.

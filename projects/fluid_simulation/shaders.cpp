@@ -8,9 +8,23 @@
 #include "shaders.h"
 #include "sim.h"
 
+#include "ppx/bitmap.h"
 #include "ppx/config.h"
 #include "ppx/graphics_util.h"
+#include "ppx/grfx/grfx_buffer.h"
+#include "ppx/grfx/grfx_config.h"
+#include "ppx/grfx/grfx_constants.h"
+#include "ppx/grfx/grfx_enums.h"
+#include "ppx/grfx/grfx_pipeline.h"
+#include "ppx/grfx/grfx_shader.h"
 #include "ppx/math_config.h"
+#include "ppx/util.h"
+
+#include <cstddef>
+#include <cstdint>
+#include <iosfwd>
+#include <string>
+#include <vector>
 
 std::ostream& operator<<(std::ostream& os, const FluidSim::ScalarInput& i)
 {
@@ -163,7 +177,7 @@ ComputeDispatchData::ComputeDispatchData()
     PPX_CHECKED_CALL(mDescriptorSet->UpdateSampler(12, 0, pApp->GetRepeatSampler()));
 }
 
-void ComputeShader::Dispatch(PerFrame* pFrame, const std::vector<SimulationGrid*>& grids, ScalarInput* si)
+void ComputeShader::Dispatch(PerFrame* pFrame, const std::vector<SimulationGrid*>& grids, ScalarInput* pSI)
 {
     FluidSimulationApp* pApp = FluidSimulationApp::GetThisApp();
 
@@ -179,37 +193,37 @@ void ComputeShader::Dispatch(PerFrame* pFrame, const std::vector<SimulationGrid*
     // - Both lists 'grids' and 'mGridBindingSlots' must be the same length.
     PPX_ASSERT_MSG(grids.size() == mGridBindingSlots.size(), "Dispatch signature mismatch for shader " << mShaderFile);
 
-    SimulationGrid* output     = grids.back();
+    SimulationGrid* pOutput    = grids.back();
     uint32_t        outputSlot = mGridBindingSlots.back();
     PPX_ASSERT_MSG(outputSlot == kOutputBindingSlot, "The last element of the grid binding slots should be binding slot " << kOutputBindingSlot);
 
     // Retrieve the dispatch data for this invocation.
-    ComputeDispatchData* dd = pFrame->GetDispatchData();
+    ComputeDispatchData* pDispatchData = pFrame->GetDispatchData();
 
     // Bind all the input grids.
     for (auto i = 0; i < mGridBindingSlots.size() - 1; i++) {
-        PPX_CHECKED_CALL(dd->mDescriptorSet->UpdateSampledImage(mGridBindingSlots[i], 0, grids[i]->GetTexture()));
+        PPX_CHECKED_CALL(pDispatchData->mDescriptorSet->UpdateSampledImage(mGridBindingSlots[i], 0, grids[i]->GetTexture()));
     }
 
     // Bind the output grid.
-    PPX_CHECKED_CALL(dd->mDescriptorSet->UpdateStorageImage(kOutputBindingSlot, 0, output->GetTexture()));
+    PPX_CHECKED_CALL(pDispatchData->mDescriptorSet->UpdateStorageImage(kOutputBindingSlot, 0, pOutput->GetTexture()));
 
     // Compute the normalization scale based on output's resolution.
-    si->normalizationScale = ppx::float2(1.0f / output->GetWidth(), 1.0f / output->GetHeight());
+    pSI->normalizationScale = ppx::float2(1.0f / pOutput->GetWidth(), 1.0f / pOutput->GetHeight());
 
     // Copy the input data into the uniform buffer.
-    void* pData = nullptr;
-    PPX_CHECKED_CALL(dd->mUniformBuffer->MapMemory(0, &pData));
-    memcpy(pData, si, sizeof(*si));
-    dd->mUniformBuffer->UnmapMemory();
+    void* pAddr = nullptr;
+    PPX_CHECKED_CALL(pDispatchData->mUniformBuffer->MapMemory(0, &pAddr));
+    memcpy(pAddr, pSI, sizeof(*pSI));
+    pDispatchData->mUniformBuffer->UnmapMemory();
 
     // Queue the dispatch operation.
-    ppx::uint3 dispatchSize = ppx::uint3(output->GetWidth(), output->GetHeight(), 1);
-    pFrame->cmd->TransitionImageLayout(output->GetImage(), PPX_ALL_SUBRESOURCES, ppx::grfx::RESOURCE_STATE_SHADER_RESOURCE, ppx::grfx::RESOURCE_STATE_UNORDERED_ACCESS);
-    pFrame->cmd->BindComputeDescriptorSets(pApp->GetComputePipelineInterface(), 1, &dd->mDescriptorSet);
+    ppx::uint3 dispatchSize = ppx::uint3(pOutput->GetWidth(), pOutput->GetHeight(), 1);
+    pFrame->cmd->TransitionImageLayout(pOutput->GetImage(), PPX_ALL_SUBRESOURCES, ppx::grfx::RESOURCE_STATE_SHADER_RESOURCE, ppx::grfx::RESOURCE_STATE_UNORDERED_ACCESS);
+    pFrame->cmd->BindComputeDescriptorSets(pApp->GetComputePipelineInterface(), 1, &pDispatchData->mDescriptorSet);
     pFrame->cmd->BindComputePipeline(mPipeline);
     pFrame->cmd->Dispatch(dispatchSize.x, dispatchSize.y, dispatchSize.z);
-    pFrame->cmd->TransitionImageLayout(output->GetImage(), PPX_ALL_SUBRESOURCES, ppx::grfx::RESOURCE_STATE_UNORDERED_ACCESS, ppx::grfx::RESOURCE_STATE_SHADER_RESOURCE);
+    pFrame->cmd->TransitionImageLayout(pOutput->GetImage(), PPX_ALL_SUBRESOURCES, ppx::grfx::RESOURCE_STATE_UNORDERED_ACCESS, ppx::grfx::RESOURCE_STATE_SHADER_RESOURCE);
 
     // Update the dispatch ID for the next dispatch operation.
     pFrame->dispatchID++;

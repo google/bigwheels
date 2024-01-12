@@ -8,13 +8,15 @@
 #ifndef FLUID_SIMULATION_SHADERS_H
 #define FLUID_SIMULATION_SHADERS_H
 
-#include "ppx/graphics_util.h"
-#include "ppx/grfx/grfx_buffer.h"
+#include "ppx/bitmap.h"
 #include "ppx/grfx/grfx_config.h"
 #include "ppx/grfx/grfx_texture.h"
 #include "ppx/math_config.h"
 
-#include <iostream>
+#include <cstdint>
+#include <iosfwd>
+#include <string>
+#include <vector>
 
 namespace FluidSim {
 
@@ -143,8 +145,8 @@ public:
     // grids    A list of grids to be bound to the descriptor set. This list is assumed to be
     //              in the same order as the list of binding slots (mGridBindingSlots) set during
     //              construction.
-    // si       A pointer to the scalar inputs to the compute shader.
-    void Dispatch(PerFrame* pFrame, const std::vector<SimulationGrid*>& grids, ScalarInput* si);
+    // pSI      A pointer to the scalar inputs to the compute shader.
+    void Dispatch(PerFrame* pFrame, const std::vector<SimulationGrid*>& grids, ScalarInput* pSI);
 
 private:
     ppx::grfx::ComputePipelinePtr mPipeline;
