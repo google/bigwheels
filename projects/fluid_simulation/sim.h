@@ -200,7 +200,6 @@ private:
     void         Blur(PerFrame* pFrame, SimulationGrid* pTarget, SimulationGrid* pTemp, uint32_t iterations);
     float        CorrectRadius(float radius) const;
     void         DebugGrids(const PerFrame& frame);
-    void         DrawGrid(const PerFrame& frame, SimulationGrid* pGrid, ppx::float2 coord);
     ppx::float3  GenerateColor();
     ppx::float3  HSVtoRGB(ppx::float3 hsv);
     void         MoveMarble();
@@ -209,7 +208,6 @@ private:
     ppx::Random& Random() { return mRandom; }
     void         SetupBloomGrids();
     void         SetupComputeShaders();
-    void         SetupGraphicsShaders();
     void         SetupGrids();
     void         SetupRenderingPipeline();
     void         SetupSunraysGrids();
