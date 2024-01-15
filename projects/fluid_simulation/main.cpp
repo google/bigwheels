@@ -24,4 +24,6 @@
 
 #include "sim.h"
 
+#include "ppx/application.h"
+
 SETUP_APPLICATION(FluidSim::FluidSimulationApp)

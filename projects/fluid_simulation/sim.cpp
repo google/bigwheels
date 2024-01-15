@@ -5,16 +5,32 @@
 // license that can be found in the LICENSE file or at
 // https://opensource.org/licenses/MIT.
 
-#include "sim.h"
 #include "shaders.h"
+#include "sim.h"
 
-#include "ppx/math_config.h"
 #include "ppx/application.h"
+#include "ppx/bitmap.h"
 #include "ppx/config.h"
+#include "ppx/grfx/grfx_config.h"
+#include "ppx/grfx/grfx_constants.h"
+#include "ppx/grfx/grfx_descriptor.h"
+#include "ppx/grfx/grfx_enums.h"
 #include "ppx/grfx/grfx_format.h"
+#include "ppx/grfx/grfx_image.h"
+#include "ppx/grfx/grfx_pipeline.h"
+#include "ppx/grfx/grfx_queue.h"
+#include "ppx/grfx/grfx_shader.h"
+#include "ppx/grfx/grfx_sync.h"
+#include "ppx/knob.h"
+#include "ppx/math_config.h"
 
-#include <algorithm>
 #include <cmath>
+#include <cstdint>
+#include <float.h>
+#include <math.h>
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace FluidSim {
 
@@ -572,12 +588,12 @@ void FluidSimulationApp::RenderGrids(const PerFrame& frame)
     }
 }
 
-void FluidSimulationApp::ApplyBloom(PerFrame* pFrame, SimulationGrid* source, SimulationGrid* destination)
+void FluidSimulationApp::ApplyBloom(PerFrame* pFrame, SimulationGrid* pSource, SimulationGrid* pDestination)
 {
     if (mBloomGrids.size() < 2)
         return;
 
-    SimulationGrid* last = destination;
+    SimulationGrid* pLast = pDestination;
 
     float       knee   = GetConfig().pBloomThreshold->GetValue() * GetConfig().pBloomSoftKnee->GetValue() + 0.0001f;
     float       curve0 = GetConfig().pBloomThreshold->GetValue() - knee;
@@ -586,47 +602,47 @@ void FluidSimulationApp::ApplyBloom(PerFrame* pFrame, SimulationGrid* source, Si
     ScalarInput si;
     si.curve     = ppx::float3(curve0, curve1, curve2);
     si.threshold = GetConfig().pBloomThreshold->GetValue();
-    mBloomPrefilter->Dispatch(pFrame, {source, last}, &si);
+    mBloomPrefilter->Dispatch(pFrame, {pSource, pLast}, &si);
 
     si = ScalarInput();
     for (auto& dest : mBloomGrids) {
-        si.texelSize = last->GetTexelSize();
-        mBloomBlur->Dispatch(pFrame, {last, dest.get()}, &si);
-        last = dest.get();
+        si.texelSize = pLast->GetTexelSize();
+        mBloomBlur->Dispatch(pFrame, {pLast, dest.get()}, &si);
+        pLast = dest.get();
     }
 
     si = ScalarInput();
     for (int i = static_cast<int>(mBloomGrids.size() - 2); i >= 0; i--) {
-        SimulationGrid* baseTex = mBloomGrids[i].get();
-        si.texelSize            = last->GetTexelSize();
-        mBloomBlurAdditive->Dispatch(pFrame, {last, baseTex}, &si);
-        last = baseTex;
+        SimulationGrid* pBaseTex = mBloomGrids[i].get();
+        si.texelSize             = pLast->GetTexelSize();
+        mBloomBlurAdditive->Dispatch(pFrame, {pLast, pBaseTex}, &si);
+        pLast = pBaseTex;
     }
 
     si           = ScalarInput();
-    si.texelSize = last->GetTexelSize();
+    si.texelSize = pLast->GetTexelSize();
     si.intensity = GetConfig().pBloomIntensity->GetValue();
-    mBloomFinal->Dispatch(pFrame, {last, destination}, &si);
+    mBloomFinal->Dispatch(pFrame, {pLast, pDestination}, &si);
 }
 
-void FluidSimulationApp::ApplySunrays(PerFrame* pFrame, SimulationGrid* source, SimulationGrid* mask, SimulationGrid* destination)
+void FluidSimulationApp::ApplySunrays(PerFrame* pFrame, SimulationGrid* pSource, SimulationGrid* pMask, SimulationGrid* pDestination)
 {
     ScalarInput si;
-    mSunraysMask->Dispatch(pFrame, {source, mask}, &si);
+    mSunraysMask->Dispatch(pFrame, {pSource, pMask}, &si);
 
     si.weight = GetConfig().pSunraysWeight->GetValue();
-    mSunrays->Dispatch(pFrame, {mask, destination}, &si);
+    mSunrays->Dispatch(pFrame, {pMask, pDestination}, &si);
 }
 
-void FluidSimulationApp::Blur(PerFrame* pFrame, SimulationGrid* target, SimulationGrid* temp, uint32_t iterations)
+void FluidSimulationApp::Blur(PerFrame* pFrame, SimulationGrid* pTarget, SimulationGrid* pTemp, uint32_t iterations)
 {
     ScalarInput si;
     for (uint32_t i = 0; i < iterations; i++) {
-        si.texelSize = ppx::float2(target->GetTexelSize().x, 0.0f);
-        mBlur->Dispatch(pFrame, {target, temp}, &si);
+        si.texelSize = ppx::float2(pTarget->GetTexelSize().x, 0.0f);
+        mBlur->Dispatch(pFrame, {pTarget, pTemp}, &si);
 
-        si.texelSize = ppx::float2(0.0f, target->GetTexelSize().y);
-        mBlur->Dispatch(pFrame, {temp, target}, &si);
+        si.texelSize = ppx::float2(0.0f, pTarget->GetTexelSize().y);
+        mBlur->Dispatch(pFrame, {pTemp, pTarget}, &si);
     }
 }
 

@@ -12,9 +12,14 @@
 
 #include "ppx/application.h"
 #include "ppx/grfx/grfx_config.h"
+#include "ppx/grfx/grfx_helper.h"
 #include "ppx/knob.h"
 #include "ppx/math_config.h"
 #include "ppx/random.h"
+
+#include <cstdint>
+#include <memory>
+#include <vector>
 
 namespace FluidSim {
 
@@ -190,12 +195,11 @@ private:
     // the application window and can fit at least "resolution" pixels in it.
     ppx::uint2 GetResolution(uint32_t resolution) const;
 
-    void         ApplyBloom(PerFrame* pFrame, SimulationGrid* source, SimulationGrid* destination);
-    void         ApplySunrays(PerFrame* pFrame, SimulationGrid* source, SimulationGrid* mask, SimulationGrid* destination);
-    void         Blur(PerFrame* pFrame, SimulationGrid* target, SimulationGrid* temp, uint32_t iterations);
+    void         ApplyBloom(PerFrame* pFrame, SimulationGrid* pSource, SimulationGrid* pDestination);
+    void         ApplySunrays(PerFrame* pFrame, SimulationGrid* pSource, SimulationGrid* pMask, SimulationGrid* pDestination);
+    void         Blur(PerFrame* pFrame, SimulationGrid* pTarget, SimulationGrid* pTemp, uint32_t iterations);
     float        CorrectRadius(float radius) const;
     void         DebugGrids(const PerFrame& frame);
-    void         DrawGrid(const PerFrame& frame, SimulationGrid* grid, ppx::float2 coord);
     ppx::float3  GenerateColor();
     ppx::float3  HSVtoRGB(ppx::float3 hsv);
     void         MoveMarble();
@@ -204,7 +208,6 @@ private:
     ppx::Random& Random() { return mRandom; }
     void         SetupBloomGrids();
     void         SetupComputeShaders();
-    void         SetupGraphicsShaders();
     void         SetupGrids();
     void         SetupRenderingPipeline();
     void         SetupSunraysGrids();

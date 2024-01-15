@@ -8,13 +8,15 @@
 #ifndef FLUID_SIMULATION_SHADERS_H
 #define FLUID_SIMULATION_SHADERS_H
 
-#include "ppx/graphics_util.h"
-#include "ppx/grfx/grfx_buffer.h"
+#include "ppx/bitmap.h"
 #include "ppx/grfx/grfx_config.h"
 #include "ppx/grfx/grfx_texture.h"
 #include "ppx/math_config.h"
 
-#include <iostream>
+#include <cstdint>
+#include <iosfwd>
+#include <string>
+#include <vector>
 
 namespace FluidSim {
 
@@ -66,9 +68,11 @@ public:
     // Render this grid.
     void Draw(const PerFrame& frame, ppx::float2 coord);
 
-    // Compute and return the size of the texture normalized to the resolution.
-    // given in pixels.  This maps the size of the texture to the normalized
-    // coordinates ([-1, 1], [-1, 1]).
+    // Compute and return the size of the texture normalized to the given resolution
+    // in pixels. To compute the normalized size, we know that the width in pixels given
+    // by resolution.x corresponds to 2 normalized units (because normalized coordinates
+    // span the range [-1, 1]).  A similar calculation is done to map and scale the
+    // height.
     ppx::float2 GetNormalizedSize(ppx::uint2 resolution) const
     {
         return ppx::float2(GetWidth() * 2.0f / static_cast<float>(resolution.x), GetHeight() * 2.0f / static_cast<float>(resolution.y));
@@ -143,8 +147,8 @@ public:
     // grids    A list of grids to be bound to the descriptor set. This list is assumed to be
     //              in the same order as the list of binding slots (mGridBindingSlots) set during
     //              construction.
-    // si       A pointer to the scalar inputs to the compute shader.
-    void Dispatch(PerFrame* pFrame, const std::vector<SimulationGrid*>& grids, ScalarInput* si);
+    // pSI      A pointer to the scalar inputs to the compute shader.
+    void Dispatch(PerFrame* pFrame, const std::vector<SimulationGrid*>& grids, ScalarInput* pSI);
 
 private:
     ppx::grfx::ComputePipelinePtr mPipeline;
