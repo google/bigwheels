@@ -48,7 +48,7 @@ void FluidSimulationApp::InitKnobs()
 {
     size_t indent = 2;
 
-    // Fluid
+    // Fluid knobs.
     GetKnobManager().InitKnob(&mConfig.pCurl, "curl", 30.0f, 0.0f, 100.0f);
     mConfig.pCurl->SetDisplayName("Curl");
     mConfig.pCurl->SetFlagDescription("Curl represents the rotational component of the fluid. It determines the spin (vorticity) of the fluid at each point of the simulation. Higher values indicate stronger vortices or swirling motions in the fluid.");
@@ -73,7 +73,7 @@ void FluidSimulationApp::InitKnobs()
     mConfig.pVelocityDissipation->SetDisplayName("Velocity Dissipations");
     mConfig.pVelocityDissipation->SetFlagDescription("This simulates the loss of energy within the fluid system. Higher values result in faster velocity reduction.");
 
-    // Bloom
+    // Bloom knobs.
     GetKnobManager().InitKnob(&mConfig.pEnableBloom, "enable-bloom", true);
     mConfig.pEnableBloom->SetDisplayName("Enable Bloom");
     mConfig.pEnableBloom->SetFlagDescription("Enables bloom effects.");
@@ -103,7 +103,7 @@ void FluidSimulationApp::InitKnobs()
     mConfig.pBloomThreshold->SetFlagDescription("Minimum brightness for a pixel to be considered as a candidate for bloom. Pixels with intensities below this threshold are not included in the bloom effect. Higher values limit bloom to the brighter areas of the image.");
     mConfig.pBloomThreshold->SetIndent(indent);
 
-    // Marble
+    // Marble knobs.
     GetKnobManager().InitKnob(&mConfig.pEnableMarble, "enable-marble", true);
     mConfig.pEnableMarble->SetDisplayName("Enable Marble");
     mConfig.pEnableMarble->SetFlagDescription("When set, this instantiates a marble that bounces around the simulation field. The marble bounces above the fluid, but it splashes down with certain frequency (controlled by --marble-drop-frequency). This option is not available in the original WebGL implementation.");
@@ -118,7 +118,7 @@ void FluidSimulationApp::InitKnobs()
     mConfig.pMarbleDropFrequency->SetFlagDescription("The probability that the marble will splash on the fluid as it bounces around the field.");
     mConfig.pMarbleDropFrequency->SetIndent(indent);
 
-    // Splats
+    // Splats knobs.
     GetKnobManager().InitKnob(&mConfig.pNumSplats, "num-splats", 0, 0, 20);
     mConfig.pNumSplats->SetDisplayName("Number of Splats");
     mConfig.pNumSplats->SetFlagDescription("This is the number of splashes of color to use at the start of the simulation. This is also used when --splat-frequency is given. A value of 0 means a random number of splats.");
@@ -138,7 +138,7 @@ void FluidSimulationApp::InitKnobs()
     mConfig.pSplatRadius->SetFlagDescription("This represents the extent of the influence region around a specific point where the splat force is applied.");
     mConfig.pSplatRadius->SetIndent(indent);
 
-    // Sunrays
+    // Sunrays knobs.
     GetKnobManager().InitKnob(&mConfig.pEnableSunrays, "enable-sunrays", true);
     mConfig.pEnableSunrays->SetDisplayName("Enable Sunrays");
     mConfig.pEnableSunrays->SetFlagDescription("This enables the effect of rays of light shining through the fluid.");
@@ -153,7 +153,7 @@ void FluidSimulationApp::InitKnobs()
     mConfig.pSunraysWeight->SetFlagDescription("Indicates the intensity of the light scattering effect. Higher values result in more prominent sun rays, making them appear brighter.");
     mConfig.pSunraysWeight->SetIndent(indent);
 
-    // Misc
+    // Misc knobs.
     GetKnobManager().InitKnob(&mConfig.pSimResolution, "sim-resolution", 128, 1, 1000);
     mConfig.pSimResolution->SetDisplayName("Simulation Resolution");
     mConfig.pSimResolution->SetFlagDescription("This determines the grid size of the grids used during simulation. Higher values produce finer grids which produce a more accurate representation.");
@@ -165,6 +165,11 @@ void FluidSimulationApp::InitKnobs()
     GetKnobManager().InitKnob(&mConfig.pEnableManualAdvection, "manual-advection", false);
     mConfig.pEnableManualAdvection->SetDisplayName("Manual advection");
     mConfig.pEnableManualAdvection->SetFlagDescription("Indicates whether to perform manual advection on the velocity field. If enabled, advection is computed as a bi-linear interpolation on the velocity field. Otherwise, it is computed directly from velocity.");
+
+    // Debug knobs.
+    GetKnobManager().InitKnob(&mConfig.pEnableGridDisplay, "display-grids", false);
+    mConfig.pEnableGridDisplay->SetDisplayName("Display fluid simulation grids");
+    mConfig.pEnableGridDisplay->SetFlagDescription("Indicates whether to overlay the grids used to compute the fluid dynamics properties of the simulation.");
 }
 
 void FluidSimulationApp::Config(ppx::ApplicationSettings& settings)
@@ -583,7 +588,7 @@ void FluidSimulationApp::RenderGrids(const PerFrame& frame)
 {
     mDisplayGrid->Draw(frame, ppx::float2(-1.0f, 1.0f));
 
-    if (GetSettings()->grfx.enableDebug) {
+    if (GetConfig().pEnableGridDisplay->GetValue()) {
         DebugGrids(frame);
     }
 }
