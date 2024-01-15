@@ -84,6 +84,9 @@ struct SimulationConfig
     std::shared_ptr<ppx::KnobSlider<int>> pSimResolution;
     std::shared_ptr<ppx::KnobCheckbox>    pEnableShading;
     std::shared_ptr<ppx::KnobCheckbox>    pEnableManualAdvection;
+
+    // Debugging knobs.
+    std::shared_ptr<ppx::KnobCheckbox> pEnableGridDisplay;
 };
 
 // Represents a virtual object bouncing around the field.
