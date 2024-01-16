@@ -521,7 +521,7 @@ void TriMesh::AppendIndexAndVertexData(
     const TriMeshOptions&     options,
     TriMesh&                  mesh)
 {
-    grfx::IndexType     indexType   = options.mEnableIndices ? grfx::INDEX_TYPE_UINT32 : grfx::INDEX_TYPE_UNDEFINED;
+    grfx::IndexType indexType = options.mEnableIndices ? grfx::INDEX_TYPE_UINT32 : grfx::INDEX_TYPE_UNDEFINED;
 
     // Verify expected vertex count
     size_t vertexCount = (vertexData.size() * sizeof(float)) / sizeof(TriMeshVertexData);
@@ -607,18 +607,18 @@ TriMesh TriMesh::CreatePlane(TriMeshPlane plane, const float2& size, uint32_t us
             float u = options.mTexCoordScale.x * s;
             float v = options.mTexCoordScale.y * t;
 
-            //float3 position  = float3(s - hx, 0, t - hz);
+            // float3 position  = float3(s - hx, 0, t - hz);
             float3 position = float3(0);
             switch (plane) {
                 default: {
                     PPX_ASSERT_MSG(false, "unknown plane orientation");
                 } break;
 
-                //case TRI_MESH_PLANE_POSITIVE_X: {
-                //} break;
+                // case TRI_MESH_PLANE_POSITIVE_X: {
+                // } break;
                 //
-                //case TRI_MESH_PLANE_NEGATIVE_X: {
-                //} break;
+                // case TRI_MESH_PLANE_NEGATIVE_X: {
+                // } break;
                 //
                 case TRI_MESH_PLANE_POSITIVE_Y: {
                     position = float3(s * size.x - hs, 0, t * size.y - ht);
@@ -628,11 +628,11 @@ TriMesh TriMesh::CreatePlane(TriMeshPlane plane, const float2& size, uint32_t us
                     position = float3((1.0f - s) * size.x - hs, 0, (1.0f - t) * size.y - ht);
                 } break;
 
-                    //case TRI_MESH_PLANE_POSITIVE_Z: {
-                    //} break;
+                    // case TRI_MESH_PLANE_POSITIVE_Z: {
+                    // } break;
                     //
-                    //case TRI_MESH_PLANE_NEGATIVE_Z: {
-                    //} break;
+                    // case TRI_MESH_PLANE_NEGATIVE_Z: {
+                    // } break;
             }
 
             float3 color     = float3(u, v, 0);
@@ -679,11 +679,11 @@ TriMesh TriMesh::CreatePlane(TriMeshPlane plane, const float2& size, uint32_t us
                     PPX_ASSERT_MSG(false, "unknown plane orientation");
                 } break;
 
-                    //case TRI_MESH_PLANE_POSITIVE_X: {
-                    //} break;
+                    // case TRI_MESH_PLANE_POSITIVE_X: {
+                    // } break;
                     //
-                    //case TRI_MESH_PLANE_NEGATIVE_X: {
-                    //} break;
+                    // case TRI_MESH_PLANE_NEGATIVE_X: {
+                    // } break;
 
                 case TRI_MESH_PLANE_POSITIVE_Y: {
                     indexData.push_back(v0);
@@ -705,11 +705,11 @@ TriMesh TriMesh::CreatePlane(TriMeshPlane plane, const float2& size, uint32_t us
                     indexData.push_back(v2);
                 } break;
 
-                    //case TRI_MESH_PLANE_POSITIVE_Z: {
-                    //} break;
+                    // case TRI_MESH_PLANE_POSITIVE_Z: {
+                    // } break;
                     //
-                    //case TRI_MESH_PLANE_NEGATIVE_Z: {
-                    //} break;
+                    // case TRI_MESH_PLANE_NEGATIVE_Z: {
+                    // } break;
             }
         }
     }
@@ -950,32 +950,32 @@ Result TriMesh::CreateFromOBJ(const std::filesystem::path& path, const TriMeshOp
     }
 
     //// Check to see if data can be indexed
-    //bool indexable = true;
-    //for (size_t shapeIdx = 0; shapeIdx < numShapes; ++shapeIdx) {
-    //    const tinyobj::shape_t& shape     = shapes[shapeIdx];
-    //    const tinyobj::mesh_t&  shapeMesh = shape.mesh;
+    // bool indexable = true;
+    // for (size_t shapeIdx = 0; shapeIdx < numShapes; ++shapeIdx) {
+    //     const tinyobj::shape_t& shape     = shapes[shapeIdx];
+    //     const tinyobj::mesh_t&  shapeMesh = shape.mesh;
     //
-    //    size_t numTriangles = shapeMesh.indices.size() / 3;
-    //    for (size_t triIdx = 0; triIdx < numTriangles; ++triIdx) {
-    //        size_t triVtxIdx0 = triIdx * 3 + 0;
-    //        size_t triVtxIdx1 = triIdx * 3 + 1;
-    //        size_t triVtxIdx2 = triIdx * 3 + 2;
+    //     size_t numTriangles = shapeMesh.indices.size() / 3;
+    //     for (size_t triIdx = 0; triIdx < numTriangles; ++triIdx) {
+    //         size_t triVtxIdx0 = triIdx * 3 + 0;
+    //         size_t triVtxIdx1 = triIdx * 3 + 1;
+    //         size_t triVtxIdx2 = triIdx * 3 + 2;
     //
-    //        // Index data
-    //        const tinyobj::index_t& dataIdx0 = shapeMesh.indices[triVtxIdx0];
-    //        const tinyobj::index_t& dataIdx1 = shapeMesh.indices[triVtxIdx1];
-    //        const tinyobj::index_t& dataIdx2 = shapeMesh.indices[triVtxIdx2];
+    //         // Index data
+    //         const tinyobj::index_t& dataIdx0 = shapeMesh.indices[triVtxIdx0];
+    //         const tinyobj::index_t& dataIdx1 = shapeMesh.indices[triVtxIdx1];
+    //         const tinyobj::index_t& dataIdx2 = shapeMesh.indices[triVtxIdx2];
     //
-    //        bool sameIdx0 = (dataIdx0.vertex_index == dataIdx0.normal_index) && (dataIdx0.normal_index == dataIdx0.texcoord_index);
-    //        bool sameIdx1 = (dataIdx1.vertex_index == dataIdx1.normal_index) && (dataIdx1.normal_index == dataIdx1.texcoord_index);
-    //        bool sameIdx2 = (dataIdx2.vertex_index == dataIdx2.normal_index) && (dataIdx2.normal_index == dataIdx2.texcoord_index);
-    //        bool same     = sameIdx0 && sameIdx1 && sameIdx2;
-    //        if (!same) {
-    //           indexable = false;
-    //           break;
-    //        }
-    //    }
-    //}
+    //         bool sameIdx0 = (dataIdx0.vertex_index == dataIdx0.normal_index) && (dataIdx0.normal_index == dataIdx0.texcoord_index);
+    //         bool sameIdx1 = (dataIdx1.vertex_index == dataIdx1.normal_index) && (dataIdx1.normal_index == dataIdx1.texcoord_index);
+    //         bool sameIdx2 = (dataIdx2.vertex_index == dataIdx2.normal_index) && (dataIdx2.normal_index == dataIdx2.texcoord_index);
+    //         bool same     = sameIdx0 && sameIdx1 && sameIdx2;
+    //         if (!same) {
+    //            indexable = false;
+    //            break;
+    //         }
+    //     }
+    // }
 
     // Preallocate based on the total number of triangles.
     size_t totalTriangles = 0;
@@ -1147,18 +1147,18 @@ Result TriMesh::CreateFromOBJ(const std::filesystem::path& path, const TriMeshOp
         }
     }
 
-    //if (options.mEnableTangents) {
-    //    size_t numPositions  = mesh.mPositions.size();
-    //    size_t numNormals    = mesh.mNormals.size();
-    //    size_t numTangents   = mesh.mTangents.size();
-    //    size_t numBitangents = mesh.mBitangents.size();
-    //    PPX_ASSERT_MSG(numPositions == numNormals == numTangents == numBitangents, "misaligned data for tangent calculation");
+    // if (options.mEnableTangents) {
+    //     size_t numPositions  = mesh.mPositions.size();
+    //     size_t numNormals    = mesh.mNormals.size();
+    //     size_t numTangents   = mesh.mTangents.size();
+    //     size_t numBitangents = mesh.mBitangents.size();
+    //     PPX_ASSERT_MSG(numPositions == numNormals == numTangents == numBitangents, "misaligned data for tangent calculation");
     //
-    //    for (size_t i = 0; i < numPositions; ++i) {
-    //        const float3& T = mesh.mTangents[i];
-    //        const float3& B = mesh.mBitangents[i];
-    //    }
-    //}
+    //     for (size_t i = 0; i < numPositions; ++i) {
+    //         const float3& T = mesh.mTangents[i];
+    //         const float3& B = mesh.mBitangents[i];
+    //     }
+    // }
 
     double fnEndTime = timer.SecondsSinceStart();
     float  fnElapsed = static_cast<float>(fnEndTime - fnStartTime);

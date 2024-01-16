@@ -40,7 +40,7 @@ uint32_t BaseApplication::GetProcessId() const
 #if defined(PPX_LINUX)
     pid = static_cast<uint32_t>(getpid());
 #elif defined(PPX_MSW)
-    pid                       = static_cast<uint32_t>(::GetCurrentProcessId());
+    pid = static_cast<uint32_t>(::GetCurrentProcessId());
 #endif
     return pid;
 }
