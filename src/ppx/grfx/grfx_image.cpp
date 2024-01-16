@@ -158,7 +158,6 @@ grfx::RenderTargetViewCreateInfo RenderTargetViewCreateInfo::GuessFromImage(grfx
     ci.pImage                           = pImage;
     ci.imageViewType                    = pImage->GuessImageViewType();
     ci.format                           = pImage->GetFormat();
-    ci.sampleCount                      = pImage->GetSampleCount();
     ci.mipLevel                         = 0;
     ci.mipLevelCount                    = 1;
     ci.arrayLayer                       = 0;
@@ -179,7 +178,6 @@ grfx::SampledImageViewCreateInfo SampledImageViewCreateInfo::GuessFromImage(grfx
     ci.pImage                           = pImage;
     ci.imageViewType                    = pImage->GuessImageViewType();
     ci.format                           = pImage->GetFormat();
-    ci.sampleCount                      = pImage->GetSampleCount();
     ci.mipLevel                         = 0;
     ci.mipLevelCount                    = pImage->GetMipLevelCount();
     ci.arrayLayer                       = 0;
@@ -198,7 +196,6 @@ grfx::StorageImageViewCreateInfo StorageImageViewCreateInfo::GuessFromImage(grfx
     ci.pImage                           = pImage;
     ci.imageViewType                    = pImage->GuessImageViewType();
     ci.format                           = pImage->GetFormat();
-    ci.sampleCount                      = pImage->GetSampleCount();
     ci.mipLevel                         = 0;
     ci.mipLevelCount                    = pImage->GetMipLevelCount();
     ci.arrayLayer                       = 0;

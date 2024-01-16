@@ -22,14 +22,22 @@ namespace ppx {
 namespace grfx {
 namespace vk {
 
+ShadingRateCapabilities CreateTestCapabilities()
+{
+    ShadingRateCapabilities capabilities = {SHADING_RATE_VRS};
+    capabilities.vrs.supportedRates.push_back({SAMPLE_COUNT_1 | SAMPLE_COUNT_4, {2, 2}});
+    capabilities.vrs.supportedRates.push_back({SAMPLE_COUNT_1 | SAMPLE_COUNT_4, {2, 1}});
+    capabilities.vrs.supportedRates.push_back({~0u, {1, 1}});
+    return capabilities;
+}
+
 TEST(VRSShadingRateEncoderTest, Only1x1)
 {
     ShadingRateCapabilities capabilities = {SHADING_RATE_VRS};
-    capabilities.vrs.supportedRateCount  = 1;
-    capabilities.vrs.supportedRates[0]   = {1, 1};
+    capabilities.vrs.supportedRates.push_back({~0u, {1, 1}});
 
     internal::VRSShadingRateEncoder encoder;
-    encoder.Initialize(capabilities);
+    encoder.Initialize(SAMPLE_COUNT_1, capabilities);
 
     EXPECT_EQ(encoder.EncodeFragmentSize(1, 1), 0);
     EXPECT_EQ(encoder.EncodeFragmentSize(1, 2), 0);
@@ -45,13 +53,12 @@ TEST(VRSShadingRateEncoderTest, Only1x1)
 TEST(VRSShadingRateEncoderTest, MultipleSizes)
 {
     ShadingRateCapabilities capabilities = {SHADING_RATE_VRS};
-    capabilities.vrs.supportedRateCount  = 3;
-    capabilities.vrs.supportedRates[0]   = {1, 2};
-    capabilities.vrs.supportedRates[1]   = {2, 1};
-    capabilities.vrs.supportedRates[2]   = {1, 1};
+    capabilities.vrs.supportedRates.push_back({~0u, {1, 2}});
+    capabilities.vrs.supportedRates.push_back({~0u, {2, 1}});
+    capabilities.vrs.supportedRates.push_back({~0u, {1, 1}});
 
     internal::VRSShadingRateEncoder encoder;
-    encoder.Initialize(capabilities);
+    encoder.Initialize(SAMPLE_COUNT_1, capabilities);
 
     EXPECT_EQ(encoder.EncodeFragmentSize(1, 1), 0);
     EXPECT_EQ(encoder.EncodeFragmentSize(1, 2), 1);
@@ -64,16 +71,30 @@ TEST(VRSShadingRateEncoderTest, MultipleSizes)
     EXPECT_EQ(encoder.EncodeFragmentSize(4, 4), 4);
 }
 
+TEST(VRSShadingRateEncoderTest, MultipleSampleCounts)
+{
+    ShadingRateCapabilities capabilities = {SHADING_RATE_VRS};
+    capabilities.vrs.supportedRates.push_back({SAMPLE_COUNT_1, {1, 2}});
+    capabilities.vrs.supportedRates.push_back({SAMPLE_COUNT_1, {2, 1}});
+    capabilities.vrs.supportedRates.push_back({~0u, {1, 1}});
+
+    internal::VRSShadingRateEncoder encoder;
+    encoder.Initialize(SAMPLE_COUNT_2, capabilities);
+
+    EXPECT_EQ(encoder.EncodeFragmentSize(1, 1), 0);
+    EXPECT_EQ(encoder.EncodeFragmentSize(1, 2), 0);
+    EXPECT_EQ(encoder.EncodeFragmentSize(2, 1), 0);
+}
+
 TEST(VRSShadingRateEncoderTest, EncodeFragmentDensity)
 {
     ShadingRateCapabilities capabilities = {SHADING_RATE_VRS};
-    capabilities.vrs.supportedRateCount  = 3;
-    capabilities.vrs.supportedRates[0]   = {1, 2};
-    capabilities.vrs.supportedRates[1]   = {2, 1};
-    capabilities.vrs.supportedRates[2]   = {1, 1};
+    capabilities.vrs.supportedRates.push_back({SAMPLE_COUNT_1, {1, 2}});
+    capabilities.vrs.supportedRates.push_back({SAMPLE_COUNT_1, {2, 1}});
+    capabilities.vrs.supportedRates.push_back({~0u, {1, 1}});
 
     internal::VRSShadingRateEncoder encoder;
-    encoder.Initialize(capabilities);
+    encoder.Initialize(SAMPLE_COUNT_1, capabilities);
 
     EXPECT_EQ(encoder.EncodeFragmentDensity(255, 255), 0);
     EXPECT_EQ(encoder.EncodeFragmentDensity(255, 127), 1);

@@ -22,8 +22,17 @@
 namespace ppx {
 namespace grfx {
 
-// Maximum number of supported shading rates in ShadingRateCapabilities.
-static constexpr size_t kMaxSupportedShadingRateCount = 16;
+// SupportedShadingRate
+//
+// A supported shading rate supported by the device.
+struct SupportedShadingRate
+{
+    // Bit mask of supported sample counts.
+    uint32_t sampleCountMask;
+
+    // Size of the shading rate fragment size.
+    Extent2D fragmentSize;
+};
 
 // ShadingRateCapabilities
 //
@@ -53,8 +62,7 @@ struct ShadingRateCapabilities
         Extent2D maxTexelSize;
 
         // List of supported shading rates.
-        uint32_t supportedRateCount = 0;
-        Extent2D supportedRates[kMaxSupportedShadingRateCount];
+        std::vector<SupportedShadingRate> supportedRates;
     } vrs;
 };
 
@@ -94,6 +102,9 @@ struct ShadingRatePatternCreateInfo
 
     // The shading rate mode (FDM or VRS).
     ShadingRateMode shadingRateMode = SHADING_RATE_NONE;
+
+    // The sample count of the render targets using this shading rate pattern.
+    SampleCount sampleCount;
 };
 
 // ShadingRatePattern
@@ -121,6 +132,9 @@ public:
     uint32_t GetTexelWidth() const { return mTexelSize.width; }
     uint32_t GetTexelHeight() const { return mTexelSize.height; }
 
+    // The sample count of the render targets using this shading rate pattern.
+    SampleCount GetSampleCount() const { return mSampleCount; }
+
     // Create a bitmap suitable for uploading fragment density/size to this pattern.
     std::unique_ptr<Bitmap> CreateBitmap() const;
 
@@ -137,6 +151,7 @@ protected:
     ShadingRateMode mShadingRateMode;
     ImagePtr        mAttachmentImage;
     Extent2D        mTexelSize;
+    SampleCount     mSampleCount;
 };
 
 } // namespace grfx

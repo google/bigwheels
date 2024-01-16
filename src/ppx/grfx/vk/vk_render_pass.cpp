@@ -147,6 +147,17 @@ Result RenderPass::CreateRenderPass(const grfx::internal::RenderPassCreateInfo* 
     }
 
     if (!IsNull(pCreateInfo->pShadingRatePattern)) {
+        SampleCount shadingRateSampleCount = pCreateInfo->pShadingRatePattern->GetSampleCount();
+        for (uint32_t i = 0; i < rtvCount; ++i) {
+            PPX_ASSERT_MSG(
+                mRenderTargetViews[i]->GetSampleCount() == shadingRateSampleCount,
+                "The sample count for each render target must match the sample count of the shading rate pattern.");
+        }
+        if (hasDepthSencil) {
+            PPX_ASSERT_MSG(
+                mDepthStencilView->GetSampleCount() == shadingRateSampleCount,
+                "The sample count of the depth attachment must match the sample count of the shading rate pattern.");
+        }
         auto     modifiedCreateInfo = ToApi(pCreateInfo->pShadingRatePattern)->GetModifiedRenderPassCreateInfo(vkci);
         VkResult vkres              = vk::CreateRenderPass(
             ToApi(GetDevice())->GetVkDevice(),

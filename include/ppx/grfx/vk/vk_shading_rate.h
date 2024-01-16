@@ -46,12 +46,15 @@ private:
 class VRSShadingRateEncoder : public grfx::ShadingRateEncoder
 {
 public:
-    void Initialize(const ShadingRateCapabilities& capabilities);
+    void Initialize(SampleCount sampleCount, const ShadingRateCapabilities& capabilities);
     virtual ~VRSShadingRateEncoder() = default;
     uint32_t EncodeFragmentDensity(uint8_t xDensity, uint8_t yDensity) const override;
     uint32_t EncodeFragmentSize(uint8_t fragmentWidth, uint8_t fragmentHeight) const override;
 
 private:
+    // Maximum encoded value of a shading rate.
+    static constexpr size_t kMaxEncodedShadingRate = (2 << 2) | 2;
+
     uint32_t        EncodeFragmentSizeImpl(uint8_t xDensity, uint8_t yDensity) const;
     static uint32_t RawEncode(uint8_t width, uint8_t height);
 
@@ -62,7 +65,7 @@ private:
     // Ties are broken lexicographically, e.g. if 2x2, 1x4 and 4x1
     // are supported, then 2x4 will be mapped to 2x2 but 4x2 will
     // map to 4x1.
-    std::array<uint8_t, kMaxSupportedShadingRateCount> mMapRateToSupported;
+    std::array<uint8_t, kMaxEncodedShadingRate + 1> mMapRateToSupported;
 };
 } // namespace internal
 
