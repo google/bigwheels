@@ -115,14 +115,18 @@ ppx::metrics::GaugeComplexStatistics MetricGauge::ComputeComplexStats() const
 
 nlohmann::json MetricGauge::Export() const
 {
+    // JSON does not have +inf or -inf
+    constexpr double kMinJsonNumber = std::numeric_limits<double>::lowest();
+    constexpr double kMaxJsonNumber = std::numeric_limits<double>::max();
+
     nlohmann::json metricObject;
     nlohmann::json statsObject;
 
     metricObject["metadata"] = mMetadata.Export();
 
     GaugeComplexStatistics complex    = ComputeComplexStats();
-    statsObject["min"]                = mBasicStats.min;
-    statsObject["max"]                = mBasicStats.max;
+    statsObject["min"]                = std::clamp(mBasicStats.min, kMinJsonNumber, kMaxJsonNumber);
+    statsObject["max"]                = std::clamp(mBasicStats.max, kMinJsonNumber, kMaxJsonNumber);
     statsObject["average"]            = mBasicStats.average;
     statsObject["time_ratio"]         = mBasicStats.timeRatio;
     statsObject["median"]             = complex.median;
@@ -165,6 +169,71 @@ nlohmann::json MetricCounter::Export() const
     metricObject["value"]       = mCounter;
     metricObject["entry_count"] = mEntryCount;
     return metricObject;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+LiveMetric::LiveMetric(double halfLive)
+    : mHalfLife(halfLive)
+{
+}
+
+bool LiveMetric::RecordEntry(const MetricData& data)
+{
+    if (data.type != MetricType::GAUGE) {
+        PPX_LOG_ERROR("Provided metric was not correct type; ignoring. Provided type: " << static_cast<uint32_t>(data.type));
+        return false;
+    }
+
+    if (data.gauge.seconds < 0.0) {
+        PPX_LOG_ERROR("Provided gauge metric had negative seconds value; ignoring.");
+        return false;
+    }
+
+    if (data.gauge.seconds <= mStats.seconds) {
+        PPX_LOG_ERROR("Provided gauge metric had old seconds value; ignoring.");
+        return false;
+    }
+
+    Append(data.gauge.seconds, data.gauge.value);
+
+    return true;
+}
+
+void LiveMetric::ClearHistory()
+{
+    // Keep the latest and timestamp, since they are not part of history.
+    const double latest  = mStats.latest;
+    const double seconds = mStats.seconds;
+
+    mVar           = {};
+    mStats         = {};
+    mStats.latest  = latest;
+    mStats.seconds = seconds;
+}
+
+void LiveMetric::Append(double seconds, double value)
+{
+    constexpr double kNewWeight = 1.0;
+
+    const double lastTimestamp = mStats.seconds;
+    if (mHalfLife > 0.0) {
+        const double elapsed          = static_cast<double>(seconds - lastTimestamp);
+        const double elapsedHalfLifes = elapsed / mHalfLife;
+        const double multiplier       = std::exp2(-elapsedHalfLifes);
+
+        mVar = {mVar.weight * multiplier, mVar.mean, mVar.accVar * multiplier};
+    }
+
+    mVar = ParallelVariance<double>::Combine(mVar, {kNewWeight, value, 0.0});
+
+    mStats.latest   = value;
+    mStats.seconds  = seconds;
+    mStats.mean     = mVar.Mean();
+    mStats.variance = mVar.PopulationVariance();
+    mStats.weight   = mVar.Weight();
+    mStats.min      = std::min<double>(mStats.min, value);
+    mStats.max      = std::max<double>(mStats.max, value);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -255,7 +324,15 @@ bool Manager::HasActiveRun() const
     return (mActiveRun != nullptr);
 }
 
-MetricID Manager::AddMetric(const MetricMetadata& metadata)
+MetricID Manager::EnsureAllocateID(MetricID reuseID)
+{
+    if (reuseID != kInvalidMetricID) {
+        return reuseID;
+    }
+    return mNextMetricID++;
+}
+
+MetricID Manager::AddMetric(const MetricMetadata& metadata, MetricID metricID)
 {
     if (mActiveRun == nullptr) {
         return kInvalidMetricID;
@@ -265,20 +342,39 @@ MetricID Manager::AddMetric(const MetricMetadata& metadata)
     if (metric == nullptr) {
         return kInvalidMetricID;
     }
-    auto metricID = mNextMetricID++;
+    metricID = EnsureAllocateID(metricID);
     mActiveMetrics.emplace(metricID, metric);
+    return metricID;
+}
+
+MetricID Manager::AddLiveMetric(double halfLife, MetricID metricID)
+{
+    if (metricID != kInvalidMetricID && mLiveMetrics.count(metricID) > 0) {
+        return kInvalidMetricID;
+    }
+    metricID               = EnsureAllocateID(metricID);
+    mLiveMetrics[metricID] = LiveMetric(halfLife);
     return metricID;
 }
 
 bool Manager::RecordMetricData(MetricID id, const MetricData& data)
 {
+    auto liveMetricIter = mLiveMetrics.find(id);
+    bool hasLiveMetric  = (liveMetricIter != mLiveMetrics.end());
+    if (hasLiveMetric) {
+        liveMetricIter->second.RecordEntry(data);
+    }
     if (mActiveRun == nullptr) {
-        PPX_LOG_WARN("Attempted to record a metric entry with no active run.");
+        if (!hasLiveMetric) {
+            PPX_LOG_WARN("Attempted to record a metric entry with no active run.");
+        }
         return false;
     }
     auto findResult = mActiveMetrics.find(id);
     if (findResult == mActiveMetrics.end()) {
-        PPX_LOG_ERROR("Attempted to record a metric entry against an invalid ID.");
+        if (!hasLiveMetric) {
+            PPX_LOG_ERROR("Attempted to record a metric entry against an invalid ID.");
+        }
         return false;
     }
     return findResult->second->RecordEntry(data);
@@ -313,6 +409,25 @@ GaugeBasicStatistics Manager::GetGaugeBasicStatistics(MetricID id) const
     }
 
     return static_cast<MetricGauge*>(findResult->second)->GetBasicStatistics();
+}
+
+// Get Live Statistics for a LiveMetric, only works for type GAUGE
+LiveStatistics Manager::GetLiveStatistics(MetricID id) const
+{
+    auto liveMetricIter = mLiveMetrics.find(id);
+    if (liveMetricIter == mLiveMetrics.end()) {
+        PPX_LOG_ERROR("Attempted to get live statistics from an invalid ID.");
+        return LiveStatistics{};
+    }
+    return liveMetricIter->second.GetLiveStatistics();
+}
+
+// Reset live statistics.
+void Manager::ClearLiveMetricsHistory()
+{
+    for (auto& kv : mLiveMetrics) {
+        kv.second.ClearHistory();
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////

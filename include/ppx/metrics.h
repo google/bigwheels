@@ -18,6 +18,7 @@
 #include "nlohmann/json.hpp"
 #include "ppx/config.h"
 
+#include <cmath>
 #include <filesystem>
 #include <limits>
 #include <memory>
@@ -39,6 +40,16 @@ namespace metrics {
 typedef uint32_t          MetricID;
 static constexpr MetricID kInvalidMetricID = 0;
 
+// +inf/-inf if exist, otherwise the max/lowest floating point value.
+static constexpr double kGaugePositiveInf =
+    (std::numeric_limits<double>::has_infinity
+         ? +std::numeric_limits<double>::infinity()
+         : std::numeric_limits<double>::max());
+static constexpr double kGaugeNegativeInf =
+    (std::numeric_limits<double>::has_infinity
+         ? -std::numeric_limits<double>::infinity()
+         : std::numeric_limits<double>::lowest());
+
 enum class MetricType
 {
     GAUGE   = 1,
@@ -54,6 +65,7 @@ enum class MetricInterpretation
 
 struct Range
 {
+    // Note the default range is (0.0, +inf), not (-inf, +inf)
     double lowerBound = std::numeric_limits<double>::min();
     double upperBound = std::numeric_limits<double>::max();
 };
@@ -114,8 +126,8 @@ public:
 // They can be retrieved without any significant run-time cost.
 struct GaugeBasicStatistics
 {
-    double min       = std::numeric_limits<double>::max();
-    double max       = std::numeric_limits<double>::min();
+    double min       = kGaugePositiveInf;
+    double max       = kGaugeNegativeInf;
     double average   = 0.0;
     double timeRatio = 0.0;
 };
@@ -221,6 +233,95 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// Live statistics are computerd on the fly, for recently reported metric.
+// The weight assigned to each entry is assigned as follows
+//   w_i = exp((t_i-t_now)/halfLife), default halfLife = 0.5s
+// Min/Max are not affected by the weight.
+// They can be retrieved without any significant run-time cost.
+struct LiveStatistics
+{
+    double Latest() const { return latest; }
+    double Min() const { return min; }
+    double Max() const { return max; }
+    double Mean() const { return mean; }
+    double Variance() const { return PopulationVariance(); }
+    double StandardDeviation() const { return std::sqrt(PopulationVariance()); }
+
+    double SampleVariance() const { return variance * weight / (weight - 1.0); }
+    double PopulationVariance() const { return variance; }
+
+    double latest   = 0.0;
+    double seconds  = 0.0;
+    double mean     = 0.0;
+    double variance = 0.0;
+    double weight   = 0.0;
+    double min      = kGaugePositiveInf;
+    double max      = kGaugeNegativeInf;
+};
+
+template <typename FloatT>
+struct ParallelVariance
+{
+    static constexpr FloatT kInvalidVariance = std::numeric_limits<FloatT>::quiet_NaN();
+
+    FloatT weight = 0.0;
+    FloatT mean   = 0.0;
+    FloatT accVar = 0.0;
+
+    FloatT Weight() const { return weight; }
+    FloatT Mean() const { return mean; }
+    FloatT PopulationVariance() const
+    {
+        if (weight == 0.0) {
+            return kInvalidVariance;
+        }
+        return accVar / weight;
+    }
+    FloatT SampleVariance() const
+    {
+        if (weight - 1.0 < std::numeric_limits<FloatT>::epsilon()) {
+            return kInvalidVariance;
+        }
+        return accVar / (weight - 1.0);
+    }
+
+    static ParallelVariance Combine(const ParallelVariance& a, const ParallelVariance& b)
+    {
+        // Chan et al. online variance algorithm
+        // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Parallel_algorithm
+        //
+        // Note: Large weights might cause problem with mean calculation.
+        const FloatT delta  = b.mean - a.mean;
+        const FloatT weight = a.weight + b.weight;
+        const FloatT mean   = a.mean + delta * (b.weight / weight);
+        const FloatT accVar = a.accVar + b.accVar + (delta * delta) * (a.weight * b.weight / weight);
+        return {weight, mean, accVar};
+    }
+};
+
+class LiveMetric // Not an exportable metric type
+{
+public:
+    static constexpr double kDefaultHalfLife = 0.5;
+
+    // halfLive is the weight assigned to each data point, does not affect min/max.
+    LiveMetric(double halfLive = kDefaultHalfLife);
+
+    const LiveStatistics& GetLiveStatistics() const { return mStats; }
+
+    bool RecordEntry(const MetricData& data);
+    void ClearHistory();
+
+private:
+    double                   mHalfLife = 0.5;
+    LiveStatistics           mStats    = {};
+    ParallelVariance<double> mVar      = {};
+
+    void Append(double seconds, double value);
+};
+
+////////////////////////////////////////////////////////////////////////////////
+
 // A run gathers metrics relevant to the execution of a benchmark.
 // It is expected that a new run is created each time parameters that affect the
 // metrics measurements are changed.
@@ -285,9 +386,24 @@ public:
     // Returns whether a run is active.
     bool HasActiveRun() const;
 
+    // Allocate a MetricID.
+    MetricID AllocateID() { return EnsureAllocateID(kInvalidMetricID); }
+
     // Adds a metric to the current run. A run must be started to add a metric.
     // Failure to add a metric returns kInvalidMetricID.
-    MetricID AddMetric(const MetricMetadata& metadata);
+    // Optionally bind the metric to an existing metricID.
+    MetricID AddMetric(
+        const MetricMetadata& metadata,
+        MetricID              metricID = kInvalidMetricID);
+
+    // Adds a live metric.
+    // Optionally bind the metric to an existing metricID.
+    MetricID AddLiveMetric(
+        double   halfLife = LiveMetric::kDefaultHalfLife,
+        MetricID metricID = kInvalidMetricID);
+
+    // Adds a live metric to current run.
+    void BindMetric(MetricID liveMetricID, const MetricMetadata& metadata);
 
     // Records data for the given metric ID. Metrics for completed runs will be discarded.
     bool RecordMetricData(MetricID id, const MetricData& data);
@@ -298,6 +414,12 @@ public:
 
     // Get Gauge Basic Statistics, only works for type GAUGE
     GaugeBasicStatistics GetGaugeBasicStatistics(MetricID id) const;
+
+    // Get Live Statistics for a LiveMetric, only works for type GAUGE
+    LiveStatistics GetLiveStatistics(MetricID id) const;
+
+    // Reset live statistics.
+    void ClearLiveMetricsHistory();
 
 private:
     METRICS_NO_COPY(Manager)
@@ -310,9 +432,13 @@ private:
 
     // Must be stored with the manager; Runs should not share MetricIDs.
     MetricID mNextMetricID = kInvalidMetricID + 1;
+    MetricID EnsureAllocateID(MetricID reuseID);
 
     // Convenient to store with the manager, so the hop of going through the Run isn't necessary.
     std::unordered_map<MetricID, Metric*> mActiveMetrics;
+
+    // Record live statistics, even without an active run.
+    std::unordered_map<MetricID, LiveMetric> mLiveMetrics;
 };
 
 ////////////////////////////////////////////////////////////////////////////////

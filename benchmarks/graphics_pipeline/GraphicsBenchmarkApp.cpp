@@ -15,6 +15,7 @@
 #include "GraphicsBenchmarkApp.h"
 #include "SphereMesh.h"
 
+#include "ppx/application.h"
 #include "ppx/graphics_util.h"
 #include "ppx/grfx/grfx_format.h"
 #include "ppx/timer.h"
@@ -300,30 +301,51 @@ void GraphicsBenchmarkApp::Setup()
 void GraphicsBenchmarkApp::SetupMetrics()
 {
     Application::SetupMetrics();
-    if (HasActiveMetricsRun()) {
-        ppx::metrics::MetricMetadata metadata                     = {ppx::metrics::MetricType::GAUGE, "CPU Submission Time", "ms", ppx::metrics::MetricInterpretation::LOWER_IS_BETTER, {0.f, 10000.f}};
-        mMetricsData.metrics[MetricsData::kTypeCPUSubmissionTime] = AddMetric(metadata);
-        PPX_ASSERT_MSG(mMetricsData.metrics[MetricsData::kTypeCPUSubmissionTime] != ppx::metrics::kInvalidMetricID, "Failed to add CPU Submission Time metric");
 
-        metadata                                          = {ppx::metrics::MetricType::GAUGE, "Bandwidth", "GB/s", ppx::metrics::MetricInterpretation::HIGHER_IS_BETTER, {0.f, 10000.f}};
-        mMetricsData.metrics[MetricsData::kTypeBandwidth] = AddMetric(metadata);
-        PPX_ASSERT_MSG(mMetricsData.metrics[MetricsData::kTypeBandwidth] != ppx::metrics::kInvalidMetricID, "Failed to add Bandwidth metric");
+    mMetricsData.metrics[MetricsData::kTypeCPUSubmissionTime] = AllocateMetricID();
+    mMetricsData.metrics[MetricsData::kTypeBandwidth]         = AllocateMetricID();
+    mMetricsData.metrics[MetricsData::kTypeGPUWorkDuration]   = AllocateMetricID();
+
+    AddLiveMetric(mMetricsData.metrics[MetricsData::kTypeCPUSubmissionTime]);
+    AddLiveMetric(mMetricsData.metrics[MetricsData::kTypeBandwidth]);
+    AddLiveMetric(mMetricsData.metrics[MetricsData::kTypeGPUWorkDuration]);
+}
+
+void GraphicsBenchmarkApp::SetupMetricsRun()
+{
+    Application::SetupMetricsRun();
+    {
+        ppx::metrics::MetricMetadata metadata = {
+            ppx::metrics::MetricType::GAUGE,
+            "CPU Submission Time",
+            "ms",
+            ppx::metrics::MetricInterpretation::LOWER_IS_BETTER,
+            {0.f, 10000.f}};
+        ppx::metrics::MetricID res = AddMetric(metadata, mMetricsData.metrics[MetricsData::kTypeCPUSubmissionTime]);
+        PPX_ASSERT_MSG(res != ppx::metrics::kInvalidMetricID, "Failed to add CPU Submission Time metric");
+    }
+    {
+        ppx::metrics::MetricMetadata metadata = {
+            ppx::metrics::MetricType::GAUGE,
+            "Bandwidth",
+            "GB/s",
+            ppx::metrics::MetricInterpretation::HIGHER_IS_BETTER,
+            {0.f, 10000.f}};
+        ppx::metrics::MetricID res = AddMetric(metadata, mMetricsData.metrics[MetricsData::kTypeBandwidth]);
+        PPX_ASSERT_MSG(res != ppx::metrics::kInvalidMetricID, "Failed to add Bandwidth metric");
     }
 }
 
 void GraphicsBenchmarkApp::UpdateMetrics()
 {
-    if (!HasActiveMetricsRun()) {
-        return;
-    }
-
     uint64_t frequency = 0;
     PPX_CHECKED_CALL(GetGraphicsQueue()->GetTimestampFrequency(&frequency));
-
-    ppx::metrics::MetricData data = {ppx::metrics::MetricType::GAUGE};
-    data.gauge.seconds            = GetElapsedSeconds();
-    data.gauge.value              = mCPUSubmissionTime;
-    RecordMetricData(mMetricsData.metrics[MetricsData::kTypeCPUSubmissionTime], data);
+    {
+        ppx::metrics::MetricData data = {ppx::metrics::MetricType::GAUGE};
+        data.gauge.seconds            = GetElapsedSeconds();
+        data.gauge.value              = mCPUSubmissionTime;
+        RecordLiveMetricData(mMetricsData.metrics[MetricsData::kTypeCPUSubmissionTime], data);
+    }
 
     const float        gpuWorkDurationInSec = static_cast<float>(mGpuWorkDuration / static_cast<double>(frequency));
     const grfx::Format swapchainColorFormat = GetSwapchain()->GetColorFormat();
@@ -335,13 +357,14 @@ void GraphicsBenchmarkApp::UpdateMetrics()
     const uint32_t     height               = isOffscreen ? mOffscreenFrame.back().height : swapchainHeight;
     const uint32_t     quadCount            = pFullscreenQuadsCount->GetValue();
 
-    if (quadCount) {
-        // Skip the first kSkipFrameCount frames after the knob of quad count being changed to avoid noise
-        constexpr uint32_t kSkipFrameCount = 2;
-        if (pFullscreenQuadsCount->DigestUpdate()) {
-            mSkipRecordBandwidthMetricFrameCounter = kSkipFrameCount;
-        }
+    {
+        ppx::metrics::MetricData data = {ppx::metrics::MetricType::GAUGE};
+        data.gauge.seconds            = GetElapsedSeconds();
+        data.gauge.value              = gpuWorkDurationInSec * 1000.0f;
+        RecordLiveMetricData(mMetricsData.metrics[MetricsData::kTypeGPUWorkDuration], data);
+    }
 
+    if (quadCount) {
         if (mSkipRecordBandwidthMetricFrameCounter == 0) {
             const auto  texelSize     = static_cast<float>(grfx::GetFormatDescription(colorFormat)->bytesPerTexel);
             const float dataWriteInGb = (static_cast<float>(width) * static_cast<float>(height) * texelSize * quadCount) / (1024.f * 1024.f * 1024.f);
@@ -350,7 +373,7 @@ void GraphicsBenchmarkApp::UpdateMetrics()
             ppx::metrics::MetricData data = {ppx::metrics::MetricType::GAUGE};
             data.gauge.seconds            = GetElapsedSeconds();
             data.gauge.value              = bandwidth;
-            RecordMetricData(mMetricsData.metrics[MetricsData::kTypeBandwidth], data);
+            RecordLiveMetricData(mMetricsData.metrics[MetricsData::kTypeBandwidth], data);
         }
         else {
             --mSkipRecordBandwidthMetricFrameCounter;
@@ -894,6 +917,22 @@ void GraphicsBenchmarkApp::ProcessInput()
 
 void GraphicsBenchmarkApp::ProcessKnobs()
 {
+    // Skip the first kSkipFrameCount frames after the knob of quad count being changed to avoid noise
+    constexpr uint32_t kSkipFrameCount = 2;
+
+    const bool sphereChanged      = ProcessSphereKnobs();
+    const bool quadChanged        = ProcessQuadsKnobs();
+    const bool framebufferChanged = ProcessOffscreenRenderKnobs();
+    const bool anyUpdate          = sphereChanged || quadChanged || framebufferChanged;
+
+    if (anyUpdate) {
+        ClearLiveMetricsHistory();
+        mSkipRecordBandwidthMetricFrameCounter = kSkipFrameCount;
+    }
+}
+
+bool GraphicsBenchmarkApp::ProcessSphereKnobs()
+{
     // Detect if any knob value has been changed
     // Note: DigestUpdate should be called only once per frame (DigestUpdate unflags the internal knob variable)!
     const bool allTexturesTo1x1KnobChanged    = pAllTexturesTo1x1->DigestUpdate();
@@ -901,6 +940,14 @@ void GraphicsBenchmarkApp::ProcessKnobs()
     const bool depthTestWriteKnobChanged      = pDepthTestWrite->DigestUpdate();
     const bool enableSpheresKnobChanged       = pEnableSpheres->DigestUpdate();
     const bool sphereInstanceCountKnobChanged = pSphereInstanceCount->DigestUpdate();
+    const bool debugViewChanged               = pDebugViews->DigestUpdate();
+    const bool anyUpdate =
+        (allTexturesTo1x1KnobChanged ||
+         alphaBlendKnobChanged ||
+         depthTestWriteKnobChanged ||
+         enableSpheresKnobChanged ||
+         sphereInstanceCountKnobChanged ||
+         debugViewChanged);
 
     // TODO: Ideally, the `maxValue` of the drawcall-count slider knob should be changed at runtime.
     // Currently, the value of the drawcall-count is adjusted to the sphere-count in case the
@@ -948,16 +995,20 @@ void GraphicsBenchmarkApp::ProcessKnobs()
             }
         }
     }
+    return anyUpdate;
+}
 
-    ProcessQuadsKnobs();
+bool GraphicsBenchmarkApp::ProcessOffscreenRenderKnobs()
+{
+    const bool offscreenChanged   = pRenderOffscreen->DigestUpdate();
+    const bool framebufferChanged = pResolution->DigestUpdate() || pFramebufferFormat->DigestUpdate();
+    const bool anyUpdate          = offscreenChanged || framebufferChanged;
 
-    bool offscreenChanged = pRenderOffscreen->DigestUpdate();
     if (offscreenChanged) {
         pBlitOffscreen->SetVisible(pRenderOffscreen->GetValue());
         pFramebufferFormat->SetVisible(pRenderOffscreen->GetValue());
         pResolution->SetVisible(pRenderOffscreen->GetValue());
     }
-    bool framebufferChanged = pResolution->DigestUpdate() || pFramebufferFormat->DigestUpdate();
 
     if ((offscreenChanged && pRenderOffscreen->GetValue()) || framebufferChanged) {
         std::pair<int, int> resolution = pResolution->GetValue();
@@ -966,10 +1017,17 @@ void GraphicsBenchmarkApp::ProcessKnobs()
         int fbHeight = (resolution.second > 0 ? resolution.second : GetSwapchain()->GetHeight());
         UpdateOffscreenBuffer(RenderFormat(), fbWidth, fbHeight);
     }
+    return anyUpdate;
 }
 
-void GraphicsBenchmarkApp::ProcessQuadsKnobs()
+bool GraphicsBenchmarkApp::ProcessQuadsKnobs()
 {
+    const bool countUpdated      = pFullscreenQuadsCount->DigestUpdate();
+    const bool typeUpdated       = pFullscreenQuadsType->DigestUpdate();
+    const bool renderpassUpdated = pFullscreenQuadsSingleRenderpass->DigestUpdate();
+    const bool colorUpdated      = pFullscreenQuadsColor->DigestUpdate();
+    const bool anyUpdate         = countUpdated || typeUpdated || renderpassUpdated || colorUpdated;
+
     // Set Visibilities
     if (pFullscreenQuadsCount->GetValue() > 0) {
         pFullscreenQuadsType->SetVisible(true);
@@ -986,6 +1044,7 @@ void GraphicsBenchmarkApp::ProcessQuadsKnobs()
         pFullscreenQuadsSingleRenderpass->SetVisible(false);
         pFullscreenQuadsColor->SetVisible(false);
     }
+    return anyUpdate;
 }
 
 #if defined(PPX_BUILD_XR)
@@ -1169,7 +1228,23 @@ void GraphicsBenchmarkApp::UpdateGUI()
 
 void GraphicsBenchmarkApp::DrawExtraInfo()
 {
+    constexpr const char* kUTF8PlusMinus = "\xC2\xB1"; // \u00B1
+
     ImGui::Columns(2);
+
+    const auto cpuSubmissionTimeLive = GetLiveStatistics(mMetricsData.metrics[MetricsData::kTypeCPUSubmissionTime]);
+    ImGui::Text("CPU Submission Time");
+    ImGui::NextColumn();
+    ImGui::Text(
+        "%.4f ms min=%.4f max=%.4f\n%.4f%s%.4f ms",
+        cpuSubmissionTimeLive.Latest(),
+        cpuSubmissionTimeLive.Min(),
+        cpuSubmissionTimeLive.Max(),
+        cpuSubmissionTimeLive.Mean(),
+        kUTF8PlusMinus,
+        cpuSubmissionTimeLive.StandardDeviation());
+    ImGui::NextColumn();
+
     if (HasActiveMetricsRun()) {
         const auto cpuSubmissionTime = GetGaugeBasicStatistics(mMetricsData.metrics[MetricsData::kTypeCPUSubmissionTime]);
 
@@ -1198,17 +1273,32 @@ void GraphicsBenchmarkApp::DrawExtraInfo()
 
     uint64_t frequency = 0;
     PPX_CHECKED_CALL(GetGraphicsQueue()->GetTimestampFrequency(&frequency));
-    const float gpuWorkDurationInSec = static_cast<float>(mGpuWorkDuration / static_cast<double>(frequency));
-    const float gpuWorkDurationInMs  = gpuWorkDurationInSec * 1000.0f;
+    const float sPerTick  = 1.0f / static_cast<float>(frequency);
+    const float msPerTick = 1000.0f / static_cast<float>(frequency);
+
+    const auto   gpuWork    = GetLiveStatistics(mMetricsData.metrics[MetricsData::kTypeGPUWorkDuration]);
+    const double gpuWorkStd = gpuWork.StandardDeviation();
     ImGui::Text("GPU Work Duration");
     ImGui::NextColumn();
-    ImGui::Text("%.2f ms ", gpuWorkDurationInMs);
+    ImGui::Text(
+        "%.4f ms min=%.4f max=%.4f\n%.4f%s%.4f ms",
+        gpuWork.Latest(),
+        gpuWork.Min(),
+        gpuWork.Max(),
+        gpuWork.Mean(),
+        kUTF8PlusMinus,
+        gpuWork.StandardDeviation());
     ImGui::NextColumn();
 
-    const float gpuFPS = static_cast<float>(frequency / static_cast<double>(mGpuWorkDuration));
+    const double gpuFPS    = 1000.0 / gpuWork.Latest();
+    const double gpuAvgFPS = 1000.0 / gpuWork.Mean();
+    // The standard deviation of fps is a bit ill-defined, use a reasonable substitute.
+    const double gpuStdFPS = std::max(
+        1000.0 / std::max(gpuWork.Mean() - gpuWorkStd, gpuWork.Min()) - gpuAvgFPS,
+        gpuAvgFPS - 1000.0 / std::min(gpuWork.Mean() + gpuWorkStd, gpuWork.Max()));
     ImGui::Text("GPU FPS");
     ImGui::NextColumn();
-    ImGui::Text("%.2f fps ", gpuFPS);
+    ImGui::Text("%.2f fps\n%.2f%s%.2f fps", gpuFPS, gpuAvgFPS, kUTF8PlusMinus, gpuStdFPS);
     ImGui::NextColumn();
 
     const grfx::Format swapchainColorFormat = GetSwapchain()->GetColorFormat();
@@ -1237,6 +1327,19 @@ void GraphicsBenchmarkApp::DrawExtraInfo()
         ImGui::Text("Write Data");
         ImGui::NextColumn();
         ImGui::Text("%.2f GB", dataWriteInGb);
+        ImGui::NextColumn();
+
+        const auto bandwidthLive = GetLiveStatistics(mMetricsData.metrics[MetricsData::kTypeBandwidth]);
+        ImGui::Text("Write Bandwidth");
+        ImGui::NextColumn();
+        ImGui::Text(
+            "%.2f GB/s min=%.2f max=%.2f\n%.2f%s%.2f GB/s",
+            bandwidthLive.Latest(),
+            bandwidthLive.Min(),
+            bandwidthLive.Max(),
+            bandwidthLive.Mean(),
+            kUTF8PlusMinus,
+            bandwidthLive.StandardDeviation());
         ImGui::NextColumn();
 
         if (HasActiveMetricsRun()) {

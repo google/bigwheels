@@ -277,7 +277,7 @@ TEST_F(MetricsTestFixture, ReportEmptyGauge)
     EXPECT_EQ(gauge["time_series"].size(), 0);
     auto stats = gauge["statistics"];
     EXPECT_EQ(stats["min"], std::numeric_limits<double>::max());
-    EXPECT_EQ(stats["max"], std::numeric_limits<double>::min());
+    EXPECT_EQ(stats["max"], std::numeric_limits<double>::lowest());
     EXPECT_EQ(stats["average"], 0);
     EXPECT_EQ(stats["time_ratio"], 0);
     EXPECT_EQ(stats["median"], 0);

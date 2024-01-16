@@ -423,16 +423,17 @@ protected:
     virtual void DrawGui(){}; // Draw additional project-related information to ImGui.
 
     // Override these methods in a derived class to change the default behavior of metrics.
-    // Virtual for unit testing purposes.
-    virtual void SetupMetrics();
-    // Virtual for unit testing purposes.
-    virtual void ShutdownMetrics();
+    virtual void SetupMetrics();           // Called once on application startup
+    virtual void ShutdownMetrics();        // Called once on application shutdown
+    virtual void StartDefaultMetricsRun(); // Called once after SetupMetrics
+    virtual void SetupMetricsRun();        // Called by StartMetricsRun after metric run started
 
     // NOTE: This function can be used for BOTH displayed AND recorded metrics.
     // Thus it should always be called once per frame. Virtual for unit testing purposes.
     virtual void UpdateMetrics() {}
 
-    virtual metrics::GaugeBasicStatistics GetGaugeBasicStatistics(metrics::MetricID id) const;
+    metrics::GaugeBasicStatistics GetGaugeBasicStatistics(metrics::MetricID id) const;
+    metrics::LiveStatistics       GetLiveStatistics(metrics::MetricID id) const;
 
     void TakeScreenshot();
 
@@ -523,13 +524,27 @@ public:
     // See StartMetricsRun for why this wrapper is necessary.
     virtual bool HasActiveMetricsRun() const;
 
+    // Allocate a metric id to be used for a combind live/recorded metric.
+    metrics::MetricID AllocateMetricID();
+
+    // Add a live metric, the returned MetricID can also be used for recorded metric.
+    metrics::MetricID AddLiveMetric(metrics::MetricID metricID = metrics::kInvalidMetricID);
+
+    // Clear history of live metric, usually after knob changed.
+    void ClearLiveMetricsHistory();
+
     // Adds a metric to the current run. If no run is active, returns metrics::kInvalidMetricID.
     // See StartMetricsRun for why this wrapper is necessary.
-    virtual metrics::MetricID AddMetric(const metrics::MetricMetadata& metadata);
+    metrics::MetricID AddMetric(
+        const metrics::MetricMetadata& metadata,
+        metrics::MetricID              metricID = metrics::kInvalidMetricID);
 
     // Record data for the given metric ID. Metrics for completed runs will be discarded.
     // See StartMetricsRun for why this wrapper is necessary.
-    virtual bool RecordMetricData(metrics::MetricID id, const metrics::MetricData& data);
+    bool RecordMetricData(metrics::MetricID id, const metrics::MetricData& data);
+
+    // Update live metric, if a run is active, it will also record to the run.
+    bool RecordLiveMetricData(metrics::MetricID id, const metrics::MetricData& data);
 
 #if defined(PPX_BUILD_XR)
     XrComponent& GetXrComponent()
