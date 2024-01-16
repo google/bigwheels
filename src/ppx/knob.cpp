@@ -42,50 +42,6 @@ bool Knob::DigestUpdate()
 }
 
 // -------------------------------------------------------------------------------------------------
-// KnobCheckbox
-// -------------------------------------------------------------------------------------------------
-
-KnobCheckbox::KnobCheckbox(const std::string& flagName, bool defaultValue)
-    : Knob(flagName, true), mValue(defaultValue), mDefaultValue(defaultValue)
-{
-    SetFlagParameters("<true|false>");
-    RaiseUpdatedFlag();
-}
-
-void KnobCheckbox::Draw()
-{
-    if (!ImGui::Checkbox(mDisplayName.c_str(), &mValue)) {
-        return;
-    }
-    RaiseUpdatedFlag();
-}
-
-std::string KnobCheckbox::ValueString()
-{
-    return ppx::string_util::ToString(mValue);
-}
-
-void KnobCheckbox::UpdateFromFlags(const CliOptions& opts)
-{
-    SetDefaultAndValue(opts.GetOptionValueOrDefault(mFlagName, mValue));
-}
-
-void KnobCheckbox::SetValue(bool newValue)
-{
-    if (newValue == mValue) {
-        return;
-    }
-    mValue = newValue;
-    RaiseUpdatedFlag();
-}
-
-void KnobCheckbox::SetDefaultAndValue(bool newValue)
-{
-    mDefaultValue = newValue;
-    ResetToDefault();
-}
-
-// -------------------------------------------------------------------------------------------------
 // KnobManager
 // -------------------------------------------------------------------------------------------------
 
