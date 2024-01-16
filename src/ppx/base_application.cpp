@@ -40,7 +40,9 @@ uint32_t BaseApplication::GetProcessId() const
 #if defined(PPX_LINUX)
     pid = static_cast<uint32_t>(getpid());
 #elif defined(PPX_MSW)
+    // clang-format off
     pid = static_cast<uint32_t>(::GetCurrentProcessId());
+    // clang-format on
 #endif
     return pid;
 }
