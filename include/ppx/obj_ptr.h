@@ -70,17 +70,17 @@ public:
     }
 
     //// clang-format off
-    //operator ObjectT** ()
+    // operator ObjectT** ()
     //{
-    //    return mPtrRef;
-    //}
+    //     return mPtrRef;
+    // }
     //// clang-format on
     //
     //// clang-format off
-    //operator const ObjectT* const* ()
+    // operator const ObjectT* const* ()
     //{
-    //    return mPtrRef;
-    //}
+    //     return mPtrRef;
+    // }
     //// clang-format on
 
 private:

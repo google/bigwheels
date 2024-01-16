@@ -22,13 +22,13 @@
 #include <dxgi1_6.h>
 #include <dxgidebug.h>
 
-//#if defined(PPX_MSW)
-//#include <wrl/client.h>
-//using Microsoft::WRL::ComPtr;
-//#else
-//template <typename T>
-//using ComPtr = ObjPtr<T>;
-//#endif
+// #if defined(PPX_MSW)
+// #include <wrl/client.h>
+// using Microsoft::WRL::ComPtr;
+// #else
+// template <typename T>
+// using ComPtr = ObjPtr<T>;
+// #endif
 
 #include "D3D12MemAlloc.h"
 
