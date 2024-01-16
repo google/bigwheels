@@ -387,23 +387,18 @@ public:
     bool HasActiveRun() const;
 
     // Allocate a MetricID.
-    MetricID AllocateID() { return EnsureAllocateID(kInvalidMetricID); }
+    MetricID AllocateID();
 
     // Adds a metric to the current run. A run must be started to add a metric.
     // Failure to add a metric returns kInvalidMetricID.
-    // Optionally bind the metric to an existing metricID.
-    MetricID AddMetric(
-        const MetricMetadata& metadata,
-        MetricID              metricID = kInvalidMetricID);
+    MetricID AddMetric(const MetricMetadata& metadata)
+    {
+        MetricID metricID = AllocateID();
+        return BindMetric(metricID, metadata) ? metricID : kInvalidMetricID;
+    }
 
-    // Adds a live metric.
-    // Optionally bind the metric to an existing metricID.
-    MetricID AddLiveMetric(
-        double   halfLife = LiveMetric::kDefaultHalfLife,
-        MetricID metricID = kInvalidMetricID);
-
-    // Adds a live metric to current run.
-    void BindMetric(MetricID liveMetricID, const MetricMetadata& metadata);
+    bool BindMetric(MetricID metricID, const MetricMetadata& metadata);
+    bool BindLiveMetric(MetricID metricID, double halfLife = LiveMetric::kDefaultHalfLife);
 
     // Records data for the given metric ID. Metrics for completed runs will be discarded.
     bool RecordMetricData(MetricID id, const MetricData& data);
@@ -432,7 +427,6 @@ private:
 
     // Must be stored with the manager; Runs should not share MetricIDs.
     MetricID mNextMetricID = kInvalidMetricID + 1;
-    MetricID EnsureAllocateID(MetricID reuseID);
 
     // Convenient to store with the manager, so the hop of going through the Run isn't necessary.
     std::unordered_map<MetricID, Metric*> mActiveMetrics;

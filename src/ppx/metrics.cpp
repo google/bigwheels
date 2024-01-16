@@ -324,37 +324,43 @@ bool Manager::HasActiveRun() const
     return (mActiveRun != nullptr);
 }
 
-MetricID Manager::EnsureAllocateID(MetricID reuseID)
+MetricID Manager::AllocateID()
 {
-    if (reuseID != kInvalidMetricID) {
-        return reuseID;
-    }
     return mNextMetricID++;
 }
 
-MetricID Manager::AddMetric(const MetricMetadata& metadata, MetricID metricID)
+bool Manager::BindMetric(MetricID metricID, const MetricMetadata& metadata)
 {
+    if (metricID == kInvalidMetricID) {
+        PPX_LOG_WARN("Attempted to bind to an invalid metric id.");
+        return false;
+    }
+
     if (mActiveRun == nullptr) {
-        return kInvalidMetricID;
+        PPX_LOG_WARN("Attempted to bind to an inactive run.");
+        return false;
     }
 
     auto* metric = mActiveRun->AddMetric(metadata);
     if (metric == nullptr) {
-        return kInvalidMetricID;
+        return false;
     }
-    metricID = EnsureAllocateID(metricID);
     mActiveMetrics.emplace(metricID, metric);
-    return metricID;
+    return true;
 }
 
-MetricID Manager::AddLiveMetric(double halfLife, MetricID metricID)
+bool Manager::BindLiveMetric(MetricID metricID, double halfLife)
 {
-    if (metricID != kInvalidMetricID && mLiveMetrics.count(metricID) > 0) {
-        return kInvalidMetricID;
+    if (metricID == kInvalidMetricID) {
+        PPX_LOG_WARN("Attempted to bind to an invalid metric id.");
+        return false;
     }
-    metricID               = EnsureAllocateID(metricID);
+    if (mLiveMetrics.count(metricID) > 0) {
+        PPX_LOG_WARN("Attempted to bind to an existing live metric.");
+        return false;
+    }
     mLiveMetrics[metricID] = LiveMetric(halfLife);
-    return metricID;
+    return true;
 }
 
 bool Manager::RecordMetricData(MetricID id, const MetricData& data)
@@ -367,15 +373,17 @@ bool Manager::RecordMetricData(MetricID id, const MetricData& data)
     if (mActiveRun == nullptr) {
         if (!hasLiveMetric) {
             PPX_LOG_WARN("Attempted to record a metric entry with no active run.");
+            return false;
         }
-        return false;
+        return true;
     }
     auto findResult = mActiveMetrics.find(id);
     if (findResult == mActiveMetrics.end()) {
         if (!hasLiveMetric) {
             PPX_LOG_ERROR("Attempted to record a metric entry against an invalid ID.");
+            return false;
         }
-        return false;
+        return true;
     }
     return findResult->second->RecordEntry(data);
 }

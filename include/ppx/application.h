@@ -527,17 +527,18 @@ public:
     // Allocate a metric id to be used for a combind live/recorded metric.
     metrics::MetricID AllocateMetricID();
 
+    // Adds a metric to the current run. If no run is active, returns metrics::kInvalidMetricID.
+    // See StartMetricsRun for why this wrapper is necessary.
+    metrics::MetricID AddMetric(const metrics::MetricMetadata& metadata);
+
+    // Bind a metric to the current run, Return false if no run is active.
+    bool BindMetric(metrics::MetricID metricID, const metrics::MetricMetadata& metadata);
+
     // Add a live metric, the returned MetricID can also be used for recorded metric.
-    metrics::MetricID AddLiveMetric(metrics::MetricID metricID = metrics::kInvalidMetricID);
+    bool BindLiveMetric(metrics::MetricID metricID = metrics::kInvalidMetricID);
 
     // Clear history of live metric, usually after knob changed.
     void ClearLiveMetricsHistory();
-
-    // Adds a metric to the current run. If no run is active, returns metrics::kInvalidMetricID.
-    // See StartMetricsRun for why this wrapper is necessary.
-    metrics::MetricID AddMetric(
-        const metrics::MetricMetadata& metadata,
-        metrics::MetricID              metricID = metrics::kInvalidMetricID);
 
     // Record data for the given metric ID. Metrics for completed runs will be discarded.
     // See StartMetricsRun for why this wrapper is necessary.

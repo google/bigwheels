@@ -306,9 +306,9 @@ void GraphicsBenchmarkApp::SetupMetrics()
     mMetricsData.metrics[MetricsData::kTypeBandwidth]         = AllocateMetricID();
     mMetricsData.metrics[MetricsData::kTypeGPUWorkDuration]   = AllocateMetricID();
 
-    AddLiveMetric(mMetricsData.metrics[MetricsData::kTypeCPUSubmissionTime]);
-    AddLiveMetric(mMetricsData.metrics[MetricsData::kTypeBandwidth]);
-    AddLiveMetric(mMetricsData.metrics[MetricsData::kTypeGPUWorkDuration]);
+    BindLiveMetric(mMetricsData.metrics[MetricsData::kTypeCPUSubmissionTime]);
+    BindLiveMetric(mMetricsData.metrics[MetricsData::kTypeBandwidth]);
+    BindLiveMetric(mMetricsData.metrics[MetricsData::kTypeGPUWorkDuration]);
 }
 
 void GraphicsBenchmarkApp::SetupMetricsRun()
@@ -321,18 +321,18 @@ void GraphicsBenchmarkApp::SetupMetricsRun()
             "ms",
             ppx::metrics::MetricInterpretation::LOWER_IS_BETTER,
             {0.f, 10000.f}};
-        ppx::metrics::MetricID res = AddMetric(metadata, mMetricsData.metrics[MetricsData::kTypeCPUSubmissionTime]);
-        PPX_ASSERT_MSG(res != ppx::metrics::kInvalidMetricID, "Failed to add CPU Submission Time metric");
+        bool bindres = BindMetric(mMetricsData.metrics[MetricsData::kTypeCPUSubmissionTime], metadata);
+        PPX_ASSERT_MSG(bindres, "Failed to bind CPU Submission Time metric");
     }
     {
         ppx::metrics::MetricMetadata metadata = {
             ppx::metrics::MetricType::GAUGE,
             "Bandwidth",
-            "GB/s",
+            "GiB/s",
             ppx::metrics::MetricInterpretation::HIGHER_IS_BETTER,
             {0.f, 10000.f}};
-        ppx::metrics::MetricID res = AddMetric(metadata, mMetricsData.metrics[MetricsData::kTypeBandwidth]);
-        PPX_ASSERT_MSG(res != ppx::metrics::kInvalidMetricID, "Failed to add Bandwidth metric");
+        bool bindres = BindMetric(mMetricsData.metrics[MetricsData::kTypeBandwidth], metadata);
+        PPX_ASSERT_MSG(bindres, "Failed to bind Bandwidth metric");
     }
 }
 
@@ -1333,7 +1333,7 @@ void GraphicsBenchmarkApp::DrawExtraInfo()
         ImGui::Text("Write Bandwidth");
         ImGui::NextColumn();
         ImGui::Text(
-            "%.2f GB/s min=%.2f max=%.2f\n%.2f%s%.2f GB/s",
+            "%.2f GiB/s min=%.2f max=%.2f\n%.2f%s%.2f GiB/s",
             bandwidthLive.Latest(),
             bandwidthLive.Min(),
             bandwidthLive.Max(),
@@ -1346,17 +1346,17 @@ void GraphicsBenchmarkApp::DrawExtraInfo()
             const auto bandwidth = GetGaugeBasicStatistics(mMetricsData.metrics[MetricsData::kTypeBandwidth]);
             ImGui::Text("Average Write Bandwidth");
             ImGui::NextColumn();
-            ImGui::Text("%.2f GB/s", bandwidth.average);
+            ImGui::Text("%.2f GiB/s", bandwidth.average);
             ImGui::NextColumn();
 
             ImGui::Text("Min Write Bandwidth");
             ImGui::NextColumn();
-            ImGui::Text("%.2f GB/s", bandwidth.min);
+            ImGui::Text("%.2f GiB/s", bandwidth.min);
             ImGui::NextColumn();
 
             ImGui::Text("Max Write Bandwidth");
             ImGui::NextColumn();
-            ImGui::Text("%.2f GB/s", bandwidth.max);
+            ImGui::Text("%.2f GiB/s", bandwidth.max);
             ImGui::NextColumn();
         }
     }

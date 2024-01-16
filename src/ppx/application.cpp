@@ -1763,8 +1763,9 @@ void Application::SetupMetricsRun()
         metadata.name                    = "cpu_frame_time";
         metadata.unit                    = "ms";
         metadata.interpretation          = metrics::MetricInterpretation::LOWER_IS_BETTER;
-        metrics::MetricID res            = mMetrics.manager.AddMetric(metadata, mMetrics.cpuFrameTimeId);
-        PPX_ASSERT_MSG(res != metrics::kInvalidMetricID, "Failed to create frame time metric");
+
+        bool bindres = mMetrics.manager.BindMetric(mMetrics.cpuFrameTimeId, metadata);
+        PPX_ASSERT_MSG(bindres, "Failed to create frame time metric");
     }
     {
         metrics::MetricMetadata metadata = {};
@@ -1772,8 +1773,9 @@ void Application::SetupMetricsRun()
         metadata.name                    = "framerate";
         metadata.unit                    = "";
         metadata.interpretation          = metrics::MetricInterpretation::HIGHER_IS_BETTER;
-        metrics::MetricID res            = mMetrics.manager.AddMetric(metadata, mMetrics.framerateId);
-        PPX_ASSERT_MSG(res != metrics::kInvalidMetricID, "Failed to create framerate metric");
+
+        bool bindres = mMetrics.manager.BindMetric(mMetrics.framerateId, metadata);
+        PPX_ASSERT_MSG(bindres, "Failed to create framerate metric");
     }
     {
         metrics::MetricMetadata metadata = {};
@@ -1781,8 +1783,9 @@ void Application::SetupMetricsRun()
         metadata.name                    = "frame_count";
         metadata.unit                    = "";
         metadata.interpretation          = metrics::MetricInterpretation::NONE;
-        metrics::MetricID res            = mMetrics.manager.AddMetric(metadata, mMetrics.frameCountId);
-        PPX_ASSERT_MSG(res != metrics::kInvalidMetricID, "Failed to create frame count metric");
+
+        bool bindres = mMetrics.manager.BindMetric(mMetrics.frameCountId, metadata);
+        PPX_ASSERT_MSG(bindres, "Failed to create frame count metric");
     }
 
     mMetrics.resetFramerateTracking = true;
@@ -1811,21 +1814,7 @@ metrics::MetricID Application::AllocateMetricID()
     return mMetrics.manager.AllocateID();
 }
 
-metrics::MetricID Application::AddLiveMetric(metrics::MetricID metricID)
-{
-    // Use default half life since there's not much reason to have different value.
-    constexpr double kHalfLife = metrics::LiveMetric::kDefaultHalfLife;
-    return mMetrics.manager.AddLiveMetric(kHalfLife, metricID);
-}
-
-void Application::ClearLiveMetricsHistory()
-{
-    mMetrics.manager.ClearLiveMetricsHistory();
-}
-
-metrics::MetricID Application::AddMetric(
-    const metrics::MetricMetadata& metadata,
-    metrics::MetricID              metricID)
+metrics::MetricID Application::AddMetric(const metrics::MetricMetadata& metadata)
 {
     if (!mStandardOpts.pEnableMetrics->GetValue()) {
         PPX_LOG_ERROR("Attempting to add a metric with metrics disabled; ignoring.");
@@ -1833,7 +1822,30 @@ metrics::MetricID Application::AddMetric(
     }
 
     // This function already covers all other cases.
-    return mMetrics.manager.AddMetric(metadata, metricID);
+    return mMetrics.manager.AddMetric(metadata);
+}
+
+bool Application::BindMetric(metrics::MetricID metricID, const metrics::MetricMetadata& metadata)
+{
+    if (!mStandardOpts.pEnableMetrics->GetValue()) {
+        PPX_LOG_ERROR("Attempting to add a metric with metrics disabled; ignoring.");
+        return false;
+    }
+
+    // This function already covers all other cases.
+    return mMetrics.manager.BindMetric(metricID, metadata);
+}
+
+bool Application::BindLiveMetric(metrics::MetricID metricID)
+{
+    // Use default half life since there's not much reason to have different value.
+    constexpr double kHalfLife = metrics::LiveMetric::kDefaultHalfLife;
+    return mMetrics.manager.BindLiveMetric(metricID, kHalfLife);
+}
+
+void Application::ClearLiveMetricsHistory()
+{
+    mMetrics.manager.ClearLiveMetricsHistory();
 }
 
 bool Application::RecordMetricData(metrics::MetricID id, const metrics::MetricData& data)
