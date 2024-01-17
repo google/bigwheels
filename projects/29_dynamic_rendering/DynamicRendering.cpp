@@ -39,8 +39,8 @@ void DynamicRenderingApp::Setup()
     // Vertex buffer and geometry data
     {
         GeometryCreateInfo geometryCreateInfo = GeometryCreateInfo::Planar().AddColor();
-        TriMeshOptions  triMeshOptions  = TriMeshOptions().Indices().VertexColors();
-        TriMesh         sphereTriMesh   = TriMesh::CreateSphere(/* radius */ 1.0f, 16, 8, triMeshOptions);
+        TriMeshOptions     triMeshOptions     = TriMeshOptions().Indices().VertexColors();
+        TriMesh            sphereTriMesh      = TriMesh::CreateSphere(/* radius */ 1.0f, 16, 8, triMeshOptions);
         PPX_CHECKED_CALL(grfx_util::CreateMeshFromTriMesh(GetGraphicsQueue(), &sphereTriMesh, &mSphereMesh));
     }
 

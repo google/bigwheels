@@ -135,8 +135,8 @@ void ProjApp::Setup()
     // Entities
     {
         GeometryCreateInfo geometryCreateInfo = GeometryCreateInfo::Planar().AddColor();
-        TriMeshOptions  triMeshOptions  = TriMeshOptions().Indices().VertexColors();
-        WireMeshOptions wireMeshOptions = WireMeshOptions().Indices().VertexColors();
+        TriMeshOptions     triMeshOptions     = TriMeshOptions().Indices().VertexColors();
+        WireMeshOptions    wireMeshOptions    = WireMeshOptions().Indices().VertexColors();
 
         TriMesh triMesh = TriMesh::CreateCube(float3(2, 2, 2), triMeshOptions);
         SetupEntity(triMesh, geometryCreateInfo, &mCube);
