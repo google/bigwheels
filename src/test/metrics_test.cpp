@@ -107,6 +107,14 @@ TEST(MetricsTest, ManagerStartDuplicateRunFails)
 }
 #endif
 
+TEST(MetricsTest, ManagerBindLiveMetricWithoutRun)
+{
+    metrics::Manager manager;
+    EXPECT_FALSE(manager.HasActiveRun());
+    auto metricId = manager.AllocateID();
+    EXPECT_TRUE(manager.BindLiveMetric(metricId));
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Run Tests
 ////////////////////////////////////////////////////////////////////////////////
@@ -546,7 +554,7 @@ TEST_F(MetricsTestFixture, MetricsGaugeIgnoresSameSeconds)
     EXPECT_EQ(gauge["time_series"][1][1], 11.0);
 }
 
-TEST_F(MetricsTestFixture, MetricsLiveStatistics)
+TEST_F(MetricsTestFixture, MetricsLiveMetricStatistics)
 {
     metrics::MetricMetadata metadata;
     metadata.type = metrics::MetricType::GAUGE;
@@ -588,6 +596,80 @@ TEST_F(MetricsTestFixture, MetricsLiveStatistics)
     EXPECT_NEAR(liveStats.mean, kExpectedMean, 0.0010);
     EXPECT_NEAR(liveStats.variance, 8.0 / 9.0, 0.0010);
     EXPECT_NEAR(liveStats.variance, kExpectedVariance, 0.0010);
+
+    auto reportStats = gauge["statistics"];
+    EXPECT_EQ(reportStats["min"], 10.0);
+    EXPECT_EQ(reportStats["max"], 12.0);
+    EXPECT_EQ(reportStats["average"], 11.0);
+    EXPECT_EQ(reportStats["standard_deviation"], 1.0);
+}
+
+TEST_F(MetricsTestFixture, MetricsLiveMetricAfterEndRun)
+{
+    metrics::MetricMetadata metadata;
+    metadata.type = metrics::MetricType::GAUGE;
+    metadata.name = "gauge";
+
+    auto metricId = pManager->AllocateID();
+    ASSERT_TRUE(pManager->BindLiveMetric(metricId, 1.0));
+    ASSERT_TRUE(pManager->BindMetric(metricId, metadata));
+
+    metrics::MetricData data = {metrics::MetricType::GAUGE};
+    data.gauge.seconds       = 1.0;
+    data.gauge.value         = 10.0;
+    pManager->RecordMetricData(metricId, data);
+    pManager->EndRun();
+    data.gauge.seconds = 2.0;
+    data.gauge.value   = 12.0;
+    pManager->RecordMetricData(metricId, data);
+
+    auto liveStats = pManager->GetLiveStatistics(metricId);
+
+    EXPECT_NEAR(liveStats.mean, 11.3333, 0.0010);
+    EXPECT_NEAR(liveStats.variance, 8.0 / 9.0, 0.0010);
+}
+
+TEST_F(MetricsTestFixture, MetricsLiveMetricClearHistory)
+{
+    metrics::MetricMetadata metadata;
+    metadata.type = metrics::MetricType::GAUGE;
+    metadata.name = "gauge";
+
+    auto metricId = pManager->AllocateID();
+    ASSERT_TRUE(pManager->BindLiveMetric(metricId, 1.0));
+    ASSERT_TRUE(pManager->BindMetric(metricId, metadata));
+
+    metrics::MetricData data = {metrics::MetricType::GAUGE};
+    data.gauge.seconds       = 1.0;
+    data.gauge.value         = 10.0;
+    pManager->RecordMetricData(metricId, data);
+    pManager->ClearLiveMetricsHistory();
+    data.gauge.seconds = 2.0;
+    data.gauge.value   = 12.0;
+    pManager->RecordMetricData(metricId, data);
+
+    auto result = pManager->CreateReport("report").GetContentString();
+    auto parsed = nlohmann::json::parse(result);
+    auto gauge  = parsed["runs"][0]["gauges"][0];
+    EXPECT_EQ(gauge["time_series"].size(), 2);
+    EXPECT_EQ(gauge["time_series"][0][0], 1.0000);
+    EXPECT_EQ(gauge["time_series"][0][1], 10.0);
+    EXPECT_EQ(gauge["time_series"][1][0], 2.0);
+    EXPECT_EQ(gauge["time_series"][1][1], 12.0);
+
+    auto liveStats = pManager->GetLiveStatistics(metricId);
+
+    // 10.0 with weight 0.5, and 12.0 with weight 1.0
+    constexpr double kExpectedMean = (10.0 * 0.5 + 12.0 * 1.0) / 1.5;
+    constexpr double kExpectedVariance =
+        ((10.0 - kExpectedMean) * (10.0 - kExpectedMean) * 0.5 + (12.0 - kExpectedMean) * (12.0 - kExpectedMean) * 1.0) / 1.5;
+    EXPECT_EQ(liveStats.latest, 12.0);
+    EXPECT_EQ(liveStats.seconds, 2.0);
+    EXPECT_EQ(liveStats.min, 12.0);
+    EXPECT_EQ(liveStats.max, 12.0);
+    EXPECT_EQ(liveStats.weight, 1.0);
+    EXPECT_NEAR(liveStats.mean, 12.0, 0.0010);
+    EXPECT_NEAR(liveStats.variance, 0.0, 0.0010);
 
     auto reportStats = gauge["statistics"];
     EXPECT_EQ(reportStats["min"], 10.0);

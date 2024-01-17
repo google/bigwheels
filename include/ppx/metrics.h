@@ -233,7 +233,7 @@ private:
 
 ////////////////////////////////////////////////////////////////////////////////
 
-// Live statistics are computerd on the fly, for recently reported metric.
+// Live statistics are computed on the fly, for recently reported metric.
 // The weight assigned to each entry is assigned as follows
 //   w_i = exp((t_i-t_now)/halfLife), default halfLife = 0.5s
 // Min/Max are not affected by the weight.
@@ -396,8 +396,13 @@ public:
         MetricID metricID = AllocateID();
         return BindMetric(metricID, metadata) ? metricID : kInvalidMetricID;
     }
-
+    // Binds a metric to the current run. A run must be started to bind a metric.
+    // Failure to add a metric returns false.
     bool BindMetric(MetricID metricID, const MetricMetadata& metadata);
+
+    // Binds a live metric to the metricID.
+    // A live metric is independent of runs, the same metricID can be used to bind a metric
+    // to a run, in which case RecordMetricData records to both live metric and the run.
     bool BindLiveMetric(MetricID metricID, double halfLife = LiveMetric::kDefaultHalfLife);
 
     // Records data for the given metric ID. Metrics for completed runs will be discarded.
