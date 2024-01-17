@@ -320,11 +320,11 @@ WireMesh WireMesh::CreatePlane(WireMeshPlane plane, const float2& size, uint32_t
                 PPX_ASSERT_MSG(false, "unknown plane orientation");
             } break;
 
-            //case WIRE_MESH_PLANE_POSITIVE_X: {
-            //} break;
+            // case WIRE_MESH_PLANE_POSITIVE_X: {
+            // } break;
             //
-            //case WIRE_MESH_PLANE_NEGATIVE_X: {
-            //} break;
+            // case WIRE_MESH_PLANE_NEGATIVE_X: {
+            // } break;
             //
             case WIRE_MESH_PLANE_POSITIVE_Y: {
                 position0 = float3(s * size.x - hs, 0, t0 * size.y - ht);
@@ -336,11 +336,11 @@ WireMesh WireMesh::CreatePlane(WireMeshPlane plane, const float2& size, uint32_t
                 position1 = float3((1.0f - s) * size.x - hs, 0, (1.0f - t1) * size.y - ht);
             } break;
 
-                //case WIRE_MESH_PLANE_POSITIVE_Z: {
-                //} break;
+                // case WIRE_MESH_PLANE_POSITIVE_Z: {
+                // } break;
                 //
-                //case WIRE_MESH_PLANE_NEGATIVE_Z: {
-                //} break;
+                // case WIRE_MESH_PLANE_NEGATIVE_Z: {
+                // } break;
         }
 
         float3 color0 = float3(s, 0, 0);
@@ -378,11 +378,11 @@ WireMesh WireMesh::CreatePlane(WireMeshPlane plane, const float2& size, uint32_t
                 PPX_ASSERT_MSG(false, "unknown plane orientation");
             } break;
 
-            //case WIRE_MESH_PLANE_POSITIVE_X: {
-            //} break;
+            // case WIRE_MESH_PLANE_POSITIVE_X: {
+            // } break;
             //
-            //case WIRE_MESH_PLANE_NEGATIVE_X: {
-            //} break;
+            // case WIRE_MESH_PLANE_NEGATIVE_X: {
+            // } break;
             //
             case WIRE_MESH_PLANE_POSITIVE_Y: {
                 position0 = float3(s0 * size.x - hs, 0, t * size.y - ht);
@@ -394,11 +394,11 @@ WireMesh WireMesh::CreatePlane(WireMeshPlane plane, const float2& size, uint32_t
                 position1 = float3((1.0f - s1) * size.x - hs, 0, (1.0f - t) * size.y - ht);
             } break;
 
-                //case WIRE_MESH_PLANE_POSITIVE_Z: {
-                //} break;
+                // case WIRE_MESH_PLANE_POSITIVE_Z: {
+                // } break;
                 //
-                //case WIRE_MESH_PLANE_NEGATIVE_Z: {
-                //} break;
+                // case WIRE_MESH_PLANE_NEGATIVE_Z: {
+                // } break;
         }
 
         float3 color0 = float3(0, t, 0);

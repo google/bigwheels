@@ -80,7 +80,7 @@ public:
     DescriptorSet() {}
     virtual ~DescriptorSet() {}
 
-    //std::vector<HeapOffset>& GetHeapOffsets() { return mHeapOffsets; }
+    // std::vector<HeapOffset>& GetHeapOffsets() { return mHeapOffsets; }
 
     UINT GetNumDescriptorsCBVSRVUAV() const { return mNumDescriptorsCBVSRVUAV; }
     UINT GetNumDescriptorsSampler() const { return mNumDescriptorsSampler; }

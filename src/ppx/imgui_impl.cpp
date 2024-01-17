@@ -92,23 +92,23 @@ Result ImGuiImpl::Init(ppx::Application* pApp)
     // clang-format on
 
     //// Get the logical width and height of the monitor
-    //MONITORINFOEX monitorInfoEx = {};
-    //monitorInfoEx.cbSize        = sizeof(monitorInfoEx);
-    //GetMonitorInfo(monitor, &monitorInfoEx);
-    //auto cxLogical = monitorInfoEx.rcMonitor.right - monitorInfoEx.rcMonitor.left;
-    //auto cyLogical = monitorInfoEx.rcMonitor.bottom - monitorInfoEx.rcMonitor.top;
+    // MONITORINFOEX monitorInfoEx = {};
+    // monitorInfoEx.cbSize        = sizeof(monitorInfoEx);
+    // GetMonitorInfo(monitor, &monitorInfoEx);
+    // auto cxLogical = monitorInfoEx.rcMonitor.right - monitorInfoEx.rcMonitor.left;
+    // auto cyLogical = monitorInfoEx.rcMonitor.bottom - monitorInfoEx.rcMonitor.top;
     //
     //// Get the physical width and height of the monitor
-    //DEVMODE devMode       = {};
-    //devMode.dmSize        = sizeof(devMode);
-    //devMode.dmDriverExtra = 0;
-    //EnumDisplaySettings(monitorInfoEx.szDevice, ENUM_CURRENT_SETTINGS, &devMode);
-    //auto cxPhysical = devMode.dmPelsWidth;
-    //auto cyPhysical = devMode.dmPelsHeight;
+    // DEVMODE devMode       = {};
+    // devMode.dmSize        = sizeof(devMode);
+    // devMode.dmDriverExtra = 0;
+    // EnumDisplaySettings(monitorInfoEx.szDevice, ENUM_CURRENT_SETTINGS, &devMode);
+    // auto cxPhysical = devMode.dmPelsWidth;
+    // auto cyPhysical = devMode.dmPelsHeight;
     //
     //// Calculate the scaling factor
-    //float horizontalScale = ((float)cxPhysical / (float)cxLogical);
-    //float verticalScale   = ((float)cyPhysical / (float)cyLogical);
+    // float horizontalScale = ((float)cxPhysical / (float)cxLogical);
+    // float verticalScale   = ((float)cyPhysical / (float)cyLogical);
 
     // Scale fontSize based on scaling factor
     fontSize *= fontScale;
@@ -135,9 +135,9 @@ Result ImGuiImpl::Init(ppx::Application* pApp)
 
 void ImGuiImpl::SetColorStyle()
 {
-    //ImGui::StyleColorsClassic();
+    // ImGui::StyleColorsClassic();
     ImGui::StyleColorsDark();
-    //ImGui::StyleColorsLight();
+    // ImGui::StyleColorsLight();
 }
 
 void ImGuiImpl::NewFrame()

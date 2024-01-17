@@ -76,11 +76,11 @@ private:
     uint32_t    mResY        = kDefaultFishResY;
     uint32_t    mThreadsX    = kDefaultFishThreadsX;
     uint32_t    mThreadsY    = kDefaultFishThreadsY;
-    float    mMinThresh;
-    float    mMaxThresh;
-    float    mMinSpeed;
-    float    mMaxSpeed;
-    float    mZoneRadius;
+    float       mMinThresh;
+    float       mMaxThresh;
+    float       mMinSpeed;
+    float       mMaxSpeed;
+    float       mZoneRadius;
 
     grfx::DescriptorSetLayoutPtr mFlockingPositionSetLayout;
     grfx::DescriptorSetLayoutPtr mFlockingVelocitySetLayout;

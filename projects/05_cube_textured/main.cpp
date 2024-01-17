@@ -254,7 +254,6 @@ void ProjApp::Setup()
         memcpy(pAddr, vertexData.data(), dataSize);
         mVertexBuffer->UnmapMemory();
     }
-
 }
 
 void ProjApp::Render()

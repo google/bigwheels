@@ -69,12 +69,12 @@ PPX_HLSL_PACK_END();
 
 struct MaterialCreateInfo
 {
-    float         F0;
-    float3        albedo;
-    float         roughness;
-    float         metalness;
-    float         iblStrength;
-    float         envStrength;
+    float                 F0;
+    float3                albedo;
+    float                 roughness;
+    float                 metalness;
+    float                 iblStrength;
+    float                 envStrength;
     std::filesystem::path albedoTexturePath;
     std::filesystem::path roughnessTexturePath;
     std::filesystem::path metalnessTexturePath;
