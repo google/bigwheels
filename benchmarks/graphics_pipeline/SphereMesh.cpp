@@ -107,38 +107,38 @@ void SphereMesh::CreateSphereGeometry(PrecisionType precisionType, VertexLayoutT
     // - indexType = INDEX_TYPE_UINT32
     // - primitiveTopology = PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
     // - VertexBinding inputRate = 0
-    GeometryOptions geoOpts;
+    GeometryCreateInfo geometryCreateInfo;
 
     if (precisionType == PrecisionType::PRECISION_TYPE_LOW_PRECISION) {
         if (vertexLayoutType == VertexLayoutType::VERTEX_LAYOUT_TYPE_INTERLEAVED) {
-            geoOpts = GeometryOptions::InterleavedU32(grfx::FORMAT_R16G16B16A16_FLOAT)
-                          .AddTexCoord(grfx::FORMAT_R16G16_FLOAT)
-                          .AddNormal(grfx::FORMAT_R8G8B8A8_SNORM)
-                          .AddTangent(grfx::FORMAT_R8G8B8A8_SNORM);
+            geometryCreateInfo = GeometryCreateInfo::InterleavedU32(grfx::FORMAT_R16G16B16A16_FLOAT)
+                                     .AddTexCoord(grfx::FORMAT_R16G16_FLOAT)
+                                     .AddNormal(grfx::FORMAT_R8G8B8A8_SNORM)
+                                     .AddTangent(grfx::FORMAT_R8G8B8A8_SNORM);
         }
         else if (vertexLayoutType == VertexLayoutType::VERTEX_LAYOUT_TYPE_POSITION_PLANAR) {
-            geoOpts = GeometryOptions::PositionPlanarU32(grfx::FORMAT_R16G16B16A16_FLOAT)
-                          .AddTexCoord(grfx::FORMAT_R16G16_FLOAT)
-                          .AddNormal(grfx::FORMAT_R8G8B8A8_SNORM)
-                          .AddTangent(grfx::FORMAT_R8G8B8A8_SNORM);
+            geometryCreateInfo = GeometryCreateInfo::PositionPlanarU32(grfx::FORMAT_R16G16B16A16_FLOAT)
+                                     .AddTexCoord(grfx::FORMAT_R16G16_FLOAT)
+                                     .AddNormal(grfx::FORMAT_R8G8B8A8_SNORM)
+                                     .AddTangent(grfx::FORMAT_R8G8B8A8_SNORM);
         }
     }
     else if (precisionType == PrecisionType::PRECISION_TYPE_HIGH_PRECISION) {
         if (vertexLayoutType == VertexLayoutType::VERTEX_LAYOUT_TYPE_INTERLEAVED) {
-            geoOpts = GeometryOptions::InterleavedU32(grfx::FORMAT_R32G32B32_FLOAT)
-                          .AddTexCoord(grfx::FORMAT_R32G32_FLOAT)
-                          .AddNormal(grfx::FORMAT_R32G32B32_FLOAT)
-                          .AddTangent(grfx::FORMAT_R32G32B32A32_FLOAT);
+            geometryCreateInfo = GeometryCreateInfo::InterleavedU32(grfx::FORMAT_R32G32B32_FLOAT)
+                                     .AddTexCoord(grfx::FORMAT_R32G32_FLOAT)
+                                     .AddNormal(grfx::FORMAT_R32G32B32_FLOAT)
+                                     .AddTangent(grfx::FORMAT_R32G32B32A32_FLOAT);
         }
         else if (vertexLayoutType == VertexLayoutType::VERTEX_LAYOUT_TYPE_POSITION_PLANAR) {
-            geoOpts = GeometryOptions::PositionPlanarU32(grfx::FORMAT_R32G32B32_FLOAT)
-                          .AddTexCoord(grfx::FORMAT_R32G32_FLOAT)
-                          .AddNormal(grfx::FORMAT_R32G32B32_FLOAT)
-                          .AddTangent(grfx::FORMAT_R32G32B32A32_FLOAT);
+            geometryCreateInfo = GeometryCreateInfo::PositionPlanarU32(grfx::FORMAT_R32G32B32_FLOAT)
+                                     .AddTexCoord(grfx::FORMAT_R32G32_FLOAT)
+                                     .AddNormal(grfx::FORMAT_R32G32B32_FLOAT)
+                                     .AddTangent(grfx::FORMAT_R32G32B32A32_FLOAT);
         }
     }
-    PPX_ASSERT_MSG(geoOpts.vertexBindingCount != 0, "Invalid precisionType and/or vertexLayoutType");
-    PPX_CHECKED_CALL(Geometry::Create(geoOpts, geometryPtr));
+    PPX_ASSERT_MSG(geometryCreateInfo.vertexBindingCount != 0, "Invalid precisionType and/or vertexLayoutType");
+    PPX_CHECKED_CALL(Geometry::Create(geometryCreateInfo, geometryPtr));
 }
 
 void SphereMesh::PopulateSingleSpheres()

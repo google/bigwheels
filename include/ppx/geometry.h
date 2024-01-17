@@ -31,7 +31,7 @@ enum GeometryVertexAttributeLayout
     GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_POSITION_PLANAR = 3,
 };
 
-//! @struct GeometryOptions
+//! @struct GeometryCreateInfo
 //!
 //! primitiveTopology
 //!   - only TRIANGLE_LIST is currently supported
@@ -52,7 +52,7 @@ enum GeometryVertexAttributeLayout
 //!    grfx::VERTEX_SEMANTIC_BITANGEN
 //!    grfx::VERTEX_SEMANTIC_TEXCOORD
 //!
-struct GeometryOptions
+struct GeometryCreateInfo
 {
     grfx::IndexType               indexType                               = grfx::INDEX_TYPE_UNDEFINED;
     GeometryVertexAttributeLayout vertexAttributeLayout                   = ppx::GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_INTERLEAVED;
@@ -63,22 +63,22 @@ struct GeometryOptions
     // Creates a create info objects with a UINT16 or UINT32 index
     // type and position vertex attribute.
     //
-    static GeometryOptions InterleavedU16(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
-    static GeometryOptions InterleavedU32(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
-    static GeometryOptions PlanarU16(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
-    static GeometryOptions PlanarU32(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
-    static GeometryOptions PositionPlanarU16(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
-    static GeometryOptions PositionPlanarU32(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
+    static GeometryCreateInfo InterleavedU16(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
+    static GeometryCreateInfo InterleavedU32(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
+    static GeometryCreateInfo PlanarU16(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
+    static GeometryCreateInfo PlanarU32(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
+    static GeometryCreateInfo PositionPlanarU16(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
+    static GeometryCreateInfo PositionPlanarU32(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
 
     // Create a create info with a position vertex attribute.
     //
-    static GeometryOptions Interleaved();
-    static GeometryOptions Planar();
-    static GeometryOptions PositionPlanar();
+    static GeometryCreateInfo Interleaved();
+    static GeometryCreateInfo Planar();
+    static GeometryCreateInfo PositionPlanar();
 
-    GeometryOptions& IndexType(grfx::IndexType indexType_);
-    GeometryOptions& IndexTypeU16();
-    GeometryOptions& IndexTypeU32();
+    GeometryCreateInfo& IndexType(grfx::IndexType indexType_);
+    GeometryCreateInfo& IndexTypeU16();
+    GeometryCreateInfo& IndexTypeU32();
 
     // NOTE: Vertex input locations (Vulkan) are based on the order of
     //       when the attribute is added.
@@ -95,15 +95,15 @@ struct GeometryOptions
     //          with the vertex bindings after or in between calling
     //          these functions can result in undefined behavior.
     //
-    GeometryOptions& AddPosition(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
-    GeometryOptions& AddNormal(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
-    GeometryOptions& AddColor(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
-    GeometryOptions& AddTexCoord(grfx::Format format = grfx::FORMAT_R32G32_FLOAT);
-    GeometryOptions& AddTangent(grfx::Format format = grfx::FORMAT_R32G32B32A32_FLOAT);
-    GeometryOptions& AddBitangent(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
+    GeometryCreateInfo& AddPosition(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
+    GeometryCreateInfo& AddNormal(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
+    GeometryCreateInfo& AddColor(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
+    GeometryCreateInfo& AddTexCoord(grfx::Format format = grfx::FORMAT_R32G32_FLOAT);
+    GeometryCreateInfo& AddTangent(grfx::Format format = grfx::FORMAT_R32G32B32A32_FLOAT);
+    GeometryCreateInfo& AddBitangent(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
 
 private:
-    GeometryOptions& AddAttribute(grfx::VertexSemantic semantic, grfx::Format format);
+    GeometryCreateInfo& AddAttribute(grfx::VertexSemantic semantic, grfx::Format format);
 };
 
 //! @class Geometry
@@ -206,19 +206,19 @@ private:
 
 public:
     // Create object using parameters from createInfo
-    static Result Create(const GeometryOptions& createInfo, Geometry* pGeometry);
+    static Result Create(const GeometryCreateInfo& createInfo, Geometry* pGeometry);
 
     // Create object using parameters from createInfo using data from mesh
     static Result Create(
-        const GeometryOptions& createInfo,
-        const TriMesh&         mesh,
-        Geometry*              pGeometry);
+        const GeometryCreateInfo& createInfo,
+        const TriMesh&            mesh,
+        Geometry*                 pGeometry);
 
     // Create object using parameters from createInfo using data from tri mesh
     static Result Create(
-        const GeometryOptions& createInfo,
-        const WireMesh&        mesh,
-        Geometry*              pGeometry);
+        const GeometryCreateInfo& createInfo,
+        const WireMesh&           mesh,
+        Geometry*                 pGeometry);
 
     // Create object with a create info derived from mesh
     static Result Create(const TriMesh& mesh, Geometry* pGeometry);
@@ -268,7 +268,7 @@ private:
     // which is shared by geometry objects, it is not supposed to be deleted
     VertexDataProcessorBase<TriMeshVertexData>*           mVDProcessor           = nullptr;
     VertexDataProcessorBase<TriMeshVertexDataCompressed>* mVDProcessorCompressed = nullptr;
-    GeometryOptions                                       mCreateInfo            = {};
+    GeometryCreateInfo                                    mCreateInfo            = {};
     Geometry::Buffer                                      mIndexBuffer;
     std::vector<Geometry::Buffer>                         mVertexBuffers;
     uint32_t                                              mPositionBufferIndex  = PPX_VALUE_IGNORED;

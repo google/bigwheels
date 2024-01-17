@@ -65,8 +65,8 @@ private:
     ArcballCamera mCamera;
 
 private:
-    void SetupEntity(const TriMesh& mesh, const GeometryOptions& createInfo, Entity* pEntity);
-    void SetupEntity(const WireMesh& mesh, const GeometryOptions& createInfo, Entity* pEntity);
+    void SetupEntity(const TriMesh& mesh, const GeometryCreateInfo& createInfo, Entity* pEntity);
+    void SetupEntity(const WireMesh& mesh, const GeometryCreateInfo& createInfo, Entity* pEntity);
 };
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
@@ -78,7 +78,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.enableDebug           = false;
 }
 
-void ProjApp::SetupEntity(const TriMesh& mesh, const GeometryOptions& createInfo, Entity* pEntity)
+void ProjApp::SetupEntity(const TriMesh& mesh, const GeometryCreateInfo& createInfo, Entity* pEntity)
 {
     PPX_CHECKED_CALL(grfx_util::CreateMeshFromTriMesh(GetGraphicsQueue(), &mesh, &pEntity->mesh));
 
@@ -99,7 +99,7 @@ void ProjApp::SetupEntity(const TriMesh& mesh, const GeometryOptions& createInfo
     PPX_CHECKED_CALL(pEntity->descriptorSet->UpdateDescriptors(1, &write));
 }
 
-void ProjApp::SetupEntity(const WireMesh& mesh, const GeometryOptions& createInfo, Entity* pEntity)
+void ProjApp::SetupEntity(const WireMesh& mesh, const GeometryCreateInfo& createInfo, Entity* pEntity)
 {
     PPX_CHECKED_CALL(grfx_util::CreateMeshFromWireMesh(GetGraphicsQueue(), &mesh, &pEntity->mesh));
 
@@ -135,15 +135,15 @@ void ProjApp::Setup()
 
     // Entities
     {
-        GeometryOptions geometryOptions = GeometryOptions::Planar().AddColor();
+        GeometryCreateInfo geometryCreateInfo = GeometryCreateInfo::Planar().AddColor();
         TriMeshOptions  triMeshOptions  = TriMeshOptions().Indices().VertexColors();
         WireMeshOptions wireMeshOptions = WireMeshOptions().Indices().VertexColors();
 
         TriMesh triMesh = TriMesh::CreateCube(float3(2, 2, 2), triMeshOptions);
-        SetupEntity(triMesh, geometryOptions, &mCube);
+        SetupEntity(triMesh, geometryCreateInfo, &mCube);
 
         WireMesh wireMesh = WireMesh::CreatePlane(WIRE_MESH_PLANE_POSITIVE_Y, float2(10, 10), 10, 10, wireMeshOptions);
-        SetupEntity(wireMesh, geometryOptions, &mWirePlane);
+        SetupEntity(wireMesh, geometryCreateInfo, &mWirePlane);
     }
 
     // Pipelines

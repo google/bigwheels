@@ -220,8 +220,8 @@ private:
     void SetupCamera();
     void UpdateCamera(PerspCamera* camera);
     void SetupEntities();
-    void SetupEntity(const TriMesh& mesh, const GeometryOptions& createInfo, Entity* pEntity);
-    void SetupEntity(const WireMesh& mesh, const GeometryOptions& createInfo, Entity* pEntity);
+    void SetupEntity(const TriMesh& mesh, const GeometryCreateInfo& createInfo, Entity* pEntity);
+    void SetupEntity(const WireMesh& mesh, const GeometryCreateInfo& createInfo, Entity* pEntity);
     void ProcessInput();
     void DrawCameraInfo();
     void DrawInstructions();
@@ -239,7 +239,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.enableDebug           = false;
 }
 
-void ProjApp::SetupEntity(const TriMesh& mesh, const GeometryOptions& createInfo, Entity* pEntity)
+void ProjApp::SetupEntity(const TriMesh& mesh, const GeometryCreateInfo& createInfo, Entity* pEntity)
 {
     PPX_CHECKED_CALL(grfx_util::CreateMeshFromTriMesh(GetGraphicsQueue(), &mesh, pEntity->MeshPtr()));
 
@@ -260,7 +260,7 @@ void ProjApp::SetupEntity(const TriMesh& mesh, const GeometryOptions& createInfo
     PPX_CHECKED_CALL(pEntity->DescriptorSet()->UpdateDescriptors(1, &write));
 }
 
-void ProjApp::SetupEntity(const WireMesh& mesh, const GeometryOptions& createInfo, Entity* pEntity)
+void ProjApp::SetupEntity(const WireMesh& mesh, const GeometryCreateInfo& createInfo, Entity* pEntity)
 {
     PPX_CHECKED_CALL(grfx_util::CreateMeshFromWireMesh(GetGraphicsQueue(), &mesh, pEntity->MeshPtr()));
 
@@ -309,7 +309,7 @@ void Entity::Place(int32_t subGridIx, ppx::Random& random, const int2& gridDim, 
 
 void ProjApp::SetupEntities()
 {
-    GeometryOptions geometryOptions = GeometryOptions::Planar().AddColor();
+    GeometryCreateInfo geometryCreateInfo = GeometryCreateInfo::Planar().AddColor();
 
     // Each object will live in a square region on the grid.  The size of each grid
     // depends on how many objects we need to place.  Note that since the first
@@ -351,7 +351,7 @@ void ProjApp::SetupEntities()
             dimension                       = float3(kGridWidth, 0, kGridDepth);
             location                        = float3(0, 0, 0);
             auto& entity                    = mEntities.emplace_back(location, dimension, Entity::EntityKind::FLOOR);
-            SetupEntity(wireMesh, geometryOptions, &entity);
+            SetupEntity(wireMesh, geometryCreateInfo, &entity);
         }
         else {
             TriMesh            triMesh;
@@ -380,7 +380,7 @@ void ProjApp::SetupEntities()
             // boundaries of the object's home grid.
             auto& entity = mEntities.emplace_back(float3(0, 0, 0), dimension, kind);
             entity.Place(i - 1, random, int2(kGridWidth, kGridDepth), int2(subGridWidth, subGridDepth));
-            SetupEntity(triMesh, geometryOptions, &entity);
+            SetupEntity(triMesh, geometryCreateInfo, &entity);
         }
     }
 }
