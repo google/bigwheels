@@ -211,14 +211,14 @@ public:
     // Create object using parameters from createInfo using data from mesh
     static Result Create(
         const GeometryCreateInfo& createInfo,
-        const TriMesh&         mesh,
-        Geometry*              pGeometry);
+        const TriMesh&            mesh,
+        Geometry*                 pGeometry);
 
     // Create object using parameters from createInfo using data from tri mesh
     static Result Create(
         const GeometryCreateInfo& createInfo,
-        const WireMesh&        mesh,
-        Geometry*              pGeometry);
+        const WireMesh&           mesh,
+        Geometry*                 pGeometry);
 
     // Create object with a create info derived from mesh
     static Result Create(const TriMesh& mesh, Geometry* pGeometry);
@@ -268,7 +268,7 @@ private:
     // which is shared by geometry objects, it is not supposed to be deleted
     VertexDataProcessorBase<TriMeshVertexData>*           mVDProcessor           = nullptr;
     VertexDataProcessorBase<TriMeshVertexDataCompressed>* mVDProcessorCompressed = nullptr;
-    GeometryCreateInfo                                       mCreateInfo            = {};
+    GeometryCreateInfo                                    mCreateInfo            = {};
     Geometry::Buffer                                      mIndexBuffer;
     std::vector<Geometry::Buffer>                         mVertexBuffers;
     uint32_t                                              mPositionBufferIndex  = PPX_VALUE_IGNORED;
