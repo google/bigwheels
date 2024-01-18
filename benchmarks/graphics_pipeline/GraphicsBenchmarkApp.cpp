@@ -717,6 +717,10 @@ Result GraphicsBenchmarkApp::CompilePipeline(const SpherePipelineKey& key)
 
 Result GraphicsBenchmarkApp::CompilePipeline(const QuadPipelineKey& key)
 {
+    if (mQuadsPipelines.find(key) != mQuadsPipelines.end()) {
+        return SUCCESS;
+    }
+
     const size_t                      quadTypeIndex = static_cast<size_t>(key.quadType);
     grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
     gpCreateInfo.VS                                 = {mVSQuads.Get(), "vsmain"};
