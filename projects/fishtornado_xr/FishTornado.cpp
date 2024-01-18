@@ -1067,7 +1067,11 @@ void FishTornadoApp::Render()
 
     grfx::SwapchainPtr swapchain = GetSwapchain(currentViewIndex);
 
-    UpdateTime();
+    // This render function is called twice in XR mode, so only update for first eye.
+    if (currentViewIndex == 0) {
+        UpdateTime();
+        mShark.Update();
+    }
 
     if (swapchain->ShouldSkipExternalSynchronization()) {
         // No need to
@@ -1089,13 +1093,13 @@ void FishTornadoApp::Render()
     // Move this after waiting for frameCompleteFence to make sure the previous view is done.
     UpdateScene(frameIndex);
     if (mSettings.renderShark) {
-        mShark.Update(frameIndex);
+        mShark.Render(frameIndex);
     }
     if (mSettings.renderFish) {
-        mFlocking.Update(frameIndex);
+        mFlocking.Render(frameIndex);
     }
     if (mSettings.renderOcean) {
-        mOcean.Update(frameIndex);
+        mOcean.Render(frameIndex);
     }
 
     // Read query results.

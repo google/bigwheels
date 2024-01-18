@@ -318,7 +318,7 @@ void Flocking::Shutdown()
     mMaterialConstants.Destroy();
 }
 
-void Flocking::Update(uint32_t frameIndex)
+void Flocking::Render(uint32_t frameIndex)
 {
     FishTornadoApp* pApp  = FishTornadoApp::GetThisApp();
     const float     t     = pApp->GetTime();

@@ -78,7 +78,7 @@ void Shark::Shutdown()
     mMaterialConstants.Destroy();
 }
 
-void Shark::Update(uint32_t frameIndex)
+void Shark::Update()
 {
     const float t = FishTornadoApp::GetThisApp()->GetTime();
 
@@ -94,7 +94,10 @@ void Shark::Update(uint32_t frameIndex)
 
     // Find direction of travel
     mDir = normalize(mVel);
+}
 
+void Shark::Render(uint32_t frameIndex)
+{
     // Calculate rotation matrix for orientation
     quat     q           = glm::rotation(float3(0, 0, 1), mDir);
     float4x4 rotMat      = glm::toMat4(q);
