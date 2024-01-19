@@ -85,13 +85,13 @@ jobs:
           # this is used for all DirectX versions.
           cp "$HOME\warp\Microsoft.Direct3D.WARP.1.0.5\build\native\amd64\d3d10warp.dll" .\
 
-          .\dx12_03_square_textured --headless --frame-count 2 --screenshot-frame-number 1
+          .\dx12_sample_03_square_textured --headless --frame-count 2 --screenshot-frame-number 1
           magick convert screenshot_frame_1.ppm dx12_03_square_textured_screenshot.png
 
-          .\dx12_09_obj_geometry --headless --frame-count 2 --screenshot-frame-number 1
+          .\dx12_sample_09_obj_geometry --headless --frame-count 2 --screenshot-frame-number 1
           magick convert screenshot_frame_1.ppm dx12_09_obj_geometry_screenshot.png
 
-          .\dx12_13_normal_map --headless --frame-count 2 --screenshot-frame-number 1
+          .\dx12_sample_13_normal_map --headless --frame-count 2 --screenshot-frame-number 1
           magick convert screenshot_frame_1.ppm dx12_13_normal_map_screenshot.png
 
           .\dx12_fishtornado --headless --frame-count 2 --screenshot-frame-number 1
