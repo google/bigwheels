@@ -436,7 +436,7 @@ private:
     float3                            mLightPosition       = float3(10, 250, 10);
     std::array<bool, TOTAL_KEY_COUNT> mPressedKeys         = {0};
     bool                              mEnableMouseMovement = true;
-    uint64_t                          mGpuWorkDuration;
+    uint64_t                          mGpuWorkDuration     = 0;
     grfx::SamplerPtr                  mLinearSampler;
     grfx::DescriptorPoolPtr           mDescriptorPool;
     std::vector<OffscreenFrame>       mOffscreenFrame;
@@ -480,8 +480,9 @@ private:
     {
         enum MetricsType : size_t
         {
-            kTypeCPUSubmissionTime = 0,
-            kTypeBandwidth,
+            kTypeCPUSubmissionTime = 0, // in ms
+            kTypeBandwidth,             // in GiB/s
+            kTypeGPUWorkDuration,       // in ms
             kCount
         };
 
@@ -549,6 +550,7 @@ private:
 
     // Metrics related functions
     virtual void SetupMetrics() override;
+    virtual void SetupMetricsRun() override;
     virtual void UpdateMetrics() override;
 
     Result CompileSpherePipeline(const SpherePipelineKey& key);
@@ -571,7 +573,10 @@ private:
     // Processing changed state
     void ProcessInput();
     void ProcessKnobs();
-    void ProcessQuadsKnobs();
+    // Process quad/sphere knobs, return if any of them has been updated.
+    bool ProcessSphereKnobs();
+    bool ProcessQuadsKnobs();
+    bool ProcessOffscreenRenderKnobs();
 
     // Drawing GUI
     void UpdateGUI();
