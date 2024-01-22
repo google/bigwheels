@@ -202,7 +202,7 @@ protected:
     Result CreateApiObjects(const ShadingRatePatternCreateInfo* pCreateInfo) override;
     void   DestroyApiObjects() override;
 
-    std::shared_ptr<ShadingRateEncoder> mShadingRateEncoder;
+    std::unique_ptr<ShadingRateEncoder> mShadingRateEncoder;
     VkImageViewPtr                      mAttachmentView;
 };
 

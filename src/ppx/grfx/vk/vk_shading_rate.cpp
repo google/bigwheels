@@ -23,6 +23,7 @@ namespace ppx {
 namespace grfx {
 namespace vk {
 namespace internal {
+
 uint32_t FDMShadingRateEncoder::EncodeFragmentDensityImpl(uint8_t xDensity, uint8_t yDensity)
 {
     return (static_cast<uint16_t>(yDensity) << 8) | xDensity;
@@ -83,8 +84,8 @@ void VRSShadingRateEncoder::Initialize(const ShadingRateCapabilities& capabiliti
                 }
                 else {
                     // mMapRateToSupported is correctly filled in for smaller
-                    // values of i and j, so find supported the largest
-                    // supported shading rate with smaller width...
+                    // values of i and j, so find the largest supported shading
+                    // rate with smaller width...
                     uint8_t supportedSmallerWidth = mMapRateToSupported[RawEncode((i - 1) * 2, j * 2)];
 
                     // ...and the largest supported shading rate with smaller height.
@@ -150,7 +151,7 @@ Result ShadingRatePattern::CreateApiObjects(const ShadingRatePatternCreateInfo* 
             imageCreateInfo.format                             = FORMAT_R8G8_UNORM;
             imageCreateInfo.usageFlags.bits.fragmentDensityMap = true;
             imageCreateInfo.initialState                       = RESOURCE_STATE_FRAGMENT_DENSITY_MAP_ATTACHMENT;
-            mShadingRateEncoder                                = std::make_shared<internal::FDMShadingRateEncoder>();
+            mShadingRateEncoder                                = std::make_unique<internal::FDMShadingRateEncoder>();
         } break;
         case SHADING_RATE_VRS: {
             minTexelSize                                                  = capabilities.vrs.minTexelSize;
@@ -159,9 +160,9 @@ Result ShadingRatePattern::CreateApiObjects(const ShadingRatePatternCreateInfo* 
             imageCreateInfo.usageFlags.bits.fragmentShadingRateAttachment = true;
             imageCreateInfo.initialState                                  = RESOURCE_STATE_FRAGMENT_SHADING_RATE_ATTACHMENT;
 
-            auto vrsShadingRateEncoder = std::make_shared<internal::VRSShadingRateEncoder>();
+            auto vrsShadingRateEncoder = std::make_unique<internal::VRSShadingRateEncoder>();
             vrsShadingRateEncoder->Initialize(capabilities);
-            mShadingRateEncoder = vrsShadingRateEncoder;
+            mShadingRateEncoder = std::move(vrsShadingRateEncoder);
         } break;
         default:
             PPX_ASSERT_MSG(false, "Cannot create ShadingRatePattern for ShadingRateMode " << pCreateInfo->shadingRateMode);

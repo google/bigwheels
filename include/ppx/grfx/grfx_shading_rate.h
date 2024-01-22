@@ -63,6 +63,8 @@ struct ShadingRateCapabilities
 class ShadingRateEncoder
 {
 public:
+    virtual ~ShadingRateEncoder() = default;
+
     // Encode a pair of fragment density values.
     //
     // Fragment density values are a ratio over 255, e.g. 255 means shade every
