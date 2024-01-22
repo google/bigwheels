@@ -290,36 +290,67 @@ void CommandBuffer::ClearRenderTarget(
     grfx::Image*                        pImage,
     const grfx::RenderTargetClearValue& clearValue)
 {
-    auto pCurrentRenderPass = GetCurrentRenderPass();
-    if (IsNull(pCurrentRenderPass)) {
+    if (!HasActiveRenderPass()) {
         return;
     }
 
-    // Make sure pImage is a render target in current render pass
-    const uint32_t renderTargetIndex = pCurrentRenderPass->GetRenderTargetImageIndex(pImage);
-    if (renderTargetIndex == UINT32_MAX) {
-        return;
-    }
+    grfx::Rect renderArea;
+    uint32_t   colorAttachment;
+    uint32_t   baseArrayLayer;
 
-    // Get view at renderTargetIndex
-    auto view = pCurrentRenderPass->GetRenderTargetView(renderTargetIndex);
+    // Dynamic render pass
+    if (mDynamicRenderPassActive) {
+        renderArea = mRenderArea;
+
+        auto views = mRenderTargetView;
+        bool imageFound = false;
+        for (uint32_t i = 0; i < mRenderTargetCount; ++i) {
+            const grfx::RenderTargetViewPtr& rtv   = views[i];
+            auto                             image = rtv->GetImage();
+            if (image.Get() == pImage) {
+                colorAttachment = i;
+                baseArrayLayer  = rtv->GetArrayLayer();
+                imageFound = true;
+                break;
+            }
+        }
+        // Make sure pImage matched at least one view image
+        if (!imageFound) {
+            return;
+        };
+    }
+    else {
+        // active regular render pass
+        auto pCurrentRenderPass = GetCurrentRenderPass();
+        renderArea              = pCurrentRenderPass->GetRenderArea();
+
+        // Make sure pImage is a render target in current render pass
+        const uint32_t renderTargetIndex = pCurrentRenderPass->GetRenderTargetImageIndex(pImage);
+        if (renderTargetIndex == UINT32_MAX) {
+            return;
+        }
+        colorAttachment = renderTargetIndex;
+
+        // Get view at renderTargetIndex
+        auto view      = pCurrentRenderPass->GetRenderTargetView(renderTargetIndex);
+        baseArrayLayer = view->GetArrayLayer();
+    }
 
     // Clear attachment
     VkClearAttachment attachment           = {};
     attachment.aspectMask                  = VK_IMAGE_ASPECT_COLOR_BIT;
-    attachment.colorAttachment             = renderTargetIndex;
+    attachment.colorAttachment             = colorAttachment;
     attachment.clearValue.color.float32[0] = clearValue.r;
     attachment.clearValue.color.float32[1] = clearValue.g;
     attachment.clearValue.color.float32[2] = clearValue.b;
     attachment.clearValue.color.float32[3] = clearValue.a;
 
     // Clear rect
-    auto renderArea = pCurrentRenderPass->GetRenderArea();
 
     VkClearRect clearRect    = {};
     clearRect.rect.offset    = {renderArea.x, renderArea.y};
     clearRect.rect.extent    = {renderArea.width, renderArea.height};
-    clearRect.baseArrayLayer = view->GetArrayLayer();
+    clearRect.baseArrayLayer = baseArrayLayer;
     clearRect.layerCount     = 1;
 
     vkCmdClearAttachments(
@@ -335,18 +366,44 @@ void CommandBuffer::ClearDepthStencil(
     const grfx::DepthStencilClearValue& clearValue,
     uint32_t                            clearFlags)
 {
-    auto pCurrentRenderPass = GetCurrentRenderPass();
-    if (IsNull(pCurrentRenderPass)) {
+    if (!HasActiveRenderPass()) {
         return;
     }
 
-    // Make sure pImage is depth stencil in current render pass
-    if (pCurrentRenderPass->GetDepthStencilImage().Get() != pImage) {
-        return;
-    }
+    grfx::Rect renderArea;
+    uint32_t   baseArrayLayer;
 
-    // Get view
-    auto view = pCurrentRenderPass->GetDepthStencilView();
+    // Dynamic render pass
+    if (mDynamicRenderPassActive) {
+        // Clear rect
+        renderArea = mRenderArea;
+
+        // Make sure pImage is depth stencil in depth stencil view
+        if (mDepthStencilView->GetImage().Get() != pImage) {
+            return;
+        }
+
+        // Get array layer
+        baseArrayLayer = mDepthStencilView->GetArrayLayer();
+    }
+    else {
+        // active regular render pass
+        auto pCurrentRenderPass = GetCurrentRenderPass();
+
+        // Make sure pImage is depth stencil in current render pass
+        if (pCurrentRenderPass->GetDepthStencilImage().Get() != pImage) {
+            return;
+        }
+
+        // Get view
+        auto view = pCurrentRenderPass->GetDepthStencilView();
+
+        // Clear rect
+        renderArea = pCurrentRenderPass->GetRenderArea();
+
+        // Get array layer
+        baseArrayLayer = view->GetArrayLayer();
+    }
 
     // Aspect mask
     VkImageAspectFlags aspectMask = 0;
@@ -363,13 +420,10 @@ void CommandBuffer::ClearDepthStencil(
     attachment.clearValue.depthStencil.depth   = clearValue.depth;
     attachment.clearValue.depthStencil.stencil = clearValue.stencil;
 
-    // Clear rect
-    auto renderArea = pCurrentRenderPass->GetRenderArea();
-
     VkClearRect clearRect    = {};
     clearRect.rect.offset    = {renderArea.x, renderArea.y};
     clearRect.rect.extent    = {renderArea.width, renderArea.height};
-    clearRect.baseArrayLayer = view->GetArrayLayer();
+    clearRect.baseArrayLayer = baseArrayLayer;
     clearRect.layerCount     = 1;
 
     vkCmdClearAttachments(

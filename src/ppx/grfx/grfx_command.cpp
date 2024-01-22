@@ -71,6 +71,10 @@ void CommandBuffer::BeginRendering(const grfx::RenderingInfo* pRenderingInfo)
 
     BeginRenderingImpl(pRenderingInfo);
     mDynamicRenderPassActive = true;
+    mRenderArea = pRenderingInfo->renderArea;
+    mRenderTargetView = pRenderingInfo->pRenderTargetViews;
+    mRenderTargetCount = pRenderingInfo->renderTargetCount;
+    mDepthStencilView = pRenderingInfo->pDepthStencilView;
 }
 
 void CommandBuffer::EndRendering()
