@@ -37,10 +37,12 @@ public:
     bool HasTimelineSemaphore() const { return mHasTimelineSemaphore; }
     bool HasExtendedDynamicState() const { return mHasExtendedDynamicState; }
     bool HasUnreistrictedDepthRange() const { return mHasUnrestrictedDepthRange; }
+    bool HasMultiView() const { return mHasMultiView; }
 
     virtual Result WaitIdle() override;
 
     virtual bool PipelineStatsAvailable() const override;
+    virtual bool MultiViewAvailable() const override;
     virtual bool DynamicRenderingSupported() const override;
     virtual bool IndependentBlendingSupported() const override;
     virtual bool FragmentStoresAndAtomicsSupported() const override;
@@ -111,6 +113,7 @@ private:
     bool                                           mHasTimelineSemaphore                       = false;
     bool                                           mHasExtendedDynamicState                    = false;
     bool                                           mHasUnrestrictedDepthRange                  = false;
+    bool                                           mHasMultiView                               = false;
     bool                                           mHasDynamicRendering                        = false;
     PFN_vkResetQueryPoolEXT                        mFnResetQueryPoolEXT                        = nullptr;
     uint32_t                                       mGraphicsQueueFamilyIndex                   = 0;

@@ -623,6 +623,11 @@ bool Device::PipelineStatsAvailable() const
     return true;
 }
 
+bool Device::MultiViewAvailable() const
+{
+    return false;
+}
+
 bool Device::DynamicRenderingSupported() const
 {
     return mRenderPassTier > D3D12_RENDER_PASS_TIER_0;

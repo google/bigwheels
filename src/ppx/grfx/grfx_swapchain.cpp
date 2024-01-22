@@ -56,6 +56,7 @@ Result Swapchain::Create(const grfx::SwapchainCreateInfo* pCreateInfo)
             rtCreateInfo.ownership             = grfx::OWNERSHIP_RESTRICTED;
             rtCreateInfo.RTVClearValue         = {0.0f, 0.0f, 0.0f, 0.0f};
             rtCreateInfo.initialState          = grfx::RESOURCE_STATE_PRESENT;
+            rtCreateInfo.arrayLayerCount       = mCreateInfo.arrayLayerCount;
             rtCreateInfo.usageFlags =
                 grfx::IMAGE_USAGE_COLOR_ATTACHMENT |
                 grfx::IMAGE_USAGE_TRANSFER_SRC |
@@ -159,6 +160,7 @@ Result Swapchain::CreateDepthImages()
         for (uint32_t i = 0; i < mCreateInfo.imageCount; ++i) {
             grfx::ImageCreateInfo dpCreateInfo = ImageCreateInfo::DepthStencilTarget(mCreateInfo.width, mCreateInfo.height, mCreateInfo.depthFormat);
             dpCreateInfo.ownership             = grfx::OWNERSHIP_RESTRICTED;
+            dpCreateInfo.arrayLayerCount       = mCreateInfo.arrayLayerCount;
             dpCreateInfo.DSVClearValue         = {1.0f, 0xFF};
 
             grfx::ImagePtr depthStencilTarget;
@@ -193,6 +195,7 @@ Result Swapchain::CreateRenderTargets()
         grfx::RenderTargetViewCreateInfo rtvCreateInfo = grfx::RenderTargetViewCreateInfo::GuessFromImage(imagePtr);
         rtvCreateInfo.loadOp                           = ppx::grfx::ATTACHMENT_LOAD_OP_CLEAR;
         rtvCreateInfo.ownership                        = grfx::OWNERSHIP_RESTRICTED;
+        rtvCreateInfo.arrayLayerCount                  = mCreateInfo.arrayLayerCount;
 
         grfx::RenderTargetViewPtr rtv;
         Result                    ppxres = GetDevice()->CreateRenderTargetView(&rtvCreateInfo, &rtv);
@@ -216,6 +219,7 @@ Result Swapchain::CreateRenderTargets()
             dsvCreateInfo.depthLoadOp                      = ppx::grfx::ATTACHMENT_LOAD_OP_CLEAR;
             dsvCreateInfo.stencilLoadOp                    = ppx::grfx::ATTACHMENT_LOAD_OP_CLEAR;
             dsvCreateInfo.ownership                        = ppx::grfx::OWNERSHIP_RESTRICTED;
+            dsvCreateInfo.arrayLayerCount                  = mCreateInfo.arrayLayerCount;
 
             grfx::DepthStencilViewPtr dsv;
             ppxres = GetDevice()->CreateDepthStencilView(&dsvCreateInfo, &dsv);
@@ -248,6 +252,11 @@ Result Swapchain::CreateRenderPasses()
         rpCreateInfo.depthStencilClearValue     = {1.0f, 0xFF};
         rpCreateInfo.ownership                  = grfx::OWNERSHIP_RESTRICTED;
         rpCreateInfo.pShadingRatePattern        = mCreateInfo.pShadingRatePattern;
+        rpCreateInfo.arrayLayerCount            = mCreateInfo.arrayLayerCount;
+#if defined(PPX_BUILD_XR)
+        rpCreateInfo.multiViewMask        = (mCreateInfo.pXrComponent && mCreateInfo.arrayLayerCount > 1 ? mCreateInfo.pXrComponent->GetDefaultViewMask() : 0);
+        rpCreateInfo.multiCorrelationMask = rpCreateInfo.multiViewMask;
+#endif
 
         grfx::RenderPassPtr renderPass;
         auto                ppxres = GetDevice()->CreateRenderPass(&rpCreateInfo, &renderPass);
@@ -271,6 +280,10 @@ Result Swapchain::CreateRenderPasses()
         rpCreateInfo.depthStencilClearValue     = {1.0f, 0xFF};
         rpCreateInfo.ownership                  = grfx::OWNERSHIP_RESTRICTED;
         rpCreateInfo.pShadingRatePattern        = mCreateInfo.pShadingRatePattern;
+#if defined(PPX_BUILD_XR)
+        rpCreateInfo.multiViewMask        = (mCreateInfo.pXrComponent && mCreateInfo.arrayLayerCount > 1 ? mCreateInfo.pXrComponent->GetDefaultViewMask() : 0);
+        rpCreateInfo.multiCorrelationMask = rpCreateInfo.multiViewMask;
+#endif
 
         grfx::RenderPassPtr renderPass;
         auto                ppxres = GetDevice()->CreateRenderPass(&rpCreateInfo, &renderPass);

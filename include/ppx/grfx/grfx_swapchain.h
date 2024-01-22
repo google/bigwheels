@@ -105,6 +105,7 @@ struct SwapchainCreateInfo
     grfx::Format              colorFormat         = grfx::FORMAT_UNDEFINED;
     grfx::Format              depthFormat         = grfx::FORMAT_UNDEFINED;
     uint32_t                  imageCount          = 0;
+    uint32_t                  arrayLayerCount     = 1;
     grfx::PresentMode         presentMode         = grfx::PRESENT_MODE_IMMEDIATE;
 #if defined(PPX_BUILD_XR)
     XrComponent* pXrComponent = nullptr;
