@@ -120,6 +120,11 @@ struct ApplicationSettings
         bool enable             = false;
         bool enableDebugCapture = false;
 
+        // Multiview will create one swapchain with layers per view
+        // One Application::Render then should use multiview shaders
+        // to render to both layers, as opposed to non multiview
+        // whether there is one swapchain per view, each with a ::Render
+        bool enableMultiView = false;
         // Whether to create depth swapchains in addition to color swapchains,
         // and submit the depth info to the runtime as an additional layer.
         bool     enableDepthSwapchain = false;

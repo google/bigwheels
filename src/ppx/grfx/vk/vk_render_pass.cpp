@@ -26,6 +26,7 @@ namespace vk {
 
 Result RenderPass::CreateRenderPass(const grfx::internal::RenderPassCreateInfo* pCreateInfo)
 {
+    bool hasMultiView   = ToApi(GetDevice())->HasMultiView() ? true : false;
     bool hasDepthSencil = mDepthStencilView ? true : false;
 
     uint32_t      depthStencilAttachment = -1;
@@ -132,6 +133,16 @@ Result RenderPass::CreateRenderPass(const grfx::internal::RenderPassCreateInfo* 
     vkci.pSubpasses             = &subpassDescription;
     vkci.dependencyCount        = 1;
     vkci.pDependencies          = &subpassDependencies;
+
+    if (hasMultiView && pCreateInfo->multiViewMask > 0) {
+        VkRenderPassMultiviewCreateInfo multiviewInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO};
+        multiviewInfo.subpassCount                    = 1;
+        multiviewInfo.pViewMasks                      = &pCreateInfo->multiViewMask;
+        multiviewInfo.correlationMaskCount            = 1;
+        multiviewInfo.pCorrelationMasks               = &pCreateInfo->multiCorrelationMask;
+
+        vkci.pNext = &multiviewInfo;
+    }
 
     if (!IsNull(pCreateInfo->pShadingRatePattern)) {
         auto     modifiedCreateInfo = ToApi(pCreateInfo->pShadingRatePattern)->GetModifiedRenderPassCreateInfo(vkci);
@@ -277,6 +288,8 @@ VkResult CreateTransientRenderPass(
     const VkFormat*       pRenderTargetFormats,
     VkFormat              depthStencilFormat,
     VkSampleCountFlagBits sampleCount,
+    uint32_t              viewMask,
+    uint32_t              correlationMask,
     VkRenderPass*         pRenderPass,
     grfx::ShadingRateMode shadingRateMode)
 {
@@ -354,6 +367,16 @@ VkResult CreateTransientRenderPass(
     vkci.pSubpasses             = &subpassDescription;
     vkci.dependencyCount        = 1;
     vkci.pDependencies          = &subpassDependencies;
+    // Callers responsibiltiy to only set viewmask if it is required
+    if (viewMask > 0) {
+        VkRenderPassMultiviewCreateInfo multiviewInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO};
+        multiviewInfo.subpassCount                    = 1;
+        multiviewInfo.pViewMasks                      = &viewMask;
+        multiviewInfo.correlationMaskCount            = 1;
+        multiviewInfo.pCorrelationMasks               = &correlationMask;
+
+        vkci.pNext = &multiviewInfo;
+    }
 
     if (shadingRateMode != SHADING_RATE_NONE) {
         auto     modifiedCreateInfo = vk::ShadingRatePattern::GetModifiedRenderPassCreateInfo(device, shadingRateMode, vkci);

@@ -37,11 +37,11 @@ public:
     bool HasDescriptorIndexingFeatures() const { return mHasDescriptorIndexingFeatures; }
     bool HasTimelineSemaphore() const { return mHasTimelineSemaphore; }
     bool HasExtendedDynamicState() const { return mHasExtendedDynamicState; }
-    bool HasDepthClipEnabled() const { return mHasDepthClipEnabled; }
-
+    bool HasMultiView() const { return mHasMultiView; }
     virtual Result WaitIdle() override;
 
     virtual bool PipelineStatsAvailable() const override;
+    virtual bool MultiViewAvailable() const override;
     virtual bool DynamicRenderingSupported() const override;
     virtual bool IndependentBlendingSupported() const override;
     virtual bool FragmentStoresAndAtomicsSupported() const override;
@@ -121,6 +121,7 @@ private:
     bool                                           mHasTimelineSemaphore                       = false;
     bool                                           mHasExtendedDynamicState                    = false;
     bool                                           mHasDepthClipEnabled                        = false;
+    bool                                           mHasMultiView                               = false;
     bool                                           mHasDynamicRendering                        = false;
     PFN_vkResetQueryPoolEXT                        mFnResetQueryPoolEXT                        = nullptr;
     PFN_vkWaitSemaphores                           mFnWaitSemaphores                           = nullptr;

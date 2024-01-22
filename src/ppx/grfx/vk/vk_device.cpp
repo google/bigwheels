@@ -203,6 +203,11 @@ Result Device::ConfigureExtensions(const grfx::DeviceCreateInfo* pCreateInfo)
         mExtensions.push_back(VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME);
     }
 
+    // MultiView
+    if (ElementExists(std::string(VK_KHR_MULTIVIEW_EXTENSION_NAME), mFoundExtensions)) {
+        mExtensions.push_back(VK_KHR_MULTIVIEW_EXTENSION_NAME);
+    }
+
     // Push descriptors
     if (ElementExists(std::string(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME), mFoundExtensions)) {
         mExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
@@ -243,6 +248,19 @@ Result Device::ConfigureFeatures(const grfx::DeviceCreateInfo* pCreateInfo, VkPh
 
     VkPhysicalDeviceFeatures foundFeatures = {};
     vkGetPhysicalDeviceFeatures(pGpu->GetVkGpu(), &foundFeatures);
+    VkPhysicalDeviceMultiviewFeatures foundMultiViewFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES};
+
+    if (GetInstance()->GetApi() >= grfx::API_VK_1_1) {
+        // Allows us to query extended device features
+        VkPhysicalDeviceFeatures2 foundFeatures2 = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+        foundFeatures2.pNext                     = &foundMultiViewFeatures;
+
+        vkGetPhysicalDeviceFeatures2(pGpu->GetVkGpu(), &foundFeatures2);
+        foundFeatures = foundFeatures2.features;
+    }
+    else {
+        vkGetPhysicalDeviceFeatures(pGpu->GetVkGpu(), &foundFeatures);
+    }
 
     // Default device features
     //
@@ -263,6 +281,8 @@ Result Device::ConfigureFeatures(const grfx::DeviceCreateInfo* pCreateInfo, VkPh
     features.shaderStorageImageWriteWithoutFormat = foundFeatures.shaderStorageImageWriteWithoutFormat;
     features.shaderStorageImageMultisample        = foundFeatures.shaderStorageImageMultisample;
     features.samplerAnisotropy                    = foundFeatures.samplerAnisotropy;
+
+    mHasMultiView = pCreateInfo->multiView && foundMultiViewFeatures.multiview;
 
     // Select between default or custom features.
     if (!IsNull(pCreateInfo->pVulkanDeviceFeatures)) {
@@ -592,6 +612,20 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
         extensionStructs.push_back(reinterpret_cast<VkBaseOutStructure*>(&dynamicRenderingFeatures));
     }
 #endif
+
+    PPX_LOG_INFO("Vulkan MultiView is chosen and present: " << mHasMultiView);
+    if (mHasMultiView) {
+        VkPhysicalDeviceMultiviewFeatures physicalDeviceMultiviewFeatures =
+            {
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES,
+                nullptr,
+                VK_TRUE,  // multiview
+                VK_FALSE, // multiviewGeometryShader
+                VK_FALSE  // multiviewTessellationShader
+            };
+
+        extensionStructs.push_back(reinterpret_cast<VkBaseOutStructure*>(&physicalDeviceMultiviewFeatures));
+    }
 
     VkPhysicalDeviceFragmentDensityMapFeaturesEXT fragmentDensityMapFeature = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_DENSITY_MAP_FEATURES_EXT};
     if (pCreateInfo->supportShadingRateMode == SHADING_RATE_FDM) {
@@ -1038,6 +1072,11 @@ Result Device::WaitIdle()
 bool Device::PipelineStatsAvailable() const
 {
     return mDeviceFeatures.pipelineStatisticsQuery;
+}
+
+bool Device::MultiViewAvailable() const
+{
+    return mHasMultiView;
 }
 
 bool Device::DynamicRenderingSupported() const

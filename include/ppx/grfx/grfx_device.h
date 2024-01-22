@@ -48,6 +48,7 @@ struct DeviceCreateInfo
     uint32_t                 transferQueueCount     = 0;
     std::vector<std::string> vulkanExtensions       = {};      // [OPTIONAL] Additional device extensions
     const void*              pVulkanDeviceFeatures  = nullptr; // [OPTIONAL] Pointer to custom VkPhysicalDeviceFeatures
+    bool                     multiView              = false;   // [OPTIONAL] Whether to allow multiView features
     ShadingRateMode          supportShadingRateMode = SHADING_RATE_NONE;
 #if defined(PPX_BUILD_XR)
     XrComponent* pXrComponent = nullptr;
