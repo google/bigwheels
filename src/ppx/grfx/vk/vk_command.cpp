@@ -302,7 +302,7 @@ void CommandBuffer::ClearRenderTarget(
     if (mDynamicRenderPassActive) {
         renderArea = mRenderArea;
 
-        auto views = mRenderTargetView;
+        auto views      = mRenderTargetView;
         bool imageFound = false;
         for (uint32_t i = 0; i < mRenderTargetCount; ++i) {
             const grfx::RenderTargetViewPtr& rtv   = views[i];
@@ -310,7 +310,7 @@ void CommandBuffer::ClearRenderTarget(
             if (image.Get() == pImage) {
                 colorAttachment = i;
                 baseArrayLayer  = rtv->GetArrayLayer();
-                imageFound = true;
+                imageFound      = true;
                 break;
             }
         }
