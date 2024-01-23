@@ -74,6 +74,9 @@ void VRSShadingRateEncoder::Initialize(const ShadingRateCapabilities& capabiliti
                 // Ties are broken lexicographically, e.g. if 2x2, 1x4 and 4x1
                 // are supported, then 2x4 will be mapped to 2x2 but 4x2 will
                 // map to 4x1.
+
+                PPX_ASSERT_MSG((width > 1) || (height > 1), "The 1x1 fragment size must always be supported");
+
                 if (width == 1) {
                     // Width is minimum, can only shrink height.
                     mMapRateToSupported[encoded] = mMapRateToSupported[RawEncode(width, height - 1)];
