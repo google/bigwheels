@@ -162,7 +162,7 @@ void Ocean::Shutdown()
     mSurfaceMaterialConstants.Destroy();
 }
 
-void Ocean::Render(uint32_t frameIndex)
+void Ocean::Update(uint32_t frameIndex)
 {
     FishTornadoApp* pApp  = FishTornadoApp::GetThisApp();
     const float     t     = pApp->GetTime();

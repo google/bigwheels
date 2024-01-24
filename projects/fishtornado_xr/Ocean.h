@@ -31,7 +31,7 @@ public:
 
     void Setup(uint32_t numFramesInFlight);
     void Shutdown();
-    void Render(uint32_t frameIndex);
+    void Update(uint32_t frameIndex);
     void CopyConstantsToGpu(uint32_t frameIndex, grfx::CommandBuffer* pCmd);
     void DrawForward(uint32_t frameIndex, grfx::CommandBuffer* pCmd);
 

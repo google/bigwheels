@@ -33,8 +33,7 @@ public:
 
     void Setup(uint32_t numFramesInFlight);
     void Shutdown();
-    void Update();
-    void Render(uint32_t frameIndex);
+    void Update(uint32_t frameIndex, uint32_t currentViewIndex);
     void CopyConstantsToGpu(uint32_t frameIndex, grfx::CommandBuffer* pCmd);
     void DrawDebug(uint32_t frameIndex, grfx::CommandBuffer* pCmd);
     void DrawShadow(uint32_t frameIndex, grfx::CommandBuffer* pCmd);
