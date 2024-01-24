@@ -72,9 +72,12 @@ void CommandBuffer::BeginRendering(const grfx::RenderingInfo* pRenderingInfo)
     BeginRenderingImpl(pRenderingInfo);
     mDynamicRenderPassActive = true;
     mRenderArea              = pRenderingInfo->renderArea;
-    mRenderTargetView        = pRenderingInfo->pRenderTargetViews;
-    mRenderTargetCount       = pRenderingInfo->renderTargetCount;
-    mDepthStencilView        = pRenderingInfo->pDepthStencilView;
+    auto views               = pRenderingInfo->pRenderTargetViews;
+    for (uint32_t i = 0; i < pRenderingInfo->renderTargetCount; ++i) {
+        const grfx::RenderTargetViewPtr& rtv = views[i];
+        mRenderTargetViews.push_back(rtv);
+    }
+    mDepthStencilView = pRenderingInfo->pDepthStencilView;
 }
 
 void CommandBuffer::EndRendering()
@@ -84,6 +87,9 @@ void CommandBuffer::EndRendering()
 
     EndRenderingImpl();
     mDynamicRenderPassActive = false;
+    mRenderArea              = {};
+    mRenderTargetViews       = {};
+    mDepthStencilView        = nullptr;
 }
 
 void CommandBuffer::BeginRenderPass(const grfx::RenderPass* pRenderPass)

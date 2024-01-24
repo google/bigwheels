@@ -127,6 +127,7 @@ void DynamicRenderingApp::Setup()
             renderingInfo.flags.bits.suspending = true;
             renderingInfo.renderArea            = {0, 0, swapchain->GetWidth(), swapchain->GetHeight()};
             renderingInfo.renderTargetCount     = 1;
+            // There will be an explicit clear inside a renderpass.
             renderingInfo.pRenderTargetViews[0] = swapchain->GetRenderTargetView(imageIndex, grfx::AttachmentLoadOp::ATTACHMENT_LOAD_OP_LOAD);
             renderingInfo.pDepthStencilView     = swapchain->GetDepthStencilView(imageIndex);
 
@@ -135,12 +136,11 @@ void DynamicRenderingApp::Setup()
             float4x4 M   = glm::translate(float3(0.0, 0.0, -2.0)) * glm::scale(float3(2.0, 2.0, 2.0));
             float4x4 mat = P * V * M;
 
-            // Clear RTV to greyish blue
-            grfx::RenderTargetClearValue rtvClearValue = {0.23f, 0.23f, 0.33f, 0};
-            grfx::DepthStencilClearValue dsvClearValue = {1.0f, 0xFF};
-
             preRecordedCmd->BeginRendering(&renderingInfo);
             {
+                // Clear RTV to greyish blue
+                grfx::RenderTargetClearValue rtvClearValue = {0.23f, 0.23f, 0.33f, 0};
+                grfx::DepthStencilClearValue dsvClearValue = {1.0f, 0xFF};
                 preRecordedCmd->ClearRenderTarget(swapchain->GetColorImage(imageIndex), rtvClearValue);
                 preRecordedCmd->ClearDepthStencil(swapchain->GetDepthImage(imageIndex), dsvClearValue, grfx::CLEAR_FLAG_DEPTH);
                 preRecordedCmd->SetScissors(GetScissor());

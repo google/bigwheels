@@ -295,29 +295,23 @@ void CommandBuffer::ClearRenderTarget(
     }
 
     grfx::Rect renderArea;
-    uint32_t   colorAttachment;
+    uint32_t   colorAttachment = UINT32_MAX;
     uint32_t   baseArrayLayer;
 
     // Dynamic render pass
     if (mDynamicRenderPassActive) {
         renderArea = mRenderArea;
 
-        auto views      = mRenderTargetView;
-        bool imageFound = false;
-        for (uint32_t i = 0; i < mRenderTargetCount; ++i) {
-            const grfx::RenderTargetViewPtr& rtv   = views[i];
-            auto                             image = rtv->GetImage();
+        auto views = mRenderTargetViews;
+        for (uint32_t i = 0; i < views.size(); ++i) {
+            auto rtv   = views[i];
+            auto image = rtv->GetImage();
             if (image.Get() == pImage) {
                 colorAttachment = i;
                 baseArrayLayer  = rtv->GetArrayLayer();
-                imageFound      = true;
                 break;
             }
         }
-        // Make sure pImage matched at least one view image
-        if (!imageFound) {
-            return;
-        };
     }
     else {
         // active regular render pass
@@ -326,14 +320,16 @@ void CommandBuffer::ClearRenderTarget(
 
         // Make sure pImage is a render target in current render pass
         const uint32_t renderTargetIndex = pCurrentRenderPass->GetRenderTargetImageIndex(pImage);
-        if (renderTargetIndex == UINT32_MAX) {
-            return;
-        }
-        colorAttachment = renderTargetIndex;
+        colorAttachment                  = renderTargetIndex;
 
         // Get view at renderTargetIndex
         auto view      = pCurrentRenderPass->GetRenderTargetView(renderTargetIndex);
         baseArrayLayer = view->GetArrayLayer();
+    }
+
+    if (colorAttachment == UINT32_MAX) {
+        PPX_LOG_WARN("pImage is not a render target.");
+        return;
     }
 
     // Clear attachment

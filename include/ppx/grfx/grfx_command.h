@@ -582,14 +582,15 @@ public:
     //
     void Draw(const grfx::FullscreenQuad* pQuad, uint32_t setCount, const grfx::DescriptorSet* const* ppSets);
 
+protected:
+    // Returns true when inside a render pass (dynamic or regular)
     bool HasActiveRenderPass() const;
 
-protected:
-    bool                           mDynamicRenderPassActive = false;
-    grfx::Rect                     mRenderArea              = {};
-    grfx::RenderTargetView* const* mRenderTargetView        = {};
-    uint32_t                       mRenderTargetCount       = 0;
-    grfx::DepthStencilView*        mDepthStencilView        = nullptr;
+    // Below values are for dynamic render passes only.
+    bool                                   mDynamicRenderPassActive = false;
+    grfx::Rect                             mRenderArea              = {};
+    std::vector<grfx::RenderTargetViewPtr> mRenderTargetViews       = {};
+    grfx::DepthStencilViewPtr              mDepthStencilView        = nullptr;
 
 private:
     virtual void BeginRenderPassImpl(const grfx::RenderPassBeginInfo* pBeginInfo) = 0;
