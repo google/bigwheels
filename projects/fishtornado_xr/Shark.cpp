@@ -78,25 +78,22 @@ void Shark::Shutdown()
     mMaterialConstants.Destroy();
 }
 
-void Shark::Update(uint32_t frameIndex, uint32_t currentViewIndex)
+void Shark::Update(uint32_t frameIndex)
 {
-    // Update the shark's position for the zeroth frame since this update method is called twice in XR mode.
-    if (currentViewIndex == 0) {
-        const float t = FishTornadoApp::GetThisApp()->GetTime();
+    const float t = FishTornadoApp::GetThisApp()->GetTime();
 
-        // Calculate position
-        float3 prevPos = mPos;
-        mPos.x         = sin(t * -0.0205f) * 100.0f;
-        mPos.z         = sin(t * -0.0205f) * 900.0f; // 800.0f
-        mPos.y         = 100.0f;
-        // mPos.y         = 100.0f * 0.675f + (sin(t * 0.00125f) * 0.5f + 0.5f) * 100.0f * 0.25f;
+    // Calculate position
+    float3 prevPos = mPos;
+    mPos.x         = sin(t * -0.0205f) * 100.0f;
+    mPos.z         = sin(t * -0.0205f) * 900.0f; // 800.0f
+    mPos.y         = 100.0f;
+    // mPos.y         = 100.0f * 0.675f + (sin(t * 0.00125f) * 0.5f + 0.5f) * 100.0f * 0.25f;
 
-        // Calculate velocity
-        mVel = mPos - prevPos;
+    // Calculate velocity
+    mVel = mPos - prevPos;
 
-        // Find direction of travel
-        mDir = normalize(mVel);
-    }
+    // Find direction of travel
+    mDir = normalize(mVel);
 
     // Calculate rotation matrix for orientation
     quat     q           = glm::rotation(float3(0, 0, 1), mDir);
