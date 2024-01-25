@@ -51,6 +51,6 @@ add_subdirectory(fluid_simulation)
 add_subdirectory(oit_demo)
 
 if (PPX_BUILD_XR)
-add_subdirectory(sample_04_cube_xr)
+add_subdirectory(cube_xr)
 add_subdirectory(fishtornado_xr)
 endif()
