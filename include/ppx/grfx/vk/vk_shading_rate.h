@@ -24,6 +24,48 @@ namespace ppx {
 namespace grfx {
 namespace vk {
 
+namespace internal {
+
+// FDMShadingRateEncoder
+//
+// Encodes fragment sizes/densities for FDM.
+class FDMShadingRateEncoder : public grfx::ShadingRateEncoder
+{
+public:
+    virtual ~FDMShadingRateEncoder() = default;
+    uint32_t EncodeFragmentDensity(uint8_t xDensity, uint8_t yDensity) const override;
+    uint32_t EncodeFragmentSize(uint8_t fragmentWidth, uint8_t fragmentHeight) const override;
+
+private:
+    static uint32_t EncodeFragmentDensityImpl(uint8_t xDensity, uint8_t yDensity);
+};
+
+// VRSShadingRateEncoder
+//
+// Encodes fragment sizes/densities for VRS.
+class VRSShadingRateEncoder : public grfx::ShadingRateEncoder
+{
+public:
+    void Initialize(const ShadingRateCapabilities& capabilities);
+    virtual ~VRSShadingRateEncoder() = default;
+    uint32_t EncodeFragmentDensity(uint8_t xDensity, uint8_t yDensity) const override;
+    uint32_t EncodeFragmentSize(uint8_t fragmentWidth, uint8_t fragmentHeight) const override;
+
+private:
+    uint32_t        EncodeFragmentSizeImpl(uint8_t xDensity, uint8_t yDensity) const;
+    static uint32_t RawEncode(uint8_t width, uint8_t height);
+
+    // Maps a requested shading rate to a supported shading rate.
+    // The fragment width/height of the supported shading rate will be no
+    // larger than the fragment width/height of the requested shading rate.
+    //
+    // Ties are broken lexicographically, e.g. if 2x2, 1x4 and 4x1
+    // are supported, then 2x4 will be mapped to 2x2 but 4x2 will
+    // map to 4x1.
+    std::array<uint8_t, kMaxSupportedShadingRateCount> mMapRateToSupported;
+};
+} // namespace internal
+
 // ShadingRatePattern
 //
 // An image defining the shading rate of regions of a render pass.
@@ -38,6 +80,12 @@ public:
     {
         return mAttachmentView;
     }
+
+    // Get the pixel format of a bitmap that can store the fragment density/size data.
+    Bitmap::Format GetBitmapFormat() const override;
+
+    // Get an encoder that can encode fragment density/size values for this pattern.
+    const ShadingRateEncoder* GetShadingRateEncoder() const override;
 
     // Creates a modified version of the render pass create info which supports
     // the required shading rate mode.
@@ -151,9 +199,11 @@ protected:
         VkAttachmentReference2                 mVrsAttachmentRef  = {VK_STRUCTURE_TYPE_ATTACHMENT_REFERENCE_2_KHR};
     };
 
-    Result         CreateApiObjects(const ShadingRatePatternCreateInfo* pCreateInfo) override;
-    void           DestroyApiObjects() override;
-    VkImageViewPtr mAttachmentView;
+    Result CreateApiObjects(const ShadingRatePatternCreateInfo* pCreateInfo) override;
+    void   DestroyApiObjects() override;
+
+    std::unique_ptr<ShadingRateEncoder> mShadingRateEncoder;
+    VkImageViewPtr                      mAttachmentView;
 };
 
 } // namespace vk
