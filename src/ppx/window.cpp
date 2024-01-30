@@ -49,7 +49,7 @@ Window::Window(Application* pApp)
 
 WindowSize Window::Size() const
 {
-    return {mApp->GetSettings()->window.width, mApp->GetSettings()->window.height};
+    return App()->GetStandardOptions().pResolution->GetValue();
 }
 
 } // namespace ppx

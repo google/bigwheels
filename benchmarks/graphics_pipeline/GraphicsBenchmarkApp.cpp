@@ -179,8 +179,6 @@ void GraphicsBenchmarkApp::Config(ppx::ApplicationSettings& settings)
 {
     settings.appName                    = "graphics_pipeline";
     settings.enableImGui                = true;
-    settings.window.width               = 1920;
-    settings.window.height              = 1080;
     settings.grfx.api                   = kApi;
     settings.grfx.numFramesInFlight     = 1;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
@@ -192,6 +190,7 @@ void GraphicsBenchmarkApp::Config(ppx::ApplicationSettings& settings)
 #endif
     settings.standardKnobsDefaultValue.enableMetrics        = true;
     settings.standardKnobsDefaultValue.overwriteMetricsFile = true;
+    settings.standardKnobsDefaultValue.resolution           = std::make_pair(1920, 1080);
 }
 
 void GraphicsBenchmarkApp::Setup()

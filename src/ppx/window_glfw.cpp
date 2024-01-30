@@ -414,8 +414,8 @@ Result WindowImplGLFW::Create(const char* title)
     glfwWindowHint(GLFW_RESIZABLE, settings->window.resizable ? GLFW_TRUE : GLFW_FALSE);
 
     GLFWwindow* pWindow = glfwCreateWindow(
-        static_cast<int>(settings->window.width),
-        static_cast<int>(settings->window.height),
+        static_cast<int>(App()->GetStandardOptions().pResolution->GetValue().first),
+        static_cast<int>(App()->GetStandardOptions().pResolution->GetValue().second),
         title,
         nullptr,
         nullptr);
@@ -450,6 +450,9 @@ Result WindowImplGLFW::Destroy()
 
 bool WindowImplGLFW::IsRunning() const
 {
+    if (IsNull(mNative))
+        return false;
+
     int  value     = glfwWindowShouldClose(mNative);
     bool isRunning = (value == 0);
     return isRunning;
@@ -470,6 +473,10 @@ Result WindowImplGLFW::Resize(const WindowSize& size)
 
 WindowSize WindowImplGLFW::Size() const
 {
+    if (IsNull(mNative)) {
+        return App()->GetStandardOptions().pResolution->GetValue();
+    }
+
     int width  = 0;
     int height = 0;
     glfwGetWindowSize(mNative, &width, &height);
