@@ -129,8 +129,6 @@ struct ApplicationSettings
 
     struct
     {
-        uint32_t    width     = 0;
-        uint32_t    height    = 0;
         std::string title     = "";
         bool        resizable = false;
     } window;
@@ -198,7 +196,7 @@ struct ApplicationSettings
         bool                     listGpus              = false;
         std::string              metricsFilename       = "report_@.json";
         bool                     overwriteMetricsFile  = false;
-        std::pair<int, int>      resolution            = std::make_pair(0, 0);
+        std::pair<int, int>      resolution            = std::make_pair(1280, 720);
         uint32_t                 runTimeMs             = 0;
         int                      screenshotFrameNumber = -1;
         std::string              screenshotPath        = "screenshot_frame_#.ppm";
@@ -288,15 +286,27 @@ public:
 
     const ApplicationSettings* GetSettings() const { return &mSettings; }
     const StandardOptions&     GetStandardOptions() const { return mStandardOpts; }
-    uint32_t                   GetWindowWidth() const { return mSettings.window.width; }
-    uint32_t                   GetWindowHeight() const { return mSettings.window.height; }
     bool                       IsWindowIconified() const;
     bool                       IsWindowMaximized() const;
     uint32_t                   GetUIWidth() const;
     uint32_t                   GetUIHeight() const;
-    float                      GetWindowAspect() const { return static_cast<float>(mSettings.window.width) / static_cast<float>(mSettings.window.height); }
-    grfx::Rect                 GetScissor() const;
-    grfx::Viewport             GetViewport(float minDepth = 0.0f, float maxDepth = 1.0f) const;
+
+    std::pair<uint32_t, uint32_t> GetWindowSize() const
+    {
+        return mWindow != nullptr ? mWindow->Size() : mStandardOpts.pResolution->GetValue();
+    }
+
+    uint32_t GetWindowWidth() const { return GetWindowSize().first; }
+    uint32_t GetWindowHeight() const { return GetWindowSize().second; }
+
+    float GetWindowAspect() const
+    {
+        const auto size = GetWindowSize();
+        return static_cast<float>(size.first) / static_cast<float>(size.second);
+    }
+
+    grfx::Rect     GetScissor() const;
+    grfx::Viewport GetViewport(float minDepth = 0.0f, float maxDepth = 1.0f) const;
 
     // Loads a DXIL or SPV shader from baseDir.
     //

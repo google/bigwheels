@@ -130,10 +130,12 @@ WindowSize WindowImplAndroid::Size() const
         // xrComponent is taking care of window size on XR builds.
         return Window::Size();
     }
+
     if (mSize.width == 0 || mSize.height == 0) {
         // Return a default size if the window has not been initialized.
         return Window::Size();
     }
+
     return mSize;
 }
 

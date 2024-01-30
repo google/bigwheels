@@ -44,20 +44,16 @@ Application::Application()
 {
     InternalCtor();
 
-    mSettings.appName       = kDefaultAppName;
-    mSettings.window.width  = kDefaultWindowWidth;
-    mSettings.window.height = kDefaultWindowHeight;
-    mSettings.window.title  = kDefaultAppName;
+    mSettings.appName      = kDefaultAppName;
+    mSettings.window.title = kDefaultAppName;
 }
 
 Application::Application(uint32_t windowWidth, uint32_t windowHeight, const char* windowTitle)
 {
     InternalCtor();
 
-    mSettings.appName       = windowTitle;
-    mSettings.window.width  = windowWidth;
-    mSettings.window.height = windowHeight;
-    mSettings.window.title  = windowTitle;
+    mSettings.appName      = windowTitle;
+    mSettings.window.title = windowTitle;
 }
 
 Application::~Application()
@@ -226,8 +222,8 @@ Result Application::CreateSwapchains()
         grfx::SwapchainCreateInfo ci = {};
         ci.pQueue                    = mDevice->GetGraphicsQueue();
         ci.pSurface                  = nullptr;
-        ci.width                     = mSettings.window.width;
-        ci.height                    = mSettings.window.height;
+        ci.width                     = mWindow->Size().width;
+        ci.height                    = mWindow->Size().height;
         ci.colorFormat               = mXrComponent.GetColorFormat();
         ci.depthFormat               = mXrComponent.GetDepthFormat();
         ci.imageCount                = 0;                            // This will be derived from XrSwapchain.
@@ -263,10 +259,7 @@ Result Application::CreateSwapchains()
         || (mSettings.xr.enable && mSettings.xr.enableDebugCapture))
 #endif
     {
-        PPX_LOG_INFO("Creating application swapchain");
-        PPX_LOG_INFO("   resolution  : " << mSettings.window.width << "x" << mSettings.window.height);
-        PPX_LOG_INFO("   image count : " << mSettings.grfx.swapchain.imageCount);
-
+        std::pair<uint32_t, uint32_t> swapchainSize = {mWindow->Size().width, mWindow->Size().height};
         if (mSurface) {
             const uint32_t surfaceMinImageCount = mSurface->GetMinImageCount();
             if (mSettings.grfx.swapchain.imageCount < surfaceMinImageCount) {
@@ -285,29 +278,34 @@ Result Application::CreateSwapchains()
             //
             const uint32_t surfaceMaxImageWidth  = mSurface->GetMaxImageWidth();
             const uint32_t surfaceMaxImageHeight = mSurface->GetMaxImageHeight();
-            if ((mSettings.window.width > surfaceMaxImageWidth) || (mSettings.window.height > surfaceMaxImageHeight)) {
-                PPX_LOG_WARN("readjusting swapchain/window size from " << mSettings.window.width << "x" << mSettings.window.height << " to " << surfaceMaxImageWidth << "x" << surfaceMaxImageHeight << " to match surface requirements");
-                mSettings.window.width  = std::min(mSettings.window.width, surfaceMaxImageWidth);
-                mSettings.window.height = std::min(mSettings.window.height, surfaceMaxImageHeight);
+            if ((swapchainSize.first > surfaceMaxImageWidth) || (swapchainSize.second > surfaceMaxImageHeight)) {
+                PPX_LOG_WARN("readjusting swapchain/window size from " << swapchainSize.first << "x" << swapchainSize.second << " to " << surfaceMaxImageWidth << "x" << surfaceMaxImageHeight << " to match surface requirements");
+                swapchainSize = {
+                    std::min(swapchainSize.first, surfaceMaxImageWidth),
+                    std::min(swapchainSize.second, surfaceMaxImageHeight)};
             }
 
             const uint32_t surfaceCurrentImageWidth  = mSurface->GetCurrentImageWidth();
             const uint32_t surfaceCurrentImageHeight = mSurface->GetCurrentImageHeight();
             if ((surfaceCurrentImageWidth != grfx::Surface::kInvalidExtent) &&
                 (surfaceCurrentImageHeight != grfx::Surface::kInvalidExtent)) {
-                if ((mSettings.window.width != surfaceCurrentImageWidth) ||
-                    (mSettings.window.height != surfaceCurrentImageHeight)) {
-                    PPX_LOG_WARN("window size " << mSettings.window.width << "x" << mSettings.window.height << " does not match current surface extent " << surfaceCurrentImageWidth << "x" << surfaceCurrentImageHeight);
+                if ((swapchainSize.first != surfaceCurrentImageWidth) ||
+                    (swapchainSize.second != surfaceCurrentImageHeight)) {
+                    PPX_LOG_WARN("window size " << swapchainSize.first << "x" << swapchainSize.second << " does not match current surface extent " << surfaceCurrentImageWidth << "x" << surfaceCurrentImageHeight);
                 }
                 PPX_LOG_WARN("surface current extent " << surfaceCurrentImageWidth << "x" << surfaceCurrentImageHeight);
             }
         }
 
+        PPX_LOG_INFO("Creating application swapchain");
+        PPX_LOG_INFO("   resolution  : " << swapchainSize.first << "x" << swapchainSize.second);
+        PPX_LOG_INFO("   image count : " << mSettings.grfx.swapchain.imageCount);
+
         grfx::SwapchainCreateInfo ci = {};
         ci.pQueue                    = mDevice->GetGraphicsQueue();
         ci.pSurface                  = mSurface;
-        ci.width                     = mSettings.window.width;
-        ci.height                    = mSettings.window.height;
+        ci.width                     = swapchainSize.first;
+        ci.height                    = swapchainSize.second;
         ci.colorFormat               = mSettings.grfx.swapchain.colorFormat;
         ci.depthFormat               = mSettings.grfx.swapchain.depthFormat;
         ci.imageCount                = mSettings.grfx.swapchain.imageCount;
@@ -322,12 +320,6 @@ Result Application::CreateSwapchains()
 #if defined(PPX_BUILD_XR)
         if (mSettings.xr.enable && mSettings.xr.enableDebugCapture) {
             mDebugCaptureSwapchainIndex = static_cast<uint32_t>(mSwapchains.size());
-            // The window size could be smaller than the requested one in glfwCreateWindow
-            // So the final swapchain size for window needs to be adjusted
-            // In the case of debug capture, we don't care about the window size after creating the dummy window
-            // restore width and heigh in the settings since they are used by some other systems in the renderer
-            mSettings.window.width  = mXrComponent.GetWidth();
-            mSettings.window.height = mXrComponent.GetHeight();
         }
 #endif
         mSwapchains.push_back(swapchain);
@@ -421,22 +413,11 @@ Result Application::CreatePlatformWindow()
 {
     // Decorated window title
     std::stringstream windowTitle;
-    windowTitle << mSettings.window.title << " | " << ToString(mSettings.grfx.api) << " | " << mDevice->GetDeviceName() << " | " << Platform::GetPlatformString();
+    windowTitle << mSettings.window.title << " | " << ToString(mSettings.grfx.api)
+                << " | " << mDevice->GetDeviceName()
+                << " | " << Platform::GetPlatformString();
 
-    {
-        Result ppxres = mWindow->Create(windowTitle.str().c_str());
-        if (ppxres != ppx::SUCCESS) {
-            return ppxres;
-        }
-    }
-
-    // Update window size to the actual size.
-    if (!IsXrEnabled()) {
-        auto windowSize         = mWindow->Size();
-        mSettings.window.width  = windowSize.width;
-        mSettings.window.height = windowSize.height;
-    }
-    return ppx::SUCCESS;
+    return mWindow->Create(windowTitle.str().c_str());
 }
 
 void Application::DestroyPlatformWindow()
@@ -786,55 +767,50 @@ void Application::MoveCallback(int32_t x, int32_t y)
 
 void Application::ResizeCallback(uint32_t width, uint32_t height)
 {
-    bool widthChanged  = (width != mSettings.window.width);
-    bool heightChanged = (height != mSettings.window.height);
-    if (widthChanged || heightChanged) {
-        // Update the configuration's width and height
-        mSettings.window.width  = width;
-        mSettings.window.height = height;
-        mWindowSurfaceInvalid   = ((width == 0) || (height == 0));
+    mWindowSurfaceInvalid = ((width == 0) || (height == 0));
+    // Vulkan will return an error if either dimension is 0
+    if (mWindowSurfaceInvalid) {
+        DispatchResize(width, height);
+        return;
+    }
 
-        // Vulkan will return an error if either dimension is 0
-        if (!mWindowSurfaceInvalid) {
-            // D3D12 swapchain needs resizing
-            if ((mDevice->GetApi() == grfx::API_DX_12_0) || (mDevice->GetApi() == grfx::API_DX_12_1)) {
-                // Wait for device to idle
-                mDevice->WaitIdle();
+    // D3D12 swapchain needs resizing
+    if ((mDevice->GetApi() == grfx::API_DX_12_0) || (mDevice->GetApi() == grfx::API_DX_12_1)) {
+        // Wait for device to idle
+        mDevice->WaitIdle();
 
-                PPX_ASSERT_MSG((mSwapchains.size() == 1), "Invalid number of swapchains for D3D12");
+        PPX_ASSERT_MSG((mSwapchains.size() == 1), "Invalid number of swapchains for D3D12");
 
-                auto ppxres = mSwapchains[0]->Resize(mSettings.window.width, mSettings.window.height);
-                if (Failed(ppxres)) {
-                    PPX_ASSERT_MSG(false, "D3D12 swapchain resize failed");
-                    // Signal the app to quit if swapchain recreation fails
-                    mWindow->Quit();
-                }
-
-#if defined(PPX_MSW)
-                mForceInvalidateClientArea = true;
-#endif
-
-                PPX_LOG_INFO("Resized application swapchain");
-                PPX_LOG_INFO("   resolution  : " << mSettings.window.width << "x" << mSettings.window.height);
-                PPX_LOG_INFO("   image count : " << mSettings.grfx.swapchain.imageCount);
-            }
-            // Vulkan swapchain needs recreation
-            else {
-                // This function will wait for device to idle
-                DestroySwapchains();
-
-                auto ppxres = CreateSwapchains();
-                if (Failed(ppxres)) {
-                    PPX_ASSERT_MSG(false, "Vulkan swapchain recreate failed");
-                    // Signal the app to quit if swapchain recreation fails
-                    mWindow->Quit();
-                }
-            }
+        auto ppxres = mSwapchains[0]->Resize(width, height);
+        if (Failed(ppxres)) {
+            PPX_ASSERT_MSG(false, "D3D12 swapchain resize failed");
+            // Signal the app to quit if swapchain recreation fails
+            mWindow->Quit();
         }
 
-        // Dispatch resize event
-        DispatchResize(mSettings.window.width, mSettings.window.height);
+#if defined(PPX_MSW)
+        mForceInvalidateClientArea = true;
+#endif
+
+        PPX_LOG_INFO("Resized application swapchain");
+        PPX_LOG_INFO("   resolution  : " << width << "x" << height);
+        PPX_LOG_INFO("   image count : " << mSettings.grfx.swapchain.imageCount);
     }
+    // Vulkan swapchain needs recreation
+    else {
+        // This function will wait for device to idle
+        DestroySwapchains();
+
+        auto ppxres = CreateSwapchains();
+        if (Failed(ppxres)) {
+            PPX_ASSERT_MSG(false, "Vulkan swapchain recreate failed");
+            // Signal the app to quit if swapchain recreation fails
+            mWindow->Quit();
+        }
+    }
+
+    // Dispatch resize event
+    DispatchResize(width, height);
 }
 
 void Application::WindowIconifyCallback(bool iconified)
@@ -929,16 +905,9 @@ void Application::UpdateStandardSettings()
 {
     mSettings.headless = mStandardOpts.pHeadless->GetValue();
 
-    // If command line argument provided width and height
-    auto       resolution        = mStandardOpts.pResolution->GetValue();
-    const bool hasResolutionFlag = (resolution.first > 0 && resolution.second > 0);
-    if (hasResolutionFlag) {
-        mSettings.window.width  = resolution.first;
-        mSettings.window.height = resolution.second;
-    }
-
 #if defined(PPX_BUILD_XR)
-    resolution = mStandardOpts.pXrUiResolution->GetValue();
+    auto resolution = mStandardOpts.pResolution->GetValue();
+    resolution      = mStandardOpts.pXrUiResolution->GetValue();
     if (resolution.first > 0 && resolution.second > 0) {
         mSettings.xr.uiWidth  = resolution.first;
         mSettings.xr.uiHeight = resolution.second;
@@ -983,15 +952,11 @@ void Application::InitializeXRComponentBeforeGrfxDeviceInit()
         createInfo.enableDebug          = mSettings.grfx.enableDebug;
         createInfo.enableQuadLayer      = mSettings.enableImGui;
         createInfo.enableDepthSwapchain = mSettings.xr.enableDepthSwapchain;
-        const auto resolution           = mStandardOpts.pResolution->GetValue();
-        const bool hasResolutionFlag    = (resolution.first > 0 && resolution.second > 0);
-        if (hasResolutionFlag) {
-            createInfo.resolution.width  = mSettings.window.width;
-            createInfo.resolution.height = mSettings.window.height;
-        }
-        createInfo.uiResolution.width  = mSettings.xr.uiWidth;
-        createInfo.uiResolution.height = mSettings.xr.uiHeight;
-        createInfo.requiredExtensions  = mStandardOpts.pXrRequiredExtensions->GetValue();
+        createInfo.resolution.width     = GetWindowWidth();
+        createInfo.resolution.height    = GetWindowHeight();
+        createInfo.uiResolution.width   = mSettings.xr.uiWidth;
+        createInfo.uiResolution.height  = mSettings.xr.uiHeight;
+        createInfo.requiredExtensions   = mStandardOpts.pXrRequiredExtensions->GetValue();
 
         mXrComponent.InitializeBeforeGrfxDeviceInit(createInfo);
     }
@@ -1001,8 +966,6 @@ void Application::InitializeXRComponentAndUpdateSettingsAfterGrfxDeviceInit()
 {
     if (mSettings.xr.enable) {
         mXrComponent.InitializeAfterGrfxDeviceInit(mInstance);
-        mSettings.window.width  = mXrComponent.GetWidth();
-        mSettings.window.height = mXrComponent.GetHeight();
     }
 }
 
@@ -1322,10 +1285,6 @@ int Application::Run(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    if (!mSettings.xr.enable) {
-        mWindow->Resize({mSettings.window.width, mSettings.window.height});
-    }
-
     // Setup ImGui
     if (mSettings.enableImGui) {
         ppxres = InitializeImGui();
@@ -1406,17 +1365,17 @@ bool Application::IsWindowMaximized() const
 uint32_t Application::GetUIWidth() const
 {
 #if defined(PPX_BUILD_XR)
-    return (mSettings.xr.enable && mSettings.xr.uiWidth > 0) ? mSettings.xr.uiWidth : mSettings.window.width;
+    return (mSettings.xr.enable && mSettings.xr.uiWidth > 0) ? mSettings.xr.uiWidth : GetWindowWidth();
 #else
-    return mSettings.window.width;
+    return GetWindowWidth();
 #endif
 }
 uint32_t Application::GetUIHeight() const
 {
 #if defined(PPX_BUILD_XR)
-    return (mSettings.xr.enable && mSettings.xr.uiHeight > 0) ? mSettings.xr.uiHeight : mSettings.window.height;
+    return (mSettings.xr.enable && mSettings.xr.uiHeight > 0) ? mSettings.xr.uiHeight : GetWindowHeight();
 #else
-    return mSettings.window.height;
+    return GetWindowHeight();
 #endif
 }
 
