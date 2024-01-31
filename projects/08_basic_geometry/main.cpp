@@ -67,7 +67,7 @@ private:
     Entity                       mPositionPlanar;
 
 private:
-    void SetupEntity(const TriMesh& mesh, const GeometryOptions& createInfo, Entity* pEntity);
+    void SetupEntity(const TriMesh& mesh, const GeometryCreateInfo& createInfo, Entity* pEntity);
 };
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
@@ -79,7 +79,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.enableDebug           = false;
 }
 
-void ProjApp::SetupEntity(const TriMesh& mesh, const GeometryOptions& createInfo, Entity* pEntity)
+void ProjApp::SetupEntity(const TriMesh& mesh, const GeometryCreateInfo& createInfo, Entity* pEntity)
 {
     Geometry geo;
     PPX_CHECKED_CALL(Geometry::Create(createInfo, mesh, &geo));
@@ -121,15 +121,15 @@ void ProjApp::Setup()
         TriMesh mesh = TriMesh::CreateCube(float3(2, 2, 2), TriMeshOptions().VertexColors().Normals());
         // 9 total entities. Each uses a descriptor with a uniform buffer
         // allocated from the descriptor pool created above.
-        SetupEntity(mesh, GeometryOptions::InterleavedU16().AddColor().AddNormal(), &mInterleavedU16);
-        SetupEntity(mesh, GeometryOptions::InterleavedU32().AddColor().AddNormal(), &mInterleavedU32);
-        SetupEntity(mesh, GeometryOptions::Interleaved().AddColor().AddNormal(), &mInterleaved);
-        SetupEntity(mesh, GeometryOptions::PlanarU16().AddColor().AddNormal(), &mPlanarU16);
-        SetupEntity(mesh, GeometryOptions::PlanarU32().AddColor().AddNormal(), &mPlanarU32);
-        SetupEntity(mesh, GeometryOptions::Planar().AddColor().AddNormal(), &mPlanar);
-        SetupEntity(mesh, GeometryOptions::PositionPlanarU16().AddColor().AddNormal(), &mPositionPlanarU16);
-        SetupEntity(mesh, GeometryOptions::PositionPlanarU32().AddColor().AddNormal(), &mPositionPlanarU32);
-        SetupEntity(mesh, GeometryOptions::PositionPlanar().AddColor().AddNormal(), &mPositionPlanar);
+        SetupEntity(mesh, GeometryCreateInfo::InterleavedU16().AddColor().AddNormal(), &mInterleavedU16);
+        SetupEntity(mesh, GeometryCreateInfo::InterleavedU32().AddColor().AddNormal(), &mInterleavedU32);
+        SetupEntity(mesh, GeometryCreateInfo::Interleaved().AddColor().AddNormal(), &mInterleaved);
+        SetupEntity(mesh, GeometryCreateInfo::PlanarU16().AddColor().AddNormal(), &mPlanarU16);
+        SetupEntity(mesh, GeometryCreateInfo::PlanarU32().AddColor().AddNormal(), &mPlanarU32);
+        SetupEntity(mesh, GeometryCreateInfo::Planar().AddColor().AddNormal(), &mPlanar);
+        SetupEntity(mesh, GeometryCreateInfo::PositionPlanarU16().AddColor().AddNormal(), &mPositionPlanarU16);
+        SetupEntity(mesh, GeometryCreateInfo::PositionPlanarU32().AddColor().AddNormal(), &mPositionPlanarU32);
+        SetupEntity(mesh, GeometryCreateInfo::PositionPlanar().AddColor().AddNormal(), &mPositionPlanar);
     }
 
     // Pipelines

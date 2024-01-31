@@ -61,7 +61,7 @@ private:
     Entity                       mPlanar;
 
 private:
-    void SetupEntity(const TriMesh& mesh, const GeometryOptions& createInfo, Entity* pEntity);
+    void SetupEntity(const TriMesh& mesh, const GeometryCreateInfo& createInfo, Entity* pEntity);
 };
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
@@ -73,7 +73,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.enableDebug           = false;
 }
 
-void ProjApp::SetupEntity(const TriMesh& mesh, const GeometryOptions& createInfo, Entity* pEntity)
+void ProjApp::SetupEntity(const TriMesh& mesh, const GeometryCreateInfo& createInfo, Entity* pEntity)
 {
     Geometry geo;
     PPX_CHECKED_CALL(Geometry::Create(createInfo, mesh, &geo));
@@ -112,10 +112,10 @@ void ProjApp::Setup()
     // Entities
     {
         TriMesh mesh = TriMesh::CreateFromOBJ(GetAssetPath("basic/models/material_sphere.obj"), TriMeshOptions().VertexColors());
-        SetupEntity(mesh, GeometryOptions::InterleavedU32().AddColor(), &mInterleavedU32);
-        SetupEntity(mesh, GeometryOptions::Interleaved().AddColor(), &mInterleaved);
-        SetupEntity(mesh, GeometryOptions::PlanarU32().AddColor(), &mPlanarU32);
-        SetupEntity(mesh, GeometryOptions::Planar().AddColor(), &mPlanar);
+        SetupEntity(mesh, GeometryCreateInfo::InterleavedU32().AddColor(), &mInterleavedU32);
+        SetupEntity(mesh, GeometryCreateInfo::Interleaved().AddColor(), &mInterleaved);
+        SetupEntity(mesh, GeometryCreateInfo::PlanarU32().AddColor(), &mPlanarU32);
+        SetupEntity(mesh, GeometryCreateInfo::Planar().AddColor(), &mPlanar);
     }
 
     // Pipelines

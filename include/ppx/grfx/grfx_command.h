@@ -603,7 +603,7 @@ private:
 
     bool HasActiveRenderPass() const;
 
-    const grfx::RenderPass* mCurrentRenderPass = nullptr;
+    const grfx::RenderPass* mCurrentRenderPass       = nullptr;
     bool                    mDynamicRenderPassActive = false;
 };
 

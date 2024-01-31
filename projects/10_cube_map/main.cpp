@@ -74,7 +74,7 @@ private:
     uint64_t                       mGpuWorkDuration = 0;
 
 private:
-    void SetupEntity(const TriMesh& mesh, const GeometryOptions& createInfo, Entity* pEntity);
+    void SetupEntity(const TriMesh& mesh, const GeometryCreateInfo& createInfo, Entity* pEntity);
 };
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
@@ -87,7 +87,7 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.enableDebug           = false;
 }
 
-void ProjApp::SetupEntity(const TriMesh& mesh, const GeometryOptions& createInfo, Entity* pEntity)
+void ProjApp::SetupEntity(const TriMesh& mesh, const GeometryCreateInfo& createInfo, Entity* pEntity)
 {
     Geometry geo;
     PPX_CHECKED_CALL(Geometry::Create(createInfo, mesh, &geo));
@@ -162,10 +162,10 @@ void ProjApp::Setup()
     // Entities
     {
         TriMesh mesh = TriMesh::CreateCube(float3(8, 8, 8));
-        SetupEntity(mesh, GeometryOptions::InterleavedU16().AddColor(), &mSkyBox);
+        SetupEntity(mesh, GeometryCreateInfo::InterleavedU16().AddColor(), &mSkyBox);
 
         mesh = TriMesh::CreateFromOBJ(GetAssetPath("basic/models/material_sphere.obj"), TriMeshOptions().Normals());
-        SetupEntity(mesh, GeometryOptions::InterleavedU16().AddNormal(), &mReflector);
+        SetupEntity(mesh, GeometryCreateInfo::InterleavedU16().AddNormal(), &mReflector);
     }
 
     // Sky box pipeline

@@ -47,6 +47,12 @@ Coord BlurVS(float2 xy, float2 normalizationScale, float2 texelSize)
     return coord;
 }
 
+// Filter option bitmasks to use in CSInput::filterOptions.
+#define kAdvectionManualFiltering  (1 << 0)
+#define kDisplayShading            (1 << 1)
+#define kDisplayBloom              (1 << 2)
+#define kDisplaySunrays            (1 << 3)
+
 // Scalar inputs for the filter programs. Needs to be 16-bit aligned to be copied
 // into a uniform buffer.
 //
@@ -78,13 +84,15 @@ struct CSInput
     float curl;
 
     float2 normalizationScale;
+
+    uint filterOptions;
 };
 
 ConstantBuffer<CSInput> Params : register(b0);
 
 SamplerState ClampSampler : register(s1);
 
-// Used by clear.hlsl and splat.hlsl.
+// Used by bloom*.hlsl, clear.hlsl, copy.hlsl, display.hlsl, splat.hlsl, sunrays*.hlsl.
 Texture2D UTexture : register(t2);
 
 // Used by vorticity.hlsl, advection.hlsl, curl.hlsl, divergence.hlsl, gradient_subtract.hlsl.

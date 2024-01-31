@@ -411,11 +411,11 @@ static VertexDataProcessorPositionPlanar<TriMeshVertexData>           sVDProcess
 static VertexDataProcessorPositionPlanar<TriMeshVertexDataCompressed> sVDProcessorPositionPlanarCompressed;
 
 // -------------------------------------------------------------------------------------------------
-// GeometryOptions
+// GeometryCreateInfo
 // -------------------------------------------------------------------------------------------------
-GeometryOptions GeometryOptions::InterleavedU16(grfx::Format format)
+GeometryCreateInfo GeometryCreateInfo::InterleavedU16(grfx::Format format)
 {
-    GeometryOptions ci       = {};
+    GeometryCreateInfo ci    = {};
     ci.vertexAttributeLayout = GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_INTERLEAVED;
     ci.indexType             = grfx::INDEX_TYPE_UINT16;
     ci.vertexBindingCount    = 1; // Interleave attribute layout always has 1 vertex binding
@@ -423,9 +423,9 @@ GeometryOptions GeometryOptions::InterleavedU16(grfx::Format format)
     return ci;
 }
 
-GeometryOptions GeometryOptions::InterleavedU32(grfx::Format format)
+GeometryCreateInfo GeometryCreateInfo::InterleavedU32(grfx::Format format)
 {
-    GeometryOptions ci       = {};
+    GeometryCreateInfo ci    = {};
     ci.vertexAttributeLayout = GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_INTERLEAVED;
     ci.indexType             = grfx::INDEX_TYPE_UINT32;
     ci.vertexBindingCount    = 1; // Interleave attribute layout always has 1 vertex binding
@@ -433,45 +433,45 @@ GeometryOptions GeometryOptions::InterleavedU32(grfx::Format format)
     return ci;
 }
 
-GeometryOptions GeometryOptions::PlanarU16(grfx::Format format)
+GeometryCreateInfo GeometryCreateInfo::PlanarU16(grfx::Format format)
 {
-    GeometryOptions ci       = {};
+    GeometryCreateInfo ci    = {};
     ci.vertexAttributeLayout = GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_PLANAR;
     ci.indexType             = grfx::INDEX_TYPE_UINT16;
     ci.AddPosition(format);
     return ci;
 }
 
-GeometryOptions GeometryOptions::PlanarU32(grfx::Format format)
+GeometryCreateInfo GeometryCreateInfo::PlanarU32(grfx::Format format)
 {
-    GeometryOptions ci       = {};
+    GeometryCreateInfo ci    = {};
     ci.vertexAttributeLayout = GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_PLANAR;
     ci.indexType             = grfx::INDEX_TYPE_UINT32;
     ci.AddPosition(format);
     return ci;
 }
 
-GeometryOptions GeometryOptions::PositionPlanarU16(grfx::Format format)
+GeometryCreateInfo GeometryCreateInfo::PositionPlanarU16(grfx::Format format)
 {
-    GeometryOptions ci       = {};
+    GeometryCreateInfo ci    = {};
     ci.vertexAttributeLayout = GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_POSITION_PLANAR;
     ci.indexType             = grfx::INDEX_TYPE_UINT16;
     ci.AddPosition(format);
     return ci;
 }
 
-GeometryOptions GeometryOptions::PositionPlanarU32(grfx::Format format)
+GeometryCreateInfo GeometryCreateInfo::PositionPlanarU32(grfx::Format format)
 {
-    GeometryOptions ci       = {};
+    GeometryCreateInfo ci    = {};
     ci.vertexAttributeLayout = GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_POSITION_PLANAR;
     ci.indexType             = grfx::INDEX_TYPE_UINT32;
     ci.AddPosition(format);
     return ci;
 }
 
-GeometryOptions GeometryOptions::Interleaved()
+GeometryCreateInfo GeometryCreateInfo::Interleaved()
 {
-    GeometryOptions ci       = {};
+    GeometryCreateInfo ci    = {};
     ci.vertexAttributeLayout = GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_INTERLEAVED;
     ci.indexType             = grfx::INDEX_TYPE_UNDEFINED;
     ci.vertexBindingCount    = 1; // Interleave attribute layout always has 1 vertex binding
@@ -479,41 +479,41 @@ GeometryOptions GeometryOptions::Interleaved()
     return ci;
 }
 
-GeometryOptions GeometryOptions::Planar()
+GeometryCreateInfo GeometryCreateInfo::Planar()
 {
-    GeometryOptions ci       = {};
+    GeometryCreateInfo ci    = {};
     ci.vertexAttributeLayout = GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_PLANAR;
     ci.indexType             = grfx::INDEX_TYPE_UNDEFINED;
     ci.AddPosition();
     return ci;
 }
 
-GeometryOptions GeometryOptions::PositionPlanar()
+GeometryCreateInfo GeometryCreateInfo::PositionPlanar()
 {
-    GeometryOptions ci       = {};
+    GeometryCreateInfo ci    = {};
     ci.vertexAttributeLayout = GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_POSITION_PLANAR;
     ci.indexType             = grfx::INDEX_TYPE_UNDEFINED;
     ci.AddPosition();
     return ci;
 }
 
-GeometryOptions& GeometryOptions::IndexType(grfx::IndexType indexType_)
+GeometryCreateInfo& GeometryCreateInfo::IndexType(grfx::IndexType indexType_)
 {
     indexType = indexType_;
     return *this;
 }
 
-GeometryOptions& GeometryOptions::IndexTypeU16()
+GeometryCreateInfo& GeometryCreateInfo::IndexTypeU16()
 {
     return IndexType(grfx::INDEX_TYPE_UINT16);
 }
 
-GeometryOptions& GeometryOptions::IndexTypeU32()
+GeometryCreateInfo& GeometryCreateInfo::IndexTypeU32()
 {
     return IndexType(grfx::INDEX_TYPE_UINT32);
 }
 
-GeometryOptions& GeometryOptions::AddAttribute(grfx::VertexSemantic semantic, grfx::Format format)
+GeometryCreateInfo& GeometryCreateInfo::AddAttribute(grfx::VertexSemantic semantic, grfx::Format format)
 {
     bool exists = false;
     for (uint32_t bindingIndex = 0; bindingIndex < vertexBindingCount; ++bindingIndex) {
@@ -578,37 +578,37 @@ GeometryOptions& GeometryOptions::AddAttribute(grfx::VertexSemantic semantic, gr
     return *this;
 }
 
-GeometryOptions& GeometryOptions::AddPosition(grfx::Format format)
+GeometryCreateInfo& GeometryCreateInfo::AddPosition(grfx::Format format)
 {
     AddAttribute(grfx::VERTEX_SEMANTIC_POSITION, format);
     return *this;
 }
 
-GeometryOptions& GeometryOptions::AddNormal(grfx::Format format)
+GeometryCreateInfo& GeometryCreateInfo::AddNormal(grfx::Format format)
 {
     AddAttribute(grfx::VERTEX_SEMANTIC_NORMAL, format);
     return *this;
 }
 
-GeometryOptions& GeometryOptions::AddColor(grfx::Format format)
+GeometryCreateInfo& GeometryCreateInfo::AddColor(grfx::Format format)
 {
     AddAttribute(grfx::VERTEX_SEMANTIC_COLOR, format);
     return *this;
 }
 
-GeometryOptions& GeometryOptions::AddTexCoord(grfx::Format format)
+GeometryCreateInfo& GeometryCreateInfo::AddTexCoord(grfx::Format format)
 {
     AddAttribute(grfx::VERTEX_SEMANTIC_TEXCOORD, format);
     return *this;
 }
 
-GeometryOptions& GeometryOptions::AddTangent(grfx::Format format)
+GeometryCreateInfo& GeometryCreateInfo::AddTangent(grfx::Format format)
 {
     AddAttribute(grfx::VERTEX_SEMANTIC_TANGENT, format);
     return *this;
 }
 
-GeometryOptions& GeometryOptions::AddBitangent(grfx::Format format)
+GeometryCreateInfo& GeometryCreateInfo::AddBitangent(grfx::Format format)
 {
     AddAttribute(grfx::VERTEX_SEMANTIC_BITANGENT, format);
     return *this;
@@ -667,7 +667,7 @@ Result Geometry::InternalCtor()
     return mVDProcessor->UpdateVertexBuffer(this);
 }
 
-Result Geometry::Create(const GeometryOptions& createInfo, Geometry* pGeometry)
+Result Geometry::Create(const GeometryCreateInfo& createInfo, Geometry* pGeometry)
 {
     PPX_ASSERT_NULL_ARG(pGeometry);
 
@@ -708,9 +708,9 @@ Result Geometry::Create(const GeometryOptions& createInfo, Geometry* pGeometry)
 }
 
 Result Geometry::Create(
-    const GeometryOptions& createInfo,
-    const TriMesh&         mesh,
-    Geometry*              pGeometry)
+    const GeometryCreateInfo& createInfo,
+    const TriMesh&            mesh,
+    Geometry*                 pGeometry)
 {
     // Create geometry
     Result ppxres = Geometry::Create(createInfo, pGeometry);
@@ -852,9 +852,9 @@ Result Geometry::Create(
 }
 
 Result Geometry::Create(
-    const GeometryOptions& createInfo,
-    const WireMesh&        mesh,
-    Geometry*              pGeometry)
+    const GeometryCreateInfo& createInfo,
+    const WireMesh&           mesh,
+    Geometry*                 pGeometry)
 {
     // Create geometry
     Result ppxres = Geometry::Create(createInfo, pGeometry);
@@ -979,7 +979,7 @@ Result Geometry::Create(
 
 Result Geometry::Create(const TriMesh& mesh, Geometry* pGeometry)
 {
-    GeometryOptions createInfo       = {};
+    GeometryCreateInfo createInfo    = {};
     createInfo.vertexAttributeLayout = ppx::GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_PLANAR;
     createInfo.indexType             = mesh.GetIndexType();
     createInfo.primitiveTopology     = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -1012,7 +1012,7 @@ Result Geometry::Create(const TriMesh& mesh, Geometry* pGeometry)
 
 Result Geometry::Create(const WireMesh& mesh, Geometry* pGeometry)
 {
-    GeometryOptions createInfo       = {};
+    GeometryCreateInfo createInfo    = {};
     createInfo.vertexAttributeLayout = ppx::GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_PLANAR;
     createInfo.indexType             = mesh.GetIndexType();
     createInfo.primitiveTopology     = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;

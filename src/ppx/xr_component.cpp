@@ -15,6 +15,7 @@
 #if defined(PPX_BUILD_XR)
 #include <queue>
 #include <string_view>
+#include "ppx/math_config.h"
 #include "ppx/xr_component.h"
 #include "ppx/xr_composition_layers.h"
 #include "ppx/grfx/grfx_instance.h"
@@ -668,6 +669,10 @@ void XrComponent::BeginFrame()
                 break;
         }
     }
+    mCameras.resize(mViews.size());
+    for (size_t viewIndex = 0; viewIndex < mViews.size(); ++viewIndex) {
+        mCameras[viewIndex].UpdateView(mViews[viewIndex]);
+    }
 }
 
 void XrComponent::EndFrame(const std::vector<grfx::SwapchainPtr>& swapchains, uint32_t layerProjStartIndex, uint32_t layerQuadStartIndex)
@@ -827,27 +832,14 @@ bool XrComponent::RemoveLayer(LayerRef layerRef)
     return mLayers.erase(layerRef);
 }
 
-glm::mat4 XrComponent::GetViewMatrixForCurrentView() const
+XrPosef XrComponent::GetPoseForCurrentView() const
 {
     PPX_ASSERT_MSG((mCurrentViewIndex < mViews.size()), "Invalid view index!");
-    const XrView&  view = mViews[mCurrentViewIndex];
-    const XrPosef& pose = view.pose;
-    // OpenXR is using right handed system which is the same as Vulkan
-    glm::quat quat         = glm::quat(pose.orientation.w, pose.orientation.x, pose.orientation.y, pose.orientation.z);
-    glm::mat4 rotation     = glm::mat4_cast(quat);
-    glm::vec3 position     = glm::vec3(pose.position.x, pose.position.y, pose.position.z);
-    glm::mat4 translation  = glm::translate(glm::mat4(1.f), position);
-    glm::mat4 view_glm     = translation * rotation;
-    glm::mat4 view_glm_inv = glm::inverse(view_glm);
-    return view_glm_inv;
+    return mViews[mCurrentViewIndex].pose;
 }
 
-glm::mat4 XrComponent::GetProjectionMatrixForCurrentViewAndSetFrustumPlanes(float nearZ, float farZ)
+void XrComponent::SetFrustumPlanes(float nearZ, float farZ)
 {
-    PPX_ASSERT_MSG((mCurrentViewIndex < mViews.size()), "Invalid view index!");
-    const XrView& view = mViews[mCurrentViewIndex];
-    const XrFovf& fov  = view.fov;
-
     // Save near and far plane values so that they can be referenced
     // in EndFrame(), as part of the depth layer info submission.
     // They can only be set once per frame.
@@ -856,40 +848,77 @@ glm::mat4 XrComponent::GetProjectionMatrixForCurrentViewAndSetFrustumPlanes(floa
     mNearPlaneForFrame = nearZ;
     mFarPlaneForFrame  = farZ;
 
-    const float tan_left  = tanf(fov.angleLeft);
-    const float tan_right = tanf(fov.angleRight);
-
-    const float tan_down = tanf(fov.angleDown);
-    const float tan_up   = tanf(fov.angleUp);
-
-    const float tan_width  = tan_right - tan_left;
-    const float tan_height = (tan_up - tan_down);
-
-    const float a00 = 2 / tan_width;
-    const float a11 = 2 / tan_height;
-
-    const float a20 = (tan_right + tan_left) / tan_width;
-    const float a21 = (tan_up + tan_down) / tan_height;
-    const float a22 = -farZ / (farZ - nearZ);
-
-    const float a32 = -(farZ * nearZ) / (farZ - nearZ);
-
-    // clang-format off
-    const float mat[16] = {
-        a00,    0,      0,      0,
-        0,      a11,    0,      0,
-        a20,    a21,    a22,    -1,
-        0,      0,      a32,    0,
-    };
-    // clang-format on
-
-    return glm::make_mat4(mat);
+    for (XrCamera& camera : mCameras) {
+        camera.SetFrustumPlanes(nearZ, farZ);
+    }
 }
 
-XrPosef XrComponent::GetPoseForCurrentView() const
+// -------------------------------------------------------------------------------------------------
+// XrCamera
+// -------------------------------------------------------------------------------------------------
+
+void XrCamera::UpdateView(const XrView& view)
 {
-    PPX_ASSERT_MSG((mCurrentViewIndex < mViews.size()), "Invalid view index!");
-    return mViews[mCurrentViewIndex].pose;
+    mView = view;
+    XrCamera::UpdateCamera();
+}
+
+void XrCamera::SetFrustumPlanes(float nearZ, float farZ)
+{
+    if (mNearClip == nearZ && mFarClip == farZ) {
+        return;
+    }
+    mNearClip = nearZ;
+    mFarClip  = farZ;
+    UpdateCamera();
+}
+
+void XrCamera::UpdateCamera()
+{
+    // Given:
+    //   - mPixelAligned
+    //   - mNearClip, mFarClip
+    //   - view.fov.{angleLeft,angleRight,angleDown,angleUp}
+    //   - view.pose.{orientation,position}
+    // Copied:
+    //   - mEyePosition = view.pose.position
+    // Solve for:
+    //   - mViewDirection
+    //   - mTarget
+    //   - mWorldUp
+    //   - all matrices (using LookAt)
+    //
+    // Note: bigwheels defaults matches some of OpenXR specification,
+    //       if we need ever change the default we will need to update this calculation.
+    // - Forward direction is (0,0,-1), and up is (0, 1, 0)
+    // - Right handed coordinate system
+
+    const float3 forward = PPX_CAMERA_DEFAULT_VIEW_DIRECTION;
+    const float3 up      = PPX_CAMERA_DEFAULT_WORLD_UP;
+
+    // Calculate projection matrix
+    {
+        const XrFovf& fov = mView.fov;
+
+        const float left  = tanf(fov.angleLeft) * mNearClip;
+        const float right = tanf(fov.angleRight) * mNearClip;
+
+        const float down = tanf(fov.angleDown) * mNearClip;
+        const float up   = tanf(fov.angleUp) * mNearClip;
+
+        mProjectionMatrix = glm::frustum(left, right, down, up, mNearClip, mFarClip);
+    }
+    // Calculate view
+    {
+        const quat orientation = FromXr(mView.pose.orientation);
+
+        mEyePosition   = FromXr(mView.pose.position);
+        mViewDirection = glm::rotate(orientation, forward);
+        mTarget        = mEyePosition + mViewDirection;
+        mWorldUp       = glm::rotate(orientation, up);
+    }
+
+    LookAt(mEyePosition, mTarget, mWorldUp);
 }
 
 } // namespace ppx

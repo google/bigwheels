@@ -35,8 +35,8 @@ public:
     BaseApplication();
     virtual ~BaseApplication();
 
-    ppx::PlatformId GetPlatformId() const;
-    uint32_t        GetProcessId() const;
+    ppx::PlatformId       GetPlatformId() const;
+    uint32_t              GetProcessId() const;
     std::filesystem::path GetApplicationPath() const;
 
     const std::vector<std::filesystem::path>& GetAssetDirs() const { return mAssetDirs; }

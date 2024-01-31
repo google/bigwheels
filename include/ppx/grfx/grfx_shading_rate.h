@@ -17,6 +17,7 @@
 
 #include "ppx/grfx/grfx_config.h"
 #include "ppx/grfx/grfx_image.h"
+#include "ppx/bitmap.h"
 
 namespace ppx {
 namespace grfx {
@@ -53,6 +54,27 @@ struct ShadingRateCapabilities
         uint32_t supportedRateCount = 0;
         Extent2D supportedRates[kMaxSupportedShadingRateCount];
     } vrs;
+};
+
+// ShadingRateEncoder
+//
+// Encodes fragment densities/sizes into the format needed for a
+// ShadingRatePattern.
+class ShadingRateEncoder
+{
+public:
+    virtual ~ShadingRateEncoder() = default;
+
+    // Encode a pair of fragment density values.
+    //
+    // Fragment density values are a ratio over 255, e.g. 255 means shade every
+    // pixel, and 128 means shade every other pixel.
+    virtual uint32_t EncodeFragmentDensity(uint8_t xDensity, uint8_t yDensity) const = 0;
+
+    // Encode a pair of fragment size values.
+    //
+    // The fragmentWidth/fragmentHeight values are in pixels.
+    virtual uint32_t EncodeFragmentSize(uint8_t fragmentWidth, uint8_t fragmentHeight) const = 0;
 };
 
 // ShadingRatePatternCreateInfo
@@ -96,6 +118,18 @@ public:
     // to a single pixel in the image containing fragment sizes/densities.
     uint32_t GetTexelWidth() const { return mTexelSize.width; }
     uint32_t GetTexelHeight() const { return mTexelSize.height; }
+
+    // Create a bitmap suitable for uploading fragment density/size to this pattern.
+    std::unique_ptr<Bitmap> CreateBitmap() const;
+
+    // Load fragment density/size from a bitmap of encoded values.
+    Result LoadFromBitmap(Bitmap* bitmap);
+
+    // Get the pixel format of a bitmap that can store the fragment density/size data.
+    virtual Bitmap::Format GetBitmapFormat() const = 0;
+
+    // Get an encoder that can encode fragment density/size values for this pattern.
+    virtual const ShadingRateEncoder* GetShadingRateEncoder() const = 0;
 
 protected:
     ShadingRateMode mShadingRateMode;

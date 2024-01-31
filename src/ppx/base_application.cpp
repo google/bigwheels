@@ -40,7 +40,7 @@ uint32_t BaseApplication::GetProcessId() const
 #if defined(PPX_LINUX)
     pid = static_cast<uint32_t>(getpid());
 #elif defined(PPX_MSW)
-    pid                       = static_cast<uint32_t>(::GetCurrentProcessId());
+    pid = static_cast<uint32_t>(::GetCurrentProcessId());
 #endif
     return pid;
 }
@@ -54,9 +54,9 @@ std::filesystem::path BaseApplication::GetApplicationPath() const
     readlink("/proc/self/exe", buf, PATH_MAX);
     path = std::filesystem::path(buf);
 #elif defined(PPX_MSW)
-    HMODULE this_win32_module = GetModuleHandleA(nullptr);
-    char    buf[MAX_PATH];
+    char buf[MAX_PATH];
     std::memset(buf, 0, MAX_PATH);
+    HMODULE this_win32_module = GetModuleHandleA(nullptr);
     GetModuleFileNameA(this_win32_module, buf, MAX_PATH);
     path = std::filesystem::path(buf);
 #else

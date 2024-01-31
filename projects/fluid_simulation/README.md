@@ -26,6 +26,14 @@ represented. This changes the clarity of the dye patterns in
 the simulation. Higher values provide finer details and
 sharper patterns.
 
+## --enable-debug
+Enables API debugging. This will typically turn on Vulkan
+Validation Layers and the D3D12 Debug Layer.
+
+## --display-grids
+Indicates whether to overlay the grids used to compute the fluid dynamics
+properties of the simulation.
+
 ## --pressure <0.0~1.0>
 Indicates the force exerted by the fluid on its surrounding
 boundaries. Higher values cause a greater force exerted on
@@ -125,3 +133,11 @@ appear brighter.
 This determines the grid size of the compute textures used
 during simulation. Higher values produce finer grids which
 produce a more accurate representation.
+
+## --shading <true|false>
+Indicates whether to perform diffuse shading on the resulting output.
+
+## --manual-advection <true|false>
+Indicates whether to perform manual advection on the velocity field. If
+enabled, advection is computed as a bi-linear interpolation on the velocity
+field. Otherwise, it is computed directly from velocity.

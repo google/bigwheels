@@ -122,4 +122,4 @@ private:
 
 } // namespace ppx
 
-#endif //PPX_PROFILER_H
+#endif // PPX_PROFILER_H

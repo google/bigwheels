@@ -535,7 +535,7 @@ void GraphicsBenchmarkApp::SetupSkyBoxMeshes()
 {
     TriMesh  mesh = TriMesh::CreateCube(float3(1, 1, 1), TriMeshOptions().TexCoords());
     Geometry geo;
-    PPX_CHECKED_CALL(Geometry::Create(GeometryOptions::InterleavedU16().AddTexCoord(), mesh, &geo));
+    PPX_CHECKED_CALL(Geometry::Create(GeometryCreateInfo::InterleavedU16().AddTexCoord(), mesh, &geo));
     PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), &geo, &mSkyBox.mesh));
 }
 
@@ -711,6 +711,10 @@ Result GraphicsBenchmarkApp::CompilePipeline(const SpherePipelineKey& key)
 
 Result GraphicsBenchmarkApp::CompilePipeline(const QuadPipelineKey& key)
 {
+    if (mQuadsPipelines.find(key) != mQuadsPipelines.end()) {
+        return SUCCESS;
+    }
+
     const size_t                      quadTypeIndex = static_cast<size_t>(key.quadType);
     grfx::GraphicsPipelineCreateInfo2 gpCreateInfo  = {};
     gpCreateInfo.VS                                 = {mVSQuads.Get(), "vsmain"};
@@ -1106,14 +1110,9 @@ void GraphicsBenchmarkApp::Render()
     frame.timestampQuery->Reset(/* firstQuery= */ 0, frame.timestampQuery->GetCount());
 
     // Update scene data
-    frame.sceneData.viewProjectionMatrix = mCamera.GetViewProjectionMatrix();
-#if defined(PPX_BUILD_XR)
-    if (IsXrEnabled()) {
-        const glm::mat4 v                    = GetXrComponent().GetViewMatrixForCurrentView();
-        const glm::mat4 p                    = GetXrComponent().GetProjectionMatrixForCurrentViewAndSetFrustumPlanes(PPX_CAMERA_DEFAULT_NEAR_CLIP, PPX_CAMERA_DEFAULT_FAR_CLIP);
-        frame.sceneData.viewProjectionMatrix = p * v;
-    }
-#endif
+
+    const Camera& camera                 = GetCamera();
+    frame.sceneData.viewProjectionMatrix = camera.GetViewProjectionMatrix();
 
     RenderPasses swapchainRenderPasses = SwapchainRenderPasses(swapchain, imageIndex);
     RenderPasses renderPasses          = swapchainRenderPasses;
@@ -1772,4 +1771,14 @@ void GraphicsBenchmarkApp::SetupShader(const char* baseDir, const std::filesyste
     PPX_ASSERT_MSG(!bytecode.empty(), "shader bytecode load failed for " << kShaderBaseDir << " " << fileName);
     grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
     PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, ppShaderModule));
+}
+
+const ppx::Camera& GraphicsBenchmarkApp::GetCamera() const
+{
+#if defined(PPX_BUILD_XR)
+    if (IsXrEnabled()) {
+        return GetXrComponent().GetCamera();
+    }
+#endif
+    return mCamera;
 }

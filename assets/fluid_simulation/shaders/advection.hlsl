@@ -7,9 +7,6 @@
 
 #include "config.hlsli"
 
-// Undefine to disable manual filtering.
-#undef MANUAL_FILTERING
-
 float4 bilerp(Texture2D sam, float2 vUv, float2 tsize)
 {
     float2 st = vUv / tsize - 0.5;
@@ -29,13 +26,15 @@ float4 bilerp(Texture2D sam, float2 vUv, float2 tsize)
                                   : SV_DispatchThreadID) {
     Coord inputCoord = BaseVS(tid, Params.normalizationScale, Params.texelSize);
 
-#ifdef MANUAL_FILTERING
-    float2 coord  = inputCoord.vUv - Params.dt * bilerp(UVelocity, inputCoord.vUv, Params.texelSize).xy * Params.texelSize;
-    float4 result = bilerp(USource, coord, Params.dyeTexelSize);
-#else
-    float2 coord  = inputCoord.vUv - Params.dt * UVelocity.SampleLevel(ClampSampler, inputCoord.vUv, 0).xy * Params.texelSize;
-    float4 result = USource.SampleLevel(ClampSampler, coord, 0);
-#endif
+    float2 coord;
+    float4 result;
+    if (Params.filterOptions & kAdvectionManualFiltering) {
+        coord  = inputCoord.vUv - Params.dt * bilerp(UVelocity, inputCoord.vUv, Params.texelSize).xy * Params.texelSize;
+        result = bilerp(USource, coord, Params.dyeTexelSize);
+    } else {
+        coord  = inputCoord.vUv - Params.dt * UVelocity.SampleLevel(ClampSampler, inputCoord.vUv, 0).xy * Params.texelSize;
+        result = USource.SampleLevel(ClampSampler, coord, 0);
+    }
     float decay = 1.0 + Params.dissipation * Params.dt;
 
     Output[inputCoord.xy] = result / decay;

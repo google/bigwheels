@@ -15,6 +15,9 @@
 #ifndef PPX_XR_COMPONENT_H
 #define PPX_XR_COMPONENT_H
 
+// Keep before <d3d12.h>, so <windows.h> stop adding min/max macros.
+#include "ppx/config.h"
+
 #if defined(PPX_BUILD_XR)
 
 #if defined(PPX_D3D12)
@@ -39,6 +42,7 @@
 #include <queue>
 #include <unordered_map>
 
+#include "ppx/camera.h"
 #include "ppx/xr_composition_layers.h"
 
 #define CHECK_XR_CALL(CMD__)                                                                       \
@@ -93,6 +97,21 @@ struct XrComponentResolution
 {
     uint32_t width  = 0;
     uint32_t height = 0;
+};
+
+class XrCamera : public Camera
+{
+public:
+    XrCamera() = default;
+
+    ppx::CameraType GetCameraType() const final { return ppx::CAMERA_TYPE_UNKNOWN; }
+
+    void UpdateView(const XrView& view);
+    void SetFrustumPlanes(float nearZ, float farZ);
+
+private:
+    XrView mView;
+    void   UpdateCamera();
 };
 
 //! @class XrSettings
@@ -188,13 +207,17 @@ public:
     void       SetCurrentViewIndex(uint32_t index) { mCurrentViewIndex = index; }
     uint32_t   GetCurrentViewIndex() const { return mCurrentViewIndex; }
 
-    // Computes the projection matrix for the current view given the near and
-    // far frustum planes. The values for the frustum planes will be sent to
-    // the OpenXR runtime as part of the frame depth info submission, and the
-    // caller must ensure that the values do not change within a frame.
-    glm::mat4 GetProjectionMatrixForCurrentViewAndSetFrustumPlanes(float nearZ, float farZ);
-    glm::mat4 GetViewMatrixForCurrentView() const;
-    XrPosef   GetPoseForCurrentView() const;
+    const XrCamera& GetCamera() const
+    {
+        PPX_ASSERT_MSG((mCurrentViewIndex < mCameras.size()), "Camera not found for current view");
+        return mCameras[mCurrentViewIndex];
+    }
+
+    // The values for the frustum planes will be sent to the OpenXR runtime
+    // as part of the frame depth info submission, and the caller must ensure
+    // that the values do not change within a frame.
+    void    SetFrustumPlanes(float nearZ, float farZ);
+    XrPosef GetPoseForCurrentView() const;
 
     std::optional<XrPosef> GetUIAimState() const { return mImguiAimState; }
     std::optional<bool>    GetUIClickState() const { return mImguiClickState; }
@@ -240,6 +263,8 @@ private:
     std::vector<XrView>                  mViews;
     std::vector<XrEnvironmentBlendMode>  mBlendModes;
     uint32_t                             mCurrentViewIndex = 0;
+    // mCameras[i] corresponds to mViews[i]
+    std::vector<XrCamera> mCameras;
 
     std::unordered_map<LayerRef, std::unique_ptr<XrLayerBase>> mLayers;
     LayerRef                                                   mNextLayerRef = 0;

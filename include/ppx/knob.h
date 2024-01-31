@@ -444,8 +444,8 @@ private:
 class KnobManager
 {
 public:
-    KnobManager()                   = default;
-    KnobManager(const KnobManager&) = delete;
+    KnobManager()                              = default;
+    KnobManager(const KnobManager&)            = delete;
     KnobManager& operator=(const KnobManager&) = delete;
 
 private:

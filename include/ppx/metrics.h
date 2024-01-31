@@ -29,9 +29,9 @@
 namespace ppx {
 namespace metrics {
 
-#define METRICS_NO_COPY(TYPE__)     \
-    TYPE__(TYPE__&&)      = delete; \
-    TYPE__(const TYPE__&) = delete; \
+#define METRICS_NO_COPY(TYPE__)                \
+    TYPE__(TYPE__&&)                 = delete; \
+    TYPE__(const TYPE__&)            = delete; \
     TYPE__& operator=(const TYPE__&) = delete;
 
 ////////////////////////////////////////////////////////////////////////////////

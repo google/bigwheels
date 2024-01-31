@@ -40,7 +40,13 @@ jobs:
         run: |
           git checkout ${GITHUB_SHA}
           git submodule update --init --recursive
-      - name: Build
+      - name: Build without XR support
+        run: |
+          mkdir build_no_xr
+          cd build_no_xr
+          cmake .. -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DPPX_BUILD_TESTS=ON -DPPX_BUILD_XR=0 -DCMAKE_BUILD_TYPE=Debug
+          make -j $(nproc)
+      - name: Build with XR support
         run: |
           mkdir build
           cd build
