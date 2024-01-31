@@ -138,7 +138,6 @@ void DynamicRenderingApp::Setup()
 
             preRecordedCmd->BeginRendering(&renderingInfo);
             {
-                // Clear RTV to greyish blue
                 grfx::RenderTargetClearValue rtvClearValue = {0.7f, 0.7f, 0.7f, 1.0f};
                 grfx::DepthStencilClearValue dsvClearValue = {1.0f, 0xFF};
                 preRecordedCmd->ClearRenderTarget(swapchain->GetColorImage(imageIndex), rtvClearValue);
