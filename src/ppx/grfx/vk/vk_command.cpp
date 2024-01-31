@@ -375,7 +375,7 @@ void CommandBuffer::ClearDepthStencil(
 
         // Make sure pImage is depth stencil in depth stencil view
         if (mDynamicRenderPassInfo.mDepthStencilView->GetImage().Get() != pImage) {
-            // PPX_ASSERT_MSG(false, "Passed image is not in depth stencil view.");
+            PPX_ASSERT_MSG(false, "Passed image is not in depth stencil view.");
             return;
         }
 
@@ -387,7 +387,7 @@ void CommandBuffer::ClearDepthStencil(
 
         // Make sure pImage is depth stencil in current render pass
         if (pCurrentRenderPass->GetDepthStencilImage().Get() != pImage) {
-            // PPX_ASSERT_MSG(false, "Passed image is not in depth stencil.");
+            PPX_ASSERT_MSG(false, "Passed image is not in depth stencil.");
             return;
         }
 
