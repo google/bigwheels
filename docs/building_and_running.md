@@ -101,22 +101,22 @@ You can list available projects with:
 ```
 
 You can use command line tools to build, package and install projects.
-The example below will assume the `01_triangle` target is built.
+The example below will assume the `sample_01_triangle` target is built.
 
 Some common commands:
 
 ```bash
 # Build using Vulkan's SDK DXC version:
-./gradlew 01_triangle:build
+./gradlew sample_01_triangle:build
 
 # Building with a custom DXC path:
-./gradlew 01_triangle:build -PDXC_PATH=some/path/to/dxc
+./gradlew sample_01_triangle:build -PDXC_PATH=some/path/to/dxc
 
 # Assemble a debug APK without installing:
-./gradlew 01_triangle:assembleDebug
+./gradlew sample_01_triangle:assembleDebug
 
 # Build & install the debug application through ADB:
-./gradlew 01_triangle:installDebug -PDXC_PATH=some/path/to/dxc
+./gradlew sample_01_triangle:installDebug -PDXC_PATH=some/path/to/dxc
 ```
 
 To generate APKs for all available samples:
