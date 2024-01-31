@@ -191,6 +191,13 @@ struct RenderingInfo
     grfx::DepthStencilClearValue DSVClearValue                          = {1.0f, 0xFF};
 };
 
+struct DynamicRenderPassInfo
+{
+    grfx::Rect                             mRenderArea        = {};
+    std::vector<grfx::RenderTargetViewPtr> mRenderTargetViews = {};
+    grfx::DepthStencilViewPtr              mDepthStencilView  = nullptr;
+};
+
 // -------------------------------------------------------------------------------------------------
 
 //! @struct CommandPoolCreateInfo
@@ -586,11 +593,8 @@ protected:
     // Returns true when inside a render pass (dynamic or regular)
     bool HasActiveRenderPass() const;
 
-    // Below values are for dynamic render passes only.
-    bool                                   mDynamicRenderPassActive = false;
-    grfx::Rect                             mRenderArea              = {};
-    std::vector<grfx::RenderTargetViewPtr> mRenderTargetViews       = {};
-    grfx::DepthStencilViewPtr              mDepthStencilView        = nullptr;
+    bool                        mDynamicRenderPassActive = false;
+    grfx::DynamicRenderPassInfo mDynamicRenderPassInfo   = {};
 
 private:
     virtual void BeginRenderPassImpl(const grfx::RenderPassBeginInfo* pBeginInfo) = 0;

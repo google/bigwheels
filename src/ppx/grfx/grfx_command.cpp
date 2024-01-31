@@ -70,14 +70,14 @@ void CommandBuffer::BeginRendering(const grfx::RenderingInfo* pRenderingInfo)
     PPX_ASSERT_MSG(!HasActiveRenderPass(), "cannot nest render passes");
 
     BeginRenderingImpl(pRenderingInfo);
-    mDynamicRenderPassActive = true;
-    mRenderArea              = pRenderingInfo->renderArea;
-    auto views               = pRenderingInfo->pRenderTargetViews;
+    mDynamicRenderPassActive           = true;
+    mDynamicRenderPassInfo.mRenderArea = pRenderingInfo->renderArea;
+    auto views                         = pRenderingInfo->pRenderTargetViews;
     for (uint32_t i = 0; i < pRenderingInfo->renderTargetCount; ++i) {
         const grfx::RenderTargetViewPtr& rtv = views[i];
-        mRenderTargetViews.push_back(rtv);
+        mDynamicRenderPassInfo.mRenderTargetViews.push_back(rtv);
     }
-    mDepthStencilView = pRenderingInfo->pDepthStencilView;
+    mDynamicRenderPassInfo.mDepthStencilView = pRenderingInfo->pDepthStencilView;
 }
 
 void CommandBuffer::EndRendering()
@@ -86,10 +86,10 @@ void CommandBuffer::EndRendering()
     PPX_ASSERT_MSG(IsNull(mCurrentRenderPass), "Non-dynamic render pass active, use EndRendering instead");
 
     EndRenderingImpl();
-    mDynamicRenderPassActive = false;
-    mRenderArea              = {};
-    mRenderTargetViews       = {};
-    mDepthStencilView        = nullptr;
+    mDynamicRenderPassActive                  = false;
+    mDynamicRenderPassInfo.mRenderArea        = {};
+    mDynamicRenderPassInfo.mRenderTargetViews = {};
+    mDynamicRenderPassInfo.mDepthStencilView  = nullptr;
 }
 
 void CommandBuffer::BeginRenderPass(const grfx::RenderPass* pRenderPass)

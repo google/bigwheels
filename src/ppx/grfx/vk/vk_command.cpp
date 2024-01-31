@@ -291,6 +291,7 @@ void CommandBuffer::ClearRenderTarget(
     const grfx::RenderTargetClearValue& clearValue)
 {
     if (!HasActiveRenderPass()) {
+        PPX_LOG_WARN("No active render pass.");
         return;
     }
 
@@ -300,9 +301,9 @@ void CommandBuffer::ClearRenderTarget(
 
     // Dynamic render pass
     if (mDynamicRenderPassActive) {
-        renderArea = mRenderArea;
+        renderArea = mDynamicRenderPassInfo.mRenderArea;
 
-        auto views = mRenderTargetViews;
+        auto views = mDynamicRenderPassInfo.mRenderTargetViews;
         for (uint32_t i = 0; i < views.size(); ++i) {
             auto rtv   = views[i];
             auto image = rtv->GetImage();
@@ -322,13 +323,12 @@ void CommandBuffer::ClearRenderTarget(
         const uint32_t renderTargetIndex = pCurrentRenderPass->GetRenderTargetImageIndex(pImage);
         colorAttachment                  = renderTargetIndex;
 
-        // Get view at renderTargetIndex
         auto view      = pCurrentRenderPass->GetRenderTargetView(renderTargetIndex);
         baseArrayLayer = view->GetArrayLayer();
     }
 
     if (colorAttachment == UINT32_MAX) {
-        PPX_LOG_WARN("pImage is not a render target.");
+        PPX_ASSERT_MSG(false, "Passed image is not a render target.");
         return;
     }
 
@@ -342,7 +342,6 @@ void CommandBuffer::ClearRenderTarget(
     attachment.clearValue.color.float32[3] = clearValue.a;
 
     // Clear rect
-
     VkClearRect clearRect    = {};
     clearRect.rect.offset    = {renderArea.x, renderArea.y};
     clearRect.rect.extent    = {renderArea.width, renderArea.height};
@@ -363,6 +362,7 @@ void CommandBuffer::ClearDepthStencil(
     uint32_t                            clearFlags)
 {
     if (!HasActiveRenderPass()) {
+        PPX_LOG_WARN("No active render pass.");
         return;
     }
 
@@ -371,16 +371,15 @@ void CommandBuffer::ClearDepthStencil(
 
     // Dynamic render pass
     if (mDynamicRenderPassActive) {
-        // Clear rect
-        renderArea = mRenderArea;
+        renderArea = mDynamicRenderPassInfo.mRenderArea;
 
         // Make sure pImage is depth stencil in depth stencil view
-        if (mDepthStencilView->GetImage().Get() != pImage) {
+        if (mDynamicRenderPassInfo.mDepthStencilView->GetImage().Get() != pImage) {
+            // PPX_ASSERT_MSG(false, "Passed image is not in depth stencil view.");
             return;
         }
 
-        // Get array layer
-        baseArrayLayer = mDepthStencilView->GetArrayLayer();
+        baseArrayLayer = mDynamicRenderPassInfo.mDepthStencilView->GetArrayLayer();
     }
     else {
         // active regular render pass
@@ -388,6 +387,7 @@ void CommandBuffer::ClearDepthStencil(
 
         // Make sure pImage is depth stencil in current render pass
         if (pCurrentRenderPass->GetDepthStencilImage().Get() != pImage) {
+            // PPX_ASSERT_MSG(false, "Passed image is not in depth stencil.");
             return;
         }
 
@@ -416,6 +416,7 @@ void CommandBuffer::ClearDepthStencil(
     attachment.clearValue.depthStencil.depth   = clearValue.depth;
     attachment.clearValue.depthStencil.stencil = clearValue.stencil;
 
+    // Clear rect
     VkClearRect clearRect    = {};
     clearRect.rect.offset    = {renderArea.x, renderArea.y};
     clearRect.rect.extent    = {renderArea.width, renderArea.height};
