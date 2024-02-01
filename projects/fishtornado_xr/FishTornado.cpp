@@ -1067,7 +1067,10 @@ void FishTornadoApp::Render()
 
     grfx::SwapchainPtr swapchain = GetSwapchain(currentViewIndex);
 
-    UpdateTime();
+    // Only update for the first eye since this render method is called twice in XR mode.
+    if (currentViewIndex == 0) {
+        UpdateTime();
+    }
 
     if (swapchain->ShouldSkipExternalSynchronization()) {
         // No need to

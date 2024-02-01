@@ -176,6 +176,7 @@ list(
     ${INC_DIR}/ppx/timer.h
     ${INC_DIR}/ppx/transform.h
     ${INC_DIR}/ppx/tri_mesh.h
+    ${INC_DIR}/ppx/ui_util.h
     ${INC_DIR}/ppx/util.h
     ${INC_DIR}/ppx/window.h
     ${INC_DIR}/ppx/wire_mesh.h
@@ -271,6 +272,7 @@ list(
     ${SRC_DIR}/ppx/grfx/grfx_render_pass.cpp
     ${SRC_DIR}/ppx/grfx/grfx_scope.cpp
     ${SRC_DIR}/ppx/grfx/grfx_shader.cpp
+    ${SRC_DIR}/ppx/grfx/grfx_shading_rate.cpp
     ${SRC_DIR}/ppx/grfx/grfx_swapchain.cpp
     ${SRC_DIR}/ppx/grfx/grfx_sync.cpp
     ${SRC_DIR}/ppx/grfx/grfx_text_draw.cpp

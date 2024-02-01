@@ -22,6 +22,10 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/third_party/googletest third_party/googlete
 macro(package_add_test TESTNAME)
     add_executable(${TESTNAME} ${ARGN})
     add_dependencies(build-tests ${TESTNAME})
+    target_include_directories(
+        ${TESTNAME}
+        PRIVATE ${PPX_THIRD_PARTY_DIR}/VulkanMemoryAllocator/include
+    )
     target_link_libraries(${TESTNAME} ${PROJECT_NAME} gtest gmock gtest_main)
     set_target_properties(${TESTNAME} PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/test"
@@ -55,5 +59,6 @@ list(
     transform_test.cpp
     filesystem_test.cpp
     filesystem_util_test.cpp
+    vk_shading_rate_test.cpp
 )
 package_add_test(ppx_tests ${TEST_SOURCES})
