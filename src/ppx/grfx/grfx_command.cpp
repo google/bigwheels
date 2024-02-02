@@ -86,10 +86,8 @@ void CommandBuffer::EndRendering()
     PPX_ASSERT_MSG(IsNull(mCurrentRenderPass), "Non-dynamic render pass active, use EndRendering instead");
 
     EndRenderingImpl();
-    mDynamicRenderPassActive                  = false;
-    mDynamicRenderPassInfo.mRenderArea        = {};
-    mDynamicRenderPassInfo.mRenderTargetViews = {};
-    mDynamicRenderPassInfo.mDepthStencilView  = nullptr;
+    mDynamicRenderPassActive = false;
+    mDynamicRenderPassInfo   = {};
 }
 
 void CommandBuffer::BeginRenderPass(const grfx::RenderPass* pRenderPass)

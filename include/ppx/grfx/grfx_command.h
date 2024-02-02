@@ -191,13 +191,6 @@ struct RenderingInfo
     grfx::DepthStencilClearValue DSVClearValue                          = {1.0f, 0xFF};
 };
 
-struct DynamicRenderPassInfo
-{
-    grfx::Rect                             mRenderArea        = {};
-    std::vector<grfx::RenderTargetViewPtr> mRenderTargetViews = {};
-    grfx::DepthStencilViewPtr              mDepthStencilView  = nullptr;
-};
-
 // -------------------------------------------------------------------------------------------------
 
 //! @struct CommandPoolCreateInfo
@@ -590,11 +583,18 @@ public:
     void Draw(const grfx::FullscreenQuad* pQuad, uint32_t setCount, const grfx::DescriptorSet* const* ppSets);
 
 protected:
+    struct DynamicRenderPassInfo
+    {
+        grfx::Rect                             mRenderArea        = {};
+        std::vector<grfx::RenderTargetViewPtr> mRenderTargetViews = {};
+        grfx::DepthStencilViewPtr              mDepthStencilView  = nullptr;
+    };
+
     // Returns true when inside a render pass (dynamic or regular)
     bool HasActiveRenderPass() const;
 
-    bool                        mDynamicRenderPassActive = false;
-    grfx::DynamicRenderPassInfo mDynamicRenderPassInfo   = {};
+    bool                  mDynamicRenderPassActive = false;
+    DynamicRenderPassInfo mDynamicRenderPassInfo   = {};
 
 private:
     virtual void BeginRenderPassImpl(const grfx::RenderPassBeginInfo* pBeginInfo) = 0;

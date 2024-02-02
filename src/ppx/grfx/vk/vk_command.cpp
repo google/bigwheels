@@ -373,31 +373,16 @@ void CommandBuffer::ClearDepthStencil(
     if (mDynamicRenderPassActive) {
         renderArea = mDynamicRenderPassInfo.mRenderArea;
 
-        // Make sure pImage is depth stencil in depth stencil view
-        if (mDynamicRenderPassInfo.mDepthStencilView->GetImage().Get() != pImage) {
-            PPX_ASSERT_MSG(false, "Passed image is not in depth stencil view.");
-            return;
-        }
-
         baseArrayLayer = mDynamicRenderPassInfo.mDepthStencilView->GetArrayLayer();
     }
     else {
         // active regular render pass
         auto pCurrentRenderPass = GetCurrentRenderPass();
 
-        // Make sure pImage is depth stencil in current render pass
-        if (pCurrentRenderPass->GetDepthStencilImage().Get() != pImage) {
-            PPX_ASSERT_MSG(false, "Passed image is not in depth stencil.");
-            return;
-        }
-
-        // Get view
         auto view = pCurrentRenderPass->GetDepthStencilView();
 
-        // Clear rect
         renderArea = pCurrentRenderPass->GetRenderArea();
 
-        // Get array layer
         baseArrayLayer = view->GetArrayLayer();
     }
 
