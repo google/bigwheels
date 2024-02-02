@@ -126,10 +126,9 @@ void DynamicRenderingApp::Setup()
             grfx::RenderingInfo renderingInfo   = {};
             renderingInfo.flags.bits.suspending = true;
             renderingInfo.renderArea            = {0, 0, swapchain->GetWidth(), swapchain->GetHeight()};
-            renderingInfo.RTVClearValues[0]     = {{0.7f, 0.7f, 0.7f, 1.0f}};
-            renderingInfo.DSVClearValue         = {1.0f, 0xFF};
             renderingInfo.renderTargetCount     = 1;
-            renderingInfo.pRenderTargetViews[0] = swapchain->GetRenderTargetView(imageIndex, grfx::AttachmentLoadOp::ATTACHMENT_LOAD_OP_CLEAR);
+            // There will be an explicit clear inside a renderpass.
+            renderingInfo.pRenderTargetViews[0] = swapchain->GetRenderTargetView(imageIndex, grfx::AttachmentLoadOp::ATTACHMENT_LOAD_OP_LOAD);
             renderingInfo.pDepthStencilView     = swapchain->GetDepthStencilView(imageIndex);
 
             float4x4 P   = glm::perspective(glm::radians(60.0f), GetWindowAspect(), 0.001f, 10000.0f);
@@ -139,6 +138,10 @@ void DynamicRenderingApp::Setup()
 
             preRecordedCmd->BeginRendering(&renderingInfo);
             {
+                grfx::RenderTargetClearValue rtvClearValue = {0.7f, 0.7f, 0.7f, 1.0f};
+                grfx::DepthStencilClearValue dsvClearValue = {1.0f, 0xFF};
+                preRecordedCmd->ClearRenderTarget(swapchain->GetColorImage(imageIndex), rtvClearValue);
+                preRecordedCmd->ClearDepthStencil(swapchain->GetDepthImage(imageIndex), dsvClearValue, grfx::CLEAR_FLAG_DEPTH);
                 preRecordedCmd->SetScissors(GetScissor());
                 preRecordedCmd->SetViewports(GetViewport());
                 preRecordedCmd->PushGraphicsConstants(mPipelineInterface, 16, &mat);
