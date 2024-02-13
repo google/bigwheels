@@ -327,7 +327,7 @@ Result Device::ConfigureDescriptorIndexingFeatures(
     diFeatures.shaderUniformTexelBufferArrayNonUniformIndexing    = foundDiFeatures.shaderUniformTexelBufferArrayNonUniformIndexing;
     diFeatures.shaderStorageTexelBufferArrayNonUniformIndexing    = foundDiFeatures.shaderStorageTexelBufferArrayNonUniformIndexing;
     diFeatures.descriptorBindingUniformBufferUpdateAfterBind      = foundDiFeatures.descriptorBindingUniformBufferUpdateAfterBind;
-    diFeatures.descriptorBindingSampledImageUpdateAfterBind       = foundDiFeatures.descriptorBindingSampledImageUpdateAfterBind;
+    diFeatures.descriptorBindingSampledImageUpdateAfterBind       = VK_TRUE;
     diFeatures.descriptorBindingStorageImageUpdateAfterBind       = foundDiFeatures.descriptorBindingStorageImageUpdateAfterBind;
     diFeatures.descriptorBindingStorageBufferUpdateAfterBind      = foundDiFeatures.descriptorBindingStorageBufferUpdateAfterBind;
     diFeatures.descriptorBindingUniformTexelBufferUpdateAfterBind = foundDiFeatures.descriptorBindingUniformTexelBufferUpdateAfterBind;
@@ -339,10 +339,21 @@ Result Device::ConfigureDescriptorIndexingFeatures(
 
     // Verify that any asserted features were actually found to be
     // supported.
+    std::vector<std::string_view> missingFeatures;
+    if (!foundDiFeatures.descriptorBindingSampledImageUpdateAfterBind) {
+        missingFeatures.push_back("descriptorBindingSampledImageUpdateAfterBind");
+    }
     if (!foundDiFeatures.runtimeDescriptorArray) {
-        PPX_ASSERT_MSG(
-            false,
-            "RuntimeDescriptorArray feature expected, but was not enabled.");
+        missingFeatures.push_back("runtimeDescriptorArray");
+    }
+
+    if (!missingFeatures.empty()) {
+        std::stringstream ss;
+        ss << "Device does not support required features:" << PPX_LOG_ENDL;
+        for (const auto& elem : missingFeatures) {
+            ss << " " << elem << PPX_LOG_ENDL;
+        }
+        PPX_ASSERT_MSG(false, ss.str());
         return ppx::ERROR_REQUIRED_FEATURE_UNAVAILABLE;
     }
 
@@ -542,6 +553,14 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
         mHasDescriptorIndexingFeatures = true;
         ConfigureDescriptorIndexingFeatures(pCreateInfo, mDescriptorIndexingFeatures);
         extensionStructs.push_back(reinterpret_cast<VkBaseOutStructure*>(&mDescriptorIndexingFeatures));
+    }
+
+    // VK_EXT_scalar_block_layout
+    VkPhysicalDeviceScalarBlockLayoutFeatures scalarBlockLayoutFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES};
+    if ((GetInstance()->GetApi() >= grfx::API_VK_1_2) || ElementExists(std::string(VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME), mExtensions)) {
+        scalarBlockLayoutFeatures.scalarBlockLayout = VK_TRUE;
+
+        extensionStructs.push_back(reinterpret_cast<VkBaseOutStructure*>(&scalarBlockLayoutFeatures));
     }
 
     // VK_KHR_timeline_semaphore
