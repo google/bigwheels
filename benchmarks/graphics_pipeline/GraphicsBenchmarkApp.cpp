@@ -499,6 +499,7 @@ void GraphicsBenchmarkApp::UpdateSkyBoxDescriptors()
 
 void GraphicsBenchmarkApp::UpdateSphereDescriptors()
 {
+    GetDevice()->WaitIdle();
     uint32_t n = GetNumFramesInFlight();
     for (size_t i = 0; i < n; i++) {
         grfx::DescriptorSetPtr pDescriptorSet = mSphere.descriptorSets[i];
