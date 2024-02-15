@@ -238,10 +238,12 @@ Result Device::ConfigureFeatures(const grfx::DeviceCreateInfo* pCreateInfo, VkPh
 
     // Default device features
     //
+    // 2024/02/13 - Changed fillModeNonSolid to true to allow use of VK_POLYGON_MODE_LINE.
     // 2021/11/15 - Changed logic to use feature bit from GPU for geo and tess shaders to accomodate
     //              SwiftShader not having support for these shader types.
     //
     features                                      = {};
+    features.fillModeNonSolid                     = VK_TRUE;
     features.fullDrawIndexUint32                  = VK_TRUE;
     features.imageCubeArray                       = VK_TRUE;
     features.independentBlend                     = foundFeatures.independentBlend;

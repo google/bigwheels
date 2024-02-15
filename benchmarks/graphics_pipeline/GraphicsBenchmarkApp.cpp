@@ -488,6 +488,7 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsResources()
 
 void GraphicsBenchmarkApp::UpdateSkyBoxDescriptors()
 {
+    GetDevice()->WaitIdle();
     uint32_t n = GetNumFramesInFlight();
     for (size_t i = 0; i < n; i++) {
         grfx::DescriptorSetPtr pDescriptorSet = mSkyBox.descriptorSets[i];
@@ -499,6 +500,7 @@ void GraphicsBenchmarkApp::UpdateSkyBoxDescriptors()
 
 void GraphicsBenchmarkApp::UpdateSphereDescriptors()
 {
+    GetDevice()->WaitIdle();
     uint32_t n = GetNumFramesInFlight();
     for (size_t i = 0; i < n; i++) {
         grfx::DescriptorSetPtr pDescriptorSet = mSphere.descriptorSets[i];
@@ -524,6 +526,7 @@ void GraphicsBenchmarkApp::UpdateSphereDescriptors()
 
 void GraphicsBenchmarkApp::UpdateFullscreenQuadsDescriptors()
 {
+    GetDevice()->WaitIdle();
     uint32_t n = GetNumFramesInFlight();
     for (size_t i = 0; i < n; i++) {
         grfx::DescriptorSetPtr pDescriptorSet = mFullscreenQuads.descriptorSets[i];
