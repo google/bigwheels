@@ -1,4 +1,4 @@
-// Copyright 2023 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 #define ENABLE_VTX_ATTR_TEXCOORD
 #define ENABLE_VTX_ATTR_NORMAL
 #define ENABLE_VTX_ATTR_TANGENT
+
 #include "MaterialInterface.hlsli"
 
 #define VTX_POSITION 0

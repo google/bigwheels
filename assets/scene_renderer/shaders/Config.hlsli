@@ -1,4 +1,4 @@
-// Copyright 2023 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -51,19 +51,6 @@
 
 #define MATERIAL_SAMPLERS_REGISTER          s512
 #define MATERIAL_TEXTURES_REGISTER          t1024
-
-//// -------------------------------------------------------------------------------------------------
-//// Spaces
-////
-//// Different spaces for each resource type in case we want to have
-//// a bindless entry at the end. Vulkan requires this since it
-//// does not have resource type namespacing.
-////
-//// -------------------------------------------------------------------------------------------------
-//#define CBV_SPACE             space0 // ConstantBuffer
-//#define SRV_UAV_BUFFER_SPACE  space1 // StructuredBuffer, RWStructuredBuffer
-//#define SRV_TEXTURE_SPACE     space2 // Texture
-//#define UAV_TEXTURE_SPACE     space3 // RWTexture
 
 // -------------------------------------------------------------------------------------------------
 // Params Structs
