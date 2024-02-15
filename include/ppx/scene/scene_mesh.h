@@ -74,6 +74,8 @@ public:
         uint32_t                      vertexCount,
         const ppx::AABB&              boundingBox);
 
+    ~PrimitiveBatch() = default;
+
     const scene::Material*        GetMaterial() const { return mMaterial.get(); }
     const grfx::IndexBufferView&  GetIndexBufferView() const { return mIndexBufferView; }
     const grfx::VertexBufferView& GetPositionBufferView() const { return mPositionBufferView; }
