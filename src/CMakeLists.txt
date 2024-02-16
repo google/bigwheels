@@ -167,6 +167,7 @@ list(
     ${INC_DIR}/ppx/metrics.h
     ${INC_DIR}/ppx/mipmap.h
     ${INC_DIR}/ppx/obj_ptr.h
+    ${INC_DIR}/ppx/options_new.h
     ${INC_DIR}/ppx/platform.h
     ${INC_DIR}/ppx/ppx.h
     ${INC_DIR}/ppx/ppm_export.h
@@ -203,6 +204,7 @@ list(
     ${SRC_DIR}/ppx/math_config.cpp
     ${SRC_DIR}/ppx/metrics.cpp
     ${SRC_DIR}/ppx/mipmap.cpp
+    ${SRC_DIR}/ppx/options_new.cpp
     ${SRC_DIR}/ppx/platform.cpp
     ${SRC_DIR}/ppx/ppm_export.cpp
     ${SRC_DIR}/ppx/profiler.cpp
