@@ -76,11 +76,13 @@ std::string_view TrimBothEnds(std::string_view s, std::string_view c)
         return s;
     }
     auto strBegin = s.find_first_not_of(c);
+    if (strBegin == std::string_view::npos) {
+        return "";
+    }
     auto strEnd   = s.find_last_not_of(c);
     auto strRange = strEnd - strBegin + 1;
     return s.substr(strBegin, strRange);
 }
-
 std::pair<std::string_view, std::string_view> SplitInTwo(std::string_view s, char delimiter)
 {
     std::pair<std::string_view, std::string_view> stringViewPair;
@@ -97,6 +99,27 @@ std::pair<std::string_view, std::string_view> SplitInTwo(std::string_view s, cha
     stringViewPair.first  = s.substr(0, delimiterIndex);
     stringViewPair.second = s.substr(delimiterIndex + 1);
     return stringViewPair;
+}
+
+std::vector<std::string_view> Split(std::string_view s, char delimiter)
+{
+    std::vector<std::string_view> stringViewList;
+    if (s.size() == 0) {
+        stringViewList.push_back("");
+        return stringViewList;
+    }
+
+    std::string_view remainingString = s;
+    size_t           delimiterIndex  = remainingString.find(delimiter);
+    while (delimiterIndex != std::string_view::npos) {
+        std::string_view element = remainingString.substr(0, delimiterIndex);
+        stringViewList.emplace_back(element);
+        remainingString = remainingString.substr(delimiterIndex + 1);
+        delimiterIndex  = remainingString.find(delimiter);
+    }
+    stringViewList.emplace_back(remainingString);
+
+    return stringViewList;
 }
 
 // -------------------------------------------------------------------------------------------------

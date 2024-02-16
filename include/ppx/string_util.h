@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -44,6 +44,11 @@ std::string_view TrimBothEnds(std::string_view s, std::string_view c = " \t");
 // Returns an empty second element if there is no delimiter
 std::pair<std::string_view, std::string_view> SplitInTwo(std::string_view s, char delimiter);
 
+// Splits s at all instances of delimiter and returns N substrings
+// If the delimiter is at the beginning or the end of the string or right beside another delimiter,
+// empty strings can be returned.
+std::vector<std::string_view> Split(std::string_view s, char delimiter);
+
 // -------------------------------------------------------------------------------------------------
 // Formatting Strings
 // -------------------------------------------------------------------------------------------------
@@ -53,6 +58,10 @@ std::pair<std::string_view, std::string_view> SplitInTwo(std::string_view s, cha
 // middle of a word if possible.
 // Leading and trailing whitespace is trimmed from each line.
 std::string WrapText(const std::string& s, size_t width, size_t indent = 0);
+
+// -------------------------------------------------------------------------------------------------
+// Converting to Strings
+// -------------------------------------------------------------------------------------------------
 
 // Provides string representation of value for printing or display
 template <typename T>
@@ -72,10 +81,10 @@ std::string ToString(std::vector<T> values)
 {
     std::stringstream ss;
     for (const auto& value : values) {
-        ss << ToString<T>(value) << ", ";
+        ss << ToString<T>(value) << ",";
     }
     std::string valueStr = ss.str();
-    return valueStr.substr(0, valueStr.length() - 2);
+    return valueStr.substr(0, valueStr.length() - 1);
 }
 
 // Same as above, for pairs
@@ -83,7 +92,7 @@ template <typename T>
 std::string ToString(std::pair<T, T> values)
 {
     std::stringstream ss;
-    ss << ToString<T>(values.first) << ", " << ToString<T>(values.second);
+    ss << ToString<T>(values.first) << "," << ToString<T>(values.second);
     return ss.str();
 }
 
@@ -105,7 +114,7 @@ Result Parse(std::string_view valueStr, std::string& parsedValue);
 Result Parse(std::string_view valueStr, bool& parsedValue);
 
 // For integers, chars and floats
-// e.g. "1.0" -> 1.0f
+// e.g. "1.0" -> 1.0f or 1
 // e.g. "-20" -> -20
 // e.g. "c" -> 'c'
 template <typename T>
@@ -121,6 +130,11 @@ Result Parse(std::string_view valueStr, T& parsedValue)
         return ERROR_FAILED;
     }
     parsedValue = valueAsNum;
+
+    if (std::is_integral_v<T> && (valueStr.find('.') != std::string_view::npos)) {
+        PPX_LOG_WARN("value string is truncated: " << valueStr);
+    }
+
     return SUCCESS;
 }
 

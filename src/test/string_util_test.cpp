@@ -1,4 +1,4 @@
-// Copyright 2022 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -75,6 +75,14 @@ TEST(StringUtilTest, TrimBothEnds_LeftAndRightSpaces)
     EXPECT_EQ(toTrim, "  Some spaces  ");
 }
 
+TEST(StringUtilTest, TrimBothEnds_OnlySpaces)
+{
+    std::string_view toTrim  = "    ";
+    std::string_view trimmed = TrimBothEnds(toTrim);
+    EXPECT_EQ(trimmed, "");
+    EXPECT_EQ(toTrim, "    ");
+}
+
 TEST(StringUtilTest, SplitInTwo_EmptyString)
 {
     std::string_view                              toSplit = "";
@@ -136,6 +144,62 @@ TEST(StringUtilTest, SplitInTwo_TwoElementsWithConsecutiveDelimiters)
     std::string_view                              toSplit = "Apple,,Banana";
     std::pair<std::string_view, std::string_view> want    = std::make_pair("Apple", ",Banana");
     std::pair<std::string_view, std::string_view> got     = SplitInTwo(toSplit, ',');
+    EXPECT_EQ(got, want);
+}
+
+TEST(StringUtilTest, Split_EmptyString)
+{
+    std::string_view              toSplit = "";
+    std::vector<std::string_view> want    = std::vector<std::string_view>{""};
+    std::vector<std::string_view> got     = Split(toSplit, ',');
+    EXPECT_EQ(got, want);
+}
+
+TEST(StringUtilTest, Split_Pass)
+{
+    std::string_view              toSplit = "one,two";
+    std::vector<std::string_view> want    = std::vector<std::string_view>{"one", "two"};
+    std::vector<std::string_view> got     = Split(toSplit, ',');
+    EXPECT_EQ(got, want);
+}
+
+TEST(StringUtilTest, Split_NoDelimiter)
+{
+    std::string_view              toSplit = "testing this string";
+    std::vector<std::string_view> want    = std::vector<std::string_view>{"testing this string"};
+    std::vector<std::string_view> got     = Split(toSplit, ',');
+    EXPECT_EQ(got, want);
+}
+
+TEST(StringUtilTest, Split_LeadingDelimiter)
+{
+    std::string_view              toSplit = ",testing";
+    std::vector<std::string_view> want    = std::vector<std::string_view>{"", "testing"};
+    std::vector<std::string_view> got     = Split(toSplit, ',');
+    EXPECT_EQ(got, want);
+}
+
+TEST(StringUtilTest, Split_TrailingDelimiter)
+{
+    std::string_view              toSplit = "testing,";
+    std::vector<std::string_view> want    = std::vector<std::string_view>{"testing", ""};
+    std::vector<std::string_view> got     = Split(toSplit, ',');
+    EXPECT_EQ(got, want);
+}
+
+TEST(StringUtilTest, Split_OnlyDelimiter)
+{
+    std::string_view              toSplit = ",";
+    std::vector<std::string_view> want    = std::vector<std::string_view>{"", ""};
+    std::vector<std::string_view> got     = Split(toSplit, ',');
+    EXPECT_EQ(got, want);
+}
+
+TEST(StringUtilTest, Split_ConsecutiveDelimiter)
+{
+    std::string_view              toSplit = "one,,two";
+    std::vector<std::string_view> want    = std::vector<std::string_view>{"one", "", "two"};
+    std::vector<std::string_view> got     = Split(toSplit, ',');
     EXPECT_EQ(got, want);
 }
 
@@ -314,7 +378,7 @@ TEST(StringUtilTest, ToString_FloatNoTrailingZeroes)
 TEST(StringUtilTest, ToString_PairInt)
 {
     std::pair<int, int> pi         = std::make_pair(10, 20);
-    std::string         wantString = "10, 20";
+    std::string         wantString = "10,20";
     std::string         gotString  = ToString(pi);
     EXPECT_EQ(gotString, wantString);
 }
@@ -322,7 +386,7 @@ TEST(StringUtilTest, ToString_PairInt)
 TEST(StringUtilTest, ToString_VectorString)
 {
     std::vector<std::string> vs         = {"hello", "world", "!"};
-    std::string              wantString = "hello, world, !";
+    std::string              wantString = "hello,world,!";
     std::string              gotString  = ToString(vs);
     EXPECT_EQ(gotString, wantString);
 }
@@ -330,7 +394,7 @@ TEST(StringUtilTest, ToString_VectorString)
 TEST(StringUtilTest, ToString_VectorBool)
 {
     std::vector<bool> vb         = {true, false, true, true, false};
-    std::string       wantString = "true, false, true, true, false";
+    std::string       wantString = "true,false,true,true,false";
     std::string       gotString  = ToString(vb);
     EXPECT_EQ(gotString, wantString);
 }
@@ -430,6 +494,17 @@ TEST(StringUtilTest, Parse_BoolFail)
 TEST(StringUtilTest, Parse_IntegerPass)
 {
     std::string toParse     = "-10";
+    int         parsedValue = 0;
+    int         wantValue   = -10;
+
+    auto res = Parse(toParse, parsedValue);
+    EXPECT_TRUE(ppx::Success(res));
+    EXPECT_EQ(parsedValue, wantValue);
+}
+
+TEST(StringUtilTest, Parse_IntegerTruncated)
+{
+    std::string toParse     = "-10.3";
     int         parsedValue = 0;
     int         wantValue   = -10;
 
