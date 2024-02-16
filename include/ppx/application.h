@@ -20,6 +20,7 @@
 #include "ppx/fs.h"
 #include "ppx/imgui_impl.h"
 #include "ppx/knob.h"
+#include "ppx/knob_new.h"
 #include "ppx/math_config.h"
 #include "ppx/metrics.h"
 #include "ppx/timer.h"
@@ -258,6 +259,40 @@ struct StandardOptions
     std::shared_ptr<KnobFlag<std::string>> pShadingRateMode;
 };
 
+struct StandardOptionsNew
+{
+    // Flags
+    std::shared_ptr<GeneralKnob<bool>> pListGpus;
+    std::shared_ptr<GeneralKnob<bool>> pUseSoftwareRenderer;
+#if !defined(PPX_LINUX_HEADLESS)
+    std::shared_ptr<GeneralKnob<bool>> pHeadless;
+#endif
+    std::shared_ptr<GeneralKnob<bool>> pDeterministic;
+    std::shared_ptr<GeneralKnob<bool>> pEnableMetrics;
+    std::shared_ptr<GeneralKnob<bool>> pOverwriteMetricsFile;
+
+    // Options
+    std::shared_ptr<RangeKnob<uint32_t>> pGpuIndex;
+    std::shared_ptr<RangeKnob<uint64_t>> pFrameCount;
+    std::shared_ptr<RangeKnob<uint32_t>> pRunTimeMs;
+    std::shared_ptr<RangeKnob<int>>      pStatsFrameWindow;
+    std::shared_ptr<RangeKnob<int>>      pScreenshotFrameNumber;
+
+    std::shared_ptr<GeneralKnob<std::string>> pScreenshotPath;
+    std::shared_ptr<GeneralKnob<std::string>> pMetricsFilename;
+
+    std::shared_ptr<RangeKnob<int>> pResolution;
+#if defined(PPX_BUILD_XR)
+    std::shared_ptr<RangeKnob<int>>                        pXrUiResolution;
+    std::shared_ptr<GeneralKnob<std::vector<std::string>>> pXrRequiredExtensions;
+#endif
+
+    std::shared_ptr<GeneralKnob<std::vector<std::string>>> pAssetsPaths;
+    std::shared_ptr<GeneralKnob<std::vector<std::string>>> pConfigJsonPaths;
+
+    std::shared_ptr<GeneralKnob<std::string>> pShadingRateMode;
+};
+
 // -------------------------------------------------------------------------------------------------
 // Application
 // -------------------------------------------------------------------------------------------------
@@ -372,6 +407,8 @@ struct ApplicationSettings
         std::vector<std::string> xrRequiredExtensions = {};
 #endif
     } standardKnobsDefaultValue;
+
+    bool useKnobManagerNew = false;
 };
 
 //! @class Application
@@ -440,7 +477,8 @@ protected:
     void DrawDebugInfo();
     void DrawProfilerGrfxApiFunctions();
 
-    KnobManager& GetKnobManager() { return mKnobManager; }
+    KnobManager&    GetKnobManager() { return mKnobManager; }
+    KnobManagerNew& GetKnobManagerNew() { return mKnobManagerNew; }
 
 public:
     int  Run(int argc, char** argv);
@@ -451,6 +489,7 @@ public:
 
     const ApplicationSettings* GetSettings() const { return &mSettings; }
     const StandardOptions&     GetStandardOptions() const { return mStandardOpts; }
+    const StandardOptionsNew&  GetStandardOptionsNew() const { return mStandardOptsNew; }
     uint32_t                   GetWindowWidth() const { return mSettings.window.width; }
     uint32_t                   GetWindowHeight() const { return mSettings.window.height; }
     bool                       IsWindowIconified() const;
@@ -589,6 +628,7 @@ private:
 
     // Initializes standard knobs
     void InitStandardKnobs();
+    void InitStandardKnobsNew();
 
     // List gpus
     void ListGPUs() const;
@@ -628,6 +668,7 @@ private:
 private:
     CommandLineParser               mCommandLineParser;
     StandardOptions                 mStandardOpts;
+    StandardOptionsNew              mStandardOptsNew;
     float                           mRunTimeSeconds;
     ApplicationSettings             mSettings = {};
     std::string                     mDecoratedApiName;
@@ -643,6 +684,7 @@ private:
     std::vector<grfx::SwapchainPtr> mSwapchains;                           // Requires enableDisplay
     std::unique_ptr<ImGuiImpl>      mImGui;
     KnobManager                     mKnobManager;
+    KnobManagerNew                  mKnobManagerNew;
 
     uint64_t          mFrameCount        = 0;
     uint32_t          mSwapchainIndex    = 0;

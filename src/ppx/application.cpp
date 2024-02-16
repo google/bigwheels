@@ -14,6 +14,7 @@
 
 #include "ppx/application.h"
 #include "ppx/fs.h"
+#include "ppx/options_new.h"
 #include "ppx/ppm_export.h"
 #include "ppx/profiler.h"
 
@@ -631,6 +632,9 @@ void Application::DestroyPlatformWindow()
 
 void Application::DispatchInitKnobs()
 {
+    if (mSettings.useKnobManagerNew) {
+        InitStandardKnobsNew();
+    }
     InitStandardKnobs();
     InitKnobs();
 }
@@ -895,6 +899,139 @@ void Application::InitStandardKnobs()
     mStandardOpts.pShadingRateMode->SetValidator([](const std::string& res) {
         return res == "" || res == "none" || res == "fdm" || res == "vrs";
     });
+}
+
+void Application::InitStandardKnobsNew()
+{
+    // Flag names in alphabetical order
+    mKnobManagerNew.InitKnob(&mStandardOptsNew.pAssetsPaths, "extra-assets-path", mSettings.standardKnobsDefaultValue.assetsPaths);
+    mStandardOptsNew.pAssetsPaths->SetFlagDescription(
+        "Add a path before the default assets folder in the search list.");
+    mStandardOptsNew.pAssetsPaths->SetFlagParameters("<path>");
+
+    CommandLineParser commandLineParser;
+    mKnobManagerNew.InitKnob(&mStandardOptsNew.pConfigJsonPaths, commandLineParser.GetJsonConfigFlagName(), mSettings.standardKnobsDefaultValue.configJsonPaths);
+    mStandardOptsNew.pConfigJsonPaths->SetFlagDescription(
+        "Additional commandline flags specified in a JSON file. Values specified in JSON files are "
+        "always overwritten by those specified on the command line. Between different files, the "
+        "later ones take priority.");
+    mStandardOptsNew.pConfigJsonPaths->SetFlagParameters("<path>");
+
+    mKnobManagerNew.InitKnob(&mStandardOptsNew.pDeterministic, "deterministic", mSettings.standardKnobsDefaultValue.deterministic);
+    mStandardOptsNew.pDeterministic->SetFlagDescription(
+        "Disable non-deterministic behaviors, like clocks and ImGui.");
+
+    mKnobManagerNew.InitKnob(&mStandardOptsNew.pEnableMetrics, "enable-metrics", mSettings.standardKnobsDefaultValue.enableMetrics);
+    mStandardOptsNew.pEnableMetrics->SetFlagDescription(
+        "Enable metrics report output. See also: `--metrics-filename` and `--overwrite-metrics-file`.");
+
+    mKnobManagerNew.InitKnob(&mStandardOptsNew.pFrameCount, "frame-count", mSettings.standardKnobsDefaultValue.frameCount);
+    mStandardOptsNew.pFrameCount->SetMin(0);
+    mStandardOptsNew.pFrameCount->SetFlagDescription(
+        "Shutdown the application after successfully rendering N frames. "
+        "If 0, this is disabled.");
+
+    mKnobManagerNew.InitKnob(&mStandardOptsNew.pGpuIndex, "gpu", mSettings.standardKnobsDefaultValue.gpuIndex);
+    mStandardOptsNew.pGpuIndex->SetMin(0);
+    mStandardOptsNew.pGpuIndex->SetFlagDescription(
+        "Select the gpu with the given index. To determine the set of valid "
+        "indices use `--list-gpus`.");
+
+#if !defined(PPX_LINUX_HEADLESS)
+    mKnobManagerNew.InitKnob(&mStandardOptsNew.pHeadless, "headless", mSettings.standardKnobsDefaultValue.headless);
+    mStandardOptsNew.pHeadless->SetFlagDescription(
+        "Run the sample without creating windows.");
+#endif
+
+    mKnobManagerNew.InitKnob(&mStandardOptsNew.pListGpus, "list-gpus", mSettings.standardKnobsDefaultValue.listGpus);
+    mStandardOptsNew.pListGpus->SetFlagDescription(
+        "Prints a list of the available GPUs on the current system with their "
+        "index and exits. See also `--gpu`.");
+
+    mKnobManagerNew.InitKnob(&mStandardOptsNew.pMetricsFilename, "metrics-filename", mSettings.standardKnobsDefaultValue.metricsFilename);
+    mStandardOptsNew.pMetricsFilename->SetFlagDescription(
+        "If metrics are enabled, save the metrics report to the "
+        "provided path. If used, any `@` symbols in the filename "
+        "(not the path) will be replaced with the current timestamp. "
+        "If not a full path, will be defined relative to the default "
+        "output directory. See also `--enable-metrics` and `--overwrite-metrics-file`.");
+
+    mKnobManagerNew.InitKnob(&mStandardOptsNew.pOverwriteMetricsFile, "overwrite-metrics-file", mSettings.standardKnobsDefaultValue.overwriteMetricsFile);
+    mStandardOptsNew.pOverwriteMetricsFile->SetFlagDescription(
+        "Only applies if metrics are enabled with `--enable-metrics`. "
+        "If an existing file at the path set with `--metrics-filename` is found, it will be overwritten. "
+        "See also: `--enable-metrics` and `--metrics-filename`.");
+
+    std::vector<int> resolutionDefaultValues = {mSettings.standardKnobsDefaultValue.resolution.first, mSettings.standardKnobsDefaultValue.resolution.second};
+    mKnobManagerNew.InitKnob(&mStandardOptsNew.pResolution, "resolution", resolutionDefaultValues);
+    mStandardOptsNew.pResolution->SetFlagDescription(
+        "Specify the main window resolution in pixels. Width and Height must be "
+        "two positive integers greater or equal to 1. If 0, window dimensions will be used.");
+#if defined(PPX_BUILD_XR)
+    mStandardOptsNew.pResolution->SetFlagDescription(
+        "Specify the per-eye resolution in pixels. Width and Height must be two "
+        "positive integers greater or equal to 1. If 0, window dimensions will be used.");
+#endif
+    mStandardOptsNew.pResolution->SetFlagParameters("<width>x<height>");
+
+    mKnobManagerNew.InitKnob(&mStandardOptsNew.pRunTimeMs, "run-time-ms", mSettings.standardKnobsDefaultValue.runTimeMs);
+    mStandardOptsNew.pRunTimeMs->SetMin(0);
+    mStandardOptsNew.pRunTimeMs->SetFlagDescription(
+        "Shutdown the application after N milliseconds. If 0, this is disabled.");
+
+    mKnobManagerNew.InitKnob(&mStandardOptsNew.pScreenshotFrameNumber, "screenshot-frame-number", mSettings.standardKnobsDefaultValue.screenshotFrameNumber);
+    mStandardOptsNew.pScreenshotFrameNumber->SetMin(-1);
+    mStandardOptsNew.pScreenshotFrameNumber->SetFlagDescription(
+        "Take a screenshot of frame number N and save it in PPM format. See also "
+        "`--screenshot-path`.");
+
+    mKnobManagerNew.InitKnob(&mStandardOptsNew.pScreenshotPath, "screenshot-path", mSettings.standardKnobsDefaultValue.screenshotPath);
+    mStandardOptsNew.pScreenshotPath->SetFlagDescription(
+        "Save the screenshot to this path. If used, any `#` symbols in the filename "
+        "(not the path) will be replaced with the number of the screenshotted frame. "
+        "If not a full path, will be defined relative to the default output directory. "
+        "See also `--screenshot-frame-number`");
+    mStandardOptsNew.pScreenshotPath->SetFlagParameters("<path>");
+
+    mKnobManagerNew.InitKnob(&mStandardOptsNew.pStatsFrameWindow, "stats-frame-window", mSettings.standardKnobsDefaultValue.statsFrameWindow);
+    mStandardOptsNew.pStatsFrameWindow->SetMin(-1);
+    mStandardOptsNew.pStatsFrameWindow->SetFlagDescription(
+        "Calculate frame statistics over the last N frames only. If 0, "
+        "all frames since the beginning of the application will be used.");
+
+    mKnobManagerNew.InitKnob(&mStandardOptsNew.pUseSoftwareRenderer, "use-software-renderer", mSettings.standardKnobsDefaultValue.useSoftwareRenderer);
+    mStandardOptsNew.pUseSoftwareRenderer->SetFlagDescription(
+        "Use a software renderer instead of a hardware device, if available.");
+    mStandardOptsNew.pUseSoftwareRenderer->SetValidator([gpuIndex{mStandardOptsNew.pGpuIndex->GetValue()}](bool useSoftwareRenderer) {
+        // GPU index must be 0 if software renderer is used.
+        return useSoftwareRenderer ? gpuIndex == 0 : true;
+    });
+
+#if defined(PPX_BUILD_XR)
+    std::vector<int> xruiResolutionDefaultValues = {mSettings.standardKnobsDefaultValue.xrUiResolution.first, mSettings.standardKnobsDefaultValue.xrUiResolution.second};
+    mKnobManagerNew.InitKnob(&mStandardOptsNew.pXrUiResolution, "xr-ui-resolution", xruiResolutionDefaultValues);
+    mStandardOptsNew.pXrUiResolution->SetFlagDescription(
+        "Specify the UI quad resolution in pixels. Width and Height must be two "
+        "positive integers greater or equal to 1. If 0, window dimensions will be used.");
+    mStandardOptsNew.pXrUiResolution->SetFlagParameters("<width>x<height>");
+
+    mKnobManagerNew.InitKnob(&mStandardOptsNew.pXrRequiredExtensions, "xr-required-extension", mSettings.standardKnobsDefaultValue.xrRequiredExtensions);
+    mStandardOptsNew.pXrRequiredExtensions->SetFlagDescription(
+        "Specify any additional OpenXR extensions that need to be loaded in addition "
+        "to the base extensions. Any required extensions that are not supported by the "
+        "target system will cause the application to immediately exit.");
+    mStandardOptsNew.pXrRequiredExtensions->SetFlagParameters("<extension>");
+#endif
+
+    mKnobManagerNew.InitKnob(&mStandardOptsNew.pShadingRateMode, "shading-rate-mode", "");
+    mStandardOptsNew.pShadingRateMode->SetFlagDescription(
+        "Specify the shading rate mode to enable.");
+    mStandardOptsNew.pShadingRateMode->SetFlagParameters("<none|fdm|vrs>");
+    mStandardOptsNew.pShadingRateMode->SetValidator([](const std::string& res) {
+        return res == "" || res == "none" || res == "fdm" || res == "vrs";
+    });
+
+    mKnobManagerNew.SetAllStartupOnly();
 }
 
 void Application::TakeScreenshot()
@@ -1433,6 +1570,26 @@ int Application::Run(int argc, char** argv)
     // Knobs need to be set up after commandline parsing.
     // This has dependency on Config() where standard knob default values are set
     DispatchInitKnobs();
+
+    if (mSettings.useKnobManagerNew) {
+        CommandLineParserNew commandLineParserNew;
+        OptionsNew           optionsNew;
+
+        // Parse args.
+        if (Failed(commandLineParserNew.ParseOptions(argc, const_cast<const char**>(argv), optionsNew))) {
+            PPX_ASSERT_MSG(false, "Unable to parse command line arguments");
+            return EXIT_FAILURE;
+        }
+
+        if (optionsNew.HasOption("help")) {
+            PPX_LOG_INFO(mKnobManagerNew.GetUsageMsg());
+            return EXIT_SUCCESS;
+        }
+
+        // Command line will overwrite the knob settings from the application
+        mKnobManagerNew.Load(optionsNew);
+        mKnobManagerNew.FinalizeAll();
+    }
 
     if (!mKnobManager.IsEmpty()) {
         mCommandLineParser.AppendUsageMsg(mKnobManager.GetUsageMsg());

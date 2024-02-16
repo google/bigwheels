@@ -614,10 +614,10 @@ Flags:
                     (Default: 5)
 
 --flag_name9
-                    (Default: 1, 2)
+                    (Default: 1,2)
 
 --flag_name10
-                    (Default: a, b, c, d and more)
+                    (Default: a,b,c,d and more)
 
 )";
     EXPECT_EQ(km.GetUsageMsg(), usageMsg);
@@ -669,11 +669,11 @@ Flags:
                     (Default: 5)
 
 --flag_name9
-                    (Default: 1, 2)
+                    (Default: 1,2)
                     description9
 
 --flag_name10 <string>
-                    (Default: a, b, c, d and more)
+                    (Default: a,b,c,d and more)
 
 )";
     EXPECT_EQ(km.GetUsageMsg(), usageMsg);

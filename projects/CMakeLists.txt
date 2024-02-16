@@ -49,6 +49,7 @@ add_subdirectory(alloc)
 add_subdirectory(fishtornado)
 add_subdirectory(fluid_simulation)
 add_subdirectory(oit_demo)
+add_subdirectory(knob_demo)
 
 if (PPX_BUILD_XR)
 add_subdirectory(cube_xr)
