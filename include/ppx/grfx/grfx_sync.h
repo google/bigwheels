@@ -96,9 +96,6 @@ protected:
     virtual Result CreateApiObjects(const grfx::SemaphoreCreateInfo* pCreateInfo) = 0;
     virtual void   DestroyApiObjects()                                            = 0;
     friend class grfx::Device;
-
-private:
-    mutable std::mutex mTimelineMutex;
 };
 
 // -------------------------------------------------------------------------------------------------
