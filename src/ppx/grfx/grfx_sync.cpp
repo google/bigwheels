@@ -55,19 +55,11 @@ Result Semaphore::Wait(uint64_t value, uint64_t timeout) const
     return ppx::SUCCESS;
 }
 
-Result Semaphore::Signal(uint64_t value, bool forceMonotonicValue) const
+Result Semaphore::Signal(uint64_t value) const
 {
     if (this->GetSemaphoreType() != grfx::SEMAPHORE_TYPE_TIMELINE) {
         PPX_ASSERT_MSG(false, REQUIRES_TIMELINE_MSG);
         return ppx::ERROR_GRFX_INVALID_SEMAPHORE_TYPE;
-    }
-
-    // Synchronize access to API semaphore object
-    std::lock_guard<std::mutex> lock(mTimelineMutex);
-
-    if (forceMonotonicValue) {
-        uint64_t currentValue = this->TimelineCounterValue();
-        value                 = std::max(value, currentValue);
     }
 
     auto ppxres = this->TimelineSignal(value);
@@ -84,9 +76,6 @@ uint64_t Semaphore::GetCounterValue() const
         PPX_ASSERT_MSG(false, REQUIRES_TIMELINE_MSG);
         return UINT64_MAX;
     }
-
-    // Synchronize access to API semaphore object
-    std::lock_guard<std::mutex> lock(mTimelineMutex);
 
     uint64_t value = this->TimelineCounterValue();
     return value;

@@ -145,49 +145,6 @@ void ProjApp::Render()
     // Wait for previous frame's render to complete (GPU signal to CPU wait)
     PPX_CHECKED_CALL(frame.timelineSemaphore->Wait(frame.timelineValue));
 
-    // Spawn a thread that will spawn other threads to signal values on the CPU
-    std::unique_ptr<std::thread> spawnerThread;
-    {
-        const uint32_t   kNumThreads = 4;
-        grfx::Semaphore* pSemaphore  = frame.timelineSemaphore;
-
-        // Normally, we increment after a wait and before the next signal so we need to add 1.
-        const uint64_t startSignalValue = frame.timelineValue + 1;
-
-        spawnerThread = std::unique_ptr<std::thread>(
-            new std::thread([kNumThreads, pSemaphore, startSignalValue]() {
-                std::vector<std::unique_ptr<std::thread>> signalThreads;
-
-                // Create signaling threads
-                for (uint32_t i = 0; i < kNumThreads; ++i) {
-                    const uint64_t signalValue = startSignalValue + i;
-
-                    auto signalThread = std::unique_ptr<std::thread>(
-                        new std::thread([pSemaphore, signalValue] {
-                            PPX_CHECKED_CALL(pSemaphore->Signal(signalValue, true));
-                        }));
-
-                    signalThreads.push_back(std::move(signalThread));
-                }
-
-                // Join threads
-                for (auto& thread : signalThreads) {
-                    thread->join();
-                }
-                signalThreads.clear();
-            }));
-
-        // Increment to account signaling thread values
-        frame.timelineValue += kNumThreads;
-    }
-
-    // Wait on primary for secondary threads to signal on the CPU (CPU signals to CPU wait)
-    PPX_CHECKED_CALL(frame.timelineSemaphore->Wait(frame.timelineValue));
-
-    // Join spawner thread
-    spawnerThread->join();
-    spawnerThread.reset();
-
     // Signal values for text draw start and finish
     const uint64_t drawTextStartSignalValue  = ++frame.timelineValue;
     const uint64_t drawTextFinishSignalValue = ++frame.timelineValue;
@@ -261,7 +218,7 @@ void ProjApp::Render()
     {
         grfx::Semaphore* pSemaphore = frame.timelineSemaphore;
 
-        spawnerThread = std::unique_ptr<std::thread>(
+        auto spawnerThread = std::unique_ptr<std::thread>(
             new std::thread([pSemaphore, drawTextStartSignalValue]() {
                 PPX_CHECKED_CALL(pSemaphore->Signal(drawTextStartSignalValue));
             }));

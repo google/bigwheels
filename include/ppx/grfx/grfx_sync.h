@@ -82,11 +82,7 @@ public:
     // WARNING: Signaling a value less than what's already been signaled can
     //          cause a block or a race condition.
     //
-    // Use forceMonotonicValue=true to use the current timeline semaphore value
-    // if it's greater than the passed in value. This is useful when signaling
-    // from threads where ordering is not guaranteed.
-    //
-    Result Signal(uint64_t value, bool forceMonotonicValue = false) const;
+    Result Signal(uint64_t value) const;
 
     // Returns current timeline semaphore value
     uint64_t GetCounterValue() const;
