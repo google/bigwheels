@@ -291,7 +291,7 @@ TEST(JsonConverterTest, ParseOptions_Empty)
 TEST(JsonConverterTest, ParseOptions_Simple)
 {
     JsonConverterNew parser;
-    std::string      jsonText    = R"(
+    std::string      jsonText = R"(
   {
     "a": true,
     "b": false,
@@ -302,7 +302,8 @@ TEST(JsonConverterTest, ParseOptions_Simple)
     "g": "200x300"
   }
 )";
-    OptionsNew       wantOptions = OptionsNew(
+
+    OptionsNew wantOptions = OptionsNew(
         {{"a", std::vector<std::string>{"true"}},
          {"b", std::vector<std::string>{"false"}},
          {"c", std::vector<std::string>{"1.234"}},
@@ -319,7 +320,7 @@ TEST(JsonConverterTest, ParseOptions_Simple)
 TEST(JsonConverterTest, ParseOptions_NestedStructureFlattened)
 {
     JsonConverterNew parser;
-    std::string      jsonText    = R"(
+    std::string      jsonText = R"(
   {
     "a": true,
     "b": {
@@ -328,7 +329,8 @@ TEST(JsonConverterTest, ParseOptions_NestedStructureFlattened)
     }
   }
 )";
-    OptionsNew       wantOptions = OptionsNew(
+
+    OptionsNew wantOptions = OptionsNew(
         {{"a", std::vector<std::string>{"true"}},
          {"b", std::vector<std::string>{"{\"c\":1,\"d\":2}"}}});
     OptionsNew     gotOptions = {};
@@ -340,13 +342,14 @@ TEST(JsonConverterTest, ParseOptions_NestedStructureFlattened)
 TEST(JsonConverterTest, ParseOptions_IntArray)
 {
     JsonConverterNew parser;
-    std::string      jsonText    = R"(
+    std::string      jsonText = R"(
   {
     "a": true,
     "b": [1, 2, 3]
   }
 )";
-    OptionsNew       wantOptions = OptionsNew(
+
+    OptionsNew wantOptions = OptionsNew(
         {{"a", std::vector<std::string>{"true"}},
          {"b", std::vector<std::string>{"1", "2", "3"}}});
     OptionsNew     gotOptions = {};
@@ -358,13 +361,14 @@ TEST(JsonConverterTest, ParseOptions_IntArray)
 TEST(JsonConverterTest, ParseOptions_HeterogeneousArray)
 {
     JsonConverterNew parser;
-    std::string      jsonText    = R"(
+    std::string      jsonText = R"(
   {
     "a": true,
     "b": [1, "2", {"c" : 3}, 4.0]
   }
 )";
-    OptionsNew       wantOptions = OptionsNew(
+
+    OptionsNew wantOptions = OptionsNew(
         {{"a", std::vector<std::string>{"true"}},
          {"b", std::vector<std::string>{"1", "2", "{\"c\":3}", "4.0"}}});
     OptionsNew     gotOptions = {};
