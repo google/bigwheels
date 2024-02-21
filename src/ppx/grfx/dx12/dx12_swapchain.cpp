@@ -133,9 +133,6 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
             return ERROR_GRFX_UNSUPPORTED_SWAPCHAIN_FORMAT;
         }
 
-        // Cache color format
-        mColorFormat = pCreateInfo->colorFormat;
-
         // Make swapchain waitable
         mFlags = DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
 
@@ -178,7 +175,7 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
         DXGI_SWAP_CHAIN_DESC1 dxDesc = {};
         dxDesc.Width                 = static_cast<UINT>(pCreateInfo->width);
         dxDesc.Height                = static_cast<UINT>(pCreateInfo->height);
-        dxDesc.Format                = dx::ToDxgiFormat(mColorFormat);
+        dxDesc.Format                = dxgiFormat;
         dxDesc.Stereo                = FALSE;
         dxDesc.SampleDesc.Count      = 1;
         dxDesc.SampleDesc.Quality    = 0;
@@ -246,27 +243,23 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
 
     // Create color images
     {
-        auto ppxres = CreateColorImages(pCreateInfo->width, pCreateInfo->height, pCreateInfo->colorFormat, colorImages);
+        std::vector<void*> apiObjects;
+        for (const auto& colorImage : colorImages) {
+            apiObjects.push_back(colorImage);
+        }
+        auto ppxres = CreateColorImagesFromApiObjects(apiObjects);
         if (Failed(ppxres)) {
             return ppxres;
         }
     }
 
 #if defined(PPX_BUILD_XR)
-    {
-        for (size_t i = 0; i < depthImages.size(); ++i) {
-            grfx::ImageCreateInfo imageCreateInfo = grfx::ImageCreateInfo::DepthStencilTarget(pCreateInfo->width, pCreateInfo->height, pCreateInfo->depthFormat, grfx::SAMPLE_COUNT_1);
-            imageCreateInfo.pApiObject            = depthImages[i];
-
-            grfx::ImagePtr image;
-            Result         ppxres = GetDevice()->CreateImage(&imageCreateInfo, &image);
-            if (Failed(ppxres)) {
-                PPX_ASSERT_MSG(false, "image create failed");
-                return ppxres;
-            }
-
-            mDepthImages.push_back(image);
+    if (!depthImages.empty()) {
+        std::vector<void*> apiObjects;
+        for (const auto& depthImage : depthImages) {
+            apiObjects.push_back(depthImage);
         }
+        CreateDepthImagesFromApiObjects(apiObjects);
     }
 #endif
 
@@ -287,38 +280,6 @@ void Swapchain::DestroyApiObjects()
     if (mQueue) {
         mQueue.Reset();
     }
-}
-
-Result Swapchain::CreateColorImages(uint32_t width, uint32_t height, grfx::Format format, const std::vector<ID3D12Resource*>& colorImages)
-{
-    for (size_t i = 0; i < colorImages.size(); ++i) {
-        grfx::ImageCreateInfo imageCreateInfo           = {};
-        imageCreateInfo.type                            = grfx::IMAGE_TYPE_2D;
-        imageCreateInfo.width                           = width;
-        imageCreateInfo.height                          = height;
-        imageCreateInfo.depth                           = 1;
-        imageCreateInfo.format                          = format;
-        imageCreateInfo.sampleCount                     = grfx::SAMPLE_COUNT_1;
-        imageCreateInfo.mipLevelCount                   = 1;
-        imageCreateInfo.arrayLayerCount                 = 1;
-        imageCreateInfo.usageFlags.bits.transferSrc     = true;
-        imageCreateInfo.usageFlags.bits.transferDst     = true;
-        imageCreateInfo.usageFlags.bits.sampled         = true;
-        imageCreateInfo.usageFlags.bits.storage         = true;
-        imageCreateInfo.usageFlags.bits.colorAttachment = true;
-        imageCreateInfo.pApiObject                      = colorImages[i];
-
-        grfx::ImagePtr image;
-        Result         ppxres = GetDevice()->CreateImage(&imageCreateInfo, &image);
-        if (Failed(ppxres)) {
-            PPX_ASSERT_MSG(false, "image create failed");
-            return ppxres;
-        }
-
-        mColorImages.push_back(image);
-    }
-
-    return ppx::SUCCESS;
 }
 
 Result Swapchain::AcquireNextImageInternal(
@@ -402,15 +363,9 @@ Result Swapchain::Resize(uint32_t width, uint32_t height)
     mCreateInfo.width  = width;
     mCreateInfo.height = height;
 
-    std::vector<ID3D12Resource*> colorImages;
-    for (auto& im : mColorImages) {
-        auto pRes = static_cast<dx12::Image*>(im.Get())->GetDxResource();
-        colorImages.push_back(pRes);
-    }
-
     // Destroy these to make sure there's no reference before resizing
     DestroyRenderPasses();
-    DestroyRenderTargets();
+    DestroyRenderTargetViews();
     DestroyDepthImages();
     DestroyColorImages();
 
@@ -436,30 +391,39 @@ Result Swapchain::Resize(uint32_t width, uint32_t height)
         }
 
         // Grab the texture resources created by the swapchain.
-        std::vector<ID3D12Resource*> colorImages;
+        std::vector<void*> apiObjects;
         for (UINT i = 0; i < desc.BufferCount; ++i) {
             D3D12ResourcePtr resource;
             HRESULT          hr = mSwapchain->GetBuffer(i, IID_PPV_ARGS(&resource));
             if (FAILED(hr)) {
                 return ppx::ERROR_API_FAILURE;
             }
-            colorImages.push_back(resource);
+            apiObjects.push_back(resource);
         }
 
-        auto ppxres = CreateColorImages(width, height, mColorFormat, colorImages);
+        Result ppxres = CreateColorImagesFromApiObjects(apiObjects);
         if (Failed(ppxres)) {
             return ppxres;
         }
     }
 
     // Create depth images
-    CreateDepthImages();
+    Result ppxres = CreateDepthImages();
+    if (Failed(ppxres)) {
+        return ppxres;
+    }
 
     // Create render targets
-    CreateRenderTargets();
+    ppxres = CreateRenderTargetViews();
+    if (Failed(ppxres)) {
+        return ppxres;
+    }
 
     // Create render passes
-    CreateRenderPasses();
+    ppxres = CreateRenderPasses();
+    if (Failed(ppxres)) {
+        return ppxres;
+    }
 
     return ppx::SUCCESS;
 }

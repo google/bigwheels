@@ -178,13 +178,16 @@ protected:
     friend class grfx::Device;
 
     // Make these protected since D3D12's swapchain resize will need to call them
+    Result CreateColorImages();
+    Result CreateColorImagesFromApiObjects(const std::vector<void*>& apiObjects);
     void   DestroyColorImages();
     Result CreateDepthImages();
+    Result CreateDepthImagesFromApiObjects(const std::vector<void*>& apiObjects);
     void   DestroyDepthImages();
     Result CreateRenderPasses();
     void   DestroyRenderPasses();
-    Result CreateRenderTargets();
-    void   DestroyRenderTargets();
+    Result CreateRenderTargetViews();
+    void   DestroyRenderTargetViews();
 
 private:
     virtual Result AcquireNextImageInternal(
@@ -211,8 +214,7 @@ private:
 
     std::vector<grfx::CommandBufferPtr> mHeadlessCommandBuffers;
 
-protected:
-    grfx::QueuePtr                         mQueue;
+private:
     std::vector<grfx::ImagePtr>            mDepthImages;
     std::vector<grfx::ImagePtr>            mColorImages;
     std::vector<grfx::RenderTargetViewPtr> mClearRenderTargets;
@@ -221,6 +223,7 @@ protected:
     std::vector<grfx::RenderPassPtr>       mClearRenderPasses;
     std::vector<grfx::RenderPassPtr>       mLoadRenderPasses;
 
+protected:
 #if defined(PPX_BUILD_XR)
     XrSwapchain mXrColorSwapchain = XR_NULL_HANDLE;
     XrSwapchain mXrDepthSwapchain = XR_NULL_HANDLE;

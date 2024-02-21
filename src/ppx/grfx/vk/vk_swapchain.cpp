@@ -487,47 +487,27 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
         }
     }
 
-    // Create images.
+    // Create color images.
     {
-        for (uint32_t i = 0; i < colorImages.size(); ++i) {
-            grfx::ImageCreateInfo imageCreateInfo           = {};
-            imageCreateInfo.type                            = grfx::IMAGE_TYPE_2D;
-            imageCreateInfo.width                           = pCreateInfo->width;
-            imageCreateInfo.height                          = pCreateInfo->height;
-            imageCreateInfo.depth                           = 1;
-            imageCreateInfo.format                          = pCreateInfo->colorFormat;
-            imageCreateInfo.sampleCount                     = grfx::SAMPLE_COUNT_1;
-            imageCreateInfo.mipLevelCount                   = 1;
-            imageCreateInfo.arrayLayerCount                 = 1;
-            imageCreateInfo.usageFlags.bits.transferSrc     = true;
-            imageCreateInfo.usageFlags.bits.transferDst     = true;
-            imageCreateInfo.usageFlags.bits.sampled         = true;
-            imageCreateInfo.usageFlags.bits.storage         = true;
-            imageCreateInfo.usageFlags.bits.colorAttachment = true;
-            imageCreateInfo.pApiObject                      = (void*)(colorImages[i]);
-
-            grfx::ImagePtr image;
-            Result         ppxres = GetDevice()->CreateImage(&imageCreateInfo, &image);
-            if (Failed(ppxres)) {
-                PPX_ASSERT_MSG(false, "image create failed");
-                return ppxres;
-            }
-
-            mColorImages.push_back(image);
+        std::vector<void*> apiObjects;
+        for (const auto& colorImage : colorImages) {
+            apiObjects.push_back(reinterpret_cast<void*>(colorImage));
         }
+        Result ppxres = CreateColorImagesFromApiObjects(apiObjects);
+        if (Failed(ppxres)) {
+            return ppxres;
+        }
+    }
 
-        for (size_t i = 0; i < depthImages.size(); ++i) {
-            grfx::ImageCreateInfo imageCreateInfo = grfx::ImageCreateInfo::DepthStencilTarget(pCreateInfo->width, pCreateInfo->height, pCreateInfo->depthFormat, grfx::SAMPLE_COUNT_1);
-            imageCreateInfo.pApiObject            = (void*)(depthImages[i]);
-
-            grfx::ImagePtr image;
-            Result         ppxres = GetDevice()->CreateImage(&imageCreateInfo, &image);
-            if (Failed(ppxres)) {
-                PPX_ASSERT_MSG(false, "image create failed");
-                return ppxres;
-            }
-
-            mDepthImages.push_back(image);
+    // Create depth images.
+    if (!depthImages.empty()) {
+        std::vector<void*> apiObjects;
+        for (const auto& depthImage : depthImages) {
+            apiObjects.push_back(reinterpret_cast<void*>(depthImage));
+        }
+        Result ppxres = CreateDepthImagesFromApiObjects(apiObjects);
+        if (Failed(ppxres)) {
+            return ppxres;
         }
     }
 

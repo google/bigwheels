@@ -73,8 +73,6 @@ private:
         uint32_t                      waitSemaphoreCount,
         const grfx::Semaphore* const* ppWaitSemaphores) override;
 
-    Result CreateColorImages(uint32_t width, uint32_t height, grfx::Format format, const std::vector<ID3D12Resource*>& colorImages);
-
 private:
     DXGISwapChainPtr     mSwapchain;
     HANDLE               mFrameLatencyWaitableObject = nullptr;
@@ -91,8 +89,7 @@ private:
     BOOL mTearingEnabled = FALSE;
 
     // Cache these for resize event
-    UINT         mFlags       = 0;
-    grfx::Format mColorFormat = grfx::FORMAT_UNDEFINED;
+    UINT mFlags = 0;
 };
 
 } // namespace dx12
