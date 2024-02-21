@@ -801,11 +801,9 @@ void Application::InitStandardKnobs()
         "Select the gpu with the given index. To determine the set of valid "
         "indices use `--list-gpus`.");
 
-#if !defined(PPX_LINUX_HEADLESS)
     GetKnobManager().InitKnob(&mStandardOpts.pHeadless, "headless", mSettings.standardKnobsDefaultValue.headless);
     mStandardOpts.pHeadless->SetFlagDescription(
         "Run the sample without creating windows.");
-#endif
 
     GetKnobManager().InitKnob(&mStandardOpts.pListGpus, "list-gpus", mSettings.standardKnobsDefaultValue.listGpus);
     mStandardOpts.pListGpus->SetFlagDescription(
@@ -1114,12 +1112,7 @@ bool Application::IsRunning() const
 
 void Application::UpdateStandardSettings()
 {
-#if defined(PPX_LINUX_HEADLESS)
-    // Force headless if BigWheels was built without surface support.
-    mSettings.headless = true;
-#else
     mSettings.headless = mStandardOpts.pHeadless->GetValue();
-#endif
 
     // If command line argument provided width and height
     auto       resolution        = mStandardOpts.pResolution->GetValue();
