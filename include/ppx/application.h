@@ -229,9 +229,7 @@ struct StandardOptions
     // Flags
     std::shared_ptr<KnobFlag<bool>> pListGpus;
     std::shared_ptr<KnobFlag<bool>> pUseSoftwareRenderer;
-#if !defined(PPX_LINUX_HEADLESS)
     std::shared_ptr<KnobFlag<bool>> pHeadless;
-#endif
     std::shared_ptr<KnobFlag<bool>> pDeterministic;
     std::shared_ptr<KnobFlag<bool>> pEnableMetrics;
     std::shared_ptr<KnobFlag<bool>> pOverwriteMetricsFile;
@@ -349,24 +347,22 @@ struct ApplicationSettings
     // Default values for standard knobs
     struct StandardKnobsDefaultValue
     {
-        std::vector<std::string> assetsPaths     = {};
-        std::vector<std::string> configJsonPaths = {};
-        bool                     deterministic   = false;
-        bool                     enableMetrics   = false;
-        uint64_t                 frameCount      = 0;
-        uint32_t                 gpuIndex        = 0;
-#if !defined(PPX_LINUX_HEADLESS)
-        bool headless = false;
-#endif
-        bool                listGpus              = false;
-        std::string         metricsFilename       = "report_@.json";
-        bool                overwriteMetricsFile  = false;
-        std::pair<int, int> resolution            = std::make_pair(0, 0);
-        uint32_t            runTimeMs             = 0;
-        int                 screenshotFrameNumber = -1;
-        std::string         screenshotPath        = "screenshot_frame_#.ppm";
-        int                 statsFrameWindow      = -1;
-        bool                useSoftwareRenderer   = false;
+        std::vector<std::string> assetsPaths           = {};
+        std::vector<std::string> configJsonPaths       = {};
+        bool                     deterministic         = false;
+        bool                     enableMetrics         = false;
+        uint64_t                 frameCount            = 0;
+        uint32_t                 gpuIndex              = 0;
+        bool                     headless              = false;
+        bool                     listGpus              = false;
+        std::string              metricsFilename       = "report_@.json";
+        bool                     overwriteMetricsFile  = false;
+        std::pair<int, int>      resolution            = std::make_pair(0, 0);
+        uint32_t                 runTimeMs             = 0;
+        int                      screenshotFrameNumber = -1;
+        std::string              screenshotPath        = "screenshot_frame_#.ppm";
+        int                      statsFrameWindow      = -1;
+        bool                     useSoftwareRenderer   = false;
 #if defined(PPX_BUILD_XR)
         std::pair<int, int>      xrUiResolution       = std::make_pair(0, 0);
         std::vector<std::string> xrRequiredExtensions = {};
