@@ -14,9 +14,14 @@
 
 #include "ppx/grfx/grfx_sync.h"
 
+#define REQUIRES_TIMELINE_MSG "invalid semaphore type: operation requires timeline semaphore"
+
 namespace ppx {
 namespace grfx {
 
+// -------------------------------------------------------------------------------------------------
+// Fence
+// -------------------------------------------------------------------------------------------------
 Result Fence::WaitAndReset(uint64_t timeout)
 {
     Result ppxres = Wait(timeout);
@@ -30,6 +35,50 @@ Result Fence::WaitAndReset(uint64_t timeout)
     }
 
     return ppx::SUCCESS;
+}
+
+// -------------------------------------------------------------------------------------------------
+// Semaphore
+// -------------------------------------------------------------------------------------------------
+Result Semaphore::Wait(uint64_t value, uint64_t timeout) const
+{
+    if (this->GetSemaphoreType() != grfx::SEMAPHORE_TYPE_TIMELINE) {
+        PPX_ASSERT_MSG(false, REQUIRES_TIMELINE_MSG);
+        return ppx::ERROR_GRFX_INVALID_SEMAPHORE_TYPE;
+    }
+
+    auto ppxres = this->TimelineWait(value, timeout);
+    if (Failed(ppxres)) {
+        return ppxres;
+    }
+
+    return ppx::SUCCESS;
+}
+
+Result Semaphore::Signal(uint64_t value) const
+{
+    if (this->GetSemaphoreType() != grfx::SEMAPHORE_TYPE_TIMELINE) {
+        PPX_ASSERT_MSG(false, REQUIRES_TIMELINE_MSG);
+        return ppx::ERROR_GRFX_INVALID_SEMAPHORE_TYPE;
+    }
+
+    auto ppxres = this->TimelineSignal(value);
+    if (Failed(ppxres)) {
+        return ppxres;
+    }
+
+    return ppx::SUCCESS;
+}
+
+uint64_t Semaphore::GetCounterValue() const
+{
+    if (this->GetSemaphoreType() != grfx::SEMAPHORE_TYPE_TIMELINE) {
+        PPX_ASSERT_MSG(false, REQUIRES_TIMELINE_MSG);
+        return UINT64_MAX;
+    }
+
+    uint64_t value = this->TimelineCounterValue();
+    return value;
 }
 
 } // namespace grfx

@@ -146,6 +146,7 @@ enum Result
     ERROR_GRFX_INVALID_BINDING_NUMBER               = -1024,
     ERROR_GRFX_INVALID_SET_NUMBER                   = -1025,
     ERROR_GRFX_OPERATION_NOT_PERMITTED              = -1026,
+    ERROR_GRFX_INVALID_SEMAPHORE_TYPE               = -1027,
 
     ERROR_IMAGE_FILE_LOAD_FAILED               = -2000,
     ERROR_IMAGE_FILE_SAVE_FAILED               = -2001,

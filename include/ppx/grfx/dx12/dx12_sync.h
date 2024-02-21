@@ -61,13 +61,19 @@ public:
     UINT64 GetNextSignalValue();
     UINT64 GetWaitForValue() const;
 
+private:
+    virtual Result   TimelineWait(uint64_t value, uint64_t timeout) const override;
+    virtual Result   TimelineSignal(uint64_t value) const override;
+    virtual uint64_t TimelineCounterValue() const override;
+
 protected:
     virtual Result CreateApiObjects(const grfx::SemaphoreCreateInfo* pCreateInfo) override;
     virtual void   DestroyApiObjects() override;
 
 private:
     D3D12FencePtr mFence;
-    UINT64        mValue = 0;
+    HANDLE        mWaitEventHandle = nullptr;
+    UINT64        mValue           = 0;
 };
 
 } // namespace dx12

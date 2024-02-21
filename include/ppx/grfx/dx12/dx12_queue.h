@@ -35,6 +35,9 @@ public:
 
     virtual Result Submit(const grfx::SubmitInfo* pSubmitInfo) override;
 
+    virtual Result QueueWait(grfx::Semaphore* pSemaphore, uint64_t value) override;
+    virtual Result QueueSignal(grfx::Semaphore* pSemaphore, uint64_t value) override;
+
     virtual Result GetTimestampFrequency(uint64_t* pFrequency) const override;
 
 protected:
