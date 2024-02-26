@@ -50,6 +50,10 @@ ninja -C build
 Built binaries are written to `build/bin/`.
 
 ## Windows
+
+- Make sure the "Graphics Tools" feature is enabled (Settings > System > "Optional features" > "Add a feature" > "Graphics Tools". This is required to have DX12 debug layers.
+**Note: "Optional features" dialog is not the same as the "Turn Windows features on or off".**
+  
 ```
 git clone --recursive https://github.com/google/bigwheels
 cd bigwheels
