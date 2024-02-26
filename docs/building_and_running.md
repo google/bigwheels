@@ -36,7 +36,7 @@ Alternatively, a DXC path can be provided using `-DDXC_PATH=<path to DXC executa
 Install the following prerequisite packages before building:
 
 ```
-sudo apt install libxrandr-dev libxinerama-dev libx11-dev libxcursor-dev libxi-dev libx11-xcb-dev clang mesa-vulkan-drivers
+sudo apt install libxrandr-dev libxinerama-dev libx11-dev libxcursor-dev libxi-dev libx11-xcb-dev clang mesa-vulkan-drivers cmake ninja-build
 ```
 
 ## Linux
