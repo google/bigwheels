@@ -452,8 +452,9 @@ Result WindowImplGLFW::Destroy()
 
 bool WindowImplGLFW::IsRunning() const
 {
-    if (IsNull(mNative))
+    if (IsNull(mNative)) {
         return false;
+    }
 
     int  value     = glfwWindowShouldClose(mNative);
     bool isRunning = (value == 0);

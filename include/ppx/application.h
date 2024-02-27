@@ -217,7 +217,7 @@ class Application
 {
 public:
     Application();
-    Application(uint32_t windowWidth, uint32_t windowHeight, const char* windowTitle);
+    Application(const char* windowTitle);
     virtual ~Application();
 
     static Application* Get();

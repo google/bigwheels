@@ -48,7 +48,7 @@ Application::Application()
     mSettings.window.title = kDefaultAppName;
 }
 
-Application::Application(uint32_t windowWidth, uint32_t windowHeight, const char* windowTitle)
+Application::Application(const char* windowTitle)
 {
     InternalCtor();
 
@@ -222,8 +222,8 @@ Result Application::CreateSwapchains()
         grfx::SwapchainCreateInfo ci = {};
         ci.pQueue                    = mDevice->GetGraphicsQueue();
         ci.pSurface                  = nullptr;
-        ci.width                     = mWindow->Size().width;
-        ci.height                    = mWindow->Size().height;
+        ci.width                     = GetWindowWidth();
+        ci.height                    = GetWindowHeight();
         ci.colorFormat               = mXrComponent.GetColorFormat();
         ci.depthFormat               = mXrComponent.GetDepthFormat();
         ci.imageCount                = 0;                            // This will be derived from XrSwapchain.
@@ -259,7 +259,7 @@ Result Application::CreateSwapchains()
         || (mSettings.xr.enable && mSettings.xr.enableDebugCapture))
 #endif
     {
-        std::pair<uint32_t, uint32_t> swapchainSize = {mWindow->Size().width, mWindow->Size().height};
+        std::pair<uint32_t, uint32_t> swapchainSize = {GetWindowWidth(), GetWindowHeight()};
         if (mSurface) {
             const uint32_t surfaceMinImageCount = mSurface->GetMinImageCount();
             if (mSettings.grfx.swapchain.imageCount < surfaceMinImageCount) {
@@ -906,8 +906,7 @@ void Application::UpdateStandardSettings()
     mSettings.headless = mStandardOpts.pHeadless->GetValue();
 
 #if defined(PPX_BUILD_XR)
-    auto resolution = mStandardOpts.pResolution->GetValue();
-    resolution      = mStandardOpts.pXrUiResolution->GetValue();
+    auto resolution = mStandardOpts.pXrUiResolution->GetValue();
     if (resolution.first > 0 && resolution.second > 0) {
         mSettings.xr.uiWidth  = resolution.first;
         mSettings.xr.uiHeight = resolution.second;
