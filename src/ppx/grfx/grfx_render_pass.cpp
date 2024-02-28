@@ -101,12 +101,14 @@ namespace internal {
 
 RenderPassCreateInfo::RenderPassCreateInfo(const grfx::RenderPassCreateInfo& obj)
 {
-    this->version             = CREATE_INFO_VERSION_1;
-    this->width               = obj.width;
-    this->height              = obj.height;
-    this->renderTargetCount   = obj.renderTargetCount;
-    this->depthStencilState   = obj.depthStencilState;
-    this->pShadingRatePattern = obj.pShadingRatePattern;
+    this->version              = CREATE_INFO_VERSION_1;
+    this->width                = obj.width;
+    this->height               = obj.height;
+    this->renderTargetCount    = obj.renderTargetCount;
+    this->depthStencilState    = obj.depthStencilState;
+    this->pShadingRatePattern  = obj.pShadingRatePattern;
+    this->multiViewMask        = obj.multiViewMask;
+    this->multiCorrelationMask = obj.multiCorrelationMask;
 
     // Views
     for (uint32_t i = 0; i < this->renderTargetCount; ++i) {
@@ -165,6 +167,11 @@ RenderPassCreateInfo::RenderPassCreateInfo(const grfx::RenderPassCreateInfo2& ob
         this->V2.renderTargetInitialStates[i] = obj.renderTargetInitialStates[i];
     }
     this->V2.depthStencilInitialState = obj.depthStencilInitialState;
+
+    // MultiView
+    this->arrayLayerCount      = obj.arrayLayerCount;
+    this->multiViewMask        = obj.multiViewMask;
+    this->multiCorrelationMask = obj.multiCorrelationMask;
 }
 
 RenderPassCreateInfo::RenderPassCreateInfo(const grfx::RenderPassCreateInfo3& obj)
@@ -197,6 +204,11 @@ RenderPassCreateInfo::RenderPassCreateInfo(const grfx::RenderPassCreateInfo3& ob
     this->depthStoreOp   = obj.depthStoreOp;
     this->stencilLoadOp  = obj.stencilLoadOp;
     this->stencilStoreOp = obj.stencilStoreOp;
+
+    // MultiView
+    this->arrayLayerCount      = obj.arrayLayerCount;
+    this->multiViewMask        = obj.multiViewMask;
+    this->multiCorrelationMask = obj.multiCorrelationMask;
 }
 
 } // namespace internal
@@ -255,7 +267,7 @@ Result RenderPass::CreateImagesAndViewsV2(const grfx::internal::RenderPassCreate
             imageCreateInfo.format                = pCreateInfo->V2.renderTargetFormats[i];
             imageCreateInfo.sampleCount           = pCreateInfo->V2.sampleCount;
             imageCreateInfo.mipLevelCount         = 1;
-            imageCreateInfo.arrayLayerCount       = 1;
+            imageCreateInfo.arrayLayerCount       = pCreateInfo->arrayLayerCount;
             imageCreateInfo.usageFlags            = pCreateInfo->V2.renderTargetUsageFlags[i];
             imageCreateInfo.memoryUsage           = grfx::MEMORY_USAGE_GPU_ONLY;
             imageCreateInfo.initialState          = grfx::RESOURCE_STATE_RENDER_TARGET;
@@ -287,7 +299,7 @@ Result RenderPass::CreateImagesAndViewsV2(const grfx::internal::RenderPassCreate
             imageCreateInfo.format                = pCreateInfo->V2.depthStencilFormat;
             imageCreateInfo.sampleCount           = pCreateInfo->V2.sampleCount;
             imageCreateInfo.mipLevelCount         = 1;
-            imageCreateInfo.arrayLayerCount       = 1;
+            imageCreateInfo.arrayLayerCount       = pCreateInfo->arrayLayerCount;
             imageCreateInfo.usageFlags            = pCreateInfo->V2.depthStencilUsageFlags;
             imageCreateInfo.memoryUsage           = grfx::MEMORY_USAGE_GPU_ONLY;
             imageCreateInfo.initialState          = initialState;
@@ -319,7 +331,7 @@ Result RenderPass::CreateImagesAndViewsV2(const grfx::internal::RenderPassCreate
             rtvCreateInfo.mipLevel                         = 0;
             rtvCreateInfo.mipLevelCount                    = 1;
             rtvCreateInfo.arrayLayer                       = 0;
-            rtvCreateInfo.arrayLayerCount                  = 1;
+            rtvCreateInfo.arrayLayerCount                  = pCreateInfo->arrayLayerCount;
             rtvCreateInfo.components                       = {};
             rtvCreateInfo.loadOp                           = pCreateInfo->renderTargetLoadOps[i];
             rtvCreateInfo.storeOp                          = pCreateInfo->renderTargetStoreOps[i];
@@ -348,7 +360,7 @@ Result RenderPass::CreateImagesAndViewsV2(const grfx::internal::RenderPassCreate
             dsvCreateInfo.mipLevel                         = 0;
             dsvCreateInfo.mipLevelCount                    = 1;
             dsvCreateInfo.arrayLayer                       = 0;
-            dsvCreateInfo.arrayLayerCount                  = 1;
+            dsvCreateInfo.arrayLayerCount                  = pCreateInfo->arrayLayerCount;
             dsvCreateInfo.components                       = {};
             dsvCreateInfo.depthLoadOp                      = pCreateInfo->depthLoadOp;
             dsvCreateInfo.depthStoreOp                     = pCreateInfo->depthStoreOp;

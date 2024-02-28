@@ -153,6 +153,12 @@ struct OutputState
     grfx::Format depthStencilFormat                          = grfx::FORMAT_UNDEFINED;
 };
 
+struct MultiViewState
+{
+    uint32_t viewMask        = 0;
+    uint32_t correlationMask = 0;
+};
+
 //! @struct GraphicsPipelineCreateInfo
 //!
 //!
@@ -172,6 +178,7 @@ struct GraphicsPipelineCreateInfo
     grfx::ColorBlendState          colorBlendState    = {};
     grfx::OutputState              outputState        = {};
     grfx::ShadingRateMode          shadingRateMode    = grfx::SHADING_RATE_NONE;
+    grfx::MultiViewState           multiViewMask      = {};
     const grfx::PipelineInterface* pPipelineInterface = nullptr;
     bool                           dynamicRenderPass  = false;
 };
@@ -191,6 +198,7 @@ struct GraphicsPipelineCreateInfo2
     grfx::BlendMode                blendModes[PPX_MAX_RENDER_TARGETS] = {grfx::BLEND_MODE_NONE};
     grfx::OutputState              outputState                        = {};
     grfx::ShadingRateMode          shadingRateMode                    = grfx::SHADING_RATE_NONE;
+    grfx::MultiViewState           multiViewMask                      = {};
     const grfx::PipelineInterface* pPipelineInterface                 = nullptr;
     bool                           dynamicRenderPass                  = false;
 };

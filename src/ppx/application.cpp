@@ -168,6 +168,7 @@ Result Application::InitializeGrfxDevice()
         ci.pVulkanDeviceFeatures  = nullptr;
         ci.supportShadingRateMode = mSettings.grfx.device.supportShadingRateMode;
 #if defined(PPX_BUILD_XR)
+        ci.multiView    = mSettings.xr.enable && mSettings.xr.enableMultiView;
         ci.pXrComponent = mSettings.xr.enable ? &mXrComponent : nullptr;
 #endif
 
@@ -234,10 +235,12 @@ Result Application::CreateSwapchains()
         ci.presentMode               = grfx::PRESENT_MODE_UNDEFINED; // No present for XR.
         ci.pXrComponent              = &mXrComponent;
 
-        // We have one swapchain for each view, and one swapchain for the UI.
-        mSwapchains.resize(viewCount + 1);
+        ci.arrayLayerCount = (mXrComponent.IsMultiView() ? 2 : 1);
+        // We have one swapchain for each view, or one if multiview, plus one swapchain for the UI.
+        const int numSwapChains = (mXrComponent.IsMultiView() ? 1 : viewCount) + 1;
+        mSwapchains.resize(numSwapChains);
         mStereoscopicSwapchainIndex = 0;
-        for (size_t k = 0; k < viewCount; ++k) {
+        for (size_t k = 0; k < numSwapChains - 1; ++k) {
             Result ppxres = mDevice->CreateSwapchain(&ci, &mSwapchains[k]);
             if (Failed(ppxres)) {
                 PPX_ASSERT_MSG(false, "grfx::Device::CreateSwapchain failed");
@@ -245,10 +248,12 @@ Result Application::CreateSwapchains()
             }
         }
 
-        mUISwapchainIndex = static_cast<uint32_t>(viewCount);
-        ci.width          = GetUIWidth();
-        ci.height         = GetUIHeight();
-        Result ppxres     = mDevice->CreateSwapchain(&ci, &mSwapchains[mUISwapchainIndex]);
+        mUISwapchainIndex  = static_cast<uint32_t>(numSwapChains - 1);
+        ci.width           = GetUIWidth();
+        ci.height          = GetUIHeight();
+        ci.arrayLayerCount = 1;                      // UI has its own separate swapchain
+        ci.depthFormat     = grfx::FORMAT_UNDEFINED; //<<UI does not use depth.
+        Result ppxres      = mDevice->CreateSwapchain(&ci, &mSwapchains[mUISwapchainIndex]);
         if (Failed(ppxres)) {
             PPX_ASSERT_MSG(false, "grfx::Device::CreateSwapchain failed");
             return ppxres;
@@ -983,6 +988,7 @@ void Application::InitializeXRComponentBeforeGrfxDeviceInit()
         createInfo.enableDebug          = mSettings.grfx.enableDebug;
         createInfo.enableQuadLayer      = mSettings.enableImGui;
         createInfo.enableDepthSwapchain = mSettings.xr.enableDepthSwapchain;
+        createInfo.enableMultiView      = mSettings.xr.enableMultiView;
         const auto resolution           = mStandardOpts.pResolution->GetValue();
         const bool hasResolutionFlag    = (resolution.first > 0 && resolution.second > 0);
         if (hasResolutionFlag) {
@@ -1084,7 +1090,8 @@ void Application::RenderFrame()
                 if (mImGui) {
                     mImGui->NewFrame();
                 }
-                for (uint32_t k = 0; k < viewCount; ++k) {
+                const int renderCallsToMake = (mXrComponent.IsMultiView() ? 1 : viewCount);
+                for (uint32_t k = 0; k < renderCallsToMake; ++k) {
                     mSwapchainIndex = k;
                     mXrComponent.SetCurrentViewIndex(k);
                     DispatchRender();

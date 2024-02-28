@@ -53,6 +53,8 @@ VkResult CreateTransientRenderPass(
     const VkFormat*       pRenderTargetFormats,
     VkFormat              depthStencilFormat,
     VkSampleCountFlagBits sampleCount,
+    uint32_t              viewMask,
+    uint32_t              correlationMask,
     VkRenderPass*         pRenderPass,
     grfx::ShadingRateMode shadingRateMode = grfx::SHADING_RATE_NONE);
 
