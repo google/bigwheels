@@ -196,7 +196,7 @@ void FillOutGraphicsPipelineCreateInfo(
     pDstCreateInfo->pPipelineInterface = pSrcCreateInfo->pPipelineInterface;
 
     // MultiView details
-    pDstCreateInfo->multiViewMask = pSrcCreateInfo->multiViewMask;
+    pDstCreateInfo->multiViewState = pSrcCreateInfo->multiViewState;
 }
 
 } // namespace internal

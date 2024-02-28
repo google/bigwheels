@@ -252,7 +252,7 @@ Result Application::CreateSwapchains()
         ci.width           = GetUIWidth();
         ci.height          = GetUIHeight();
         ci.arrayLayerCount = 1;                      // UI has its own separate swapchain
-        ci.depthFormat     = grfx::FORMAT_UNDEFINED; //<<UI does not use depth.
+        ci.depthFormat     = grfx::FORMAT_UNDEFINED; // UI does not use depth.
         Result ppxres      = mDevice->CreateSwapchain(&ci, &mSwapchains[mUISwapchainIndex]);
         if (Failed(ppxres)) {
             PPX_ASSERT_MSG(false, "grfx::Device::CreateSwapchain failed");

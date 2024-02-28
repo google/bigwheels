@@ -246,8 +246,7 @@ Result Device::ConfigureFeatures(const grfx::DeviceCreateInfo* pCreateInfo, VkPh
 {
     vk::Gpu* pGpu = ToApi(pCreateInfo->pGpu);
 
-    VkPhysicalDeviceFeatures foundFeatures = {};
-    vkGetPhysicalDeviceFeatures(pGpu->GetVkGpu(), &foundFeatures);
+    VkPhysicalDeviceFeatures          foundFeatures          = {};
     VkPhysicalDeviceMultiviewFeatures foundMultiViewFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES};
 
     if (GetInstance()->GetApi() >= grfx::API_VK_1_1) {
@@ -282,7 +281,7 @@ Result Device::ConfigureFeatures(const grfx::DeviceCreateInfo* pCreateInfo, VkPh
     features.shaderStorageImageMultisample        = foundFeatures.shaderStorageImageMultisample;
     features.samplerAnisotropy                    = foundFeatures.samplerAnisotropy;
 
-    mHasMultiView = pCreateInfo->multiView && foundMultiViewFeatures.multiview;
+    mHasMultiView = pCreateInfo->multiView;
 
     // Select between default or custom features.
     if (!IsNull(pCreateInfo->pVulkanDeviceFeatures)) {
@@ -614,16 +613,12 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
 #endif
 
     PPX_LOG_INFO("Vulkan MultiView is chosen and present: " << mHasMultiView);
+    VkPhysicalDeviceMultiviewFeatures physicalDeviceMultiviewFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES};
     if (mHasMultiView) {
-        VkPhysicalDeviceMultiviewFeatures physicalDeviceMultiviewFeatures =
-            {
-                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES,
-                nullptr,
-                VK_TRUE,  // multiview
-                VK_FALSE, // multiviewGeometryShader
-                VK_FALSE  // multiviewTessellationShader
-            };
-
+        physicalDeviceMultiviewFeatures.pNext                       = nullptr;
+        physicalDeviceMultiviewFeatures.multiview                   = VK_TRUE;
+        physicalDeviceMultiviewFeatures.multiviewGeometryShader     = VK_FALSE;
+        physicalDeviceMultiviewFeatures.multiviewTessellationShader = VK_FALSE;
         extensionStructs.push_back(reinterpret_cast<VkBaseOutStructure*>(&physicalDeviceMultiviewFeatures));
     }
 
@@ -1074,7 +1069,7 @@ bool Device::PipelineStatsAvailable() const
     return mDeviceFeatures.pipelineStatisticsQuery;
 }
 
-bool Device::MultiViewAvailable() const
+bool Device::MultiViewSupported() const
 {
     return mHasMultiView;
 }

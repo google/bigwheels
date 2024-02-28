@@ -66,7 +66,7 @@ public:
     virtual bool IndependentBlendingSupported() const override;
     virtual bool FragmentStoresAndAtomicsSupported() const override;
     virtual bool PartialDescriptorBindingsSupported() const override;
-    virtual bool MultiViewAvailable() const override;
+    virtual bool MultiViewSupported() const override;
 
 protected:
     virtual Result AllocateObject(grfx::Buffer** ppObject) override;

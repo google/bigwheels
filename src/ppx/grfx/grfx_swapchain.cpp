@@ -254,8 +254,10 @@ Result Swapchain::CreateRenderPasses()
         rpCreateInfo.pShadingRatePattern        = mCreateInfo.pShadingRatePattern;
         rpCreateInfo.arrayLayerCount            = mCreateInfo.arrayLayerCount;
 #if defined(PPX_BUILD_XR)
-        rpCreateInfo.multiViewMask        = (mCreateInfo.pXrComponent && mCreateInfo.arrayLayerCount > 1 ? mCreateInfo.pXrComponent->GetDefaultViewMask() : 0);
-        rpCreateInfo.multiCorrelationMask = rpCreateInfo.multiViewMask;
+        if (mCreateInfo.pXrComponent && mCreateInfo.arrayLayerCount > 1) {
+            rpCreateInfo.multiViewState.viewMask = mCreateInfo.pXrComponent->GetDefaultViewMask();
+        }
+        rpCreateInfo.multiViewState.correlationMask = rpCreateInfo.multiViewState.viewMask;
 #endif
 
         grfx::RenderPassPtr renderPass;
@@ -281,8 +283,10 @@ Result Swapchain::CreateRenderPasses()
         rpCreateInfo.ownership                  = grfx::OWNERSHIP_RESTRICTED;
         rpCreateInfo.pShadingRatePattern        = mCreateInfo.pShadingRatePattern;
 #if defined(PPX_BUILD_XR)
-        rpCreateInfo.multiViewMask        = (mCreateInfo.pXrComponent && mCreateInfo.arrayLayerCount > 1 ? mCreateInfo.pXrComponent->GetDefaultViewMask() : 0);
-        rpCreateInfo.multiCorrelationMask = rpCreateInfo.multiViewMask;
+        if (mCreateInfo.pXrComponent && mCreateInfo.arrayLayerCount > 1) {
+            rpCreateInfo.multiViewState.viewMask = mCreateInfo.pXrComponent->GetDefaultViewMask();
+        }
+        rpCreateInfo.multiViewState.correlationMask = rpCreateInfo.multiViewState.viewMask;
 #endif
 
         grfx::RenderPassPtr renderPass;

@@ -494,8 +494,8 @@ Result GraphicsPipeline::CreateApiObjects(const grfx::GraphicsPipelineCreateInfo
             DataPtr(renderTargetFormats),
             depthStencilFormat,
             ToVkSampleCount(pCreateInfo->rasterState.rasterizationSamples),
-            pCreateInfo->multiViewMask.viewMask,
-            pCreateInfo->multiViewMask.correlationMask,
+            pCreateInfo->multiViewState.viewMask,
+            pCreateInfo->multiViewState.correlationMask,
             &renderPass,
             pCreateInfo->shadingRateMode);
         if (vkres != VK_SUCCESS) {

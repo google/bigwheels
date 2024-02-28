@@ -29,9 +29,8 @@ struct RenderPassCreateInfo
     uint32_t                     width                                           = 0;
     uint32_t                     height                                          = 0;
     uint32_t                     arrayLayerCount                                 = 1;
-    uint32_t                     multiViewMask                                   = 0;
-    uint32_t                     multiCorrelationMask                            = 0;
     uint32_t                     renderTargetCount                               = 0;
+    grfx::MultiViewState         multiViewState                                  = {};
     grfx::RenderTargetView*      pRenderTargetViews[PPX_MAX_RENDER_TARGETS]      = {};
     grfx::DepthStencilView*      pDepthStencilView                               = nullptr;
     grfx::ResourceState          depthStencilState                               = grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE;
@@ -60,8 +59,7 @@ struct RenderPassCreateInfo2
     uint32_t                     width                                             = 0;
     uint32_t                     height                                            = 0;
     uint32_t                     arrayLayerCount                                   = 1;
-    uint32_t                     multiViewMask                                     = 0;
-    uint32_t                     multiCorrelationMask                              = 0;
+    grfx::MultiViewState         multiViewState                                    = {};
     grfx::SampleCount            sampleCount                                       = grfx::SAMPLE_COUNT_1;
     uint32_t                     renderTargetCount                                 = 0;
     grfx::Format                 renderTargetFormats[PPX_MAX_RENDER_TARGETS]       = {};
@@ -102,8 +100,7 @@ struct RenderPassCreateInfo3
     uint32_t                     height                                          = 0;
     uint32_t                     renderTargetCount                               = 0;
     uint32_t                     arrayLayerCount                                 = 1;
-    uint32_t                     multiViewMask                                   = 0;
-    uint32_t                     multiCorrelationMask                            = 0;
+    grfx::MultiViewState         multiViewState                                  = {};
     grfx::Image*                 pRenderTargetImages[PPX_MAX_RENDER_TARGETS]     = {};
     grfx::Image*                 pDepthStencilImage                              = nullptr;
     grfx::ResourceState          depthStencilState                               = grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE;
@@ -140,16 +137,15 @@ struct RenderPassCreateInfo
         CREATE_INFO_VERSION_3         = 3,
     };
 
-    grfx::Ownership           ownership            = grfx::OWNERSHIP_REFERENCE;
-    CreateInfoVersion         version              = CREATE_INFO_VERSION_UNDEFINED;
-    uint32_t                  width                = 0;
-    uint32_t                  height               = 0;
-    uint32_t                  renderTargetCount    = 0;
-    uint32_t                  arrayLayerCount      = 1;
-    uint32_t                  multiViewMask        = 0;
-    uint32_t                  multiCorrelationMask = 0;
-    grfx::ResourceState       depthStencilState    = grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE;
-    grfx::ShadingRatePattern* pShadingRatePattern  = nullptr;
+    grfx::Ownership           ownership           = grfx::OWNERSHIP_REFERENCE;
+    CreateInfoVersion         version             = CREATE_INFO_VERSION_UNDEFINED;
+    uint32_t                  width               = 0;
+    uint32_t                  height              = 0;
+    uint32_t                  renderTargetCount   = 0;
+    uint32_t                  arrayLayerCount     = 1;
+    grfx::MultiViewState      multiViewState      = {};
+    grfx::ResourceState       depthStencilState   = grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE;
+    grfx::ShadingRatePattern* pShadingRatePattern = nullptr;
 
     // Data unique to grfx::RenderPassCreateInfo
     struct

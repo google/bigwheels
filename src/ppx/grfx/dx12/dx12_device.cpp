@@ -629,7 +629,7 @@ bool Device::PipelineStatsAvailable() const
     return true;
 }
 
-bool Device::MultiViewAvailable() const
+bool Device::MultiViewSupported() const
 {
     return false;
 }

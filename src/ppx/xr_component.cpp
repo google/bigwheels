@@ -727,8 +727,7 @@ void XrComponent::EndFrame(const std::vector<grfx::SwapchainPtr>& swapchains, ui
         layers.data(),                        // layers
     };
 
-    auto a = xrEndFrame(mSession, &frameEndInfo);
-    CHECK_XR_CALL(a);
+    CHECK_XR_CALL(xrEndFrame(mSession, &frameEndInfo));
 }
 
 void XrComponent::ConditionallyPopulateProjectionLayer(const std::vector<grfx::SwapchainPtr>& swapchains, uint32_t startIndex, XrLayerBaseQueue& layerQueue, XrProjectionLayer& projectionLayer)
@@ -742,20 +741,17 @@ void XrComponent::ConditionallyPopulateProjectionLayer(const std::vector<grfx::S
 
     // In Multiview we have one shared swapchain, but the array index moves
     // Non Multiview swapchain per view, but array index stays still.
-    const int indexToSwapchainMultiplier  = (IsMultiView() ? 0 : 1);
-    const int indexToArrayIndexMultiplier = (IsMultiView() ? 1 : 0);
-
+    const bool isMultiView = IsMultiView();
     // Projection and (optional) depth info layer from color+depth swapchains.
     for (size_t i = 0; i < viewCount; ++i) {
-        const uint32_t swapchain_index = startIndex + (indexToSwapchainMultiplier * i);
-
-        XrCompositionLayerProjectionView view = {XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW};
-        view.pose                             = mViews[i].pose;
-        view.fov                              = mViews[i].fov;
-        view.subImage.swapchain               = swapchains[swapchain_index]->GetXrColorSwapchain();
-        view.subImage.imageArrayIndex         = i * indexToArrayIndexMultiplier;
-        view.subImage.imageRect.offset        = {0, 0};
-        view.subImage.imageRect.extent        = {static_cast<int>(GetWidth()), static_cast<int>(GetHeight())};
+        const uint32_t                   swapchain_index = isMultiView ? startIndex : startIndex + i;
+        XrCompositionLayerProjectionView view            = {XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW};
+        view.pose                                        = mViews[i].pose;
+        view.fov                                         = mViews[i].fov;
+        view.subImage.swapchain                          = swapchains[swapchain_index]->GetXrColorSwapchain();
+        view.subImage.imageArrayIndex                    = isMultiView ? i : 0;
+        view.subImage.imageRect.offset                   = {0, 0};
+        view.subImage.imageRect.extent                   = {static_cast<int>(GetWidth()), static_cast<int>(GetHeight())};
 
         if (mShouldSubmitDepthInfo && (swapchains[swapchain_index]->GetXrDepthSwapchain() != XR_NULL_HANDLE)) {
             PPX_ASSERT_MSG(mNearPlaneForFrame.has_value() && mFarPlaneForFrame.has_value(), "Depth info layer cannot be submitted because near and far plane values are not set. "
@@ -766,7 +762,7 @@ void XrComponent::ConditionallyPopulateProjectionLayer(const std::vector<grfx::S
             depthInfo.nearZ                          = *mNearPlaneForFrame;
             depthInfo.farZ                           = *mFarPlaneForFrame;
             depthInfo.subImage.swapchain             = swapchains[swapchain_index]->GetXrDepthSwapchain();
-            depthInfo.subImage.imageArrayIndex       = i * indexToArrayIndexMultiplier;
+            depthInfo.subImage.imageArrayIndex       = isMultiView ? i : 0;
             depthInfo.subImage.imageRect.offset      = {0, 0};
             depthInfo.subImage.imageRect.extent      = {static_cast<int>(GetWidth()), static_cast<int>(GetHeight())};
 

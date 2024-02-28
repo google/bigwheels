@@ -101,14 +101,13 @@ namespace internal {
 
 RenderPassCreateInfo::RenderPassCreateInfo(const grfx::RenderPassCreateInfo& obj)
 {
-    this->version              = CREATE_INFO_VERSION_1;
-    this->width                = obj.width;
-    this->height               = obj.height;
-    this->renderTargetCount    = obj.renderTargetCount;
-    this->depthStencilState    = obj.depthStencilState;
-    this->pShadingRatePattern  = obj.pShadingRatePattern;
-    this->multiViewMask        = obj.multiViewMask;
-    this->multiCorrelationMask = obj.multiCorrelationMask;
+    this->version             = CREATE_INFO_VERSION_1;
+    this->width               = obj.width;
+    this->height              = obj.height;
+    this->renderTargetCount   = obj.renderTargetCount;
+    this->depthStencilState   = obj.depthStencilState;
+    this->pShadingRatePattern = obj.pShadingRatePattern;
+    this->multiViewState      = obj.multiViewState;
 
     // Views
     for (uint32_t i = 0; i < this->renderTargetCount; ++i) {
@@ -169,9 +168,8 @@ RenderPassCreateInfo::RenderPassCreateInfo(const grfx::RenderPassCreateInfo2& ob
     this->V2.depthStencilInitialState = obj.depthStencilInitialState;
 
     // MultiView
-    this->arrayLayerCount      = obj.arrayLayerCount;
-    this->multiViewMask        = obj.multiViewMask;
-    this->multiCorrelationMask = obj.multiCorrelationMask;
+    this->arrayLayerCount = obj.arrayLayerCount;
+    this->multiViewState  = obj.multiViewState;
 }
 
 RenderPassCreateInfo::RenderPassCreateInfo(const grfx::RenderPassCreateInfo3& obj)
@@ -206,9 +204,8 @@ RenderPassCreateInfo::RenderPassCreateInfo(const grfx::RenderPassCreateInfo3& ob
     this->stencilStoreOp = obj.stencilStoreOp;
 
     // MultiView
-    this->arrayLayerCount      = obj.arrayLayerCount;
-    this->multiViewMask        = obj.multiViewMask;
-    this->multiCorrelationMask = obj.multiCorrelationMask;
+    this->arrayLayerCount = obj.arrayLayerCount;
+    this->multiViewState  = obj.multiViewState;
 }
 
 } // namespace internal

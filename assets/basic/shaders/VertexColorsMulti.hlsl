@@ -1,4 +1,3 @@
-
 // Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -30,10 +29,7 @@ struct VSOutput
     float3 Color : COLOR;
 };
 
-VSOutput vsmain(float4 Position
-                : POSITION, float3 Color
-                : COLOR, uint      ViewIndex
-                : SV_ViewID)
+VSOutput vsmain(float4 Position : POSITION, float3 Color : COLOR, uint ViewIndex : SV_ViewID)
 {
     VSOutput result;
     result.Position = mul(Transform.M[ViewIndex], Position);
@@ -41,8 +37,7 @@ VSOutput vsmain(float4 Position
     return result;
 }
 
-float4 psmain(VSOutput input)
-    : SV_TARGET
+float4 psmain(VSOutput input) : SV_TARGET
 {
     return float4(input.Color, 1);
 }

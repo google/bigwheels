@@ -26,7 +26,7 @@ namespace vk {
 
 Result RenderPass::CreateRenderPass(const grfx::internal::RenderPassCreateInfo* pCreateInfo)
 {
-    bool hasMultiView   = ToApi(GetDevice())->HasMultiView() ? true : false;
+    bool hasMultiView   = ToApi(GetDevice())->HasMultiView();
     bool hasDepthSencil = mDepthStencilView ? true : false;
 
     uint32_t      depthStencilAttachment = -1;
@@ -134,12 +134,12 @@ Result RenderPass::CreateRenderPass(const grfx::internal::RenderPassCreateInfo* 
     vkci.dependencyCount        = 1;
     vkci.pDependencies          = &subpassDependencies;
 
-    if (hasMultiView && pCreateInfo->multiViewMask > 0) {
-        VkRenderPassMultiviewCreateInfo multiviewInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO};
-        multiviewInfo.subpassCount                    = 1;
-        multiviewInfo.pViewMasks                      = &pCreateInfo->multiViewMask;
-        multiviewInfo.correlationMaskCount            = 1;
-        multiviewInfo.pCorrelationMasks               = &pCreateInfo->multiCorrelationMask;
+    VkRenderPassMultiviewCreateInfo multiviewInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO};
+    if (hasMultiView && pCreateInfo->multiViewState.viewMask > 0) {
+        multiviewInfo.subpassCount         = 1;
+        multiviewInfo.pViewMasks           = &pCreateInfo->multiViewState.viewMask;
+        multiviewInfo.correlationMaskCount = 1;
+        multiviewInfo.pCorrelationMasks    = &pCreateInfo->multiViewState.correlationMask;
 
         vkci.pNext = &multiviewInfo;
     }
@@ -368,12 +368,12 @@ VkResult CreateTransientRenderPass(
     vkci.dependencyCount        = 1;
     vkci.pDependencies          = &subpassDependencies;
     // Callers responsibiltiy to only set viewmask if it is required
+    VkRenderPassMultiviewCreateInfo multiviewInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO};
     if (viewMask > 0) {
-        VkRenderPassMultiviewCreateInfo multiviewInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO};
-        multiviewInfo.subpassCount                    = 1;
-        multiviewInfo.pViewMasks                      = &viewMask;
-        multiviewInfo.correlationMaskCount            = 1;
-        multiviewInfo.pCorrelationMasks               = &correlationMask;
+        multiviewInfo.subpassCount         = 1;
+        multiviewInfo.pViewMasks           = &viewMask;
+        multiviewInfo.correlationMaskCount = 1;
+        multiviewInfo.pCorrelationMasks    = &correlationMask;
 
         vkci.pNext = &multiviewInfo;
     }
