@@ -28,6 +28,6 @@ StandardVertexOutput vsmain(StandardVertexInput input)
     output.PositionCS = mul(Camera.viewProjectionMatrix, PositionWS4);
     output.TexCoord   = input.TexCoord;
     output.Normal     = input.Normal;
-    output.Tangent    = input.Tangent; //float4(normalize(input.Tangent.xyz), input.Tangent.w);
+    output.Tangent    = input.Tangent;
     return output;
 }
