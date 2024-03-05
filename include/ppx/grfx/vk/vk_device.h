@@ -36,7 +36,7 @@ public:
 
     bool HasTimelineSemaphore() const { return mHasTimelineSemaphore; }
     bool HasExtendedDynamicState() const { return mHasExtendedDynamicState; }
-    bool HasUnreistrictedDepthRange() const { return mHasUnrestrictedDepthRange; }
+    bool HasDepthClipEnabled() const { return mHasDepthClipEnabled; }
 
     virtual Result WaitIdle() override;
 
@@ -114,7 +114,7 @@ private:
     VmaAllocatorPtr                                mVmaAllocator;
     bool                                           mHasTimelineSemaphore                       = false;
     bool                                           mHasExtendedDynamicState                    = false;
-    bool                                           mHasUnrestrictedDepthRange                  = false;
+    bool                                           mHasDepthClipEnabled                        = false;
     bool                                           mHasDynamicRendering                        = false;
     PFN_vkResetQueryPoolEXT                        mFnResetQueryPoolEXT                        = nullptr;
     PFN_vkWaitSemaphores                           mFnWaitSemaphores                           = nullptr;

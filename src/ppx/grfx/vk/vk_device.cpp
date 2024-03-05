@@ -196,8 +196,8 @@ Result Device::ConfigureExtensions(const grfx::DeviceCreateInfo* pCreateInfo)
 #endif // defined(PPX_VK_EXTENDED_DYNAMIC_STATE)
 
     // Depth clip
-    if (ElementExists(std::string(VK_EXT_DEPTH_RANGE_UNRESTRICTED_EXTENSION_NAME), mFoundExtensions)) {
-        mExtensions.push_back(VK_EXT_DEPTH_RANGE_UNRESTRICTED_EXTENSION_NAME);
+    if (ElementExists(std::string(VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME), mFoundExtensions)) {
+        mExtensions.push_back(VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME);
     }
 
     // Push descriptors
@@ -663,7 +663,7 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
 #endif // defined(PPX_VK_EXTENDED_DYNAMIC_STATE)
 
     // Depth clip enabled
-    mHasUnrestrictedDepthRange = ElementExists(std::string(VK_EXT_DEPTH_RANGE_UNRESTRICTED_EXTENSION_NAME), mExtensions);
+    mHasDepthClipEnabled = ElementExists(std::string(VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME), mExtensions);
 
     // Get maxPushDescriptors property and load function
     if (ElementExists(std::string(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME), mExtensions)) {
