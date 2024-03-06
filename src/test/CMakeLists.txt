@@ -54,6 +54,7 @@ list(
     knob_test.cpp
     log_console_test.cpp
     metrics_test.cpp
+    options_new_test.cpp
     ppm_export_test.cpp
     string_util_test.cpp
     transform_test.cpp
