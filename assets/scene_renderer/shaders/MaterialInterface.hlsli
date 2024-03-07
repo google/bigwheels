@@ -58,6 +58,14 @@ struct DrawParams {
     uint dbgVtxAttrIndex; // push constant offset = 4
 };
 
+// These are the supported values for dbgVtxAttrIndex (in
+// DrawParams above). This indicates, when debugging an object,
+// which aspect of the vertex should be visualized.
+#define DBG_VTX_ATTR_INDEX_POSITION 0
+#define DBG_VTX_ATTR_INDEX_TEXCOORD 1
+#define DBG_VTX_ATTR_INDEX_NORMAL   2
+#define DBG_VTX_ATTR_INDEX_TANGENT  3
+
 #if defined(__spirv__)
 [[vk::push_constant]]
 #endif 
