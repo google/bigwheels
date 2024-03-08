@@ -39,6 +39,12 @@ Install the following prerequisite packages before building:
 sudo apt install libxrandr-dev libxinerama-dev libx11-dev libxcursor-dev libxi-dev libx11-xcb-dev clang mesa-vulkan-drivers cmake ninja-build
 ```
 
+If building for Wayland, also install:
+
+```
+sudo apt install libwayland-dev wayland-protocols libxkbcommon-dev extra-cmake-modules
+```
+
 ## Linux
 ```
 git clone --recursive https://github.com/google/bigwheels
@@ -48,6 +54,8 @@ ninja -C build
 ```
 
 Built binaries are written to `build/bin/`.
+
+If building for Wayland, run CMake with `-DPPX_LINUX_WAYLAND=1`.
 
 ## Windows
 
