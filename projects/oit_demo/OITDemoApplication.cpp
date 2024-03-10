@@ -601,10 +601,10 @@ void OITDemoApp::RecordComposite(grfx::RenderPassPtr renderPass)
 
 void OITDemoApp::Render()
 {
+    PPX_CHECKED_CALL(mRenderCompleteFence->WaitAndReset());
     uint32_t imageIndex = UINT32_MAX;
     PPX_CHECKED_CALL(GetSwapchain()->AcquireNextImage(UINT64_MAX, mImageAcquiredSemaphore, mImageAcquiredFence, &imageIndex));
     PPX_CHECKED_CALL(mImageAcquiredFence->WaitAndReset());
-    PPX_CHECKED_CALL(mRenderCompleteFence->WaitAndReset());
 
     // Update state
     Update();

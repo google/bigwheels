@@ -1082,6 +1082,9 @@ void GraphicsBenchmarkApp::Render()
     uint32_t           imageIndex = UINT32_MAX;
     grfx::SwapchainPtr swapchain  = GetSwapchain(currentViewIndex);
 
+    // Wait for and reset render complete fence
+    PPX_CHECKED_CALL(frame.renderCompleteFence->WaitAndReset());
+
 #if defined(PPX_BUILD_XR)
     if (IsXrEnabled()) {
         PPX_ASSERT_MSG(swapchain->ShouldSkipExternalSynchronization(), "XRComponent should not be nullptr when XR is enabled!");
@@ -1099,9 +1102,6 @@ void GraphicsBenchmarkApp::Render()
         // Wait for and reset image acquired fence.
         PPX_CHECKED_CALL(frame.imageAcquiredFence->WaitAndReset());
     }
-
-    // Wait for and reset render complete fence
-    PPX_CHECKED_CALL(frame.renderCompleteFence->WaitAndReset());
 
     // Read query results
     if (GetFrameCount() > 0) {
