@@ -27,7 +27,6 @@ void TriangleApp::Config(ApplicationSettings& settings)
     settings.appName          = "sample_01_triangle";
     settings.enableImGui      = true;
     settings.grfx.api         = kApi;
-    settings.grfx.enableDebug = false;
     settings.window.resizable = true;
 }
 

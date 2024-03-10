@@ -64,10 +64,9 @@ private:
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
 {
-    settings.appName          = "sample_06_compute_fill";
-    settings.enableImGui      = true;
-    settings.grfx.api         = kApi;
-    settings.grfx.enableDebug = false;
+    settings.appName     = "sample_06_compute_fill";
+    settings.enableImGui = true;
+    settings.grfx.api    = kApi;
 }
 
 void ProjApp::Setup()

@@ -24,10 +24,9 @@ const grfx::Api kApi = grfx::API_VK_1_1;
 
 void TriangleSpinningApp::Config(ApplicationSettings& settings)
 {
-    settings.appName          = "sample_02_triangle_spinning";
-    settings.enableImGui      = true;
-    settings.grfx.api         = kApi;
-    settings.grfx.enableDebug = false;
+    settings.appName     = "sample_02_triangle_spinning";
+    settings.enableImGui = true;
+    settings.grfx.api    = kApi;
 }
 
 void TriangleSpinningApp::Setup()

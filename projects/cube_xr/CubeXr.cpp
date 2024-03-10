@@ -29,7 +29,6 @@ void CubeXrApp::Config(ppx::ApplicationSettings& settings)
     settings.enableImGui                = true;
     settings.grfx.api                   = kApi;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
-    settings.grfx.enableDebug           = false;
     settings.grfx.pacedFrameRate        = 0;
     settings.xr.enable                  = true;
     settings.xr.enableDebugCapture      = false;

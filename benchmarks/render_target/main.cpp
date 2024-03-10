@@ -96,7 +96,6 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.appName                        = "render_target";
     settings.enableImGui                    = false;
     settings.grfx.api                       = kApi;
-    settings.grfx.enableDebug               = false;
     settings.grfx.device.graphicsQueueCount = 1;
     settings.grfx.numFramesInFlight         = 1;
 }

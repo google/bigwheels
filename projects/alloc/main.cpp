@@ -38,8 +38,9 @@ private:
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
 {
-    settings.appName          = "alloc";
-    settings.grfx.api         = kApi;
+    settings.appName  = "alloc";
+    settings.grfx.api = kApi;
+    // TODO: #447 - Remove enableDebug = false after validation error is addressed
     settings.grfx.enableDebug = false;
 }
 
