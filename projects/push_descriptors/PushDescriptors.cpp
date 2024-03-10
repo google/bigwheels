@@ -30,7 +30,6 @@ void PushDescriptorsApp::Config(ppx::ApplicationSettings& settings)
     settings.enableImGui                = true;
     settings.grfx.api                   = grfx::API_VK_1_1;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
-    settings.grfx.enableDebug           = false;
 }
 
 void PushDescriptorsApp::Setup()

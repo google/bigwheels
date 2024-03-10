@@ -102,10 +102,9 @@ private:
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
 {
-    settings.appName          = "texture_sample";
-    settings.enableImGui      = false;
-    settings.grfx.api         = kApi;
-    settings.grfx.enableDebug = false;
+    settings.appName     = "texture_sample";
+    settings.enableImGui = false;
+    settings.grfx.api    = kApi;
 }
 
 void ProjApp::SaveResultsToFile()
