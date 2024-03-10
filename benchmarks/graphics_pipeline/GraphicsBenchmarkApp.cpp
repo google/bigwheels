@@ -1092,6 +1092,9 @@ void GraphicsBenchmarkApp::Render()
     }
     else
 #endif
+        // Wait for and reset render complete fence
+        PPX_CHECKED_CALL(frame.renderCompleteFence->WaitAndReset());
+
     {
         // Wait semaphore is ignored for XR.
         PPX_CHECKED_CALL(swapchain->AcquireNextImage(UINT64_MAX, frame.imageAcquiredSemaphore, frame.imageAcquiredFence, &imageIndex));
@@ -1099,9 +1102,6 @@ void GraphicsBenchmarkApp::Render()
         // Wait for and reset image acquired fence.
         PPX_CHECKED_CALL(frame.imageAcquiredFence->WaitAndReset());
     }
-
-    // Wait for and reset render complete fence
-    PPX_CHECKED_CALL(frame.renderCompleteFence->WaitAndReset());
 
     // Read query results
     if (GetFrameCount() > 0) {

@@ -250,14 +250,14 @@ void ProjApp::Render()
 
     grfx::SwapchainPtr swapchain = GetSwapchain();
 
+    // Wait for and reset render complete fence
+    PPX_CHECKED_CALL(frame.renderCompleteFence->WaitAndReset());
+
     uint32_t imageIndex = UINT32_MAX;
     PPX_CHECKED_CALL(swapchain->AcquireNextImage(UINT64_MAX, frame.imageAcquiredSemaphore, frame.imageAcquiredFence, &imageIndex));
 
     // Wait for and reset image acquired fence
     PPX_CHECKED_CALL(frame.imageAcquiredFence->WaitAndReset());
-
-    // Wait for and reset render complete fence
-    PPX_CHECKED_CALL(frame.renderCompleteFence->WaitAndReset());
 
     // Update uniform buffer
     {
