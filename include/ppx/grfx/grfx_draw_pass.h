@@ -43,7 +43,7 @@ struct DrawPassCreateInfo
     grfx::RenderTargetClearValue renderTargetClearValues[PPX_MAX_RENDER_TARGETS]   = {};
     grfx::DepthStencilClearValue depthStencilClearValue                            = {};
     grfx::ShadingRatePattern*    pShadingRatePattern                               = nullptr;
-    bool                         subsampledFormat                                  = false;
+    grfx::ImageCreateFlags       imageCreateFlags                                  = {};
 };
 
 //! @struct DrawPassCreateInfo2
@@ -100,14 +100,14 @@ struct DrawPassCreateInfo
     // Data unique to grfx::DrawPassCreateInfo1
     struct
     {
-        grfx::SampleCount     sampleCount                                       = grfx::SAMPLE_COUNT_1;
-        grfx::Format          renderTargetFormats[PPX_MAX_RENDER_TARGETS]       = {};
-        grfx::Format          depthStencilFormat                                = grfx::FORMAT_UNDEFINED;
-        grfx::ImageUsageFlags renderTargetUsageFlags[PPX_MAX_RENDER_TARGETS]    = {};
-        grfx::ImageUsageFlags depthStencilUsageFlags                            = {};
-        grfx::ResourceState   renderTargetInitialStates[PPX_MAX_RENDER_TARGETS] = {grfx::RESOURCE_STATE_RENDER_TARGET};
-        grfx::ResourceState   depthStencilInitialState                          = grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE;
-        bool                  subsampledFormat                                  = false;
+        grfx::SampleCount      sampleCount                                       = grfx::SAMPLE_COUNT_1;
+        grfx::Format           renderTargetFormats[PPX_MAX_RENDER_TARGETS]       = {};
+        grfx::Format           depthStencilFormat                                = grfx::FORMAT_UNDEFINED;
+        grfx::ImageUsageFlags  renderTargetUsageFlags[PPX_MAX_RENDER_TARGETS]    = {};
+        grfx::ImageUsageFlags  depthStencilUsageFlags                            = {};
+        grfx::ResourceState    renderTargetInitialStates[PPX_MAX_RENDER_TARGETS] = {grfx::RESOURCE_STATE_RENDER_TARGET};
+        grfx::ResourceState    depthStencilInitialState                          = grfx::RESOURCE_STATE_DEPTH_STENCIL_WRITE;
+        grfx::ImageCreateFlags imageCreateFlags                                  = {};
     } V1;
 
     // Data unique to grfx::DrawPassCreateInfo2

@@ -40,7 +40,7 @@ Result Image::CreateApiObjects(const grfx::ImageCreateInfo* pCreateInfo)
                 createFlags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
             }
 
-            if (pCreateInfo->subsampledFormat) {
+            if (pCreateInfo->createFlags.bits.subsampledFormat) {
                 createFlags |= VK_IMAGE_CREATE_SUBSAMPLED_BIT_EXT;
             }
             auto queueIndices = ToApi(GetDevice())->GetAllQueueFamilyIndices();
@@ -227,7 +227,7 @@ Result Sampler::CreateApiObjects(const grfx::SamplerCreateInfo* pCreateInfo)
 {
     VkSamplerCreateInfo vkci = {VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
     vkci.flags               = 0;
-    if (pCreateInfo->subsampledFormat) {
+    if (pCreateInfo->createFlags.bits.subsampledFormat) {
         vkci.flags |= VK_SAMPLER_CREATE_SUBSAMPLED_BIT_EXT;
     }
     vkci.magFilter               = ToVkFilter(pCreateInfo->magFilter);

@@ -181,7 +181,7 @@ Result RenderPass::CreateFramebuffer(const grfx::internal::RenderPassCreateInfo*
         if (pCreateInfo->pShadingRatePattern->GetShadingRateMode() == grfx::SHADING_RATE_FDM) {
             if (rtvCount > 0) {
                 // Check that all or none of the render targets and depth-stencil attachments are subsampled.
-                bool subsampled = mRenderTargetViews[0]->GetImage()->GetSubsampledFormat();
+                bool subsampled = mRenderTargetViews[0]->GetImage()->GetCreateFlags().bits.subsampledFormat;
                 if (!subsampled) {
                     PPX_ASSERT_MSG(GetDevice()->GetShadingRateCapabilities().fdm.supportsNonSubsampledImages, "Non-subsampled render target images with FDM shading rate are not supported.");
                 }
@@ -191,22 +191,22 @@ Result RenderPass::CreateFramebuffer(const grfx::internal::RenderPassCreateInfo*
                 for (uint32_t i = 0; i < rtvCount; ++i) {
                     grfx::RenderTargetViewPtr rtv = mRenderTargetViews[i];
                     if (subsampled) {
-                        PPX_ASSERT_MSG(rtv->GetImage()->GetSubsampledFormat(), "Render target image 0 is subsampled, but render target " << i << " is not subsampled.");
+                        PPX_ASSERT_MSG(rtv->GetImage()->GetCreateFlags().bits.subsampledFormat, "Render target image 0 is subsampled, but render target " << i << " is not subsampled.");
                     }
                     else {
-                        PPX_ASSERT_MSG(!rtv->GetImage()->GetSubsampledFormat(), "Render target image 0 is not subsampled, but render target " << i << " is subsampled.");
+                        PPX_ASSERT_MSG(!rtv->GetImage()->GetCreateFlags().bits.subsampledFormat, "Render target image 0 is not subsampled, but render target " << i << " is subsampled.");
                     }
                 }
                 if (hasDepthSencil) {
                     if (subsampled) {
-                        PPX_ASSERT_MSG(mDepthStencilView->GetImage()->GetSubsampledFormat(), "Render targets are subsampled, but depth-stencil image is not subsampled.");
+                        PPX_ASSERT_MSG(mDepthStencilView->GetImage()->GetCreateFlags().bits.subsampledFormat, "Render targets are subsampled, but depth-stencil image is not subsampled.");
                     }
                     else {
-                        PPX_ASSERT_MSG(!mDepthStencilView->GetImage()->GetSubsampledFormat(), "Render targets are subsampled, but depth-stencil image is not subsampled.");
+                        PPX_ASSERT_MSG(!mDepthStencilView->GetImage()->GetCreateFlags().bits.subsampledFormat, "Render targets are subsampled, but depth-stencil image is not subsampled.");
                     }
                 }
             }
-            else if (hasDepthSencil && !mDepthStencilView->GetImage()->GetSubsampledFormat()) {
+            else if (hasDepthSencil && !mDepthStencilView->GetImage()->GetCreateFlags().bits.subsampledFormat) {
                 // No render targets, only depth/stencil which is not subsampled.
                 PPX_ASSERT_MSG(GetDevice()->GetShadingRateCapabilities().fdm.supportsNonSubsampledImages, "Non-subsampled depth-stencil image with FDM shading rate are not supported.");
             }
