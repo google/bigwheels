@@ -182,7 +182,7 @@ Result Instance::ConfigureLayersAndExtensions(const grfx::InstanceCreateInfo* pC
 #elif defined(PPX_LINUX_XLIB)
 #error "Xlib not implemented"
 #elif defined(PPX_LINUX_WAYLAND)
-#error "Wayland not implemented"
+        mExtensions.push_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
 #elif defined(PPX_MSW)
         mExtensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 #endif
