@@ -265,7 +265,7 @@ Result DescriptorSetLayout::CreateApiObjects(const grfx::DescriptorSetLayoutCrea
     }
 
     std::vector<VkDescriptorSetLayoutBinding> vkBindings;
-    std::vector<VkDescriptorBindingFlags> vkBindingFlags;
+    std::vector<VkDescriptorBindingFlags>     vkBindingFlags;
     for (size_t i = 0; i < pCreateInfo->bindings.size(); ++i) {
         const grfx::DescriptorBinding& baseBinding = pCreateInfo->bindings[i];
 

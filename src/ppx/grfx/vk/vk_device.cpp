@@ -302,10 +302,8 @@ Result Device::ConfigureDescriptorIndexingFeatures(
 {
     vk::Gpu* pGpu = ToApi(pCreateInfo->pGpu);
 
-    VkPhysicalDeviceDescriptorIndexingFeatures foundDiFeatures
-        {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES};
-    VkPhysicalDeviceFeatures2 foundFeatures
-        {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, &foundDiFeatures};
+    VkPhysicalDeviceDescriptorIndexingFeatures foundDiFeatures{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES};
+    VkPhysicalDeviceFeatures2                  foundFeatures{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, &foundDiFeatures};
     vkGetPhysicalDeviceFeatures2(pGpu->GetVkGpu(), &foundFeatures);
 
     //

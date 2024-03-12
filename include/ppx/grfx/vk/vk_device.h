@@ -112,7 +112,7 @@ private:
     std::vector<std::string>                       mFoundExtensions;
     std::vector<std::string>                       mExtensions;
     VkDevicePtr                                    mDevice;
-    VkPhysicalDeviceFeatures                       mDeviceFeatures = {};
+    VkPhysicalDeviceFeatures                       mDeviceFeatures             = {};
     VkPhysicalDeviceDescriptorIndexingFeatures     mDescriptorIndexingFeatures = {};
     VmaAllocatorPtr                                mVmaAllocator;
     bool                                           mHasTimelineSemaphore                       = false;

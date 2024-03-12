@@ -115,7 +115,7 @@ struct DescriptorBindingFlags
     {
         struct
         {
-            bool updatable : 1;
+            bool updatable      : 1;
             bool partiallyBound : 1;
         } bits;
         uint32_t flags;
