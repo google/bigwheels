@@ -44,6 +44,7 @@ public:
     virtual bool DynamicRenderingSupported() const override;
     virtual bool IndependentBlendingSupported() const override;
     virtual bool FragmentStoresAndAtomicsSupported() const override;
+    virtual bool PartialDescriptorBindingsSupported() const override;
 
     void ResetQueryPoolEXT(
         VkQueryPool queryPool,
@@ -95,6 +96,7 @@ private:
     Result ConfigureQueueInfo(const grfx::DeviceCreateInfo* pCreateInfo, std::vector<float>& queuePriorities, std::vector<VkDeviceQueueCreateInfo>& queueCreateInfos);
     Result ConfigureExtensions(const grfx::DeviceCreateInfo* pCreateInfo);
     Result ConfigureFeatures(const grfx::DeviceCreateInfo* pCreateInfo, VkPhysicalDeviceFeatures& features);
+    Result ConfigureDescriptorIndexingFeatures(const grfx::DeviceCreateInfo* pCreateInfo, VkPhysicalDeviceDescriptorIndexingFeatures& diFeatures);
     void   ConfigureShadingRateCapabilities(
           const grfx::DeviceCreateInfo*  pCreateInfo,
           grfx::ShadingRateCapabilities* pShadingRateCapabilities);
@@ -111,6 +113,7 @@ private:
     std::vector<std::string>                       mExtensions;
     VkDevicePtr                                    mDevice;
     VkPhysicalDeviceFeatures                       mDeviceFeatures = {};
+    VkPhysicalDeviceDescriptorIndexingFeatures     mDescriptorIndexingFeatures = {};
     VmaAllocatorPtr                                mVmaAllocator;
     bool                                           mHasTimelineSemaphore                       = false;
     bool                                           mHasExtendedDynamicState                    = false;

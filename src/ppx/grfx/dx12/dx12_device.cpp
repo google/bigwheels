@@ -638,6 +638,11 @@ bool Device::FragmentStoresAndAtomicsSupported() const
     return true;
 }
 
+bool Device::PartialDescriptorBindingsSupported() const
+{
+    return false;
+}
+
 } // namespace dx12
 } // namespace grfx
 } // namespace ppx

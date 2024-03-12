@@ -297,6 +297,65 @@ Result Device::ConfigureFeatures(const grfx::DeviceCreateInfo* pCreateInfo, VkPh
     return ppx::SUCCESS;
 }
 
+Result Device::ConfigureDescriptorIndexingFeatures(
+    const grfx::DeviceCreateInfo* pCreateInfo, VkPhysicalDeviceDescriptorIndexingFeatures& diFeatures)
+{
+    vk::Gpu* pGpu = ToApi(pCreateInfo->pGpu);
+
+    VkPhysicalDeviceDescriptorIndexingFeatures foundDiFeatures
+        {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES};
+    VkPhysicalDeviceFeatures2 foundFeatures
+        {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, &foundDiFeatures};
+    vkGetPhysicalDeviceFeatures2(pGpu->GetVkGpu(), &foundFeatures);
+
+    //
+    // 2023/10/01 - Just runtimeDescriptorArrays for now - need to survey what Android
+    //              usage is like before enabling other freatures.
+    // 2024/03/12 - Fetch features from the GPU, and enable any features that are
+    //              supported. runtimeDescriptorArray was forced to true before, so
+    //              that setting was kept.
+    //
+    diFeatures.shaderInputAttachmentArrayDynamicIndexing          = foundDiFeatures.shaderInputAttachmentArrayDynamicIndexing;
+    diFeatures.shaderUniformTexelBufferArrayDynamicIndexing       = foundDiFeatures.shaderUniformTexelBufferArrayDynamicIndexing;
+    diFeatures.shaderStorageTexelBufferArrayDynamicIndexing       = foundDiFeatures.shaderStorageTexelBufferArrayDynamicIndexing;
+    diFeatures.shaderUniformBufferArrayNonUniformIndexing         = foundDiFeatures.shaderUniformBufferArrayNonUniformIndexing;
+    diFeatures.shaderSampledImageArrayNonUniformIndexing          = foundDiFeatures.shaderSampledImageArrayNonUniformIndexing;
+    diFeatures.shaderStorageBufferArrayNonUniformIndexing         = foundDiFeatures.shaderStorageBufferArrayNonUniformIndexing;
+    diFeatures.shaderStorageImageArrayNonUniformIndexing          = foundDiFeatures.shaderStorageImageArrayNonUniformIndexing;
+    diFeatures.shaderInputAttachmentArrayNonUniformIndexing       = foundDiFeatures.shaderInputAttachmentArrayNonUniformIndexing;
+    diFeatures.shaderUniformTexelBufferArrayNonUniformIndexing    = foundDiFeatures.shaderUniformTexelBufferArrayNonUniformIndexing;
+    diFeatures.shaderStorageTexelBufferArrayNonUniformIndexing    = foundDiFeatures.shaderStorageTexelBufferArrayNonUniformIndexing;
+    diFeatures.descriptorBindingUniformBufferUpdateAfterBind      = foundDiFeatures.descriptorBindingUniformBufferUpdateAfterBind;
+    diFeatures.descriptorBindingSampledImageUpdateAfterBind       = foundDiFeatures.descriptorBindingSampledImageUpdateAfterBind;
+    diFeatures.descriptorBindingStorageImageUpdateAfterBind       = foundDiFeatures.descriptorBindingStorageImageUpdateAfterBind;
+    diFeatures.descriptorBindingStorageBufferUpdateAfterBind      = foundDiFeatures.descriptorBindingStorageBufferUpdateAfterBind;
+    diFeatures.descriptorBindingUniformTexelBufferUpdateAfterBind = foundDiFeatures.descriptorBindingUniformTexelBufferUpdateAfterBind;
+    diFeatures.descriptorBindingStorageTexelBufferUpdateAfterBind = foundDiFeatures.descriptorBindingStorageTexelBufferUpdateAfterBind;
+    diFeatures.descriptorBindingUpdateUnusedWhilePending          = foundDiFeatures.descriptorBindingUpdateUnusedWhilePending;
+    diFeatures.descriptorBindingPartiallyBound                    = foundDiFeatures.descriptorBindingPartiallyBound;
+    diFeatures.descriptorBindingVariableDescriptorCount           = foundDiFeatures.descriptorBindingVariableDescriptorCount;
+    diFeatures.runtimeDescriptorArray                             = VK_TRUE;
+
+    // Verify that any asserted features were actually found to be
+    // supported.
+    std::vector<std::string_view> missingFeatures;
+    if (!foundDiFeatures.runtimeDescriptorArray) {
+        missingFeatures.push_back("runtimeDescriptorArray");
+    }
+
+    if (!missingFeatures.empty()) {
+        std::stringstream ss;
+        ss << "Device does not support required features:" << PPX_LOG_ENDL;
+        for (const auto& elem : missingFeatures) {
+            ss << " " << elem << PPX_LOG_ENDL;
+        }
+        PPX_ASSERT_MSG(false, ss.str());
+        return ppx::ERROR_REQUIRED_FEATURE_UNAVAILABLE;
+    }
+
+    return ppx::SUCCESS;
+}
+
 void Device::ConfigureShadingRateCapabilities(const grfx::DeviceCreateInfo* pCreateInfo, grfx::ShadingRateCapabilities* pShadingRateCapabilities)
 {
     *pShadingRateCapabilities = {};
@@ -483,34 +542,10 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
     std::vector<VkBaseOutStructure*> extensionStructs;
 
     // VK_EXT_descriptor_indexing
-    VkPhysicalDeviceDescriptorIndexingFeatures descriptorIndexingFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES};
+    mDescriptorIndexingFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES};
     if ((GetInstance()->GetApi() >= grfx::API_VK_1_2) || ElementExists(std::string(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME), mExtensions)) {
-        //
-        // 2023/10/01 - Just runtimeDescriptorArrays for now - need to survey what Android
-        //              usage is like before enabling other freatures.
-        //
-        descriptorIndexingFeatures.shaderInputAttachmentArrayDynamicIndexing          = VK_FALSE;
-        descriptorIndexingFeatures.shaderUniformTexelBufferArrayDynamicIndexing       = VK_FALSE;
-        descriptorIndexingFeatures.shaderStorageTexelBufferArrayDynamicIndexing       = VK_FALSE;
-        descriptorIndexingFeatures.shaderUniformBufferArrayNonUniformIndexing         = VK_FALSE;
-        descriptorIndexingFeatures.shaderSampledImageArrayNonUniformIndexing          = VK_FALSE;
-        descriptorIndexingFeatures.shaderStorageBufferArrayNonUniformIndexing         = VK_FALSE;
-        descriptorIndexingFeatures.shaderStorageImageArrayNonUniformIndexing          = VK_FALSE;
-        descriptorIndexingFeatures.shaderInputAttachmentArrayNonUniformIndexing       = VK_FALSE;
-        descriptorIndexingFeatures.shaderUniformTexelBufferArrayNonUniformIndexing    = VK_FALSE;
-        descriptorIndexingFeatures.shaderStorageTexelBufferArrayNonUniformIndexing    = VK_FALSE;
-        descriptorIndexingFeatures.descriptorBindingUniformBufferUpdateAfterBind      = VK_FALSE;
-        descriptorIndexingFeatures.descriptorBindingSampledImageUpdateAfterBind       = VK_FALSE;
-        descriptorIndexingFeatures.descriptorBindingStorageImageUpdateAfterBind       = VK_FALSE;
-        descriptorIndexingFeatures.descriptorBindingStorageBufferUpdateAfterBind      = VK_FALSE;
-        descriptorIndexingFeatures.descriptorBindingUniformTexelBufferUpdateAfterBind = VK_FALSE;
-        descriptorIndexingFeatures.descriptorBindingStorageTexelBufferUpdateAfterBind = VK_FALSE;
-        descriptorIndexingFeatures.descriptorBindingUpdateUnusedWhilePending          = VK_FALSE;
-        descriptorIndexingFeatures.descriptorBindingPartiallyBound                    = VK_FALSE;
-        descriptorIndexingFeatures.descriptorBindingVariableDescriptorCount           = VK_FALSE;
-        descriptorIndexingFeatures.runtimeDescriptorArray                             = VK_TRUE;
-
-        extensionStructs.push_back(reinterpret_cast<VkBaseOutStructure*>(&descriptorIndexingFeatures));
+        ConfigureDescriptorIndexingFeatures(pCreateInfo, mDescriptorIndexingFeatures);
+        extensionStructs.push_back(reinterpret_cast<VkBaseOutStructure*>(&mDescriptorIndexingFeatures));
     }
 
     // VK_KHR_timeline_semaphore
@@ -985,6 +1020,12 @@ bool Device::IndependentBlendingSupported() const
 bool Device::FragmentStoresAndAtomicsSupported() const
 {
     return mDeviceFeatures.fragmentStoresAndAtomics == VK_TRUE;
+}
+
+bool Device::PartialDescriptorBindingsSupported() const
+{
+    return mDescriptorIndexingFeatures.descriptorBindingPartiallyBound &&
+           mDescriptorIndexingFeatures.runtimeDescriptorArray;
 }
 
 void Device::ResetQueryPoolEXT(

@@ -265,6 +265,7 @@ Result DescriptorSetLayout::CreateApiObjects(const grfx::DescriptorSetLayoutCrea
     }
 
     std::vector<VkDescriptorSetLayoutBinding> vkBindings;
+    std::vector<VkDescriptorBindingFlags> vkBindingFlags;
     for (size_t i = 0; i < pCreateInfo->bindings.size(); ++i) {
         const grfx::DescriptorBinding& baseBinding = pCreateInfo->bindings[i];
 
@@ -275,11 +276,20 @@ Result DescriptorSetLayout::CreateApiObjects(const grfx::DescriptorSetLayoutCrea
         vkBinding.stageFlags                   = ToVkShaderStageFlags(baseBinding.shaderVisiblity);
         vkBinding.pImmutableSamplers           = nullptr;
         vkBindings.push_back(vkBinding);
+
+        VkDescriptorBindingFlags vkBindingFlag = ToVkDescriptorBindingFlags(baseBinding.flags);
+        vkBindingFlags.push_back(vkBindingFlag);
     }
+
+    VkDescriptorSetLayoutBindingFlagsCreateInfoEXT vkBindingWrapper = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT};
+    vkBindingWrapper.bindingCount                                   = CountU32(vkBindingFlags);
+    vkBindingWrapper.pBindingFlags                                  = DataPtr(vkBindingFlags);
+    vkBindingWrapper.pNext                                          = nullptr;
 
     VkDescriptorSetLayoutCreateInfo vkci = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
     vkci.bindingCount                    = CountU32(vkBindings);
     vkci.pBindings                       = DataPtr(vkBindings);
+    vkci.pNext                           = &vkBindingWrapper;
 
     if (pCreateInfo->flags.bits.pushable) {
         vkci.flags |= VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;

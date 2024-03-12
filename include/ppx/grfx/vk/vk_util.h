@@ -39,6 +39,7 @@ VkCompareOp                ToVkCompareOp(grfx::CompareOp value);
 VkComponentSwizzle         ToVkComponentSwizzle(grfx::ComponentSwizzle value);
 VkComponentMapping         ToVkComponentMapping(const grfx::ComponentMapping& value);
 VkCullModeFlagBits         ToVkCullMode(grfx::CullMode value);
+VkDescriptorBindingFlags   ToVkDescriptorBindingFlags(const grfx::DescriptorBindingFlags& value);
 VkDescriptorType           ToVkDescriptorType(grfx::DescriptorType value);
 VkFilter                   ToVkFilter(grfx::Filter value);
 VkFormat                   ToVkFormat(grfx::Format value);
