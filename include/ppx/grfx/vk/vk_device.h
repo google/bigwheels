@@ -34,6 +34,7 @@ public:
 
     const VkPhysicalDeviceFeatures& GetDeviceFeatures() const { return mDeviceFeatures; }
 
+    bool HasDescriptorIndexingFeatures() const { return mHasDescriptorIndexingFeatures; }
     bool HasTimelineSemaphore() const { return mHasTimelineSemaphore; }
     bool HasExtendedDynamicState() const { return mHasExtendedDynamicState; }
     bool HasDepthClipEnabled() const { return mHasDepthClipEnabled; }
@@ -115,6 +116,7 @@ private:
     VkPhysicalDeviceFeatures                       mDeviceFeatures             = {};
     VkPhysicalDeviceDescriptorIndexingFeatures     mDescriptorIndexingFeatures = {};
     VmaAllocatorPtr                                mVmaAllocator;
+    bool                                           mHasDescriptorIndexingFeatures              = false;
     bool                                           mHasTimelineSemaphore                       = false;
     bool                                           mHasExtendedDynamicState                    = false;
     bool                                           mHasDepthClipEnabled                        = false;

@@ -87,6 +87,8 @@ protected:
     virtual void   DestroyApiObjects() override;
 
 private:
+    Result ValidateDescriptorBindingFlags(const grfx::DescriptorBindingFlags& flags) const;
+
     VkDescriptorSetLayoutPtr mDescriptorSetLayout;
 };
 
