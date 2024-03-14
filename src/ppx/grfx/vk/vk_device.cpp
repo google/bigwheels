@@ -336,18 +336,10 @@ Result Device::ConfigureDescriptorIndexingFeatures(
 
     // Verify that any asserted features were actually found to be
     // supported.
-    std::vector<std::string_view> missingFeatures;
     if (!foundDiFeatures.runtimeDescriptorArray) {
-        missingFeatures.push_back("runtimeDescriptorArray");
-    }
-
-    if (!missingFeatures.empty()) {
-        std::stringstream ss;
-        ss << "Device does not support required features:" << PPX_LOG_ENDL;
-        for (const auto& elem : missingFeatures) {
-            ss << " " << elem << PPX_LOG_ENDL;
-        }
-        PPX_ASSERT_MSG(false, ss.str());
+        PPX_ASSERT_MSG(
+            false,
+            "RuntimeDescriptorArray feature expected, but was not enabled.");
         return ppx::ERROR_REQUIRED_FEATURE_UNAVAILABLE;
     }
 

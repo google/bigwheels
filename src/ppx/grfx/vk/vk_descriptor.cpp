@@ -266,6 +266,7 @@ Result DescriptorSetLayout::CreateApiObjects(const grfx::DescriptorSetLayoutCrea
 
     std::vector<VkDescriptorSetLayoutBinding> vkBindings;
     std::vector<VkDescriptorBindingFlags>     vkBindingFlags;
+    bool                                      hasBindingFlags = false;
     for (size_t i = 0; i < pCreateInfo->bindings.size(); ++i) {
         const grfx::DescriptorBinding& baseBinding = pCreateInfo->bindings[i];
 
@@ -277,10 +278,11 @@ Result DescriptorSetLayout::CreateApiObjects(const grfx::DescriptorSetLayoutCrea
         vkBinding.pImmutableSamplers           = nullptr;
         vkBindings.push_back(vkBinding);
 
+        PPX_CHECKED_CALL(ValidateDescriptorBindingFlags(baseBinding.flags));
+        VkDescriptorBindingFlags vkBindingFlag = ToVkDescriptorBindingFlags(baseBinding.flags);
+        vkBindingFlags.push_back(vkBindingFlag);
         if (baseBinding.flags != 0) {
-            ValidateDescriptorBindingFlags(baseBinding.flags);
-            VkDescriptorBindingFlags vkBindingFlag = ToVkDescriptorBindingFlags(baseBinding.flags);
-            vkBindingFlags.push_back(vkBindingFlag);
+            hasBindingFlags = true;
         }
     }
 
@@ -289,7 +291,7 @@ Result DescriptorSetLayout::CreateApiObjects(const grfx::DescriptorSetLayoutCrea
     vkci.pBindings                       = DataPtr(vkBindings);
 
     VkDescriptorSetLayoutBindingFlagsCreateInfoEXT vkBindingWrapper = {VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT, nullptr};
-    if (!vkBindingFlags.empty()) {
+    if (hasBindingFlags) {
         vkBindingWrapper.bindingCount  = CountU32(vkBindingFlags);
         vkBindingWrapper.pBindingFlags = DataPtr(vkBindingFlags);
         vkci.pNext                     = &vkBindingWrapper;
