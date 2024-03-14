@@ -82,10 +82,13 @@ Result Queue::Submit(const grfx::SubmitInfo* pSubmitInfo)
         mListBuffer[i] = ToApi(pSubmitInfo->ppCommandBuffers[i])->GetDxCommandList();
     }
 
+    // Wait semaphores
     for (uint32_t i = 0; i < pSubmitInfo->waitSemaphoreCount; ++i) {
-        ID3D12Fence* pDxFence = ToApi(pSubmitInfo->ppWaitSemaphores[i])->GetDxFence();
-        UINT64       value    = ToApi(pSubmitInfo->ppWaitSemaphores[i])->GetWaitForValue();
-        HRESULT      hr       = mCommandQueue->Wait(pDxFence, value);
+        auto         pSemaphore = ToApi(pSubmitInfo->ppWaitSemaphores[i]);
+        ID3D12Fence* pDxFence   = pSemaphore->GetDxFence();
+        UINT64       value      = pSemaphore->IsTimeline() ? pSubmitInfo->waitValues[i] : pSemaphore->GetWaitForValue();
+
+        HRESULT hr = mCommandQueue->Wait(pDxFence, value);
         if (FAILED(hr)) {
             PPX_ASSERT_MSG(false, "ID3D12CommandQueue::Wait failed");
             return ppx::ERROR_API_FAILURE;
@@ -96,10 +99,13 @@ Result Queue::Submit(const grfx::SubmitInfo* pSubmitInfo)
         static_cast<UINT>(pSubmitInfo->commandBufferCount),
         mListBuffer.data());
 
+    // Signal semaphores
     for (uint32_t i = 0; i < pSubmitInfo->signalSemaphoreCount; ++i) {
-        ID3D12Fence* pDxFence = ToApi(pSubmitInfo->ppSignalSemaphores[i])->GetDxFence();
-        UINT64       value    = ToApi(pSubmitInfo->ppSignalSemaphores[i])->GetNextSignalValue();
-        HRESULT      hr       = mCommandQueue->Signal(pDxFence, value);
+        auto         pSemaphore = ToApi(pSubmitInfo->ppSignalSemaphores[i]);
+        ID3D12Fence* pDxFence   = pSemaphore->GetDxFence();
+        UINT64       value      = pSemaphore->IsTimeline() ? pSubmitInfo->signalValues[i] : pSemaphore->GetNextSignalValue();
+
+        HRESULT hr = mCommandQueue->Signal(pDxFence, value);
         if (FAILED(hr)) {
             PPX_ASSERT_MSG(false, "ID3D12CommandQueue::Signal failed");
             return ppx::ERROR_API_FAILURE;
@@ -114,6 +120,46 @@ Result Queue::Submit(const grfx::SubmitInfo* pSubmitInfo)
             PPX_ASSERT_MSG(false, "ID3D12CommandQueue::Signal failed");
             return ppx::ERROR_API_FAILURE;
         }
+    }
+
+    return ppx::SUCCESS;
+}
+
+Result Queue::QueueWait(grfx::Semaphore* pSemaphore, uint64_t value)
+{
+    if (IsNull(pSemaphore)) {
+        return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
+    }
+
+    if (pSemaphore->GetSemaphoreType() != grfx::SEMAPHORE_TYPE_TIMELINE) {
+        return ppx::ERROR_GRFX_INVALID_SEMAPHORE_TYPE;
+    }
+
+    HRESULT hr = mCommandQueue->Wait(
+        ToApi(pSemaphore)->GetDxFence(),
+        static_cast<UINT64>(value));
+    if (FAILED(hr)) {
+        return ppx::ERROR_API_FAILURE;
+    }
+
+    return ppx::SUCCESS;
+}
+
+Result Queue::QueueSignal(grfx::Semaphore* pSemaphore, uint64_t value)
+{
+    if (IsNull(pSemaphore)) {
+        return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
+    }
+
+    if (pSemaphore->GetSemaphoreType() != grfx::SEMAPHORE_TYPE_TIMELINE) {
+        return ppx::ERROR_GRFX_INVALID_SEMAPHORE_TYPE;
+    }
+
+    HRESULT hr = mCommandQueue->Signal(
+        ToApi(pSemaphore)->GetDxFence(),
+        static_cast<UINT64>(value));
+    if (FAILED(hr)) {
+        return ppx::ERROR_API_FAILURE;
     }
 
     return ppx::SUCCESS;

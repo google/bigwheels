@@ -36,7 +36,13 @@ Alternatively, a DXC path can be provided using `-DDXC_PATH=<path to DXC executa
 Install the following prerequisite packages before building:
 
 ```
-sudo apt install libxrandr-dev libxinerama-dev libx11-dev libxcursor-dev libxi-dev libx11-xcb-dev clang mesa-vulkan-drivers
+sudo apt install libxrandr-dev libxinerama-dev libx11-dev libxcursor-dev libxi-dev libx11-xcb-dev clang mesa-vulkan-drivers cmake ninja-build
+```
+
+If building for Wayland, also install:
+
+```
+sudo apt install libwayland-dev wayland-protocols libxkbcommon-dev extra-cmake-modules
 ```
 
 ## Linux
@@ -49,7 +55,13 @@ ninja -C build
 
 Built binaries are written to `build/bin/`.
 
+If building for Wayland, run CMake with `-DPPX_LINUX_WAYLAND=1`.
+
 ## Windows
+
+- Make sure the "Graphics Tools" feature is enabled (Settings > System > "Optional features" > "Add a feature" > "Graphics Tools". This is required to have DX12 debug layers.
+**Note: "Optional features" dialog is not the same as the "Turn Windows features on or off".**
+  
 ```
 git clone --recursive https://github.com/google/bigwheels
 cd bigwheels

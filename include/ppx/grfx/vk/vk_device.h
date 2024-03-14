@@ -36,7 +36,7 @@ public:
 
     bool HasTimelineSemaphore() const { return mHasTimelineSemaphore; }
     bool HasExtendedDynamicState() const { return mHasExtendedDynamicState; }
-    bool HasUnreistrictedDepthRange() const { return mHasUnrestrictedDepthRange; }
+    bool HasDepthClipEnabled() const { return mHasDepthClipEnabled; }
 
     virtual Result WaitIdle() override;
 
@@ -49,6 +49,10 @@ public:
         VkQueryPool queryPool,
         uint32_t    firstQuery,
         uint32_t    queryCount) const;
+
+    VkResult WaitSemaphores(const VkSemaphoreWaitInfo* pWaitInfo, uint64_t timeout) const;
+    VkResult SignalSemaphore(const VkSemaphoreSignalInfo* pSignalInfo);
+    VkResult GetSemaphoreCounterValue(VkSemaphore semaphore, uint64_t* pValue);
 
     uint32_t                GetGraphicsQueueFamilyIndex() const { return mGraphicsQueueFamilyIndex; }
     uint32_t                GetComputeQueueFamilyIndex() const { return mComputeQueueFamilyIndex; }
@@ -110,9 +114,12 @@ private:
     VmaAllocatorPtr                                mVmaAllocator;
     bool                                           mHasTimelineSemaphore                       = false;
     bool                                           mHasExtendedDynamicState                    = false;
-    bool                                           mHasUnrestrictedDepthRange                  = false;
+    bool                                           mHasDepthClipEnabled                        = false;
     bool                                           mHasDynamicRendering                        = false;
     PFN_vkResetQueryPoolEXT                        mFnResetQueryPoolEXT                        = nullptr;
+    PFN_vkWaitSemaphores                           mFnWaitSemaphores                           = nullptr;
+    PFN_vkSignalSemaphore                          mFnSignalSemaphore                          = nullptr;
+    PFN_vkGetSemaphoreCounterValue                 mFnGetSemaphoreCounterValue                 = nullptr;
     uint32_t                                       mGraphicsQueueFamilyIndex                   = 0;
     uint32_t                                       mComputeQueueFamilyIndex                    = 0;
     uint32_t                                       mTransferQueueFamilyIndex                   = 0;

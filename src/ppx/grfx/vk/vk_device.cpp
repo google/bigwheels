@@ -196,8 +196,8 @@ Result Device::ConfigureExtensions(const grfx::DeviceCreateInfo* pCreateInfo)
 #endif // defined(PPX_VK_EXTENDED_DYNAMIC_STATE)
 
     // Depth clip
-    if (ElementExists(std::string(VK_EXT_DEPTH_RANGE_UNRESTRICTED_EXTENSION_NAME), mFoundExtensions)) {
-        mExtensions.push_back(VK_EXT_DEPTH_RANGE_UNRESTRICTED_EXTENSION_NAME);
+    if (ElementExists(std::string(VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME), mFoundExtensions)) {
+        mExtensions.push_back(VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME);
     }
 
     // Push descriptors
@@ -640,6 +640,12 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
     else {
         mHasTimelineSemaphore = true;
     }
+    if (mHasTimelineSemaphore) {
+        // Load in KHR versions of functions since they'll cover Vulkan 1.1 and later versions
+        mFnWaitSemaphores           = (PFN_vkWaitSemaphoresKHR)vkGetDeviceProcAddr(mDevice, "vkWaitSemaphoresKHR");
+        mFnSignalSemaphore          = (PFN_vkSignalSemaphoreKHR)vkGetDeviceProcAddr(mDevice, "vkSignalSemaphoreKHR");
+        mFnGetSemaphoreCounterValue = (PFN_vkGetSemaphoreCounterValueKHR)vkGetDeviceProcAddr(mDevice, "vkGetSemaphoreCounterValueKHR");
+    }
     PPX_LOG_INFO("Vulkan timeline semaphore is present: " << mHasTimelineSemaphore);
 
 #if defined(VK_KHR_dynamic_rendering)
@@ -657,7 +663,7 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
 #endif // defined(PPX_VK_EXTENDED_DYNAMIC_STATE)
 
     // Depth clip enabled
-    mHasUnrestrictedDepthRange = ElementExists(std::string(VK_EXT_DEPTH_RANGE_UNRESTRICTED_EXTENSION_NAME), mExtensions);
+    mHasDepthClipEnabled = ElementExists(std::string(VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME), mExtensions);
 
     // Get maxPushDescriptors property and load function
     if (ElementExists(std::string(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME), mExtensions)) {
@@ -987,6 +993,24 @@ void Device::ResetQueryPoolEXT(
     uint32_t    queryCount) const
 {
     mFnResetQueryPoolEXT(mDevice, queryPool, firstQuery, queryCount);
+}
+
+VkResult Device::WaitSemaphores(const VkSemaphoreWaitInfo* pWaitInfo, uint64_t timeout) const
+{
+    PPX_ASSERT_NULL_ARG(mFnWaitSemaphores);
+    return mFnWaitSemaphores(mDevice, pWaitInfo, timeout);
+}
+
+VkResult Device::SignalSemaphore(const VkSemaphoreSignalInfo* pSignalInfo)
+{
+    PPX_ASSERT_NULL_ARG(mFnSignalSemaphore);
+    return mFnSignalSemaphore(mDevice, pSignalInfo);
+}
+
+VkResult Device::GetSemaphoreCounterValue(VkSemaphore semaphore, uint64_t* pValue)
+{
+    PPX_ASSERT_NULL_ARG(mFnGetSemaphoreCounterValue);
+    return mFnGetSemaphoreCounterValue(mDevice, semaphore, pValue);
 }
 
 std::array<uint32_t, 3> Device::GetAllQueueFamilyIndices() const

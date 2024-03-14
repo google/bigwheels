@@ -56,6 +56,8 @@ protected:
 //!
 struct SemaphoreCreateInfo
 {
+    grfx::SemaphoreType semaphoreType = grfx::SEMAPHORE_TYPE_BINARY;
+    uint64_t            initialValue  = 0; // Timeline semaphore only
 };
 
 //! @class Semaphore
@@ -68,11 +70,35 @@ public:
     Semaphore() {}
     virtual ~Semaphore() {}
 
+    grfx::SemaphoreType GetSemaphoreType() const { return mCreateInfo.semaphoreType; }
+    bool                IsBinary() const { return mCreateInfo.semaphoreType == grfx::SEMAPHORE_TYPE_BINARY; }
+    bool                IsTimeline() const { return mCreateInfo.semaphoreType == grfx::SEMAPHORE_TYPE_TIMELINE; }
+
+    // Timeline semaphore wait
+    Result Wait(uint64_t value, uint64_t timeout = UINT64_MAX) const;
+
+    // Timeline semaphore signal
+    //
+    // WARNING: Signaling a value less than what's already been signaled can
+    //          cause a block or a race condition.
+    //
+    Result Signal(uint64_t value) const;
+
+    // Returns current timeline semaphore value
+    uint64_t GetCounterValue() const;
+
+private:
+    virtual Result   TimelineWait(uint64_t value, uint64_t timeout) const = 0;
+    virtual Result   TimelineSignal(uint64_t value) const                 = 0;
+    virtual uint64_t TimelineCounterValue() const                         = 0;
+
 protected:
     virtual Result CreateApiObjects(const grfx::SemaphoreCreateInfo* pCreateInfo) = 0;
     virtual void   DestroyApiObjects()                                            = 0;
     friend class grfx::Device;
 };
+
+// -------------------------------------------------------------------------------------------------
 
 } // namespace grfx
 } // namespace ppx

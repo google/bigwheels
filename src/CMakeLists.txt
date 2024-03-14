@@ -81,8 +81,6 @@ elseif(PPX_LINUX_XLIB)
     set(PPX_LINUX_VULKAN_SURFACE "PPX_LINUX_XLIB")
 elseif(PPX_LINUX_WAYLAND)
     set(PPX_LINUX_VULKAN_SURFACE "PPX_LINUX_WAYLAND")
-elseif(PPX_LINUX_HEADLESS)
-    set(PPX_LINUX_VULKAN_SURFACE "PPX_LINUX_HEADLESS")
 else()
     set(PPX_LINUX_VULKAN_SURFACE "PPX_LINUX_XCB")
 endif()
@@ -162,6 +160,7 @@ list(
     ${INC_DIR}/ppx/geometry.h
     ${INC_DIR}/ppx/graphics_util.h
     ${INC_DIR}/ppx/imgui_impl.h
+    ${INC_DIR}/ppx/input.h
     ${INC_DIR}/ppx/knob.h
     ${INC_DIR}/ppx/log.h
     ${INC_DIR}/ppx/metrics.h
@@ -198,6 +197,7 @@ list(
     ${SRC_DIR}/ppx/geometry.cpp
     ${SRC_DIR}/ppx/graphics_util.cpp
     ${SRC_DIR}/ppx/imgui_impl.cpp
+    ${SRC_DIR}/ppx/input.cpp
     ${SRC_DIR}/ppx/knob.cpp
     ${SRC_DIR}/ppx/log.cpp
     ${SRC_DIR}/ppx/math_config.cpp

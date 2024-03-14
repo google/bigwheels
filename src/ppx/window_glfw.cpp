@@ -27,15 +27,17 @@
 #elif defined(PPX_LINUX_XLIB)
 #error "Xlib not implemented"
 #elif defined(PPX_LINUX_WAYLAND)
-#error "Wayland not implemented"
+#include <wayland-client.h>
 #endif
 
 #include <GLFW/glfw3.h>
 // clang-format off
-#if defined(PPX_LINUX)
+#if defined(PPX_LINUX_XCB)
 #   define GLFW_EXPOSE_NATIVE_X11
 #elif defined(PPX_MSW)
 #   define GLFW_EXPOSE_NATIVE_WIN32
+#elif defined(PPX_LINUX_WAYLAND)
+#   define GLFW_EXPOSE_NATIVE_WAYLAND
 #endif
 #include <GLFW/glfw3native.h>
 // clang-format on
@@ -484,7 +486,8 @@ void WindowImplGLFW::FillSurfaceInfo(grfx::SurfaceCreateInfo* pCreateInfo) const
 #elif defined(PPX_LINUX_XLIB)
 #error "Xlib not implemented"
 #elif defined(PPX_LINUX_WAYLAND)
-#error "Wayland not implemented"
+    pCreateInfo->display = glfwGetWaylandDisplay();
+    pCreateInfo->surface = glfwGetWaylandWindow(mNative);
 #elif defined(PPX_MSW)
     pCreateInfo->hinstance = ::GetModuleHandle(nullptr);
     pCreateInfo->hwnd      = glfwGetWin32Window(mNative);

@@ -56,7 +56,15 @@ Result Surface::CreateApiObjects(const grfx::SurfaceCreateInfo* pCreateInfo)
 #elif defined(PPX_LINUX_XLIB)
 #error "Xlib not implemented"
 #elif defined(PPX_LINUX_WAYLAND)
-#error "Wayland not implemented"
+    VkWaylandSurfaceCreateInfoKHR vkci = {VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR};
+    vkci.display                       = pCreateInfo->display;
+    vkci.surface                       = pCreateInfo->surface;
+
+    vkres = vkCreateWaylandSurfaceKHR(
+        ToApi(GetInstance())->GetVkInstance(),
+        &vkci,
+        nullptr,
+        &mSurface);
 #elif defined(PPX_MSW)
     VkWin32SurfaceCreateInfoKHR vkci = {VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR};
     vkci.hinstance                   = pCreateInfo->hinstance;
