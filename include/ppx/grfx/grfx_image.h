@@ -41,6 +41,7 @@ struct ImageCreateInfo
     void*                        pApiObject                = nullptr;                      // [OPTIONAL] For external images such as swapchain images
     grfx::Ownership              ownership                 = grfx::OWNERSHIP_REFERENCE;
     bool                         concurrentMultiQueueUsage = false;
+    grfx::ImageCreateFlags       createFlags               = {};
 
     // Returns a create info for sampled image
     static ImageCreateInfo SampledImage2D(
@@ -89,6 +90,7 @@ public:
     const grfx::RenderTargetClearValue& GetRTVClearValue() const { return mCreateInfo.RTVClearValue; }
     const grfx::DepthStencilClearValue& GetDSVClearValue() const { return mCreateInfo.DSVClearValue; }
     bool                                GetConcurrentMultiQueueUsageEnabled() const { return mCreateInfo.concurrentMultiQueueUsage; }
+    grfx::ImageCreateFlags              GetCreateFlags() const { return mCreateInfo.createFlags; }
 
     // Convenience functions
     grfx::ImageViewType GuessImageViewType(bool isCube = false) const;
@@ -158,6 +160,7 @@ struct SamplerCreateInfo
     float                    maxLod           = 1.0f;
     grfx::BorderColor        borderColor      = grfx::BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
     grfx::Ownership          ownership        = grfx::OWNERSHIP_REFERENCE;
+    grfx::SamplerCreateFlags createFlags      = {};
 };
 
 //! @class Sampler

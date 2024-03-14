@@ -261,6 +261,92 @@ struct ImageUsageFlags
 
 // -------------------------------------------------------------------------------------------------
 
+struct ImageCreateFlags
+{
+    union
+    {
+        struct
+        {
+            bool subsampledFormat : 1;
+        } bits;
+        uint32_t flags;
+    };
+
+    ImageCreateFlags()
+        : flags(0) {}
+
+    ImageCreateFlags(uint32_t flags_)
+        : flags(flags_) {}
+
+    ImageCreateFlags& operator=(uint32_t rhs)
+    {
+        this->flags = rhs;
+        return *this;
+    }
+
+    ImageCreateFlags& operator|=(const ImageCreateFlags& rhs)
+    {
+        this->flags |= rhs.flags;
+        return *this;
+    }
+
+    ImageCreateFlags& operator|=(uint32_t rhs)
+    {
+        this->flags |= rhs;
+        return *this;
+    }
+
+    operator uint32_t() const
+    {
+        return flags;
+    }
+};
+
+// -------------------------------------------------------------------------------------------------
+
+struct SamplerCreateFlags
+{
+    union
+    {
+        struct
+        {
+            bool subsampledFormat : 1;
+        } bits;
+        uint32_t flags;
+    };
+
+    SamplerCreateFlags()
+        : flags(0) {}
+
+    SamplerCreateFlags(uint32_t flags_)
+        : flags(flags_) {}
+
+    SamplerCreateFlags& operator=(uint32_t rhs)
+    {
+        this->flags = rhs;
+        return *this;
+    }
+
+    SamplerCreateFlags& operator|=(const SamplerCreateFlags& rhs)
+    {
+        this->flags |= rhs.flags;
+        return *this;
+    }
+
+    SamplerCreateFlags& operator|=(uint32_t rhs)
+    {
+        this->flags |= rhs;
+        return *this;
+    }
+
+    operator uint32_t() const
+    {
+        return flags;
+    }
+};
+
+// -------------------------------------------------------------------------------------------------
+
 struct Range
 {
     uint32_t start = 0;
