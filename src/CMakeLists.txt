@@ -286,6 +286,7 @@ list(
     ${INC_DIR}/ppx/scene/scene_material.h
     ${INC_DIR}/ppx/scene/scene_mesh.h
     ${INC_DIR}/ppx/scene/scene_node.h
+    ${INC_DIR}/ppx/scene/scene_pipeline_args.h
     ${INC_DIR}/ppx/scene/scene_resource_manager.h
     ${INC_DIR}/ppx/scene/scene_scene.h
 )
@@ -295,6 +296,7 @@ list(
     ${SRC_DIR}/ppx/scene/scene_material.cpp
     ${SRC_DIR}/ppx/scene/scene_mesh.cpp
     ${SRC_DIR}/ppx/scene/scene_node.cpp
+    ${SRC_DIR}/ppx/scene/scene_pipeline_args.cpp
     ${SRC_DIR}/ppx/scene/scene_resource_manager.cpp
     ${SRC_DIR}/ppx/scene/scene_scene.cpp
 )
