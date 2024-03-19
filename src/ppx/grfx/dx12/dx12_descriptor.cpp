@@ -394,6 +394,12 @@ Result DescriptorSetLayout::CreateApiObjects(const grfx::DescriptorSetLayoutCrea
         if (isUnsupported) {
             return ppx::ERROR_GRFX_UNKNOWN_DESCRIPTOR_TYPE;
         }
+
+        if (binding.flags.bits.partiallyBound) {
+            PPX_LOG_WARN(
+                "Partially bound descriptors enabled for DX12, but we have not "
+                "confirmed that this is allowed in DX12.");
+        }
     }
 
     // Build descriptor ranges

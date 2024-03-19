@@ -1015,8 +1015,7 @@ bool Device::FragmentStoresAndAtomicsSupported() const
 
 bool Device::PartialDescriptorBindingsSupported() const
 {
-    return mDescriptorIndexingFeatures.descriptorBindingPartiallyBound &&
-           mDescriptorIndexingFeatures.runtimeDescriptorArray;
+    return mDescriptorIndexingFeatures.descriptorBindingPartiallyBound;
 }
 
 void Device::ResetQueryPoolEXT(
