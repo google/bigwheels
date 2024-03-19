@@ -638,6 +638,14 @@ bool Device::FragmentStoresAndAtomicsSupported() const
     return true;
 }
 
+bool Device::PartialDescriptorBindingsSupported() const
+{
+    PPX_LOG_WARN(
+        "Partial descriptor bindings may be in use in DX12, but we have not "
+        "confirmed that this feature is supported.");
+    return true;
+}
+
 } // namespace dx12
 } // namespace grfx
 } // namespace ppx

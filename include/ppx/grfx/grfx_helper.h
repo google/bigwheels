@@ -109,6 +109,38 @@ struct ColorComponentFlags
 
 // -------------------------------------------------------------------------------------------------
 
+struct DescriptorBindingFlags
+{
+    union
+    {
+        struct
+        {
+            bool updatable      : 1;
+            bool partiallyBound : 1;
+        } bits;
+        uint32_t flags;
+    };
+
+    DescriptorBindingFlags()
+        : flags(0) {}
+
+    DescriptorBindingFlags(uint32_t flags_)
+        : flags(flags_) {}
+
+    DescriptorBindingFlags& operator=(uint32_t rhs)
+    {
+        this->flags = rhs;
+        return *this;
+    }
+
+    operator uint32_t() const
+    {
+        return flags;
+    }
+};
+
+// -------------------------------------------------------------------------------------------------
+
 struct DescriptorSetLayoutFlags
 {
     union

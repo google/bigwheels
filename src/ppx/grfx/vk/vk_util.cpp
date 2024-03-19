@@ -350,6 +350,18 @@ VkCullModeFlagBits ToVkCullMode(grfx::CullMode value)
     return ppx::InvalidValue<VkCullModeFlagBits>();
 }
 
+VkDescriptorBindingFlags ToVkDescriptorBindingFlags(const grfx::DescriptorBindingFlags& value)
+{
+    VkDescriptorBindingFlags flags = 0;
+    if (value.bits.updatable) {
+        flags |= VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+    }
+    if (value.bits.partiallyBound) {
+        flags |= VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+    }
+    return flags;
+}
+
 VkDescriptorType ToVkDescriptorType(grfx::DescriptorType value)
 {
     // clang-format off
