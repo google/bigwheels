@@ -56,7 +56,7 @@ function(internal_add_compile_shader_target TARGET_NAME)
     add_custom_command(
         OUTPUT "${ARG_OUTPUT_FILE}"
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-        COMMENT "------ Compiling ${ARG_SHADER_STAGE} Shader [${ARG_OUTPUT_FORMAT}] ------"
+        COMMENT "------ Compiling ${ARG_SHADER_STAGE} Shader [${ARG_OUTPUT_FORMAT}] ------${INCLUDE_DIRS}"
         MAIN_DEPENDENCY "${ARG_SOURCE}"
         DEPENDS ${ARG_INCLUDES}
         COMMAND ${CMAKE_COMMAND} -E echo "[${ARG_OUTPUT_FORMAT}] Compiling ${ARG_SHADER_STAGE} ${ARG_SOURCE} to ${ARG_OUTPUT_FILE}"
