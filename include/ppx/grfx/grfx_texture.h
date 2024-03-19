@@ -46,6 +46,7 @@ struct TextureCreateInfo
     grfx::Format                 storageImageViewFormat    = grfx::FORMAT_UNDEFINED;          // Guesses from image if UNDEFINED
     grfx::Ownership              ownership                 = grfx::OWNERSHIP_REFERENCE;
     bool                         concurrentMultiQueueUsage = false;
+    grfx::ImageCreateFlags       imageCreateFlags          = {};
 };
 
 //! @class Texture
