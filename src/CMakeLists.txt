@@ -283,6 +283,8 @@ list(
 list(
     APPEND PPX_SCENE_HEADER_FILES
     ${INC_DIR}/ppx/scene/scene_config.h
+    ${INC_DIR}/ppx/scene/scene_gltf_loader.h
+    ${INC_DIR}/ppx/scene/scene_loader.h
     ${INC_DIR}/ppx/scene/scene_material.h
     ${INC_DIR}/ppx/scene/scene_mesh.h
     ${INC_DIR}/ppx/scene/scene_node.h
@@ -292,6 +294,7 @@ list(
 
 list(
     APPEND PPX_SCENE_SOURCE_FILES
+    ${SRC_DIR}/ppx/scene/scene_gltf_loader.cpp
     ${SRC_DIR}/ppx/scene/scene_material.cpp
     ${SRC_DIR}/ppx/scene/scene_mesh.cpp
     ${SRC_DIR}/ppx/scene/scene_node.cpp
