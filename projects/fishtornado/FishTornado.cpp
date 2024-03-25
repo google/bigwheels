@@ -133,7 +133,6 @@ void FishTornadoApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.api                   = kApi;
     settings.enableImGui                = true;
     settings.grfx.numFramesInFlight     = 2;
-    settings.grfx.enableDebug           = false;
     settings.grfx.swapchain.imageCount  = 3;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
 

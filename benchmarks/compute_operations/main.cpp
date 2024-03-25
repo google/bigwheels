@@ -110,7 +110,6 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.appName                        = "compute_operations";
     settings.enableImGui                    = false;
     settings.grfx.api                       = kApi;
-    settings.grfx.enableDebug               = false;
     settings.grfx.device.graphicsQueueCount = 1;
     settings.grfx.numFramesInFlight         = 1;
 }

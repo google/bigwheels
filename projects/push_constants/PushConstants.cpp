@@ -29,7 +29,6 @@ void PushConstantsApp::Config(ppx::ApplicationSettings& settings)
     settings.enableImGui                = true;
     settings.grfx.api                   = kApi;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
-    settings.grfx.enableDebug           = false;
 }
 
 void PushConstantsApp::Setup()

@@ -83,10 +83,9 @@ private:
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
 {
-    settings.appName          = "primitive_assembly";
-    settings.enableImGui      = false;
-    settings.grfx.api         = kApi;
-    settings.grfx.enableDebug = false;
+    settings.appName     = "primitive_assembly";
+    settings.enableImGui = false;
+    settings.grfx.api    = kApi;
 }
 
 void ProjApp::SaveResultsToFile()

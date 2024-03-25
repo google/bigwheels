@@ -84,10 +84,9 @@ private:
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
 {
-    settings.appName          = "texture_transfer_cpu_to_gpu";
-    settings.enableImGui      = false;
-    settings.grfx.api         = kApi;
-    settings.grfx.enableDebug = false;
+    settings.appName     = "texture_transfer_cpu_to_gpu";
+    settings.enableImGui = false;
+    settings.grfx.api    = kApi;
 }
 
 void ProjApp::SaveResultsToFile()

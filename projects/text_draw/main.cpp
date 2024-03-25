@@ -48,10 +48,9 @@ private:
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
 {
-    settings.appName          = "text_draw";
-    settings.enableImGui      = false;
-    settings.grfx.api         = kApi;
-    settings.grfx.enableDebug = false;
+    settings.appName     = "text_draw";
+    settings.enableImGui = false;
+    settings.grfx.api    = kApi;
 }
 
 void ProjApp::Setup()

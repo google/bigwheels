@@ -60,7 +60,6 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
 {
     settings.appName          = "input";
     settings.grfx.api         = kApi;
-    settings.grfx.enableDebug = false;
     settings.enableImGui      = true;
     settings.window.resizable = true;
 }
