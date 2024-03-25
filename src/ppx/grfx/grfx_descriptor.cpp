@@ -42,6 +42,20 @@ Result DescriptorSet::UpdateSampler(
 }
 
 Result DescriptorSet::UpdateSampledImage(
+    uint32_t                      binding,
+    uint32_t                      arrayIndex,
+    const grfx::SampledImageView* pImageView)
+{
+    grfx::WriteDescriptor write = {};
+    write.binding               = binding;
+    write.arrayIndex            = arrayIndex;
+    write.type                  = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    write.pImageView            = pImageView;
+
+    return UpdateDescriptors(1, &write);
+}
+
+Result DescriptorSet::UpdateSampledImage(
     uint32_t             binding,
     uint32_t             arrayIndex,
     const grfx::Texture* pTexture)
@@ -52,12 +66,7 @@ Result DescriptorSet::UpdateSampledImage(
     write.type                  = grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE;
     write.pImageView            = pTexture->GetSampledImageView();
 
-    Result ppxres = UpdateDescriptors(1, &write);
-    if (Failed(ppxres)) {
-        return ppxres;
-    }
-
-    return ppx::SUCCESS;
+    return UpdateDescriptors(1, &write);
 }
 
 Result DescriptorSet::UpdateStorageImage(
