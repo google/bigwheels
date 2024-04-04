@@ -57,6 +57,7 @@ class Swapchain;
 class TextDraw;
 class Texture;
 class TextureFont;
+class YcbcrConversion;
 
 class DepthStencilView;
 class RenderTargetView;
@@ -104,6 +105,7 @@ using SwapchainPtr           = ObjPtr<Swapchain>;
 using TextDrawPtr            = ObjPtr<TextDraw>;
 using TexturePtr             = ObjPtr<Texture>;
 using TextureFontPtr         = ObjPtr<TextureFont>;
+using YcbcrConversionPtr     = ObjPtr<YcbcrConversion>;
 
 using DepthStencilViewPtr = ObjPtr<DepthStencilView>;
 using RenderTargetViewPtr = ObjPtr<RenderTargetView>;

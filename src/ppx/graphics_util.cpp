@@ -915,6 +915,7 @@ Result CreateTextureFromBitmap(
         ci.DSVClearValue               = {1.0f, 0xFF};
         ci.sampledImageViewType        = grfx::IMAGE_VIEW_TYPE_UNDEFINED;
         ci.sampledImageViewFormat      = grfx::FORMAT_UNDEFINED;
+        ci.sampledImageYcbcrConversion = options.mYcbcrConversion;
         ci.renderTargetViewFormat      = grfx::FORMAT_UNDEFINED;
         ci.depthStencilViewFormat      = grfx::FORMAT_UNDEFINED;
         ci.storageImageViewFormat      = grfx::FORMAT_UNDEFINED;
@@ -1000,6 +1001,7 @@ Result CreateTextureFromMipmap(
         ci.DSVClearValue               = {1.0f, 0xFF};
         ci.sampledImageViewType        = grfx::IMAGE_VIEW_TYPE_UNDEFINED;
         ci.sampledImageViewFormat      = grfx::FORMAT_UNDEFINED;
+        ci.sampledImageYcbcrConversion = options.mYcbcrConversion;
         ci.renderTargetViewFormat      = grfx::FORMAT_UNDEFINED;
         ci.depthStencilViewFormat      = grfx::FORMAT_UNDEFINED;
         ci.storageImageViewFormat      = grfx::FORMAT_UNDEFINED;

@@ -164,6 +164,16 @@ enum BufferUsageFlagBits
     BUFFER_USAGE_SHADER_DEVICE_ADDRESS             = 0x00002000,
 };
 
+enum ChromaLocation
+{
+    // Specifies that downsampled chroma samples are aligned with even
+    // luma sample coordinates.
+    CHROMA_LOCATION_COSITED_EVEN = 0,
+    // Specifies that downsampled chroma samples are located between even
+    // luma sample coordinates and the next higher odd luma sample coordinate.
+    CHROMA_LOCATION_MIDPOINT = 1,
+};
+
 enum ColorComponentFlagBits
 {
     COLOR_COMPONENT_R = 0x00000001,
@@ -530,6 +540,31 @@ enum VertexSemantic
     VERTEX_SEMANTIC_TEXCOORD20 = VERTEX_SEMANTIC_TEXCOORD19 + 1,
     VERTEX_SEMANTIC_TEXCOORD21 = VERTEX_SEMANTIC_TEXCOORD20 + 1,
     VERTEX_SEMANTIC_TEXCOORD22 = VERTEX_SEMANTIC_TEXCOORD21 + 1,
+};
+
+enum YcbcrModelConversion
+{
+    // Specifies that the color space for the image is RGB, and
+    // should be kept that way without conversion.
+    YCBCR_MODEL_CONVERSION_RGB_IDENTITY = 0,
+    // Specifies that the color space for the image is YCbCr, and
+    // should be range expanded from a compressed format.
+    YCBCR_MODEL_CONVERSION_YCBCR_IDENTITY = 1,
+    // Specifies that the color model is YCbCr, but should
+    // be converted to RGB based on BT.709 for shader operations.
+    YCBCR_MODEL_CONVERSION_YCBCR_709 = 2,
+    // Specifies that the color model is YCbCr, but should
+    // be converted to RGB based on BT.601 for shader operations.
+    YCBCR_MODEL_CONVERSION_YCBCR_601 = 3,
+    // Specifies that the color mdoel is YCbCr, but should
+    // be converted to RGB based on BT.2020 for shader operations.
+    YCBCR_MODEL_CONVERSION_YCBCR_2020 = 4,
+};
+
+enum YcbcrRange
+{
+    YCBCR_RANGE_ITU_FULL   = 0,
+    YCBCR_RANGE_ITU_NARROW = 1,
 };
 
 } // namespace grfx

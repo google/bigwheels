@@ -68,6 +68,9 @@ void Device::Destroy()
     DestroyAllObjects(mShaderModules);
     DestroyAllObjects(mSwapchains);
 
+    // Destroy Ycbcr Conversions after images and views
+    DestroyAllObjects(mYcbcrConversions);
+
     grfx::InstanceObject<grfx::DeviceCreateInfo>::Destroy();
     PPX_LOG_INFO("Destroyed device: " << mCreateInfo.pGpu->GetDeviceName());
 }
@@ -618,6 +621,19 @@ void Device::DestroyTextureFont(const grfx::TextureFont* pTextureFont)
 {
     PPX_ASSERT_NULL_ARG(pTextureFont);
     DestroyObject(mTextureFonts, pTextureFont);
+}
+
+Result Device::CreateYcbcrConversion(const grfx::YcbcrConversionCreateInfo* pCreateInfo, grfx::YcbcrConversion** ppConversion)
+{
+    PPX_ASSERT_NULL_ARG(pCreateInfo);
+    PPX_ASSERT_NULL_ARG(ppConversion);
+    return CreateObject(pCreateInfo, mYcbcrConversions, ppConversion);
+}
+
+void Device::DestroyYcbcrConversion(const grfx::YcbcrConversion* pConversion)
+{
+    PPX_ASSERT_NULL_ARG(pConversion);
+    DestroyObject(mYcbcrConversions, pConversion);
 }
 
 Result Device::AllocateCommandBuffer(

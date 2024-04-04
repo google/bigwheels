@@ -156,6 +156,9 @@ public:
     Result CreateTextureFont(const grfx::TextureFontCreateInfo* pCreateInfo, grfx::TextureFont** ppTextureFont);
     void   DestroyTextureFont(const grfx::TextureFont* pTextureFont);
 
+    Result CreateYcbcrConversion(const grfx::YcbcrConversionCreateInfo* pCreateInfo, grfx::YcbcrConversion** ppConversion);
+    void   DestroyYcbcrConversion(const grfx::YcbcrConversion* pConversion);
+
     // See comment section for grfx::internal::CommandBufferCreateInfo for
     // details about 'resourceDescriptorCount' and 'samplerDescriptorCount'.
     //
@@ -222,6 +225,7 @@ protected:
     virtual Result AllocateObject(grfx::ShadingRatePattern** ppObject)  = 0;
     virtual Result AllocateObject(grfx::StorageImageView** ppObject)    = 0;
     virtual Result AllocateObject(grfx::Swapchain** ppObject)           = 0;
+    virtual Result AllocateObject(grfx::YcbcrConversion** ppConversion) = 0;
 
     virtual Result AllocateObject(grfx::DrawPass** ppObject);
     virtual Result AllocateObject(grfx::FullscreenQuad** ppObject);
@@ -279,6 +283,7 @@ protected:
     std::vector<grfx::TextDrawPtr>            mTextDraws;
     std::vector<grfx::TexturePtr>             mTextures;
     std::vector<grfx::TextureFontPtr>         mTextureFonts;
+    std::vector<grfx::YcbcrConversionPtr>     mYcbcrConversions;
     std::vector<grfx::QueuePtr>               mGraphicsQueues;
     std::vector<grfx::QueuePtr>               mComputeQueues;
     std::vector<grfx::QueuePtr>               mTransferQueues;

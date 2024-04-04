@@ -92,6 +92,7 @@ protected:
     virtual Result AllocateObject(grfx::ShadingRatePattern** ppObject) override;
     virtual Result AllocateObject(grfx::StorageImageView** ppObject) override;
     virtual Result AllocateObject(grfx::Swapchain** ppObject) override;
+    virtual Result AllocateObject(grfx::YcbcrConversion** ppObject) override;
 
 protected:
     virtual Result CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo) override;

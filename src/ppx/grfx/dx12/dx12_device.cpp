@@ -592,6 +592,12 @@ Result Device::AllocateObject(grfx::Swapchain** ppObject)
     return ppx::SUCCESS;
 }
 
+Result Device::AllocateObject(grfx::YcbcrConversion** ppObject)
+{
+    PPX_LOG_ERROR("Attempted to allocate a YCbCr conversion in D3D12, which is not supported.");
+    return ppx::ERROR_REQUIRED_FEATURE_UNAVAILABLE;
+}
+
 Result Device::WaitIdle()
 {
     for (auto& queue : mGraphicsQueues) {

@@ -25,28 +25,29 @@ namespace grfx {
 //!
 struct TextureCreateInfo
 {
-    grfx::Image*                 pImage                    = nullptr;
-    grfx::ImageType              imageType                 = grfx::IMAGE_TYPE_2D;
-    uint32_t                     width                     = 0;
-    uint32_t                     height                    = 0;
-    uint32_t                     depth                     = 0;
-    grfx::Format                 imageFormat               = grfx::FORMAT_UNDEFINED;
-    grfx::SampleCount            sampleCount               = grfx::SAMPLE_COUNT_1;
-    uint32_t                     mipLevelCount             = 1;
-    uint32_t                     arrayLayerCount           = 1;
-    grfx::ImageUsageFlags        usageFlags                = grfx::ImageUsageFlags::SampledImage();
-    grfx::MemoryUsage            memoryUsage               = grfx::MEMORY_USAGE_GPU_ONLY;
-    grfx::ResourceState          initialState              = grfx::RESOURCE_STATE_GENERAL;    // This may not be the best choice
-    grfx::RenderTargetClearValue RTVClearValue             = {0, 0, 0, 0};                    // Optimized RTV clear value
-    grfx::DepthStencilClearValue DSVClearValue             = {1.0f, 0xFF};                    // Optimized DSV clear value
-    grfx::ImageViewType          sampledImageViewType      = grfx::IMAGE_VIEW_TYPE_UNDEFINED; // Guesses from image if UNDEFINED
-    grfx::Format                 sampledImageViewFormat    = grfx::FORMAT_UNDEFINED;          // Guesses from image if UNDEFINED
-    grfx::Format                 renderTargetViewFormat    = grfx::FORMAT_UNDEFINED;          // Guesses from image if UNDEFINED
-    grfx::Format                 depthStencilViewFormat    = grfx::FORMAT_UNDEFINED;          // Guesses from image if UNDEFINED
-    grfx::Format                 storageImageViewFormat    = grfx::FORMAT_UNDEFINED;          // Guesses from image if UNDEFINED
-    grfx::Ownership              ownership                 = grfx::OWNERSHIP_REFERENCE;
-    bool                         concurrentMultiQueueUsage = false;
-    grfx::ImageCreateFlags       imageCreateFlags          = {};
+    grfx::Image*                 pImage                      = nullptr;
+    grfx::ImageType              imageType                   = grfx::IMAGE_TYPE_2D;
+    uint32_t                     width                       = 0;
+    uint32_t                     height                      = 0;
+    uint32_t                     depth                       = 0;
+    grfx::Format                 imageFormat                 = grfx::FORMAT_UNDEFINED;
+    grfx::SampleCount            sampleCount                 = grfx::SAMPLE_COUNT_1;
+    uint32_t                     mipLevelCount               = 1;
+    uint32_t                     arrayLayerCount             = 1;
+    grfx::ImageUsageFlags        usageFlags                  = grfx::ImageUsageFlags::SampledImage();
+    grfx::MemoryUsage            memoryUsage                 = grfx::MEMORY_USAGE_GPU_ONLY;
+    grfx::ResourceState          initialState                = grfx::RESOURCE_STATE_GENERAL;    // This may not be the best choice
+    grfx::RenderTargetClearValue RTVClearValue               = {0, 0, 0, 0};                    // Optimized RTV clear value
+    grfx::DepthStencilClearValue DSVClearValue               = {1.0f, 0xFF};                    // Optimized DSV clear value
+    grfx::ImageViewType          sampledImageViewType        = grfx::IMAGE_VIEW_TYPE_UNDEFINED; // Guesses from image if UNDEFINED
+    grfx::Format                 sampledImageViewFormat      = grfx::FORMAT_UNDEFINED;          // Guesses from image if UNDEFINED
+    grfx::YcbcrConversion*       sampledImageYcbcrConversion = nullptr;                         // Leave null if not Ycbcr, or not using sampled image.
+    grfx::Format                 renderTargetViewFormat      = grfx::FORMAT_UNDEFINED;          // Guesses from image if UNDEFINED
+    grfx::Format                 depthStencilViewFormat      = grfx::FORMAT_UNDEFINED;          // Guesses from image if UNDEFINED
+    grfx::Format                 storageImageViewFormat      = grfx::FORMAT_UNDEFINED;          // Guesses from image if UNDEFINED
+    grfx::Ownership              ownership                   = grfx::OWNERSHIP_REFERENCE;
+    bool                         concurrentMultiQueueUsage   = false;
+    grfx::ImageCreateFlags       imageCreateFlags            = {};
 };
 
 //! @class Texture

@@ -165,6 +165,25 @@ private:
     VkImageViewPtr mImageView;
 };
 
+// -------------------------------------------------------------------------------------------------
+
+class YcbcrConversion
+    : public grfx::YcbcrConversion
+{
+public:
+    YcbcrConversion() {}
+    virtual ~YcbcrConversion() {}
+
+    VkSamplerYcbcrConversionPtr GetVkSamplerYcbcrConversion() const { return mSamplerYcbcrConversion; }
+
+protected:
+    virtual Result CreateApiObjects(const grfx::YcbcrConversionCreateInfo* pCreateInfo) override;
+    virtual void   DestroyApiObjects() override;
+
+private:
+    VkSamplerYcbcrConversionPtr mSamplerYcbcrConversion;
+};
+
 } // namespace vk
 } // namespace grfx
 } // namespace ppx
