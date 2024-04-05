@@ -711,14 +711,14 @@ void ProjApp::Setup()
 
 void ProjApp::Render()
 {
-    PerFrame&          frame      = mPerFrame[0];
-    grfx::SwapchainPtr swapchain  = GetSwapchain();
-    uint32_t           imageIndex = UINT32_MAX;
+    PerFrame&          frame     = mPerFrame[0];
+    grfx::SwapchainPtr swapchain = GetSwapchain();
+    // Wait for and reset render complete fence
+    PPX_CHECKED_CALL(frame.renderCompleteFence->WaitAndReset());
+    uint32_t imageIndex = UINT32_MAX;
     PPX_CHECKED_CALL(swapchain->AcquireNextImage(UINT64_MAX, frame.imageAcquiredSemaphore, frame.imageAcquiredFence, &imageIndex));
     // Wait for and reset image acquired fence
     PPX_CHECKED_CALL(frame.imageAcquiredFence->WaitAndReset());
-    // Wait for and reset render complete fence
-    PPX_CHECKED_CALL(frame.renderCompleteFence->WaitAndReset());
 
     // Update camera(s)
     mCamera.LookAt(float3(2, 2, 2), float3(0, 0, 0));
