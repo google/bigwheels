@@ -147,7 +147,6 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.appName                       = "async_compute";
     settings.enableImGui                   = true;
     settings.grfx.api                      = kApi;
-    settings.grfx.enableDebug              = false;
     settings.window.width                  = 1920;
     settings.window.height                 = 1080;
     settings.grfx.swapchain.imageCount     = mNumFramesInFlight;

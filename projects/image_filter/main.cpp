@@ -102,7 +102,6 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.appName                        = "image_filter";
     settings.enableImGui                    = true;
     settings.grfx.api                       = kApi;
-    settings.grfx.enableDebug               = false;
     settings.grfx.device.graphicsQueueCount = 1;
     settings.grfx.numFramesInFlight         = 1;
 }

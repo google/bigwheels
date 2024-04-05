@@ -52,10 +52,9 @@ private:
 
 void ProjApp::Config(ppx::ApplicationSettings& settings)
 {
-    settings.appName          = "timeline semaphore";
-    settings.enableImGui      = true;
-    settings.grfx.api         = kApi;
-    settings.grfx.enableDebug = false;
+    settings.appName     = "timeline semaphore";
+    settings.enableImGui = true;
+    settings.grfx.api    = kApi;
 }
 
 void ProjApp::Setup()
