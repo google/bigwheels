@@ -235,7 +235,7 @@ Result Application::CreateSwapchains()
         ci.presentMode               = grfx::PRESENT_MODE_UNDEFINED; // No present for XR.
         ci.pXrComponent              = &mXrComponent;
 
-        ci.arrayLayerCount = (mXrComponent.IsMultiView() ? 2 : 1);
+        ci.arrayLayerCount = (mXrComponent.IsMultiView() ? viewCount : 1);
         // We have one swapchain for each view, or one if multiview, plus one swapchain for the UI.
         const int numSwapChains = (mXrComponent.IsMultiView() ? 1 : viewCount) + 1;
         mSwapchains.resize(numSwapChains);

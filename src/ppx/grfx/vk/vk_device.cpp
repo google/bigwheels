@@ -281,7 +281,9 @@ Result Device::ConfigureFeatures(const grfx::DeviceCreateInfo* pCreateInfo, VkPh
     features.shaderStorageImageMultisample        = foundFeatures.shaderStorageImageMultisample;
     features.samplerAnisotropy                    = foundFeatures.samplerAnisotropy;
 
-    mHasMultiView = pCreateInfo->multiView;
+    if (ElementExists(std::string(VK_KHR_MULTIVIEW_EXTENSION_NAME), mExtensions)) {
+        mHasMultiView = pCreateInfo->multiView;
+    }
 
     // Select between default or custom features.
     if (!IsNull(pCreateInfo->pVulkanDeviceFeatures)) {

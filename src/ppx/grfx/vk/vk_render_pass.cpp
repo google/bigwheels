@@ -26,7 +26,6 @@ namespace vk {
 
 Result RenderPass::CreateRenderPass(const grfx::internal::RenderPassCreateInfo* pCreateInfo)
 {
-    bool hasMultiView   = ToApi(GetDevice())->HasMultiView();
     bool hasDepthSencil = mDepthStencilView ? true : false;
 
     uint32_t      depthStencilAttachment = -1;
@@ -134,8 +133,11 @@ Result RenderPass::CreateRenderPass(const grfx::internal::RenderPassCreateInfo* 
     vkci.dependencyCount        = 1;
     vkci.pDependencies          = &subpassDependencies;
 
+    bool hasMultiView = ToApi(GetDevice())->HasMultiView();
+
     VkRenderPassMultiviewCreateInfo multiviewInfo = {VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO};
-    if (hasMultiView && pCreateInfo->multiViewState.viewMask > 0) {
+    if (pCreateInfo->multiViewState.viewMask > 0) {
+        PPX_ASSERT_MSG(hasMultiView, "Multiview not supported on the device");
         multiviewInfo.subpassCount         = 1;
         multiviewInfo.pViewMasks           = &pCreateInfo->multiViewState.viewMask;
         multiviewInfo.correlationMaskCount = 1;
