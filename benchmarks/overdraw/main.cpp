@@ -112,7 +112,6 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.appName                    = "overdraw";
     settings.enableImGui                = false;
     settings.grfx.api                   = kApi;
-    settings.grfx.enableDebug           = false;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
 }
 
