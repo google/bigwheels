@@ -123,7 +123,7 @@ public:
     TextureOptions& AdditionalUsage(grfx::ImageUsageFlags flags) { mAdditionalUsage = flags; return *this; }
     TextureOptions& InitialState(grfx::ResourceState state) { mInitialState = state; return *this; }
     TextureOptions& MipLevelCount(uint32_t levelCount) { mMipLevelCount = levelCount; return *this; }
-    TextureOptions& YcbcrConversion(grfx::YcbcrConversion *ycbcrConversion) { mYcbcrConversion = ycbcrConversion; return *this; }
+    TextureOptions& YcbcrConversion(grfx::YcbcrConversion *pYcbcrConversion) { mYcbcrConversion = pYcbcrConversion; return *this; }
     // clang-format on
 
 private:

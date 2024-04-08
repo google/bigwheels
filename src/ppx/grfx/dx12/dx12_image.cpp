@@ -167,7 +167,7 @@ Result Sampler::CreateApiObjects(const grfx::SamplerCreateInfo* pCreateInfo)
     mDesc.MinLOD         = static_cast<FLOAT>(pCreateInfo->minLod);
     mDesc.MaxLOD         = static_cast<FLOAT>(pCreateInfo->maxLod);
 
-    if (pCreateInfo->ycbcrConversion != nullptr) {
+    if (pCreateInfo->pYcbcrConversion != nullptr) {
         PPX_LOG_ERROR("Attempted to define a YCbCr color conversion sampled image, which is not supported in the D3D12 renderer.");
         return ppx::ERROR_REQUIRED_FEATURE_UNAVAILABLE;
     }
@@ -340,7 +340,7 @@ Result SampledImageView::CreateApiObjects(const grfx::SampledImageViewCreateInfo
         format = DXGI_FORMAT_R32_FLOAT;
     }
 
-    if (pCreateInfo->ycbcrConversion != nullptr) {
+    if (pCreateInfo->pYcbcrConversion != nullptr) {
         PPX_LOG_ERROR("Attempted to define a YCbCr color conversion sampled image, which is not supported in the D3D12 renderer.");
         return ppx::ERROR_REQUIRED_FEATURE_UNAVAILABLE;
     }

@@ -159,7 +159,7 @@ struct SamplerCreateInfo
     float                    minLod           = 0.0f;
     float                    maxLod           = 1.0f;
     grfx::BorderColor        borderColor      = grfx::BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
-    YcbcrConversion*         ycbcrConversion  = nullptr; // Leave null if not required.
+    YcbcrConversion*         pYcbcrConversion = nullptr; // Leave null if not required.
     grfx::Ownership          ownership        = grfx::OWNERSHIP_REFERENCE;
     grfx::SamplerCreateFlags createFlags      = {};
 };
@@ -270,17 +270,17 @@ public:
 //!
 struct SampledImageViewCreateInfo
 {
-    grfx::Image*           pImage          = nullptr;
-    grfx::ImageViewType    imageViewType   = grfx::IMAGE_VIEW_TYPE_UNDEFINED;
-    grfx::Format           format          = grfx::FORMAT_UNDEFINED;
-    grfx::SampleCount      sampleCount     = grfx::SAMPLE_COUNT_1;
-    uint32_t               mipLevel        = 0;
-    uint32_t               mipLevelCount   = 0;
-    uint32_t               arrayLayer      = 0;
-    uint32_t               arrayLayerCount = 0;
-    grfx::ComponentMapping components      = {};
-    YcbcrConversion*       ycbcrConversion = nullptr; // Leave null if not required.
-    grfx::Ownership        ownership       = grfx::OWNERSHIP_REFERENCE;
+    grfx::Image*           pImage           = nullptr;
+    grfx::ImageViewType    imageViewType    = grfx::IMAGE_VIEW_TYPE_UNDEFINED;
+    grfx::Format           format           = grfx::FORMAT_UNDEFINED;
+    grfx::SampleCount      sampleCount      = grfx::SAMPLE_COUNT_1;
+    uint32_t               mipLevel         = 0;
+    uint32_t               mipLevelCount    = 0;
+    uint32_t               arrayLayer       = 0;
+    uint32_t               arrayLayerCount  = 0;
+    grfx::ComponentMapping components       = {};
+    YcbcrConversion*       pYcbcrConversion = nullptr; // Leave null if not required.
+    grfx::Ownership        ownership        = grfx::OWNERSHIP_REFERENCE;
 
     static grfx::SampledImageViewCreateInfo GuessFromImage(grfx::Image* pImage);
 };
@@ -351,10 +351,8 @@ public:
 
 // -------------------------------------------------------------------------------------------------
 
-//! @struct YcbcrConversionCreateInfo
-//!
-//! Defines a color model conversion for a sampler.
-//!
+// YcbcrConversionCreateInfo defines a color model conversion for a texture,
+// sampler, or sampled image.
 struct YcbcrConversionCreateInfo
 {
     grfx::Format               format                      = grfx::FORMAT_UNDEFINED;

@@ -247,8 +247,8 @@ Result Sampler::CreateApiObjects(const grfx::SamplerCreateInfo* pCreateInfo)
     vkci.unnormalizedCoordinates = VK_FALSE;
 
     VkSamplerYcbcrConversionInfo conversionInfo{VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO};
-    if (pCreateInfo->ycbcrConversion != nullptr) {
-        conversionInfo.conversion = ToApi(pCreateInfo->ycbcrConversion)->GetVkSamplerYcbcrConversion().Get();
+    if (pCreateInfo->pYcbcrConversion != nullptr) {
+        conversionInfo.conversion = ToApi(pCreateInfo->pYcbcrConversion)->GetVkSamplerYcbcrConversion().Get();
         vkci.pNext                = &conversionInfo;
     }
 
@@ -387,8 +387,8 @@ Result SampledImageView::CreateApiObjects(const grfx::SampledImageViewCreateInfo
     vkci.subresourceRange.layerCount     = pCreateInfo->arrayLayerCount;
 
     VkSamplerYcbcrConversionInfo conversionInfo{VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_INFO};
-    if (pCreateInfo->ycbcrConversion != nullptr) {
-        conversionInfo.conversion = ToApi(pCreateInfo->ycbcrConversion)->GetVkSamplerYcbcrConversion().Get();
+    if (pCreateInfo->pYcbcrConversion != nullptr) {
+        conversionInfo.conversion = ToApi(pCreateInfo->pYcbcrConversion)->GetVkSamplerYcbcrConversion().Get();
         vkci.pNext                = &conversionInfo;
     }
 
