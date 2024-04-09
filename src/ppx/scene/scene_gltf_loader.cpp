@@ -43,6 +43,15 @@ enum GltfTextureWrap
     GLTF_TEXTURE_WRAP_MIRRORED_REPEAT = 33648,
 };
 
+struct VertexAccessors
+{
+    const cgltf_accessor* pPositions;
+    const cgltf_accessor* pNormals;
+    const cgltf_accessor* pTangents;
+    const cgltf_accessor* pColors;
+    const cgltf_accessor* pTexCoords;
+};
+
 static std::string ToStringSafe(const char* cStr)
 {
     return IsNull(cStr) ? "" : std::string(cStr);
@@ -212,7 +221,6 @@ static uint64_t GetMeshAccessorsHash(
     const auto kInvalidAccessorIndex = InvalidValue<cgltf_size>();
 
     std::set<cgltf_size> uniqueAccessorIndices;
-    //
     for (cgltf_size primIdx = 0; primIdx < pGltfMesh->primitives_count; ++primIdx) {
         const cgltf_primitive* pGltfPrimitive = &pGltfMesh->primitives[primIdx];
 
@@ -258,52 +266,29 @@ static uint64_t GetMeshAccessorsHash(
     return hash;
 }
 
-// Get vertex attribute accessors from primitive
-static void GetVertexAccessors(
-    const cgltf_primitive* pGltfPrimitive,
-    const cgltf_accessor** ppGltflAccessorPositions,
-    const cgltf_accessor** ppGltflAccessorNormals,
-    const cgltf_accessor** ppGltflAccessorTangents,
-    const cgltf_accessor** ppGltflAccessorColors,
-    const cgltf_accessor** ppGltflAccessorTexCoords)
+static VertexAccessors GetVertexAccessors(const cgltf_primitive* pGltfPrimitive)
 {
+    VertexAccessors accessors{nullptr, nullptr, nullptr, nullptr, nullptr};
     if (IsNull(pGltfPrimitive)) {
-        return;
+        return accessors;
     }
 
-    const cgltf_accessor* pGltflAccessorPositions = nullptr;
-    const cgltf_accessor* pGltflAccessorNormals   = nullptr;
-    const cgltf_accessor* pGltflAccessorTangents  = nullptr;
-    const cgltf_accessor* pGltflAccessorColors    = nullptr;
-    const cgltf_accessor* pGltflAccessorTexCoords = nullptr;
-
-    for (cgltf_size attrIdx = 0; attrIdx < pGltfPrimitive->attributes_count; ++attrIdx) {
-        const cgltf_attribute* pGltfAttr     = &pGltfPrimitive->attributes[attrIdx];
+    for (cgltf_size i = 0; i < pGltfPrimitive->attributes_count; ++i) {
+        const cgltf_attribute* pGltfAttr     = &pGltfPrimitive->attributes[i];
         const cgltf_accessor*  pGltfAccessor = pGltfAttr->data;
 
         // clang-format off
         switch (pGltfAttr->type) {
             default: break;
-            case cgltf_attribute_type_position : pGltflAccessorPositions = pGltfAccessor; break;
-            case cgltf_attribute_type_normal   : pGltflAccessorNormals   = pGltfAccessor; break;
-            case cgltf_attribute_type_tangent  : pGltflAccessorTangents  = pGltfAccessor; break;
-            case cgltf_attribute_type_color    : pGltflAccessorColors    = pGltfAccessor; break;
-            case cgltf_attribute_type_texcoord : {
-                if (IsNull(pGltflAccessorTexCoords)) {
-                    pGltflAccessorTexCoords = pGltfAccessor; 
-                }
-            } break;
-        }
+            case cgltf_attribute_type_position : accessors.pPositions = pGltfAccessor; break;
+            case cgltf_attribute_type_normal   : accessors.pNormals   = pGltfAccessor; break;
+            case cgltf_attribute_type_tangent  : accessors.pTangents  = pGltfAccessor; break;
+            case cgltf_attribute_type_color    : accessors.pColors    = pGltfAccessor; break;
+            case cgltf_attribute_type_texcoord : accessors.pTexCoords = pGltfAccessor; break;
+        };
         // clang-format on
     }
-
-    // clang-format off
-    if (!IsNull(ppGltflAccessorPositions)) *ppGltflAccessorPositions = pGltflAccessorPositions;
-    if (!IsNull(ppGltflAccessorNormals  )) *ppGltflAccessorNormals   = pGltflAccessorNormals;
-    if (!IsNull(ppGltflAccessorTangents )) *ppGltflAccessorTangents  = pGltflAccessorTangents;
-    if (!IsNull(ppGltflAccessorColors   )) *ppGltflAccessorColors    = pGltflAccessorColors;
-    if (!IsNull(ppGltflAccessorTexCoords)) *ppGltflAccessorTexCoords = pGltflAccessorTexCoords;
-    // clang-format on
+    return accessors;
 }
 
 // Get a buffer view's start address
@@ -1308,16 +1293,14 @@ ppx::Result GltfLoader::LoadMeshData(
         const uint32_t indexDataSize    = indexCount * indexElementSize;
 
         // Get position accessor
-        const cgltf_accessor* pGltflAccessorPositions = nullptr;
-        GetVertexAccessors(pGltfPrimitive, &pGltflAccessorPositions, nullptr, nullptr, nullptr, nullptr);
-        //
-        if (IsNull(pGltflAccessorPositions)) {
+        const VertexAccessors gltflAccessors = GetVertexAccessors(pGltfPrimitive);
+        if (IsNull(gltflAccessors.pPositions)) {
             PPX_ASSERT_MSG(false, "GLTF mesh primitive position accessor is NULL");
             return ppx::ERROR_SCENE_INVALID_SOURCE_GEOMETRY_VERTEX_DATA;
         }
 
         // Vertex data sizes
-        const uint32_t vertexCount       = static_cast<uint32_t>(pGltflAccessorPositions->count);
+        const uint32_t vertexCount       = static_cast<uint32_t>(gltflAccessors.pPositions->count);
         const uint32_t positionDataSize  = vertexCount * targetPositionElementSize;
         const uint32_t attributeDataSize = vertexCount * targetAttributesElementSize;
 
@@ -1487,32 +1470,21 @@ ppx::Result GltfLoader::LoadMeshData(
 
             // Vertices
             {
-                const cgltf_accessor* pGltflAccessorPositions = nullptr;
-                const cgltf_accessor* pGltflAccessorNormals   = nullptr;
-                const cgltf_accessor* pGltflAccessorTangents  = nullptr;
-                const cgltf_accessor* pGltflAccessorColors    = nullptr;
-                const cgltf_accessor* pGltflAccessorTexCoords = nullptr;
-                GetVertexAccessors(
-                    pGltfPrimitive,
-                    &pGltflAccessorPositions,
-                    &pGltflAccessorNormals,
-                    &pGltflAccessorTangents,
-                    &pGltflAccessorColors,
-                    &pGltflAccessorTexCoords);
+                VertexAccessors gltflAccessors = GetVertexAccessors(pGltfPrimitive);
                 //
                 // Bail if position accessor is NULL: no vertex positions, no geometry data
                 //
-                if (IsNull(pGltflAccessorPositions)) {
+                if (IsNull(gltflAccessors.pPositions)) {
                     PPX_ASSERT_MSG(false, "GLTF mesh primitive is missing position data");
                     return ppx::ERROR_SCENE_INVALID_SOURCE_GEOMETRY_VERTEX_DATA;
                 }
 
                 // Bounding box
-                bool hasBoundingBox = (pGltflAccessorPositions->has_min && pGltflAccessorPositions->has_max);
+                bool hasBoundingBox = (gltflAccessors.pPositions->has_min && gltflAccessors.pPositions->has_max);
                 if (hasBoundingBox) {
                     batch.boundingBox = ppx::AABB(
-                        *reinterpret_cast<const float3*>(pGltflAccessorPositions->min),
-                        *reinterpret_cast<const float3*>(pGltflAccessorPositions->max));
+                        *reinterpret_cast<const float3*>(gltflAccessors.pPositions->min),
+                        *reinterpret_cast<const float3*>(gltflAccessors.pPositions->max));
                 }
 
                 // Determine if we need to process vertices
@@ -1527,36 +1499,36 @@ ppx::Result GltfLoader::LoadMeshData(
                 }
 
                 // Check vertex data formats
-                auto positionFormat = GetFormat(pGltflAccessorPositions);
-                auto texCoordFormat = GetFormat(pGltflAccessorTexCoords);
-                auto normalFormat   = GetFormat(pGltflAccessorNormals);
-                auto tangentFormat  = GetFormat(pGltflAccessorTangents);
-                auto colorFormat    = GetFormat(pGltflAccessorColors);
+                auto positionFormat = GetFormat(gltflAccessors.pPositions);
+                auto texCoordFormat = GetFormat(gltflAccessors.pTexCoords);
+                auto normalFormat   = GetFormat(gltflAccessors.pNormals);
+                auto tangentFormat  = GetFormat(gltflAccessors.pTangents);
+                auto colorFormat    = GetFormat(gltflAccessors.pColors);
                 //
                 PPX_ASSERT_MSG((positionFormat == targetPositionFormat), "GLTF: vertex positions format is not supported");
                 //
-                if (loadParams.requiredVertexAttributes.bits.texCoords && !IsNull(pGltflAccessorTexCoords)) {
+                if (loadParams.requiredVertexAttributes.bits.texCoords && !IsNull(gltflAccessors.pTexCoords)) {
                     PPX_ASSERT_MSG((texCoordFormat == targetTexCoordFormat), "GLTF: vertex tex coords sourceIndexTypeFormat is not supported");
                 }
-                if (loadParams.requiredVertexAttributes.bits.normals && !IsNull(pGltflAccessorNormals)) {
+                if (loadParams.requiredVertexAttributes.bits.normals && !IsNull(gltflAccessors.pNormals)) {
                     PPX_ASSERT_MSG((normalFormat == targetNormalFormat), "GLTF: vertex normals format is not supported");
                 }
-                if (loadParams.requiredVertexAttributes.bits.tangents && !IsNull(pGltflAccessorTangents)) {
+                if (loadParams.requiredVertexAttributes.bits.tangents && !IsNull(gltflAccessors.pTangents)) {
                     PPX_ASSERT_MSG((tangentFormat == targetTangentFormat), "GLTF: vertex tangents format is not supported");
                 }
-                if (loadParams.requiredVertexAttributes.bits.colors && !IsNull(pGltflAccessorColors)) {
+                if (loadParams.requiredVertexAttributes.bits.colors && !IsNull(gltflAccessors.pColors)) {
                     PPX_ASSERT_MSG((colorFormat == targetColorFormat), "GLTF: vertex colors format is not supported");
                 }
 
                 // Data starts
-                const float3* pGltflPositions = static_cast<const float3*>(GetStartAddress(mGltfData, pGltflAccessorPositions));
-                const float3* pGltflNormals   = static_cast<const float3*>(GetStartAddress(mGltfData, pGltflAccessorNormals));
-                const float4* pGltflTangents  = static_cast<const float4*>(GetStartAddress(mGltfData, pGltflAccessorTangents));
-                const float3* pGltflColors    = static_cast<const float3*>(GetStartAddress(mGltfData, pGltflAccessorColors));
-                const float2* pGltflTexCoords = static_cast<const float2*>(GetStartAddress(mGltfData, pGltflAccessorTexCoords));
+                const float3* pGltflPositions = static_cast<const float3*>(GetStartAddress(mGltfData, gltflAccessors.pPositions));
+                const float3* pGltflNormals   = static_cast<const float3*>(GetStartAddress(mGltfData, gltflAccessors.pNormals));
+                const float4* pGltflTangents  = static_cast<const float4*>(GetStartAddress(mGltfData, gltflAccessors.pTangents));
+                const float3* pGltflColors    = static_cast<const float3*>(GetStartAddress(mGltfData, gltflAccessors.pColors));
+                const float2* pGltflTexCoords = static_cast<const float2*>(GetStartAddress(mGltfData, gltflAccessors.pTexCoords));
 
                 // Process vertex data
-                for (cgltf_size i = 0; i < pGltflAccessorPositions->count; ++i) {
+                for (cgltf_size i = 0; i < gltflAccessors.pPositions->count; ++i) {
                     TriMeshVertexData vertexData = {};
 
                     // Position
@@ -2406,57 +2378,6 @@ int32_t GltfLoader::GetSceneIndex(const std::string& name) const
     int32_t index = (pGltfObject >= arrayEnd) ? -1 : static_cast<int32_t>(pGltfObject - arrayBegin);
     return index;
 }
-
-/*
-const cgltf_sampler* GltfLoader::FindSampler(const std::string& name) const
-{
-    int32_t index = GetSamplerIndex(name);
-    PPX_ASSERT_MSG((index >= GetSamplerCount()), "index exceeds sampler count");
-    return (index < 0) ? nullptr : &mGltfData->samplers[index];
-}
-
-const cgltf_image* GltfLoader::FindImage(const std::string& name) const
-{
-    int32_t index = GetImageIndex(name);
-    PPX_ASSERT_MSG((index >= GetImageCount()), "index exceeds image count");
-    return (index < 0) ? nullptr : &mGltfData->images[index];
-}
-
-const cgltf_texture* GltfLoader::FindTexture(const std::string& name) const
-{
-    int32_t index = GetTextureIndex(name);
-    PPX_ASSERT_MSG((index >= GetTextureCount()), "index exceeds texture count");
-    return (index < 0) ? nullptr : &mGltfData->textures[index];
-}
-
-const cgltf_material* GltfLoader::FindMaterial(const std::string& name) const
-{
-    int32_t index = GetMaterialIndex(name);
-    PPX_ASSERT_MSG((index >= GetMaterialCount()), "index exceeds material count");
-    return (index < 0) ? nullptr : &mGltfData->materials[index];
-}
-
-const cgltf_mesh* GltfLoader::FindMesh(const std::string& name) const
-{
-    int32_t index = GetMeshIndex(name);
-    PPX_ASSERT_MSG((index >= GetMeshCount()), "index exceeds mesh count");
-    return (index < 0) ? nullptr : &mGltfData->meshes[index];
-}
-
-const cgltf_node* GltfLoader::FindNode(const std::string& name) const
-{
-    int32_t index = GetNodeIndex(name);
-    PPX_ASSERT_MSG((index >= GetNodeCount()), "index exceeds node count");
-    return (index < 0) ? nullptr : &mGltfData->nodes[index];
-}
-
-const cgltf_scene* GltfLoader::FindScene(const std::string& name) const
-{
-    int32_t index = GetSceneIndex(name);
-    PPX_ASSERT_MSG((index >= GetSceneCount()), "index exceeds scene count");
-    return (index < 0) ? nullptr : &mGltfData->scenes[index];
-}
-*/
 
 ppx::Result GltfLoader::LoadSampler(
     grfx::Device*    pDevice,

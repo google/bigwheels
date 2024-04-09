@@ -92,14 +92,6 @@ public:
     int32_t GetNodeIndex(const std::string& name) const;
     int32_t GetSceneIndex(const std::string& name) const;
 
-    // const cgltf_sampler*  FindSampler(const std::string& name) const;
-    // const cgltf_image*    FindImage(const std::string& name) const;
-    // const cgltf_texture*  FindTexture(const std::string& name) const;
-    // const cgltf_material* FindMaterial(const std::string& name) const;
-    // const cgltf_mesh*     FindMesh(const std::string& name) const;
-    // const cgltf_node*     FindNode(const std::string& name) const;
-    // const cgltf_scene*    FindScene(const std::string& name) const;
-
     // ---------------------------------------------------------------------------------------------
     // Loads a GLTF sampler, image, texture, or material
     //
