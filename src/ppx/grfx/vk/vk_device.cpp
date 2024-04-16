@@ -961,6 +961,16 @@ Result Device::AllocateObject(grfx::Sampler** ppObject)
     return ppx::SUCCESS;
 }
 
+Result Device::AllocateObject(grfx::SamplerYcbcrConversion** ppObject)
+{
+    vk::SamplerYcbcrConversion* pObject = new vk::SamplerYcbcrConversion();
+    if (IsNull(pObject)) {
+        return ppx::ERROR_ALLOCATION_FAILED;
+    }
+    *ppObject = pObject;
+    return ppx::SUCCESS;
+}
+
 Result Device::AllocateObject(grfx::Semaphore** ppObject)
 {
     vk::Semaphore* pObject = new vk::Semaphore();
@@ -1009,16 +1019,6 @@ Result Device::AllocateObject(grfx::StorageImageView** ppObject)
 Result Device::AllocateObject(grfx::Swapchain** ppObject)
 {
     vk::Swapchain* pObject = new vk::Swapchain();
-    if (IsNull(pObject)) {
-        return ppx::ERROR_ALLOCATION_FAILED;
-    }
-    *ppObject = pObject;
-    return ppx::SUCCESS;
-}
-
-Result Device::AllocateObject(grfx::YcbcrConversion** ppObject)
-{
-    vk::YcbcrConversion* pObject = new vk::YcbcrConversion();
     if (IsNull(pObject)) {
         return ppx::ERROR_ALLOCATION_FAILED;
     }

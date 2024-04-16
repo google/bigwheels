@@ -158,13 +158,13 @@ class RenderPass;
 class RenderTargetView;
 class SampledImageView;
 class Sampler;
+class SamplerYcbcrConversion;
 class Semaphore;
 class ShaderModule;
 class ShadingRatePattern;
 class StorageImageView;
 class Surface;
 class Swapchain;
-class YcbcrConversion;
 
 namespace internal {
 
@@ -334,6 +334,13 @@ struct ApiObjectLookUp<grfx::Sampler>
 };
 
 template <>
+struct ApiObjectLookUp<grfx::SamplerYcbcrConversion>
+{
+    using GrfxType = grfx::SamplerYcbcrConversion;
+    using ApiType  = vk::SamplerYcbcrConversion;
+};
+
+template <>
 struct ApiObjectLookUp<grfx::Semaphore>
 {
     using GrfxType = grfx::Semaphore;
@@ -373,13 +380,6 @@ struct ApiObjectLookUp<grfx::Swapchain>
 {
     using GrfxType = grfx::Swapchain;
     using ApiType  = vk::Swapchain;
-};
-
-template <>
-struct ApiObjectLookUp<grfx::YcbcrConversion>
-{
-    using GrfxType = grfx::YcbcrConversion;
-    using ApiType  = vk::YcbcrConversion;
 };
 
 template <typename GrfxTypeT>

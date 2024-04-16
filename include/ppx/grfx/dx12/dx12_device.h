@@ -86,13 +86,13 @@ protected:
     virtual Result AllocateObject(grfx::RenderTargetView** ppObject) override;
     virtual Result AllocateObject(grfx::SampledImageView** ppObject) override;
     virtual Result AllocateObject(grfx::Sampler** ppObject) override;
+    virtual Result AllocateObject(grfx::SamplerYcbcrConversion** ppObject) override;
     virtual Result AllocateObject(grfx::Semaphore** ppObject) override;
     virtual Result AllocateObject(grfx::ShaderModule** ppObject) override;
     virtual Result AllocateObject(grfx::ShaderProgram** ppObject) override;
     virtual Result AllocateObject(grfx::ShadingRatePattern** ppObject) override;
     virtual Result AllocateObject(grfx::StorageImageView** ppObject) override;
     virtual Result AllocateObject(grfx::Swapchain** ppObject) override;
-    virtual Result AllocateObject(grfx::YcbcrConversion** ppObject) override;
 
 protected:
     virtual Result CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo) override;

@@ -135,6 +135,9 @@ public:
     Result CreateSampler(const grfx::SamplerCreateInfo* pCreateInfo, grfx::Sampler** ppSampler);
     void   DestroySampler(const grfx::Sampler* pSampler);
 
+    Result CreateSamplerYcbcrConversion(const grfx::SamplerYcbcrConversionCreateInfo* pCreateInfo, grfx::SamplerYcbcrConversion** ppConversion);
+    void   DestroySamplerYcbcrConversion(const grfx::SamplerYcbcrConversion* pConversion);
+
     Result CreateSemaphore(const grfx::SemaphoreCreateInfo* pCreateInfo, grfx::Semaphore** ppSemaphore);
     void   DestroySemaphore(const grfx::Semaphore* pSemaphore);
 
@@ -155,9 +158,6 @@ public:
 
     Result CreateTextureFont(const grfx::TextureFontCreateInfo* pCreateInfo, grfx::TextureFont** ppTextureFont);
     void   DestroyTextureFont(const grfx::TextureFont* pTextureFont);
-
-    Result CreateYcbcrConversion(const grfx::YcbcrConversionCreateInfo* pCreateInfo, grfx::YcbcrConversion** ppConversion);
-    void   DestroyYcbcrConversion(const grfx::YcbcrConversion* pConversion);
 
     // See comment section for grfx::internal::CommandBufferCreateInfo for
     // details about 'resourceDescriptorCount' and 'samplerDescriptorCount'.
@@ -201,31 +201,31 @@ protected:
     virtual void   Destroy() override;
     friend class grfx::Instance;
 
-    virtual Result AllocateObject(grfx::Buffer** ppObject)              = 0;
-    virtual Result AllocateObject(grfx::CommandBuffer** ppObject)       = 0;
-    virtual Result AllocateObject(grfx::CommandPool** ppObject)         = 0;
-    virtual Result AllocateObject(grfx::ComputePipeline** ppObject)     = 0;
-    virtual Result AllocateObject(grfx::DepthStencilView** ppObject)    = 0;
-    virtual Result AllocateObject(grfx::DescriptorPool** ppObject)      = 0;
-    virtual Result AllocateObject(grfx::DescriptorSet** ppObject)       = 0;
-    virtual Result AllocateObject(grfx::DescriptorSetLayout** ppObject) = 0;
-    virtual Result AllocateObject(grfx::Fence** ppObject)               = 0;
-    virtual Result AllocateObject(grfx::GraphicsPipeline** ppObject)    = 0;
-    virtual Result AllocateObject(grfx::Image** ppObject)               = 0;
-    virtual Result AllocateObject(grfx::PipelineInterface** ppObject)   = 0;
-    virtual Result AllocateObject(grfx::Queue** ppObject)               = 0;
-    virtual Result AllocateObject(grfx::Query** ppObject)               = 0;
-    virtual Result AllocateObject(grfx::RenderPass** ppObject)          = 0;
-    virtual Result AllocateObject(grfx::RenderTargetView** ppObject)    = 0;
-    virtual Result AllocateObject(grfx::SampledImageView** ppObject)    = 0;
-    virtual Result AllocateObject(grfx::Sampler** ppObject)             = 0;
-    virtual Result AllocateObject(grfx::Semaphore** ppObject)           = 0;
-    virtual Result AllocateObject(grfx::ShaderModule** ppObject)        = 0;
-    virtual Result AllocateObject(grfx::ShaderProgram** ppObject)       = 0;
-    virtual Result AllocateObject(grfx::ShadingRatePattern** ppObject)  = 0;
-    virtual Result AllocateObject(grfx::StorageImageView** ppObject)    = 0;
-    virtual Result AllocateObject(grfx::Swapchain** ppObject)           = 0;
-    virtual Result AllocateObject(grfx::YcbcrConversion** ppConversion) = 0;
+    virtual Result AllocateObject(grfx::Buffer** ppObject)                 = 0;
+    virtual Result AllocateObject(grfx::CommandBuffer** ppObject)          = 0;
+    virtual Result AllocateObject(grfx::CommandPool** ppObject)            = 0;
+    virtual Result AllocateObject(grfx::ComputePipeline** ppObject)        = 0;
+    virtual Result AllocateObject(grfx::DepthStencilView** ppObject)       = 0;
+    virtual Result AllocateObject(grfx::DescriptorPool** ppObject)         = 0;
+    virtual Result AllocateObject(grfx::DescriptorSet** ppObject)          = 0;
+    virtual Result AllocateObject(grfx::DescriptorSetLayout** ppObject)    = 0;
+    virtual Result AllocateObject(grfx::Fence** ppObject)                  = 0;
+    virtual Result AllocateObject(grfx::GraphicsPipeline** ppObject)       = 0;
+    virtual Result AllocateObject(grfx::Image** ppObject)                  = 0;
+    virtual Result AllocateObject(grfx::PipelineInterface** ppObject)      = 0;
+    virtual Result AllocateObject(grfx::Queue** ppObject)                  = 0;
+    virtual Result AllocateObject(grfx::Query** ppObject)                  = 0;
+    virtual Result AllocateObject(grfx::RenderPass** ppObject)             = 0;
+    virtual Result AllocateObject(grfx::RenderTargetView** ppObject)       = 0;
+    virtual Result AllocateObject(grfx::SampledImageView** ppObject)       = 0;
+    virtual Result AllocateObject(grfx::Sampler** ppObject)                = 0;
+    virtual Result AllocateObject(grfx::SamplerYcbcrConversion** ppObject) = 0;
+    virtual Result AllocateObject(grfx::Semaphore** ppObject)              = 0;
+    virtual Result AllocateObject(grfx::ShaderModule** ppObject)           = 0;
+    virtual Result AllocateObject(grfx::ShaderProgram** ppObject)          = 0;
+    virtual Result AllocateObject(grfx::ShadingRatePattern** ppObject)     = 0;
+    virtual Result AllocateObject(grfx::StorageImageView** ppObject)       = 0;
+    virtual Result AllocateObject(grfx::Swapchain** ppObject)              = 0;
 
     virtual Result AllocateObject(grfx::DrawPass** ppObject);
     virtual Result AllocateObject(grfx::FullscreenQuad** ppObject);
@@ -253,41 +253,41 @@ protected:
     Result CreateTransferQueue(const grfx::internal::QueueCreateInfo* pCreateInfo, grfx::Queue** ppQueue);
 
 protected:
-    grfx::InstancePtr                         mInstance;
-    std::vector<grfx::BufferPtr>              mBuffers;
-    std::vector<grfx::CommandBufferPtr>       mCommandBuffers;
-    std::vector<grfx::CommandPoolPtr>         mCommandPools;
-    std::vector<grfx::ComputePipelinePtr>     mComputePipelines;
-    std::vector<grfx::DepthStencilViewPtr>    mDepthStencilViews;
-    std::vector<grfx::DescriptorPoolPtr>      mDescriptorPools;
-    std::vector<grfx::DescriptorSetPtr>       mDescriptorSets;
-    std::vector<grfx::DescriptorSetLayoutPtr> mDescriptorSetLayouts;
-    std::vector<grfx::DrawPassPtr>            mDrawPasses;
-    std::vector<grfx::FencePtr>               mFences;
-    std::vector<grfx::ShadingRatePatternPtr>  mShadingRatePatterns;
-    std::vector<grfx::FullscreenQuadPtr>      mFullscreenQuads;
-    std::vector<grfx::GraphicsPipelinePtr>    mGraphicsPipelines;
-    std::vector<grfx::ImagePtr>               mImages;
-    std::vector<grfx::MeshPtr>                mMeshes;
-    std::vector<grfx::PipelineInterfacePtr>   mPipelineInterfaces;
-    std::vector<grfx::QueryPtr>               mQuerys;
-    std::vector<grfx::RenderPassPtr>          mRenderPasses;
-    std::vector<grfx::RenderTargetViewPtr>    mRenderTargetViews;
-    std::vector<grfx::SampledImageViewPtr>    mSampledImageViews;
-    std::vector<grfx::SamplerPtr>             mSamplers;
-    std::vector<grfx::SemaphorePtr>           mSemaphores;
-    std::vector<grfx::ShaderModulePtr>        mShaderModules;
-    std::vector<grfx::ShaderProgramPtr>       mShaderPrograms;
-    std::vector<grfx::StorageImageViewPtr>    mStorageImageViews;
-    std::vector<grfx::SwapchainPtr>           mSwapchains;
-    std::vector<grfx::TextDrawPtr>            mTextDraws;
-    std::vector<grfx::TexturePtr>             mTextures;
-    std::vector<grfx::TextureFontPtr>         mTextureFonts;
-    std::vector<grfx::YcbcrConversionPtr>     mYcbcrConversions;
-    std::vector<grfx::QueuePtr>               mGraphicsQueues;
-    std::vector<grfx::QueuePtr>               mComputeQueues;
-    std::vector<grfx::QueuePtr>               mTransferQueues;
-    grfx::ShadingRateCapabilities             mShadingRateCapabilities;
+    grfx::InstancePtr                            mInstance;
+    std::vector<grfx::BufferPtr>                 mBuffers;
+    std::vector<grfx::CommandBufferPtr>          mCommandBuffers;
+    std::vector<grfx::CommandPoolPtr>            mCommandPools;
+    std::vector<grfx::ComputePipelinePtr>        mComputePipelines;
+    std::vector<grfx::DepthStencilViewPtr>       mDepthStencilViews;
+    std::vector<grfx::DescriptorPoolPtr>         mDescriptorPools;
+    std::vector<grfx::DescriptorSetPtr>          mDescriptorSets;
+    std::vector<grfx::DescriptorSetLayoutPtr>    mDescriptorSetLayouts;
+    std::vector<grfx::DrawPassPtr>               mDrawPasses;
+    std::vector<grfx::FencePtr>                  mFences;
+    std::vector<grfx::ShadingRatePatternPtr>     mShadingRatePatterns;
+    std::vector<grfx::FullscreenQuadPtr>         mFullscreenQuads;
+    std::vector<grfx::GraphicsPipelinePtr>       mGraphicsPipelines;
+    std::vector<grfx::ImagePtr>                  mImages;
+    std::vector<grfx::MeshPtr>                   mMeshes;
+    std::vector<grfx::PipelineInterfacePtr>      mPipelineInterfaces;
+    std::vector<grfx::QueryPtr>                  mQuerys;
+    std::vector<grfx::RenderPassPtr>             mRenderPasses;
+    std::vector<grfx::RenderTargetViewPtr>       mRenderTargetViews;
+    std::vector<grfx::SampledImageViewPtr>       mSampledImageViews;
+    std::vector<grfx::SamplerPtr>                mSamplers;
+    std::vector<grfx::SamplerYcbcrConversionPtr> mSamplerYcbcrConversions;
+    std::vector<grfx::SemaphorePtr>              mSemaphores;
+    std::vector<grfx::ShaderModulePtr>           mShaderModules;
+    std::vector<grfx::ShaderProgramPtr>          mShaderPrograms;
+    std::vector<grfx::StorageImageViewPtr>       mStorageImageViews;
+    std::vector<grfx::SwapchainPtr>              mSwapchains;
+    std::vector<grfx::TextDrawPtr>               mTextDraws;
+    std::vector<grfx::TexturePtr>                mTextures;
+    std::vector<grfx::TextureFontPtr>            mTextureFonts;
+    std::vector<grfx::QueuePtr>                  mGraphicsQueues;
+    std::vector<grfx::QueuePtr>                  mComputeQueues;
+    std::vector<grfx::QueuePtr>                  mTransferQueues;
+    grfx::ShadingRateCapabilities                mShadingRateCapabilities;
 };
 
 } // namespace grfx

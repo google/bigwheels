@@ -542,6 +542,12 @@ Result Device::AllocateObject(grfx::Sampler** ppObject)
     return ppx::SUCCESS;
 }
 
+Result Device::AllocateObject(grfx::SamplerYcbcrConversion** ppObject)
+{
+    PPX_LOG_ERROR("Attempted to allocate a YCbCr conversion in D3D12, which is not supported.");
+    return ppx::ERROR_REQUIRED_FEATURE_UNAVAILABLE;
+}
+
 Result Device::AllocateObject(grfx::Semaphore** ppObject)
 {
     dx12::Semaphore* pObject = new dx12::Semaphore();
@@ -590,12 +596,6 @@ Result Device::AllocateObject(grfx::Swapchain** ppObject)
     }
     *ppObject = pObject;
     return ppx::SUCCESS;
-}
-
-Result Device::AllocateObject(grfx::YcbcrConversion** ppObject)
-{
-    PPX_LOG_ERROR("Attempted to allocate a YCbCr conversion in D3D12, which is not supported.");
-    return ppx::ERROR_REQUIRED_FEATURE_UNAVAILABLE;
 }
 
 Result Device::WaitIdle()

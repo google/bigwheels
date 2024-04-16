@@ -424,6 +424,46 @@ void SampledImageView::DestroyApiObjects()
 }
 
 // -------------------------------------------------------------------------------------------------
+// SamplerYcbcrConversion
+// -------------------------------------------------------------------------------------------------
+
+Result SamplerYcbcrConversion::CreateApiObjects(const grfx::SamplerYcbcrConversionCreateInfo* pCreateInfo)
+{
+    VkSamplerYcbcrConversionCreateInfo vkci{VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_CREATE_INFO};
+    vkci.format                      = ToVkFormat(pCreateInfo->format);
+    vkci.ycbcrModel                  = ToVkYcbcrModelConversion(pCreateInfo->ycbcrModel);
+    vkci.ycbcrRange                  = ToVkYcbcrRange(pCreateInfo->ycbcrRange);
+    vkci.components                  = ToVkComponentMapping(pCreateInfo->components);
+    vkci.xChromaOffset               = ToVkChromaLocation(pCreateInfo->xChromaOffset);
+    vkci.yChromaOffset               = ToVkChromaLocation(pCreateInfo->yChromaOffset);
+    vkci.chromaFilter                = ToVkFilter(pCreateInfo->filter);
+    vkci.forceExplicitReconstruction = pCreateInfo->forceExplicitReconstruction ? VK_TRUE : VK_FALSE;
+
+    VkResult vkres = vkCreateSamplerYcbcrConversion(
+        ToApi(GetDevice())->GetVkDevice(), &vkci, nullptr, &mSamplerYcbcrConversion);
+    PPX_LOG_INFO("Created sampler ycbcr conversion: " << mSamplerYcbcrConversion.Get());
+    if (vkres != VK_SUCCESS) {
+        PPX_ASSERT_MSG(
+            false,
+            "vkCreateSamplerYcbcrConversion failed: " << ToString(vkres));
+        return ppx::ERROR_API_FAILURE;
+    }
+
+    return ppx::SUCCESS;
+}
+
+void SamplerYcbcrConversion::DestroyApiObjects()
+{
+    if (mSamplerYcbcrConversion) {
+        vkDestroySamplerYcbcrConversion(
+            ToApi(GetDevice())->GetVkDevice(),
+            mSamplerYcbcrConversion,
+            nullptr);
+        mSamplerYcbcrConversion.Reset();
+    }
+}
+
+// -------------------------------------------------------------------------------------------------
 // StorageImageView
 // -------------------------------------------------------------------------------------------------
 Result StorageImageView::CreateApiObjects(const grfx::StorageImageViewCreateInfo* pCreateInfo)
@@ -468,46 +508,6 @@ void StorageImageView::DestroyApiObjects()
             mImageView,
             nullptr);
         mImageView.Reset();
-    }
-}
-
-// -------------------------------------------------------------------------------------------------
-// YcbcrConversion
-// -------------------------------------------------------------------------------------------------
-
-Result YcbcrConversion::CreateApiObjects(const grfx::YcbcrConversionCreateInfo* pCreateInfo)
-{
-    VkSamplerYcbcrConversionCreateInfo vkci{VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_CREATE_INFO};
-    vkci.format                      = ToVkFormat(pCreateInfo->format);
-    vkci.ycbcrModel                  = ToVkYcbcrModelConversion(pCreateInfo->ycbcrModel);
-    vkci.ycbcrRange                  = ToVkYcbcrRange(pCreateInfo->ycbcrRange);
-    vkci.components                  = ToVkComponentMapping(pCreateInfo->components);
-    vkci.xChromaOffset               = ToVkChromaLocation(pCreateInfo->xChromaOffset);
-    vkci.yChromaOffset               = ToVkChromaLocation(pCreateInfo->yChromaOffset);
-    vkci.chromaFilter                = ToVkFilter(pCreateInfo->filter);
-    vkci.forceExplicitReconstruction = pCreateInfo->forceExplicitReconstruction ? VK_TRUE : VK_FALSE;
-
-    VkResult vkres = vkCreateSamplerYcbcrConversion(
-        ToApi(GetDevice())->GetVkDevice(), &vkci, nullptr, &mSamplerYcbcrConversion);
-    PPX_LOG_INFO("Created sampler ycbcr conversion: " << mSamplerYcbcrConversion.Get());
-    if (vkres != VK_SUCCESS) {
-        PPX_ASSERT_MSG(
-            false,
-            "vkCreateSamplerYcbcrConversion failed: " << ToString(vkres));
-        return ppx::ERROR_API_FAILURE;
-    }
-
-    return ppx::SUCCESS;
-}
-
-void YcbcrConversion::DestroyApiObjects()
-{
-    if (mSamplerYcbcrConversion) {
-        vkDestroySamplerYcbcrConversion(
-            ToApi(GetDevice())->GetVkDevice(),
-            mSamplerYcbcrConversion,
-            nullptr);
-        mSamplerYcbcrConversion.Reset();
     }
 }
 
