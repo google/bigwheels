@@ -208,6 +208,11 @@ Result Device::ConfigureExtensions(const grfx::DeviceCreateInfo* pCreateInfo)
         mExtensions.push_back(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME);
     }
 
+    // YCbCr color conversion
+    if (ElementExists(std::string(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME), mFoundExtensions)) {
+        mExtensions.push_back(VK_KHR_SAMPLER_YCBCR_CONVERSION_EXTENSION_NAME);
+    }
+
     // Dynamic rendering - if present. It also requires
     // VK_KHR_depth_stencil_resolve and VK_KHR_create_renderpass2.
 #if defined(VK_KHR_dynamic_rendering)
@@ -949,6 +954,16 @@ Result Device::AllocateObject(grfx::SampledImageView** ppObject)
 Result Device::AllocateObject(grfx::Sampler** ppObject)
 {
     vk::Sampler* pObject = new vk::Sampler();
+    if (IsNull(pObject)) {
+        return ppx::ERROR_ALLOCATION_FAILED;
+    }
+    *ppObject = pObject;
+    return ppx::SUCCESS;
+}
+
+Result Device::AllocateObject(grfx::SamplerYcbcrConversion** ppObject)
+{
+    vk::SamplerYcbcrConversion* pObject = new vk::SamplerYcbcrConversion();
     if (IsNull(pObject)) {
         return ppx::ERROR_ALLOCATION_FAILED;
     }

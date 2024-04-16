@@ -148,6 +148,25 @@ private:
 
 // -------------------------------------------------------------------------------------------------
 
+class SamplerYcbcrConversion
+    : public grfx::SamplerYcbcrConversion
+{
+public:
+    SamplerYcbcrConversion() {}
+    virtual ~SamplerYcbcrConversion() {}
+
+    VkSamplerYcbcrConversionPtr GetVkSamplerYcbcrConversion() const { return mSamplerYcbcrConversion; }
+
+protected:
+    virtual Result CreateApiObjects(const grfx::SamplerYcbcrConversionCreateInfo* pCreateInfo) override;
+    virtual void   DestroyApiObjects() override;
+
+private:
+    VkSamplerYcbcrConversionPtr mSamplerYcbcrConversion;
+};
+
+// -------------------------------------------------------------------------------------------------
+
 class StorageImageView
     : public grfx::StorageImageView
 {

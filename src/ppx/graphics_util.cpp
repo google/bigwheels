@@ -897,28 +897,29 @@ Result CreateTextureFromBitmap(
     // Create target texture
     grfx::TexturePtr targetTexture;
     {
-        grfx::TextureCreateInfo ci     = {};
-        ci.pImage                      = nullptr;
-        ci.imageType                   = grfx::IMAGE_TYPE_2D;
-        ci.width                       = pBitmap->GetWidth();
-        ci.height                      = pBitmap->GetHeight();
-        ci.depth                       = 1;
-        ci.imageFormat                 = ToGrfxFormat(pBitmap->GetFormat());
-        ci.sampleCount                 = grfx::SAMPLE_COUNT_1;
-        ci.mipLevelCount               = mipLevelCount;
-        ci.arrayLayerCount             = 1;
-        ci.usageFlags.bits.transferDst = true;
-        ci.usageFlags.bits.sampled     = true;
-        ci.memoryUsage                 = grfx::MEMORY_USAGE_GPU_ONLY;
-        ci.initialState                = options.mInitialState;
-        ci.RTVClearValue               = {{0, 0, 0, 0}};
-        ci.DSVClearValue               = {1.0f, 0xFF};
-        ci.sampledImageViewType        = grfx::IMAGE_VIEW_TYPE_UNDEFINED;
-        ci.sampledImageViewFormat      = grfx::FORMAT_UNDEFINED;
-        ci.renderTargetViewFormat      = grfx::FORMAT_UNDEFINED;
-        ci.depthStencilViewFormat      = grfx::FORMAT_UNDEFINED;
-        ci.storageImageViewFormat      = grfx::FORMAT_UNDEFINED;
-        ci.ownership                   = grfx::OWNERSHIP_REFERENCE;
+        grfx::TextureCreateInfo ci      = {};
+        ci.pImage                       = nullptr;
+        ci.imageType                    = grfx::IMAGE_TYPE_2D;
+        ci.width                        = pBitmap->GetWidth();
+        ci.height                       = pBitmap->GetHeight();
+        ci.depth                        = 1;
+        ci.imageFormat                  = ToGrfxFormat(pBitmap->GetFormat());
+        ci.sampleCount                  = grfx::SAMPLE_COUNT_1;
+        ci.mipLevelCount                = mipLevelCount;
+        ci.arrayLayerCount              = 1;
+        ci.usageFlags.bits.transferDst  = true;
+        ci.usageFlags.bits.sampled      = true;
+        ci.memoryUsage                  = grfx::MEMORY_USAGE_GPU_ONLY;
+        ci.initialState                 = options.mInitialState;
+        ci.RTVClearValue                = {{0, 0, 0, 0}};
+        ci.DSVClearValue                = {1.0f, 0xFF};
+        ci.sampledImageViewType         = grfx::IMAGE_VIEW_TYPE_UNDEFINED;
+        ci.sampledImageViewFormat       = grfx::FORMAT_UNDEFINED;
+        ci.pSampledImageYcbcrConversion = options.mYcbcrConversion;
+        ci.renderTargetViewFormat       = grfx::FORMAT_UNDEFINED;
+        ci.depthStencilViewFormat       = grfx::FORMAT_UNDEFINED;
+        ci.storageImageViewFormat       = grfx::FORMAT_UNDEFINED;
+        ci.ownership                    = grfx::OWNERSHIP_REFERENCE;
 
         ci.usageFlags.flags |= options.mAdditionalUsage;
 
@@ -982,28 +983,29 @@ Result CreateTextureFromMipmap(
     // Create target texture
     grfx::TexturePtr targetTexture;
     {
-        grfx::TextureCreateInfo ci     = {};
-        ci.pImage                      = nullptr;
-        ci.imageType                   = grfx::IMAGE_TYPE_2D;
-        ci.width                       = pMip0->GetWidth();
-        ci.height                      = pMip0->GetHeight();
-        ci.depth                       = 1;
-        ci.imageFormat                 = ToGrfxFormat(pMip0->GetFormat());
-        ci.sampleCount                 = grfx::SAMPLE_COUNT_1;
-        ci.mipLevelCount               = pMipmap->GetLevelCount();
-        ci.arrayLayerCount             = 1;
-        ci.usageFlags.bits.transferDst = true;
-        ci.usageFlags.bits.sampled     = true;
-        ci.memoryUsage                 = grfx::MEMORY_USAGE_GPU_ONLY;
-        ci.initialState                = options.mInitialState;
-        ci.RTVClearValue               = {{0, 0, 0, 0}};
-        ci.DSVClearValue               = {1.0f, 0xFF};
-        ci.sampledImageViewType        = grfx::IMAGE_VIEW_TYPE_UNDEFINED;
-        ci.sampledImageViewFormat      = grfx::FORMAT_UNDEFINED;
-        ci.renderTargetViewFormat      = grfx::FORMAT_UNDEFINED;
-        ci.depthStencilViewFormat      = grfx::FORMAT_UNDEFINED;
-        ci.storageImageViewFormat      = grfx::FORMAT_UNDEFINED;
-        ci.ownership                   = grfx::OWNERSHIP_REFERENCE;
+        grfx::TextureCreateInfo ci      = {};
+        ci.pImage                       = nullptr;
+        ci.imageType                    = grfx::IMAGE_TYPE_2D;
+        ci.width                        = pMip0->GetWidth();
+        ci.height                       = pMip0->GetHeight();
+        ci.depth                        = 1;
+        ci.imageFormat                  = ToGrfxFormat(pMip0->GetFormat());
+        ci.sampleCount                  = grfx::SAMPLE_COUNT_1;
+        ci.mipLevelCount                = pMipmap->GetLevelCount();
+        ci.arrayLayerCount              = 1;
+        ci.usageFlags.bits.transferDst  = true;
+        ci.usageFlags.bits.sampled      = true;
+        ci.memoryUsage                  = grfx::MEMORY_USAGE_GPU_ONLY;
+        ci.initialState                 = options.mInitialState;
+        ci.RTVClearValue                = {{0, 0, 0, 0}};
+        ci.DSVClearValue                = {1.0f, 0xFF};
+        ci.sampledImageViewType         = grfx::IMAGE_VIEW_TYPE_UNDEFINED;
+        ci.sampledImageViewFormat       = grfx::FORMAT_UNDEFINED;
+        ci.pSampledImageYcbcrConversion = options.mYcbcrConversion;
+        ci.renderTargetViewFormat       = grfx::FORMAT_UNDEFINED;
+        ci.depthStencilViewFormat       = grfx::FORMAT_UNDEFINED;
+        ci.storageImageViewFormat       = grfx::FORMAT_UNDEFINED;
+        ci.ownership                    = grfx::OWNERSHIP_REFERENCE;
 
         ci.usageFlags.flags |= options.mAdditionalUsage;
 

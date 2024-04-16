@@ -98,6 +98,7 @@ Result Texture::CreateApiObjects(const grfx::TextureCreateInfo* pCreateInfo)
         if (pCreateInfo->sampledImageViewType != grfx::IMAGE_VIEW_TYPE_UNDEFINED) {
             ci.imageViewType = pCreateInfo->sampledImageViewType;
         }
+        ci.pYcbcrConversion = pCreateInfo->pSampledImageYcbcrConversion;
 
         Result ppxres = GetDevice()->CreateSampledImageView(&ci, &mSampledImageView);
         if (Failed(ppxres)) {

@@ -105,30 +105,31 @@ private:
 
 // -------------------------------------------------------------------------------------------------
 
-using VkBufferPtr              = VkHandlePtr<VkBuffer>;
-using VkCommandBufferPtr       = VkHandlePtr<VkCommandBuffer>;
-using VkCommandPoolPtr         = VkHandlePtr<VkCommandPool>;
-using VkDebugUtilsMessengerPtr = VkHandlePtr<VkDebugUtilsMessengerEXT>;
-using VkDescriptorPoolPtr      = VkHandlePtr<VkDescriptorPool>;
-using VkDescriptorSetPtr       = VkHandlePtr<VkDescriptorSet>;
-using VkDescriptorSetLayoutPtr = VkHandlePtr<VkDescriptorSetLayout>;
-using VkDevicePtr              = VkHandlePtr<VkDevice>;
-using VkFencePtr               = VkHandlePtr<VkFence>;
-using VkFramebufferPtr         = VkHandlePtr<VkFramebuffer>;
-using VkImagePtr               = VkHandlePtr<VkImage>;
-using VkImageViewPtr           = VkHandlePtr<VkImageView>;
-using VkInstancePtr            = VkHandlePtr<VkInstance>;
-using VkPhysicalDevicePtr      = VkHandlePtr<VkPhysicalDevice>;
-using VkPipelinePtr            = VkHandlePtr<VkPipeline>;
-using VkPipelineLayoutPtr      = VkHandlePtr<VkPipelineLayout>;
-using VkQueryPoolPtr           = VkHandlePtr<VkQueryPool>;
-using VkQueuePtr               = VkHandlePtr<VkQueue>;
-using VkRenderPassPtr          = VkHandlePtr<VkRenderPass>;
-using VkSamplerPtr             = VkHandlePtr<VkSampler>;
-using VkSemaphorePtr           = VkHandlePtr<VkSemaphore>;
-using VkShaderModulePtr        = VkHandlePtr<VkShaderModule>;
-using VkSurfacePtr             = VkHandlePtr<VkSurfaceKHR>;
-using VkSwapchainPtr           = VkHandlePtr<VkSwapchainKHR>;
+using VkBufferPtr                 = VkHandlePtr<VkBuffer>;
+using VkCommandBufferPtr          = VkHandlePtr<VkCommandBuffer>;
+using VkCommandPoolPtr            = VkHandlePtr<VkCommandPool>;
+using VkDebugUtilsMessengerPtr    = VkHandlePtr<VkDebugUtilsMessengerEXT>;
+using VkDescriptorPoolPtr         = VkHandlePtr<VkDescriptorPool>;
+using VkDescriptorSetPtr          = VkHandlePtr<VkDescriptorSet>;
+using VkDescriptorSetLayoutPtr    = VkHandlePtr<VkDescriptorSetLayout>;
+using VkDevicePtr                 = VkHandlePtr<VkDevice>;
+using VkFencePtr                  = VkHandlePtr<VkFence>;
+using VkFramebufferPtr            = VkHandlePtr<VkFramebuffer>;
+using VkImagePtr                  = VkHandlePtr<VkImage>;
+using VkImageViewPtr              = VkHandlePtr<VkImageView>;
+using VkInstancePtr               = VkHandlePtr<VkInstance>;
+using VkPhysicalDevicePtr         = VkHandlePtr<VkPhysicalDevice>;
+using VkPipelinePtr               = VkHandlePtr<VkPipeline>;
+using VkPipelineLayoutPtr         = VkHandlePtr<VkPipelineLayout>;
+using VkQueryPoolPtr              = VkHandlePtr<VkQueryPool>;
+using VkQueuePtr                  = VkHandlePtr<VkQueue>;
+using VkRenderPassPtr             = VkHandlePtr<VkRenderPass>;
+using VkSamplerPtr                = VkHandlePtr<VkSampler>;
+using VkSamplerYcbcrConversionPtr = VkHandlePtr<VkSamplerYcbcrConversion>;
+using VkSemaphorePtr              = VkHandlePtr<VkSemaphore>;
+using VkShaderModulePtr           = VkHandlePtr<VkShaderModule>;
+using VkSurfacePtr                = VkHandlePtr<VkSurfaceKHR>;
+using VkSwapchainPtr              = VkHandlePtr<VkSwapchainKHR>;
 
 using VmaAllocationPtr = VkHandlePtr<VmaAllocation>;
 using VmaAllocatorPtr  = VkHandlePtr<VmaAllocator>;
@@ -157,6 +158,7 @@ class RenderPass;
 class RenderTargetView;
 class SampledImageView;
 class Sampler;
+class SamplerYcbcrConversion;
 class Semaphore;
 class ShaderModule;
 class ShadingRatePattern;
@@ -329,6 +331,13 @@ struct ApiObjectLookUp<grfx::Sampler>
 {
     using GrfxType = grfx::Sampler;
     using ApiType  = vk::Sampler;
+};
+
+template <>
+struct ApiObjectLookUp<grfx::SamplerYcbcrConversion>
+{
+    using GrfxType = grfx::SamplerYcbcrConversion;
+    using ApiType  = vk::SamplerYcbcrConversion;
 };
 
 template <>
