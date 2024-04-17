@@ -376,13 +376,13 @@ class KnobFlag final
 {
 public:
     KnobFlag(const std::string& flagName, T defaultValue)
-        : Knob(flagName, false)
+        : Knob(flagName, false), mDirty(false)
     {
         SetValue(defaultValue);
     }
 
     KnobFlag(const std::string& flagName, T defaultValue, T minValue, T maxValue)
-        : Knob(flagName, false)
+        : Knob(flagName, false), mDirty(false)
     {
         static_assert(std::is_arithmetic_v<T>, "KnobFlag can only be defined with min/max when it's of arithmetic type");
         PPX_ASSERT_MSG(minValue < maxValue, "invalid range to initialize KnobFlag");
@@ -399,6 +399,8 @@ public:
     }
 
     T GetValue() const { return mValue; }
+
+    bool IsDefaultValue() const { return mDirty; }
 
     void SetValidator(std::function<bool(T)> validatorFunc) { mValidatorFunc = validatorFunc; }
 
@@ -418,6 +420,8 @@ private:
 
     void UpdateFromFlags(const CliOptions& opts) override
     {
+        if (opts.HasOption(mFlagName))
+            mDirty = true;
         SetValue(opts.GetOptionValueOrDefault(mFlagName, mValue));
     }
 
@@ -438,6 +442,7 @@ private:
 private:
     T                      mValue;
     std::function<bool(T)> mValidatorFunc;
+    bool                   mDirty;
 };
 
 // KnobManager holds the knobs in an application

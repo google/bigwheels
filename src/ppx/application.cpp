@@ -951,8 +951,9 @@ void Application::InitializeXRComponentBeforeGrfxDeviceInit()
         createInfo.enableDebug          = mSettings.grfx.enableDebug;
         createInfo.enableQuadLayer      = mSettings.enableImGui;
         createInfo.enableDepthSwapchain = mSettings.xr.enableDepthSwapchain;
-        createInfo.resolution.width     = GetWindowWidth();
-        createInfo.resolution.height    = GetWindowHeight();
+        if (!mStandardOpts.pResolution->IsDefaultValue()) {
+            createInfo.resolution = (XrComponentResolution){GetWindowWidth(), GetWindowHeight()};
+        }
         createInfo.uiResolution.width   = mSettings.xr.uiWidth;
         createInfo.uiResolution.height  = mSettings.xr.uiHeight;
         createInfo.requiredExtensions   = mStandardOpts.pXrRequiredExtensions->GetValue();
