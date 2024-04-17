@@ -299,8 +299,9 @@ ArcballCamera::ArcballCamera(
 
 void ArcballCamera::UpdateCamera()
 {
-    mViewMatrix        = mTranslationMatrix * glm::mat4_cast(mRotationQuat) * mCenterTranslationMatrix;
-    mInverseViewMatrix = glm::inverse(mViewMatrix);
+    mViewMatrix           = mTranslationMatrix * glm::mat4_cast(mRotationQuat) * mCenterTranslationMatrix;
+    mInverseViewMatrix    = glm::inverse(mViewMatrix);
+    mViewProjectionMatrix = mProjectionMatrix * mViewMatrix;
 
     // Transform the view space origin into world space for eye position
     mEyePosition = mInverseViewMatrix * float4(0, 0, 0, 1);
