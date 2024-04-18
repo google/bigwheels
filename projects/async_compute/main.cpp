@@ -147,11 +147,11 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
     settings.appName                       = "async_compute";
     settings.enableImGui                   = true;
     settings.grfx.api                      = kApi;
-    settings.window.width                  = 1920;
-    settings.window.height                 = 1080;
     settings.grfx.swapchain.imageCount     = mNumFramesInFlight;
     settings.grfx.device.computeQueueCount = 1;
     settings.grfx.numFramesInFlight        = mNumFramesInFlight;
+
+    settings.standardKnobsDefaultValue.resolution = std::make_pair(1920, 1080);
 }
 
 void ProjApp::Setup()

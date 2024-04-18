@@ -42,6 +42,15 @@ struct WindowSize
     WindowSize() = default;
     WindowSize(uint32_t width_, uint32_t height_)
         : width(width_), height(height_) {}
+    WindowSize(const std::pair<int, int>&& size)
+        : WindowSize(size.first, size.second) {}
+    WindowSize(const std::pair<uint32_t, uint32_t>&& size)
+        : WindowSize(size.first, size.second) {}
+
+    operator std::pair<uint32_t, uint32_t>()
+    {
+        return {width, height};
+    }
 
     bool operator==(const WindowSize& other) const { return width == other.width && height == other.height; };
 };

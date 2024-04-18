@@ -161,10 +161,10 @@ void ProjApp::Config(ppx::ApplicationSettings& settings)
 {
     settings.appName                    = "gltf";
     settings.enableImGui                = true;
-    settings.window.width               = 1920;
-    settings.window.height              = 1080;
     settings.grfx.api                   = kApi;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
+
+    settings.standardKnobsDefaultValue.resolution = std::make_pair(1920, 1080);
 }
 
 void ProjApp::LoadTexture(

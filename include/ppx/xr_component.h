@@ -127,14 +127,14 @@ struct XrComponentCreateInfo
 #else
     grfx::Format colorFormat = grfx::FORMAT_B8G8R8A8_SRGB;
 #endif
-    grfx::Format            depthFormat          = grfx::FORMAT_D32_FLOAT;
-    XrRefSpace              refSpaceType         = XrRefSpace::XR_STAGE;
-    XrViewConfigurationType viewConfigType       = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
-    bool                    enableDebug          = false;
-    bool                    enableQuadLayer      = false;
-    bool                    enableDepthSwapchain = false;
-    XrComponentResolution   resolution           = {0, 0};
-    XrComponentResolution   uiResolution         = {0, 0};
+    grfx::Format                         depthFormat          = grfx::FORMAT_D32_FLOAT;
+    XrRefSpace                           refSpaceType         = XrRefSpace::XR_STAGE;
+    XrViewConfigurationType              viewConfigType       = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
+    bool                                 enableDebug          = false;
+    bool                                 enableQuadLayer      = false;
+    bool                                 enableDepthSwapchain = false;
+    std::optional<XrComponentResolution> resolution           = (XrComponentResolution){0, 0};
+    XrComponentResolution                uiResolution         = {0, 0};
 
     std::vector<std::string> requiredExtensions = {};
 };
@@ -174,16 +174,16 @@ public:
     {
         if (mConfigViews.empty())
             return 0;
-        if (mCreateInfo.resolution.width > 0)
-            return mCreateInfo.resolution.width;
+        if (mCreateInfo.resolution.has_value())
+            return mCreateInfo.resolution->width;
         return mConfigViews[0].recommendedImageRectWidth;
     }
     uint32_t GetHeight() const
     {
         if (mConfigViews.empty())
             return 0;
-        if (mCreateInfo.resolution.height > 0)
-            return mCreateInfo.resolution.height;
+        if (mCreateInfo.resolution.has_value())
+            return mCreateInfo.resolution->height;
         return mConfigViews[0].recommendedImageRectHeight;
     }
     uint32_t GetUIWidth() const

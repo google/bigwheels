@@ -55,6 +55,12 @@ public:
     // not counting multiple appearances of the same flag such as: --assets-path a --assets-path b
     size_t GetNumUniqueOptions() const { return mAllOptions.size(); }
 
+    // Returns true if the given option is present in the commandline. False otherwise.
+    bool HasOption(const std::string& optionName) const
+    {
+        return mAllOptions.cend() != mAllOptions.find(optionName);
+    }
+
     // Tries to parse the option string into the type of the default value and return it.
     // If the value fails to be converted, return the specified default value.
     // Warning: If this is called instead of the vector overload for multiple-value flags,
