@@ -954,9 +954,9 @@ void Application::InitializeXRComponentBeforeGrfxDeviceInit()
         if (!mStandardOpts.pResolution->IsDefaultValue()) {
             createInfo.resolution = (XrComponentResolution){GetWindowWidth(), GetWindowHeight()};
         }
-        createInfo.uiResolution.width   = mSettings.xr.uiWidth;
-        createInfo.uiResolution.height  = mSettings.xr.uiHeight;
-        createInfo.requiredExtensions   = mStandardOpts.pXrRequiredExtensions->GetValue();
+        createInfo.uiResolution.width  = mSettings.xr.uiWidth;
+        createInfo.uiResolution.height = mSettings.xr.uiHeight;
+        createInfo.requiredExtensions  = mStandardOpts.pXrRequiredExtensions->GetValue();
 
         mXrComponent.InitializeBeforeGrfxDeviceInit(createInfo);
     }
