@@ -400,7 +400,7 @@ public:
 
     T GetValue() const { return mValue; }
 
-    bool IsDefaultValue() const { return mDirty; }
+    bool IsDefaultValue() const { return !mDirty; }
 
     void SetValidator(std::function<bool(T)> validatorFunc) { mValidatorFunc = validatorFunc; }
 
