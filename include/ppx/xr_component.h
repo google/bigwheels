@@ -127,14 +127,14 @@ struct XrComponentCreateInfo
 #else
     grfx::Format colorFormat = grfx::FORMAT_B8G8R8A8_SRGB;
 #endif
-    grfx::Format            depthFormat          = grfx::FORMAT_D32_FLOAT;
-    XrRefSpace              refSpaceType         = XrRefSpace::XR_STAGE;
-    XrViewConfigurationType viewConfigType       = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
-    bool                    enableDebug          = false;
-    bool                    enableQuadLayer      = false;
-    bool                    enableDepthSwapchain = false;
+    grfx::Format                         depthFormat          = grfx::FORMAT_D32_FLOAT;
+    XrRefSpace                           refSpaceType         = XrRefSpace::XR_STAGE;
+    XrViewConfigurationType              viewConfigType       = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
+    bool                                 enableDebug          = false;
+    bool                                 enableQuadLayer      = false;
+    bool                                 enableDepthSwapchain = false;
     std::optional<XrComponentResolution> resolution           = (XrComponentResolution){0, 0};
-    XrComponentResolution   uiResolution         = {0, 0};
+    XrComponentResolution                uiResolution         = {0, 0};
 
     std::vector<std::string> requiredExtensions = {};
 };
