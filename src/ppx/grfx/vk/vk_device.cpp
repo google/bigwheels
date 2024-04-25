@@ -246,20 +246,8 @@ Result Device::ConfigureFeatures(const grfx::DeviceCreateInfo* pCreateInfo, VkPh
 {
     vk::Gpu* pGpu = ToApi(pCreateInfo->pGpu);
 
-    VkPhysicalDeviceFeatures          foundFeatures          = {};
-    VkPhysicalDeviceMultiviewFeatures foundMultiViewFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES};
-
-    if (GetInstance()->GetApi() >= grfx::API_VK_1_1) {
-        // Allows us to query extended device features
-        VkPhysicalDeviceFeatures2 foundFeatures2 = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
-        foundFeatures2.pNext                     = &foundMultiViewFeatures;
-
-        vkGetPhysicalDeviceFeatures2(pGpu->GetVkGpu(), &foundFeatures2);
-        foundFeatures = foundFeatures2.features;
-    }
-    else {
-        vkGetPhysicalDeviceFeatures(pGpu->GetVkGpu(), &foundFeatures);
-    }
+    VkPhysicalDeviceFeatures foundFeatures = {};
+    vkGetPhysicalDeviceFeatures(pGpu->GetVkGpu(), &foundFeatures);
 
     // Default device features
     //
@@ -616,7 +604,7 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
 
     PPX_LOG_INFO("Vulkan MultiView is chosen and present: " << mHasMultiView);
     VkPhysicalDeviceMultiviewFeatures physicalDeviceMultiviewFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MULTIVIEW_FEATURES};
-    if (mHasMultiView) {
+    if (GetInstance()->GetApi() >= grfx::API_VK_1_1 && mHasMultiView) {
         physicalDeviceMultiviewFeatures.pNext                       = nullptr;
         physicalDeviceMultiviewFeatures.multiview                   = VK_TRUE;
         physicalDeviceMultiviewFeatures.multiviewGeometryShader     = VK_FALSE;
