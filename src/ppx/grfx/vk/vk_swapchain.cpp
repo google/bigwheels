@@ -262,7 +262,7 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
         PPX_ASSERT_MSG(pCreateInfo->colorFormat == xrComponent.GetColorFormat(), "XR color format differs from requested swapchain format");
 
         XrSwapchainCreateInfo info = {XR_TYPE_SWAPCHAIN_CREATE_INFO};
-        info.arraySize             = 1;
+        info.arraySize             = pCreateInfo->arrayLayerCount;
         info.mipCount              = 1;
         info.faceCount             = 1;
         info.format                = ToVkFormat(pCreateInfo->colorFormat);
@@ -282,11 +282,11 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
             colorImages.push_back(surfaceImages[i].image);
         }
 
-        if (xrComponent.GetDepthFormat() != grfx::FORMAT_UNDEFINED && xrComponent.UsesDepthSwapchains()) {
+        if (pCreateInfo->depthFormat != grfx::FORMAT_UNDEFINED && xrComponent.GetDepthFormat() != grfx::FORMAT_UNDEFINED && xrComponent.UsesDepthSwapchains()) {
             PPX_ASSERT_MSG(pCreateInfo->depthFormat == xrComponent.GetDepthFormat(), "XR depth format differs from requested swapchain format");
 
             XrSwapchainCreateInfo info = {XR_TYPE_SWAPCHAIN_CREATE_INFO};
-            info.arraySize             = 1;
+            info.arraySize             = pCreateInfo->arrayLayerCount;
             info.mipCount              = 1;
             info.faceCount             = 1;
             info.format                = ToVkFormat(pCreateInfo->depthFormat);
@@ -484,7 +484,7 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
                 0,                                  // baseMipLevel
                 1,                                  // levelCount
                 0,                                  // baseArrayLayer
-                1,                                  // layerCount
+                pCreateInfo->arrayLayerCount,       // layerCount
                 VK_IMAGE_LAYOUT_UNDEFINED,          // oldLayout
                 newLayout,                          // newLayout
                 VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT); // newPipelineStage
@@ -506,7 +506,7 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
             imageCreateInfo.format                          = pCreateInfo->colorFormat;
             imageCreateInfo.sampleCount                     = grfx::SAMPLE_COUNT_1;
             imageCreateInfo.mipLevelCount                   = 1;
-            imageCreateInfo.arrayLayerCount                 = 1;
+            imageCreateInfo.arrayLayerCount                 = pCreateInfo->arrayLayerCount;
             imageCreateInfo.usageFlags.bits.transferSrc     = true;
             imageCreateInfo.usageFlags.bits.transferDst     = true;
             imageCreateInfo.usageFlags.bits.sampled         = true;
@@ -527,7 +527,7 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
         for (size_t i = 0; i < depthImages.size(); ++i) {
             grfx::ImageCreateInfo imageCreateInfo = grfx::ImageCreateInfo::DepthStencilTarget(pCreateInfo->width, pCreateInfo->height, pCreateInfo->depthFormat, grfx::SAMPLE_COUNT_1);
             imageCreateInfo.pApiObject            = (void*)(depthImages[i]);
-
+            imageCreateInfo.arrayLayerCount       = pCreateInfo->arrayLayerCount;
             grfx::ImagePtr image;
             Result         ppxres = GetDevice()->CreateImage(&imageCreateInfo, &image);
             if (Failed(ppxres)) {

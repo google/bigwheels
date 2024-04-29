@@ -48,6 +48,7 @@ struct DeviceCreateInfo
     uint32_t                 transferQueueCount     = 0;
     std::vector<std::string> vulkanExtensions       = {};      // [OPTIONAL] Additional device extensions
     const void*              pVulkanDeviceFeatures  = nullptr; // [OPTIONAL] Pointer to custom VkPhysicalDeviceFeatures
+    bool                     multiView              = false;   // [OPTIONAL] Whether to allow multiView features
     ShadingRateMode          supportShadingRateMode = SHADING_RATE_NONE;
 #if defined(PPX_BUILD_XR)
     XrComponent* pXrComponent = nullptr;
@@ -188,13 +189,13 @@ public:
 
     const grfx::ShadingRateCapabilities& GetShadingRateCapabilities() const { return mShadingRateCapabilities; }
 
-    virtual Result WaitIdle() = 0;
-
-    virtual bool PipelineStatsAvailable() const             = 0;
-    virtual bool DynamicRenderingSupported() const          = 0;
-    virtual bool IndependentBlendingSupported() const       = 0;
-    virtual bool FragmentStoresAndAtomicsSupported() const  = 0;
-    virtual bool PartialDescriptorBindingsSupported() const = 0;
+    virtual Result WaitIdle()                                 = 0;
+    virtual bool   MultiViewSupported() const                 = 0;
+    virtual bool   PipelineStatsAvailable() const             = 0;
+    virtual bool   DynamicRenderingSupported() const          = 0;
+    virtual bool   IndependentBlendingSupported() const       = 0;
+    virtual bool   FragmentStoresAndAtomicsSupported() const  = 0;
+    virtual bool   PartialDescriptorBindingsSupported() const = 0;
 
 protected:
     virtual Result Create(const grfx::DeviceCreateInfo* pCreateInfo) override;

@@ -133,6 +133,7 @@ struct XrComponentCreateInfo
     bool                    enableDebug          = false;
     bool                    enableQuadLayer      = false;
     bool                    enableDepthSwapchain = false;
+    bool                    enableMultiView      = false;
     XrComponentResolution   resolution           = {0, 0};
     XrComponentResolution   uiResolution         = {0, 0};
 
@@ -227,6 +228,9 @@ public:
 
     bool IsSessionRunning() const { return mIsSessionRunning; }
     bool ShouldRender() const { return mShouldRender; }
+
+    bool     IsMultiView() const { return mCreateInfo.enableMultiView; }
+    uint32_t GetDefaultViewMask() const;
 
     virtual void BeginPassthrough();
     virtual void EndPassthrough();

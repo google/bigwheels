@@ -678,7 +678,7 @@ void XrComponent::BeginFrame()
 void XrComponent::EndFrame(const std::vector<grfx::SwapchainPtr>& swapchains, uint32_t layerProjStartIndex, uint32_t layerQuadStartIndex)
 {
     size_t viewCount = mViews.size();
-    PPX_ASSERT_MSG(swapchains.size() >= viewCount, "Number of swapchains needs to be larger than or equal to the number of views!");
+    PPX_ASSERT_MSG(IsMultiView() || swapchains.size() >= viewCount, "Number of swapchains needs to be larger than or equal to the number of views!");
 
     // Priority queue to order XrLayerBases according to their zIndex.
     XrLayerBaseQueue layerQueue;
@@ -733,22 +733,27 @@ void XrComponent::EndFrame(const std::vector<grfx::SwapchainPtr>& swapchains, ui
 void XrComponent::ConditionallyPopulateProjectionLayer(const std::vector<grfx::SwapchainPtr>& swapchains, uint32_t startIndex, XrLayerBaseQueue& layerQueue, XrProjectionLayer& projectionLayer)
 {
     const size_t viewCount = mViews.size();
-    PPX_ASSERT_MSG(swapchains.size() >= (viewCount + startIndex), "Number of swapchains needs to be larger than or equal to the number of views!");
+    PPX_ASSERT_MSG(IsMultiView() || swapchains.size() >= (viewCount + startIndex), "Number of swapchains needs to be larger than or equal to the number of views!");
 
     if (!mShouldRender) {
         return;
     }
 
+    // In Multiview we have one shared swapchain, but the array index moves
+    // Non Multiview swapchain per view, but array index stays still.
+    const bool isMultiView = IsMultiView();
     // Projection and (optional) depth info layer from color+depth swapchains.
     for (size_t i = 0; i < viewCount; ++i) {
-        XrCompositionLayerProjectionView view = {XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW};
-        view.pose                             = mViews[i].pose;
-        view.fov                              = mViews[i].fov;
-        view.subImage.swapchain               = swapchains[startIndex + i]->GetXrColorSwapchain();
-        view.subImage.imageRect.offset        = {0, 0};
-        view.subImage.imageRect.extent        = {static_cast<int>(GetWidth()), static_cast<int>(GetHeight())};
+        const uint32_t                   swapchain_index = isMultiView ? startIndex : startIndex + i;
+        XrCompositionLayerProjectionView view            = {XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW};
+        view.pose                                        = mViews[i].pose;
+        view.fov                                         = mViews[i].fov;
+        view.subImage.swapchain                          = swapchains[swapchain_index]->GetXrColorSwapchain();
+        view.subImage.imageArrayIndex                    = isMultiView ? i : 0;
+        view.subImage.imageRect.offset                   = {0, 0};
+        view.subImage.imageRect.extent                   = {static_cast<int>(GetWidth()), static_cast<int>(GetHeight())};
 
-        if (mShouldSubmitDepthInfo && (swapchains[startIndex + i]->GetXrDepthSwapchain() != XR_NULL_HANDLE)) {
+        if (mShouldSubmitDepthInfo && (swapchains[swapchain_index]->GetXrDepthSwapchain() != XR_NULL_HANDLE)) {
             PPX_ASSERT_MSG(mNearPlaneForFrame.has_value() && mFarPlaneForFrame.has_value(), "Depth info layer cannot be submitted because near and far plane values are not set. "
                                                                                             "Call GetProjectionMatrixForCurrentViewAndSetFrustumPlanes to set per-frame values.");
             XrCompositionLayerDepthInfoKHR depthInfo = {XR_TYPE_COMPOSITION_LAYER_DEPTH_INFO_KHR};
@@ -756,7 +761,8 @@ void XrComponent::ConditionallyPopulateProjectionLayer(const std::vector<grfx::S
             depthInfo.maxDepth                       = 1.0f;
             depthInfo.nearZ                          = *mNearPlaneForFrame;
             depthInfo.farZ                           = *mFarPlaneForFrame;
-            depthInfo.subImage.swapchain             = swapchains[startIndex + i]->GetXrDepthSwapchain();
+            depthInfo.subImage.swapchain             = swapchains[swapchain_index]->GetXrDepthSwapchain();
+            depthInfo.subImage.imageArrayIndex       = isMultiView ? i : 0;
             depthInfo.subImage.imageRect.offset      = {0, 0};
             depthInfo.subImage.imageRect.extent      = {static_cast<int>(GetWidth()), static_cast<int>(GetHeight())};
 
@@ -851,6 +857,14 @@ void XrComponent::SetFrustumPlanes(float nearZ, float farZ)
     for (XrCamera& camera : mCameras) {
         camera.SetFrustumPlanes(nearZ, farZ);
     }
+}
+
+uint32_t XrComponent::GetDefaultViewMask() const
+{
+    if (IsMultiView()) {
+        return (1 << mViews.size()) - 1;
+    }
+    return 0;
 }
 
 // -------------------------------------------------------------------------------------------------
