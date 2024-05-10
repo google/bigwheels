@@ -547,9 +547,9 @@ void GraphicsBenchmarkApp::SetupSphereMeshes()
     GetDevice()->WaitIdle();
     // Destroy the meshes if they were created.
     for (auto& mesh : mSphereMeshes) {
-        if (mesh != nullptr) {
+        if (!mesh.IsNull()) {
             GetDevice()->DestroyMesh(mesh);
-            mesh = nullptr;
+            mesh.Reset();
         }
     }
 
