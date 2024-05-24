@@ -221,14 +221,25 @@ Result Swapchain::CreateRenderTargets()
             dsvCreateInfo.ownership                        = ppx::grfx::OWNERSHIP_RESTRICTED;
             dsvCreateInfo.arrayLayerCount                  = mCreateInfo.arrayLayerCount;
 
-            grfx::DepthStencilViewPtr dsv;
-            ppxres = GetDevice()->CreateDepthStencilView(&dsvCreateInfo, &dsv);
+            grfx::DepthStencilViewPtr clearDsv;
+            ppxres = GetDevice()->CreateDepthStencilView(&dsvCreateInfo, &clearDsv);
             if (Failed(ppxres)) {
                 PPX_ASSERT_MSG(false, "grfx::Swapchain::CreateRenderTargets() for depth stencil view failed");
                 return ppxres;
             }
 
-            mDepthStencilViews.push_back(dsv);
+            mClearDepthStencilViews.push_back(clearDsv);
+
+            dsvCreateInfo.depthLoadOp   = ppx::grfx::ATTACHMENT_LOAD_OP_LOAD;
+            dsvCreateInfo.stencilLoadOp = ppx::grfx::ATTACHMENT_LOAD_OP_LOAD;
+            grfx::DepthStencilViewPtr loadDsv;
+            ppxres = GetDevice()->CreateDepthStencilView(&dsvCreateInfo, &loadDsv);
+            if (Failed(ppxres)) {
+                PPX_ASSERT_MSG(false, "grfx::Swapchain::CreateRenderTargets() for depth stencil view failed");
+                return ppxres;
+            }
+
+            mLoadDepthStencilViews.push_back(loadDsv);
         }
     }
 
@@ -247,7 +258,7 @@ Result Swapchain::CreateRenderPasses()
         rpCreateInfo.height                     = mCreateInfo.height;
         rpCreateInfo.renderTargetCount          = 1;
         rpCreateInfo.pRenderTargetViews[0]      = mClearRenderTargets[i];
-        rpCreateInfo.pDepthStencilView          = mDepthImages.empty() ? nullptr : mDepthStencilViews[i];
+        rpCreateInfo.pDepthStencilView          = mDepthImages.empty() ? nullptr : mClearDepthStencilViews[i];
         rpCreateInfo.renderTargetClearValues[0] = {{0.0f, 0.0f, 0.0f, 0.0f}};
         rpCreateInfo.depthStencilClearValue     = {1.0f, 0xFF};
         rpCreateInfo.ownership                  = grfx::OWNERSHIP_RESTRICTED;
@@ -277,7 +288,7 @@ Result Swapchain::CreateRenderPasses()
         rpCreateInfo.height                     = mCreateInfo.height;
         rpCreateInfo.renderTargetCount          = 1;
         rpCreateInfo.pRenderTargetViews[0]      = mLoadRenderTargets[i];
-        rpCreateInfo.pDepthStencilView          = mDepthImages.empty() ? nullptr : mDepthStencilViews[i];
+        rpCreateInfo.pDepthStencilView          = mDepthImages.empty() ? nullptr : mLoadDepthStencilViews[i];
         rpCreateInfo.renderTargetClearValues[0] = {{0.0f, 0.0f, 0.0f, 0.0f}};
         rpCreateInfo.depthStencilClearValue     = {1.0f, 0xFF};
         rpCreateInfo.ownership                  = grfx::OWNERSHIP_RESTRICTED;
@@ -312,10 +323,14 @@ void Swapchain::DestroyRenderTargets()
         GetDevice()->DestroyRenderTargetView(rtv);
     }
     mLoadRenderTargets.clear();
-    for (auto& rtv : mDepthStencilViews) {
+    for (auto& rtv : mClearDepthStencilViews) {
         GetDevice()->DestroyDepthStencilView(rtv);
     }
-    mDepthStencilViews.clear();
+    mClearDepthStencilViews.clear();
+    for (auto& rtv : mLoadDepthStencilViews) {
+        GetDevice()->DestroyDepthStencilView(rtv);
+    }
+    mLoadDepthStencilViews.clear();
 }
 
 void Swapchain::DestroyRenderPasses()
@@ -390,12 +405,17 @@ Result Swapchain::GetRenderTargetView(uint32_t imageIndex, grfx::AttachmentLoadO
     return ppx::SUCCESS;
 }
 
-Result Swapchain::GetDepthStencilView(uint32_t imageIndex, grfx::DepthStencilView** ppView) const
+Result Swapchain::GetDepthStencilView(uint32_t imageIndex, grfx::AttachmentLoadOp loadOp, grfx::DepthStencilView** ppView) const
 {
-    if (!IsIndexInRange(imageIndex, mDepthStencilViews)) {
+    if (!IsIndexInRange(imageIndex, mClearDepthStencilViews)) {
         return ppx::ERROR_OUT_OF_RANGE;
     }
-    *ppView = mDepthStencilViews[imageIndex];
+    if (loadOp == grfx::ATTACHMENT_LOAD_OP_CLEAR) {
+        *ppView = mClearDepthStencilViews[imageIndex];
+    }
+    else {
+        *ppView = mLoadDepthStencilViews[imageIndex];
+    }
     return ppx::SUCCESS;
 }
 
@@ -427,10 +447,10 @@ grfx::RenderTargetViewPtr Swapchain::GetRenderTargetView(uint32_t imageIndex, gr
     return object;
 }
 
-grfx::DepthStencilViewPtr Swapchain::GetDepthStencilView(uint32_t imageIndex) const
+grfx::DepthStencilViewPtr Swapchain::GetDepthStencilView(uint32_t imageIndex, grfx::AttachmentLoadOp loadOp) const
 {
     grfx::DepthStencilViewPtr object;
-    GetDepthStencilView(imageIndex, &object);
+    GetDepthStencilView(imageIndex, loadOp, &object);
     return object;
 }
 
