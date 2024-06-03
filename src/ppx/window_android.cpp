@@ -18,6 +18,7 @@
 #include "ppx/window.h"
 #include "ppx/grfx/grfx_swapchain.h"
 
+#include <android/looper.h>
 #include <android_native_app_glue.h>
 
 #include "backends/imgui_impl_android.h"
@@ -115,12 +116,18 @@ bool WindowImplAndroid::IsRunning() const
 
 void WindowImplAndroid::ProcessEvent()
 {
-    int                  events;
-    android_poll_source* pSource;
-    if (ALooper_pollAll(0, nullptr, &events, (void**)&pSource) >= 0) {
-        if (pSource) {
-            pSource->process(mAndroidApp, pSource);
-        }
+    android_poll_source* pSource = nullptr;
+    auto                 result  = ALooper_pollOnce(
+        /* timeoutMillis= */ 0,
+        /* outFd= */ nullptr,
+        /* outEvents= */ nullptr,
+        /* outData= */ (void**)&pSource);
+    if (result == ALOOPER_POLL_ERROR) {
+        PPX_ASSERT_MSG(false, "ALooper_pollOnce returned an error.");
+        return;
+    }
+    if (pSource) {
+        pSource->process(mAndroidApp, pSource);
     }
 }
 
