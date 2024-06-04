@@ -1,6 +1,7 @@
 #include "ppx/profiler.h"
 
 #include <android_native_app_glue.h>
+#include <android/looper.h>
 #include <jni.h>
 #include <string>
 #include <vector>
@@ -101,15 +102,18 @@ void WaitForNonIdleState(struct android_app* pApp)
     pApp->userData     = nullptr;
 
     while (gApplicationState == READY) {
-        int                  events;
-        android_poll_source* pSource;
-        if (ALooper_pollAll(/* timeoutMillis= */ 0,
-                            /* outFd= */ nullptr,
-                            /* outEvents= */ &events,
-                            /* outData= */ (void**)&pSource) >= 0) {
-            if (pSource) {
-                pSource->process(pApp, pSource);
-            }
+        android_poll_source* pSource = nullptr;
+        auto                 result  = ALooper_pollOnce(
+            /* timeoutMillis= */ 0,
+            /* outFd= */ nullptr,
+            /* outEvents= */ nullptr,
+            /* outData= */ (void**)&pSource);
+        if (result == ALOOPER_POLL_ERROR) {
+            PPX_ASSERT_MSG(false, "ALooper_pollOnce returned an error.");
+            return;
+        }
+        if (pSource) {
+            pSource->process(pApp, pSource);
         }
     }
 }
