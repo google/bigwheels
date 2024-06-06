@@ -22,6 +22,7 @@
 #include "ppx/grfx/grfx_buffer.h"
 #include "ppx/grfx/grfx_command.h"
 #include "ppx/grfx/grfx_device.h"
+#include "ppx/grfx/grfx_format.h"
 #include "ppx/grfx/grfx_image.h"
 #include "ppx/grfx/grfx_queue.h"
 #include "ppx/grfx/grfx_util.h"
@@ -30,6 +31,145 @@
 
 namespace ppx {
 namespace grfx_util {
+
+namespace {
+
+const uint32_t kYuvWidth  = 3152; // 3000;
+const uint32_t kYuvHeight = 3840; // 3000;
+
+// Start planar image helper functions
+
+uint32_t GetPlaneHeightForCopy(
+    const grfx::FormatPlaneDesc::Plane& plane,
+    grfx::FormatChromaSubsampling       subsampling,
+    uint32_t                            imageHeight)
+{
+    bool hasColSubsampling = subsampling == grfx::FORMAT_CHROMA_SUBSAMPLING_420;
+    bool hasChromaValue    = false;
+    bool hasLumaValue      = false;
+    for (auto it = plane.members.begin(); it != plane.members.end(); ++it) {
+        const grfx::FormatPlaneDesc::Member& member = *it;
+        if (member.type == grfx::FORMAT_PLANE_CHROMA_TYPE_CHROMA) {
+            hasChromaValue = true;
+        }
+        else {
+            hasLumaValue = true;
+        }
+    }
+
+    if (hasColSubsampling && hasChromaValue) {
+        // Note: you never have subsampling on the height axis of the image in
+        // a plane if luma values are present, since luma values usually aren't
+        // subsampled. You might have subsampling on the width axis, but that
+        // would essentially mean you get two luma values, and one of each
+        // chroma value, in a block of four.
+        if (hasLumaValue) {
+            PPX_LOG_WARN(
+                "Frame size will be inaccurate, there is vertical subsampling "
+                "with both chroma and luma values present on a single plane, "
+                "which is not supported!");
+        }
+
+        // If we're subsampling at 4:2:0, the image will have half its height.
+        return imageHeight / 2;
+    }
+    return imageHeight;
+}
+
+uint32_t GetPlaneWidthForCopy(
+    const grfx::FormatPlaneDesc::Plane& plane,
+    grfx::FormatChromaSubsampling       subsampling,
+    uint32_t                            imageWidth)
+{
+    bool hasRowSubsampling = subsampling == grfx::FORMAT_CHROMA_SUBSAMPLING_420 ||
+                             subsampling == grfx::FORMAT_CHROMA_SUBSAMPLING_422;
+    bool hasChromaValue = false;
+    for (auto it = plane.members.begin(); it != plane.members.end(); ++it) {
+        const grfx::FormatPlaneDesc::Member& member = *it;
+        if (member.type == grfx::FORMAT_PLANE_CHROMA_TYPE_CHROMA) {
+            hasChromaValue = true;
+            break;
+        }
+    }
+
+    if (hasRowSubsampling && hasChromaValue) {
+        // Note: even if the layer has a luma value, generally, in the case of
+        // buffer copies, the width is treated as a half width, if we're
+        // subsampling at 4:2:0 or 4:2:2, and are looking at a plane with chroma
+        // values.
+        return imageWidth / 2;
+    }
+    return imageWidth;
+}
+
+uint32_t GetPlaneSizeInBytes(
+    const grfx::FormatPlaneDesc::Plane& plane,
+    grfx::FormatChromaSubsampling       subsampling,
+    uint32_t                            width,
+    uint32_t                            height)
+{
+    bool     hasColSubsampling = subsampling == grfx::FORMAT_CHROMA_SUBSAMPLING_420;
+    bool     hasRowSubsampling = hasColSubsampling || subsampling == grfx::FORMAT_CHROMA_SUBSAMPLING_422;
+    bool     hasChromaValue    = false;
+    bool     hasLumaValue      = false;
+    uint32_t rowBitFactor      = 0;
+    for (auto it = plane.members.begin(); it != plane.members.end(); ++it) {
+        const grfx::FormatPlaneDesc::Member& member = *it;
+        if (member.type == grfx::FORMAT_PLANE_CHROMA_TYPE_CHROMA) {
+            hasChromaValue = true;
+        }
+        else if (member.type == grfx::FORMAT_PLANE_CHROMA_TYPE_LUMA) {
+            hasLumaValue = true;
+        }
+
+        // We only subsample chroma values.
+        if (member.type == grfx::FORMAT_PLANE_CHROMA_TYPE_CHROMA && hasRowSubsampling) {
+            rowBitFactor += member.bitCount / 2;
+        }
+        else {
+            rowBitFactor += member.bitCount;
+        }
+    }
+
+    if (hasColSubsampling && hasChromaValue) {
+        // Note: you never have subsampling on the height axis of the image in
+        // a plane if luma values are present, since luma values usually aren't
+        // subsampled. You might have subsampling on the width axis, but that
+        // would essentially mean you get two luma values, and one of each
+        // chroma value, in a block of four.
+        if (hasLumaValue) {
+            PPX_LOG_WARN(
+                "Frame size will be inaccurate, there is vertical subsampling "
+                "with both chroma and luma values present on a single plane, "
+                "which is not supported!");
+        }
+
+        return (width * rowBitFactor * (height / 2)) / 8;
+    }
+
+    // No subsampling for height, OR this plane is of luma values (which are
+    // not subsampled).
+    return (width * rowBitFactor * height) / 8;
+}
+
+uint32_t GetPlanarImageSizeInBytes(
+    const grfx::FormatDesc&      formatDesc,
+    const grfx::FormatPlaneDesc& planeDesc,
+    uint32_t                     width,
+    uint32_t                     height)
+{
+    grfx::FormatChromaSubsampling subsampling = formatDesc.chromaSubsampling;
+
+    uint32_t imageSize = 0;
+    for (auto it = planeDesc.planes.begin(); it != planeDesc.planes.end(); ++it) {
+        imageSize += GetPlaneSizeInBytes(*it, subsampling, width, height);
+    }
+    return imageSize;
+}
+
+// End planar image helper functions
+
+} // namespace
 
 grfx::Format ToGrfxFormat(Bitmap::Format value)
 {
@@ -1505,6 +1645,58 @@ Result CreateMeshFromFile(
     Result ppxres = CreateMeshFromTriMesh(pQueue, &mesh, ppMesh);
     if (Failed(ppxres)) {
         return ppxres;
+    }
+
+    return ppx::SUCCESS;
+}
+
+// -------------------------------------------------------------------------------------------------
+
+Result LoadFramesFromRawVideo(
+    const std::filesystem::path&    path,
+    grfx::Format                    format,
+    uint32_t                        width,
+    uint32_t                        height,
+    std::vector<std::vector<char>>* pFrames)
+{
+    PPX_ASSERT_NULL_ARG(pFrames);
+
+    const grfx::FormatDesc* formatDesc = grfx::GetFormatDescription(format);
+    if (formatDesc == nullptr) {
+        PPX_LOG_ERROR("Failed to fetch information for texture format " << format);
+        return ppx::ERROR_FAILED;
+    }
+
+    std::optional<grfx::FormatPlaneDesc> formatPlanes = grfx::GetFormatPlaneDescription(format);
+
+    uint32_t frameSizeInBytes = 0;
+    if (formatPlanes.has_value()) {
+        frameSizeInBytes = GetPlanarImageSizeInBytes(*formatDesc, *formatPlanes, width, height);
+    }
+    else {
+        frameSizeInBytes = formatDesc->bytesPerTexel * width * height;
+    }
+
+    ppx::fs::File file;
+    if (!file.Open(path)) {
+        PPX_ASSERT_MSG(false, "Cannot open the file!");
+        return ppx::ERROR_FAILED;
+    }
+    const size_t size = file.GetLength();
+
+    if (size % frameSizeInBytes != 0) {
+        PPX_LOG_WARN("There may be partial frames in the raw video file at " << path << "; loading as much as possible.");
+    }
+
+    std::vector<char> buffer(frameSizeInBytes);
+    size_t            totalRead = 0;
+    while (totalRead + frameSizeInBytes <= size) {
+        const size_t readSize = file.Read(buffer.data(), size);
+        if (readSize != size) {
+            PPX_ASSERT_MSG(false, "Cannot read the content of the file!");
+            return ppx::ERROR_FAILED;
+        }
+        pFrames->push_back(std::move(buffer));
     }
 
     return ppx::SUCCESS;
