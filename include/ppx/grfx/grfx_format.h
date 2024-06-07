@@ -285,13 +285,24 @@ enum FormatPlaneChromaType
     FORMAT_PLANE_CHROMA_TYPE_CHROMA,
 };
 
+// Note: this is distinct from FormatComponentBit because in the case of a
+// member of an image plane, we only want to be able to specify one component
+// bit.
+enum FormatPlaneComponentType
+{
+    FORMAT_PLANE_COMPONENT_TYPE_UNDEFINED,
+    FORMAT_PLANE_COMPONENT_TYPE_RED,
+    FORMAT_PLANE_COMPONENT_TYPE_GREEN,
+    FORMAT_PLANE_COMPONENT_TYPE_BLUE,
+};
+
 struct FormatPlaneDesc
 {
     struct Member
     {
-        // Note: it's expected that only one bit would be set here. That being
-        // said, this is mostly to add clarity to plane component definitions.
-        FormatComponentBit component;
+        // For debugging purposes: the color component that this plane member
+        // describes.
+        FormatPlaneComponentType component;
         // This defines whether this is a luma value, chroma value, or neither
         // (will be set to undefined for non-YCbCr types).
         FormatPlaneChromaType type;

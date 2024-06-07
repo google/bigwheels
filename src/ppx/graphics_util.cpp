@@ -34,17 +34,22 @@ namespace grfx_util {
 
 namespace {
 
-const uint32_t kYuvWidth  = 3152; // 3000;
-const uint32_t kYuvHeight = 3840; // 3000;
-
 // Start planar image helper functions
 
-uint32_t GetPlaneHeightForCopy(
+// Gets the height of a single plane, in terms of number of pixels represented.
+// This doesn't directly correlate to the number of bits / bytes for the plane's
+// height. The value returned can be used in a copy-image-to-buffer command.
+// plane: The plane to get the height for (containing information about the
+//        color components represented in the plane).
+// subsampling: The type of subsampling applied to chroma values for the image
+//              (e.g. 444, 422, 420).
+// imageHeight: The height of the image, in pixels, with no subsampling applied.
+uint32_t GetPlaneHeightInPixels(
     const grfx::FormatPlaneDesc::Plane& plane,
     grfx::FormatChromaSubsampling       subsampling,
     uint32_t                            imageHeight)
 {
-    bool hasColSubsampling = subsampling == grfx::FORMAT_CHROMA_SUBSAMPLING_420;
+    bool hasColSubsampling = (subsampling == grfx::FORMAT_CHROMA_SUBSAMPLING_420);
     bool hasChromaValue    = false;
     bool hasLumaValue      = false;
     for (auto it = plane.members.begin(); it != plane.members.end(); ++it) {
@@ -52,8 +57,11 @@ uint32_t GetPlaneHeightForCopy(
         if (member.type == grfx::FORMAT_PLANE_CHROMA_TYPE_CHROMA) {
             hasChromaValue = true;
         }
-        else {
+        else if (member.type == grfx::FORMAT_PLANE_CHROMA_TYPE_LUMA) {
             hasLumaValue = true;
+        }
+        else {
+            PPX_LOG_WARN("Member " << member.component << "has unknown chroma type.");
         }
     }
 
@@ -76,13 +84,21 @@ uint32_t GetPlaneHeightForCopy(
     return imageHeight;
 }
 
-uint32_t GetPlaneWidthForCopy(
+// Gets the width of a single plane, in terms of number of pixels represented.
+// This doesn't directly correlate to the number of bits / bytes for the plane's
+// height. The value returned can be used in a copy-image-to-buffer command.
+// plane: The plane to get the width for (containing information about the
+//        color components represented in the plane).
+// subsampling: The type of subsampling applied to chroma values for the image
+//              (e.g. 444, 422, 420).
+// imageWidth: The width of the image, in pixels, with no subsampling applied.
+uint32_t GetPlaneWidthInPixels(
     const grfx::FormatPlaneDesc::Plane& plane,
     grfx::FormatChromaSubsampling       subsampling,
     uint32_t                            imageWidth)
 {
-    bool hasRowSubsampling = subsampling == grfx::FORMAT_CHROMA_SUBSAMPLING_420 ||
-                             subsampling == grfx::FORMAT_CHROMA_SUBSAMPLING_422;
+    bool hasRowSubsampling = (subsampling == grfx::FORMAT_CHROMA_SUBSAMPLING_420) ||
+                             (subsampling == grfx::FORMAT_CHROMA_SUBSAMPLING_422);
     bool hasChromaValue = false;
     for (auto it = plane.members.begin(); it != plane.members.end(); ++it) {
         const grfx::FormatPlaneDesc::Member& member = *it;
@@ -102,14 +118,21 @@ uint32_t GetPlaneWidthForCopy(
     return imageWidth;
 }
 
+// Gets the size of an image plane in bytes.
+// plane: The plane to get information for. (Contains information about the
+//        color components represented by this plane, and their bit counts).
+// subsampling: The type of chroma subsampling applied to this image (e.g.
+//              444, 422, 420).
+// width: The width of the image, in pixels, with no subsampling applied.
+// height: The height of the image, in pixels, with no subsampling applied.
 uint32_t GetPlaneSizeInBytes(
     const grfx::FormatPlaneDesc::Plane& plane,
     grfx::FormatChromaSubsampling       subsampling,
     uint32_t                            width,
     uint32_t                            height)
 {
-    bool     hasColSubsampling = subsampling == grfx::FORMAT_CHROMA_SUBSAMPLING_420;
-    bool     hasRowSubsampling = hasColSubsampling || subsampling == grfx::FORMAT_CHROMA_SUBSAMPLING_422;
+    bool     hasColSubsampling = (subsampling == grfx::FORMAT_CHROMA_SUBSAMPLING_420);
+    bool     hasRowSubsampling = hasColSubsampling || (subsampling == grfx::FORMAT_CHROMA_SUBSAMPLING_422);
     bool     hasChromaValue    = false;
     bool     hasLumaValue      = false;
     uint32_t rowBitFactor      = 0;
@@ -120,6 +143,9 @@ uint32_t GetPlaneSizeInBytes(
         }
         else if (member.type == grfx::FORMAT_PLANE_CHROMA_TYPE_LUMA) {
             hasLumaValue = true;
+        }
+        else {
+            PPX_LOG_WARN("Member " << member.component << "has unknown chroma type.");
         }
 
         // We only subsample chroma values.
@@ -152,6 +178,13 @@ uint32_t GetPlaneSizeInBytes(
     return (width * rowBitFactor * height) / 8;
 }
 
+// Gets the total size of a planar image in bytes, by calculating the size of
+// each plane individually.
+// formatDesc: Information about the image format, such as the components
+//             represented, etc.
+// planeDesc: Information about the components in the current image plane.
+// width: The width of the image, in pixels, with no subsampling applied.
+// height: The height of the image, in pixels, with no subsampling applied.
 uint32_t GetPlanarImageSizeInBytes(
     const grfx::FormatDesc&      formatDesc,
     const grfx::FormatPlaneDesc& planeDesc,
@@ -1697,6 +1730,7 @@ Result LoadFramesFromRawVideo(
             return ppx::ERROR_FAILED;
         }
         pFrames->push_back(std::move(buffer));
+        totalRead += readSize;
     }
 
     return ppx::SUCCESS;

@@ -71,12 +71,12 @@ namespace grfx {
 #define OFFSETS_RGBA(R, G, B, A) { R,  G,  B,  A }
 // clang-format on
 
-#define PLANE_MEMBER(Component, Type, BitSize) \
-    FormatPlaneDesc::Member                    \
-    {                                          \
-        FORMAT_COMPONENT_##Component,          \
-            FORMAT_PLANE_CHROMA_TYPE_##Type,   \
-            BitSize                            \
+#define PLANE_MEMBER(Component, Type, BitSize)   \
+    FormatPlaneDesc::Member                      \
+    {                                            \
+        FORMAT_PLANE_COMPONENT_TYPE_##Component, \
+            FORMAT_PLANE_CHROMA_TYPE_##Type,     \
+            BitSize                              \
     }
 
 FormatPlaneDesc::FormatPlaneDesc(std::initializer_list<std::initializer_list<FormatPlaneDesc::Member>>&& planes)

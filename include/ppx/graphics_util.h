@@ -150,13 +150,23 @@ private:
         grfx::Texture**              ppTexture,
         const TextureOptions&        options);
 
+    // Splits the frames from a raw video, based on the format of the frames,
+    // and metadata such as height and width. This assumes raw video, with no
+    // metadata in the file itself, and no audio tracks (such as a camera
+    // feed). Returns if the operation succeeded.
+    // path: The path to the file containing the video.
+    // format: Describes the video format; this is important for determining
+    //         the size of a frame.
+    // width: The width of each frame, in pixels, with no subsampling applied.
+    // height: The height of each frame, in pixels, with no subsampling applied.
+    // pFrames: A vector where resulting frames will be stored. This should not
+    //          be null.
     friend Result LoadFramesFromRawVideo(
-        grfx::Queue*                 pQueue,
-        const std::filesystem::path& path,
-        uint32_t                     width,
-        uint32_t                     height,
-        grfx::Texture**              ppTexture,
-        const TextureOptions&        options);
+        const std::filesystem::path&    path,
+        grfx::Format                    format,
+        uint32_t                        width,
+        uint32_t                        height,
+        std::vector<std::vector<char>>* pFrames);
 };
 
 //! @fn CreateTextureFromBitmap
