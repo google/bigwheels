@@ -1,4 +1,4 @@
-// Copyright 2023 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ class MaterialPipelineArgs;
 struct FrameParams
 {
     uint32_t frameIndex; // offset = 0
-    float    time;       // offset = 8
+    float    time;       // offset = 4
 };
 
 // size = 96
@@ -61,7 +61,7 @@ struct MaterialTextureParams
     float2x2 texCoordTransform; // offset = 8
 };
 
-// size = 184
+// size = 164
 struct MaterialParams
 {
     float4                       baseColorFactor;      // offset = 0
