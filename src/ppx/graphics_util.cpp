@@ -12,9 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "ppx/graphics_util.h"
+
+#include <algorithm>
+
 #include "ppx/generate_mip_shader_VK.h"
 #include "ppx/generate_mip_shader_DX.h"
-#include "ppx/graphics_util.h"
 #include "ppx/bitmap.h"
 #include "ppx/fs.h"
 #include "ppx/mipmap.h"
