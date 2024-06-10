@@ -20,7 +20,7 @@ namespace grfx {
 
 #define UNCOMPRESSED_FORMAT(Name, Type, Aspect, BytesPerTexel, BytesPerComponent, Layout, Component, ComponentOffsets) \
     {                                                                                                                  \
-        "" #Name,                                                                                                      \
+        #Name,                                                                                                         \
             FORMAT_DATA_TYPE_##Type,                                                                                   \
             FORMAT_ASPECT_##Aspect,                                                                                    \
             BytesPerTexel,                                                                                             \
@@ -35,12 +35,12 @@ namespace grfx {
 
 #define COMPRESSED_FORMAT(Name, Type, BytesPerBlock, BlockWidth, Component) \
     {                                                                       \
-        "" #Name,                                                           \
+        #Name,                                                              \
             FORMAT_DATA_TYPE_##Type,                                        \
             FORMAT_ASPECT_COLOR,                                            \
             BytesPerBlock,                                                  \
             BlockWidth,                                                     \
-            -1,                                                             \
+            /*bytesPerComponent=*/-1,                                       \
             FORMAT_LAYOUT_COMPRESSED,                                       \
             FORMAT_COMPONENT_##Component,                                   \
             OFFSETS_UNDEFINED,                                              \
@@ -50,12 +50,12 @@ namespace grfx {
 
 #define UNCOMP_PLANAR_FORMAT(Name, Type, Aspect, BytesPerTexel, Layout, Component, ChromaSubsampling) \
     {                                                                                                 \
-        "" #Name,                                                                                     \
+        #Name,                                                                                        \
             FORMAT_DATA_TYPE_##Type,                                                                  \
             FORMAT_ASPECT_##Aspect,                                                                   \
             BytesPerTexel,                                                                            \
             /*blockWidth=*/1,                                                                         \
-            -1,                                                                                       \
+            /*bytesPerComponent=*/-1,                                                                 \
             FORMAT_LAYOUT_##Layout,                                                                   \
             FORMAT_COMPONENT_##Component,                                                             \
             OFFSETS_UNDEFINED,                                                                        \

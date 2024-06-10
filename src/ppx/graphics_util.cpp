@@ -52,8 +52,7 @@ uint32_t GetPlaneHeightInPixels(
     bool hasColSubsampling = (subsampling == grfx::FORMAT_CHROMA_SUBSAMPLING_420);
     bool hasChromaValue    = false;
     bool hasLumaValue      = false;
-    for (auto it = plane.members.begin(); it != plane.members.end(); ++it) {
-        const grfx::FormatPlaneDesc::Member& member = *it;
+    for (const grfx::FormatPlaneDesc::Member& member : plane.members) {
         if (member.type == grfx::FORMAT_PLANE_CHROMA_TYPE_CHROMA) {
             hasChromaValue = true;
         }
@@ -100,8 +99,7 @@ uint32_t GetPlaneWidthInPixels(
     bool hasRowSubsampling = (subsampling == grfx::FORMAT_CHROMA_SUBSAMPLING_420) ||
                              (subsampling == grfx::FORMAT_CHROMA_SUBSAMPLING_422);
     bool hasChromaValue = false;
-    for (auto it = plane.members.begin(); it != plane.members.end(); ++it) {
-        const grfx::FormatPlaneDesc::Member& member = *it;
+    for (const grfx::FormatPlaneDesc::Member& member : plane.members) {
         if (member.type == grfx::FORMAT_PLANE_CHROMA_TYPE_CHROMA) {
             hasChromaValue = true;
             break;
@@ -136,8 +134,7 @@ uint32_t GetPlaneSizeInBytes(
     bool     hasChromaValue    = false;
     bool     hasLumaValue      = false;
     uint32_t rowBitFactor      = 0;
-    for (auto it = plane.members.begin(); it != plane.members.end(); ++it) {
-        const grfx::FormatPlaneDesc::Member& member = *it;
+    for (const grfx::FormatPlaneDesc::Member& member : plane.members) {
         if (member.type == grfx::FORMAT_PLANE_CHROMA_TYPE_CHROMA) {
             hasChromaValue = true;
         }
@@ -194,8 +191,8 @@ uint32_t GetPlanarImageSizeInBytes(
     grfx::FormatChromaSubsampling subsampling = formatDesc.chromaSubsampling;
 
     uint32_t imageSize = 0;
-    for (auto it = planeDesc.planes.begin(); it != planeDesc.planes.end(); ++it) {
-        imageSize += GetPlaneSizeInBytes(*it, subsampling, width, height);
+    for (const grfx::FormatPlaneDesc::Plane& plane : planeDesc.planes) {
+        imageSize += GetPlaneSizeInBytes(plane, subsampling, width, height);
     }
     return imageSize;
 }
@@ -1700,14 +1697,14 @@ Result LoadFramesFromRawVideo(
         return ppx::ERROR_FAILED;
     }
 
-    std::optional<grfx::FormatPlaneDesc> formatPlanes = grfx::GetFormatPlaneDescription(format);
-
-    uint32_t frameSizeInBytes = 0;
-    if (formatPlanes.has_value()) {
-        frameSizeInBytes = GetPlanarImageSizeInBytes(*formatDesc, *formatPlanes, width, height);
+    uint32_t frameSize = 0; // As measured in bytes, not pixels.
+    if (formatDesc->isPlanar) {
+        std::optional<grfx::FormatPlaneDesc> formatPlanes = grfx::GetFormatPlaneDescription(format);
+        PPX_ASSERT_MSG(formatPlanes.has_value(), "No planes found for format " << format);
+        frameSize = GetPlanarImageSizeInBytes(*formatDesc, *formatPlanes, width, height);
     }
     else {
-        frameSizeInBytes = formatDesc->bytesPerTexel * width * height;
+        frameSize = formatDesc->bytesPerTexel * width * height;
     }
 
     ppx::fs::File file;
@@ -1715,22 +1712,29 @@ Result LoadFramesFromRawVideo(
         PPX_ASSERT_MSG(false, "Cannot open the file!");
         return ppx::ERROR_FAILED;
     }
-    const size_t size = file.GetLength();
+    const size_t fileSize = file.GetLength();
 
-    if (size % frameSizeInBytes != 0) {
-        PPX_LOG_WARN("There may be partial frames in the raw video file at " << path << "; loading as much as possible.");
-    }
-
-    std::vector<char> buffer(frameSizeInBytes);
+    std::vector<char> buffer(frameSize);
     size_t            totalRead = 0;
-    while (totalRead + frameSizeInBytes <= size) {
-        const size_t readSize = file.Read(buffer.data(), size);
-        if (readSize != size) {
-            PPX_ASSERT_MSG(false, "Cannot read the content of the file!");
-            return ppx::ERROR_FAILED;
+    while (totalRead < fileSize) {
+        const size_t bytesRead = file.Read(buffer.data(), frameSize);
+        if (bytesRead < frameSize) {
+            // If we didn't read as many bytes as we expected to, and we haven't
+            // reached the end of the file, this is an error.
+            if (totalRead + bytesRead < fileSize) {
+                PPX_ASSERT_MSG(
+                    false,
+                    "Unable to load video frame; expected " << frameSize << " but read " << bytesRead << "bytes (previously read " << totalRead << ").");
+                return ppx::ERROR_FAILED;
+            }
+            // Otherwise, fill the rest of the buffer with 0s.
+            else {
+                PPX_LOG_WARN("Read " << bytesRead << " bytes for the last frame of the video at " << path << "; filling the rest of the frame with 0s.");
+                std::fill(buffer.begin() + bytesRead, buffer.end(), 0);
+            }
         }
         pFrames->push_back(std::move(buffer));
-        totalRead += readSize;
+        totalRead += bytesRead;
     }
 
     return ppx::SUCCESS;
