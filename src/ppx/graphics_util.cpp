@@ -42,6 +42,12 @@ namespace {
 // Gets the height of a single plane, in terms of number of pixels represented.
 // This doesn't directly correlate to the number of bits / bytes for the plane's
 // height. The value returned can be used in a copy-image-to-buffer command.
+//
+// This takes chroma subsampling into account; 4:4:4 means no subsampling, 4:2:2
+// means chroma values will be defined for every other column, and 4:2:0 means
+// that chroma values will be defined for every other column and every other
+// row. Chroma subsampling specifically applies to YCbCr images.
+//
 // plane: The plane to get the height for (containing information about the
 //        color components represented in the plane).
 // subsampling: The type of subsampling applied to chroma values for the image
@@ -89,6 +95,12 @@ uint32_t GetPlaneHeightInPixels(
 // Gets the width of a single plane, in terms of number of pixels represented.
 // This doesn't directly correlate to the number of bits / bytes for the plane's
 // height. The value returned can be used in a copy-image-to-buffer command.
+//
+// This takes chroma subsampling into account; 4:4:4 means no subsampling, 4:2:2
+// means chroma values will be defined for every other column, and 4:2:0 means
+// that chroma values will be defined for every other column and every other
+// row. Chroma subsampling specifically applies to YCbCr images.
+//
 // plane: The plane to get the width for (containing information about the
 //        color components represented in the plane).
 // subsampling: The type of subsampling applied to chroma values for the image
@@ -120,6 +132,12 @@ uint32_t GetPlaneWidthInPixels(
 }
 
 // Gets the size of an image plane in bytes.
+//
+// This takes chroma subsampling into account; 4:4:4 means no subsampling, 4:2:2
+// means chroma values will be defined for every other column, and 4:2:0 means
+// that chroma values will be defined for every other column and every other
+// row. Chroma subsampling specifically applies to YCbCr images.
+//
 // plane: The plane to get information for. (Contains information about the
 //        color components represented by this plane, and their bit counts).
 // subsampling: The type of chroma subsampling applied to this image (e.g.
@@ -180,6 +198,12 @@ uint32_t GetPlaneSizeInBytes(
 
 // Gets the total size of a planar image in bytes, by calculating the size of
 // each plane individually.
+//
+// This takes chroma subsampling into account; 4:4:4 means no subsampling, 4:2:2
+// means chroma values will be defined for every other column, and 4:2:0 means
+// that chroma values will be defined for every other column and every other
+// row. Chroma subsampling specifically applies to YCbCr images.
+//
 // formatDesc: Information about the image format, such as the components
 //             represented, etc.
 // planeDesc: Information about the components in the current image plane.
@@ -191,11 +215,10 @@ uint32_t GetPlanarImageSizeInBytes(
     uint32_t                     width,
     uint32_t                     height)
 {
-    grfx::FormatChromaSubsampling subsampling = formatDesc.chromaSubsampling;
-
     uint32_t imageSize = 0;
     for (const grfx::FormatPlaneDesc::Plane& plane : planeDesc.planes) {
-        imageSize += GetPlaneSizeInBytes(plane, subsampling, width, height);
+        imageSize += GetPlaneSizeInBytes(
+            plane, formatDesc.chromaSubsampling, width, height);
     }
     return imageSize;
 }
