@@ -128,15 +128,9 @@ Result Application::InitializeGrfxDevice()
         ci.engineName               = mSettings.appName;
         ci.useSoftwareRenderer      = mStandardOpts.pUseSoftwareRenderer->GetValue();
 #if defined(PPX_BUILD_XR)
-        ci.pXrComponent = mSettings.xr.enable ? &mXrComponent : nullptr;
+        ci.pXrComponent = IsXrEnabled() ? &mXrComponent : nullptr;
         // Disable original swapchain when XR is enabled as the XR swapchain will be coming from OpenXR.
-        // Enable creating swapchain when enabling debug capture, as the swapchain can help tools to do capture (dummy present calls).
-        if (mSettings.xr.enable) {
-            ci.enableSwapchain = false;
-            if (mSettings.xr.enableDebugCapture) {
-                ci.enableSwapchain = true;
-            }
-        }
+        ci.enableSwapchain = !IsXrEnabled();
 #endif
 
         Result ppxres = grfx::CreateInstance(&ci, &mInstance);
@@ -168,8 +162,8 @@ Result Application::InitializeGrfxDevice()
         ci.pVulkanDeviceFeatures  = nullptr;
         ci.supportShadingRateMode = mSettings.grfx.device.supportShadingRateMode;
 #if defined(PPX_BUILD_XR)
-        ci.multiView    = mSettings.xr.enable && mSettings.xr.enableMultiView;
-        ci.pXrComponent = mSettings.xr.enable ? &mXrComponent : nullptr;
+        ci.multiView    = IsXrEnabled() && mSettings.xr.enableMultiView;
+        ci.pXrComponent = IsXrEnabled() ? &mXrComponent : nullptr;
 #endif
 
         PPX_LOG_INFO("Creating application graphics device using " << gpu->GetDeviceName());
@@ -197,9 +191,7 @@ Result Application::InitializeGrfxSurface()
 #if defined(PPX_BUILD_XR)
     // No need to create the surface when XR is enabled.
     // The swapchain will be created from the OpenXR functions directly.
-    if (!mSettings.xr.enable
-        // Surface is required for debug capture.
-        || (mSettings.xr.enable && mSettings.xr.enableDebugCapture))
+    if (!IsXrEnabled())
 #endif
     // Surface
     {
@@ -220,7 +212,7 @@ Result Application::InitializeGrfxSurface()
 Result Application::CreateSwapchains()
 {
 #if defined(PPX_BUILD_XR)
-    if (mSettings.xr.enable) {
+    if (IsXrEnabled()) {
         const size_t viewCount = mXrComponent.GetViewCount();
         PPX_ASSERT_MSG(viewCount != 0, "The config views should be already created at this point!");
 
@@ -262,10 +254,7 @@ Result Application::CreateSwapchains()
         // Image count is from xrEnumerateSwapchainImages
         mSettings.grfx.swapchain.imageCount = mSwapchains[0]->GetImageCount();
     }
-
-    if (!mSettings.xr.enable
-        // Extra swapchain for XR debug capture.
-        || (mSettings.xr.enable && mSettings.xr.enableDebugCapture))
+    else
 #endif
     {
         PPX_LOG_INFO("Creating application swapchain");
@@ -324,17 +313,6 @@ Result Application::CreateSwapchains()
             PPX_ASSERT_MSG(false, "grfx::Device::CreateSwapchain failed");
             return ppxres;
         }
-#if defined(PPX_BUILD_XR)
-        if (mSettings.xr.enable && mSettings.xr.enableDebugCapture) {
-            mDebugCaptureSwapchainIndex = static_cast<uint32_t>(mSwapchains.size());
-            // The window size could be smaller than the requested one in glfwCreateWindow
-            // So the final swapchain size for window needs to be adjusted
-            // In the case of debug capture, we don't care about the window size after creating the dummy window
-            // restore width and heigh in the settings since they are used by some other systems in the renderer
-            mSettings.window.width  = mXrComponent.GetWidth();
-            mSettings.window.height = mXrComponent.GetHeight();
-        }
-#endif
         mSwapchains.push_back(swapchain);
     }
 
@@ -972,7 +950,7 @@ void Application::UpdateStandardSettings()
 #if defined(PPX_BUILD_XR)
 void Application::InitializeXRComponentBeforeGrfxDeviceInit()
 {
-    if (mSettings.xr.enable) {
+    if (IsXrEnabled()) {
         XrComponentCreateInfo createInfo = {};
         createInfo.api                   = mSettings.grfx.api;
         createInfo.appName               = mSettings.appName;
@@ -1005,7 +983,7 @@ void Application::InitializeXRComponentBeforeGrfxDeviceInit()
 
 void Application::InitializeXRComponentAndUpdateSettingsAfterGrfxDeviceInit()
 {
-    if (mSettings.xr.enable) {
+    if (IsXrEnabled()) {
         mXrComponent.InitializeAfterGrfxDeviceInit(mInstance);
         mSettings.window.width  = mXrComponent.GetWidth();
         mSettings.window.height = mXrComponent.GetHeight();
@@ -1014,7 +992,7 @@ void Application::InitializeXRComponentAndUpdateSettingsAfterGrfxDeviceInit()
 
 void Application::DestroyXRComponent()
 {
-    if (mSettings.xr.enable) {
+    if (IsXrEnabled()) {
         mXrComponent.Destroy();
     }
 }
@@ -1056,7 +1034,7 @@ Result Application::InitializeWindow()
 void Application::ProcessEvents()
 {
 #if defined(PPX_BUILD_XR)
-    if (mSettings.xr.enable) {
+    if (IsXrEnabled()) {
         bool exitRenderLoop = false;
         mXrComponent.PollEvents(exitRenderLoop);
         if (exitRenderLoop) {
@@ -1080,7 +1058,7 @@ void Application::ProcessEvents()
 void Application::RenderFrame()
 {
 #if defined(PPX_BUILD_XR)
-    if (mSettings.xr.enable) {
+    if (IsXrEnabled()) {
         if (mXrComponent.IsSessionRunning()) {
             mXrComponent.BeginFrame();
             if (mXrComponent.ShouldRender()) {
@@ -1329,7 +1307,7 @@ int Application::Run(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    if (!mSettings.xr.enable) {
+    if (!IsXrEnabled()) {
         mWindow->Resize({mSettings.window.width, mSettings.window.height});
     }
 
@@ -1413,7 +1391,7 @@ bool Application::IsWindowMaximized() const
 uint32_t Application::GetUIWidth() const
 {
 #if defined(PPX_BUILD_XR)
-    return (mSettings.xr.enable && mSettings.xr.uiWidth > 0) ? mSettings.xr.uiWidth : mSettings.window.width;
+    return (IsXrEnabled() && mSettings.xr.uiWidth > 0) ? mSettings.xr.uiWidth : mSettings.window.width;
 #else
     return mSettings.window.width;
 #endif
@@ -1421,7 +1399,7 @@ uint32_t Application::GetUIWidth() const
 uint32_t Application::GetUIHeight() const
 {
 #if defined(PPX_BUILD_XR)
-    return (mSettings.xr.enable && mSettings.xr.uiHeight > 0) ? mSettings.xr.uiHeight : mSettings.window.height;
+    return (IsXrEnabled() && mSettings.xr.uiHeight > 0) ? mSettings.xr.uiHeight : mSettings.window.height;
 #else
     return mSettings.window.height;
 #endif
@@ -1710,7 +1688,7 @@ void Application::DrawDebugInfo()
     uint32_t minWidth  = std::min(kImGuiMinWidth, GetUIWidth() / 2);
     uint32_t minHeight = std::min(kImGuiMinHeight, GetUIHeight() / 2);
 #if defined(PPX_BUILD_XR)
-    if (mSettings.xr.enable) {
+    if (IsXrEnabled()) {
         // For XR, force the diagnostic window to the center with automatic sizing for legibility and since control is limited.
         ImGui::SetNextWindowPos({(GetUIWidth() - lastImGuiWindowSize.x) / 2, (GetUIHeight() - lastImGuiWindowSize.y) / 2}, 0, {0.0f, 0.0f});
         ImGui::SetNextWindowSize({0, 0});

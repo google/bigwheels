@@ -385,11 +385,6 @@ public:
         return mXrComponent;
     }
 
-    grfx::SwapchainPtr GetDebugCaptureSwapchain() const
-    {
-        return GetSwapchain(mDebugCaptureSwapchainIndex);
-    }
-
     grfx::SwapchainPtr GetUISwapchain() const
     {
         return GetSwapchain(mUISwapchainIndex);
@@ -520,7 +515,6 @@ private:
 
 #if defined(PPX_BUILD_XR)
     XrComponent mXrComponent;
-    uint32_t    mDebugCaptureSwapchainIndex = 0;
     uint32_t    mUISwapchainIndex           = 0;
     uint32_t    mStereoscopicSwapchainIndex = 0;
     ImVec2      lastImGuiWindowSize         = {};

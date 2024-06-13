@@ -186,9 +186,8 @@ void GraphicsBenchmarkApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
 #if defined(PPX_BUILD_XR)
     // XR specific settings
-    settings.grfx.pacedFrameRate   = 0;
-    settings.xr.enable             = false; // Change this to true to enable the XR mode
-    settings.xr.enableDebugCapture = false;
+    settings.grfx.pacedFrameRate = 0;
+    settings.xr.enable           = false; // Change this to true to enable the XR mode
 #endif
     settings.standardKnobsDefaultValue.enableMetrics        = true;
     settings.standardKnobsDefaultValue.overwriteMetricsFile = true;
@@ -1162,19 +1161,7 @@ void GraphicsBenchmarkApp::Render()
 
 #if defined(PPX_BUILD_XR)
     // No need to present when XR is enabled.
-    if (IsXrEnabled()) {
-        if (GetSettings()->xr.enableDebugCapture && (currentViewIndex == 1)) {
-            // We could use semaphore to sync to have better performance,
-            // but this requires modifying the submission code.
-            // For debug capture we don't care about the performance,
-            // so use existing fence to sync for simplicity.
-            grfx::SwapchainPtr debugSwapchain = GetDebugCaptureSwapchain();
-            PPX_CHECKED_CALL(debugSwapchain->AcquireNextImage(UINT64_MAX, nullptr, frame.imageAcquiredFence, &imageIndex));
-            frame.imageAcquiredFence->WaitAndReset();
-            PPX_CHECKED_CALL(debugSwapchain->Present(imageIndex, 0, nullptr));
-        }
-    }
-    else
+    if (!IsXrEnabled())
 #endif
     {
         PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.renderCompleteSemaphore));
