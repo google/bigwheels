@@ -117,8 +117,7 @@ struct ApplicationSettings
 
     struct
     {
-        bool enable             = false;
-        bool enableDebugCapture = false;
+        bool enable = false;
 
         // Multiview will create one swapchain with layers per view
         // One Application::Render then should use multiview shaders
