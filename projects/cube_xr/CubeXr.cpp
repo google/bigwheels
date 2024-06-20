@@ -31,11 +31,7 @@ void CubeXrApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
     settings.grfx.pacedFrameRate        = 0;
     settings.xr.enable                  = true;
-    settings.xr.enableDebugCapture      = false;
     settings.xr.enableMultiView         = true;
-#if PPX_ANDROID
-    settings.xr.enable = true;
-#endif
 }
 
 void CubeXrApp::Setup()
@@ -208,11 +204,13 @@ void CubeXrApp::Setup()
 
 void CubeXrApp::Render()
 {
-    PerFrame& frame            = mPerFrame[0];
-    uint32_t  imageIndex       = UINT32_MAX;
-    uint32_t  currentViewIndex = 0;
+    PerFrame&    frame            = mPerFrame[0];
+    uint32_t     imageIndex       = UINT32_MAX;
+    uint32_t     currentViewIndex = 0;
+    XrComponent& xrComponent      = GetXrComponent();
+
     if (IsXrEnabled()) {
-        currentViewIndex = GetXrComponent().GetCurrentViewIndex();
+        currentViewIndex = xrComponent.GetCurrentViewIndex();
     }
 
     // Render UI into a different composition layer.
@@ -279,11 +277,11 @@ void CubeXrApp::Render()
         float4x4 M = glm::translate(float3(0, 0, -3)) * glm::rotate(t, float3(0, 0, 1)) * glm::rotate(t, float3(0, 1, 0)) * glm::rotate(t, float3(1, 0, 0));
 
         if (IsXrEnabled()) {
-            frame.uniform_buffer_data.M[0] = GetViewProjectionMatrix(0, 0.001f, 10000.0f) * M;
-            frame.uniform_buffer_data.M[1] = GetViewProjectionMatrix(1, 0.001f, 10000.0f) * M;
+            frame.uniform_buffer_data.M[0] = xrComponent.GetViewProjectionMatrix(0, 0.001f, 10000.0f) * M;
+            frame.uniform_buffer_data.M[1] = xrComponent.GetViewProjectionMatrix(1, 0.001f, 10000.0f) * M;
         }
         else {
-            const Camera& camera           = GetXrComponent().GetCamera();
+            const Camera& camera           = xrComponent.GetCamera();
             float4x4      P                = camera.GetProjectionMatrix();
             float4x4      V                = camera.GetViewMatrix();
             frame.uniform_buffer_data.M[0] = frame.uniform_buffer_data.M[1] = P * V * M;
@@ -292,8 +290,8 @@ void CubeXrApp::Render()
         // If multiview is active, we have one render pass with Left/Right poses loaded.
         // If not multiview, this entire render call will happen again, and we switch to current view index.
 
-        if (!GetXrComponent().IsMultiView()) {
-            frame.uniform_buffer_data.M[0] = frame.uniform_buffer_data.M[GetCurrentViewIndex()];
+        if (!xrComponent.IsMultiView()) {
+            frame.uniform_buffer_data.M[0] = frame.uniform_buffer_data.M[IsXrEnabled() ? xrComponent.GetCurrentViewIndex() : 0];
         }
 
         void* pData = nullptr;
