@@ -389,21 +389,6 @@ public:
     {
         return GetSwapchain(mUISwapchainIndex);
     }
-
-    ppx::float4x4 GetViewProjectionMatrix(uint32_t viewIndex, float nearZ, float farZ)
-    {
-        ppx::float4x4 viewProjectionMatrix(1);
-        viewProjectionMatrix = mXrComponent.GetViewProjectionMatrix(viewIndex, nearZ, farZ);
-        return viewProjectionMatrix;
-    }
-
-    uint32_t GetCurrentViewIndex() const
-    {
-        uint32_t current_view_index = 0;
-        current_view_index          = (IsXrEnabled() ? mXrComponent.GetCurrentViewIndex() : 0);
-
-        return current_view_index;
-    }
 #else
     // Alias for UI component in non-XR contexts.
     grfx::SwapchainPtr GetUISwapchain() const
