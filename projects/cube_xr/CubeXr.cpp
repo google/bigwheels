@@ -31,6 +31,7 @@ void CubeXrApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
     settings.grfx.pacedFrameRate        = 0;
     settings.xr.enable                  = true;
+    settings.xr.enableMultiView         = true;
 }
 
 void CubeXrApp::Setup()
@@ -38,7 +39,7 @@ void CubeXrApp::Setup()
     // Uniform buffer
     {
         grfx::BufferCreateInfo bufferCreateInfo        = {};
-        bufferCreateInfo.size                          = PPX_MINIMUM_UNIFORM_BUFFER_SIZE;
+        bufferCreateInfo.size                          = std::max(sizeof(UniformBufferData), (uint64_t)PPX_MINIMUM_UNIFORM_BUFFER_SIZE);
         bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
         bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
 
@@ -68,12 +69,12 @@ void CubeXrApp::Setup()
 
     // Pipeline
     {
-        std::vector<char> bytecode = LoadShader("basic/shaders", "VertexColors.vs");
+        std::vector<char> bytecode = LoadShader("basic/shaders", "VertexColorsMulti.vs");
         PPX_ASSERT_MSG(!bytecode.empty(), "VS shader bytecode load failed");
         grfx::ShaderModuleCreateInfo shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
         PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mVS));
 
-        bytecode = LoadShader("basic/shaders", "VertexColors.ps");
+        bytecode = LoadShader("basic/shaders", "VertexColorsMulti.ps");
         PPX_ASSERT_MSG(!bytecode.empty(), "PS shader bytecode load failed");
         shaderCreateInfo = {static_cast<uint32_t>(bytecode.size()), bytecode.data()};
         PPX_CHECKED_CALL(GetDevice()->CreateShaderModule(&shaderCreateInfo, &mPS));
@@ -103,6 +104,8 @@ void CubeXrApp::Setup()
         gpCreateInfo.outputState.renderTargetFormats[0] = GetSwapchain()->GetColorFormat();
         gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
         gpCreateInfo.pPipelineInterface                 = mPipelineInterface;
+        gpCreateInfo.multiViewState.viewMask            = GetXrComponent().GetDefaultViewMask();
+        gpCreateInfo.multiViewState.correlationMask     = GetXrComponent().GetDefaultViewMask();
         PPX_CHECKED_CALL(GetDevice()->CreateGraphicsPipeline(&gpCreateInfo, &mPipeline));
     }
 
@@ -201,11 +204,13 @@ void CubeXrApp::Setup()
 
 void CubeXrApp::Render()
 {
-    PerFrame& frame            = mPerFrame[0];
-    uint32_t  imageIndex       = UINT32_MAX;
-    uint32_t  currentViewIndex = 0;
+    PerFrame&    frame            = mPerFrame[0];
+    uint32_t     imageIndex       = UINT32_MAX;
+    uint32_t     currentViewIndex = 0;
+    XrComponent& xrComponent      = GetXrComponent();
+
     if (IsXrEnabled()) {
-        currentViewIndex = GetXrComponent().GetCurrentViewIndex();
+        currentViewIndex = xrComponent.GetCurrentViewIndex();
     }
 
     // Render UI into a different composition layer.
@@ -269,20 +274,29 @@ void CubeXrApp::Render()
     // Update uniform buffer.
     {
         float    t = GetElapsedSeconds();
-        float4x4 P = glm::perspective(glm::radians(60.0f), GetWindowAspect(), 0.001f, 10000.0f);
-        float4x4 V = glm::lookAt(float3(0, 0, 0), float3(0, 0, 1), float3(0, 1, 0));
+        float4x4 M = glm::translate(float3(0, 0, -3)) * glm::rotate(t, float3(0, 0, 1)) * glm::rotate(t, float3(0, 1, 0)) * glm::rotate(t, float3(1, 0, 0));
 
         if (IsXrEnabled()) {
-            const Camera& camera = GetXrComponent().GetCamera();
-            P                    = camera.GetProjectionMatrix();
-            V                    = camera.GetViewMatrix();
+            frame.uniform_buffer_data.M[0] = xrComponent.GetViewProjectionMatrix(0, 0.001f, 10000.0f) * M;
+            frame.uniform_buffer_data.M[1] = xrComponent.GetViewProjectionMatrix(1, 0.001f, 10000.0f) * M;
         }
-        float4x4 M   = glm::translate(float3(0, 0, -3)) * glm::rotate(t, float3(0, 0, 1)) * glm::rotate(t, float3(0, 1, 0)) * glm::rotate(t, float3(1, 0, 0));
-        float4x4 mat = P * V * M;
+        else {
+            const Camera& camera           = xrComponent.GetCamera();
+            float4x4      P                = camera.GetProjectionMatrix();
+            float4x4      V                = camera.GetViewMatrix();
+            frame.uniform_buffer_data.M[0] = frame.uniform_buffer_data.M[1] = P * V * M;
+        }
+
+        // If multiview is active, we have one render pass with Left/Right poses loaded.
+        // If not multiview, this entire render call will happen again, and we switch to current view index.
+
+        if (!xrComponent.IsMultiView()) {
+            frame.uniform_buffer_data.M[0] = frame.uniform_buffer_data.M[IsXrEnabled() ? xrComponent.GetCurrentViewIndex() : 0];
+        }
 
         void* pData = nullptr;
         PPX_CHECKED_CALL(mUniformBuffer->MapMemory(0, &pData));
-        memcpy(pData, &mat, sizeof(mat));
+        memcpy(pData, &frame.uniform_buffer_data, sizeof(frame.uniform_buffer_data));
         mUniformBuffer->UnmapMemory();
     }
 
