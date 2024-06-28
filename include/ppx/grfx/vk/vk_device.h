@@ -47,6 +47,7 @@ public:
     virtual bool IndependentBlendingSupported() const override;
     virtual bool FragmentStoresAndAtomicsSupported() const override;
     virtual bool PartialDescriptorBindingsSupported() const override;
+    bool         IndexTypeUint8Supported() const override;
 
     void ResetQueryPoolEXT(
         VkQueryPool queryPool,
@@ -124,6 +125,7 @@ private:
     bool                                           mHasDepthClipEnabled                        = false;
     bool                                           mHasMultiView                               = false;
     bool                                           mHasDynamicRendering                        = false;
+    bool                                           mIndexTypeUint8Supported                    = false;
     PFN_vkResetQueryPoolEXT                        mFnResetQueryPoolEXT                        = nullptr;
     PFN_vkWaitSemaphores                           mFnWaitSemaphores                           = nullptr;
     PFN_vkSignalSemaphore                          mFnSignalSemaphore                          = nullptr;

@@ -67,6 +67,7 @@ public:
     virtual bool FragmentStoresAndAtomicsSupported() const override;
     virtual bool PartialDescriptorBindingsSupported() const override;
     virtual bool MultiViewSupported() const override;
+    bool         IndexTypeUint8Supported() const override;
 
 protected:
     virtual Result AllocateObject(grfx::Buffer** ppObject) override;

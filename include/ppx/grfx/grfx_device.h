@@ -196,6 +196,7 @@ public:
     virtual bool   IndependentBlendingSupported() const       = 0;
     virtual bool   FragmentStoresAndAtomicsSupported() const  = 0;
     virtual bool   PartialDescriptorBindingsSupported() const = 0;
+    virtual bool   IndexTypeUint8Supported() const            = 0;
 
 protected:
     virtual Result Create(const grfx::DeviceCreateInfo* pCreateInfo) override;
