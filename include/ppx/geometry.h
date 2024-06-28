@@ -60,13 +60,16 @@ struct GeometryCreateInfo
     grfx::VertexBinding           vertexBindings[PPX_MAX_VERTEX_BINDINGS] = {};
     grfx::PrimitiveTopology       primitiveTopology                       = grfx::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 
-    // Creates a create info objects with a UINT16 or UINT32 index
+    // Creates a create info objects with UINT8, UINT16 or UINT32 index
     // type and position vertex attribute.
     //
+    static GeometryCreateInfo InterleavedU8(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
     static GeometryCreateInfo InterleavedU16(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
     static GeometryCreateInfo InterleavedU32(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
+    static GeometryCreateInfo PlanarU8(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
     static GeometryCreateInfo PlanarU16(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
     static GeometryCreateInfo PlanarU32(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
+    static GeometryCreateInfo PositionPlanarU8(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
     static GeometryCreateInfo PositionPlanarU16(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
     static GeometryCreateInfo PositionPlanarU32(grfx::Format format = grfx::FORMAT_R32G32B32_FLOAT);
 
@@ -77,6 +80,7 @@ struct GeometryCreateInfo
     static GeometryCreateInfo PositionPlanar();
 
     GeometryCreateInfo& IndexType(grfx::IndexType indexType_);
+    GeometryCreateInfo& IndexTypeU8();
     GeometryCreateInfo& IndexTypeU16();
     GeometryCreateInfo& IndexTypeU32();
 
@@ -242,6 +246,7 @@ public:
     // Appends single index, triangle, or edge vertex indices to index buffer
     //
     // Will cast to uint16_t if geometry index type is UINT16.
+    // Will cast to uint8_t if geometry index type is UINT8.
     // NOOP if index type is UNDEFINED (geometry does not have index data).
     //
     void AppendIndex(uint32_t idx);

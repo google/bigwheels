@@ -97,6 +97,7 @@ const char* ToString(grfx::IndexType value)
         case grfx::INDEX_TYPE_UNDEFINED: return "INDEX_TYPE_UNDEFINED";
         case grfx::INDEX_TYPE_UINT16: return "INDEX_TYPE_UINT16";
         case grfx::INDEX_TYPE_UINT32: return "INDEX_TYPE_UINT32";
+        case grfx::INDEX_TYPE_UINT8: return "INDEX_TYPE_UINT8";
     }
     return "<unknown grfx::IndexType>";
 }
@@ -108,6 +109,7 @@ uint32_t IndexTypeSize(grfx::IndexType value)
         default: break;
         case grfx::INDEX_TYPE_UINT16: return sizeof(uint16_t); break;
         case grfx::INDEX_TYPE_UINT32: return sizeof(uint32_t); break;
+        case grfx::INDEX_TYPE_UINT8:  return sizeof(uint8_t);  break;
     }
     // clang-format on
     return 0;

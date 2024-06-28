@@ -614,6 +614,7 @@ VkIndexType ToVkIndexType(grfx::IndexType value)
         default: break;
         case grfx::INDEX_TYPE_UINT16 : return VK_INDEX_TYPE_UINT16; break;
         case grfx::INDEX_TYPE_UINT32 : return VK_INDEX_TYPE_UINT32; break;
+        case grfx::INDEX_TYPE_UINT8  : return VK_INDEX_TYPE_UINT8_EXT; break;
     }
     // clang-format on
     return ppx::InvalidValue<VkIndexType>();
