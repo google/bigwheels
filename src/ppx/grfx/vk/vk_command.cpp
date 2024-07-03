@@ -1040,9 +1040,12 @@ void CommandBuffer::BlitImage(
     grfx::Image*               pSrcImage,
     grfx::Image*               pDstImage)
 {
-    bool isSourceDepthStencil = grfx::GetFormatDescription(pSrcImage->GetFormat())->aspect == grfx::FORMAT_ASPECT_DEPTH_STENCIL;
-    bool isDestDepthStencil   = grfx::GetFormatDescription(pDstImage->GetFormat())->aspect == grfx::FORMAT_ASPECT_DEPTH_STENCIL;
-    PPX_ASSERT_MSG(isSourceDepthStencil == isDestDepthStencil, "both images in an image copy must be depth-stencil if one is depth-stencil");
+    bool isSourceDepth = (grfx::GetFormatDescription(pSrcImage->GetFormat())->aspect & grfx::FORMAT_ASPECT_DEPTH) != 0;
+    bool isDestDepth   = (grfx::GetFormatDescription(pDstImage->GetFormat())->aspect & grfx::FORMAT_ASPECT_DEPTH) != 0;
+    PPX_ASSERT_MSG(isSourceDepth == isDestDepth, "both images in an image copy must be depth if one is depth");
+    bool isSourceStencil = (grfx::GetFormatDescription(pSrcImage->GetFormat())->aspect & grfx::FORMAT_ASPECT_STENCIL) != 0;
+    bool isDestStencil   = (grfx::GetFormatDescription(pDstImage->GetFormat())->aspect & grfx::FORMAT_ASPECT_STENCIL) != 0;
+    PPX_ASSERT_MSG(isSourceStencil == isDestStencil, "both images in an image copy must be stencil if one is stencil");
 
     VkImageSubresourceLayers srcSubresource = {};
     srcSubresource.aspectMask               = DetermineAspectMask(ToApi(pSrcImage)->GetVkFormat());
