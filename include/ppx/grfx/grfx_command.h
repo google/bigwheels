@@ -167,7 +167,7 @@ struct ImageToImageCopyInfo
 //!
 struct ImageBlitInfo
 {
-    struct
+    struct ImgInfo
     {
         uint32_t mipLevel        = 0;
         uint32_t arrayLayer      = 0; // Must be 0 for 3D images
@@ -178,20 +178,10 @@ struct ImageBlitInfo
             uint32_t y = 0; // [pixels]
             uint32_t z = 0; // [pixels]
         } offsets[2];
-    } srcImage;
+    };
 
-    struct
-    {
-        uint32_t mipLevel        = 0;
-        uint32_t arrayLayer      = 0; // Must be 0 for 3D images
-        uint32_t arrayLayerCount = 1; // Must be 1 for 3D images
-        struct
-        {
-            uint32_t x = 0; // [pixels]
-            uint32_t y = 0; // [pixels]
-            uint32_t z = 0; // [pixels]
-        } offsets[2];
-    } dstImage;
+    ImgInfo srcImage;
+    ImgInfo dstImage;
 
     Filter filter = FILTER_LINEAR;
 };
