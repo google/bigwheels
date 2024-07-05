@@ -20,21 +20,9 @@
 
 namespace ppx {
 
-const char* ToString(GeometryVertexAttributeLayout value)
+std::ostream& operator<<(std::ostream& o, const grfx::IndexType& indexType)
 {
-    switch (value) {
-        default: break;
-        case GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_INTERLEAVED: return "GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_INTERLEAVED";
-        case GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_PLANAR: return "GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_PLANAR";
-        case GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_POSITION_PLANAR: return "GEOMETRY_VERTEX_ATTRIBUTE_LAYOUT_POSITION_PLANAR";
-    }
-
-    return "<unknown GeometryVertexAttributeLayout>";
-}
-
-std::ostream& operator<<(std::ostream& o, const GeometryCreateInfo& info)
-{
-    o << "GeometryCreateInfo{" << ToString(info.indexType) << ", " << ToString(info.vertexAttributeLayout) << "}";
+    o << ToString(indexType);
     return o;
 }
 
@@ -43,17 +31,10 @@ namespace {
 using ::testing::IsNull;
 using ::testing::NotNull;
 
-class GeometryTestWithGeometryCreateInfoParam : public testing::TestWithParam<GeometryCreateInfo>
+TEST(GeometryTest, AppendIndicesU32PacksDataAsUint32)
 {
-};
-
-using GeometryU32Test = GeometryTestWithGeometryCreateInfoParam;
-
-TEST_P(GeometryU32Test, AppendIndicesU32PacksDataAsUint32)
-{
-    GeometryCreateInfo geometryCreateInfo = GetParam();
-    Geometry           planeGeometry;
-    EXPECT_EQ(Geometry::Create(geometryCreateInfo, &planeGeometry), ppx::SUCCESS);
+    Geometry planeGeometry;
+    EXPECT_EQ(Geometry::Create(GeometryCreateInfo{}.IndexType(grfx::INDEX_TYPE_UINT32).AddPosition(), &planeGeometry), ppx::SUCCESS);
     EXPECT_EQ(planeGeometry.GetIndexType(), grfx::INDEX_TYPE_UINT32);
 
     const std::array<uint32_t, 3> indices = {0, 1, 2};
@@ -72,22 +53,24 @@ TEST_P(GeometryU32Test, AppendIndicesU32PacksDataAsUint32)
     EXPECT_EQ(indexBufferData[2], 2);
 }
 
-INSTANTIATE_TEST_SUITE_P(GeometryU32Test, GeometryU32Test, testing::Values(GeometryCreateInfo::PlanarU32(), GeometryCreateInfo::PositionPlanarU32(), GeometryCreateInfo::InterleavedU32()));
+class GeometryTestWithIndexTypeParam : public testing::TestWithParam<grfx::IndexType>
+{
+};
 
-using GeometryDeathTest = GeometryTestWithGeometryCreateInfoParam;
+using GeometryDeathTest = GeometryTestWithIndexTypeParam;
 
 TEST_P(GeometryDeathTest, AppendIndicesU32DiesIfIndexTypeIsNotU32)
 {
-    GeometryCreateInfo geometryCreateInfo = GetParam();
-    Geometry           planeGeometry;
-    EXPECT_EQ(Geometry::Create(geometryCreateInfo, &planeGeometry), ppx::SUCCESS);
+    grfx::IndexType indexType = GetParam();
+    Geometry        planeGeometry;
+    EXPECT_EQ(Geometry::Create(GeometryCreateInfo{}.IndexType(indexType).AddPosition(), &planeGeometry), ppx::SUCCESS);
     EXPECT_NE(planeGeometry.GetIndexType(), grfx::INDEX_TYPE_UINT32);
 
     const std::array<uint32_t, 3> indices = {0, 1, 2};
     ASSERT_DEATH(planeGeometry.AppendIndicesU32(indices.size(), indices.data()), "AppendIndicesU32");
 }
 
-INSTANTIATE_TEST_SUITE_P(GeometryDeathTest, GeometryDeathTest, testing::Values(GeometryCreateInfo::Planar(), GeometryCreateInfo::PositionPlanar(), GeometryCreateInfo::Interleaved(), GeometryCreateInfo::PlanarU16(), GeometryCreateInfo::PositionPlanarU16(), GeometryCreateInfo::InterleavedU16()));
+INSTANTIATE_TEST_SUITE_P(GeometryDeathTest, GeometryDeathTest, testing::Values(grfx::INDEX_TYPE_UINT16, grfx::INDEX_TYPE_UNDEFINED));
 
 } // namespace
 } // namespace ppx

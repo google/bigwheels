@@ -1122,7 +1122,7 @@ void Geometry::AppendIndicesEdge(uint32_t idx0, uint32_t idx1)
 void Geometry::AppendIndicesU32(uint32_t count, const uint32_t* pIndices)
 {
     if (mCreateInfo.indexType != grfx::INDEX_TYPE_UINT32) {
-        PPX_ASSERT_MSG(false, "Can't append UINT32 data to buffer of type:" << ToString(mCreateInfo.indexType));
+        PPX_ASSERT_MSG(false, "Can't append UINT32 indices to buffer of type: " << ToString(mCreateInfo.indexType));
         return;
     }
     mIndexBuffer.Append(count, pIndices);
