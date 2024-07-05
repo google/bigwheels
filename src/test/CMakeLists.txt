@@ -50,15 +50,16 @@ add_custom_target(run-tests
 list(
     APPEND TEST_SOURCES
     command_line_parser_test.cpp
+    filesystem_test.cpp
+    filesystem_util_test.cpp
     format_test.cpp
+    geometry_test.cpp
     knob_test.cpp
     log_console_test.cpp
     metrics_test.cpp
     ppm_export_test.cpp
     string_util_test.cpp
     transform_test.cpp
-    filesystem_test.cpp
-    filesystem_util_test.cpp
     vk_shading_rate_test.cpp
 )
 package_add_test(ppx_tests ${TEST_SOURCES})
