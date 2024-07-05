@@ -19,13 +19,6 @@
 #include "ppx/grfx/grfx_util.h"
 
 namespace ppx {
-
-std::ostream& operator<<(std::ostream& o, const grfx::IndexType& indexType)
-{
-    o << ToString(indexType);
-    return o;
-}
-
 namespace {
 
 using ::testing::IsNull;
@@ -70,7 +63,9 @@ TEST_P(GeometryDeathTest, AppendIndicesU32DiesIfIndexTypeIsNotU32)
     ASSERT_DEATH(geometry.AppendIndicesU32(indices.size(), indices.data()), "AppendIndicesU32");
 }
 
-INSTANTIATE_TEST_SUITE_P(GeometryDeathTest, GeometryDeathTest, testing::Values(grfx::INDEX_TYPE_UINT16, grfx::INDEX_TYPE_UNDEFINED));
+INSTANTIATE_TEST_SUITE_P(GeometryDeathTest, GeometryDeathTest, testing::Values(grfx::INDEX_TYPE_UINT16, grfx::INDEX_TYPE_UNDEFINED), [](const testing::TestParamInfo<GeometryDeathTest::ParamType>& info) {
+    return ToString(info.param);
+});
 
 } // namespace
 } // namespace ppx
