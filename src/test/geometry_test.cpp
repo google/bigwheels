@@ -33,15 +33,15 @@ using ::testing::NotNull;
 
 TEST(GeometryTest, AppendIndicesU32PacksDataAsUint32)
 {
-    Geometry planeGeometry;
-    EXPECT_EQ(Geometry::Create(GeometryCreateInfo{}.IndexType(grfx::INDEX_TYPE_UINT32).AddPosition(), &planeGeometry), ppx::SUCCESS);
-    EXPECT_EQ(planeGeometry.GetIndexType(), grfx::INDEX_TYPE_UINT32);
+    Geometry geometry;
+    EXPECT_EQ(Geometry::Create(GeometryCreateInfo{}.IndexType(grfx::INDEX_TYPE_UINT32).AddPosition(), &geometry), ppx::SUCCESS);
+    EXPECT_EQ(geometry.GetIndexType(), grfx::INDEX_TYPE_UINT32);
 
     const std::array<uint32_t, 3> indices = {0, 1, 2};
-    planeGeometry.AppendIndicesU32(indices.size(), indices.data());
-    EXPECT_EQ(planeGeometry.GetIndexCount(), 3);
+    geometry.AppendIndicesU32(indices.size(), indices.data());
+    EXPECT_EQ(geometry.GetIndexCount(), 3);
 
-    const Geometry::Buffer* indexBuffer = planeGeometry.GetIndexBuffer();
+    const Geometry::Buffer* indexBuffer = geometry.GetIndexBuffer();
     ASSERT_THAT(indexBuffer, NotNull());
     EXPECT_EQ(indexBuffer->GetElementSize(), sizeof(uint32_t));
     EXPECT_EQ(indexBuffer->GetElementCount(), 3);
@@ -62,12 +62,12 @@ using GeometryDeathTest = GeometryTestWithIndexTypeParam;
 TEST_P(GeometryDeathTest, AppendIndicesU32DiesIfIndexTypeIsNotU32)
 {
     grfx::IndexType indexType = GetParam();
-    Geometry        planeGeometry;
-    EXPECT_EQ(Geometry::Create(GeometryCreateInfo{}.IndexType(indexType).AddPosition(), &planeGeometry), ppx::SUCCESS);
-    EXPECT_NE(planeGeometry.GetIndexType(), grfx::INDEX_TYPE_UINT32);
+    Geometry        geometry;
+    EXPECT_EQ(Geometry::Create(GeometryCreateInfo{}.IndexType(indexType).AddPosition(), &geometry), ppx::SUCCESS);
+    EXPECT_NE(geometry.GetIndexType(), grfx::INDEX_TYPE_UINT32);
 
     const std::array<uint32_t, 3> indices = {0, 1, 2};
-    ASSERT_DEATH(planeGeometry.AppendIndicesU32(indices.size(), indices.data()), "AppendIndicesU32");
+    ASSERT_DEATH(geometry.AppendIndicesU32(indices.size(), indices.data()), "AppendIndicesU32");
 }
 
 INSTANTIATE_TEST_SUITE_P(GeometryDeathTest, GeometryDeathTest, testing::Values(grfx::INDEX_TYPE_UINT16, grfx::INDEX_TYPE_UNDEFINED));
