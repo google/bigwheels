@@ -41,6 +41,7 @@ TEST(GeometryTest, AppendIndicesU32PacksDataAsUint32)
     EXPECT_EQ(indexBuffer->GetSize(), 12);
 
     const uint32_t* indexBufferData = reinterpret_cast<const uint32_t*>(indexBuffer->GetData());
+    ASSERT_THAT(indexBufferData, NotNull());
     EXPECT_EQ(indexBufferData[0], 0);
     EXPECT_EQ(indexBufferData[1], 1);
     EXPECT_EQ(indexBufferData[2], 2);
