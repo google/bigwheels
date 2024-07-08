@@ -18,7 +18,7 @@ Then, build:
 ninja -C build
 ```
 
-NOTE: It is recommended to do a full build. Otherwise, coverage for files not included in the unit tests will be ommitted. This results in inaccurate reports. We can filter later with gcov to pare down the information in the report.
+NOTE: It is recommended to do a full build. Otherwise, coverage for files not included in the unit tests will be missing. This results in inaccurate reports. We can filter later with gcov to pare down the information in the report.
 
 Next, run the unit tests to determine lines exercised:
 
