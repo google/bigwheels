@@ -1040,8 +1040,8 @@ void CommandBuffer::BlitImage(
     grfx::Image*               pSrcImage,
     grfx::Image*               pDstImage)
 {
-    bool isSourceDepthStencil = grfx::GetFormatDescription(pSrcImage->GetFormat())->aspect == grfx::FORMAT_ASPECT_DEPTH_STENCIL;
-    bool isDestDepthStencil   = grfx::GetFormatDescription(pDstImage->GetFormat())->aspect == grfx::FORMAT_ASPECT_DEPTH_STENCIL;
+    bool isSourceDepthStencil = grfx::GetFormatDescription(pSrcImage->GetFormat())->aspect & grfx::FORMAT_ASPECT_DEPTH_STENCIL;
+    bool isDestDepthStencil   = grfx::GetFormatDescription(pDstImage->GetFormat())->aspect & grfx::FORMAT_ASPECT_DEPTH_STENCIL;
     if (isSourceDepthStencil || isDestDepthStencil) {
         PPX_ASSERT_MSG(pSrcImage->GetFormat() == pDstImage->GetFormat(), "both images in an image copy must be the same format if one is depth-stencil");
     }
