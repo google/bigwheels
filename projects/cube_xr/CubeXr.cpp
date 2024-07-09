@@ -31,7 +31,6 @@ void CubeXrApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
     settings.grfx.pacedFrameRate        = 0;
     settings.xr.enable                  = true;
-    settings.xr.enableMultiView         = true;
 }
 
 void CubeXrApp::Setup()

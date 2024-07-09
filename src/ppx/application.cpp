@@ -682,6 +682,10 @@ void Application::InitStandardKnobs()
         "to the base extensions. Any required extensions that are not supported by the "
         "target system will cause the application to immediately exit.");
     mStandardOpts.pXrRequiredExtensions->SetFlagParameters("<extension>");
+
+    GetKnobManager().InitKnob(&mStandardOpts.pXrEnableMultiview, "xr-multiview-enabled", mSettings.standardKnobsDefaultValue.xrEnableMultiview);
+    mStandardOpts.pXrEnableMultiview->SetFlagDescription(
+        "Specify whether or not multiview should be enabled for the application.");
 #endif
 
     GetKnobManager().InitKnob(&mStandardOpts.pShadingRateMode, "shading-rate-mode", "");
@@ -933,6 +937,8 @@ void Application::UpdateStandardSettings()
         mSettings.xr.uiWidth  = resolution.first;
         mSettings.xr.uiHeight = resolution.second;
     }
+
+    mSettings.xr.enableMultiView = mStandardOpts.pXrEnableMultiview->GetValue();
 #endif
 
     // Disable ImGui in headless or deterministic mode.
