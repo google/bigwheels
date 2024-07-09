@@ -89,6 +89,7 @@ struct StandardOptions
 #if defined(PPX_BUILD_XR)
     std::shared_ptr<KnobFlag<std::pair<int, int>>>      pXrUiResolution;
     std::shared_ptr<KnobFlag<std::vector<std::string>>> pXrRequiredExtensions;
+    std::shared_ptr<KnobFlag<bool>>                     pXrEnableMultiview;
 #endif
 
     std::shared_ptr<KnobFlag<std::vector<std::string>>> pAssetsPaths;
@@ -211,6 +212,7 @@ struct ApplicationSettings
 #if defined(PPX_BUILD_XR)
         std::pair<int, int>      xrUiResolution       = std::make_pair(0, 0);
         std::vector<std::string> xrRequiredExtensions = {};
+        bool                     xrEnableMultiview    = false;
 #endif
     } standardKnobsDefaultValue;
 };
