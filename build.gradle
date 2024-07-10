@@ -1,11 +1,6 @@
 layout.buildDirectory = layout.projectDirectory.dir("build_android")
 
 subprojects {
-    repositories {
-        mavenCentral()
-        google()
-    }
-
     apply plugin: "com.android.application"
 
     dependencies {
