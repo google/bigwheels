@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -1040,10 +1040,10 @@ void CommandBuffer::BlitImage(
     grfx::Image*               pSrcImage,
     grfx::Image*               pDstImage)
 {
-    bool isSourceDepthStencil = grfx::GetFormatDescription(pSrcImage->GetFormat())->aspect & grfx::FORMAT_ASPECT_DEPTH_STENCIL;
-    bool isDestDepthStencil   = grfx::GetFormatDescription(pDstImage->GetFormat())->aspect & grfx::FORMAT_ASPECT_DEPTH_STENCIL;
-    if (isSourceDepthStencil || isDestDepthStencil) {
-        PPX_ASSERT_MSG(pSrcImage->GetFormat() == pDstImage->GetFormat(), "both images in an image copy must be the same format if one is depth-stencil");
+    bool isSourceDepthOrStencil = grfx::GetFormatDescription(pSrcImage->GetFormat())->aspect & grfx::FORMAT_ASPECT_DEPTH_STENCIL;
+    bool isDestDepthOrStencil   = grfx::GetFormatDescription(pDstImage->GetFormat())->aspect & grfx::FORMAT_ASPECT_DEPTH_STENCIL;
+    if (isSourceDepthOrStencil || isDestDepthOrStencil) {
+        PPX_ASSERT_MSG(pSrcImage->GetFormat() == pDstImage->GetFormat(), "both images in an image copy must have the same format if either has depth or stencil");
     }
 
     VkImageSubresourceLayers srcSubresource = {};
