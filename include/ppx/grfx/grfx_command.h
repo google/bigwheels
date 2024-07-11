@@ -162,6 +162,28 @@ struct ImageToImageCopyInfo
     } extent;
 };
 
+// struct ImageBlitInfo
+struct ImageBlitInfo
+{
+    struct ImgInfo
+    {
+        uint32_t mipLevel        = 0;
+        uint32_t arrayLayer      = 0; // Must be 0 for 3D images
+        uint32_t arrayLayerCount = 1; // Must be 1 for 3D images
+        struct
+        {
+            uint32_t x = 0; // [pixels]
+            uint32_t y = 0; // [pixels]
+            uint32_t z = 0; // [pixels]
+        } offsets[2];
+    };
+
+    ImgInfo srcImage;
+    ImgInfo dstImage;
+
+    Filter filter = FILTER_LINEAR;
+};
+
 // -------------------------------------------------------------------------------------------------
 
 struct RenderPassBeginInfo
@@ -497,6 +519,11 @@ public:
         const grfx::ImageToImageCopyInfo* pCopyInfo,
         grfx::Image*                      pSrcImage,
         grfx::Image*                      pDstImage) = 0;
+
+    virtual void BlitImage(
+        const grfx::ImageBlitInfo* pCopyInfo,
+        grfx::Image*               pSrcImage,
+        grfx::Image*               pDstImage) = 0;
 
     virtual void BeginQuery(
         const grfx::Query* pQuery,
