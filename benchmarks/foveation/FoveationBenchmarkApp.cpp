@@ -478,7 +478,7 @@ void FoveationBenchmarkApp::SaveImage(grfx::ImagePtr image, const std::string& f
     const uint32_t          width      = image->GetWidth();
     const uint32_t          height     = image->GetHeight();
 
-    // Create a buffer that will hold the swapchain image's texels.
+    // Create a buffer that will hold the image's texels.
     // Increase its size by a factor of 2 to ensure that a larger-than-needed
     // row pitch will not overflow the buffer.
     uint64_t bufferSize = 2ull * formatDesc->bytesPerTexel * width * height;
@@ -491,12 +491,12 @@ void FoveationBenchmarkApp::SaveImage(grfx::ImagePtr image, const std::string& f
     bufferCi.memoryUsage                 = grfx::MEMORY_USAGE_GPU_TO_CPU;
     PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCi, &screenshotBuf));
 
-    // We wait for idle so that we can avoid tracking swapchain fences.
+    // We wait for idle so that we can avoid tracking image's fences.
     // It's not ideal, but we won't be taking screenshots in
     // performance-critical scenarios.
     PPX_CHECKED_CALL(queue->WaitIdle());
 
-    // Copy the swapchain image into the buffer.
+    // Copy the image into the buffer.
     grfx::CommandBufferPtr cmdBuf;
     PPX_CHECKED_CALL(queue->CreateCommandBuffer(&cmdBuf, 0, 0));
 

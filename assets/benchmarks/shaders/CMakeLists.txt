@@ -110,27 +110,10 @@ generate_rules_for_shader("shader_foveation_benchmark_shading_rate_khr"
     INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/VsOutput.hlsli"
     STAGES "ps")
 
-add_custom_command(
-    OUTPUT "${PPX_DIR}/assets/benchmarks/shaders/spv/FoveationBenchmarkFragSizeEXT.vs.spv"
-    MAIN_DEPENDENCY "${PPX_DIR}/assets/benchmarks/shaders/FoveationBenchmarkFragSizeEXT.vert"
-    COMMAND ${CMAKE_COMMAND} -E echo "Compiling ps FoveationBenchmarkFragSizeEXT.vert to spv/FoveationBenchmarkFragSizeEXT.vs.spv"
-    COMMAND "${GLSLC_PATH}" -o "${PPX_DIR}/assets/benchmarks/shaders/spv/FoveationBenchmarkFragSizeEXT.vs.spv" "${PPX_DIR}/assets/benchmarks/shaders/FoveationBenchmarkFragSizeEXT.vert")
+generate_rules_for_glsl_shader("shader_foveation_benchmark_frag_size_ext_vs"
+    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/FoveationBenchmarkFragSizeEXT.vert"
+    STAGE "vs")
 
-add_custom_target_in_folder(
-    "shader_foveation_benchmark_frag_size_ext_vs"
-    DEPENDS "${PPX_DIR}/assets/benchmarks/shaders/spv/FoveationBenchmarkFragSizeEXT.vs.spv"
-    SOURCES "${PPX_DIR}/assets/benchmarks/shaders/FoveationBenchmarkFragSizeEXT.vert"
-    FOLDER "shader_foveation_benchmark_frag_size_ext_vs")
-
-
-add_custom_command(
-    OUTPUT "${PPX_DIR}/assets/benchmarks/shaders/spv/FoveationBenchmarkFragSizeEXT.ps.spv"
-    MAIN_DEPENDENCY "${PPX_DIR}/assets/benchmarks/shaders/FoveationBenchmarkFragSizeEXT.frag"
-    COMMAND ${CMAKE_COMMAND} -E echo "Compiling ps FoveationBenchmarkFragSizeEXT.frag to spv/FoveationBenchmarkFragSizeEXT.ps.spv"
-    COMMAND "${GLSLC_PATH}" -o "${PPX_DIR}/assets/benchmarks/shaders/spv/FoveationBenchmarkFragSizeEXT.ps.spv" "${PPX_DIR}/assets/benchmarks/shaders/FoveationBenchmarkFragSizeEXT.frag")
-
-add_custom_target_in_folder(
-    "shader_foveation_benchmark_frag_size_ext_ps"
-    DEPENDS "${PPX_DIR}/assets/benchmarks/shaders/spv/FoveationBenchmarkFragSizeEXT.ps.spv"
-    SOURCES "${PPX_DIR}/assets/benchmarks/shaders/FoveationBenchmarkFragSizeEXT.frag"
-    FOLDER "shader_foveation_benchmark_frag_size_ext_ps")
+generate_rules_for_glsl_shader("shader_foveation_benchmark_frag_size_ext_ps"
+    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/FoveationBenchmarkFragSizeEXT.frag"
+    STAGE "ps")
