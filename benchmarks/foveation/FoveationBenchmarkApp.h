@@ -202,4 +202,4 @@ private:
     } mPost;
 };
 
-#endif // CUBEXR_H
+#endif // FOVEATIONBENCHMARKAPP_H

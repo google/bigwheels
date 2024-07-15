@@ -67,7 +67,6 @@ void FoveationBenchmarkApp::Config(ppx::ApplicationSettings& settings)
     settings.enableImGui                        = false;
     settings.grfx.api                           = kApi;
     settings.grfx.swapchain.depthFormat         = grfx::FORMAT_D32_FLOAT;
-    settings.grfx.enableDebug                   = false;
     settings.grfx.device.supportShadingRateMode = kDefaultShadingRateMode;
 }
 
@@ -537,13 +536,13 @@ void FoveationBenchmarkApp::SaveImage(grfx::ImagePtr image, const std::string& f
 
 void FoveationBenchmarkApp::Render()
 {
+    // Wait for and reset render complete fence
+    PPX_CHECKED_CALL(mSync.postCompleteFence->WaitAndReset());
+
     uint32_t imageIndex = UINT32_MAX;
     PPX_CHECKED_CALL(GetSwapchain()->AcquireNextImage(UINT64_MAX, mSync.imageAcquiredSemaphore, mSync.imageAcquiredFence, &imageIndex));
 
     PPX_LOG_INFO("FoveationBenchmarkApp::Render imageIndex:" << imageIndex);
-
-    // Wait for and reset render complete fence
-    PPX_CHECKED_CALL(mSync.postCompleteFence->WaitAndReset());
 
     UpdateRenderShaderParams();
     RecordRenderCommands();
