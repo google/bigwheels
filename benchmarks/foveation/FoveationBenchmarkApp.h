@@ -141,7 +141,6 @@ private:
     void RecordRenderCommands();
     void UpdateRenderShaderParams();
     void RecordPostCommands(uint32_t imageIndex);
-    void SaveImage(grfx::ImagePtr image, const std::string& path, grfx::ResourceState resourceState = grfx::RESOURCE_STATE_RENDER_TARGET) const;
 
     struct
     {

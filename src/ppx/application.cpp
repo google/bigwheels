@@ -693,19 +693,15 @@ void Application::InitStandardKnobs()
     });
 }
 
-void Application::TakeScreenshot()
+void Application::SaveImage(grfx::ImagePtr image, const std::string& filepath, grfx::ResourceState resourceState) const
 {
-    std::filesystem::path screenshotPath;
-    screenshotPath = ppx::fs::GetFullPath(mStandardOpts.pScreenshotPath->GetValue(), ppx::fs::GetDefaultOutputDirectory(), "#", std::to_string(mFrameCount));
+    auto queue = mDevice->GetGraphicsQueue();
 
-    auto swapchainImg = GetSwapchain()->GetColorImage(GetSwapchain()->GetCurrentImageIndex());
-    auto queue        = mDevice->GetGraphicsQueue();
+    const grfx::FormatDesc* formatDesc = grfx::GetFormatDescription(image->GetFormat());
+    const uint32_t          width      = image->GetWidth();
+    const uint32_t          height     = image->GetHeight();
 
-    const grfx::FormatDesc* formatDesc = grfx::GetFormatDescription(swapchainImg->GetFormat());
-    const uint32_t          width      = swapchainImg->GetWidth();
-    const uint32_t          height     = swapchainImg->GetHeight();
-
-    // Create a buffer that will hold the swapchain image's texels.
+    // Create a buffer that will hold the image's texels.
     // Increase its size by a factor of 2 to ensure that a larger-than-needed
     // row pitch will not overflow the buffer.
     uint64_t bufferSize = 2ull * formatDesc->bytesPerTexel * width * height;
@@ -718,25 +714,25 @@ void Application::TakeScreenshot()
     bufferCi.memoryUsage                 = grfx::MEMORY_USAGE_GPU_TO_CPU;
     PPX_CHECKED_CALL(mDevice->CreateBuffer(&bufferCi, &screenshotBuf));
 
-    // We wait for idle so that we can avoid tracking swapchain fences.
-    // It's not ideal, but we won't be taking screenshots in
+    // We wait for idle so that we can avoid tracking image fences.
+    // It's not ideal, but we won't be taking saving images in
     // performance-critical scenarios.
     PPX_CHECKED_CALL(queue->WaitIdle());
 
-    // Copy the swapchain image into the buffer.
+    // Copy the image into the buffer.
     grfx::CommandBufferPtr cmdBuf;
     PPX_CHECKED_CALL(queue->CreateCommandBuffer(&cmdBuf, 0, 0));
 
     grfx::ImageToBufferOutputPitch outPitch;
     cmdBuf->Begin();
     {
-        cmdBuf->TransitionImageLayout(swapchainImg, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_COPY_SRC);
+        cmdBuf->TransitionImageLayout(image, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_COPY_SRC);
 
         grfx::ImageToBufferCopyInfo bufCopyInfo = {};
         bufCopyInfo.extent                      = {width, height, 0};
-        outPitch                                = cmdBuf->CopyImageToBuffer(&bufCopyInfo, swapchainImg, screenshotBuf);
+        outPitch                                = cmdBuf->CopyImageToBuffer(&bufCopyInfo, image, screenshotBuf);
 
-        cmdBuf->TransitionImageLayout(swapchainImg, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_COPY_SRC, grfx::RESOURCE_STATE_PRESENT);
+        cmdBuf->TransitionImageLayout(image, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_COPY_SRC, grfx::RESOURCE_STATE_PRESENT);
     }
     cmdBuf->End();
 
@@ -752,14 +748,25 @@ void Application::TakeScreenshot()
     unsigned char* texels = nullptr;
     screenshotBuf->MapMemory(0, (void**)&texels);
 
-    PPX_CHECKED_CALL(ExportToPPM(screenshotPath.string(), swapchainImg->GetFormat(), texels, width, height, outPitch.rowPitch));
-    PPX_LOG_INFO("Screenshot of frame " << mFrameCount << " saved to: " << screenshotPath.string());
+    PPX_CHECKED_CALL(ExportToPPM(filepath, image->GetFormat(), texels, width, height, outPitch.rowPitch));
 
     screenshotBuf->UnmapMemory();
 
     // Clean up temporary resources.
     mDevice->DestroyBuffer(screenshotBuf);
     queue->DestroyCommandBuffer(cmdBuf);
+}
+
+void Application::TakeScreenshot()
+{
+    std::filesystem::path screenshotPath;
+    screenshotPath = ppx::fs::GetFullPath(mStandardOpts.pScreenshotPath->GetValue(), ppx::fs::GetDefaultOutputDirectory(), "#", std::to_string(mFrameCount));
+
+    auto swapchainImg = GetSwapchain()->GetColorImage(GetSwapchain()->GetCurrentImageIndex());
+
+    SaveImage(swapchainImg, screenshotPath.string(), grfx::RESOURCE_STATE_PRESENT);
+
+    PPX_LOG_INFO("Screenshot of frame " << mFrameCount << " saved to: " << screenshotPath.string());
 }
 
 void Application::MoveCallback(int32_t x, int32_t y)

@@ -470,70 +470,6 @@ void FoveationBenchmarkApp::RecordPostCommands(uint32_t imageIndex)
     PPX_CHECKED_CALL(mPost.cmd->End());
 }
 
-void FoveationBenchmarkApp::SaveImage(grfx::ImagePtr image, const std::string& filepath, grfx::ResourceState resourceState) const
-{
-    auto queue = GetDevice()->GetGraphicsQueue();
-
-    const grfx::FormatDesc* formatDesc = grfx::GetFormatDescription(image->GetFormat());
-    const uint32_t          width      = image->GetWidth();
-    const uint32_t          height     = image->GetHeight();
-
-    // Create a buffer that will hold the image's texels.
-    // Increase its size by a factor of 2 to ensure that a larger-than-needed
-    // row pitch will not overflow the buffer.
-    uint64_t bufferSize = 2ull * formatDesc->bytesPerTexel * width * height;
-
-    grfx::BufferPtr        screenshotBuf = nullptr;
-    grfx::BufferCreateInfo bufferCi      = {};
-    bufferCi.size                        = bufferSize;
-    bufferCi.initialState                = grfx::RESOURCE_STATE_COPY_DST;
-    bufferCi.usageFlags.bits.transferDst = 1;
-    bufferCi.memoryUsage                 = grfx::MEMORY_USAGE_GPU_TO_CPU;
-    PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCi, &screenshotBuf));
-
-    // We wait for idle so that we can avoid tracking image's fences.
-    // It's not ideal, but we won't be taking screenshots in
-    // performance-critical scenarios.
-    PPX_CHECKED_CALL(queue->WaitIdle());
-
-    // Copy the image into the buffer.
-    grfx::CommandBufferPtr cmdBuf;
-    PPX_CHECKED_CALL(queue->CreateCommandBuffer(&cmdBuf, 0, 0));
-
-    grfx::ImageToBufferOutputPitch outPitch;
-    cmdBuf->Begin();
-    {
-        cmdBuf->TransitionImageLayout(image, PPX_ALL_SUBRESOURCES, resourceState, grfx::RESOURCE_STATE_COPY_SRC);
-
-        grfx::ImageToBufferCopyInfo bufCopyInfo = {};
-        bufCopyInfo.extent                      = {width, height, 0};
-        outPitch                                = cmdBuf->CopyImageToBuffer(&bufCopyInfo, image, screenshotBuf);
-
-        cmdBuf->TransitionImageLayout(image, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_COPY_SRC, resourceState);
-    }
-    cmdBuf->End();
-
-    grfx::SubmitInfo submitInfo   = {};
-    submitInfo.commandBufferCount = 1;
-    submitInfo.ppCommandBuffers   = &cmdBuf;
-    queue->Submit(&submitInfo);
-
-    // Wait for the copy to be finished.
-    queue->WaitIdle();
-
-    // Export to PPM.
-    unsigned char* texels = nullptr;
-    screenshotBuf->MapMemory(0, (void**)&texels);
-
-    PPX_CHECKED_CALL(ExportToPPM(filepath, image->GetFormat(), texels, width, height, outPitch.rowPitch));
-
-    screenshotBuf->UnmapMemory();
-
-    // Clean up temporary resources.
-    GetDevice()->DestroyBuffer(screenshotBuf);
-    queue->DestroyCommandBuffer(cmdBuf);
-}
-
 void FoveationBenchmarkApp::Render()
 {
     // Wait for and reset render complete fence
@@ -574,10 +510,10 @@ void FoveationBenchmarkApp::Render()
 
     if (GetFrameCount() == static_cast<uint64_t>(GetStandardOptions().pScreenshotFrameNumber->GetValue())) {
         if (mKnobs.pRenderScreenshotPath->GetValue().size() > 0) {
-            SaveImage(mRender.drawPass->GetRenderTargetTexture(0)->GetImage(), mKnobs.pRenderScreenshotPath->GetValue());
+            SaveImage(mRender.drawPass->GetRenderTargetTexture(0)->GetImage(), mKnobs.pRenderScreenshotPath->GetValue(), grfx::RESOURCE_STATE_RENDER_TARGET);
         }
         if (mKnobs.pPostScreenshotPath->GetValue().size() > 0) {
-            SaveImage(mPost.drawPass->GetRenderTargetTexture(0)->GetImage(), mKnobs.pPostScreenshotPath->GetValue());
+            SaveImage(mPost.drawPass->GetRenderTargetTexture(0)->GetImage(), mKnobs.pPostScreenshotPath->GetValue(), grfx::RESOURCE_STATE_RENDER_TARGET);
         }
     }
 }
