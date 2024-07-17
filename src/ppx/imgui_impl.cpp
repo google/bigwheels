@@ -271,7 +271,7 @@ Result ImGuiImplVk::InitApiObjects(ppx::Application* pApp)
         init_info.ImageCount                = pApp->GetUISwapchain()->GetImageCount();
         init_info.Allocator                 = VK_NULL_HANDLE;
         init_info.CheckVkResultFn           = nullptr;
-#if IMGUI_VERSION_NUM > 18970
+#if (IMGUI_VERSION_NUM > 18970) && defined(IMGUI_IMPL_VULKAN_HAS_DYNAMIC_RENDERING)
         init_info.UseDynamicRendering                                 = pApp->GetSettings()->grfx.enableImGuiDynamicRendering;
         init_info.PipelineRenderingCreateInfo                         = {VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO};
         VkFormat colorFormat                                          = grfx::vk::ToVkFormat(pApp->GetUISwapchain()->GetColorFormat());
