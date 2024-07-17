@@ -273,7 +273,10 @@ Result ImGuiImplVk::InitApiObjects(ppx::Application* pApp)
         init_info.CheckVkResultFn           = nullptr;
 #if IMGUI_VERSION_NUM > 18970
         init_info.UseDynamicRendering   = pApp->GetSettings()->grfx.enableImGuiDynamicRendering;
-        init_info.ColorAttachmentFormat = grfx::vk::ToVkFormat(pApp->GetUISwapchain()->GetColorFormat());
+        init_info.PipelineRenderingCreateInfo                         = {VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO};
+        VkFormat colorFormat                                          = grfx::vk::ToVkFormat(pApp->GetUISwapchain()->GetColorFormat());
+        init_info.PipelineRenderingCreateInfo.colorAttachmentCount    = 1;
+        init_info.PipelineRenderingCreateInfo.pColorAttachmentFormats = &colorFormat;
 #else
         PPX_ASSERT_MSG(!pApp->GetSettings()->grfx.enableImGuiDynamicRendering, "This version of ImGui does not have dynamic rendering support");
 #endif
@@ -281,7 +284,8 @@ Result ImGuiImplVk::InitApiObjects(ppx::Application* pApp)
         grfx::RenderPassPtr renderPass = pApp->GetUISwapchain()->GetRenderPass(0, grfx::ATTACHMENT_LOAD_OP_LOAD);
         PPX_ASSERT_MSG(!renderPass.IsNull(), "[imgui:vk] failed to get swapchain renderpass");
 
-        bool result = ImGui_ImplVulkan_Init(&init_info, grfx::vk::ToApi(renderPass)->GetVkRenderPass());
+        init_info.RenderPass = grfx::vk::ToApi(renderPass)->GetVkRenderPass();
+        bool result          = ImGui_ImplVulkan_Init(&init_info);
         if (!result) {
             return ppx::ERROR_IMGUI_INITIALIZATION_FAILED;
         }
@@ -303,9 +307,6 @@ Result ImGuiImplVk::InitApiObjects(ppx::Application* pApp)
             PPX_ASSERT_MSG(false, "[imgui:vk] command buffer begin failed");
             return ppxres;
         }
-
-        // Create fonts texture
-        ImGui_ImplVulkan_CreateFontsTexture(grfx::vk::ToApi(commandBuffer)->GetVkCommandBuffer());
 
         // End command buffer
         ppxres = commandBuffer->End();
@@ -334,9 +335,6 @@ Result ImGuiImplVk::InitApiObjects(ppx::Application* pApp)
 
         // Destroy command buffer
         pApp->GetGraphicsQueue()->DestroyCommandBuffer(commandBuffer);
-
-        // Destroy font upload objects
-        ImGui_ImplVulkan_DestroyFontUploadObjects();
     }
 
     return ppx::SUCCESS;
