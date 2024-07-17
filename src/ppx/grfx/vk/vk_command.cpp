@@ -1035,6 +1035,67 @@ void CommandBuffer::CopyImageToImage(
         &region);
 }
 
+void CommandBuffer::BlitImage(
+    const grfx::ImageBlitInfo* pCopyInfo,
+    grfx::Image*               pSrcImage,
+    grfx::Image*               pDstImage)
+{
+    bool isSourceDepthOrStencil = grfx::GetFormatDescription(pSrcImage->GetFormat())->aspect & grfx::FORMAT_ASPECT_DEPTH_STENCIL;
+    bool isDestDepthOrStencil   = grfx::GetFormatDescription(pDstImage->GetFormat())->aspect & grfx::FORMAT_ASPECT_DEPTH_STENCIL;
+    if (isSourceDepthOrStencil || isDestDepthOrStencil) {
+        PPX_ASSERT_MSG(pSrcImage->GetFormat() == pDstImage->GetFormat(), "both images in an image copy must have the same format if either has depth or stencil");
+    }
+
+    VkImageSubresourceLayers srcSubresource = {};
+    srcSubresource.aspectMask               = DetermineAspectMask(ToApi(pSrcImage)->GetVkFormat());
+    srcSubresource.baseArrayLayer           = pCopyInfo->srcImage.arrayLayer;
+    srcSubresource.layerCount               = pCopyInfo->srcImage.arrayLayerCount;
+    srcSubresource.mipLevel                 = pCopyInfo->srcImage.mipLevel;
+
+    VkImageSubresourceLayers dstSubresource = {};
+    dstSubresource.aspectMask               = DetermineAspectMask(ToApi(pDstImage)->GetVkFormat());
+    dstSubresource.baseArrayLayer           = pCopyInfo->dstImage.arrayLayer;
+    dstSubresource.layerCount               = pCopyInfo->dstImage.arrayLayerCount;
+    dstSubresource.mipLevel                 = pCopyInfo->dstImage.mipLevel;
+
+    VkImageBlit region    = {};
+    region.srcSubresource = srcSubresource;
+    region.dstSubresource = dstSubresource;
+    for (int i = 0; i < 2; ++i) {
+        region.srcOffsets[i] = {
+            static_cast<int32_t>(pCopyInfo->srcImage.offsets[i].x),
+            static_cast<int32_t>(pCopyInfo->srcImage.offsets[i].y),
+            static_cast<int32_t>(pCopyInfo->srcImage.offsets[i].z)};
+        region.dstOffsets[i] = {
+            static_cast<int32_t>(pCopyInfo->dstImage.offsets[i].x),
+            static_cast<int32_t>(pCopyInfo->dstImage.offsets[i].y),
+            static_cast<int32_t>(pCopyInfo->dstImage.offsets[i].z)};
+    }
+
+    VkFilter filter;
+    switch (pCopyInfo->filter) {
+        case FILTER_NEAREST:
+            filter = VK_FILTER_NEAREST;
+            break;
+        case FILTER_LINEAR:
+            filter = VK_FILTER_LINEAR;
+            break;
+        default:
+            PPX_ASSERT_MSG(false, "Invalid filter value: " << (int)pCopyInfo->filter);
+            return;
+    }
+
+    vkCmdBlitImage(
+        mCommandBuffer,
+        ToApi(pSrcImage)->GetVkImage(),
+        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        ToApi(pDstImage)->GetVkImage(),
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        1,
+        &region,
+        filter);
+}
+
 void CommandBuffer::BeginQuery(
     const grfx::Query* pQuery,
     uint32_t           queryIndex)
