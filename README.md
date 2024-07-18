@@ -61,6 +61,8 @@ To build tests (without running them), use `ninja build-tests`. Test binaries ar
 
 To run tests (they will be built if needed), use `ninja run-tests`.
 
+To generate code coverage, consult our additional [documentation](docs/code_coverage.md).
+
 # Benchmarks
 BigWheels includes a variety of benchmarks that test graphics fundamentals under the `benchmarks` folder. See the [documentation](docs/benchmarks.md) for benchmarks on how to build and run them.
 
