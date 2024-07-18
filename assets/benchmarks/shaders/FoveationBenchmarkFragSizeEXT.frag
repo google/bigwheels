@@ -13,7 +13,7 @@
 // limitations under the License.
 
 #version 450
-// I am using GLSL here because for FMD we need to use the following extension
+// I am using GLSL here because for FDM we need to use the following extension
 // that to my knowledge has no equivalent in HLSL
 #extension GL_EXT_fragment_invocation_density : enable
 
