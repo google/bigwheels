@@ -276,6 +276,7 @@ protected:
     virtual metrics::GaugeBasicStatistics GetGaugeBasicStatistics(metrics::MetricID id) const;
 
     void TakeScreenshot();
+    void SaveImage(grfx::ImagePtr image, const std::string& filepath, grfx::ResourceState resourceState) const;
 
     void DrawImGui(grfx::CommandBuffer* pCommandBuffer);
     void DrawDebugInfo();

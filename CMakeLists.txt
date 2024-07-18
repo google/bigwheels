@@ -56,6 +56,30 @@ endif ()
 message(STATUS "DXC_PATH: ${DXC_PATH}")
 
 # ------------------------------------------------------------------------------
+# Detect glslc presence. Required to compile GLSL shaders.
+# ------------------------------------------------------------------------------
+
+message(CHECK_START "Looking for GLSLC")
+if (NOT GLSLC_PATH)
+    message(STATUS "GLSLC_PATH not set. Looking for Vulkan SDK path in ENV")
+    if (DEFINED ENV{VULKAN_SDK})
+        if (CMAKE_HOST_WIN32)
+            set(GLSLC_PATH "$ENV{VULKAN_SDK}\\Bin\\glslc.exe")
+        else ()
+            set(GLSLC_PATH "$ENV{VULKAN_SDK}/bin/glslc")
+        endif ()
+    endif ()
+endif ()
+
+if ((NOT GLSLC_PATH) OR (NOT EXISTS "${GLSLC_PATH}"))
+    message(CHECK_FAIL "Cannot open GLSLC at ${GLSLC_PATH}")
+else ()
+    message(CHECK_PASS "found")
+endif ()
+
+message(STATUS "GLSLC_PATH: ${GLSLC_PATH}")
+
+# ------------------------------------------------------------------------------
 # Configure target platform.
 # ------------------------------------------------------------------------------
 

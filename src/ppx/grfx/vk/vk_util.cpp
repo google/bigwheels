@@ -915,13 +915,13 @@ static Result ToVkBarrier(
         } break;
 
         case grfx::RESOURCE_STATE_SHADER_RESOURCE: {
-            stageMask  = PIPELINE_STAGE_NON_PIXEL_SHADER_STAGES;
+            stageMask  = PIPELINE_STAGE_NON_PIXEL_SHADER_STAGES | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
             accessMask = VK_ACCESS_SHADER_READ_BIT;
             layout     = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         } break;
 
         case grfx::RESOURCE_STATE_PIXEL_SHADER_RESOURCE: {
-            stageMask  = PIPELINE_STAGE_NON_PIXEL_SHADER_STAGES | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            stageMask  = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
             accessMask = VK_ACCESS_SHADER_READ_BIT;
             layout     = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         } break;

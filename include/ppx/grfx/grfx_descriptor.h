@@ -31,11 +31,12 @@ namespace grfx {
 //!
 struct DescriptorBinding
 {
-    uint32_t               binding         = PPX_VALUE_IGNORED;               //
-    grfx::DescriptorType   type            = grfx::DESCRIPTOR_TYPE_UNDEFINED; //
-    uint32_t               arrayCount      = 1;                               // WARNING: Not VkDescriptorSetLayoutBinding::descriptorCount
-    grfx::ShaderStageBits  shaderVisiblity = grfx::SHADER_STAGE_ALL;          // Single value not set of flags (see note above)
-    DescriptorBindingFlags flags;
+    uint32_t                binding         = PPX_VALUE_IGNORED;               //
+    grfx::DescriptorType    type            = grfx::DESCRIPTOR_TYPE_UNDEFINED; //
+    uint32_t                arrayCount      = 1;                               // WARNING: Not VkDescriptorSetLayoutBinding::descriptorCount
+    grfx::ShaderStageBits   shaderVisiblity = grfx::SHADER_STAGE_ALL;          // Single value not set of flags (see note above)
+    DescriptorBindingFlags  flags;
+    std::vector<SamplerPtr> immutableSamplers;
 
     DescriptorBinding() {}
 

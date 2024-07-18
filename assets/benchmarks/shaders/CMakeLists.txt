@@ -99,3 +99,21 @@ generate_rules_for_shader("shader_benchmark_texture"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_Texture.hlsl"
     INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/VsOutput.hlsli"
     STAGES "ps")
+
+generate_rules_for_shader("shader_foveation_benchmark"
+    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/FoveationBenchmark.hlsl"
+    INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/VsOutput.hlsli"
+    STAGES "vs" "ps")
+
+generate_rules_for_shader("shader_foveation_benchmark_shading_rate_khr"
+    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/FoveationBenchmarkShadingRateKHR.hlsl"
+    INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/VsOutput.hlsli"
+    STAGES "ps")
+
+generate_rules_for_glsl_shader("shader_foveation_benchmark_frag_size_ext_vs"
+    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/FoveationBenchmarkFragSizeEXT.vert"
+    STAGE "vs")
+
+generate_rules_for_glsl_shader("shader_foveation_benchmark_frag_size_ext_ps"
+    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/FoveationBenchmarkFragSizeEXT.frag"
+    STAGE "ps")
