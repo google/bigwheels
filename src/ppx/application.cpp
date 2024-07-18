@@ -726,13 +726,13 @@ void Application::SaveImage(grfx::ImagePtr image, const std::string& filepath, g
     grfx::ImageToBufferOutputPitch outPitch;
     cmdBuf->Begin();
     {
-        cmdBuf->TransitionImageLayout(image, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_PRESENT, grfx::RESOURCE_STATE_COPY_SRC);
+        cmdBuf->TransitionImageLayout(image, PPX_ALL_SUBRESOURCES, resourceState, grfx::RESOURCE_STATE_COPY_SRC);
 
         grfx::ImageToBufferCopyInfo bufCopyInfo = {};
         bufCopyInfo.extent                      = {width, height, 0};
         outPitch                                = cmdBuf->CopyImageToBuffer(&bufCopyInfo, image, screenshotBuf);
 
-        cmdBuf->TransitionImageLayout(image, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_COPY_SRC, grfx::RESOURCE_STATE_PRESENT);
+        cmdBuf->TransitionImageLayout(image, PPX_ALL_SUBRESOURCES, grfx::RESOURCE_STATE_COPY_SRC, resourceState);
     }
     cmdBuf->End();
 
