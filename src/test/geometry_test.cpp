@@ -21,6 +21,12 @@
 namespace ppx {
 namespace {
 
+// The death tests will always fail with NDEBUG (i.e. Release builds).
+// PPX_ASSERT_MSG relies on assert() for death but assert is a no-op with NDEBUG.
+#if !defined(NDEBUG)
+#define PERFORM_DEATH_TESTS
+#endif
+
 using ::testing::IsNull;
 using ::testing::NotNull;
 
@@ -51,6 +57,7 @@ class GeometryTestWithIndexTypeParam : public testing::TestWithParam<grfx::Index
 {
 };
 
+#if defined(PERFORM_DEATH_TESTS)
 using GeometryDeathTest = GeometryTestWithIndexTypeParam;
 
 TEST_P(GeometryDeathTest, AppendIndicesU32DiesIfIndexTypeIsNotU32)
@@ -61,12 +68,13 @@ TEST_P(GeometryDeathTest, AppendIndicesU32DiesIfIndexTypeIsNotU32)
     EXPECT_NE(geometry.GetIndexType(), grfx::INDEX_TYPE_UINT32);
 
     const std::array<uint32_t, 3> indices = {0, 1, 2};
-    ASSERT_DEATH(geometry.AppendIndicesU32(indices.size(), indices.data()), "AppendIndicesU32");
+    ASSERT_DEATH(geometry.AppendIndicesU32(indices.size(), indices.data()), "Assertion.*failed");
 }
 
 INSTANTIATE_TEST_SUITE_P(GeometryDeathTest, GeometryDeathTest, testing::Values(grfx::INDEX_TYPE_UINT16, grfx::INDEX_TYPE_UNDEFINED), [](const testing::TestParamInfo<GeometryDeathTest::ParamType>& info) {
     return ToString(info.param);
 });
+#endif
 
 } // namespace
 } // namespace ppx
