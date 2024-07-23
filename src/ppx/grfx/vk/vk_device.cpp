@@ -470,9 +470,6 @@ void Device::ConfigureVRSShadingRateCapabilities(
         vrsProperties.maxFragmentShadingRateAttachmentTexelSize.width,
         vrsProperties.maxFragmentShadingRateAttachmentTexelSize.height};
 
-    uint32_t& supportedRateCount = pShadingRateCapabilities->vrs.supportedRateCount;
-    Extent2D* supportedRates     = pShadingRateCapabilities->vrs.supportedRates;
-
     VkInstance instance = ToApi(GetInstance())->GetVkInstance();
     mFnGetPhysicalDeviceFragmentShadingRatesKHR =
         reinterpret_cast<PFN_vkGetPhysicalDeviceFragmentShadingRatesKHR>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceFragmentShadingRatesKHR"));
@@ -480,17 +477,19 @@ void Device::ConfigureVRSShadingRateCapabilities(
         mFnGetPhysicalDeviceFragmentShadingRatesKHR != nullptr,
         "ConfigureVRSShadingRateCapabilities: Failed to load vkGetPhysicalDeviceFragmentShadingRatesKHR");
 
-    VkResult vkres = mFnGetPhysicalDeviceFragmentShadingRatesKHR(physicalDevice, &supportedRateCount, nullptr);
+    uint32_t fragmentShadingRateCount = 0;
+    VkResult vkres                    = mFnGetPhysicalDeviceFragmentShadingRatesKHR(physicalDevice, &fragmentShadingRateCount, nullptr);
     PPX_ASSERT_MSG(vkres == VK_SUCCESS, "vkGetPhysicalDeviceFragmentShadingRatesKHR failed");
 
     std::vector<VkPhysicalDeviceFragmentShadingRateKHR> fragmentShadingRates(
-        supportedRateCount, VkPhysicalDeviceFragmentShadingRateKHR{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_KHR});
-    vkres = mFnGetPhysicalDeviceFragmentShadingRatesKHR(physicalDevice, &supportedRateCount, fragmentShadingRates.data());
+        fragmentShadingRateCount, VkPhysicalDeviceFragmentShadingRateKHR{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_KHR});
+    vkres = mFnGetPhysicalDeviceFragmentShadingRatesKHR(physicalDevice, &fragmentShadingRateCount, fragmentShadingRates.data());
     PPX_ASSERT_MSG(vkres == VK_SUCCESS, "vkGetPhysicalDeviceFragmentShadingRatesKHR failed");
 
-    for (uint32_t i = 0; i < supportedRateCount; ++i) {
-        const auto& rate  = fragmentShadingRates[i];
-        supportedRates[i] = {rate.fragmentSize.width, rate.fragmentSize.height};
+    for (const auto& rate : fragmentShadingRates) {
+        auto& supportedRate           = pShadingRateCapabilities->vrs.supportedRates.emplace_back();
+        supportedRate.sampleCountMask = rate.sampleCounts;
+        supportedRate.fragmentSize    = {rate.fragmentSize.width, rate.fragmentSize.height};
     }
 }
 
