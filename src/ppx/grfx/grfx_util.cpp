@@ -90,6 +90,17 @@ const char* ToString(grfx::VertexSemantic value)
     return "";
 }
 
+const char* ToString(grfx::IndexType value)
+{
+    switch (value) {
+        default: break;
+        case grfx::INDEX_TYPE_UNDEFINED: return "INDEX_TYPE_UNDEFINED";
+        case grfx::INDEX_TYPE_UINT16: return "INDEX_TYPE_UINT16";
+        case grfx::INDEX_TYPE_UINT32: return "INDEX_TYPE_UINT32";
+    }
+    return "<unknown grfx::IndexType>";
+}
+
 uint32_t IndexTypeSize(grfx::IndexType value)
 {
     // clang-format off
