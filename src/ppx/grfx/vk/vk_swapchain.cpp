@@ -292,8 +292,9 @@ Result Swapchain::CreateApiObjects(const grfx::SwapchainCreateInfo* pCreateInfo)
             info.format                = ToVkFormat(pCreateInfo->depthFormat);
             info.width                 = pCreateInfo->width;
             info.height                = pCreateInfo->height;
-            info.sampleCount           = xrComponent.GetSampleCount();
-            info.usageFlags            = XR_SWAPCHAIN_USAGE_SAMPLED_BIT | XR_SWAPCHAIN_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+            // Currently not set up to use multisampled swapchain.
+            info.sampleCount = 1;
+            info.usageFlags  = XR_SWAPCHAIN_USAGE_SAMPLED_BIT | XR_SWAPCHAIN_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
             CHECK_XR_CALL(xrCreateSwapchain(xrComponent.GetSession(), &info, &mXrDepthSwapchain));
 
             imageCount = 0;
