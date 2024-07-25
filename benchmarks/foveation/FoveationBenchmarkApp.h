@@ -153,6 +153,7 @@ private:
         std::shared_ptr<KnobFlag<std::string>>         pRenderScreenshotPath;
         std::shared_ptr<KnobFlag<std::string>>         pPostScreenshotPath;
         std::shared_ptr<KnobFlag<int>>                 pExtraHashRounds;
+        std::shared_ptr<KnobFlag<int>>                 pSampleCount;
     } mKnobs;
 
     struct
@@ -174,6 +175,7 @@ private:
         bool                  subsampledImage;
         bool                  showFragmentSize;
         uint32_t              extraHashRounds;
+        grfx::SampleCount     sampleCount;
 
         grfx::DescriptorPoolPtr      descriptorPool;
         grfx::DescriptorSetLayoutPtr descriptorSetLayout;
