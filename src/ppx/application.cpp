@@ -683,7 +683,7 @@ void Application::InitStandardKnobs()
         "target system will cause the application to immediately exit.");
     mStandardOpts.pXrRequiredExtensions->SetFlagParameters("<extension>");
 
-    GetKnobManager().InitKnob(&mStandardOpts.pXrEnableMultiview, "xr-multiview-enabled", mSettings.standardKnobsDefaultValue.xrEnableMultiview);
+    GetKnobManager().InitKnob(&mStandardOpts.pXrEnableMultiview, "xr-enable-multiview", mSettings.standardKnobsDefaultValue.xrEnableMultiview);
     mStandardOpts.pXrEnableMultiview->SetFlagDescription(
         "Specify whether or not multiview should be enabled for the application.");
 #endif
