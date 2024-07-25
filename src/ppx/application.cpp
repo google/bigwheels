@@ -162,7 +162,7 @@ Result Application::InitializeGrfxDevice()
         ci.pVulkanDeviceFeatures  = nullptr;
         ci.supportShadingRateMode = mSettings.grfx.device.supportShadingRateMode;
 #if defined(PPX_BUILD_XR)
-        ci.multiView    = IsXrEnabled() && mSettings.xr.enableMultiView;
+        ci.multiView    = IsXrEnabled() && mStandardOpts.pXrEnableMultiview->GetValue();
         ci.pXrComponent = IsXrEnabled() ? &mXrComponent : nullptr;
 #endif
 
@@ -937,8 +937,6 @@ void Application::UpdateStandardSettings()
         mSettings.xr.uiWidth  = resolution.first;
         mSettings.xr.uiHeight = resolution.second;
     }
-
-    mSettings.xr.enableMultiView = mStandardOpts.pXrEnableMultiview->GetValue();
 #endif
 
     // Disable ImGui in headless or deterministic mode.
@@ -979,7 +977,7 @@ void Application::InitializeXRComponentBeforeGrfxDeviceInit()
         createInfo.enableDebug          = mSettings.grfx.enableDebug;
         createInfo.enableQuadLayer      = mSettings.enableImGui;
         createInfo.enableDepthSwapchain = mSettings.xr.enableDepthSwapchain;
-        createInfo.enableMultiView      = mSettings.xr.enableMultiView;
+        createInfo.enableMultiView      = mStandardOpts.pXrEnableMultiview->GetValue();
         const auto resolution           = mStandardOpts.pResolution->GetValue();
         const bool hasResolutionFlag    = (resolution.first > 0 && resolution.second > 0);
         if (hasResolutionFlag) {
