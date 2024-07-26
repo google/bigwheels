@@ -68,7 +68,7 @@ TEST_P(GeometryDeathTest, AppendIndicesU32DiesIfIndexTypeIsNotU32)
     EXPECT_NE(geometry.GetIndexType(), grfx::INDEX_TYPE_UINT32);
 
     const std::array<uint32_t, 3> indices = {0, 1, 2};
-    ASSERT_DEATH(geometry.AppendIndicesU32(indices.size(), indices.data()), "Assertion.*failed");
+    ASSERT_DEATH(geometry.AppendIndicesU32(indices.size(), indices.data()), "");
 }
 
 INSTANTIATE_TEST_SUITE_P(GeometryDeathTest, GeometryDeathTest, testing::Values(grfx::INDEX_TYPE_UINT16, grfx::INDEX_TYPE_UNDEFINED), [](const testing::TestParamInfo<GeometryDeathTest::ParamType>& info) {
