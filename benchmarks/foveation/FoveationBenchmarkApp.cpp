@@ -59,6 +59,12 @@ void FoveationBenchmarkApp::InitKnobs()
 
     GetKnobManager().InitKnob(&mKnobs.pExtraHashRounds, "extra-hash-rounds", 0);
     mKnobs.pExtraHashRounds->SetFlagDescription("Number of extra hash rounds to execute in the fragment shader.");
+
+    GetKnobManager().InitKnob(&mKnobs.pSampleCount, "sample-count", 1);
+    mKnobs.pSampleCount->SetFlagDescription("Number of samples for multisample rendering. Must be 1, 2 or 4.");
+    mKnobs.pSampleCount->SetValidator([](int sampleCount) {
+        return sampleCount == 1 || sampleCount == 2 || sampleCount == 4;
+    });
 }
 
 void FoveationBenchmarkApp::Config(ppx::ApplicationSettings& settings)
@@ -185,6 +191,7 @@ void FoveationBenchmarkApp::SetupRender()
         createInfo.framebufferSize.width  = mRender.width;
         createInfo.framebufferSize.height = mRender.height;
         createInfo.shadingRateMode        = mRender.shadingRateMode;
+        createInfo.sampleCount            = mRender.sampleCount;
 
         PPX_CHECKED_CALL(GetDevice()->CreateShadingRatePattern(&createInfo, &mRender.shadingRatePattern));
 
@@ -226,6 +233,8 @@ void FoveationBenchmarkApp::SetupRender()
         createInfo.depthStencilClearValue          = dsvClearValue;
         createInfo.pShadingRatePattern             = mRender.shadingRatePattern;
         createInfo.imageCreateFlags                = mRender.subsampledImage;
+        createInfo.sampleCount                     = mRender.sampleCount;
+
         PPX_CHECKED_CALL(GetDevice()->CreateDrawPass(&createInfo, &mRender.drawPass));
     }
 }
@@ -384,6 +393,8 @@ void FoveationBenchmarkApp::Setup()
     mRender.showFragmentSize = mKnobs.pShowFragmentSize->GetValue() && mRender.shadingRateMode != grfx::SHADING_RATE_NONE;
 
     mRender.extraHashRounds = mKnobs.pExtraHashRounds->GetValue();
+
+    mRender.sampleCount = static_cast<grfx::SampleCount>(mKnobs.pSampleCount->GetValue());
 
     SetupSync();
     SetupRender();
