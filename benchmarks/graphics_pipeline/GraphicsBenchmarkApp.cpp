@@ -187,7 +187,7 @@ void GraphicsBenchmarkApp::Config(ppx::ApplicationSettings& settings)
 #if defined(PPX_BUILD_XR)
     // XR specific settings
     settings.grfx.pacedFrameRate = 0;
-    settings.xr.enable           = false; // Change this to true to enable the XR mode
+    settings.xr.enable           = true; // Change this to true to enable the XR mode
 #endif
     settings.standardKnobsDefaultValue.enableMetrics        = true;
     settings.standardKnobsDefaultValue.overwriteMetricsFile = true;
@@ -1393,7 +1393,7 @@ ppx::Result GraphicsBenchmarkApp::CreateOffscreenFrame(OffscreenFrame& frame, gr
     frame = OffscreenFrame{width, height, colorFormat, depthFormat};
     {
         grfx::ImageCreateInfo colorCreateInfo   = grfx::ImageCreateInfo::RenderTarget2D(width, height, colorFormat);
-        colorCreateInfo.initialState            = grfx::RESOURCE_STATE_PRESENT;
+        colorCreateInfo.initialState            = grfx::RESOURCE_STATE_RENDER_TARGET;
         colorCreateInfo.usageFlags.bits.sampled = true;
         ppx::Result ppxres                      = GetDevice()->CreateImage(&colorCreateInfo, &frame.colorImage);
         if (ppxres != ppx::SUCCESS) {
