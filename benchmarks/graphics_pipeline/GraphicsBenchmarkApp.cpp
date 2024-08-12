@@ -44,6 +44,12 @@ const grfx::Api kApi = grfx::API_DX_12_0;
 const grfx::Api kApi = grfx::API_VK_1_1;
 #endif
 
+template <typename T>
+size_t GetPushConstCount(const T&)
+{
+    return sizeof(T) / sizeof(uint32_t);
+}
+
 void GraphicsBenchmarkApp::InitKnobs()
 {
     const auto& cl_options = GetExtraOptions();
@@ -193,7 +199,7 @@ void GraphicsBenchmarkApp::Config(ppx::ApplicationSettings& settings)
 #if defined(PPX_BUILD_XR)
     // XR specific settings
     settings.grfx.pacedFrameRate = 0;
-    settings.xr.enable           = false; // Change this to true to enable the XR mode
+    settings.xr.enable           = true; // Change this to true to enable the XR mode
 #endif
     settings.standardKnobsDefaultValue.enableMetrics        = true;
     settings.standardKnobsDefaultValue.overwriteMetricsFile = true;
@@ -813,10 +819,6 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsPipelines()
         piCreateInfo.setCount                          = 1;
         piCreateInfo.sets[0].set                       = 0;
         piCreateInfo.sets[0].pLayout                   = mFullscreenQuads.descriptorSetLayout;
-
-        // piCreateInfo.pushConstants.count               = (2 * sizeof(uint32_t) + sizeof(float3)) / 4;
-        // piCreateInfo.pushConstants.binding             = 0;
-        // piCreateInfo.pushConstants.set                 = 0;
 
         PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mQuadsPipelineInterfaces[2]));
     }
@@ -1731,7 +1733,7 @@ void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, si
     switch (pFullscreenQuadsType->GetValue()) {
         case FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_NOISE: {
             uint32_t noiseQuadRandomSeed = (uint32_t)seed;
-            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[0], sizeof(uint32_t) / 4, &noiseQuadRandomSeed, sizeof(uint32_t) / 4);
+            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[0], GetPushConstCount(noiseQuadRandomSeed), &noiseQuadRandomSeed, sizeof(uint32_t) / 4);
             break;
         }
         case FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_SOLID_COLOR: {
@@ -1748,11 +1750,10 @@ void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, si
             }
             float3 colorValues = pFullscreenQuadsColor->GetValue();
             colorValues *= intensity;
-            uint32_t inst = pKnobVsAluCount->GetValue();
-            PPX_LOG_INFO("ALU instruction count " << inst);
+            uint32_t instCount = pKnobVsAluCount->GetValue();
 
-            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[1], sizeof(uint32_t) / 4, &inst, 0);
-            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[1], sizeof(float3) / 4, &colorValues, 2 * sizeof(uint32_t) / 4);
+            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[1], GetPushConstCount(instCount), &instCount, 0);
+            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[1], GetPushConstCount(colorValues), &colorValues, 2 * sizeof(uint32_t) / sizeof(uint32_t));
             break;
         }
         case FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_TEXTURE:

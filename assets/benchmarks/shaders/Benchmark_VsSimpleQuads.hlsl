@@ -15,12 +15,12 @@
 #include "VsOutput.hlsli"
 
 float randomCompute(uint32_t instCount, float4 Position) {
-  float ret = frac(sin(Position.x) + cos(Position.y));
-  for (int i = 0; i < instCount; i++) {
-    ret = frac(sin(ret) + cos(ret));
+  float randNum = frac(float(instCount) * 123.456f);
+  for (uint32_t i = 0; i < instCount; i++) {
+    Position.z += Position.x * (1 - randNum) + randNum * Position.y;
   }
 
-  return ret;
+  return frac(Position.z);;
 }
 
 VSOutputPos vsmain(float4 Position : POSITION) {

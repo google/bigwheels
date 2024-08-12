@@ -14,16 +14,6 @@
 
 #include "VsOutput.hlsli"
 
-// struct RandomParams
-// {
-//     uint32_t Seed;
-// };
-
-// #if defined(__spirv__)
-// [[vk::push_constant]]
-// #endif
-// ConstantBuffer<RandomParams> Random : register(b0);
-
 float random(float2 st, uint32_t seed) {
     float underOne = sin(float(seed) + 0.5f);
     float2 randomVector = float2(15.0f + underOne, 15.0f - underOne);
