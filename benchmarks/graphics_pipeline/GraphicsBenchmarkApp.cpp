@@ -17,7 +17,9 @@
 
 #include "ppx/graphics_util.h"
 #include "ppx/grfx/grfx_format.h"
+#include "ppx/math_config.h"
 #include "ppx/timer.h"
+#include <cstdint>
 
 using namespace ppx;
 
@@ -173,6 +175,10 @@ void GraphicsBenchmarkApp::InitKnobs()
         pResolution->SetFlagDescription("Select the size of offscreen framebuffer.");
         pResolution->SetIndent(1);
     }
+
+    GetKnobManager().InitKnob(&pKnobVsAluCount, "vs-alu-instruction-count", /* defaultValue = */ 100, /* minValue = */ 100, 400);
+    pFullscreenQuadsCount->SetDisplayName("Number of ALU instructions in the vertex shader");
+    pFullscreenQuadsCount->SetFlagDescription("Select the number of ALU instructions in the vertex shader.");
 }
 
 void GraphicsBenchmarkApp::Config(ppx::ApplicationSettings& settings)
@@ -785,7 +791,7 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsPipelines()
     {
         grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
         piCreateInfo.setCount                          = 0;
-        piCreateInfo.pushConstants.count               = sizeof(uint32_t) / 4;
+        piCreateInfo.pushConstants.count               = (2 * sizeof(uint32_t) + sizeof(float3)) / 4;
         piCreateInfo.pushConstants.binding             = 0;
         piCreateInfo.pushConstants.set                 = 0;
 
@@ -795,7 +801,7 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsPipelines()
     {
         grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
         piCreateInfo.setCount                          = 0;
-        piCreateInfo.pushConstants.count               = sizeof(float3) / 4;
+        piCreateInfo.pushConstants.count               = (2 * sizeof(uint32_t) + sizeof(float3)) / 4;
         piCreateInfo.pushConstants.binding             = 0;
         piCreateInfo.pushConstants.set                 = 0;
 
@@ -807,6 +813,10 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsPipelines()
         piCreateInfo.setCount                          = 1;
         piCreateInfo.sets[0].set                       = 0;
         piCreateInfo.sets[0].pLayout                   = mFullscreenQuads.descriptorSetLayout;
+
+        // piCreateInfo.pushConstants.count               = (2 * sizeof(uint32_t) + sizeof(float3)) / 4;
+        // piCreateInfo.pushConstants.binding             = 0;
+        // piCreateInfo.pushConstants.set                 = 0;
 
         PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mQuadsPipelineInterfaces[2]));
     }
@@ -1393,7 +1403,7 @@ ppx::Result GraphicsBenchmarkApp::CreateOffscreenFrame(OffscreenFrame& frame, gr
     frame = OffscreenFrame{width, height, colorFormat, depthFormat};
     {
         grfx::ImageCreateInfo colorCreateInfo   = grfx::ImageCreateInfo::RenderTarget2D(width, height, colorFormat);
-        colorCreateInfo.initialState            = grfx::RESOURCE_STATE_PRESENT;
+        colorCreateInfo.initialState            = grfx::RESOURCE_STATE_RENDER_TARGET;
         colorCreateInfo.usageFlags.bits.sampled = true;
         ppx::Result ppxres                      = GetDevice()->CreateImage(&colorCreateInfo, &frame.colorImage);
         if (ppxres != ppx::SUCCESS) {
@@ -1721,7 +1731,7 @@ void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, si
     switch (pFullscreenQuadsType->GetValue()) {
         case FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_NOISE: {
             uint32_t noiseQuadRandomSeed = (uint32_t)seed;
-            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[0], 1, &noiseQuadRandomSeed);
+            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[0], sizeof(uint32_t) / 4, &noiseQuadRandomSeed, sizeof(uint32_t) / 4);
             break;
         }
         case FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_SOLID_COLOR: {
@@ -1738,7 +1748,11 @@ void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, si
             }
             float3 colorValues = pFullscreenQuadsColor->GetValue();
             colorValues *= intensity;
-            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[1], 3, &colorValues);
+            uint32_t inst = pKnobVsAluCount->GetValue();
+            PPX_LOG_INFO("ALU instruction count " << inst);
+
+            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[1], sizeof(uint32_t) / 4, &inst, 0);
+            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[1], sizeof(float3) / 4, &colorValues, 2 * sizeof(uint32_t) / 4);
             break;
         }
         case FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_TEXTURE:

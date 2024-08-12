@@ -14,7 +14,7 @@
 
 #include "VsOutput.hlsli"
 
-Texture2D Tex0 : register(t0);
+Texture2D Tex0 : register(t1);
 
 float4 psmain(VSOutputPos input) : SV_TARGET
 {

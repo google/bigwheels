@@ -14,15 +14,15 @@
 
 #include "VsOutput.hlsli"
 
-struct RandomParams
-{
-    uint32_t Seed;
-};
+// struct RandomParams
+// {
+//     uint32_t Seed;
+// };
 
-#if defined(__spirv__)
-[[vk::push_constant]]
-#endif
-ConstantBuffer<RandomParams> Random : register(b0);
+// #if defined(__spirv__)
+// [[vk::push_constant]]
+// #endif
+// ConstantBuffer<RandomParams> Random : register(b0);
 
 float random(float2 st, uint32_t seed) {
     float underOne = sin(float(seed) + 0.5f);
@@ -32,6 +32,6 @@ float random(float2 st, uint32_t seed) {
 
 float4 psmain(VSOutputPos input) : SV_TARGET
 {
-    float rnd = random(input.position.xy, Random.Seed);
+    float rnd = random(input.position.xy, Config.RandomSeed);
     return float4(rnd, rnd, rnd, 1.0f);
 }

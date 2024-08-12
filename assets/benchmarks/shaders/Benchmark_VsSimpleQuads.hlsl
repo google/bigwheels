@@ -14,9 +14,18 @@
 
 #include "VsOutput.hlsli"
 
-VSOutputPos vsmain(float4 Position : POSITION)
-{
-	VSOutputPos result;
-	result.position = Position;
-	return result;
+float randomCompute(uint32_t instCount, float4 Position) {
+  float ret = frac(sin(Position.x) + cos(Position.y));
+  for (int i = 0; i < instCount; i++) {
+    ret = frac(sin(ret) + cos(ret));
+  }
+
+  return ret;
+}
+
+VSOutputPos vsmain(float4 Position : POSITION) {
+  VSOutputPos result;
+  result.position = Position;
+  result.position.z = randomCompute(Config.InstCount, result.position);
+  return result;
 }

@@ -14,17 +14,7 @@
 
 #include "VsOutput.hlsli"
 
-struct ColorParams
-{
-    float3 Value;
-};
-
-#if defined(__spirv__)
-[[vk::push_constant]]
-#endif
-ConstantBuffer<ColorParams> Color : register(b0);
-
 float4 psmain(VSOutputPos input) : SV_TARGET
 {
-    return float4(Color.Value, 1.0f);
+    return float4(Config.Color.Value, 1.0f);
 }
