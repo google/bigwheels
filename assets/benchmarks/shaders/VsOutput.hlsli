@@ -15,23 +15,9 @@
 #ifndef BENCHMARKS_VS_OUTPUT_HLSLI
 #define BENCHMARKS_VS_OUTPUT_HLSLI
 
-struct ColorParams {
-  float3 Value;
-};
-
-struct ConfigParams {
-  uint32_t InstCount;
-  uint32_t RandomSeed;
-  ColorParams Color;
-};
-
-#if defined(__spirv__)
-[[vk::push_constant]]
-#endif
-ConstantBuffer<ConfigParams> Config : register(b0);
-
-struct VSOutputPos {
-  float4 position : SV_POSITION;
+struct VSOutputPos
+{
+    float4 position : SV_POSITION;
 };
 
 #endif // BENCHMARKS_VS_OUTPUT_HLSLI

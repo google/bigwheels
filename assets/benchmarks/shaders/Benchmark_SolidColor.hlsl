@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "VsOutput.hlsli"
+#include "Benchmark_Quad.hlsli"
 
 float4 psmain(VSOutputPos input) : SV_TARGET
 {
-    return float4(Config.Color.Value, 1.0f);
+    return float4(Config.ColorValue, 1.0f);
 }

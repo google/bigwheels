@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "VsOutput.hlsli"
+#include "Benchmark_Quad.hlsli"
 
 float randomCompute(uint32_t instCount, float4 Position) {
   float randNum = frac(float(instCount) * 123.456f);

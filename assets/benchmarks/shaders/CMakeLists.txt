@@ -82,22 +82,22 @@ generate_rules_for_shader("shader_benchmark_skybox"
 
 generate_rules_for_shader("shader_benchmark_vs_simple_quads"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_VsSimpleQuads.hlsl"
-    INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/VsOutput.hlsli"
+    INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_Quad.hlsli"
     STAGES "vs")
 
 generate_rules_for_shader("shader_benchmark_random_noise"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_RandomNoise.hlsl"
-    INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/VsOutput.hlsli"
+    INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_Quad.hlsli"
     STAGES "ps")
 
 generate_rules_for_shader("shader_benchmark_solid_color"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_SolidColor.hlsl"
-    INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/VsOutput.hlsli"
+    INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_Quad.hlsli"
     STAGES "ps")
 
 generate_rules_for_shader("shader_benchmark_texture"
     SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_Texture.hlsl"
-    INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/VsOutput.hlsli"
+    INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_Quad.hlsli"
     STAGES "ps")
 
 generate_rules_for_shader("shader_foveation_benchmark"

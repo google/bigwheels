@@ -36,7 +36,8 @@ static constexpr size_t SPHERE_NORMAL_SAMPLER_REGISTER                = 5;
 static constexpr size_t SPHERE_METAL_ROUGHNESS_SAMPLED_IMAGE_REGISTER = 6;
 static constexpr size_t SPHERE_METAL_ROUGHNESS_SAMPLER_REGISTER       = 7;
 
-static constexpr size_t QUADS_SAMPLED_IMAGE_REGISTER = 0;
+static constexpr size_t QUADS_CONFIG_UNIFORM_BUFFER_REGISTER = 0;
+static constexpr size_t QUADS_SAMPLED_IMAGE_REGISTER         = 1;
 
 #if defined(USE_DX12)
 const grfx::Api kApi = grfx::API_DX_12_0;
@@ -797,8 +798,8 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsPipelines()
     {
         grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
         piCreateInfo.setCount                          = 0;
-        piCreateInfo.pushConstants.count               = (2 * sizeof(uint32_t) + sizeof(float3)) / 4;
-        piCreateInfo.pushConstants.binding             = 0;
+        piCreateInfo.pushConstants.count               = GetPushConstCount(mQuadPushConstant);
+        piCreateInfo.pushConstants.binding             = QUADS_CONFIG_UNIFORM_BUFFER_REGISTER;
         piCreateInfo.pushConstants.set                 = 0;
 
         PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mQuadsPipelineInterfaces[0]));
@@ -807,8 +808,8 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsPipelines()
     {
         grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
         piCreateInfo.setCount                          = 0;
-        piCreateInfo.pushConstants.count               = (2 * sizeof(uint32_t) + sizeof(float3)) / 4;
-        piCreateInfo.pushConstants.binding             = 0;
+        piCreateInfo.pushConstants.count               = GetPushConstCount(mQuadPushConstant);
+        piCreateInfo.pushConstants.binding             = QUADS_CONFIG_UNIFORM_BUFFER_REGISTER;
         piCreateInfo.pushConstants.set                 = 0;
 
         PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mQuadsPipelineInterfaces[1]));
@@ -819,6 +820,9 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsPipelines()
         piCreateInfo.setCount                          = 1;
         piCreateInfo.sets[0].set                       = 0;
         piCreateInfo.sets[0].pLayout                   = mFullscreenQuads.descriptorSetLayout;
+        piCreateInfo.pushConstants.count               = GetPushConstCount(mQuadPushConstant);
+        piCreateInfo.pushConstants.binding             = QUADS_CONFIG_UNIFORM_BUFFER_REGISTER;
+        piCreateInfo.pushConstants.set                 = 0;
 
         PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mQuadsPipelineInterfaces[2]));
     }
@@ -1730,10 +1734,15 @@ void GraphicsBenchmarkApp::RecordCommandBufferSpheres(PerFrame& frame)
 
 void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, size_t seed)
 {
+    // Vertex shader push constant
+    {
+        mQuadPushConstant.InstCount = pKnobVsAluCount->GetValue();
+        frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[0], GetPushConstCount(mQuadPushConstant.InstCount), &mQuadPushConstant.InstCount, offsetof(QuadPushConstant, InstCount) / sizeof(uint32_t));
+    }
     switch (pFullscreenQuadsType->GetValue()) {
         case FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_NOISE: {
-            uint32_t noiseQuadRandomSeed = (uint32_t)seed;
-            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[0], GetPushConstCount(noiseQuadRandomSeed), &noiseQuadRandomSeed, sizeof(uint32_t) / 4);
+            mQuadPushConstant.RandomSeed = seed;
+            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[0], GetPushConstCount(mQuadPushConstant.RandomSeed), &mQuadPushConstant.RandomSeed, offsetof(QuadPushConstant, RandomSeed) / sizeof(uint32_t));
             break;
         }
         case FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_SOLID_COLOR: {
@@ -1750,10 +1759,8 @@ void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, si
             }
             float3 colorValues = pFullscreenQuadsColor->GetValue();
             colorValues *= intensity;
-            uint32_t instCount = pKnobVsAluCount->GetValue();
-
-            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[1], GetPushConstCount(instCount), &instCount, 0);
-            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[1], GetPushConstCount(colorValues), &colorValues, 2 * sizeof(uint32_t) / sizeof(uint32_t));
+            mQuadPushConstant.ColorValue = colorValues;
+            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[0], GetPushConstCount(mQuadPushConstant.ColorValue), &mQuadPushConstant.ColorValue, offsetof(QuadPushConstant, ColorValue) / sizeof(uint32_t));
             break;
         }
         case FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_TEXTURE:
@@ -1762,6 +1769,7 @@ void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, si
             PPX_ASSERT_MSG(true, "unsupported FullscreenQuadsType: " << static_cast<int>(pFullscreenQuadsType->GetValue()));
             break;
     }
+
     frame.cmd->Draw(3, 1, 0, 0);
 }
 

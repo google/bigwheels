@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "VsOutput.hlsli"
+#include "Benchmark_Quad.hlsli"
 
-Texture2D Tex0 : register(t1);
+Texture2D Tex0 : register(t1);  // Slot 0 is used by push constant.
 
 float4 psmain(VSOutputPos input) : SV_TARGET
 {
