@@ -485,9 +485,7 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsResources()
     // Descriptor set layout for texture shader
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-        for (int i = 0; i < kMaxTextureCount; i++) {
-            layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(QUADS_SAMPLED_IMAGE_REGISTER + i, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
-        }
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(QUADS_SAMPLED_IMAGE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, kMaxTextureCount));
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mFullscreenQuads.descriptorSetLayout));
     }
 
@@ -552,7 +550,7 @@ void GraphicsBenchmarkApp::UpdateFullscreenQuadsDescriptors()
     for (size_t i = 0; i < n; i++) {
         grfx::DescriptorSetPtr pDescriptorSet = mFullscreenQuads.descriptorSets[i];
         for (uint32_t j = 0; j < kMaxTextureCount; j++) {
-            PPX_CHECKED_CALL(pDescriptorSet->UpdateSampledImage(QUADS_SAMPLED_IMAGE_REGISTER + j, 0, mQuadsTextures[j]));
+            PPX_CHECKED_CALL(pDescriptorSet->UpdateSampledImage(QUADS_SAMPLED_IMAGE_REGISTER, j, mQuadsTextures[j]));
         }
     }
 }
