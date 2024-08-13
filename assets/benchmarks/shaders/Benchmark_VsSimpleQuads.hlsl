@@ -14,15 +14,6 @@
 
 #include "Benchmark_Quad.hlsli"
 
-float randomCompute(uint32_t instCount, float4 Position) {
-  float randNum = frac(float(instCount) * 123.456f);
-  for (uint32_t i = 0; i < instCount; i++) {
-    Position.z += Position.x * (1 - randNum) + randNum * Position.y;
-  }
-
-  return frac(Position.z);;
-}
-
 VSOutputPos vsmain(float4 Position : POSITION) {
   VSOutputPos result;
   result.position = Position;

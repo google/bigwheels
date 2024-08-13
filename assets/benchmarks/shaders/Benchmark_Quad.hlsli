@@ -30,4 +30,13 @@ struct VSOutputPos {
   float4 position : SV_POSITION;
 };
 
-#endif // BENCHMARKS_VS_OUTPUT_HLSLI
+float randomCompute(uint32_t instCount, float4 Position) {
+  float randNum = frac(float(instCount) * 123.456f);
+  for (uint32_t i = 0; i < instCount; i++) {
+    Position.z += Position.x * (1 - randNum) + randNum * Position.y;
+  }
+
+  return frac(Position.z);;
+}
+
+#endif // BENCHMARKS_QUAD_HLSLI

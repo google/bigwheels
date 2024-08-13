@@ -183,9 +183,9 @@ void GraphicsBenchmarkApp::InitKnobs()
         pResolution->SetIndent(1);
     }
 
-    GetKnobManager().InitKnob(&pKnobVsAluCount, "vs-alu-instruction-count", /* defaultValue = */ 100, /* minValue = */ 100, 400);
-    pFullscreenQuadsCount->SetDisplayName("Number of ALU instructions in the vertex shader");
-    pFullscreenQuadsCount->SetFlagDescription("Select the number of ALU instructions in the vertex shader.");
+    GetKnobManager().InitKnob(&pKnobAluCount, "alu-instruction-count", /* defaultValue = */ 100, /* minValue = */ 100, 400);
+    pKnobAluCount->SetDisplayName("Number of ALU instructions in the shader");
+    pKnobAluCount->SetFlagDescription("Select the number of ALU instructions in the shader.");
 }
 
 void GraphicsBenchmarkApp::Config(ppx::ApplicationSettings& settings)
@@ -1736,7 +1736,7 @@ void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, si
 {
     // Vertex shader push constant
     {
-        mQuadPushConstant.InstCount = pKnobVsAluCount->GetValue();
+        mQuadPushConstant.InstCount = pKnobAluCount->GetValue();
         frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[0], GetPushConstCount(mQuadPushConstant.InstCount), &mQuadPushConstant.InstCount, offsetof(QuadPushConstant, InstCount) / sizeof(uint32_t));
     }
     switch (pFullscreenQuadsType->GetValue()) {

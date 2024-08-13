@@ -528,7 +528,7 @@ private:
     std::shared_ptr<KnobDropdown<grfx::Format>>        pFramebufferFormat;
     std::shared_ptr<KnobDropdown<std::pair<int, int>>> pResolution;
 
-    std::shared_ptr<KnobFlag<int>> pKnobVsAluCount;
+    std::shared_ptr<KnobFlag<int>> pKnobAluCount;
 
 private:
     // =====================================================================
