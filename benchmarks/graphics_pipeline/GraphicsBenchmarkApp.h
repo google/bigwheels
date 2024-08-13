@@ -427,6 +427,14 @@ private:
         grfx::FullscreenQuadPtr      quad;
     };
 
+    // Needs to match with the definition at assets/benchmarks/shaders/Benchmark_Quad.hlsli
+    struct QuadPushConstant
+    {
+        uint32_t InstCount;
+        uint32_t RandomSeed;
+        float3   ColorValue;
+    };
+
 private:
     using SpherePipelineMap = std::unordered_map<SpherePipelineKey, grfx::GraphicsPipelinePtr, SpherePipelineKey::Hash>;
     using SkyboxPipelineMap = std::unordered_map<SkyBoxPipelineKey, grfx::GraphicsPipelinePtr, SkyBoxPipelineKey::Hash>;
@@ -492,6 +500,8 @@ private:
     // This is used to skip first several frames after the knob of quad count being changed
     uint32_t mSkipRecordBandwidthMetricFrameCounter = 0;
 
+    QuadPushConstant mQuadPushConstant;
+
 private:
     std::shared_ptr<KnobCheckbox>              pEnableSkyBox;
     std::shared_ptr<KnobCheckbox>              pEnableSpheres;
@@ -517,6 +527,8 @@ private:
     std::shared_ptr<KnobCheckbox>                      pBlitOffscreen;
     std::shared_ptr<KnobDropdown<grfx::Format>>        pFramebufferFormat;
     std::shared_ptr<KnobDropdown<std::pair<int, int>>> pResolution;
+
+    std::shared_ptr<KnobFlag<int>> pKnobAluCount;
 
 private:
     // =====================================================================

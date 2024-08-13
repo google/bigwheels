@@ -12,19 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "VsOutput.hlsli"
-
-struct ColorParams
-{
-    float3 Value;
-};
-
-#if defined(__spirv__)
-[[vk::push_constant]]
-#endif
-ConstantBuffer<ColorParams> Color : register(b0);
+#include "Benchmark_Quad.hlsli"
 
 float4 psmain(VSOutputPos input) : SV_TARGET
 {
-    return float4(Color.Value, 1.0f);
+    float4 color = float4(Config.ColorValue, 1.0f);
+    color.a = randomCompute(Config.InstCount, input.position); 
+    return color;
 }
