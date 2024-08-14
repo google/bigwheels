@@ -16,6 +16,7 @@
 #include "SphereMesh.h"
 
 #include "ppx/graphics_util.h"
+#include "ppx/grfx/grfx_enums.h"
 #include "ppx/grfx/grfx_format.h"
 #include "ppx/math_config.h"
 #include "ppx/timer.h"
@@ -778,7 +779,7 @@ Result GraphicsBenchmarkApp::CompilePipeline(const QuadPipelineKey& key)
     gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CW;
     gpCreateInfo.depthReadEnable                    = false;
     gpCreateInfo.depthWriteEnable                   = false;
-    gpCreateInfo.blendModes[0]                      = pKnobDisablePsOutput->GetValue() ? grfx::BLEND_MODE_PREMULT_ALPHA : grfx::BLEND_MODE_NONE;
+    gpCreateInfo.blendModes[0]                      = pKnobDisablePsOutput->GetValue() ? grfx::BLEND_MODE_BENCHMARK_DISABLE_OUTPUT : grfx::BLEND_MODE_NONE;
     gpCreateInfo.outputState.renderTargetCount      = 1;
     gpCreateInfo.outputState.renderTargetFormats[0] = key.renderFormat;
     gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();

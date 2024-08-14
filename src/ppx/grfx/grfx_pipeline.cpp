@@ -15,6 +15,7 @@
 #include "ppx/grfx/grfx_device.h"
 #include "ppx/grfx/grfx_pipeline.h"
 #include "ppx/grfx/grfx_descriptor.h"
+#include "ppx/grfx/grfx_enums.h"
 
 namespace ppx {
 namespace grfx {
@@ -83,6 +84,21 @@ grfx::BlendAttachmentState BlendAttachmentState::BlendModeUnder()
 }
 
 grfx::BlendAttachmentState BlendAttachmentState::BlendModePremultAlpha()
+{
+    grfx::BlendAttachmentState state = {};
+    state.blendEnable                = true;
+    state.srcColorBlendFactor        = grfx::BLEND_FACTOR_ONE;
+    state.dstColorBlendFactor        = grfx::BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    state.colorBlendOp               = grfx::BLEND_OP_ADD;
+    state.srcAlphaBlendFactor        = grfx::BLEND_FACTOR_ONE;
+    state.dstAlphaBlendFactor        = grfx::BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    state.alphaBlendOp               = grfx::BLEND_OP_ADD;
+    state.colorWriteMask             = grfx::ColorComponentFlags::RGBA();
+
+    return state;
+}
+
+grfx::BlendAttachmentState BlendAttachmentState::BlendModeBenchmarkDisableOutput()
 {
     grfx::BlendAttachmentState state = {};
     state.blendEnable                = false;
@@ -177,6 +193,9 @@ void FillOutGraphicsPipelineCreateInfo(
                 case grfx::BLEND_MODE_PREMULT_ALPHA: {
                     pDstCreateInfo->colorBlendState.blendAttachments[i] = grfx::BlendAttachmentState::BlendModePremultAlpha();
                 } break;
+                case grfx::BLEND_MODE_BENCHMARK_DISABLE_OUTPUT: {
+                    pDstCreateInfo->colorBlendState.blendAttachments[i] = grfx::BlendAttachmentState::BlendModeBenchmarkDisableOutput();
+                }
             }
         }
     }
