@@ -38,6 +38,7 @@ static constexpr size_t SPHERE_METAL_ROUGHNESS_SAMPLER_REGISTER       = 7;
 
 static constexpr size_t QUADS_CONFIG_UNIFORM_BUFFER_REGISTER = 0;
 static constexpr size_t QUADS_SAMPLED_IMAGE_REGISTER         = 1;
+static constexpr size_t QUADS_DUMMY_BUFFER_REGISTER          = QUADS_SAMPLED_IMAGE_REGISTER + kMaxTextureCount;
 
 #if defined(USE_DX12)
 const grfx::Api kApi = grfx::API_DX_12_0;
@@ -190,6 +191,10 @@ void GraphicsBenchmarkApp::InitKnobs()
     GetKnobManager().InitKnob(&pKnobTextureCount, "texture-count", /* defaultValue = */ 1, /* minValue = */ 1, kMaxTextureCount);
     pKnobTextureCount->SetDisplayName("Number of texture to load in the shader");
     pKnobTextureCount->SetFlagDescription("Select the number of texture to load in the shader.");
+
+    GetKnobManager().InitKnob(&pKnobDisablePsOutput, "disable-ps-output", false);
+    pKnobDisablePsOutput->SetDisplayName("Disable PS output");
+    pKnobDisablePsOutput->SetFlagDescription("Disable PS output.");
 }
 
 void GraphicsBenchmarkApp::Config(ppx::ApplicationSettings& settings)
@@ -243,6 +248,7 @@ void GraphicsBenchmarkApp::Setup()
         createInfo.sampler                        = 5 * GetNumFramesInFlight();  // 1 for skybox, 3 for spheres, 1 for blit
         createInfo.sampledImage                   = 15 * GetNumFramesInFlight(); // 1 for skybox, 3 for spheres, 10 for quads, 1 for blit
         createInfo.uniformBuffer                  = 2 * GetNumFramesInFlight();  // 1 for skybox, 1 for spheres
+        createInfo.structuredBuffer               = 1;                           // 1 for quads dummy buffer
 
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&createInfo, &mDescriptorPool));
     }
@@ -482,10 +488,22 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsResources()
         }
     }
 
+    // dummy buffer
+    {
+        grfx::BufferCreateInfo bufferCreateInfo             = {};
+        bufferCreateInfo.size                               = PPX_MINIMUM_STRUCTURED_BUFFER_SIZE;
+        bufferCreateInfo.structuredElementStride            = static_cast<uint32_t>(sizeof(float));
+        bufferCreateInfo.usageFlags.bits.rwStructuredBuffer = true;
+        bufferCreateInfo.memoryUsage                        = grfx::MEMORY_USAGE_GPU_ONLY;
+        bufferCreateInfo.initialState                       = grfx::RESOURCE_STATE_GENERAL;
+        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mQuadsDummyBuffer));
+    }
+
     // Descriptor set layout for texture shader
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(QUADS_SAMPLED_IMAGE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, kMaxTextureCount));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(QUADS_DUMMY_BUFFER_REGISTER, grfx::DESCRIPTOR_TYPE_RW_STRUCTURED_BUFFER));
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mFullscreenQuads.descriptorSetLayout));
     }
 
@@ -552,6 +570,15 @@ void GraphicsBenchmarkApp::UpdateFullscreenQuadsDescriptors()
         for (uint32_t j = 0; j < kMaxTextureCount; j++) {
             PPX_CHECKED_CALL(pDescriptorSet->UpdateSampledImage(QUADS_SAMPLED_IMAGE_REGISTER, j, mQuadsTextures[j]));
         }
+        grfx::WriteDescriptor write  = {};
+        write.binding                = QUADS_DUMMY_BUFFER_REGISTER;
+        write.arrayIndex             = 0;
+        write.type                   = grfx::DESCRIPTOR_TYPE_RW_STRUCTURED_BUFFER;
+        write.bufferOffset           = 0;
+        write.bufferRange            = PPX_WHOLE_SIZE;
+        write.structuredElementCount = 1;
+        write.pBuffer                = mQuadsDummyBuffer;
+        PPX_CHECKED_CALL(pDescriptorSet->UpdateDescriptors(1, &write));
     }
 }
 
@@ -751,7 +778,7 @@ Result GraphicsBenchmarkApp::CompilePipeline(const QuadPipelineKey& key)
     gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CW;
     gpCreateInfo.depthReadEnable                    = false;
     gpCreateInfo.depthWriteEnable                   = false;
-    gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
+    gpCreateInfo.blendModes[0]                      = pKnobDisablePsOutput->GetValue() ? grfx::BLEND_MODE_PREMULT_ALPHA : grfx::BLEND_MODE_NONE;
     gpCreateInfo.outputState.renderTargetCount      = 1;
     gpCreateInfo.outputState.renderTargetFormats[0] = key.renderFormat;
     gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
