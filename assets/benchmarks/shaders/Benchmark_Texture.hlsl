@@ -14,9 +14,15 @@
 
 #include "Benchmark_Quad.hlsli"
 
-Texture2D Tex0 : register(t1);  // Slot 0 is used by push constant.
+Texture2D Tex[10]  : register(t1);  // Slot 0 is used by push constant.
 
 float4 psmain(VSOutputPos input) : SV_TARGET
 {
-    return Tex0.Load(uint3(input.position.x, input.position.y, /* mipmap */ 0));
+    uint32_t textureCount = Config.TextureCount;
+    float4 color = {0.0f, 0.0f, 0.0f, 0.0f};
+    for(uint32_t i = 0; i < textureCount; i++)
+    {
+        color += Tex[i].Load(uint3(input.position.x, input.position.y, 0))/float(textureCount);
+    }
+    return color;
 }

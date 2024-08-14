@@ -186,6 +186,10 @@ void GraphicsBenchmarkApp::InitKnobs()
     GetKnobManager().InitKnob(&pKnobAluCount, "alu-instruction-count", /* defaultValue = */ 100, /* minValue = */ 100, 400);
     pKnobAluCount->SetDisplayName("Number of ALU instructions in the shader");
     pKnobAluCount->SetFlagDescription("Select the number of ALU instructions in the shader.");
+
+    GetKnobManager().InitKnob(&pKnobTextureCount, "texture-count", /* defaultValue = */ 1, /* minValue = */ 1, kMaxTextureCount);
+    pKnobTextureCount->SetDisplayName("Number of texture to load in the shader");
+    pKnobTextureCount->SetFlagDescription("Select the number of texture to load in the shader.");
 }
 
 void GraphicsBenchmarkApp::Config(ppx::ApplicationSettings& settings)
@@ -236,9 +240,9 @@ void GraphicsBenchmarkApp::Setup()
     // Descriptor Pool
     {
         grfx::DescriptorPoolCreateInfo createInfo = {};
-        createInfo.sampler                        = 5 * GetNumFramesInFlight(); // 1 for skybox, 3 for spheres, 1 for blit
-        createInfo.sampledImage                   = 6 * GetNumFramesInFlight(); // 1 for skybox, 3 for spheres, 1 for quads, 1 for blit
-        createInfo.uniformBuffer                  = 2 * GetNumFramesInFlight(); // 1 for skybox, 1 for spheres
+        createInfo.sampler                        = 5 * GetNumFramesInFlight();  // 1 for skybox, 3 for spheres, 1 for blit
+        createInfo.sampledImage                   = 15 * GetNumFramesInFlight(); // 1 for skybox, 3 for spheres, 10 for quads, 1 for blit
+        createInfo.uniformBuffer                  = 2 * GetNumFramesInFlight();  // 1 for skybox, 1 for spheres
 
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&createInfo, &mDescriptorPool));
     }
@@ -472,13 +476,16 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsResources()
     {
         // Large resolution image
         grfx_util::TextureOptions options = grfx_util::TextureOptions().MipLevelCount(1);
-        PPX_CHECKED_CALL(CreateTextureFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath(pQuadTextureFile->GetValue()), &mQuadsTexture, options));
+        for (uint32_t i = 0; i < kMaxTextureCount; i++) {
+            // Load the same image.
+            PPX_CHECKED_CALL(CreateTextureFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath(pQuadTextureFile->GetValue()), &mQuadsTextures[i], options));
+        }
     }
 
     // Descriptor set layout for texture shader
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(QUADS_SAMPLED_IMAGE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(QUADS_SAMPLED_IMAGE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, kMaxTextureCount));
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mFullscreenQuads.descriptorSetLayout));
     }
 
@@ -542,7 +549,9 @@ void GraphicsBenchmarkApp::UpdateFullscreenQuadsDescriptors()
     uint32_t n = GetNumFramesInFlight();
     for (size_t i = 0; i < n; i++) {
         grfx::DescriptorSetPtr pDescriptorSet = mFullscreenQuads.descriptorSets[i];
-        PPX_CHECKED_CALL(pDescriptorSet->UpdateSampledImage(QUADS_SAMPLED_IMAGE_REGISTER, 0, mQuadsTexture));
+        for (uint32_t j = 0; j < kMaxTextureCount; j++) {
+            PPX_CHECKED_CALL(pDescriptorSet->UpdateSampledImage(QUADS_SAMPLED_IMAGE_REGISTER, j, mQuadsTextures[j]));
+        }
     }
 }
 
@@ -1764,6 +1773,9 @@ void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, si
             break;
         }
         case FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_TEXTURE:
+            mQuadPushConstant.TextureCount = pKnobTextureCount->GetValue();
+            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[0], GetPushConstCount(mQuadPushConstant.TextureCount), &mQuadPushConstant.TextureCount, offsetof(QuadPushConstant, TextureCount) / sizeof(uint32_t));
+
             break;
         default:
             PPX_ASSERT_MSG(true, "unsupported FullscreenQuadsType: " << static_cast<int>(pFullscreenQuadsType->GetValue()));

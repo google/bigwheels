@@ -34,12 +34,13 @@ static constexpr uint32_t kMaxSphereInstanceCount     = 3000;
 static constexpr uint32_t kDefaultSphereInstanceCount = 50;
 static constexpr uint32_t kSeed                       = 89977;
 static constexpr uint32_t kMaxFullscreenQuadsCount    = 1000;
+static constexpr uint32_t kMaxTextureCount            = 10;
 
 static constexpr float4   kDefaultDrawCallColor        = float4(1.0f, 0.175f, 0.365f, 0.5f);
 static constexpr uint32_t kDebugColorPushConstantCount = sizeof(float4) / sizeof(uint32_t);
 
 static constexpr const char* kShaderBaseDir   = "benchmarks/shaders";
-static constexpr const char* kQuadTextureFile = "benchmarks/textures/resolution.jpg";
+static constexpr const char* kQuadTextureFile = "benchmarks/textures/tiger.jpg";
 
 enum class DebugView
 {
@@ -432,6 +433,7 @@ private:
     {
         uint32_t InstCount;
         uint32_t RandomSeed;
+        uint32_t TextureCount;
         float3   ColorValue;
     };
 
@@ -478,7 +480,7 @@ private:
     // Fullscreen quads resources
     Entity2D                                                             mFullscreenQuads;
     grfx::ShaderModulePtr                                                mVSQuads;
-    grfx::TexturePtr                                                     mQuadsTexture;
+    std::array<grfx::TexturePtr, kMaxTextureCount>                       mQuadsTextures;
     QuadPipelineMap                                                      mQuadsPipelines;
     std::array<grfx::PipelineInterfacePtr, kFullscreenQuadsTypes.size()> mQuadsPipelineInterfaces;
     std::array<grfx::ShaderModulePtr, kFullscreenQuadsTypes.size()>      mQuadsPs;
@@ -529,6 +531,7 @@ private:
     std::shared_ptr<KnobDropdown<std::pair<int, int>>> pResolution;
 
     std::shared_ptr<KnobFlag<int>> pKnobAluCount;
+    std::shared_ptr<KnobFlag<int>> pKnobTextureCount;
 
 private:
     // =====================================================================
