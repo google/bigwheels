@@ -98,7 +98,7 @@ grfx::BlendAttachmentState BlendAttachmentState::BlendModePremultAlpha()
     return state;
 }
 
-grfx::BlendAttachmentState BlendAttachmentState::BlendModeBenchmarkDisableOutput()
+grfx::BlendAttachmentState BlendAttachmentState::BlendModeDisableOutput()
 {
     grfx::BlendAttachmentState state = {};
     state.blendEnable                = false;
@@ -193,8 +193,8 @@ void FillOutGraphicsPipelineCreateInfo(
                 case grfx::BLEND_MODE_PREMULT_ALPHA: {
                     pDstCreateInfo->colorBlendState.blendAttachments[i] = grfx::BlendAttachmentState::BlendModePremultAlpha();
                 } break;
-                case grfx::BLEND_MODE_BENCHMARK_DISABLE_OUTPUT: {
-                    pDstCreateInfo->colorBlendState.blendAttachments[i] = grfx::BlendAttachmentState::BlendModeBenchmarkDisableOutput();
+                case grfx::BLEND_MODE_DISABLE_OUTPUT: {
+                    pDstCreateInfo->colorBlendState.blendAttachments[i] = grfx::BlendAttachmentState::BlendModeDisableOutput();
                 }
             }
         }

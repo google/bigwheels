@@ -779,7 +779,7 @@ Result GraphicsBenchmarkApp::CompilePipeline(const QuadPipelineKey& key)
     gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CW;
     gpCreateInfo.depthReadEnable                    = false;
     gpCreateInfo.depthWriteEnable                   = false;
-    gpCreateInfo.blendModes[0]                      = pKnobDisablePsOutput->GetValue() ? grfx::BLEND_MODE_BENCHMARK_DISABLE_OUTPUT : grfx::BLEND_MODE_NONE;
+    gpCreateInfo.blendModes[0]                      = pKnobDisablePsOutput->GetValue() ? grfx::BLEND_MODE_DISABLE_OUTPUT : grfx::BLEND_MODE_NONE;
     gpCreateInfo.outputState.renderTargetCount      = 1;
     gpCreateInfo.outputState.renderTargetFormats[0] = key.renderFormat;
     gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();

@@ -69,13 +69,13 @@ enum BlendFactor
 //!
 enum BlendMode
 {
-    BLEND_MODE_NONE                     = 0,
-    BLEND_MODE_ADDITIVE                 = 1,
-    BLEND_MODE_ALPHA                    = 2,
-    BLEND_MODE_OVER                     = 3,
-    BLEND_MODE_UNDER                    = 4,
-    BLEND_MODE_PREMULT_ALPHA            = 5,
-    BLEND_MODE_BENCHMARK_DISABLE_OUTPUT = 6,  // Mode used for benchmark app to disable vs output.
+    BLEND_MODE_NONE           = 0,
+    BLEND_MODE_ADDITIVE       = 1,
+    BLEND_MODE_ALPHA          = 2,
+    BLEND_MODE_OVER           = 3,
+    BLEND_MODE_UNDER          = 4,
+    BLEND_MODE_PREMULT_ALPHA  = 5,
+    BLEND_MODE_DISABLE_OUTPUT = 6, // Mode used to disable vs output.
 };
 
 enum BlendOp
