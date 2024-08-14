@@ -24,6 +24,15 @@ namespace grfx {
 // -------------------------------------------------------------------------------------------------
 // BlendAttachmentState
 // -------------------------------------------------------------------------------------------------
+grfx::BlendAttachmentState BlendAttachmentState::BlendModeNone()
+{
+    grfx::BlendAttachmentState state = {};
+    state.blendEnable                = false;
+    state.colorWriteMask             = grfx::ColorComponentFlags::RGBA();
+
+    return state;
+}
+
 grfx::BlendAttachmentState BlendAttachmentState::BlendModeAdditive()
 {
     grfx::BlendAttachmentState state = {};
@@ -103,12 +112,6 @@ grfx::BlendAttachmentState BlendAttachmentState::BlendModeDisableOutput()
 {
     grfx::BlendAttachmentState state = {};
     state.blendEnable                = false;
-    state.srcColorBlendFactor        = grfx::BLEND_FACTOR_ONE;
-    state.dstColorBlendFactor        = grfx::BLEND_FACTOR_ONE;
-    state.colorBlendOp               = grfx::BLEND_OP_ADD;
-    state.srcAlphaBlendFactor        = grfx::BLEND_FACTOR_ONE;
-    state.dstAlphaBlendFactor        = grfx::BLEND_FACTOR_ONE;
-    state.alphaBlendOp               = grfx::BLEND_OP_ADD;
     state.colorWriteMask             = grfx::ColorComponentFlags(0);
 
     return state;
@@ -171,7 +174,7 @@ void FillOutGraphicsPipelineCreateInfo(
         for (uint32_t i = 0; i < pDstCreateInfo->colorBlendState.blendAttachmentCount; ++i) {
             switch (pSrcCreateInfo->blendModes[i]) {
                 case grfx::BLEND_MODE_NONE: {
-                    pDstCreateInfo->colorBlendState.blendAttachments[i].colorWriteMask = grfx::ColorComponentFlags::RGBA();
+                    pDstCreateInfo->colorBlendState.blendAttachments[i] = grfx::BlendAttachmentState::BlendModeNone();
                     break;
                 }
 
@@ -194,8 +197,15 @@ void FillOutGraphicsPipelineCreateInfo(
                 case grfx::BLEND_MODE_PREMULT_ALPHA: {
                     pDstCreateInfo->colorBlendState.blendAttachments[i] = grfx::BlendAttachmentState::BlendModePremultAlpha();
                 } break;
+
                 case grfx::BLEND_MODE_DISABLE_OUTPUT: {
                     pDstCreateInfo->colorBlendState.blendAttachments[i] = grfx::BlendAttachmentState::BlendModeDisableOutput();
+                    break;
+                }
+
+                default: {
+                    PPX_ASSERT_MSG(false, "Unknown BlendMode");
+                    break;
                 }
             }
         }
