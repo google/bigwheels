@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "ppx/config.h"
 #include "ppx/grfx/grfx_device.h"
 #include "ppx/grfx/grfx_pipeline.h"
 #include "ppx/grfx/grfx_descriptor.h"
@@ -169,7 +170,10 @@ void FillOutGraphicsPipelineCreateInfo(
         pDstCreateInfo->colorBlendState.blendAttachmentCount = pSrcCreateInfo->outputState.renderTargetCount;
         for (uint32_t i = 0; i < pDstCreateInfo->colorBlendState.blendAttachmentCount; ++i) {
             switch (pSrcCreateInfo->blendModes[i]) {
-                default: break;
+                case grfx::BLEND_MODE_NONE: {
+                    pDstCreateInfo->colorBlendState.blendAttachments[i].colorWriteMask = grfx::ColorComponentFlags::RGBA();
+                    break;
+                }
 
                 case grfx::BLEND_MODE_ADDITIVE: {
                     pDstCreateInfo->colorBlendState.blendAttachments[i] = grfx::BlendAttachmentState::BlendModeAdditive();

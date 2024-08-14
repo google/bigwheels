@@ -141,6 +141,7 @@ if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MSVC_DISABLED_WARNINGS} /MP /Zc:__cplusplus /std:c++17")
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -Werror \
         -std=c++17 \
         -fdiagnostics-color=always \
         -Wno-nullability-completeness \
@@ -153,12 +154,6 @@ else()
         -Wno-pointer-bool-conversion \
     ")
 
-    if (NOT PPX_BUILD_XR)
-        # OpenXR has way too many warnings to enable -Werror with it.
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-            -Werror \
-        ")
-    endif ()
 endif()
 
 set(CMAKE_CXX_STANDARD 17)
