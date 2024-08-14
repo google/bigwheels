@@ -139,7 +139,7 @@ void FillOutGraphicsPipelineCreateInfo(
         }
     }
 
-    // Input aasembly
+    // Input assembly
     {
         pDstCreateInfo->inputAssemblyState.topology = pSrcCreateInfo->topology;
     }
@@ -169,10 +169,7 @@ void FillOutGraphicsPipelineCreateInfo(
         pDstCreateInfo->colorBlendState.blendAttachmentCount = pSrcCreateInfo->outputState.renderTargetCount;
         for (uint32_t i = 0; i < pDstCreateInfo->colorBlendState.blendAttachmentCount; ++i) {
             switch (pSrcCreateInfo->blendModes[i]) {
-                default: {
-                    pDstCreateInfo->colorBlendState.blendAttachments[i].colorWriteMask = grfx::ColorComponentFlags::RGBA();
-                    break;
-                }
+                default: break;
 
                 case grfx::BLEND_MODE_ADDITIVE: {
                     pDstCreateInfo->colorBlendState.blendAttachments[i] = grfx::BlendAttachmentState::BlendModeAdditive();
