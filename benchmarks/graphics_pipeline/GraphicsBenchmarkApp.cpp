@@ -193,10 +193,6 @@ void GraphicsBenchmarkApp::InitKnobs()
     pKnobTextureCount->SetDisplayName("Number of texture to load in the shader");
     pKnobTextureCount->SetFlagDescription("Select the number of texture to load in the shader.");
 
-    GetKnobManager().InitKnob(&pKnobDisablePsOutput, "disable-ps-output", false);
-    pKnobDisablePsOutput->SetDisplayName("Disable PS output");
-    pKnobDisablePsOutput->SetFlagDescription("Disable PS output.");
-
     GetKnobManager().InitKnob(&pKnobViewportHeightScale, "viewport_height_scale", 0, kAvailableViewportScales);
     pKnobViewportHeightScale->SetDisplayName("Scale viewport height");
     pKnobViewportHeightScale->SetFlagDescription("Scale viewport height to 1, 1/2, 1/4");
@@ -204,6 +200,10 @@ void GraphicsBenchmarkApp::InitKnobs()
     GetKnobManager().InitKnob(&pKnobViewportWidthScale, "viewport_width_scale", 0, kAvailableViewportScales);
     pKnobViewportWidthScale->SetDisplayName("Scale viewport width");
     pKnobViewportWidthScale->SetFlagDescription("Scale viewport width to 1, 1/2, 1/4");
+
+    GetKnobManager().InitKnob(&pKnobQuadBlendMode, "quad_blend_mode", 0, kQuadBlendModes);
+    pKnobQuadBlendMode->SetDisplayName("Blend mode for quad");
+    pKnobQuadBlendMode->SetFlagDescription("Bend mode for quad to none, alpha, disable_output");
 }
 
 void GraphicsBenchmarkApp::Config(ppx::ApplicationSettings& settings)
@@ -787,7 +787,7 @@ Result GraphicsBenchmarkApp::CompilePipeline(const QuadPipelineKey& key)
     gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CW;
     gpCreateInfo.depthReadEnable                    = false;
     gpCreateInfo.depthWriteEnable                   = false;
-    gpCreateInfo.blendModes[0]                      = pKnobDisablePsOutput->GetValue() ? grfx::BLEND_MODE_DISABLE_OUTPUT : grfx::BLEND_MODE_NONE;
+    gpCreateInfo.blendModes[0]                      = pKnobQuadBlendMode->GetValue();
     gpCreateInfo.outputState.renderTargetCount      = 1;
     gpCreateInfo.outputState.renderTargetFormats[0] = key.renderFormat;
     gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();

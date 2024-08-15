@@ -19,6 +19,7 @@
 #include "MultiDimensionalIndexer.h"
 
 #include "ppx/grfx/grfx_config.h"
+#include "ppx/grfx/grfx_enums.h"
 #include "ppx/grfx/grfx_format.h"
 #include "ppx/knob.h"
 #include "ppx/math_config.h"
@@ -229,6 +230,12 @@ static constexpr std::array<DropdownEntry<QuadViewportScale>, 3> kAvailableViewp
     {"1", 1.0},    // No scale
     {"1/2", 0.5},  // scale to 1/2
     {"1/4", 0.25}, // scale to 1/4
+}};
+
+static constexpr std::array<DropdownEntry<grfx::BlendMode>, 3> kQuadBlendModes = {{
+    {"none", grfx::BLEND_MODE_NONE},
+    {"alpha", grfx::BLEND_MODE_ALPHA},
+    {"disable_output", grfx::BLEND_MODE_DISABLE_OUTPUT},
 }};
 
 class GraphicsBenchmarkApp
@@ -544,9 +551,9 @@ private:
 
     std::shared_ptr<KnobFlag<int>>                   pKnobAluCount;
     std::shared_ptr<KnobFlag<int>>                   pKnobTextureCount;
-    std::shared_ptr<KnobCheckbox>                    pKnobDisablePsOutput;
     std::shared_ptr<KnobDropdown<QuadViewportScale>> pKnobViewportHeightScale;
     std::shared_ptr<KnobDropdown<QuadViewportScale>> pKnobViewportWidthScale;
+    std::shared_ptr<KnobDropdown<grfx::BlendMode>>   pKnobQuadBlendMode;
 
 private:
     // =====================================================================
