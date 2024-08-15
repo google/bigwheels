@@ -196,6 +196,14 @@ void GraphicsBenchmarkApp::InitKnobs()
     GetKnobManager().InitKnob(&pKnobDisablePsOutput, "disable-ps-output", false);
     pKnobDisablePsOutput->SetDisplayName("Disable PS output");
     pKnobDisablePsOutput->SetFlagDescription("Disable PS output.");
+
+    GetKnobManager().InitKnob(&pKnobViewportHeightScale, "viewport_height_scale", 0, kAvailableViewportScales);
+    pKnobViewportHeightScale->SetDisplayName("Scale viewport height");
+    pKnobViewportHeightScale->SetFlagDescription("Scale viewport height to 1, 1/2, 1/4");
+
+    GetKnobManager().InitKnob(&pKnobViewportWidthScale, "viewport_width_scale", 0, kAvailableViewportScales);
+    pKnobViewportWidthScale->SetDisplayName("Scale viewport width");
+    pKnobViewportWidthScale->SetFlagDescription("Scale viewport width to 1, 1/2, 1/4");
 }
 
 void GraphicsBenchmarkApp::Config(ppx::ApplicationSettings& settings)
@@ -1575,7 +1583,13 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, const RenderPass
     frame.cmd->WriteTimestamp(frame.timestampQuery, grfx::PIPELINE_STAGE_TOP_OF_PIPE_BIT, /* queryIndex = */ 0);
     if (!pRenderOffscreen->GetValue()) {
         frame.cmd->SetScissors(GetScissor());
-        frame.cmd->SetViewports(GetViewport());
+        grfx::Viewport    viewport     = GetViewport();
+        QuadViewportScale height_scale = pKnobViewportHeightScale->GetValue();
+        QuadViewportScale width_scale  = pKnobViewportWidthScale->GetValue();
+        viewport.height *= height_scale.scale;
+        viewport.width *= width_scale.scale;
+
+        frame.cmd->SetViewports(viewport);
     }
     else {
         uint32_t width  = mOffscreenFrame.back().width;
