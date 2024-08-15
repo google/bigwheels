@@ -220,6 +220,17 @@ static constexpr std::array<std::pair<int, int>, 8 + 9> kVRPerEyeResolutions = {
     {3680, 3140}, // Vision Pro, estimation from Wikipedia
 }};
 
+struct QuadViewportScale
+{
+    float scale;
+};
+
+static constexpr std::array<DropdownEntry<QuadViewportScale>, 3> kAvailableViewportScales = {{
+    {"1", 1.0},    // No scale
+    {"1/2", 0.5},  // scale to 1/2
+    {"1/4", 0.25}, // scale to 1/4
+}};
+
 class GraphicsBenchmarkApp
     : public ppx::Application
 {
@@ -531,9 +542,11 @@ private:
     std::shared_ptr<KnobDropdown<grfx::Format>>        pFramebufferFormat;
     std::shared_ptr<KnobDropdown<std::pair<int, int>>> pResolution;
 
-    std::shared_ptr<KnobFlag<int>> pKnobAluCount;
-    std::shared_ptr<KnobFlag<int>> pKnobTextureCount;
-    std::shared_ptr<KnobCheckbox>  pKnobDisablePsOutput;
+    std::shared_ptr<KnobFlag<int>>                   pKnobAluCount;
+    std::shared_ptr<KnobFlag<int>>                   pKnobTextureCount;
+    std::shared_ptr<KnobCheckbox>                    pKnobDisablePsOutput;
+    std::shared_ptr<KnobDropdown<QuadViewportScale>> pKnobViewportHeightScale;
+    std::shared_ptr<KnobDropdown<QuadViewportScale>> pKnobViewportWidthScale;
 
 private:
     // =====================================================================
