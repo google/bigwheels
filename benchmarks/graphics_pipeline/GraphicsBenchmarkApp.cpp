@@ -1457,7 +1457,7 @@ ppx::Result GraphicsBenchmarkApp::CreateOffscreenFrame(OffscreenFrame& frame, gr
     frame = OffscreenFrame{width, height, colorFormat, depthFormat};
     {
         grfx::ImageCreateInfo colorCreateInfo   = grfx::ImageCreateInfo::RenderTarget2D(width, height, colorFormat);
-        colorCreateInfo.initialState            = grfx::RESOURCE_STATE_RENDER_TARGET;
+        colorCreateInfo.initialState            = GetSettings()->xr.enable ? grfx::RESOURCE_STATE_RENDER_TARGET : grfx::RESOURCE_STATE_PRESENT;
         colorCreateInfo.usageFlags.bits.sampled = true;
         ppx::Result ppxres                      = GetDevice()->CreateImage(&colorCreateInfo, &frame.colorImage);
         if (ppxres != ppx::SUCCESS) {
