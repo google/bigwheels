@@ -218,7 +218,11 @@ void GraphicsBenchmarkApp::Config(ppx::ApplicationSettings& settings)
 #if defined(PPX_BUILD_XR)
     // XR specific settings
     settings.grfx.pacedFrameRate = 0;
-    settings.xr.enable           = true; // Change this to true to enable the XR mode
+#if defined(PPX_ANDROID)
+    settings.xr.enable = true;
+#else
+    settings.xr.enable = false; // Change this to true to enable the XR mode on PC.
+#endif
 #endif
     settings.standardKnobsDefaultValue.enableMetrics        = true;
     settings.standardKnobsDefaultValue.overwriteMetricsFile = true;
@@ -491,7 +495,7 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsResources()
     {
         // Large resolution image
         grfx_util::TextureOptions options = grfx_util::TextureOptions().MipLevelCount(1);
-        for (uint32_t i = 0; i < kMaxTextureCount; i++) {
+        for (uint32_t i = 0; i < pKnobTextureCount->GetValue(); i++) {
             // Load the same image.
             PPX_CHECKED_CALL(CreateTextureFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath(pQuadTextureFile->GetValue()), &mQuadsTextures[i], options));
         }
@@ -576,7 +580,7 @@ void GraphicsBenchmarkApp::UpdateFullscreenQuadsDescriptors()
     uint32_t n = GetNumFramesInFlight();
     for (size_t i = 0; i < n; i++) {
         grfx::DescriptorSetPtr pDescriptorSet = mFullscreenQuads.descriptorSets[i];
-        for (uint32_t j = 0; j < kMaxTextureCount; j++) {
+        for (uint32_t j = 0; j < pKnobTextureCount->GetValue(); j++) {
             PPX_CHECKED_CALL(pDescriptorSet->UpdateSampledImage(QUADS_SAMPLED_IMAGE_REGISTER, j, mQuadsTextures[j]));
         }
         grfx::WriteDescriptor write  = {};
@@ -610,15 +614,14 @@ void GraphicsBenchmarkApp::SetupSphereMeshes()
         }
     }
 
-    const uint32_t requiredSphereCount = std::max<uint32_t>(pSphereInstanceCount->GetValue(), kDefaultSphereInstanceCount);
-    const uint32_t initSphereCount     = std::min<uint32_t>(kMaxSphereInstanceCount, 2 * std::max(requiredSphereCount, mInitializedSpheres));
+    const uint32_t initSphereCount = std::min<uint32_t>(kMaxSphereInstanceCount, pSphereInstanceCount->GetValue());
 
     // Create the meshes
     OrderedGrid grid(initSphereCount, kSeed);
     uint32_t    meshIndex = 0;
     for (const auto& lod : kAvailableLODs) {
         PPX_LOG_INFO("LOD: " << lod.name);
-        SphereMesh sphereMesh(/* radius = */ 1, lod.value.longitudeSegments, lod.value.latitudeSegments);
+        SphereMesh sphereMesh(/* radius = */ 1, lod.value.longitudeSegments, lod.value.latitudeSegments, GetSettings()->xr.enable);
         sphereMesh.ApplyGrid(grid);
         // Create a giant vertex buffer for each vb type to accommodate all copies of the sphere mesh
         PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), sphereMesh.GetLowPrecisionInterleaved(), &mSphereMeshes[meshIndex++]));
@@ -1569,8 +1572,9 @@ ppx::grfx::Format GraphicsBenchmarkApp::RenderFormat()
 void GraphicsBenchmarkApp::CreateColorsForDrawCalls()
 {
     // Create colors randomly.
-    mColorsForDrawCalls.resize(kMaxSphereInstanceCount);
-    for (size_t i = 0; i < kMaxSphereInstanceCount; i++) {
+    uint32_t sphereCount = pSphereInstanceCount->GetValue();
+    mColorsForDrawCalls.resize(sphereCount);
+    for (size_t i = 0; i < sphereCount; i++) {
         mColorsForDrawCalls[i] = float4(mRandom.Float(), mRandom.Float(), mRandom.Float(), 0.5f);
     }
 }
