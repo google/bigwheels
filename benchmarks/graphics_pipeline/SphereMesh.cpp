@@ -41,10 +41,17 @@ OrderedGrid::OrderedGrid(uint32_t count, uint32_t randomSeed)
 float4x4 OrderedGrid::GetModelMatrix(uint32_t sphereIndex) const
 {
     uint32_t id = mOrderedPointIndices[sphereIndex];
-    uint32_t x  = (id % (mSizeX * mSizeY)) / mSizeY;
-    uint32_t y  = id % mSizeY;
-    uint32_t z  = id / (mSizeX * mSizeY);
+    float    x  = static_cast<float>((id % (mSizeX * mSizeY)) / mSizeY);
+    float    y  = static_cast<float>(id % mSizeY);
+    float    z  = static_cast<float>(id / (mSizeX * mSizeY));
 
+    // Put it in the center of the scree
+    x -= static_cast<float>(mSizeX - 1) / 2.0;
+    y -= static_cast<float>(mSizeY - 1) / 2.0;
+    z += static_cast<float>(mSizeZ);
+#if defined(PPX_ANDROID)
+    z *= -1.0;
+#endif
     return glm::translate(float3(x * mStep, y * mStep, z * mStep));
 }
 

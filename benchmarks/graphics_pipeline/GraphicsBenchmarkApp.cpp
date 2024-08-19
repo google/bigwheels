@@ -218,7 +218,11 @@ void GraphicsBenchmarkApp::Config(ppx::ApplicationSettings& settings)
 #if defined(PPX_BUILD_XR)
     // XR specific settings
     settings.grfx.pacedFrameRate = 0;
-    settings.xr.enable           = true; // Change this to true to enable the XR mode
+#if defined(PPX_ANDROID)
+    settings.xr.enable = true;
+#else
+    settings.xr.enable = false; // Change this to true to enable the XR mode
+#endif
 #endif
     settings.standardKnobsDefaultValue.enableMetrics        = true;
     settings.standardKnobsDefaultValue.overwriteMetricsFile = true;
@@ -491,7 +495,7 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsResources()
     {
         // Large resolution image
         grfx_util::TextureOptions options = grfx_util::TextureOptions().MipLevelCount(1);
-        for (uint32_t i = 0; i < kMaxTextureCount; i++) {
+        for (uint32_t i = 0; i < pKnobTextureCount->GetValue(); i++) {
             // Load the same image.
             PPX_CHECKED_CALL(CreateTextureFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath(pQuadTextureFile->GetValue()), &mQuadsTextures[i], options));
         }
@@ -576,7 +580,7 @@ void GraphicsBenchmarkApp::UpdateFullscreenQuadsDescriptors()
     uint32_t n = GetNumFramesInFlight();
     for (size_t i = 0; i < n; i++) {
         grfx::DescriptorSetPtr pDescriptorSet = mFullscreenQuads.descriptorSets[i];
-        for (uint32_t j = 0; j < kMaxTextureCount; j++) {
+        for (uint32_t j = 0; j < pKnobTextureCount->GetValue(); j++) {
             PPX_CHECKED_CALL(pDescriptorSet->UpdateSampledImage(QUADS_SAMPLED_IMAGE_REGISTER, j, mQuadsTextures[j]));
         }
         grfx::WriteDescriptor write  = {};
