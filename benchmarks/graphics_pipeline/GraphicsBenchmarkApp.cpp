@@ -221,7 +221,7 @@ void GraphicsBenchmarkApp::Config(ppx::ApplicationSettings& settings)
 #if defined(PPX_ANDROID)
     settings.xr.enable = true;
 #else
-    settings.xr.enable = false; // Change this to true to enable the XR mode
+    settings.xr.enable = false; // Change this to true to enable the XR mode on PC.
 #endif
 #endif
     settings.standardKnobsDefaultValue.enableMetrics        = true;
@@ -614,15 +614,14 @@ void GraphicsBenchmarkApp::SetupSphereMeshes()
         }
     }
 
-    const uint32_t requiredSphereCount = std::max<uint32_t>(pSphereInstanceCount->GetValue(), kDefaultSphereInstanceCount);
-    const uint32_t initSphereCount     = std::min<uint32_t>(kMaxSphereInstanceCount, 2 * std::max(requiredSphereCount, mInitializedSpheres));
+    const uint32_t initSphereCount = std::min<uint32_t>(kMaxSphereInstanceCount, pSphereInstanceCount->GetValue());
 
     // Create the meshes
     OrderedGrid grid(initSphereCount, kSeed);
     uint32_t    meshIndex = 0;
     for (const auto& lod : kAvailableLODs) {
         PPX_LOG_INFO("LOD: " << lod.name);
-        SphereMesh sphereMesh(/* radius = */ 1, lod.value.longitudeSegments, lod.value.latitudeSegments);
+        SphereMesh sphereMesh(/* radius = */ 1, lod.value.longitudeSegments, lod.value.latitudeSegments, GetSettings()->xr.enable);
         sphereMesh.ApplyGrid(grid);
         // Create a giant vertex buffer for each vb type to accommodate all copies of the sphere mesh
         PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), sphereMesh.GetLowPrecisionInterleaved(), &mSphereMeshes[meshIndex++]));
@@ -1573,8 +1572,9 @@ ppx::grfx::Format GraphicsBenchmarkApp::RenderFormat()
 void GraphicsBenchmarkApp::CreateColorsForDrawCalls()
 {
     // Create colors randomly.
-    mColorsForDrawCalls.resize(kMaxSphereInstanceCount);
-    for (size_t i = 0; i < kMaxSphereInstanceCount; i++) {
+    uint32_t sphereCount = pSphereInstanceCount->GetValue();
+    mColorsForDrawCalls.resize(sphereCount);
+    for (size_t i = 0; i < sphereCount; i++) {
         mColorsForDrawCalls[i] = float4(mRandom.Float(), mRandom.Float(), mRandom.Float(), 0.5f);
     }
 }
