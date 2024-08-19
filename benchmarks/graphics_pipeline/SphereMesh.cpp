@@ -38,12 +38,20 @@ OrderedGrid::OrderedGrid(uint32_t count, uint32_t randomSeed)
     Shuffle(mOrderedPointIndices.begin(), mOrderedPointIndices.end(), std::mt19937(randomSeed));
 }
 
-float4x4 OrderedGrid::GetModelMatrix(uint32_t sphereIndex) const
+float4x4 OrderedGrid::GetModelMatrix(uint32_t sphereIndex, bool isXR) const
 {
     uint32_t id = mOrderedPointIndices[sphereIndex];
-    uint32_t x  = (id % (mSizeX * mSizeY)) / mSizeY;
-    uint32_t y  = id % mSizeY;
-    uint32_t z  = id / (mSizeX * mSizeY);
+    float    x  = static_cast<float>((id % (mSizeX * mSizeY)) / mSizeY);
+    float    y  = static_cast<float>(id % mSizeY);
+    float    z  = static_cast<float>(id / (mSizeX * mSizeY));
+
+    // Put it in the center of the screen.
+    x -= static_cast<float>(mSizeX - 1) / 2.0;
+    y -= static_cast<float>(mSizeY - 1) / 2.0;
+    z += static_cast<float>(mSizeZ);
+    if (isXR) {
+        z *= -1.0;
+    }
 
     return glm::translate(float3(x * mStep, y * mStep, z * mStep));
 }
@@ -202,7 +210,7 @@ void SphereMesh::RepeatGeometryNonPositionVertexData(const Geometry& srcGeom, Ve
 
 void SphereMesh::WriteSpherePosition(const OrderedGrid& grid, uint32_t sphereIndex)
 {
-    float4x4 modelMatrix = grid.GetModelMatrix(sphereIndex);
+    float4x4 modelMatrix = grid.GetModelMatrix(sphereIndex, IsXR());
 
     for (uint32_t j = 0; j < mSingleSphereVertexCount; ++j) {
         TriMeshVertexData vertexData = {};
