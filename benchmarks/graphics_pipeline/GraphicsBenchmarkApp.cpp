@@ -185,31 +185,40 @@ void GraphicsBenchmarkApp::InitKnobs()
         pResolution->SetIndent(1);
     }
 
-    GetKnobManager().InitKnob(&pKnobAluCount, "alu-instruction-count", /* defaultValue = */ 100, /* minValue = */ 100, 400);
+    GetKnobManager().InitKnob(&pKnobAluCount, "alu-instruction-count", /* defaultValue = */ 0, /* minValue = */ 0, 500);
     pKnobAluCount->SetDisplayName("Number of ALU instructions in the shader");
     pKnobAluCount->SetFlagDescription("Select the number of ALU instructions in the shader.");
+    pKnobAluCount->SetVisible(false);
 
-    GetKnobManager().InitKnob(&pKnobTextureCount, "texture-count", /* defaultValue = */ 1, /* minValue = */ 1, kMaxTextureCount);
+    GetKnobManager().InitKnob(&pKnobTextureCount, "texture-count", /* defaultValue = */ 0, /* minValue = */ 0, kMaxTextureCount);
     pKnobTextureCount->SetDisplayName("Number of texture to load in the shader");
     pKnobTextureCount->SetFlagDescription("Select the number of texture to load in the shader.");
+    pKnobTextureCount->SetVisible(false);
 
     GetKnobManager().InitKnob(&pKnobViewportHeightScale, "viewport_height_scale", 0, kAvailableViewportScales);
     pKnobViewportHeightScale->SetDisplayName("Scale viewport height");
     pKnobViewportHeightScale->SetFlagDescription("Scale viewport height to 1, 1/2, 1/4");
+    pKnobViewportHeightScale->SetVisible(false);
 
     GetKnobManager().InitKnob(&pKnobViewportWidthScale, "viewport_width_scale", 0, kAvailableViewportScales);
     pKnobViewportWidthScale->SetDisplayName("Scale viewport width");
     pKnobViewportWidthScale->SetFlagDescription("Scale viewport width to 1, 1/2, 1/4");
+    pKnobViewportWidthScale->SetVisible(false);
 
     GetKnobManager().InitKnob(&pKnobQuadBlendMode, "quad_blend_mode", 0, kQuadBlendModes);
     pKnobQuadBlendMode->SetDisplayName("Blend mode for quad");
     pKnobQuadBlendMode->SetFlagDescription("Bend mode for quad to none, alpha, disable_output");
+    pKnobQuadBlendMode->SetVisible(false);
 }
 
 void GraphicsBenchmarkApp::Config(ppx::ApplicationSettings& settings)
 {
-    settings.appName                    = "graphics_pipeline";
-    settings.enableImGui                = true;
+    settings.appName = "graphics_pipeline";
+#if defined(PPX_ANDROID)
+    settings.enableImGui = false;
+#else
+    settings.enableImGui = true;
+#endif
     settings.window.width               = 1920;
     settings.window.height              = 1080;
     settings.grfx.api                   = kApi;
