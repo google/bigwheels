@@ -185,10 +185,10 @@ void GraphicsBenchmarkApp::InitKnobs()
         pResolution->SetIndent(1);
     }
 
-    GetKnobManager().InitKnob(&pKnobAluCount, "alu-instruction-count", /* defaultValue = */ 0, /* minValue = */ 0, 500);
-    pKnobAluCount->SetDisplayName("Number of ALU instructions in the shader");
-    pKnobAluCount->SetFlagDescription("Select the number of ALU instructions in the shader.");
-    pKnobAluCount->SetVisible(false);
+    GetKnobManager().InitKnob(&pKnobShaderAluLoopCount, "shader-alu-loop-count", /* defaultValue = */ 0, /* minValue = */ 0, 500);
+    pKnobShaderAluLoopCount->SetDisplayName("Number of loops in the shader for random alu compute.");
+    pKnobShaderAluLoopCount->SetFlagDescription("Select the number of loops in the shader for random alu compute.");
+    pKnobShaderAluLoopCount->SetVisible(false);
 
     GetKnobManager().InitKnob(&pKnobTextureCount, "texture-count", /* defaultValue = */ 0, /* minValue = */ 0, kMaxTextureCount);
     pKnobTextureCount->SetDisplayName("Number of texture to load in the shader");
@@ -1800,7 +1800,7 @@ void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, si
 {
     // Vertex shader push constant
     {
-        mQuadPushConstant.InstCount = pKnobAluCount->GetValue();
+        mQuadPushConstant.InstCount = pKnobShaderAluLoopCount->GetValue();
         frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[0], GetPushConstCount(mQuadPushConstant.InstCount), &mQuadPushConstant.InstCount, offsetof(QuadPushConstant, InstCount) / sizeof(uint32_t));
     }
     switch (pFullscreenQuadsType->GetValue()) {
