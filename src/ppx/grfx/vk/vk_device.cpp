@@ -499,6 +499,7 @@ Result Device::CreateQueues(const grfx::DeviceCreateInfo* pCreateInfo)
         uint32_t queueFamilyIndex = ToApi(pCreateInfo->pGpu)->GetGraphicsQueueFamilyIndex();
         for (uint32_t queueIndex = 0; queueIndex < pCreateInfo->graphicsQueueCount; ++queueIndex) {
             grfx::internal::QueueCreateInfo queueCreateInfo = {};
+            queueCreateInfo.commandType                     = grfx::COMMAND_TYPE_GRAPHICS;
             queueCreateInfo.queueFamilyIndex                = queueFamilyIndex;
             queueCreateInfo.queueIndex                      = queueIndex;
 
@@ -514,6 +515,7 @@ Result Device::CreateQueues(const grfx::DeviceCreateInfo* pCreateInfo)
         uint32_t queueFamilyIndex = ToApi(pCreateInfo->pGpu)->GetComputeQueueFamilyIndex();
         for (uint32_t queueIndex = 0; queueIndex < pCreateInfo->computeQueueCount; ++queueIndex) {
             grfx::internal::QueueCreateInfo queueCreateInfo = {};
+            queueCreateInfo.commandType                     = grfx::COMMAND_TYPE_COMPUTE;
             queueCreateInfo.queueFamilyIndex                = queueFamilyIndex;
             queueCreateInfo.queueIndex                      = queueIndex;
 
@@ -529,6 +531,7 @@ Result Device::CreateQueues(const grfx::DeviceCreateInfo* pCreateInfo)
         uint32_t queueFamilyIndex = ToApi(pCreateInfo->pGpu)->GetTransferQueueFamilyIndex();
         for (uint32_t queueIndex = 0; queueIndex < pCreateInfo->transferQueueCount; ++queueIndex) {
             grfx::internal::QueueCreateInfo queueCreateInfo = {};
+            queueCreateInfo.commandType                     = grfx::COMMAND_TYPE_TRANSFER;
             queueCreateInfo.queueFamilyIndex                = queueFamilyIndex;
             queueCreateInfo.queueIndex                      = queueIndex;
 
