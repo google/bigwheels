@@ -27,8 +27,34 @@ namespace {
 #define PERFORM_DEATH_TESTS
 #endif
 
+using ::testing::AllOf;
+using ::testing::ElementsAreArray;
 using ::testing::IsNull;
 using ::testing::NotNull;
+using ::testing::Property;
+
+MATCHER(BufferIsEmpty, "")
+{
+    EXPECT_EQ(arg.GetElementSize(), 0);
+    EXPECT_EQ(arg.GetElementCount(), 0);
+    EXPECT_EQ(arg.GetSize(), 0);
+    EXPECT_THAT(arg.GetData(), IsNull());
+    return true;
+}
+
+MATCHER_P(BufferEq, expected, "")
+{
+    constexpr auto valueTypeSize = sizeof(typename decltype(expected)::value_type);
+    EXPECT_EQ(arg.GetElementSize(), valueTypeSize);
+    EXPECT_EQ(arg.GetElementCount(), expected.size());
+    EXPECT_EQ(arg.GetSize(), valueTypeSize * expected.size());
+    if (arg.GetData() == nullptr) {
+        return false;
+    }
+    const auto* data = reinterpret_cast<const typename decltype(expected)::value_type*>(arg.GetData());
+    EXPECT_THAT(std::vector<typename decltype(expected)::value_type>(data, data + arg.GetElementCount()), ElementsAreArray(expected));
+    return true;
+}
 
 TEST(GeometryTest, AppendIndicesU32PacksDataAsUint32)
 {
@@ -75,6 +101,120 @@ INSTANTIATE_TEST_SUITE_P(GeometryDeathTest, GeometryDeathTest, testing::Values(g
     return ToString(info.param);
 });
 #endif
+
+TEST(GeometryUint16IndexTest, AppendIndexPacksDataAsUint16)
+{
+    Geometry geometry;
+    EXPECT_EQ(Geometry::Create(GeometryCreateInfo{}.IndexType(grfx::INDEX_TYPE_UINT16).AddPosition(), &geometry), ppx::SUCCESS);
+    EXPECT_EQ(geometry.GetIndexType(), grfx::INDEX_TYPE_UINT16);
+
+    geometry.AppendIndex(0);
+    geometry.AppendIndex(1);
+    geometry.AppendIndex(2);
+    EXPECT_EQ(geometry.GetIndexCount(), 3);
+    ASSERT_THAT(geometry.GetIndexBuffer(), NotNull());
+    EXPECT_THAT(*geometry.GetIndexBuffer(), BufferEq(std::vector<uint16_t>({0, 1, 2})));
+}
+
+TEST(GeometryUint16IndexTest, AppendIndicesTrianglePacksDataAsUint16)
+{
+    Geometry geometry;
+    EXPECT_EQ(Geometry::Create(GeometryCreateInfo{}.IndexType(grfx::INDEX_TYPE_UINT16).AddPosition(), &geometry), ppx::SUCCESS);
+    EXPECT_EQ(geometry.GetIndexType(), grfx::INDEX_TYPE_UINT16);
+
+    geometry.AppendIndicesTriangle(0, 1, 2);
+    EXPECT_EQ(geometry.GetIndexCount(), 3);
+    ASSERT_THAT(geometry.GetIndexBuffer(), NotNull());
+    EXPECT_THAT(*geometry.GetIndexBuffer(), BufferEq(std::vector<uint16_t>({0, 1, 2})));
+}
+
+TEST(GeometryUint16IndexTest, AppendIndicesEdgePacksDataAsUint16)
+{
+    Geometry geometry;
+    EXPECT_EQ(Geometry::Create(GeometryCreateInfo{}.IndexType(grfx::INDEX_TYPE_UINT16).AddPosition(), &geometry), ppx::SUCCESS);
+    EXPECT_EQ(geometry.GetIndexType(), grfx::INDEX_TYPE_UINT16);
+
+    geometry.AppendIndicesEdge(0, 1);
+    EXPECT_EQ(geometry.GetIndexCount(), 2);
+    ASSERT_THAT(geometry.GetIndexBuffer(), NotNull());
+    EXPECT_THAT(*geometry.GetIndexBuffer(), BufferEq(std::vector<uint16_t>({0, 1})));
+}
+
+TEST(GeometryUint32IndexTest, AppendIndexPacksDataAsUint32)
+{
+    Geometry geometry;
+    EXPECT_EQ(Geometry::Create(GeometryCreateInfo{}.IndexType(grfx::INDEX_TYPE_UINT32).AddPosition(), &geometry), ppx::SUCCESS);
+    EXPECT_EQ(geometry.GetIndexType(), grfx::INDEX_TYPE_UINT32);
+
+    geometry.AppendIndex(0);
+    geometry.AppendIndex(1);
+    geometry.AppendIndex(2);
+    EXPECT_EQ(geometry.GetIndexCount(), 3);
+    ASSERT_THAT(geometry.GetIndexBuffer(), NotNull());
+    EXPECT_THAT(*geometry.GetIndexBuffer(), BufferEq(std::vector<uint32_t>({0, 1, 2})));
+}
+
+TEST(GeometryUint32IndexTest, AppendIndicesTrianglePacksDataAsUint32)
+{
+    Geometry geometry;
+    EXPECT_EQ(Geometry::Create(GeometryCreateInfo{}.IndexType(grfx::INDEX_TYPE_UINT32).AddPosition(), &geometry), ppx::SUCCESS);
+    EXPECT_EQ(geometry.GetIndexType(), grfx::INDEX_TYPE_UINT32);
+
+    geometry.AppendIndicesTriangle(0, 1, 2);
+    EXPECT_EQ(geometry.GetIndexCount(), 3);
+    ASSERT_THAT(geometry.GetIndexBuffer(), NotNull());
+    EXPECT_THAT(*geometry.GetIndexBuffer(), BufferEq(std::vector<uint32_t>({0, 1, 2})));
+}
+
+TEST(GeometryUint32IndexTest, AppendIndicesEdgePacksDataAsUint32)
+{
+    Geometry geometry;
+    EXPECT_EQ(Geometry::Create(GeometryCreateInfo{}.IndexType(grfx::INDEX_TYPE_UINT32).AddPosition(), &geometry), ppx::SUCCESS);
+    EXPECT_EQ(geometry.GetIndexType(), grfx::INDEX_TYPE_UINT32);
+
+    geometry.AppendIndicesEdge(0, 1);
+    EXPECT_EQ(geometry.GetIndexCount(), 2);
+    ASSERT_THAT(geometry.GetIndexBuffer(), NotNull());
+    EXPECT_THAT(*geometry.GetIndexBuffer(), BufferEq(std::vector<uint32_t>({0, 1})));
+}
+
+TEST(GeometryUndefinedIndexTest, AppendIndexDoesNothing)
+{
+    Geometry geometry;
+    EXPECT_EQ(Geometry::Create(GeometryCreateInfo{}.IndexType(grfx::INDEX_TYPE_UNDEFINED).AddPosition(), &geometry), ppx::SUCCESS);
+    EXPECT_EQ(geometry.GetIndexType(), grfx::INDEX_TYPE_UNDEFINED);
+
+    geometry.AppendIndex(0);
+    geometry.AppendIndex(1);
+    geometry.AppendIndex(2);
+    EXPECT_EQ(geometry.GetIndexCount(), 0);
+    ASSERT_THAT(geometry.GetIndexBuffer(), NotNull());
+    EXPECT_THAT(*geometry.GetIndexBuffer(), BufferIsEmpty());
+}
+
+TEST(GeometryUndefinedIndexTest, AppendIndicesTriangleDoesNothing)
+{
+    Geometry geometry;
+    EXPECT_EQ(Geometry::Create(GeometryCreateInfo{}.IndexType(grfx::INDEX_TYPE_UNDEFINED).AddPosition(), &geometry), ppx::SUCCESS);
+    EXPECT_EQ(geometry.GetIndexType(), grfx::INDEX_TYPE_UNDEFINED);
+
+    geometry.AppendIndicesTriangle(0, 1, 2);
+    EXPECT_EQ(geometry.GetIndexCount(), 0);
+    ASSERT_THAT(geometry.GetIndexBuffer(), NotNull());
+    EXPECT_THAT(*geometry.GetIndexBuffer(), BufferIsEmpty());
+}
+
+TEST(GeometryUndefinedIndexTest, AppendIndicesEdgeDoesNothing)
+{
+    Geometry geometry;
+    EXPECT_EQ(Geometry::Create(GeometryCreateInfo{}.IndexType(grfx::INDEX_TYPE_UNDEFINED).AddPosition(), &geometry), ppx::SUCCESS);
+    EXPECT_EQ(geometry.GetIndexType(), grfx::INDEX_TYPE_UNDEFINED);
+
+    geometry.AppendIndicesEdge(0, 1);
+    EXPECT_EQ(geometry.GetIndexCount(), 0);
+    ASSERT_THAT(geometry.GetIndexBuffer(), NotNull());
+    EXPECT_THAT(*geometry.GetIndexBuffer(), BufferIsEmpty());
+}
 
 } // namespace
 } // namespace ppx
