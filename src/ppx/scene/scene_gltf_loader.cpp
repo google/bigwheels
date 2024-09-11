@@ -1293,8 +1293,13 @@ ppx::Result GltfLoader::LoadMeshData(
             return ppx::ERROR_SCENE_INVALID_SOURCE_GEOMETRY_INDEX_TYPE;
         }
 
-        // Without extensions, Vulkan doesn't support UINT8 index buffers. Use the smallest supported format instead.
-        auto repackedIndexFormat = indexFormat == grfx::FORMAT_R8_UINT ? grfx::FORMAT_R16_UINT : indexFormat;
+        // UINT8 index buffer availability varies: Vulkan requires an extension, whereas DX12 lacks support entirely.
+        // If it's not supported then repack as UINT16 (the smallest mandated size for both).
+        auto repackedIndexFormat = indexFormat;
+        if (repackedIndexFormat == grfx::FORMAT_R8_UINT && !loadParams.pDevice->IndexTypeUint8Supported()) {
+            PPX_LOG_INFO("Device doesn't support UINT8 index buffers! Repacking data as UINT16.");
+            repackedIndexFormat = grfx::FORMAT_R16_UINT;
+        }
 
         // Index data size of input
         const uint32_t indexCount       = !IsNull(pGltfPrimitive->indices) ? static_cast<uint32_t>(pGltfPrimitive->indices->count) : 0;
@@ -1430,7 +1435,7 @@ ppx::Result GltfLoader::LoadMeshData(
                 batch.repackedIndexFormat = batch.indexFormat;
             }
 
-            // Create genTopologyIndices so we can repack gemetry data into position planar + packed vertex attributes.
+            // Create targetGeometry so we can repack gemetry data into position planar + packed vertex attributes.
             Geometry   targetGeometry = {};
             const bool hasAttributes  = (loadParams.requiredVertexAttributes.mask != 0);
             //
@@ -1438,6 +1443,9 @@ ppx::Result GltfLoader::LoadMeshData(
                 auto createInfo = hasAttributes ? GeometryCreateInfo::PositionPlanarU16() : GeometryCreateInfo::PlanarU16();
                 if (batch.repackedIndexFormat == grfx::FORMAT_R32_UINT) {
                     createInfo = hasAttributes ? GeometryCreateInfo::PositionPlanarU32() : GeometryCreateInfo::PlanarU32();
+                }
+                else if (batch.repackedIndexFormat == grfx::FORMAT_R8_UINT) {
+                    createInfo = hasAttributes ? GeometryCreateInfo::PositionPlanarU8() : GeometryCreateInfo::PlanarU8();
                 }
                 // clang-format off
                 if (loadParams.requiredVertexAttributes.bits.texCoords) createInfo.AddTexCoord(targetTexCoordFormat);
@@ -1600,7 +1608,7 @@ ppx::Result GltfLoader::LoadMeshData(
             const uint32_t repackedPositionBufferSize  = targetGeometry.GetVertexBuffer(0)->GetSize();
             const uint32_t repackedAttributeBufferSize = hasAttributes ? targetGeometry.GetVertexBuffer(1)->GetSize() : 0;
             if (repackedIndexBufferSize != batch.indexDataSize) {
-                PPX_ASSERT_MSG(false, "repacked index buffer size does not match batch's index data size");
+                PPX_ASSERT_MSG(false, "repacked index buffer size (" << repackedIndexBufferSize << ") does not match batch's index data size (" << batch.indexDataSize << ")");
                 return ppx::ERROR_SCENE_INVALID_SOURCE_GEOMETRY_INDEX_DATA;
             }
             if (repackedPositionBufferSize != batch.positionDataSize) {
@@ -1664,7 +1672,8 @@ ppx::Result GltfLoader::LoadMeshData(
     for (uint32_t batchIdx = 0; batchIdx < CountU32(batchInfos); ++batchIdx) {
         const auto& batch = batchInfos[batchIdx];
 
-        const grfx::IndexType indexType       = (batch.indexFormat == grfx::FORMAT_R32_UINT) ? grfx::INDEX_TYPE_UINT32 : grfx::INDEX_TYPE_UINT16;
+        const grfx::IndexType indexType       = (batch.repackedIndexFormat == grfx::FORMAT_R32_UINT) ? grfx::INDEX_TYPE_UINT32 : (batch.repackedIndexFormat == grfx::FORMAT_R8_UINT) ? grfx::INDEX_TYPE_UINT8
+                                                                                                                                                                                     : grfx::INDEX_TYPE_UINT16;
         grfx::IndexBufferView indexBufferView = grfx::IndexBufferView(targetGpuBuffer, indexType, batch.indexDataOffset, batch.indexDataSize);
 
         grfx::VertexBufferView positionBufferView  = grfx::VertexBufferView(targetGpuBuffer, targetPositionElementSize, batch.positionDataOffset, batch.positionDataSize);
