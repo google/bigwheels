@@ -276,8 +276,11 @@ void CubeXrApp::Render()
         float4x4 M = glm::translate(float3(0, 0, -3)) * glm::rotate(t, float3(0, 0, 1)) * glm::rotate(t, float3(0, 1, 0)) * glm::rotate(t, float3(1, 0, 0));
 
         if (IsXrEnabled()) {
-            frame.uniform_buffer_data.M[0] = xrComponent.GetViewProjectionMatrix(0, 0.001f, 10000.0f) * M;
-            frame.uniform_buffer_data.M[1] = xrComponent.GetViewProjectionMatrix(1, 0.001f, 10000.0f) * M;
+            xrComponent.SetCurrentViewIndex(0);
+            frame.uniform_buffer_data.M[0] = xrComponent.GetCamera().GetViewProjectionMatrix() * M;
+
+            xrComponent.SetCurrentViewIndex(1);
+            frame.uniform_buffer_data.M[1] = xrComponent.GetCamera().GetViewProjectionMatrix() * M;
         }
         else {
             const Camera& camera           = xrComponent.GetCamera();
