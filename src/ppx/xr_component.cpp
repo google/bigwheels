@@ -838,38 +838,14 @@ bool XrComponent::RemoveLayer(LayerRef layerRef)
     return mLayers.erase(layerRef);
 }
 
-glm::mat4 XrComponent::GetViewMatrix(uint32_t viewIndex) const
-{
-    PPX_ASSERT_MSG((viewIndex < mViews.size()), "Invalid view index!");
-    const XrView&  view = mViews[viewIndex];
-    const XrPosef& pose = view.pose;
-    // OpenXR is using right handed system which is the same as Vulkan
-    glm::quat quat         = glm::quat(pose.orientation.w, pose.orientation.x, pose.orientation.y, pose.orientation.z);
-    glm::mat4 rotation     = glm::mat4_cast(quat);
-    glm::vec3 position     = glm::vec3(pose.position.x, pose.position.y, pose.position.z);
-    glm::mat4 translation  = glm::translate(glm::mat4(1.f), position);
-    glm::mat4 view_glm     = translation * rotation;
-    glm::mat4 view_glm_inv = glm::inverse(view_glm);
-    return view_glm_inv;
-}
-
-glm::mat4 XrComponent::GetViewMatrixForCurrentView() const
+XrPosef XrComponent::GetPoseForCurrentView() const
 {
     PPX_ASSERT_MSG((mCurrentViewIndex < mViews.size()), "Invalid view index!");
-    return GetViewMatrix(mCurrentViewIndex);
+    return mViews[mCurrentViewIndex].pose;
 }
 
-glm::mat4 XrComponent::GetProjectionMatrixForCurrentViewAndSetFrustumPlanes(float nearZ, float farZ)
+void XrComponent::SetFrustumPlanes(float nearZ, float farZ)
 {
-    return GetProjectionMatrixForViewAndSetFrustumPlanes(mCurrentViewIndex, nearZ, farZ);
-}
-
-glm::mat4 XrComponent::GetProjectionMatrixForViewAndSetFrustumPlanes(uint32_t viewIndex, float nearZ, float farZ)
-{
-    PPX_ASSERT_MSG((mCurrentViewIndex < mViews.size()), "Invalid view index!");
-    const XrView& view = mViews[viewIndex];
-    const XrFovf& fov  = view.fov;
-
     // Save near and far plane values so that they can be referenced
     // in EndFrame(), as part of the depth layer info submission.
     // They can only be set once per frame.
@@ -878,44 +854,9 @@ glm::mat4 XrComponent::GetProjectionMatrixForViewAndSetFrustumPlanes(uint32_t vi
     mNearPlaneForFrame = nearZ;
     mFarPlaneForFrame  = farZ;
 
-    const float tan_left  = tanf(fov.angleLeft);
-    const float tan_right = tanf(fov.angleRight);
-    const float tan_down  = tanf(fov.angleDown);
-    const float tan_up    = tanf(fov.angleUp);
-
-    const float tan_width  = tan_right - tan_left;
-    const float tan_height = (tan_up - tan_down);
-
-    const float a00 = 2 / tan_width;
-    const float a11 = 2 / tan_height;
-
-    const float a20 = (tan_right + tan_left) / tan_width;
-    const float a21 = (tan_up + tan_down) / tan_height;
-    const float a22 = -farZ / (farZ - nearZ);
-
-    const float a32 = -(farZ * nearZ) / (farZ - nearZ);
-
-    // clang-format off
-    const float mat[16] = {
-        a00,    0,      0,      0,
-        0,      a11,    0,      0,
-        a20,    a21,    a22,    -1,
-        0,      0,      a32,    0,
-    };
-    // clang-format on
-
-    return glm::make_mat4(mat);
-}
-
-glm::mat4 XrComponent::GetViewProjectionMatrix(uint32_t viewIndex, float nearZ, float farZ)
-{
-    return GetProjectionMatrixForViewAndSetFrustumPlanes(viewIndex, nearZ, farZ) * GetViewMatrix(viewIndex);
-}
-
-XrPosef XrComponent::GetPoseForCurrentView() const
-{
-    PPX_ASSERT_MSG((mCurrentViewIndex < mViews.size()), "Invalid view index!");
-    return mViews[mCurrentViewIndex].pose;
+    for (XrCamera& camera : mCameras) {
+        camera.SetFrustumPlanes(nearZ, farZ);
+    }
 }
 
 uint32_t XrComponent::GetDefaultViewMask() const
