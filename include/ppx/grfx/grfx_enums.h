@@ -324,7 +324,7 @@ enum IndexType
     INDEX_TYPE_UINT32    = 2,
     // Vulkan: UINT8 requires VK_EXT_index_type_uint8
     // DX12: UINT8 is not supported
-    INDEX_TYPE_UINT8     = 3,
+    INDEX_TYPE_UINT8 = 3,
 };
 
 enum LogicOp
