@@ -27,5 +27,6 @@ float4 psmain(VSOutputPos input) : SV_TARGET
     }
     if (!any(color))
         dataBuffer[0] = color.r;
+    color.a = randomCompute(Config.InstCount, input.position); 
     return color;
 }
