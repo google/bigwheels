@@ -97,7 +97,7 @@ TEST_P(GeometryDeathTest, AppendIndicesU32DiesIfIndexTypeIsNotU32)
     ASSERT_DEATH(geometry.AppendIndicesU32(indices.size(), indices.data()), "");
 }
 
-INSTANTIATE_TEST_SUITE_P(GeometryDeathTest, GeometryDeathTest, testing::Values(grfx::INDEX_TYPE_UINT16, grfx::INDEX_TYPE_UNDEFINED), [](const testing::TestParamInfo<GeometryDeathTest::ParamType>& info) {
+INSTANTIATE_TEST_SUITE_P(GeometryDeathTest, GeometryDeathTest, testing::Values(grfx::INDEX_TYPE_UINT16, grfx::INDEX_TYPE_UNDEFINED, grfx::INDEX_TYPE_UINT8), [](const testing::TestParamInfo<GeometryDeathTest::ParamType>& info) {
     return ToString(info.param);
 });
 #endif
@@ -214,6 +214,44 @@ TEST(GeometryUndefinedIndexTest, AppendIndicesEdgeDoesNothing)
     EXPECT_EQ(geometry.GetIndexCount(), 0);
     ASSERT_THAT(geometry.GetIndexBuffer(), NotNull());
     EXPECT_THAT(*geometry.GetIndexBuffer(), BufferIsEmpty());
+}
+
+TEST(GeometryUint8IndexTest, AppendIndexPacksDataAsUint8)
+{
+    Geometry geometry;
+    EXPECT_EQ(Geometry::Create(GeometryCreateInfo{}.IndexType(grfx::INDEX_TYPE_UINT8).AddPosition(), &geometry), ppx::SUCCESS);
+    EXPECT_EQ(geometry.GetIndexType(), grfx::INDEX_TYPE_UINT8);
+
+    geometry.AppendIndex(0);
+    geometry.AppendIndex(1);
+    geometry.AppendIndex(2);
+    EXPECT_EQ(geometry.GetIndexCount(), 3);
+    ASSERT_THAT(geometry.GetIndexBuffer(), NotNull());
+    EXPECT_THAT(*geometry.GetIndexBuffer(), BufferEq(std::vector<uint8_t>({0, 1, 2})));
+}
+
+TEST(GeometryUint8IndexTest, AppendIndicesTrianglePacksDataAsUint8)
+{
+    Geometry geometry;
+    EXPECT_EQ(Geometry::Create(GeometryCreateInfo{}.IndexType(grfx::INDEX_TYPE_UINT8).AddPosition(), &geometry), ppx::SUCCESS);
+    EXPECT_EQ(geometry.GetIndexType(), grfx::INDEX_TYPE_UINT8);
+
+    geometry.AppendIndicesTriangle(0, 1, 2);
+    EXPECT_EQ(geometry.GetIndexCount(), 3);
+    ASSERT_THAT(geometry.GetIndexBuffer(), NotNull());
+    EXPECT_THAT(*geometry.GetIndexBuffer(), BufferEq(std::vector<uint8_t>({0, 1, 2})));
+}
+
+TEST(GeometryUint8IndexTest, AppendIndicesEdgePacksDataAsUint8)
+{
+    Geometry geometry;
+    EXPECT_EQ(Geometry::Create(GeometryCreateInfo{}.IndexType(grfx::INDEX_TYPE_UINT8).AddPosition(), &geometry), ppx::SUCCESS);
+    EXPECT_EQ(geometry.GetIndexType(), grfx::INDEX_TYPE_UINT8);
+
+    geometry.AppendIndicesEdge(0, 1);
+    EXPECT_EQ(geometry.GetIndexCount(), 2);
+    ASSERT_THAT(geometry.GetIndexBuffer(), NotNull());
+    EXPECT_THAT(*geometry.GetIndexBuffer(), BufferEq(std::vector<uint8_t>({0, 1})));
 }
 
 } // namespace
