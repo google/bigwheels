@@ -235,6 +235,11 @@ Result Device::ConfigureExtensions(const grfx::DeviceCreateInfo* pCreateInfo)
     }
 #endif
 
+    // 8 bit index buffer
+    if (ElementExists(std::string(VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME), mFoundExtensions)) {
+        mExtensions.push_back(VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME);
+    }
+
     // Add additional extensions and uniquify
     AppendElements(pCreateInfo->vulkanExtensions, mExtensions);
     Unique(mExtensions);
@@ -465,9 +470,6 @@ void Device::ConfigureVRSShadingRateCapabilities(
         vrsProperties.maxFragmentShadingRateAttachmentTexelSize.width,
         vrsProperties.maxFragmentShadingRateAttachmentTexelSize.height};
 
-    uint32_t& supportedRateCount = pShadingRateCapabilities->vrs.supportedRateCount;
-    Extent2D* supportedRates     = pShadingRateCapabilities->vrs.supportedRates;
-
     VkInstance instance = ToApi(GetInstance())->GetVkInstance();
     mFnGetPhysicalDeviceFragmentShadingRatesKHR =
         reinterpret_cast<PFN_vkGetPhysicalDeviceFragmentShadingRatesKHR>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceFragmentShadingRatesKHR"));
@@ -475,17 +477,19 @@ void Device::ConfigureVRSShadingRateCapabilities(
         mFnGetPhysicalDeviceFragmentShadingRatesKHR != nullptr,
         "ConfigureVRSShadingRateCapabilities: Failed to load vkGetPhysicalDeviceFragmentShadingRatesKHR");
 
-    VkResult vkres = mFnGetPhysicalDeviceFragmentShadingRatesKHR(physicalDevice, &supportedRateCount, nullptr);
+    uint32_t fragmentShadingRateCount = 0;
+    VkResult vkres                    = mFnGetPhysicalDeviceFragmentShadingRatesKHR(physicalDevice, &fragmentShadingRateCount, nullptr);
     PPX_ASSERT_MSG(vkres == VK_SUCCESS, "vkGetPhysicalDeviceFragmentShadingRatesKHR failed");
 
     std::vector<VkPhysicalDeviceFragmentShadingRateKHR> fragmentShadingRates(
-        supportedRateCount, VkPhysicalDeviceFragmentShadingRateKHR{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_KHR});
-    vkres = mFnGetPhysicalDeviceFragmentShadingRatesKHR(physicalDevice, &supportedRateCount, fragmentShadingRates.data());
+        fragmentShadingRateCount, VkPhysicalDeviceFragmentShadingRateKHR{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_KHR});
+    vkres = mFnGetPhysicalDeviceFragmentShadingRatesKHR(physicalDevice, &fragmentShadingRateCount, fragmentShadingRates.data());
     PPX_ASSERT_MSG(vkres == VK_SUCCESS, "vkGetPhysicalDeviceFragmentShadingRatesKHR failed");
 
-    for (uint32_t i = 0; i < supportedRateCount; ++i) {
-        const auto& rate  = fragmentShadingRates[i];
-        supportedRates[i] = {rate.fragmentSize.width, rate.fragmentSize.height};
+    for (const auto& rate : fragmentShadingRates) {
+        auto& supportedRate           = pShadingRateCapabilities->vrs.supportedRates.emplace_back();
+        supportedRate.sampleCountMask = rate.sampleCounts;
+        supportedRate.fragmentSize    = {rate.fragmentSize.width, rate.fragmentSize.height};
     }
 }
 
@@ -495,6 +499,7 @@ Result Device::CreateQueues(const grfx::DeviceCreateInfo* pCreateInfo)
         uint32_t queueFamilyIndex = ToApi(pCreateInfo->pGpu)->GetGraphicsQueueFamilyIndex();
         for (uint32_t queueIndex = 0; queueIndex < pCreateInfo->graphicsQueueCount; ++queueIndex) {
             grfx::internal::QueueCreateInfo queueCreateInfo = {};
+            queueCreateInfo.commandType                     = grfx::COMMAND_TYPE_GRAPHICS;
             queueCreateInfo.queueFamilyIndex                = queueFamilyIndex;
             queueCreateInfo.queueIndex                      = queueIndex;
 
@@ -510,6 +515,7 @@ Result Device::CreateQueues(const grfx::DeviceCreateInfo* pCreateInfo)
         uint32_t queueFamilyIndex = ToApi(pCreateInfo->pGpu)->GetComputeQueueFamilyIndex();
         for (uint32_t queueIndex = 0; queueIndex < pCreateInfo->computeQueueCount; ++queueIndex) {
             grfx::internal::QueueCreateInfo queueCreateInfo = {};
+            queueCreateInfo.commandType                     = grfx::COMMAND_TYPE_COMPUTE;
             queueCreateInfo.queueFamilyIndex                = queueFamilyIndex;
             queueCreateInfo.queueIndex                      = queueIndex;
 
@@ -525,6 +531,7 @@ Result Device::CreateQueues(const grfx::DeviceCreateInfo* pCreateInfo)
         uint32_t queueFamilyIndex = ToApi(pCreateInfo->pGpu)->GetTransferQueueFamilyIndex();
         for (uint32_t queueIndex = 0; queueIndex < pCreateInfo->transferQueueCount; ++queueIndex) {
             grfx::internal::QueueCreateInfo queueCreateInfo = {};
+            queueCreateInfo.commandType                     = grfx::COMMAND_TYPE_TRANSFER;
             queueCreateInfo.queueFamilyIndex                = queueFamilyIndex;
             queueCreateInfo.queueIndex                      = queueIndex;
 
@@ -626,6 +633,17 @@ Result Device::CreateApiObjects(const grfx::DeviceCreateInfo* pCreateInfo)
         fragmentShadingRateFeature.pipelineFragmentShadingRate   = VK_TRUE;
         fragmentShadingRateFeature.attachmentFragmentShadingRate = VK_TRUE;
         extensionStructs.push_back(reinterpret_cast<VkBaseOutStructure*>(&fragmentShadingRateFeature));
+    }
+
+    // VK_EXT_index_type_uint8
+    VkPhysicalDeviceIndexTypeUint8FeaturesEXT indexTypeUint8Features = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT};
+    if (ElementExists(std::string(VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME), mExtensions)) {
+        VkPhysicalDeviceFeatures2 foundFeatures{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2, &indexTypeUint8Features};
+        vkGetPhysicalDeviceFeatures2(ToApi(pCreateInfo->pGpu)->GetVkGpu(), &foundFeatures);
+        if (indexTypeUint8Features.indexTypeUint8 == VK_TRUE) {
+            mIndexTypeUint8Supported = true;
+            extensionStructs.push_back(reinterpret_cast<VkBaseOutStructure*>(&indexTypeUint8Features));
+        }
     }
 
     // Chain pNexts
@@ -1082,6 +1100,11 @@ bool Device::FragmentStoresAndAtomicsSupported() const
 bool Device::PartialDescriptorBindingsSupported() const
 {
     return mDescriptorIndexingFeatures.descriptorBindingPartiallyBound;
+}
+
+bool Device::IndexTypeUint8Supported() const
+{
+    return mIndexTypeUint8Supported;
 }
 
 void Device::ResetQueryPoolEXT(

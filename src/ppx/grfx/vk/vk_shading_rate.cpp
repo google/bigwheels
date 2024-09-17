@@ -46,7 +46,7 @@ uint32_t VRSShadingRateEncoder::RawEncode(uint8_t width, uint8_t height)
     return (widthEnc << 2) | heightEnc;
 }
 
-void VRSShadingRateEncoder::Initialize(const ShadingRateCapabilities& capabilities)
+void VRSShadingRateEncoder::Initialize(SampleCount sampleCount, const ShadingRateCapabilities& capabilities)
 {
     // Calculate the mapping from requested shading rates to supported shading rates.
 
@@ -54,10 +54,11 @@ void VRSShadingRateEncoder::Initialize(const ShadingRateCapabilities& capabiliti
     std::fill(mMapRateToSupported.begin(), mMapRateToSupported.end(), UINT8_MAX);
 
     // Supported shading rates map to themselves.
-    for (uint32_t i = 0; i < capabilities.vrs.supportedRateCount; ++i) {
-        auto     rate                = capabilities.vrs.supportedRates[i];
-        uint32_t encoded             = RawEncode(rate.width, rate.height);
-        mMapRateToSupported[encoded] = encoded;
+    for (const auto& rate : capabilities.vrs.supportedRates) {
+        if ((rate.sampleCountMask & sampleCount) != 0) {
+            uint32_t encoded             = RawEncode(rate.fragmentSize.width, rate.fragmentSize.height);
+            mMapRateToSupported[encoded] = encoded;
+        }
     }
 
     // Calculate the mapping for unsupported shading rates.
@@ -141,6 +142,7 @@ const ShadingRateEncoder* ShadingRatePattern::GetShadingRateEncoder() const
 Result ShadingRatePattern::CreateApiObjects(const ShadingRatePatternCreateInfo* pCreateInfo)
 {
     mShadingRateMode         = pCreateInfo->shadingRateMode;
+    mSampleCount             = pCreateInfo->sampleCount;
     const auto& capabilities = GetDevice()->GetShadingRateCapabilities();
 
     grfx::ImageCreateInfo imageCreateInfo       = {};
@@ -164,7 +166,7 @@ Result ShadingRatePattern::CreateApiObjects(const ShadingRatePatternCreateInfo* 
             imageCreateInfo.initialState                                  = RESOURCE_STATE_FRAGMENT_SHADING_RATE_ATTACHMENT;
 
             auto vrsShadingRateEncoder = std::make_unique<internal::VRSShadingRateEncoder>();
-            vrsShadingRateEncoder->Initialize(capabilities);
+            vrsShadingRateEncoder->Initialize(mSampleCount, capabilities);
             mShadingRateEncoder = std::move(vrsShadingRateEncoder);
         } break;
         default:

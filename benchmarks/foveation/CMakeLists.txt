@@ -1,4 +1,4 @@
-# Copyright 2022 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,16 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-project(benchmarks)
 
-add_subdirectory(draw_call)
-add_subdirectory(compute_operations)
-add_subdirectory(headless_compute)
-add_subdirectory(primitive_assembly)
-add_subdirectory(render_target)
-add_subdirectory(texture_load)
-add_subdirectory(texture_sample)
-add_subdirectory(texture_transfer_cpu_to_gpu)
-add_subdirectory(overdraw)
-add_subdirectory(graphics_pipeline)
-add_subdirectory(foveation)
+project(foveation)
+
+add_vk_sample(
+    NAME ${PROJECT_NAME}
+    SOURCES
+      "main.cpp"
+      "FoveationBenchmarkApp.h"
+      "FoveationBenchmarkApp.cpp"
+    DEPENDENCIES
+      "shader_foveation_benchmark"
+      "shader_foveation_benchmark_shading_rate_khr"
+      "shader_foveation_benchmark_frag_size_ext_vs"
+      "shader_foveation_benchmark_frag_size_ext_ps"
+      "shader_fullscreen_triangle_combined")

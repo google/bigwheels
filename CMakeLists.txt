@@ -56,6 +56,30 @@ endif ()
 message(STATUS "DXC_PATH: ${DXC_PATH}")
 
 # ------------------------------------------------------------------------------
+# Detect glslc presence. Required to compile GLSL shaders.
+# ------------------------------------------------------------------------------
+
+message(CHECK_START "Looking for GLSLC")
+if (NOT GLSLC_PATH)
+    message(STATUS "GLSLC_PATH not set. Looking for Vulkan SDK path in ENV")
+    if (DEFINED ENV{VULKAN_SDK})
+        if (CMAKE_HOST_WIN32)
+            set(GLSLC_PATH "$ENV{VULKAN_SDK}\\Bin\\glslc.exe")
+        else ()
+            set(GLSLC_PATH "$ENV{VULKAN_SDK}/bin/glslc")
+        endif ()
+    endif ()
+endif ()
+
+if ((NOT GLSLC_PATH) OR (NOT EXISTS "${GLSLC_PATH}"))
+    message(CHECK_FAIL "Cannot open GLSLC at ${GLSLC_PATH}")
+else ()
+    message(CHECK_PASS "found")
+endif ()
+
+message(STATUS "GLSLC_PATH: ${GLSLC_PATH}")
+
+# ------------------------------------------------------------------------------
 # Configure target platform.
 # ------------------------------------------------------------------------------
 
@@ -117,6 +141,7 @@ if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${MSVC_DISABLED_WARNINGS} /MP /Zc:__cplusplus /std:c++17")
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -Werror \
         -std=c++17 \
         -fdiagnostics-color=always \
         -Wno-nullability-completeness \
@@ -129,12 +154,6 @@ else()
         -Wno-pointer-bool-conversion \
     ")
 
-    if (NOT PPX_BUILD_XR)
-        # OpenXR has way too many warnings to enable -Werror with it.
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
-            -Werror \
-        ")
-    endif ()
 endif()
 
 set(CMAKE_CXX_STANDARD 17)

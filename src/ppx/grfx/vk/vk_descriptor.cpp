@@ -46,7 +46,7 @@ Result DescriptorPool::CreateApiObjects(const grfx::DescriptorPoolCreateInfo* pC
         auto it = FindIf(
             poolSizes,
             [](const VkDescriptorPoolSize& elem) -> bool {
-                bool isSame = elem.type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER; 
+                bool isSame = elem.type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
                 return isSame; });
         if (it != std::end(poolSizes)) {
             it->descriptorCount += pCreateInfo->structuredBuffer;
@@ -258,6 +258,7 @@ Result DescriptorSetLayout::CreateApiObjects(const grfx::DescriptorSetLayoutCrea
         return ppx::ERROR_REQUIRED_FEATURE_UNAVAILABLE;
     }
 
+    std::vector<std::vector<VkSampler>>       immutableSamplers;
     std::vector<VkDescriptorSetLayoutBinding> vkBindings;
     std::vector<VkDescriptorBindingFlags>     vkBindingFlags;
     bool                                      hasBindingFlags = false;
@@ -269,7 +270,17 @@ Result DescriptorSetLayout::CreateApiObjects(const grfx::DescriptorSetLayoutCrea
         vkBinding.descriptorType               = ToVkDescriptorType(baseBinding.type);
         vkBinding.descriptorCount              = baseBinding.arrayCount;
         vkBinding.stageFlags                   = ToVkShaderStageFlags(baseBinding.shaderVisiblity);
-        vkBinding.pImmutableSamplers           = nullptr;
+        if (baseBinding.immutableSamplers.size() == 0) {
+            vkBinding.pImmutableSamplers = nullptr;
+        }
+        else {
+            PPX_ASSERT_MSG(baseBinding.arrayCount == baseBinding.immutableSamplers.size(), "Length of immutableSamplers must be 0 or descriptorCount.");
+            auto& bindingImmutableSamplers = immutableSamplers.emplace_back();
+            for (const auto& immutableSampler : baseBinding.immutableSamplers) {
+                bindingImmutableSamplers.push_back(ToApi(immutableSampler)->GetVkSampler());
+            }
+            vkBinding.pImmutableSamplers = DataPtr(bindingImmutableSamplers);
+        }
         vkBindings.push_back(vkBinding);
 
         PPX_CHECKED_CALL(ValidateDescriptorBindingFlags(baseBinding.flags));

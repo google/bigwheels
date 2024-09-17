@@ -26,6 +26,7 @@ namespace grfx {
 const char* ToString(grfx::Api value);
 const char* ToString(grfx::DescriptorType value);
 const char* ToString(grfx::VertexSemantic value);
+const char* ToString(grfx::IndexType value);
 
 uint32_t     IndexTypeSize(grfx::IndexType value);
 grfx::Format VertexSemanticFormat(grfx::VertexSemantic value);

@@ -324,7 +324,6 @@ Result RenderPass::CreateImagesAndViewsV2(const grfx::internal::RenderPassCreate
             rtvCreateInfo.pImage                           = image;
             rtvCreateInfo.imageViewType                    = grfx::IMAGE_VIEW_TYPE_2D;
             rtvCreateInfo.format                           = pCreateInfo->V2.renderTargetFormats[i];
-            rtvCreateInfo.sampleCount                      = image->GetSampleCount();
             rtvCreateInfo.mipLevel                         = 0;
             rtvCreateInfo.mipLevelCount                    = 1;
             rtvCreateInfo.arrayLayer                       = 0;
@@ -412,7 +411,6 @@ Result RenderPass::CreateImagesAndViewsV3(const grfx::internal::RenderPassCreate
             rtvCreateInfo.pImage                           = image;
             rtvCreateInfo.imageViewType                    = image->GuessImageViewType();
             rtvCreateInfo.format                           = image->GetFormat();
-            rtvCreateInfo.sampleCount                      = image->GetSampleCount();
             rtvCreateInfo.mipLevel                         = 0;
             rtvCreateInfo.mipLevelCount                    = image->GetMipLevelCount();
             rtvCreateInfo.arrayLayer                       = 0;

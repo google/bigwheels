@@ -152,3 +152,35 @@ function(generate_group_rule_for_shader TARGET_NAME)
         add_custom_target_in_folder("vk_${TARGET_NAME}" DEPENDS ${PREFIXED_CHILDREN} FOLDER "${TARGET_NAME}")
     endif ()
 endfunction()
+
+
+function(generate_rules_for_glsl_shader TARGET_NAME)
+    set(oneValueArgs SOURCE STAGE)
+    set(multiValueArgs "")
+    cmake_parse_arguments(PARSE_ARGV 1 "ARG" "" "${oneValueArgs}" "${multiValueArgs}")
+
+    add_custom_target_in_folder("${TARGET_NAME}" SOURCES "${ARG_SOURCE}" FOLDER "${TARGET_NAME}")
+    message(STATUS "creating GLSL shader target ${TARGET_NAME}.")
+    add_dependencies("all-shaders" "${TARGET_NAME}")
+
+    add_custom_target_in_folder("vk_${TARGET_NAME}" SOURCES "${ARG_SOURCE}" FOLDER "${TARGET_NAME}")
+    add_dependencies("${TARGET_NAME}" "vk_${TARGET_NAME}")
+
+    get_filename_component(BASE_NAME "${ARG_SOURCE}" NAME_WE)
+
+    file(RELATIVE_PATH PATH_PREFIX "${PPX_DIR}" "${ARG_SOURCE}")
+    get_filename_component(PATH_PREFIX "${PATH_PREFIX}" DIRECTORY)
+
+    set(SHADER_OUTPUT_PATH "${CMAKE_BINARY_DIR}/${PATH_PREFIX}/spv/${BASE_NAME}.${ARG_STAGE}.spv")
+    if (PPX_ANDROID)
+        # Place the generated files into build directory. They will be copied into the APK
+        # assets folder (see build.gradle).
+        set(SHADER_OUTPUT_PATH "${PPX_DIR}/build_android/${PATH_PREFIX}/spv/${BASE_NAME}.${ARG_STAGE}.spv")
+    endif()
+
+    add_custom_command(
+        OUTPUT "${SHADER_OUTPUT_PATH}"
+        MAIN_DEPENDENCY "${ARG_SOURCE}"
+        COMMAND "${GLSLC_PATH}" -o "${SHADER_OUTPUT_PATH}" "${ARG_SOURCE}")
+
+endfunction()

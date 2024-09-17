@@ -117,8 +117,7 @@ struct ApplicationSettings
 
     struct
     {
-        bool enable             = false;
-        bool enableDebugCapture = false;
+        bool enable = false;
 
         // Multiview will create one swapchain with layers per view
         // One Application::Render then should use multiview shaders
@@ -277,6 +276,7 @@ protected:
     virtual metrics::GaugeBasicStatistics GetGaugeBasicStatistics(metrics::MetricID id) const;
 
     void TakeScreenshot();
+    void SaveImage(grfx::ImagePtr image, const std::string& filepath, grfx::ResourceState resourceState) const;
 
     void DrawImGui(grfx::CommandBuffer* pCommandBuffer);
     void DrawDebugInfo();
@@ -383,11 +383,6 @@ public:
     const XrComponent& GetXrComponent() const
     {
         return mXrComponent;
-    }
-
-    grfx::SwapchainPtr GetDebugCaptureSwapchain() const
-    {
-        return GetSwapchain(mDebugCaptureSwapchainIndex);
     }
 
     grfx::SwapchainPtr GetUISwapchain() const
@@ -520,7 +515,6 @@ private:
 
 #if defined(PPX_BUILD_XR)
     XrComponent mXrComponent;
-    uint32_t    mDebugCaptureSwapchainIndex = 0;
     uint32_t    mUISwapchainIndex           = 0;
     uint32_t    mStereoscopicSwapchainIndex = 0;
     ImVec2      lastImGuiWindowSize         = {};

@@ -212,6 +212,7 @@ public:
 
     grfx::ImagePtr          GetImage() const { return mCreateInfo.pImage; }
     grfx::Format            GetFormat() const { return mCreateInfo.format; }
+    grfx::SampleCount       GetSampleCount() const { return GetImage()->GetSampleCount(); }
     uint32_t                GetMipLevel() const { return mCreateInfo.mipLevel; }
     uint32_t                GetArrayLayer() const { return mCreateInfo.arrayLayer; }
     grfx::AttachmentLoadOp  GetDepthLoadOp() const { return mCreateInfo.depthLoadOp; }
@@ -230,7 +231,6 @@ struct RenderTargetViewCreateInfo
     grfx::Image*            pImage          = nullptr;
     grfx::ImageViewType     imageViewType   = grfx::IMAGE_VIEW_TYPE_UNDEFINED;
     grfx::Format            format          = grfx::FORMAT_UNDEFINED;
-    grfx::SampleCount       sampleCount     = grfx::SAMPLE_COUNT_1;
     uint32_t                mipLevel        = 0;
     uint32_t                mipLevelCount   = 0;
     uint32_t                arrayLayer      = 0;
@@ -256,7 +256,7 @@ public:
 
     grfx::ImagePtr          GetImage() const { return mCreateInfo.pImage; }
     grfx::Format            GetFormat() const { return mCreateInfo.format; }
-    grfx::SampleCount       GetSampleCount() const { return mCreateInfo.sampleCount; }
+    grfx::SampleCount       GetSampleCount() const { return GetImage()->GetSampleCount(); }
     uint32_t                GetMipLevel() const { return mCreateInfo.mipLevel; }
     uint32_t                GetArrayLayer() const { return mCreateInfo.arrayLayer; }
     grfx::AttachmentLoadOp  GetLoadOp() const { return mCreateInfo.loadOp; }
@@ -299,7 +299,7 @@ public:
     grfx::ImagePtr                GetImage() const { return mCreateInfo.pImage; }
     grfx::ImageViewType           GetImageViewType() const { return mCreateInfo.imageViewType; }
     grfx::Format                  GetFormat() const { return mCreateInfo.format; }
-    grfx::SampleCount             GetSampleCount() const { return mCreateInfo.sampleCount; }
+    grfx::SampleCount             GetSampleCount() const { return GetImage()->GetSampleCount(); }
     uint32_t                      GetMipLevel() const { return mCreateInfo.mipLevel; }
     uint32_t                      GetMipLevelCount() const { return mCreateInfo.mipLevelCount; }
     uint32_t                      GetArrayLayer() const { return mCreateInfo.arrayLayer; }
@@ -341,7 +341,6 @@ struct StorageImageViewCreateInfo
     grfx::Image*           pImage          = nullptr;
     grfx::ImageViewType    imageViewType   = grfx::IMAGE_VIEW_TYPE_UNDEFINED;
     grfx::Format           format          = grfx::FORMAT_UNDEFINED;
-    grfx::SampleCount      sampleCount     = grfx::SAMPLE_COUNT_1;
     uint32_t               mipLevel        = 0;
     uint32_t               mipLevelCount   = 0;
     uint32_t               arrayLayer      = 0;
@@ -366,7 +365,7 @@ public:
     grfx::ImagePtr      GetImage() const { return mCreateInfo.pImage; }
     grfx::ImageViewType GetImageViewType() const { return mCreateInfo.imageViewType; }
     grfx::Format        GetFormat() const { return mCreateInfo.format; }
-    grfx::SampleCount   GetSampleCount() const { return mCreateInfo.sampleCount; }
+    grfx::SampleCount   GetSampleCount() const { return GetImage()->GetSampleCount(); }
     uint32_t            GetMipLevel() const { return mCreateInfo.mipLevel; }
     uint32_t            GetMipLevelCount() const { return mCreateInfo.mipLevelCount; }
     uint32_t            GetArrayLayer() const { return mCreateInfo.arrayLayer; }

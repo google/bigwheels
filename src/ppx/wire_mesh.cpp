@@ -25,6 +25,8 @@ WireMesh::WireMesh()
 WireMesh::WireMesh(grfx::IndexType indexType)
     : mIndexType(indexType)
 {
+    // TODO: #514 - Remove assert when UINT8 is supported
+    PPX_ASSERT_MSG(mIndexType != grfx::INDEX_TYPE_UINT8, "INDEX_TYPE_UINT8 unsupported in WireMesh");
 }
 
 WireMesh::~WireMesh()

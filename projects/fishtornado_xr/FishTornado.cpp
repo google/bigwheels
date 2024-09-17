@@ -146,7 +146,6 @@ void FishTornadoApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.numFramesInFlight     = 2;
     settings.grfx.pacedFrameRate        = 0;
     settings.xr.enable                  = true;
-    settings.xr.enableDebugCapture      = false;
     settings.grfx.swapchain.imageCount  = 3;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
 
@@ -1125,18 +1124,6 @@ void FishTornadoApp::Render()
     // No need to present when XR is enabled.
     if (!IsXrEnabled()) {
         PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.frameCompleteSemaphore));
-    }
-    else {
-        if (GetSettings()->xr.enableDebugCapture && (currentViewIndex == 1)) {
-            // We could use semaphore to sync to have better performance,
-            // but this requires modifying the submission code.
-            // For debug capture we don't care about the performance,
-            // so use existing fence to sync for simplicity.
-            grfx::SwapchainPtr debugSwapchain = GetDebugCaptureSwapchain();
-            PPX_CHECKED_CALL(debugSwapchain->AcquireNextImage(UINT64_MAX, nullptr, frame.imageAcquiredFence, &imageIndex));
-            frame.imageAcquiredFence->WaitAndReset();
-            PPX_CHECKED_CALL(debugSwapchain->Present(imageIndex, 0, nullptr));
-        }
     }
 }
 

@@ -614,6 +614,7 @@ VkIndexType ToVkIndexType(grfx::IndexType value)
         default: break;
         case grfx::INDEX_TYPE_UINT16 : return VK_INDEX_TYPE_UINT16; break;
         case grfx::INDEX_TYPE_UINT32 : return VK_INDEX_TYPE_UINT32; break;
+        case grfx::INDEX_TYPE_UINT8  : return VK_INDEX_TYPE_UINT8_EXT; break;
     }
     // clang-format on
     return ppx::InvalidValue<VkIndexType>();
@@ -820,15 +821,27 @@ static Result ToVkBarrier(
     VkAccessFlags&                  accessMask,
     VkImageLayout&                  layout)
 {
-    VkPipelineStageFlags PIPELINE_STAGE_ALL_SHADER_STAGES = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-    if (commandType == grfx::CommandType::COMMAND_TYPE_GRAPHICS) {
+    VkPipelineStageFlags PIPELINE_STAGE_ALL_SHADER_STAGES = {};
+    if (commandType == grfx::CommandType::COMMAND_TYPE_COMPUTE) {
+        PIPELINE_STAGE_ALL_SHADER_STAGES |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+    }
+    else if (commandType == grfx::CommandType::COMMAND_TYPE_GRAPHICS) {
         PIPELINE_STAGE_ALL_SHADER_STAGES |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
                                             VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
     }
+    else {
+        PIPELINE_STAGE_ALL_SHADER_STAGES |= VK_PIPELINE_STAGE_TRANSFER_BIT;
+    }
 
-    VkPipelineStageFlags PIPELINE_STAGE_NON_PIXEL_SHADER_STAGES = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-    if (commandType == grfx::CommandType::COMMAND_TYPE_GRAPHICS) {
+    VkPipelineStageFlags PIPELINE_STAGE_NON_PIXEL_SHADER_STAGES = {};
+    if (commandType == grfx::CommandType::COMMAND_TYPE_COMPUTE) {
+        PIPELINE_STAGE_NON_PIXEL_SHADER_STAGES |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+    }
+    else if (commandType == grfx::CommandType::COMMAND_TYPE_GRAPHICS) {
         PIPELINE_STAGE_NON_PIXEL_SHADER_STAGES |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+    }
+    else {
+        PIPELINE_STAGE_NON_PIXEL_SHADER_STAGES |= VK_PIPELINE_STAGE_TRANSFER_BIT;
     }
 
     if (commandType == grfx::CommandType::COMMAND_TYPE_GRAPHICS && features.geometryShader) {
@@ -859,10 +872,14 @@ static Result ToVkBarrier(
             layout     = VK_IMAGE_LAYOUT_GENERAL;
         } break;
 
-        case grfx::RESOURCE_STATE_CONSTANT_BUFFER:
-        case grfx::RESOURCE_STATE_VERTEX_BUFFER: {
+        case grfx::RESOURCE_STATE_CONSTANT_BUFFER: {
             stageMask  = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT | PIPELINE_STAGE_ALL_SHADER_STAGES;
             accessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT | VK_ACCESS_UNIFORM_READ_BIT;
+            layout     = InvalidValue<VkImageLayout>();
+        } break;
+        case grfx::RESOURCE_STATE_VERTEX_BUFFER: {
+            stageMask  = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT | PIPELINE_STAGE_ALL_SHADER_STAGES;
+            accessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
             layout     = InvalidValue<VkImageLayout>();
         } break;
 
@@ -915,13 +932,13 @@ static Result ToVkBarrier(
         } break;
 
         case grfx::RESOURCE_STATE_SHADER_RESOURCE: {
-            stageMask  = PIPELINE_STAGE_NON_PIXEL_SHADER_STAGES;
+            stageMask  = PIPELINE_STAGE_ALL_SHADER_STAGES;
             accessMask = VK_ACCESS_SHADER_READ_BIT;
             layout     = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         } break;
 
         case grfx::RESOURCE_STATE_PIXEL_SHADER_RESOURCE: {
-            stageMask  = PIPELINE_STAGE_NON_PIXEL_SHADER_STAGES | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            stageMask  = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
             accessMask = VK_ACCESS_SHADER_READ_BIT;
             layout     = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
         } break;
@@ -993,6 +1010,7 @@ static Result ToVkBarrier(
         } break;
     }
 
+    PPX_ASSERT_MSG(stageMask != 0, "stageMask must never be 0 (we don't use synchronization2).");
     return ppx::SUCCESS;
 }
 

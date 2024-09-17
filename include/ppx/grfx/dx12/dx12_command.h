@@ -163,6 +163,11 @@ public:
         grfx::Image*                      pSrcImage,
         grfx::Image*                      pDstImage) override;
 
+    virtual void BlitImage(
+        const grfx::ImageBlitInfo* pCopyInfo,
+        grfx::Image*               pSrcImage,
+        grfx::Image*               pDstImage) override;
+
     virtual void BeginQuery(
         const grfx::Query* pQuery,
         uint32_t           queryIndex) override;

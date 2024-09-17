@@ -657,6 +657,13 @@ bool Device::PartialDescriptorBindingsSupported() const
     return true;
 }
 
+bool Device::IndexTypeUint8Supported() const
+{
+    // R8_UINT is not supported for "Input Assembler Index Buffer", only R16_UINT and R32_UINT
+    // https://learn.microsoft.com/en-us/windows/win32/direct3ddxgi/hardware-support-for-direct3d-12-0-formats
+    return false;
+}
+
 } // namespace dx12
 } // namespace grfx
 } // namespace ppx

@@ -1129,6 +1129,14 @@ void CommandBuffer::CopyImageToImage(
     }
 }
 
+void CommandBuffer::BlitImage(
+    const grfx::ImageBlitInfo* pCopyInfo,
+    grfx::Image*               pSrcImage,
+    grfx::Image*               pDstImage)
+{
+    PPX_ASSERT_MSG(false, "BlitImage is not implemented in DX12 backend");
+}
+
 void CommandBuffer::BeginQuery(
     const grfx::Query* pQuery,
     uint32_t           queryIndex)
