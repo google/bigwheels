@@ -276,14 +276,16 @@ private:
     uint64_t CalculateMaterialObjectId(const GltfLoader::InternalLoadParams& loadParams, uint32_t objectIndex);
     uint64_t CalculateMeshObjectId(const GltfLoader::InternalLoadParams& loadParams, uint32_t objectIndexk);
 
+    // Creates a scene::Sampler based off properties in cgltf_sampler.
     ppx::Result LoadSamplerInternal(
         const GltfLoader::InternalLoadParams& loadParams,
-        const cgltf_sampler*                  pGltfSampler,
+        const cgltf_sampler&                  gltfSampler,
         scene::Sampler**                      ppTargetSampler);
 
+    // Checks the ResourceManager first for a suitable sampler. Otherwise, calls and caches LoadSamplerInternal
     ppx::Result FetchSamplerInternal(
         const GltfLoader::InternalLoadParams& loadParams,
-        const cgltf_sampler*                  pGltfSampler,
+        const cgltf_sampler&                  gltfSampler,
         scene::SamplerRef&                    outSampler);
 
     ppx::Result LoadImageInternal(
