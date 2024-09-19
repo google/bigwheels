@@ -24,6 +24,7 @@
       android:label="${appLabel}"
       android:theme="@style/Theme.AppCompat.NoActionBar"
       tools:targetApi="31">
+    <profileable android:shell="true"  android:enabled="true" />
     <!-- Needed for Oculus devices -->
       <uses-native-library
           android:name="libopenxr_forwardloader.oculus.so"

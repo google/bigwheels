@@ -226,7 +226,7 @@ void GraphicsBenchmarkApp::Config(ppx::ApplicationSettings& settings)
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
 #if defined(PPX_BUILD_XR)
     // XR specific settings
-    settings.grfx.pacedFrameRate = 0;
+    settings.grfx.pacedFrameRate = 90;
 #if defined(PPX_ANDROID)
     settings.xr.enable = true;
 #else
