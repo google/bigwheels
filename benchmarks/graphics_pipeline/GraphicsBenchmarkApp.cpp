@@ -1801,14 +1801,14 @@ void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, si
     // Vertex shader push constant
     {
         mQuadPushConstant.InstCount = pKnobShaderAluLoopCount->GetValue();
-        frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[0], GetPushConstCount(mQuadPushConstant.InstCount), &mQuadPushConstant.InstCount, offsetof(QuadPushConstant, InstCount) / sizeof(uint32_t));
-        frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[1], GetPushConstCount(mQuadPushConstant.InstCount), &mQuadPushConstant.InstCount, offsetof(QuadPushConstant, InstCount) / sizeof(uint32_t));
-        frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[2], GetPushConstCount(mQuadPushConstant.InstCount), &mQuadPushConstant.InstCount, offsetof(QuadPushConstant, InstCount) / sizeof(uint32_t));
+        frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[int(FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_NOISE)], GetPushConstCount(mQuadPushConstant.InstCount), &mQuadPushConstant.InstCount, offsetof(QuadPushConstant, InstCount) / sizeof(uint32_t));
+        frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[int(FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_SOLID_COLOR)], GetPushConstCount(mQuadPushConstant.InstCount), &mQuadPushConstant.InstCount, offsetof(QuadPushConstant, InstCount) / sizeof(uint32_t));
+        frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[int(FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_TEXTURE)], GetPushConstCount(mQuadPushConstant.InstCount), &mQuadPushConstant.InstCount, offsetof(QuadPushConstant, InstCount) / sizeof(uint32_t));
     }
     switch (pFullscreenQuadsType->GetValue()) {
         case FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_NOISE: {
             mQuadPushConstant.RandomSeed = seed;
-            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[0], GetPushConstCount(mQuadPushConstant.RandomSeed), &mQuadPushConstant.RandomSeed, offsetof(QuadPushConstant, RandomSeed) / sizeof(uint32_t));
+            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[int(pFullscreenQuadsType->GetValue())], GetPushConstCount(mQuadPushConstant.RandomSeed), &mQuadPushConstant.RandomSeed, offsetof(QuadPushConstant, RandomSeed) / sizeof(uint32_t));
             break;
         }
         case FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_SOLID_COLOR: {
@@ -1826,13 +1826,12 @@ void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, si
             float3 colorValues = pFullscreenQuadsColor->GetValue();
             colorValues *= intensity;
             mQuadPushConstant.ColorValue = colorValues;
-            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[1], GetPushConstCount(mQuadPushConstant.ColorValue), &mQuadPushConstant.ColorValue, offsetof(QuadPushConstant, ColorValue) / sizeof(uint32_t));
+            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[int(pFullscreenQuadsType->GetValue())], GetPushConstCount(mQuadPushConstant.ColorValue), &mQuadPushConstant.ColorValue, offsetof(QuadPushConstant, ColorValue) / sizeof(uint32_t));
             break;
         }
         case FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_TEXTURE:
             mQuadPushConstant.TextureCount = pKnobTextureCount->GetValue();
-            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[2], GetPushConstCount(mQuadPushConstant.TextureCount), &mQuadPushConstant.TextureCount, offsetof(QuadPushConstant, TextureCount) / sizeof(uint32_t));
-
+            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[int(pFullscreenQuadsType->GetValue())], GetPushConstCount(mQuadPushConstant.TextureCount), &mQuadPushConstant.TextureCount, offsetof(QuadPushConstant, TextureCount) / sizeof(uint32_t));
             break;
         default:
             PPX_ASSERT_MSG(true, "unsupported FullscreenQuadsType: " << static_cast<int>(pFullscreenQuadsType->GetValue()));
