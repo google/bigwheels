@@ -1802,6 +1802,8 @@ void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, si
     {
         mQuadPushConstant.InstCount = pKnobShaderAluLoopCount->GetValue();
         frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[0], GetPushConstCount(mQuadPushConstant.InstCount), &mQuadPushConstant.InstCount, offsetof(QuadPushConstant, InstCount) / sizeof(uint32_t));
+        frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[1], GetPushConstCount(mQuadPushConstant.InstCount), &mQuadPushConstant.InstCount, offsetof(QuadPushConstant, InstCount) / sizeof(uint32_t));
+        frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[2], GetPushConstCount(mQuadPushConstant.InstCount), &mQuadPushConstant.InstCount, offsetof(QuadPushConstant, InstCount) / sizeof(uint32_t));
     }
     switch (pFullscreenQuadsType->GetValue()) {
         case FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_NOISE: {
@@ -1824,12 +1826,12 @@ void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, si
             float3 colorValues = pFullscreenQuadsColor->GetValue();
             colorValues *= intensity;
             mQuadPushConstant.ColorValue = colorValues;
-            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[0], GetPushConstCount(mQuadPushConstant.ColorValue), &mQuadPushConstant.ColorValue, offsetof(QuadPushConstant, ColorValue) / sizeof(uint32_t));
+            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[1], GetPushConstCount(mQuadPushConstant.ColorValue), &mQuadPushConstant.ColorValue, offsetof(QuadPushConstant, ColorValue) / sizeof(uint32_t));
             break;
         }
         case FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_TEXTURE:
             mQuadPushConstant.TextureCount = pKnobTextureCount->GetValue();
-            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[0], GetPushConstCount(mQuadPushConstant.TextureCount), &mQuadPushConstant.TextureCount, offsetof(QuadPushConstant, TextureCount) / sizeof(uint32_t));
+            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[2], GetPushConstCount(mQuadPushConstant.TextureCount), &mQuadPushConstant.TextureCount, offsetof(QuadPushConstant, TextureCount) / sizeof(uint32_t));
 
             break;
         default:
