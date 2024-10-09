@@ -162,7 +162,7 @@ Result Application::InitializeGrfxDevice()
         ci.pVulkanDeviceFeatures  = nullptr;
         ci.supportShadingRateMode = mSettings.grfx.device.supportShadingRateMode;
 #if defined(PPX_BUILD_XR)
-        ci.multiView    = IsXrEnabled() && mSettings.xr.enableMultiView;
+        ci.multiView    = IsXrEnabled() && mStandardOpts.pXrEnableMultiview->GetValue();
         ci.pXrComponent = IsXrEnabled() ? &mXrComponent : nullptr;
 #endif
 
@@ -682,6 +682,10 @@ void Application::InitStandardKnobs()
         "to the base extensions. Any required extensions that are not supported by the "
         "target system will cause the application to immediately exit.");
     mStandardOpts.pXrRequiredExtensions->SetFlagParameters("<extension>");
+
+    GetKnobManager().InitKnob(&mStandardOpts.pXrEnableMultiview, "xr-enable-multiview", mSettings.standardKnobsDefaultValue.xrEnableMultiview);
+    mStandardOpts.pXrEnableMultiview->SetFlagDescription(
+        "Specify whether or not multiview should be enabled for the application.");
 #endif
 
     GetKnobManager().InitKnob(&mStandardOpts.pShadingRateMode, "shading-rate-mode", "");
@@ -973,7 +977,7 @@ void Application::InitializeXRComponentBeforeGrfxDeviceInit()
         createInfo.enableDebug          = mSettings.grfx.enableDebug;
         createInfo.enableQuadLayer      = mSettings.enableImGui;
         createInfo.enableDepthSwapchain = mSettings.xr.enableDepthSwapchain;
-        createInfo.enableMultiView      = mSettings.xr.enableMultiView;
+        createInfo.enableMultiView      = mStandardOpts.pXrEnableMultiview->GetValue();
         const auto resolution           = mStandardOpts.pResolution->GetValue();
         const bool hasResolutionFlag    = (resolution.first > 0 && resolution.second > 0);
         if (hasResolutionFlag) {
