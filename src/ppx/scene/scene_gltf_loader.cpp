@@ -1216,7 +1216,7 @@ ppx::Result GltfLoader::LoadMeshData(
             return ppx::ERROR_SCENE_UNSUPPORTED_TOPOLOGY_TYPE;
         }
 
-        // We require index data so bail if there isn't index data.
+        // We require index data so bail if there isn't index data. See #474
         if (IsNull(pGltfPrimitive->indices)) {
             PPX_ASSERT_MSG(false, "GLTF mesh primitive does not have index data");
             return ppx::ERROR_SCENE_INVALID_SOURCE_GEOMETRY_INDEX_DATA;
@@ -1352,18 +1352,7 @@ ppx::Result GltfLoader::LoadMeshData(
             const cgltf_primitive* pGltfPrimitive = &pGltfMesh->primitives[primIdx];
             BatchInfo&             batch          = batchInfos[primIdx];
 
-            // Our resulting geometry must have index data for draw efficiency.
-            // This means that if the index format is undefined we need to generate
-            // topology indices for it.
-            //
-            //
-            bool genTopologyIndices = false;
-            if (batch.indexFormat == grfx::FORMAT_UNDEFINED) {
-                genTopologyIndices = true;
-                batch.indexFormat  = (batch.vertexCount < 65536) ? grfx::FORMAT_R16_UINT : grfx::FORMAT_R32_UINT;
-            }
-
-            // Create genTopologyIndices so we can repack gemetry data into position planar + packed vertex attributes.
+            // Create targetGeometry so we can repack gemetry data into position planar + packed vertex attributes.
             Geometry   targetGeometry = {};
             const bool hasAttributes  = (loadParams.requiredVertexAttributes.mask != 0);
             //
@@ -1503,12 +1492,6 @@ ppx::Result GltfLoader::LoadMeshData(
 
                     // Append vertex data
                     targetGeometry.AppendVertexData(vertexData);
-
-                    // Generate topolgoy indices if necessary
-                    if (genTopologyIndices) {
-                        uint32_t index = (targetGeometry.GetVertexCount() - 1);
-                        targetGeometry.AppendIndex(index);
-                    }
 
                     if (!hasBoundingBox) {
                         if (i > 0) {
