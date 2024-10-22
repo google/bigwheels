@@ -256,14 +256,13 @@ static const void* GetStartAddress(
 
 // Get an accessor's starting address
 static const void* GetStartAddress(
-    const cgltf_data*     pGltfData,
     const cgltf_accessor* pGltfAccessor)
 {
     //
     // NOTE: Don't assert in this function since any of the fields can be NULL for different reasons.
     //
 
-    if (IsNull(pGltfData) || IsNull(pGltfAccessor)) {
+    if (IsNull(pGltfAccessor)) {
         return nullptr;
     }
 
@@ -1381,7 +1380,7 @@ ppx::Result GltfLoader::LoadMeshData(
                 if (!IsNull(pGltfPrimitive->indices)) {
                     // Get start of index data
                     auto pGltfAccessor = pGltfPrimitive->indices;
-                    auto pGltfIndices  = GetStartAddress(mGltfData, pGltfAccessor);
+                    auto pGltfIndices  = GetStartAddress(pGltfAccessor);
                     PPX_ASSERT_MSG(!IsNull(pGltfIndices), "GLTF: indices data start is NULL");
 
                     // UINT32
@@ -1454,11 +1453,11 @@ ppx::Result GltfLoader::LoadMeshData(
                 }
 
                 // Data starts
-                const float3* pGltflPositions = static_cast<const float3*>(GetStartAddress(mGltfData, gltflAccessors.pPositions));
-                const float3* pGltflNormals   = static_cast<const float3*>(GetStartAddress(mGltfData, gltflAccessors.pNormals));
-                const float4* pGltflTangents  = static_cast<const float4*>(GetStartAddress(mGltfData, gltflAccessors.pTangents));
-                const float3* pGltflColors    = static_cast<const float3*>(GetStartAddress(mGltfData, gltflAccessors.pColors));
-                const float2* pGltflTexCoords = static_cast<const float2*>(GetStartAddress(mGltfData, gltflAccessors.pTexCoords));
+                const float3* pGltflPositions = static_cast<const float3*>(GetStartAddress(gltflAccessors.pPositions));
+                const float3* pGltflNormals   = static_cast<const float3*>(GetStartAddress(gltflAccessors.pNormals));
+                const float4* pGltflTangents  = static_cast<const float4*>(GetStartAddress(gltflAccessors.pTangents));
+                const float3* pGltflColors    = static_cast<const float3*>(GetStartAddress(gltflAccessors.pColors));
+                const float2* pGltflTexCoords = static_cast<const float2*>(GetStartAddress(gltflAccessors.pTexCoords));
 
                 // Process vertex data
                 for (cgltf_size i = 0; i < gltflAccessors.pPositions->count; ++i) {
