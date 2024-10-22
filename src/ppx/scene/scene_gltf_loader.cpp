@@ -159,60 +159,6 @@ static grfx::SamplerAddressMode ToSamplerAddressMode(cgltf_int mode)
     return grfx::SAMPLER_ADDRESS_MODE_REPEAT;
 }
 
-template <typename GltfObjectT>
-static bool HasExtension(
-    const std::string& extensionName,
-    const GltfObjectT* pGltfObject)
-{
-    if (extensionName.empty() || IsNull(pGltfObject) || IsNull(pGltfObject->extensions)) {
-        return false;
-    }
-
-    for (cgltf_size i = 0; i < pGltfObject->extensions_count; ++i) {
-        const std::string name = ToStringSafe(pGltfObject->extensions[i].name);
-        if (extensionName == name) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-// Returns the widest index type used by a mesh
-grfx::IndexType GetIndexType(
-    const cgltf_mesh* pGltfMesh)
-{
-    if (IsNull(pGltfMesh)) {
-        return grfx::INDEX_TYPE_UNDEFINED;
-    }
-
-    uint32_t finalBitCount = 0;
-    for (cgltf_size primIdx = 0; primIdx < pGltfMesh->primitives_count; ++primIdx) {
-        const cgltf_primitive* pGltfPrimitive = &pGltfMesh->primitives[primIdx];
-        // Convert to grfx::Format
-        auto format = GetFormat(pGltfPrimitive->indices);
-
-        uint32_t bitCount = 0;
-        switch (format) {
-            // Bail if we don't recognize the format
-            default: return grfx::INDEX_TYPE_UNDEFINED;
-            case grfx::FORMAT_R16_UINT: bitCount = 16; break;
-            case grfx::FORMAT_R32_UINT: bitCount = 32; break;
-        }
-
-        finalBitCount = std::max(bitCount, finalBitCount);
-    }
-
-    if (finalBitCount == 32) {
-        return grfx::INDEX_TYPE_UINT32;
-    }
-    else if (finalBitCount == 16) {
-        return grfx::INDEX_TYPE_UINT16;
-    }
-
-    return grfx::INDEX_TYPE_UNDEFINED;
-}
-
 // Calcualte a unique hash based a meshes primitive accessors
 static uint64_t GetMeshAccessorsHash(
     const cgltf_data* pGltfData,
