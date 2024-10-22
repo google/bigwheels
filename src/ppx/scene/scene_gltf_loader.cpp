@@ -23,8 +23,6 @@
 #undef LoadImage
 #endif
 
-#define KHR_MATERIALS_UNLIT_EXTENSION_NAME "KHR_materials_unlit"
-
 namespace ppx {
 namespace scene {
 
