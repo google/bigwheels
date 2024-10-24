@@ -284,27 +284,82 @@ static const void* GetStartAddress(
     return static_cast<const void*>(pAccessorDataStart);
 }
 
-// Tries to convert a Format into an IndexType. Fails for formats that don't comply to the GLTF spec.
-// The GLTF 2.0 spec 5.24.2 says "When [format] is undefined, the primitive defines non-indexed geometry. When defined, the accessor MUST have SCALAR type and an unsigned integer component type".
-ppx::Result FormatToIndexType(grfx::Format format, grfx::IndexType& outIndexType)
+const char* ToString(cgltf_component_type componentType)
 {
-    switch (format) {
-        case grfx::FORMAT_UNDEFINED:
-            outIndexType = grfx::INDEX_TYPE_UNDEFINED;
-            return ppx::SUCCESS;
-        case grfx::FORMAT_R8_UINT:
+    switch (componentType) {
+        case cgltf_component_type_r_8:
+            return "BYTE";
+        case cgltf_component_type_r_8u:
+            return "UNSIGNED_BYTE";
+        case cgltf_component_type_r_16:
+            return "SHORT";
+        case cgltf_component_type_r_16u:
+            return "UNSIGNED_SHORT";
+        case cgltf_component_type_r_32u:
+            return "UNSIGNED_INT";
+        case cgltf_component_type_r_32f:
+            return "FLOAT";
+        default:
+            break;
+    }
+
+    return "<unknown cgltf_component_type value>";
+}
+
+const char* ToString(cgltf_type type)
+{
+    switch (type) {
+        case cgltf_type_scalar:
+            return "SCALAR";
+        case cgltf_type_vec2:
+            return "VEC2";
+        case cgltf_type_vec3:
+            return "VEC3";
+        case cgltf_type_vec4:
+            return "VEC4";
+        case cgltf_type_mat2:
+            return "MAT2";
+        case cgltf_type_mat3:
+            return "MAT3";
+        case cgltf_type_mat4:
+            return "MAT4";
+        default:
+            break;
+    }
+
+    return "<unknown cgltf_type value>";
+}
+
+// Tries to derive an IndexType from the accessor. Fails for formats that don't comply to the GLTF spec.
+// The GLTF 2.0 spec 5.24.2 says "When [format] is undefined, the primitive defines non-indexed geometry. When defined, the accessor MUST have SCALAR type and an unsigned integer component type".
+ppx::Result ValidateAccessorIndexType(const cgltf_accessor* pGltfAccessor, grfx::IndexType& outIndexType)
+{
+    if (IsNull(pGltfAccessor)) {
+        outIndexType = grfx::INDEX_TYPE_UNDEFINED;
+        return ppx::SUCCESS;
+    }
+
+    if (pGltfAccessor->type != cgltf_type_scalar) {
+        PPX_ASSERT_MSG(false, "Index accessor type must be SCALAR, got: " << ToString(pGltfAccessor->type));
+        return ppx::ERROR_SCENE_INVALID_SOURCE_GEOMETRY_INDEX_TYPE;
+    }
+
+    switch (pGltfAccessor->component_type) {
+        case cgltf_component_type_r_8u:
             outIndexType = grfx::INDEX_TYPE_UINT8;
             return ppx::SUCCESS;
-        case grfx::FORMAT_R16_UINT:
+        case cgltf_component_type_r_16u:
             outIndexType = grfx::INDEX_TYPE_UINT16;
             return ppx::SUCCESS;
-        case grfx::FORMAT_R32_UINT:
+        case cgltf_component_type_r_32u:
             outIndexType = grfx::INDEX_TYPE_UINT32;
             return ppx::SUCCESS;
         default:
-            PPX_ASSERT_MSG(false, "Unrecognized index format: " << ToString(format));
-            return ppx::ERROR_SCENE_INVALID_SOURCE_GEOMETRY_INDEX_TYPE;
+            break;
     }
+
+    PPX_ASSERT_MSG(false, "Index accessor component ype must be an unsigned integer, got: " << ToString(pGltfAccessor->component_type));
+    return ppx::ERROR_SCENE_INVALID_SOURCE_GEOMETRY_INDEX_TYPE;
 }
 
 } // namespace
@@ -1251,7 +1306,7 @@ ppx::Result GltfLoader::LoadMeshData(
 
         // Get index format
         grfx::IndexType indexType = grfx::INDEX_TYPE_UNDEFINED;
-        if (ppx::Result ppxres = FormatToIndexType(GetFormat(pGltfPrimitive->indices), indexType); Failed(ppxres)) {
+        if (ppx::Result ppxres = ValidateAccessorIndexType(pGltfPrimitive->indices, indexType); Failed(ppxres)) {
             return ppxres;
         }
 
