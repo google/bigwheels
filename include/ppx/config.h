@@ -251,6 +251,7 @@ inline const char* ToString(ppx::Result value)
         case Result::ERROR_GRFX_INVALID_BINDING_NUMBER                : return "ERROR_GRFX_INVALID_BINDING_NUMBER";
         case Result::ERROR_GRFX_INVALID_SET_NUMBER                    : return "ERROR_GRFX_INVALID_SET_NUMBER";
         case Result::ERROR_GRFX_OPERATION_NOT_PERMITTED               : return "ERROR_GRFX_OPERATION_NOT_PERMITTED";
+        case Result::ERROR_GRFX_INVALID_SEMAPHORE_TYPE                : return "ERROR_GRFX_INVALID_SEMAPHORE_TYPE";
 
         case Result::ERROR_IMAGE_FILE_LOAD_FAILED                     : return "ERROR_IMAGE_FILE_LOAD_FAILED";
         case Result::ERROR_IMAGE_FILE_SAVE_FAILED                     : return "ERROR_IMAGE_FILE_SAVE_FAILED";
@@ -264,12 +265,37 @@ inline const char* ToString(ppx::Result value)
         case Result::ERROR_GEOMETRY_NO_INDEX_DATA                     : return "ERROR_GEOMETRY_NO_INDEX_DATA";
         case Result::ERROR_GEOMETRY_FILE_LOAD_FAILED                  : return "ERROR_GEOMETRY_FILE_LOAD_FAILED";
         case Result::ERROR_GEOMETRY_FILE_NO_DATA                      : return "ERROR_GEOMETRY_FILE_NO_DATA";
+        case Result::ERROR_GEOMETRY_INVALID_VERTEX_SEMANTIC           : return "ERROR_GEOMETRY_INVALID_VERTEX_SEMANTIC";
 
         case Result::ERROR_WINDOW_EVENTS_ALREADY_REGISTERED           : return "ERROR_WINDOW_EVENTS_ALREADY_REGISTERED";
         case Result::ERROR_IMGUI_INITIALIZATION_FAILED                : return "ERROR_IMGUI_INITIALIZATION_FAILED";
 
         case Result::ERROR_FONT_PARSE_FAILED                          : return "ERROR_FONT_PARSE_FAILED";
         case Result::ERROR_INVALID_UTF8_STRING                        : return "ERROR_INVALID_UTF8_STRING";
+
+        case Result::ERROR_PPM_EXPORT_FORMAT_NOT_SUPPORTED            : return "ERROR_PPM_EXPORT_FORMAT_NOT_SUPPORTED";
+        case Result::ERROR_PPM_EXPORT_INVALID_SIZE                    : return "ERROR_PPM_EXPORT_INVALID_SIZE";
+
+        case Result::ERROR_SCENE_UNSUPPORTED_FILE_TYPE                : return "ERROR_SCENE_UNSUPPORTED_FILE_TYPE";
+        case Result::ERROR_SCENE_UNSUPPORTED_NODE_TYPE                : return "ERROR_SCENE_UNSUPPORTED_NODE_TYPE";
+        case Result::ERROR_SCENE_UNSUPPORTED_CAMERA_TYPE              : return "ERROR_SCENE_UNSUPPORTED_CAMERA_TYPE";
+        case Result::ERROR_SCENE_UNSUPPORTED_TOPOLOGY_TYPE            : return "ERROR_SCENE_UNSUPPORTED_TOPOLOGY_TYPE";
+        case Result::ERROR_SCENE_SOURCE_FILE_LOAD_FAILED              : return "ERROR_SCENE_SOURCE_FILE_LOAD_FAILED";
+        case Result::ERROR_SCENE_NO_SOURCE_DATA                       : return "ERROR_SCENE_NO_SOURCE_DATA";
+        case Result::ERROR_SCENE_INVALID_SOURCE_SCENE                 : return "ERROR_SCENE_INVALID_SOURCE_SCENE";
+        case Result::ERROR_SCENE_INVALID_SOURCE_NODE                  : return "ERROR_SCENE_INVALID_SOURCE_NODE";
+        case Result::ERROR_SCENE_INVALID_SOURCE_CAMERA                : return "ERROR_SCENE_INVALID_SOURCE_CAMERA";
+        case Result::ERROR_SCENE_INVALID_SOURCE_LIGHT                 : return "ERROR_SCENE_INVALID_SOURCE_LIGHT";
+        case Result::ERROR_SCENE_INVALID_SOURCE_MESH                  : return "ERROR_SCENE_INVALID_SOURCE_MESH";
+        case Result::ERROR_SCENE_INVALID_SOURCE_GEOMETRY_INDEX_TYPE   : return "ERROR_SCENE_INVALID_SOURCE_GEOMETRY_INDEX_TYPE";
+        case Result::ERROR_SCENE_INVALID_SOURCE_GEOMETRY_INDEX_DATA   : return "ERROR_SCENE_INVALID_SOURCE_GEOMETRY_INDEX_DATA";
+        case Result::ERROR_SCENE_INVALID_SOURCE_GEOMETRY_VERTEX_DATA  : return "ERROR_SCENE_INVALID_SOURCE_GEOMETRY_VERTEX_DATA";
+        case Result::ERROR_SCENE_INVALID_SOURCE_MATERIAL              : return "ERROR_SCENE_INVALID_SOURCE_MATERIAL";
+        case Result::ERROR_SCENE_INVALID_SOURCE_TEXTURE               : return "ERROR_SCENE_INVALID_SOURCE_TEXTURE";
+        case Result::ERROR_SCENE_INVALID_SOURCE_IMAGE                 : return "ERROR_SCENE_INVALID_SOURCE_IMAGE";
+        case Result::ERROR_SCENE_INVALID_NODE_HIERARCHY               : return "ERROR_SCENE_INVALID_NODE_HIERARCHY";
+        case Result::ERROR_SCENE_INVALID_STANDALONE_OPERATION         : return "ERROR_SCENE_INVALID_STANDALONE_OPERATION";
+        case Result::ERROR_SCENE_NODE_ALREADY_HAS_PARENT              : return "ERROR_SCENE_NODE_ALREADY_HAS_PARENT";
     }
     // clang-format on
     return "<unknown ppx::Result value>";
