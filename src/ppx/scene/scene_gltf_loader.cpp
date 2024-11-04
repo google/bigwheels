@@ -355,7 +355,7 @@ ppx::Result ValidateAccessorIndexType(const cgltf_accessor* pGltfAccessor, grfx:
             break;
     }
 
-    PPX_ASSERT_MSG(false, "Index accessor component ype must be an unsigned integer, got: " << ToString(pGltfAccessor->component_type));
+    PPX_ASSERT_MSG(false, "Index accessor component type must be an unsigned integer, got: " << ToString(pGltfAccessor->component_type));
     return ppx::ERROR_SCENE_INVALID_SOURCE_GEOMETRY_INDEX_TYPE;
 }
 
