@@ -1473,33 +1473,18 @@ ppx::Result GltfLoader::LoadMeshData(
                     case grfx::INDEX_TYPE_UNDEFINED:
                         PPX_ASSERT_MSG(false, "Non-indexed geoemetry is not supported. See #474");
                         break;
-                    case grfx::INDEX_TYPE_UINT16: {
-                        auto pGltfIndices = GetStartAddress(pGltfPrimitive->indices);
-                        PPX_ASSERT_MSG(!IsNull(pGltfIndices), "GLTF: indices data start is NULL");
-                        const uint16_t* pGltfIndex = static_cast<const uint16_t*>(pGltfIndices);
-                        for (cgltf_size i = 0; i < pGltfPrimitive->indices->count; ++i, ++pGltfIndex) {
-                            targetGeometry.AppendIndex(*pGltfIndex);
+                    case grfx::INDEX_TYPE_UINT16:
+                    case grfx::INDEX_TYPE_UINT32:
+                    case grfx::INDEX_TYPE_UINT8:
+                        for (cgltf_size i = 0; i < pGltfPrimitive->indices->count; ++i) {
+                            cgltf_uint value = 0;
+                            if (!cgltf_accessor_read_uint(pGltfPrimitive->indices, i, &value, /*element_size=*/1)) {
+                                PPX_ASSERT_MSG(false, "cgltf_accessor_read_uint failed. Index " << i);
+                                return ppx::ERROR_SCENE_INVALID_SOURCE_GEOMETRY_INDEX_DATA;
+                            }
+                            targetGeometry.AppendIndex(value);
                         }
                         break;
-                    }
-                    case grfx::INDEX_TYPE_UINT32: {
-                        auto pGltfIndices = GetStartAddress(pGltfPrimitive->indices);
-                        PPX_ASSERT_MSG(!IsNull(pGltfIndices), "GLTF: indices data start is NULL");
-                        const uint32_t* pGltfIndex = static_cast<const uint32_t*>(pGltfIndices);
-                        for (cgltf_size i = 0; i < pGltfPrimitive->indices->count; ++i, ++pGltfIndex) {
-                            targetGeometry.AppendIndex(*pGltfIndex);
-                        }
-                        break;
-                    }
-                    case grfx::INDEX_TYPE_UINT8: {
-                        auto pGltfIndices = GetStartAddress(pGltfPrimitive->indices);
-                        PPX_ASSERT_MSG(!IsNull(pGltfIndices), "GLTF: indices data start is NULL");
-                        const uint8_t* pGltfIndex = static_cast<const uint8_t*>(pGltfIndices);
-                        for (cgltf_size i = 0; i < pGltfPrimitive->indices->count; ++i, ++pGltfIndex) {
-                            targetGeometry.AppendIndex(*pGltfIndex);
-                        }
-                        break;
-                    }
                 }
             }
 
