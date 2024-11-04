@@ -23,8 +23,6 @@
 #undef LoadImage
 #endif
 
-#define KHR_MATERIALS_UNLIT_EXTENSION_NAME "KHR_materials_unlit"
-
 namespace ppx {
 namespace scene {
 
@@ -260,14 +258,13 @@ static const void* GetStartAddress(
 
 // Get an accessor's starting address
 static const void* GetStartAddress(
-    const cgltf_data*     pGltfData,
     const cgltf_accessor* pGltfAccessor)
 {
     //
     // NOTE: Don't assert in this function since any of the fields can be NULL for different reasons.
     //
 
-    if (IsNull(pGltfData) || IsNull(pGltfAccessor)) {
+    if (IsNull(pGltfAccessor)) {
         return nullptr;
     }
 
@@ -1310,10 +1307,9 @@ ppx::Result GltfLoader::LoadMeshData(
             return ppxres;
         }
 
-        // TODO: #474 - Support non-indexed geometry and remove this check.
-        // The rest of this function assumes that indexType != UNDEFINED.
+        // We require index data so bail if there isn't index data. See #474
         if (indexType == grfx::INDEX_TYPE_UNDEFINED) {
-            PPX_ASSERT_MSG(false, "Non-indexed geoemetry is currently not supported. See #474");
+            PPX_ASSERT_MSG(false, "GLTF mesh primitive does not have index data");
             return ppx::ERROR_SCENE_INVALID_SOURCE_GEOMETRY_INDEX_DATA;
         }
 
@@ -1447,18 +1443,6 @@ ppx::Result GltfLoader::LoadMeshData(
             const cgltf_primitive* pGltfPrimitive = &pGltfMesh->primitives[primIdx];
             BatchInfo&             batch          = batchInfos[primIdx];
 
-            // Our resulting geometry must have index data for draw efficiency.
-            // This means that if the index format is undefined we need to generate
-            // topology indices for it.
-            //
-            // TODO: #474 - This is currently dead code. It will need to be updated to support UINT8
-            bool genTopologyIndices = false;
-            if (batch.indexType == grfx::INDEX_TYPE_UNDEFINED) {
-                genTopologyIndices      = true;
-                batch.indexType         = (batch.vertexCount < 65536) ? grfx::INDEX_TYPE_UINT16 : grfx::INDEX_TYPE_UINT32;
-                batch.repackedIndexType = batch.indexType;
-            }
-
             // Create targetGeometry so we can repack gemetry data into position planar + packed vertex attributes.
             Geometry   targetGeometry = {};
             const bool hasAttributes  = (loadParams.requiredVertexAttributes.mask != 0);
@@ -1490,7 +1474,7 @@ ppx::Result GltfLoader::LoadMeshData(
                         PPX_ASSERT_MSG(false, "Non-indexed geoemetry is not supported. See #474");
                         break;
                     case grfx::INDEX_TYPE_UINT16: {
-                        auto pGltfIndices = GetStartAddress(mGltfData, pGltfPrimitive->indices);
+                        auto pGltfIndices = GetStartAddress(pGltfPrimitive->indices);
                         PPX_ASSERT_MSG(!IsNull(pGltfIndices), "GLTF: indices data start is NULL");
                         const uint16_t* pGltfIndex = static_cast<const uint16_t*>(pGltfIndices);
                         for (cgltf_size i = 0; i < pGltfPrimitive->indices->count; ++i, ++pGltfIndex) {
@@ -1499,7 +1483,7 @@ ppx::Result GltfLoader::LoadMeshData(
                         break;
                     }
                     case grfx::INDEX_TYPE_UINT32: {
-                        auto pGltfIndices = GetStartAddress(mGltfData, pGltfPrimitive->indices);
+                        auto pGltfIndices = GetStartAddress(pGltfPrimitive->indices);
                         PPX_ASSERT_MSG(!IsNull(pGltfIndices), "GLTF: indices data start is NULL");
                         const uint32_t* pGltfIndex = static_cast<const uint32_t*>(pGltfIndices);
                         for (cgltf_size i = 0; i < pGltfPrimitive->indices->count; ++i, ++pGltfIndex) {
@@ -1508,7 +1492,7 @@ ppx::Result GltfLoader::LoadMeshData(
                         break;
                     }
                     case grfx::INDEX_TYPE_UINT8: {
-                        auto pGltfIndices = GetStartAddress(mGltfData, pGltfPrimitive->indices);
+                        auto pGltfIndices = GetStartAddress(pGltfPrimitive->indices);
                         PPX_ASSERT_MSG(!IsNull(pGltfIndices), "GLTF: indices data start is NULL");
                         const uint8_t* pGltfIndex = static_cast<const uint8_t*>(pGltfIndices);
                         for (cgltf_size i = 0; i < pGltfPrimitive->indices->count; ++i, ++pGltfIndex) {
@@ -1572,11 +1556,11 @@ ppx::Result GltfLoader::LoadMeshData(
                 }
 
                 // Data starts
-                const float3* pGltflPositions = static_cast<const float3*>(GetStartAddress(mGltfData, gltflAccessors.pPositions));
-                const float3* pGltflNormals   = static_cast<const float3*>(GetStartAddress(mGltfData, gltflAccessors.pNormals));
-                const float4* pGltflTangents  = static_cast<const float4*>(GetStartAddress(mGltfData, gltflAccessors.pTangents));
-                const float3* pGltflColors    = static_cast<const float3*>(GetStartAddress(mGltfData, gltflAccessors.pColors));
-                const float2* pGltflTexCoords = static_cast<const float2*>(GetStartAddress(mGltfData, gltflAccessors.pTexCoords));
+                const float3* pGltflPositions = static_cast<const float3*>(GetStartAddress(gltflAccessors.pPositions));
+                const float3* pGltflNormals   = static_cast<const float3*>(GetStartAddress(gltflAccessors.pNormals));
+                const float4* pGltflTangents  = static_cast<const float4*>(GetStartAddress(gltflAccessors.pTangents));
+                const float3* pGltflColors    = static_cast<const float3*>(GetStartAddress(gltflAccessors.pColors));
+                const float2* pGltflTexCoords = static_cast<const float2*>(GetStartAddress(gltflAccessors.pTexCoords));
 
                 // Process vertex data
                 for (cgltf_size i = 0; i < gltflAccessors.pPositions->count; ++i) {
@@ -1608,12 +1592,6 @@ ppx::Result GltfLoader::LoadMeshData(
 
                     // Append vertex data
                     targetGeometry.AppendVertexData(vertexData);
-
-                    // Generate topolgoy indices if necessary
-                    if (genTopologyIndices) {
-                        uint32_t index = (targetGeometry.GetVertexCount() - 1);
-                        targetGeometry.AppendIndex(index);
-                    }
 
                     if (!hasBoundingBox) {
                         if (i > 0) {
