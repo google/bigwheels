@@ -486,11 +486,9 @@ public:
     VertexBinding& operator+=(const grfx::VertexAttribute& rhs);
 
 private:
-    static const grfx::VertexInputRate kInvalidVertexInputRate = static_cast<grfx::VertexInputRate>(~0);
-
     uint32_t                           mBinding   = 0;
     uint32_t                           mStride    = 0;
-    grfx::VertexInputRate              mInputRate = kInvalidVertexInputRate;
+    grfx::VertexInputRate              mInputRate = grfx::INVALID_VERTEX_INPUT_RATE;
     std::vector<grfx::VertexAttribute> mAttributes;
 };
 
