@@ -507,8 +507,9 @@ enum VendorId
 
 enum VertexInputRate
 {
-    VERTEX_INPUT_RATE_VERTEX   = 0,
-    VERETX_INPUT_RATE_INSTANCE = 1,
+    INVALID_VERTEX_INPUT_RATE = 0,
+    VERTEX_INPUT_RATE_VERTEX,
+    VERETX_INPUT_RATE_INSTANCE,
 };
 
 enum VertexSemantic
