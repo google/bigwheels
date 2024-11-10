@@ -1,4 +1,4 @@
-// Copyright 2023 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,10 +26,10 @@ class GltfBasicMaterialsApp
     : public ppx::Application
 {
 public:
-    virtual void Config(ppx::ApplicationSettings& settings) override;
-    virtual void Setup() override;
-    virtual void Shutdown() override;
-    virtual void Render() override;
+    void Config(ppx::ApplicationSettings& settings) override;
+    void Setup() override;
+    void Shutdown() override;
+    void Render() override;
 
 private:
     struct PerFrame

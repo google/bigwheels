@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
 # limitations under the License.
 cmake_minimum_required(VERSION 3.0 FATAL_ERROR)
 
-project(31_gltf_basic_materials)
+project(gltf_basic_materials)
 
 add_samples_for_all_apis(
     NAME ${PROJECT_NAME}

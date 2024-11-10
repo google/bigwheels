@@ -1,4 +1,4 @@
-// Copyright 2023 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,9 +29,6 @@ void GltfBasicMaterialsApp::Config(ppx::ApplicationSettings& settings)
     settings.appName                    = "gltf_basic_materials";
     settings.enableImGui                = true;
     settings.grfx.api                   = kApi;
-    settings.grfx.enableDebug           = true;
-    settings.window.width               = 1920 * 1;
-    settings.window.height              = 1080 * 1;
     settings.window.resizable           = false;
     settings.grfx.swapchain.depthFormat = grfx::FORMAT_D32_FLOAT;
     settings.allowThirdPartyAssets      = true;
@@ -63,11 +60,7 @@ void GltfBasicMaterialsApp::Setup()
     {
         scene::GltfLoader* pLoader = nullptr;
         //
-        PPX_CHECKED_CALL(scene::GltfLoader::Create(
-            GetAssetPath("scene_renderer/scenes/tests/gltf_test_basic_materials.glb"),
-            // GetAssetPath("scene_renderer/scenes/tests/gltf_test_materials.gltf"),
-            nullptr,
-            &pLoader));
+        PPX_CHECKED_CALL(scene::GltfLoader::Create(GetAssetPath("scene_renderer/scenes/tests/gltf_test_basic_materials.glb"), nullptr, &pLoader));
 
         PPX_CHECKED_CALL(pLoader->LoadScene(GetDevice(), 0, &mScene));
         PPX_ASSERT_MSG((mScene->GetCameraNodeCount() > 0), "scene doesn't have camera nodes");
@@ -78,12 +71,7 @@ void GltfBasicMaterialsApp::Setup()
 
     // IBL Textures
     {
-        PPX_CHECKED_CALL(grfx_util::CreateIBLTexturesFromFile(
-            GetDevice()->GetGraphicsQueue(),
-            GetAssetPath("poly_haven/ibl/old_depot_4k.ibl"),
-            // GetAssetPath("poly_haven/ibl/abandoned_workshop_02_4k.ibl"),
-            &mIBLIrrMap,
-            &mIBLEnvMap));
+        PPX_CHECKED_CALL(grfx_util::CreateIBLTexturesFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("poly_haven/ibl/old_depot_4k.ibl"), &mIBLIrrMap, &mIBLEnvMap));
     }
 
     // Pipeline args
@@ -220,14 +208,14 @@ void GltfBasicMaterialsApp::Render()
 
     grfx::SwapchainPtr swapchain = GetSwapchain();
 
+    // Wait for and reset render complete fence
+    PPX_CHECKED_CALL(frame.renderCompleteFence->WaitAndReset());
+
     uint32_t imageIndex = UINT32_MAX;
     PPX_CHECKED_CALL(swapchain->AcquireNextImage(UINT64_MAX, frame.imageAcquiredSemaphore, frame.imageAcquiredFence, &imageIndex));
 
     // Wait for and reset image acquired fence
     PPX_CHECKED_CALL(frame.imageAcquiredFence->WaitAndReset());
-
-    // Wait for and reset render complete fence
-    PPX_CHECKED_CALL(frame.renderCompleteFence->WaitAndReset());
 
     // Update camera params
     mPipelineArgs->SetCameraParams(mScene->GetCameraNode(0)->GetCamera());
