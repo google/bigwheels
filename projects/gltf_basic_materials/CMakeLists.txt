@@ -21,10 +21,9 @@ add_samples_for_all_apis(
     "GltfBasicMaterials.h"
     "GltfBasicMaterials.cpp"
     "main.cpp"
-    SHADER_DEPENDENCIES 
+    SHADER_DEPENDENCIES
     "shader_scene_renderer_vertex_material_vertex"
     "shader_scene_renderer_material_error"
-    "shader_scene_renderer_material_debug"
     "shader_scene_renderer_material_unlit"
     "shader_scene_renderer_material_standard"
 )
