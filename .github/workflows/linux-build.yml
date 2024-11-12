@@ -76,7 +76,7 @@ jobs:
           xvfb-run -a ./vk_graphics_pipeline --frame-count 2 --screenshot-frame-number 1
           convert screenshot_frame_1.ppm vk_graphics_pipeline_screenshot.png
       - name: Upload screenshots
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: screenshots
           path: build/bin/*.png

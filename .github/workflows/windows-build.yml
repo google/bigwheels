@@ -100,7 +100,7 @@ jobs:
           .\dx12_graphics_pipeline --headless --frame-count 2 --screenshot-frame-number 1
           magick convert screenshot_frame_1.ppm dx12_graphics_pipeline_screenshot.png
       - name: Upload screenshots
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: screenshots
           path: build\bin\Debug\*.png
