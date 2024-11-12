@@ -60,7 +60,7 @@ void GltfBasicMaterialsApp::Setup()
     {
         scene::GltfLoader* pLoader = nullptr;
         //
-        PPX_CHECKED_CALL(scene::GltfLoader::Create(GetAssetPath("scene_renderer/scenes/tests/gltf_test_basic_materials.glb"), nullptr, &pLoader));
+        PPX_CHECKED_CALL(scene::GltfLoader::Create(GetAssetPath(mSceneAssetKnob->GetValue()), /*pMaterialSelector=*/nullptr, &pLoader));
 
         PPX_CHECKED_CALL(pLoader->LoadScene(GetDevice(), 0, &mScene));
         PPX_ASSERT_MSG((mScene->GetCameraNodeCount() > 0), "scene doesn't have camera nodes");
@@ -324,4 +324,10 @@ void GltfBasicMaterialsApp::Render()
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
 
     PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.renderCompleteSemaphore));
+}
+
+void GltfBasicMaterialsApp::InitKnobs()
+{
+    GetKnobManager().InitKnob(&mSceneAssetKnob, "gltf-scene-asset", "scene_renderer/scenes/tests/gltf_test_basic_materials.glb");
+    mSceneAssetKnob->SetFlagDescription("GLTF asset to load and render");
 }
