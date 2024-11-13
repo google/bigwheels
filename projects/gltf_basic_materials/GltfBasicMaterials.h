@@ -30,6 +30,7 @@ public:
     void Setup() override;
     void Shutdown() override;
     void Render() override;
+    void InitKnobs() override;
 
 private:
     struct PerFrame
@@ -57,6 +58,8 @@ private:
 
     ppx::grfx::TexturePtr mIBLIrrMap;
     ppx::grfx::TexturePtr mIBLEnvMap;
+
+    std::shared_ptr<ppx::KnobFlag<std::string>> mSceneAssetKnob;
 };
 
 #endif // GLTF_BASIC_MATERIALS_H
