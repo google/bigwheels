@@ -77,7 +77,7 @@ void GraphicsBenchmarkApp::InitKnobs()
     pKnobVs->SetFlagDescription("Select the vertex shader for the graphics pipeline.");
     pKnobVs->SetIndent(1);
 
-    GetKnobManager().InitKnob(&pKnobPs, "ps", 0, kAvailablePsShaders);
+    GetKnobManager().InitKnob(&pKnobPs, "ps", 2, kAvailablePsShaders);
     pKnobPs->SetDisplayName("Pixel Shader");
     pKnobPs->SetFlagDescription("Select the pixel shader for the graphics pipeline.");
     pKnobPs->SetIndent(1);
@@ -87,7 +87,7 @@ void GraphicsBenchmarkApp::InitKnobs()
     pAllTexturesTo1x1->SetFlagDescription("Replace all sphere textures with a 1x1 white texture.");
     pAllTexturesTo1x1->SetIndent(2);
 
-    GetKnobManager().InitKnob(&pKnobLOD, "LOD", 0, kAvailableLODs);
+    GetKnobManager().InitKnob(&pKnobLOD, "LOD", 1, kAvailableLODs);
     pKnobLOD->SetDisplayName("Level of Detail (LOD)");
     pKnobLOD->SetFlagDescription("Select the Level of Detail (LOD) for the sphere mesh.");
     pKnobLOD->SetIndent(1);
@@ -97,7 +97,7 @@ void GraphicsBenchmarkApp::InitKnobs()
     pKnobVbFormat->SetFlagDescription("Select the format for the vertex buffer.");
     pKnobVbFormat->SetIndent(1);
 
-    GetKnobManager().InitKnob(&pKnobVertexAttrLayout, "vertex-attr-layout", 0, kAvailableVertexAttrLayouts);
+    GetKnobManager().InitKnob(&pKnobVertexAttrLayout, "vertex-attr-layout", 1, kAvailableVertexAttrLayouts);
     pKnobVertexAttrLayout->SetDisplayName("Vertex Attribute Layout");
     pKnobVertexAttrLayout->SetFlagDescription("Select the Vertex Attribute Layout for the graphics pipeline.");
     pKnobVertexAttrLayout->SetIndent(1);
@@ -107,7 +107,7 @@ void GraphicsBenchmarkApp::InitKnobs()
     pSphereInstanceCount->SetFlagDescription("Select the number of spheres to draw on the screen.");
     pSphereInstanceCount->SetIndent(1);
 
-    GetKnobManager().InitKnob(&pDrawCallCount, "drawcall-count", /* defaultValue = */ 1, /* minValue = */ 1, kMaxSphereInstanceCount);
+    GetKnobManager().InitKnob(&pDrawCallCount, "drawcall-count", /* defaultValue = */ 10, /* minValue = */ 1, kMaxSphereInstanceCount);
     pDrawCallCount->SetDisplayName("DrawCall Count");
     pDrawCallCount->SetFlagDescription("Select the number of draw calls to be used to draw the `--sphere-count` spheres.");
     pDrawCallCount->SetIndent(1);

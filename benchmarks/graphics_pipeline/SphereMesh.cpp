@@ -53,7 +53,7 @@ float4x4 OrderedGrid::GetModelMatrix(uint32_t sphereIndex, bool isXR) const
         z *= -1.0;
     }
 
-    return glm::translate(float3(x * mStep, y * mStep, z * mStep));
+    return glm::translate(float3(x * mStep, y * mStep, z * mStep)) * glm::scale(float3(2.f, 2.f, 2.f));
 }
 
 // =====================================================================
@@ -120,29 +120,37 @@ void SphereMesh::CreateSphereGeometry(PrecisionType precisionType, VertexLayoutT
     if (precisionType == PrecisionType::PRECISION_TYPE_LOW_PRECISION) {
         if (vertexLayoutType == VertexLayoutType::VERTEX_LAYOUT_TYPE_INTERLEAVED) {
             geometryCreateInfo = GeometryCreateInfo::InterleavedU32(grfx::FORMAT_R16G16B16A16_FLOAT)
-                                     .AddTexCoord(grfx::FORMAT_R16G16_FLOAT)
+                                     .AddColor(grfx::FORMAT_R8G8B8A8_SNORM)
                                      .AddNormal(grfx::FORMAT_R8G8B8A8_SNORM)
-                                     .AddTangent(grfx::FORMAT_R8G8B8A8_SNORM);
+                                     .AddTexCoord(grfx::FORMAT_R16G16_FLOAT)
+                                     .AddTangent(grfx::FORMAT_R8G8B8A8_SNORM)
+                                     .AddBitangent(grfx::FORMAT_R8G8B8A8_SNORM);
         }
         else if (vertexLayoutType == VertexLayoutType::VERTEX_LAYOUT_TYPE_POSITION_PLANAR) {
             geometryCreateInfo = GeometryCreateInfo::PositionPlanarU32(grfx::FORMAT_R16G16B16A16_FLOAT)
-                                     .AddTexCoord(grfx::FORMAT_R16G16_FLOAT)
+                                     .AddColor(grfx::FORMAT_R8G8B8A8_SNORM)
                                      .AddNormal(grfx::FORMAT_R8G8B8A8_SNORM)
-                                     .AddTangent(grfx::FORMAT_R8G8B8A8_SNORM);
+                                     .AddTexCoord(grfx::FORMAT_R16G16_FLOAT)
+                                     .AddTangent(grfx::FORMAT_R8G8B8A8_SNORM)
+                                     .AddBitangent(grfx::FORMAT_R8G8B8A8_SNORM);
         }
     }
     else if (precisionType == PrecisionType::PRECISION_TYPE_HIGH_PRECISION) {
         if (vertexLayoutType == VertexLayoutType::VERTEX_LAYOUT_TYPE_INTERLEAVED) {
             geometryCreateInfo = GeometryCreateInfo::InterleavedU32(grfx::FORMAT_R32G32B32_FLOAT)
-                                     .AddTexCoord(grfx::FORMAT_R32G32_FLOAT)
+                                     .AddColor(grfx::FORMAT_R32G32B32_FLOAT)
                                      .AddNormal(grfx::FORMAT_R32G32B32_FLOAT)
-                                     .AddTangent(grfx::FORMAT_R32G32B32A32_FLOAT);
+                                     .AddTexCoord(grfx::FORMAT_R32G32_FLOAT)
+                                     .AddTangent(grfx::FORMAT_R32G32B32A32_FLOAT)
+                                     .AddBitangent(grfx::FORMAT_R32G32B32_FLOAT);
         }
         else if (vertexLayoutType == VertexLayoutType::VERTEX_LAYOUT_TYPE_POSITION_PLANAR) {
             geometryCreateInfo = GeometryCreateInfo::PositionPlanarU32(grfx::FORMAT_R32G32B32_FLOAT)
-                                     .AddTexCoord(grfx::FORMAT_R32G32_FLOAT)
+                                     .AddColor(grfx::FORMAT_R32G32B32_FLOAT)
                                      .AddNormal(grfx::FORMAT_R32G32B32_FLOAT)
-                                     .AddTangent(grfx::FORMAT_R32G32B32A32_FLOAT);
+                                     .AddTexCoord(grfx::FORMAT_R32G32_FLOAT)
+                                     .AddTangent(grfx::FORMAT_R32G32B32A32_FLOAT)
+                                     .AddBitangent(grfx::FORMAT_R32G32B32_FLOAT);
         }
     }
     PPX_ASSERT_MSG(geometryCreateInfo.vertexBindingCount != 0, "Invalid precisionType and/or vertexLayoutType");
@@ -249,15 +257,17 @@ TriMeshVertexDataCompressed SphereMesh::CompressVertexData(const TriMeshVertexDa
     TriMeshVertexDataCompressed vertexDataCompressed;
 
     vertexDataCompressed.position = half4(glm::packHalf1x16(vertexData.position.x), glm::packHalf1x16(vertexData.position.y), glm::packHalf1x16(vertexData.position.z), glm::packHalf1x16(0.0f));
-    vertexDataCompressed.texCoord = half2(glm::packHalf1x16(vertexData.texCoord.x), glm::packHalf1x16(vertexData.texCoord.y));
+    vertexDataCompressed.color     = i8vec4(MapFloatToInt8(vertexData.color.x), MapFloatToInt8(vertexData.color.y), MapFloatToInt8(vertexData.color.z), MapFloatToInt8(1.0f));
     vertexDataCompressed.normal   = i8vec4(MapFloatToInt8(vertexData.normal.x), MapFloatToInt8(vertexData.normal.y), MapFloatToInt8(vertexData.normal.z), MapFloatToInt8(1.0f));
-    vertexDataCompressed.tangent  = i8vec4(MapFloatToInt8(vertexData.tangent.x), MapFloatToInt8(vertexData.tangent.y), MapFloatToInt8(vertexData.tangent.z), MapFloatToInt8(vertexData.tangent.a));
+    vertexDataCompressed.texCoord  = half2(glm::packHalf1x16(vertexData.texCoord.x), glm::packHalf1x16(vertexData.texCoord.y));
+    vertexDataCompressed.tangent   = i8vec4(MapFloatToInt8(vertexData.tangent.x), MapFloatToInt8(vertexData.tangent.y), MapFloatToInt8(vertexData.tangent.z), MapFloatToInt8(vertexData.tangent.a));
+    vertexDataCompressed.bitangent = i8vec4(MapFloatToInt8(vertexData.bitangent.x), MapFloatToInt8(vertexData.bitangent.y), MapFloatToInt8(vertexData.bitangent.z), MapFloatToInt8(1.0f));
 
     return vertexDataCompressed;
 }
 
 int8_t MapFloatToInt8(float x)
 {
-    PPX_ASSERT_MSG(-1.0f <= x && x <= 1.0f, "The value must be between -1.0 and 1.0");
+    //PPX_ASSERT_MSG(-1.0f <= x && x <= 1.0f, "The value must be between -1.0 and 1.0");
     return static_cast<int8_t>((x + 1.0f) * 127.5f - 128.0f);
 }

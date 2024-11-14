@@ -85,7 +85,7 @@ public:
     // Creates a SphereMesh and populates info for one sphere
     SphereMesh(float radius, uint32_t longitudeSegments, uint32_t latitudeSegments, bool isXR)
     {
-        mSingleSphereMesh        = TriMesh::CreateSphere(radius, longitudeSegments, latitudeSegments, TriMeshOptions().Indices().TexCoords().Normals().Tangents());
+        mSingleSphereMesh        = TriMesh::CreateSphere(radius, longitudeSegments, latitudeSegments, TriMeshOptions().Indices().VertexColors().Normals().TexCoords().Tangents());
         mSingleSphereVertexCount = mSingleSphereMesh.GetCountPositions();
         mSingleSphereTriCount    = mSingleSphereMesh.GetCountTriangles();
         mIsXR                    = isXR;
