@@ -79,7 +79,7 @@ VertexBinding& VertexBinding::AppendAttribute(const grfx::VertexAttribute& attri
 {
     mAttributes.push_back(attribute);
 
-    if (mInputRate == grfx::VertexBinding::kInvalidVertexInputRate) {
+    if (mInputRate == grfx::INVALID_VERTEX_INPUT_RATE) {
         mInputRate = attribute.inputRate;
     }
 

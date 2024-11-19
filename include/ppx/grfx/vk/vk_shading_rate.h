@@ -18,6 +18,7 @@
 #include <memory>
 
 #include "ppx/grfx/vk/vk_config.h"
+#include "ppx/grfx/vk/vk_device.h"
 #include "ppx/grfx/grfx_shading_rate.h"
 
 namespace ppx {
