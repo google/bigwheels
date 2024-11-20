@@ -550,20 +550,19 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsResources()
     switch (pTextureShaderALU->GetValue()) {
         case 0:
             SetupShader("Benchmark_Texture.ps", &mQuadsPs[2]);
-        break;
+            break;
 
         case 1:
             SetupShader("Benchmark_Texture-100.ps", &mQuadsPs[2]);
-        break;
+            break;
 
         case 2:
             SetupShader("Benchmark_Texture-62.ps", &mQuadsPs[2]);
-        break;
+            break;
 
         default:
             SetupShader("Benchmark_Texture.ps", &mQuadsPs[2]);
     }
-
 }
 
 void GraphicsBenchmarkApp::UpdateSkyBoxDescriptors()
