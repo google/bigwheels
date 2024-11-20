@@ -131,6 +131,11 @@ void GraphicsBenchmarkApp::InitKnobs()
     pFullscreenQuadsType->SetFlagDescription("Select the type of the fullscreen quads. See also `--fullscreen-quads-count`.");
     pFullscreenQuadsType->SetIndent(1);
 
+    GetKnobManager().InitKnob(&pTextureShaderALU, "alu-ocupancy-level", /* defaultValue = */ 0, /* minValue = */ 0, 3);
+    pTextureShaderALU->SetDisplayName("ALU ocuppancy level for texture shader.");
+    pTextureShaderALU->SetFlagDescription("Select occupancy level: 0 -> 75, 1 -> 100, 2 -> 62.");
+    pTextureShaderALU->SetVisible(false);
+
     GetKnobManager().InitKnob(&pFullscreenQuadsColor, "fullscreen-quads-color", 0, kFullscreenQuadsColors);
     pFullscreenQuadsColor->SetDisplayName("Color");
     pFullscreenQuadsColor->SetFlagDescription("Select the hue for the solid color fullscreen quads. See also `--fullscreen-quads-count`.");
@@ -542,7 +547,23 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsResources()
     SetupShader("Benchmark_VsSimpleQuads.vs", &mVSQuads);
     SetupShader("Benchmark_RandomNoise.ps", &mQuadsPs[0]);
     SetupShader("Benchmark_SolidColor.ps", &mQuadsPs[1]);
-    SetupShader("Benchmark_Texture.ps", &mQuadsPs[2]);
+    switch (pTextureShaderALU->GetValue()) {
+        case 0:
+            SetupShader("Benchmark_Texture.ps", &mQuadsPs[2]);
+        break;
+
+        case 1:
+            SetupShader("Benchmark_Texture-100.ps", &mQuadsPs[2]);
+        break;
+
+        case 2:
+            SetupShader("Benchmark_Texture-62.ps", &mQuadsPs[2]);
+        break;
+
+        default:
+            SetupShader("Benchmark_Texture.ps", &mQuadsPs[2]);
+    }
+
 }
 
 void GraphicsBenchmarkApp::UpdateSkyBoxDescriptors()

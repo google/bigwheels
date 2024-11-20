@@ -35,5 +35,7 @@ add_samples_for_all_apis(
       "shader_benchmark_skybox"
       "shader_benchmark_solid_color"
       "shader_benchmark_texture"
+      "shader_benchmark_texture-100"
+      "shader_benchmark_texture-62"
       "shader_benchmark_vs_simple_quads"
       "shader_fullscreen_triangle")
