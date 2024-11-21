@@ -95,8 +95,8 @@ generate_rules_for_shader("shader_benchmark_solid_color"
     INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_Quad.hlsli"
     STAGES "ps")
 
-generate_rules_for_shader("shader_benchmark_texture"
-    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_Texture.hlsl"
+generate_rules_for_shader("shader_benchmark_texture-75"
+    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_Texture-75.hlsl"
     INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_Quad.hlsli"
     STAGES "ps")
 

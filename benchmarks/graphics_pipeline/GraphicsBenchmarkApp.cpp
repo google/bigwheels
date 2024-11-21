@@ -547,21 +547,27 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsResources()
     SetupShader("Benchmark_VsSimpleQuads.vs", &mVSQuads);
     SetupShader("Benchmark_RandomNoise.ps", &mQuadsPs[0]);
     SetupShader("Benchmark_SolidColor.ps", &mQuadsPs[1]);
+    // We choose a shader based on ALU occupancy
     switch (pTextureShaderALU->GetValue()) {
         case 0:
-            SetupShader("Benchmark_Texture.ps", &mQuadsPs[2]);
+            // This shader has 75% of ALU occupancy
+            SetupShader("Benchmark_Texture-75.ps", &mQuadsPs[2]);
             break;
 
         case 1:
+            // This shader has 100% of ALU occupancy
             SetupShader("Benchmark_Texture-100.ps", &mQuadsPs[2]);
             break;
 
         case 2:
+            // This shader has 62% of ALU occupancy
             SetupShader("Benchmark_Texture-62.ps", &mQuadsPs[2]);
             break;
 
         default:
-            SetupShader("Benchmark_Texture.ps", &mQuadsPs[2]);
+            // This shader has 75% of ALU occupancy
+            // We use it as default since it has less operations
+            SetupShader("Benchmark_Texture-75.ps", &mQuadsPs[2]);
     }
 }
 

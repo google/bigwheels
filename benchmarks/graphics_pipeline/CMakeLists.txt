@@ -15,7 +15,7 @@ project(graphics_pipeline)
 
 add_samples_for_all_apis(
     NAME ${PROJECT_NAME}
-    SOURCES 
+    SOURCES
       "FreeCamera.h"
       "FreeCamera.cpp"
       "GraphicsBenchmarkApp.h"
@@ -34,7 +34,7 @@ add_samples_for_all_apis(
       "shader_benchmark_random_noise"
       "shader_benchmark_skybox"
       "shader_benchmark_solid_color"
-      "shader_benchmark_texture"
+      "shader_benchmark_texture-75"
       "shader_benchmark_texture-100"
       "shader_benchmark_texture-62"
       "shader_benchmark_vs_simple_quads"
