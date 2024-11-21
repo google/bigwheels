@@ -20,11 +20,22 @@ RWStructuredBuffer<float> dataBuffer : register(u11);
 float4 psmain(VSOutputPos input) : SV_TARGET
 {
     uint32_t textureCount = Config.TextureCount;
-    float4 color = {0.0f, 0.0f, 0.0f, 0.0f};
+    float4 color1 = {0.0f, 0.0f, 0.0f, 0.0f};
+    float4 color2 = {0.0f, 0.0f, 0.0f, 0.0f};
+    float4 color3 = {0.0f, 0.0f, 0.0f, 0.0f};
     for(uint32_t i = 0; i < textureCount; i++)
     {
-        color += Tex[i].Load(uint3(input.position.x, input.position.y, 0))/float(textureCount);
+        color1 += Tex[i].Load(uint3(input.position.x, input.position.y, 0))/float(textureCount);
     }
+    for(uint32_t i = 0; i < textureCount; i++)
+    {
+        color2 += Tex[i].Load(uint3(input.position.x, input.position.y, 0));
+    }
+    for(uint32_t i = 0; i < textureCount; i++)
+    {
+        color3 += Tex[i].Load(uint3(input.position.x + 1, input.position.y + 1, 0))/float(textureCount);
+    }
+    float4 color = color1 + 0.5f * color2 + 0.25f * color3;
     if (!any(color))
         dataBuffer[0] = color.r;
     color.a = randomCompute(Config.InstCount, input.position); 
