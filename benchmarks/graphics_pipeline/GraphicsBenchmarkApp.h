@@ -540,6 +540,7 @@ private:
 
     std::shared_ptr<KnobSlider<int>>                   pFullscreenQuadsCount;
     std::shared_ptr<KnobDropdown<FullscreenQuadsType>> pFullscreenQuadsType;
+    std::shared_ptr<KnobFlag<int>>                     pTextureShaderALU;
     std::shared_ptr<KnobDropdown<float3>>              pFullscreenQuadsColor;
     std::shared_ptr<KnobCheckbox>                      pFullscreenQuadsSingleRenderpass;
     std::shared_ptr<KnobFlag<std::string>>             pQuadTextureFile;
