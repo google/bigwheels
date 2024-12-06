@@ -54,7 +54,7 @@ ppx::AABB GetSceneBoundingBox(const scene::Scene& scene)
     return sceneBoundingBox;
 }
 
-}
+} // namespace
 
 void GltfBasicMaterialsApp::Config(ppx::ApplicationSettings& settings)
 {
@@ -236,7 +236,6 @@ void GltfBasicMaterialsApp::Setup()
         }
     }
 }
-
 
 void GltfBasicMaterialsApp::Shutdown()
 {
