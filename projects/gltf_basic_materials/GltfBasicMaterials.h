@@ -31,6 +31,8 @@ public:
     void Shutdown() override;
     void Render() override;
     void InitKnobs() override;
+    void MouseMove(int32_t x, int32_t y, int32_t dx, int32_t dy, uint32_t buttons) override;
+    void Scroll(float dx, float dy) override;
 
 private:
     struct PerFrame
@@ -60,6 +62,9 @@ private:
     ppx::grfx::TexturePtr mIBLEnvMap;
 
     std::shared_ptr<ppx::KnobFlag<std::string>> mSceneAssetKnob;
+
+    // Contains a value only if the GLTF scene doesn't have a camera.
+    std::optional<ppx::ArcballCamera> mDefaultCamera;
 };
 
 #endif // GLTF_BASIC_MATERIALS_H

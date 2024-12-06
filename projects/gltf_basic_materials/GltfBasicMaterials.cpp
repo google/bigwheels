@@ -16,6 +16,8 @@
 #include "ppx/scene/scene_gltf_loader.h"
 #include "ppx/graphics_util.h"
 
+namespace {
+
 using namespace ppx;
 
 #if defined(USE_DX12)
@@ -23,6 +25,36 @@ const grfx::Api kApi = grfx::API_DX_12_0;
 #elif defined(USE_VK)
 const grfx::Api kApi = grfx::API_VK_1_1;
 #endif
+
+// Calculates a world space bounding box for the mesh. May be bigger than the actual bounding box (especially if rotation is applied) since the node's bounding box is the starting point for transformation (not the individual vertices).
+ppx::AABB GetMeshNodeBoundingBox(const scene::MeshNode& meshNode)
+{
+    float3 obbVertices[8] = {};
+    meshNode.GetMesh()->GetBoundingBox().Transform(meshNode.GetEvaluatedMatrix(), obbVertices);
+    ppx::AABB transformedBoundingBox;
+    transformedBoundingBox.Expand(obbVertices[0]);
+    transformedBoundingBox.Expand(obbVertices[1]);
+    transformedBoundingBox.Expand(obbVertices[2]);
+    transformedBoundingBox.Expand(obbVertices[3]);
+    transformedBoundingBox.Expand(obbVertices[4]);
+    transformedBoundingBox.Expand(obbVertices[5]);
+    transformedBoundingBox.Expand(obbVertices[6]);
+    transformedBoundingBox.Expand(obbVertices[7]);
+    return transformedBoundingBox;
+}
+
+ppx::AABB GetSceneBoundingBox(const scene::Scene& scene)
+{
+    ppx::AABB sceneBoundingBox;
+    for (uint32_t i = 0; i < scene.GetMeshNodeCount(); ++i) {
+        const ppx::AABB transformedMeshNodeBoundingBox = GetMeshNodeBoundingBox(*scene.GetMeshNode(i));
+        sceneBoundingBox.Expand(transformedMeshNodeBoundingBox.GetMax());
+        sceneBoundingBox.Expand(transformedMeshNodeBoundingBox.GetMin());
+    }
+    return sceneBoundingBox;
+}
+
+} // namespace
 
 void GltfBasicMaterialsApp::Config(ppx::ApplicationSettings& settings)
 {
@@ -63,7 +95,16 @@ void GltfBasicMaterialsApp::Setup()
         PPX_CHECKED_CALL(scene::GltfLoader::Create(GetAssetPath(mSceneAssetKnob->GetValue()), /*pMaterialSelector=*/nullptr, &pLoader));
 
         PPX_CHECKED_CALL(pLoader->LoadScene(GetDevice(), 0, &mScene));
-        PPX_ASSERT_MSG((mScene->GetCameraNodeCount() > 0), "scene doesn't have camera nodes");
+        if (mScene->GetCameraNodeCount() == 0) {
+            PPX_LOG_WARN("Scene doesn't have a camera node. Using a default camera");
+            mDefaultCamera = ArcballCamera();
+            mDefaultCamera->SetPerspective(60.0f, GetWindowAspect());
+            ppx::AABB boundingBox = GetSceneBoundingBox(*mScene);
+            // Bias FitToBoundingBox to keep the camera view straight-on the Z axis by placing the camera right in front of the scene on the Z axis. This tends to work well for most Khronos glTF-Sample-Assets.
+            float3 center = (boundingBox.GetMin() + boundingBox.GetMax()) / 2.0f;
+            mDefaultCamera->LookAt(center + float3(0, 0, 1), center);
+            mDefaultCamera->FitToBoundingBox(boundingBox.GetMin(), boundingBox.GetMax());
+        }
         PPX_ASSERT_MSG((mScene->GetMeshNodeCount() > 0), "scene doesn't have mesh nodes");
 
         delete pLoader;
@@ -218,7 +259,8 @@ void GltfBasicMaterialsApp::Render()
     PPX_CHECKED_CALL(frame.imageAcquiredFence->WaitAndReset());
 
     // Update camera params
-    mPipelineArgs->SetCameraParams(mScene->GetCameraNode(0)->GetCamera());
+    const ppx::Camera& camera = mDefaultCamera.has_value() ? *mDefaultCamera : *mScene->GetCameraNode(0)->GetCamera();
+    mPipelineArgs->SetCameraParams(&camera);
 
     // Update instance params
     {
@@ -330,4 +372,40 @@ void GltfBasicMaterialsApp::InitKnobs()
 {
     GetKnobManager().InitKnob(&mSceneAssetKnob, "gltf-scene-asset", "scene_renderer/scenes/tests/gltf_test_basic_materials.glb");
     mSceneAssetKnob->SetFlagDescription("GLTF asset to load and render");
+}
+
+void GltfBasicMaterialsApp::MouseMove(int32_t x, int32_t y, int32_t dx, int32_t dy, uint32_t buttons)
+{
+    if (!mDefaultCamera) {
+        return;
+    }
+
+    if (buttons & ppx::MOUSE_BUTTON_LEFT) {
+        int32_t prevX = x - dx;
+        int32_t prevY = y - dy;
+
+        float2 prevPos = GetNormalizedDeviceCoordinates(prevX, prevY);
+        float2 curPos  = GetNormalizedDeviceCoordinates(x, y);
+
+        mDefaultCamera->Rotate(prevPos, curPos);
+    }
+    else if (buttons & ppx::MOUSE_BUTTON_RIGHT) {
+        int32_t prevX = x - dx;
+        int32_t prevY = y - dy;
+
+        float2 prevPos = GetNormalizedDeviceCoordinates(prevX, prevY);
+        float2 curPos  = GetNormalizedDeviceCoordinates(x, y);
+        float2 delta   = curPos - prevPos;
+
+        mDefaultCamera->Pan(delta);
+    }
+}
+
+void GltfBasicMaterialsApp::Scroll(float dx, float dy)
+{
+    if (!mDefaultCamera) {
+        return;
+    }
+    constexpr float kZoomSpeed = 0.5f;
+    mDefaultCamera->Zoom(dy * kZoomSpeed);
 }
