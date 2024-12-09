@@ -226,10 +226,14 @@ struct QuadViewportScale
     float scale;
 };
 
-static constexpr std::array<DropdownEntry<QuadViewportScale>, 3> kAvailableViewportScales = {{
-    {"1", 1.0},    // No scale
-    {"1/2", 0.5},  // scale to 1/2
-    {"1/4", 0.25}, // scale to 1/4
+static constexpr std::array<DropdownEntry<QuadViewportScale>, 7> kAvailableViewportScales = {{
+    {"1", 1.0},               // No scale
+    {"1/2", 0.5},             // scale to 1/2
+    {"1/4", 0.25},            // scale to 1/4
+    {"1/16", 0.0625},         // scale to 1/16"
+    {"1/64", 0.015625},       // scale to 1/64"
+    {"1/256", 0.00390625},    // scale to 1/256"
+    {"1/1024", 0.0009765625}, // scale t0 1/1024
 }};
 
 static constexpr std::array<DropdownEntry<grfx::BlendMode>, 3> kQuadBlendModes = {{
