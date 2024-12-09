@@ -41,7 +41,7 @@ static constexpr float4   kDefaultDrawCallColor        = float4(1.0f, 0.175f, 0.
 static constexpr uint32_t kDebugColorPushConstantCount = sizeof(float4) / sizeof(uint32_t);
 
 static constexpr const char* kShaderBaseDir   = "benchmarks/shaders";
-static constexpr const char* kQuadTextureFile = "benchmarks/textures/tiger_2364x2880.jpg";
+static constexpr const char* kQuadTextureFile = "benchmarks/textures/fish/2364x2880.png";
 
 enum class DebugView
 {
