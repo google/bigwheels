@@ -16,13 +16,13 @@ def _make_report(input_path: pathlib.Path,
 
   This does several things:
 
-  1. Generates index.html containing the report text
-  2. Copies and converts artifacts into `output_path` so that it's shareable
+  1. Generates index.html containing the report text.
+  2. Copies and converts artifacts into `output_path` so that it's shareable.
 
   Arguments:
-    input_path: Location of test results
-    model_index_path: Path to glTF-Sample-Assets model-index.json
-    output_path: Destination of the HTML report and associated artifacts
+    input_path: Location of test results.
+    model_index_path: Path to glTF-Sample-Assets model-index.json.
+    output_path: Destination of the HTML report and associated artifacts.
   """
 
   model_index_dir = model_index_path.absolute().parent
@@ -37,13 +37,16 @@ def _make_report(input_path: pathlib.Path,
 
   # Alternate row color to make table easier to parse
   head = ET.SubElement(html, 'head')
-  style = ET.SubElement(head, 'style')
-  style.text = 'tbody tr:nth-child(odd) { background-color: #eee; }'
+  ET.SubElement(head, 'style').text = (
+      'tbody tr:nth-child(odd) { background-color: #eee; }')
 
   body = ET.SubElement(html, 'body')
   ET.SubElement(body, 'p').text = f'Time: {meta["datetime"]}'
-  ET.SubElement(body, 'p').text = f'SHA: {meta["sha"]}'
-  ET.SubElement(body, 'p').text = f'Time: {meta["host"]}'
+  ET.SubElement(body, 'p').text = (
+      f'BigWheels Commit SHA: {meta["bigwheels_commit_sha"]}')
+  ET.SubElement(body, 'p').text = (
+      f'gltf-Sample-Assets Commit SHA: {meta["glTF-Sample-Assets_commit_sha"]}')
+  ET.SubElement(body, 'p').text = f'Host: {meta["host"]}'
 
   table = ET.SubElement(body, 'table')
 

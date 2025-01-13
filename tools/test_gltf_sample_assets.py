@@ -9,18 +9,28 @@ import socket
 import subprocess
 
 
-def _get_git_head_commit() -> str:
-  """Returns the repo HEAD SHA."""
+def _get_git_head_commit(path: pathlib.Path) -> str:
+  """Returns the repository HEAD commit SHA.
+
+  Args:
+    path: The path on disk to the git repository (or a subdirectory).
+
+  Returns:
+    The full SHA of the HEAD commit of the provided git repo.
+
+  Raises:
+    subprocess.CalledProcessError: git failed (e.g. `path` is not a repo).
+  """
   process = subprocess.run(
-      ['git', 'rev-parse', 'HEAD'], capture_output=True, check=True)
-  return process.stdout.decode()
+      ['git', 'rev-parse', 'HEAD'], cwd=path, capture_output=True, check=True)
+  return process.stdout.decode().strip()
 
 
 def _build_test_cases(model_index) -> dict[str, str]:
   """Transforms model-index.json into a flat list of test cases to be run.
 
   Args:
-    model_index: glTF-Sample-Assets model-index.json, loaded into memory
+    model_index: glTF-Sample-Assets model-index.json, loaded into memory.
 
   Returns:
     Mapping of test name to test asset. The test name is `name-variant`.
@@ -50,8 +60,8 @@ def _run_test(program: pathlib.Path,
 
   Args:
     program: The program under test used to render the asset under test.
-    asset: The glTF-Sample-Asset under test
-    output_path: Empty directory to store test results
+    asset: The glTF-Sample-Asset under test.
+    output_path: Empty directory to store test results.
   """
   command = [program,
              '--frame-count', '2',
@@ -89,10 +99,14 @@ def main():
   os.mkdir(args.output)
 
   # Dump some state of the test environment to be included in the report.
+  bigwheels_commit_sha = _get_git_head_commit(
+      pathlib.Path(__file__).parent.resolve())
+  assets_commit_sha = _get_git_head_commit(args.model_index.parent.resolve())
   with (args.output / 'meta.json').open('w') as meta_file:
     json.dump({'host': str(socket.getfqdn()),
                'datetime': str(datetime.datetime.now()),
-               'sha': _get_git_head_commit()}, meta_file)
+               'bigwheels_commit_sha': bigwheels_commit_sha,
+               'glTF-Sample-Assets_commit_sha': assets_commit_sha}, meta_file)
 
   test_cases = _build_test_cases(model_index)
   test_count = len(test_cases)  # Used for printing progress
