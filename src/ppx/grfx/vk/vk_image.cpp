@@ -35,7 +35,7 @@ Result Image::CreateApiObjects(const grfx::ImageCreateInfo* pCreateInfo)
             extent.height     = pCreateInfo->height;
             extent.depth      = pCreateInfo->depth;
 
-            VkImageCreateFlags createFlags = VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+            VkImageCreateFlags createFlags = 0;
             if (pCreateInfo->type == grfx::IMAGE_TYPE_CUBE) {
                 createFlags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
             }
