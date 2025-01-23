@@ -28,6 +28,8 @@ TriMesh::TriMesh()
 TriMesh::TriMesh(grfx::IndexType indexType)
     : mIndexType(indexType)
 {
+    // TODO: #514 - Remove assert when UINT8 is supported
+    PPX_ASSERT_MSG(mIndexType != grfx::INDEX_TYPE_UINT8, "INDEX_TYPE_UINT8 unsupported in TriMesh");
 }
 
 TriMesh::TriMesh(TriMeshAttributeDim texCoordDim)
@@ -38,6 +40,8 @@ TriMesh::TriMesh(TriMeshAttributeDim texCoordDim)
 TriMesh::TriMesh(grfx::IndexType indexType, TriMeshAttributeDim texCoordDim)
     : mIndexType(indexType), mTexCoordDim(texCoordDim)
 {
+    // TODO: #514 - Remove assert when UINT8 is supported
+    PPX_ASSERT_MSG(mIndexType != grfx::INDEX_TYPE_UINT8, "INDEX_TYPE_UINT8 unsupported in TriMesh");
 }
 
 TriMesh::~TriMesh()
