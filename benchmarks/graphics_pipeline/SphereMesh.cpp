@@ -53,7 +53,8 @@ float4x4 OrderedGrid::GetModelMatrix(uint32_t sphereIndex, bool isXR) const
         z *= -1.0;
     }
 
-    return glm::translate(float3(x * mStep, y * mStep, z * mStep)) * glm::scale(float3(20.f, 20.f, 20.f));
+    float scale_factor = static_cast<float>(mSizeX) * 5.0f;
+    return glm::translate(float3(x * mStep, y * mStep, z * mStep)) * glm::scale(float3(scale_factor, scale_factor, scale_factor));
 }
 
 // =====================================================================
