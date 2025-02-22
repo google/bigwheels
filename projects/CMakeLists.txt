@@ -52,6 +52,7 @@ add_subdirectory(fishtornado)
 add_subdirectory(fluid_simulation)
 add_subdirectory(oit_demo)
 add_subdirectory(timeline_semaphore)
+add_subdirectory(gen_font_texture)
 
 if (PPX_BUILD_XR)
 add_subdirectory(cube_xr)
