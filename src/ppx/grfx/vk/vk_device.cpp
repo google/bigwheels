@@ -73,7 +73,7 @@ Result Device::ConfigureQueueInfo(const grfx::DeviceCreateInfo* pCreateInfo, std
         if (mGraphicsQueueFamilyIndex != PPX_VALUE_IGNORED) {
             VkDeviceQueueCreateInfo vkci = {VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
             vkci.queueFamilyIndex        = mGraphicsQueueFamilyIndex;
-            vkci.queueCount              = pCreateInfo->pGpu->GetGraphicsQueueCount();
+            vkci.queueCount              = pCreateInfo->graphicsQueueCount;
             vkci.pQueuePriorities        = DataPtr(queuePriorities);
             queueCreateInfos.push_back(vkci);
             createdQueues.insert(mGraphicsQueueFamilyIndex);
@@ -82,7 +82,7 @@ Result Device::ConfigureQueueInfo(const grfx::DeviceCreateInfo* pCreateInfo, std
         if (mComputeQueueFamilyIndex != PPX_VALUE_IGNORED && createdQueues.find(mComputeQueueFamilyIndex) == createdQueues.end()) {
             VkDeviceQueueCreateInfo vkci = {VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
             vkci.queueFamilyIndex        = mComputeQueueFamilyIndex;
-            vkci.queueCount              = pCreateInfo->pGpu->GetComputeQueueCount();
+            vkci.queueCount              = pCreateInfo->computeQueueCount;
             vkci.pQueuePriorities        = DataPtr(queuePriorities);
             queueCreateInfos.push_back(vkci);
             createdQueues.insert(mComputeQueueFamilyIndex);
@@ -94,7 +94,7 @@ Result Device::ConfigureQueueInfo(const grfx::DeviceCreateInfo* pCreateInfo, std
         if (mTransferQueueFamilyIndex != PPX_VALUE_IGNORED && createdQueues.find(mTransferQueueFamilyIndex) == createdQueues.end()) {
             VkDeviceQueueCreateInfo vkci = {VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
             vkci.queueFamilyIndex        = mTransferQueueFamilyIndex;
-            vkci.queueCount              = pCreateInfo->pGpu->GetTransferQueueCount();
+            vkci.queueCount              = pCreateInfo->transferQueueCount;
             vkci.pQueuePriorities        = DataPtr(queuePriorities);
             queueCreateInfos.push_back(vkci);
             createdQueues.insert(mTransferQueueFamilyIndex);
