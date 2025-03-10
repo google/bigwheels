@@ -89,6 +89,7 @@ struct StandardOptions
 #if defined(PPX_BUILD_XR)
     std::shared_ptr<KnobFlag<std::pair<int, int>>>      pXrUiResolution;
     std::shared_ptr<KnobFlag<std::vector<std::string>>> pXrRequiredExtensions;
+    std::shared_ptr<KnobFlag<bool>>                     pXrEnableMultiview;
 #endif
 
     std::shared_ptr<KnobFlag<std::vector<std::string>>> pAssetsPaths;
@@ -119,11 +120,6 @@ struct ApplicationSettings
     {
         bool enable = false;
 
-        // Multiview will create one swapchain with layers per view
-        // One Application::Render then should use multiview shaders
-        // to render to both layers, as opposed to non multiview
-        // where there is one swapchain per view, each with a ::Render
-        bool enableMultiView = false;
         // Whether to create depth swapchains in addition to color swapchains,
         // and submit the depth info to the runtime as an additional layer.
         bool     enableDepthSwapchain = false;
@@ -211,6 +207,7 @@ struct ApplicationSettings
 #if defined(PPX_BUILD_XR)
         std::pair<int, int>      xrUiResolution       = std::make_pair(0, 0);
         std::vector<std::string> xrRequiredExtensions = {};
+        bool                     xrEnableMultiview    = false;
 #endif
     } standardKnobsDefaultValue;
 };
