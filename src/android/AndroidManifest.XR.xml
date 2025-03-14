@@ -27,6 +27,12 @@
           android:required="false"/>
     <!-- -->
 
+    <!-- Needed for AndroidXR -->
+      <uses-native-library 
+          android:name="libopenxr.google.so" 
+          android:required="false"/>
+    <!-- -->
+
     <activity
         android:name="com.google.bigwheels.MainActivity"
         android:exported="true">
