@@ -50,6 +50,7 @@ add_subdirectory(gltf_basic_materials)
 add_subdirectory(alloc)
 add_subdirectory(fishtornado)
 add_subdirectory(fluid_simulation)
+add_subdirectory(gltf_viewer)
 add_subdirectory(oit_demo)
 add_subdirectory(timeline_semaphore)
 
