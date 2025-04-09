@@ -70,8 +70,7 @@ Result Device::ConfigureQueueInfo(const grfx::DeviceCreateInfo* pCreateInfo, std
     {
         std::unordered_set<uint32_t> createdQueues;
         // Graphics
-        if (mGraphicsQueueFamilyIndex != PPX_VALUE_IGNORED
-            && pCreateInfo->graphicsQueueCount > 0) {
+        if (mGraphicsQueueFamilyIndex != PPX_VALUE_IGNORED && pCreateInfo->graphicsQueueCount > 0) {
             VkDeviceQueueCreateInfo vkci = {VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
             vkci.queueFamilyIndex        = mGraphicsQueueFamilyIndex;
             vkci.queueCount              = pCreateInfo->graphicsQueueCount;
@@ -80,9 +79,7 @@ Result Device::ConfigureQueueInfo(const grfx::DeviceCreateInfo* pCreateInfo, std
             createdQueues.insert(mGraphicsQueueFamilyIndex);
         }
         // Compute
-        if (mComputeQueueFamilyIndex != PPX_VALUE_IGNORED
-            && createdQueues.find(mComputeQueueFamilyIndex) == createdQueues.end()
-            && pCreateInfo->computeQueueCount > 0) {
+        if (mComputeQueueFamilyIndex != PPX_VALUE_IGNORED && createdQueues.find(mComputeQueueFamilyIndex) == createdQueues.end() && pCreateInfo->computeQueueCount > 0) {
             VkDeviceQueueCreateInfo vkci = {VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
             vkci.queueFamilyIndex        = mComputeQueueFamilyIndex;
             vkci.queueCount              = pCreateInfo->computeQueueCount;
@@ -94,9 +91,7 @@ Result Device::ConfigureQueueInfo(const grfx::DeviceCreateInfo* pCreateInfo, std
             PPX_LOG_WARN("Graphics queue will be shared with compute queue.");
         }
         // Transfer
-        if (mTransferQueueFamilyIndex != PPX_VALUE_IGNORED
-            && createdQueues.find(mTransferQueueFamilyIndex) == createdQueues.end()
-            && pCreateInfo->transferQueueCount > 0) {
+        if (mTransferQueueFamilyIndex != PPX_VALUE_IGNORED && createdQueues.find(mTransferQueueFamilyIndex) == createdQueues.end() && pCreateInfo->transferQueueCount > 0) {
             VkDeviceQueueCreateInfo vkci = {VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO};
             vkci.queueFamilyIndex        = mTransferQueueFamilyIndex;
             vkci.queueCount              = pCreateInfo->transferQueueCount;
