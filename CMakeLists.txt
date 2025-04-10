@@ -156,6 +156,10 @@ else()
 
 endif()
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 19.0)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-missing-template-arg-list-after-template-kw")
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 
 # ------------------------------------------------------------------------------
