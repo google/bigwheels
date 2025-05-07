@@ -13,7 +13,7 @@ permissions: read-all
 jobs:
   linux-build:
     name: Build and run tests on Linux
-    runs-on: "ubuntu-20.04"
+    runs-on: "ubuntu-24.04"
     steps:
       - name: Setup necessary packages
         run: |

@@ -13,7 +13,7 @@ permissions: read-all
 jobs:
   android-build:
     name: Check Android build with gradle
-    runs-on: "ubuntu-20.04"
+    runs-on: "ubuntu-24.04"
     strategy:
       fail-fast: true
     steps:
