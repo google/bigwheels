@@ -17,7 +17,7 @@ jobs:
     steps:
       - name: Setup clang-format
         run: |
-          sudo apt-get install -yqq clang-format-12
+          sudo apt-get install -yqq clang-format-13
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
