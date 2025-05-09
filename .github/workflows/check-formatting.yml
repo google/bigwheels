@@ -13,11 +13,11 @@ permissions: read-all
 jobs:
   clang-format-check:
     name: clang-format
-    runs-on: "ubuntu-20.04"
+    runs-on: "ubuntu-24.04"
     steps:
       - name: Setup clang-format
         run: |
-          sudo apt-get install -yqq clang-format-12
+          sudo apt-get install -yqq clang-format-14
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
