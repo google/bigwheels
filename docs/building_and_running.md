@@ -147,6 +147,28 @@ create a `build.gradle` file in the project directory and define
 a `copyTask` that specifies all assets used in the project.
 You can follow any existing samples for an example.
 
+## Running Android Samples with Arguments
+
+When launching the project activity, you can specify command-line options by providing the `arguments` extra string data in the intent.
+
+For example, you may want to record frame 30 to external storage for the `sample_04_cube` project.
+
+On command-line:
+
+```
+adb shell am start \
+  -n com.google.bigwheels.project_sample_04_cube.debug/com.google.bigwheels.MainActivity \
+  -e arguments \"--screenshot-frame-number=30 --screenshot-path=/sdcard/Download/screenshot_frame_#.ppm\"
+```
+
+In Android Studio:
+
+1. Edit the configuration for `sample_04_cube`.
+2. On the General tab, find the "Launch Flags" text field and enter  
+`-e arguments "--screenshot-frame-number=30 --screenshot-path=/sdcard/Download/screenshot_frame_#.ppm"`
+3. Click OK
+4. Launc the app
+
 ## OpenXR
 OpenXR support can be enabled by adding `-DPPX_BUILD_XR=1` flag.
 For example, for Windows build:
