@@ -481,6 +481,7 @@ private:
     Entity2D                                                             mFullscreenQuads;
     grfx::ShaderModulePtr                                                mVSQuads;
     std::array<grfx::TexturePtr, kMaxTextureCount>                       mQuadsTextures;
+    grfx::BufferPtr                                                      mQuadsDummyBuffer;
     QuadPipelineMap                                                      mQuadsPipelines;
     std::array<grfx::PipelineInterfacePtr, kFullscreenQuadsTypes.size()> mQuadsPipelineInterfaces;
     std::array<grfx::ShaderModulePtr, kFullscreenQuadsTypes.size()>      mQuadsPs;
@@ -532,6 +533,7 @@ private:
 
     std::shared_ptr<KnobFlag<int>> pKnobAluCount;
     std::shared_ptr<KnobFlag<int>> pKnobTextureCount;
+    std::shared_ptr<KnobCheckbox>  pKnobDisablePsOutput;
 
 private:
     // =====================================================================

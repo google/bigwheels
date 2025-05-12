@@ -128,13 +128,15 @@ struct BlendAttachmentState
     grfx::ColorComponentFlags colorWriteMask      = grfx::ColorComponentFlags::RGBA();
 
     // These are best guesses based on random formulas off of the internet.
-    // Correct later when authorative literature is found.
+    // Correct later when authoritative literature is found.
     //
+    static grfx::BlendAttachmentState BlendModeNone();
     static grfx::BlendAttachmentState BlendModeAdditive();
     static grfx::BlendAttachmentState BlendModeAlpha();
     static grfx::BlendAttachmentState BlendModeOver();
     static grfx::BlendAttachmentState BlendModeUnder();
     static grfx::BlendAttachmentState BlendModePremultAlpha();
+    static grfx::BlendAttachmentState BlendModeDisableOutput();
 };
 
 struct ColorBlendState

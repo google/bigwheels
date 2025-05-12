@@ -15,6 +15,7 @@
 #include "Benchmark_Quad.hlsli"
 
 Texture2D Tex[10]  : register(t1);  // Slot 0 is used by push constant.
+RWStructuredBuffer<float> dataBuffer : register(u11);
 
 float4 psmain(VSOutputPos input) : SV_TARGET
 {
@@ -24,5 +25,7 @@ float4 psmain(VSOutputPos input) : SV_TARGET
     {
         color += Tex[i].Load(uint3(input.position.x, input.position.y, 0))/float(textureCount);
     }
+    if (!any(color))
+        dataBuffer[0] = color.r;
     return color;
 }
