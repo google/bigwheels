@@ -88,20 +88,14 @@ TEST(MetricsTest, ManagerActiveRunAfterStopAndStart)
 TEST(MetricsTest, ManagerAddRunWithEmptyNameFails)
 {
     metrics::Manager manager;
-    EXPECT_DEATH({
-        manager.StartRun("");
-    },
-                 "");
+    EXPECT_DEATH({ manager.StartRun(""); }, "");
 }
 
 TEST(MetricsTest, ManagerStartSimultaneousRunsFails)
 {
     metrics::Manager manager;
     manager.StartRun("run0");
-    EXPECT_DEATH({
-        manager.StartRun("run1");
-    },
-                 "");
+    EXPECT_DEATH({ manager.StartRun("run1"); }, "");
 }
 
 TEST(MetricsTest, ManagerStartDuplicateRunFails)
@@ -109,10 +103,7 @@ TEST(MetricsTest, ManagerStartDuplicateRunFails)
     metrics::Manager manager;
     manager.StartRun("run");
     manager.EndRun();
-    EXPECT_DEATH({
-        manager.StartRun("run");
-    },
-                 "");
+    EXPECT_DEATH({ manager.StartRun("run"); }, "");
 }
 #endif
 
