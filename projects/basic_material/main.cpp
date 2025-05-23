@@ -275,13 +275,13 @@ private:
     uint32_t                 mIBLIndex        = 0;
     uint32_t                 mCurrentIBLIndex = 0;
     std::vector<const char*> mIBLNames        = {
-               "Old Depot",
-               "Palermo Square",
-               "Venice Sunset",
-               "Hilly Terrain",
-               "Neon Photo Studio",
-               "Sky Lit Garage",
-               "Noon Grass",
+        "Old Depot",
+        "Palermo Square",
+        "Venice Sunset",
+        "Hilly Terrain",
+        "Neon Photo Studio",
+        "Sky Lit Garage",
+        "Noon Grass",
     };
 
 private:
