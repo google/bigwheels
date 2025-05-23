@@ -155,8 +155,7 @@ void XrComponent::InitializeBeforeGrfxDeviceInit(const XrComponentCreateInfo& cr
             mShouldSubmitDepthInfo = true;
         }
         else {
-            PPX_LOG_WARN("XR depth swapchains are enabled but the " XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME
-                         " extension is not supported. Depth info will not be submitted to the runtime.");
+            PPX_LOG_WARN("XR depth swapchains are enabled but the " XR_KHR_COMPOSITION_LAYER_DEPTH_EXTENSION_NAME " extension is not supported. Depth info will not be submitted to the runtime.");
         }
     }
 

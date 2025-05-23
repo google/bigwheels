@@ -59,7 +59,7 @@ public:
             p = nullptr;
         }
     }
-    operator T*() const throw() { return p; }
+        operator T*() const throw() { return p; }
     T&  operator*() const { return *p; }
     T*  operator->() const { return p; }
     T** operator&() throw()

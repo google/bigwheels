@@ -66,32 +66,69 @@ public:
     Window& operator=(const Window&) = delete;
 
     // Actually create a window.
-    virtual Result Create(const char* title) { return ppx::SUCCESS; }
+    virtual Result Create(const char* title)
+    {
+        return ppx::SUCCESS;
+    }
 
     // Signal an intent to quit.
-    virtual void Quit() { mQuit = true; }
+    virtual void Quit()
+    {
+        mQuit = true;
+    }
 
     // Destory the window.
-    virtual Result Destroy() { return ppx::SUCCESS; }
+    virtual Result Destroy()
+    {
+        return ppx::SUCCESS;
+    }
 
-    virtual bool   IsRunning() const { return !mQuit; }
-    virtual Result Resize(const WindowSize&) { return ppx::SUCCESS; }
-    virtual void   ProcessEvent() {}
-    virtual void*  NativeHandle() { return nullptr; }
+    virtual bool IsRunning() const
+    {
+        return !mQuit;
+    }
+    virtual Result Resize(const WindowSize&)
+    {
+        return ppx::SUCCESS;
+    }
+    virtual void ProcessEvent()
+    {
+    }
+    virtual void* NativeHandle()
+    {
+        return nullptr;
+    }
 
     virtual WindowSize Size() const;
 
-    WindowState GetState() const { return mState; }
-    bool        IsRestored() const { return (GetState() == WINDOW_STATE_RESTORED); }
-    bool        IsIconified() const { return (GetState() == WINDOW_STATE_ICONIFIED); }
-    bool        IsMaximized() const { return (GetState() == WINDOW_STATE_MAXIMIZED); }
+    WindowState GetState() const
+    {
+        return mState;
+    }
+    bool IsRestored() const
+    {
+        return (GetState() == WINDOW_STATE_RESTORED);
+    }
+    bool IsIconified() const
+    {
+        return (GetState() == WINDOW_STATE_ICONIFIED);
+    }
+    bool IsMaximized() const
+    {
+        return (GetState() == WINDOW_STATE_MAXIMIZED);
+    }
 
-    virtual void FillSurfaceInfo(grfx::SurfaceCreateInfo*) const {}
+    virtual void FillSurfaceInfo(grfx::SurfaceCreateInfo*) const
+    {
+    }
 
 protected:
     Window(Application*);
 
-    Application* App() const { return mApp; }
+    Application* App() const
+    {
+        return mApp;
+    }
 
 private:
     Application* mApp;
@@ -106,7 +143,10 @@ private:
 #endif
 
     friend class Application;
-    void SetState(WindowState state) { mState = state; }
+    void SetState(WindowState state)
+    {
+        mState = state;
+    }
 };
 
 } // namespace ppx

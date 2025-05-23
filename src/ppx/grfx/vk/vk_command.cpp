@@ -1007,14 +1007,14 @@ void CommandBuffer::CopyImageToImage(
 
     VkImageCopy region = {};
     region.srcOffset   = {
-        static_cast<int32_t>(pCopyInfo->srcImage.offset.x),
-        static_cast<int32_t>(pCopyInfo->srcImage.offset.y),
-        static_cast<int32_t>(pCopyInfo->srcImage.offset.z)};
+          static_cast<int32_t>(pCopyInfo->srcImage.offset.x),
+          static_cast<int32_t>(pCopyInfo->srcImage.offset.y),
+          static_cast<int32_t>(pCopyInfo->srcImage.offset.z)};
     region.srcSubresource = srcSubresource;
     region.dstOffset      = {
-        static_cast<int32_t>(pCopyInfo->dstImage.offset.x),
-        static_cast<int32_t>(pCopyInfo->dstImage.offset.y),
-        static_cast<int32_t>(pCopyInfo->dstImage.offset.z)};
+             static_cast<int32_t>(pCopyInfo->dstImage.offset.x),
+             static_cast<int32_t>(pCopyInfo->dstImage.offset.y),
+             static_cast<int32_t>(pCopyInfo->dstImage.offset.z)};
     region.dstSubresource = dstSubresource;
     region.extent         = {0, 1, 1};
     region.extent.width   = pCopyInfo->extent.x;

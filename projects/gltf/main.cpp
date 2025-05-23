@@ -628,47 +628,40 @@ void ProjApp::Setup()
 
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
-            /* binding= */ 0,
-            /* type= */ grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            /* array_count= */ 1,
-            /* shader_visibility= */ grfx::SHADER_STAGE_ALL_GRAPHICS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{/* binding= */ 0,
+                                                                    /* type= */ grfx::DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                                                    /* array_count= */ 1,
+                                                                    /* shader_visibility= */ grfx::SHADER_STAGE_ALL_GRAPHICS});
 
         // Albedo
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
-            /* binding= */ 1,
-            /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-            /* array_count= */ 1,
-            /* shader_visibility= */ grfx::SHADER_STAGE_PS});
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
-            /* binding= */ 2,
-            /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLER,
-            /* array_count= */ 1,
-            /* shader_visibility= */ grfx::SHADER_STAGE_PS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{/* binding= */ 1,
+                                                                    /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                                                    /* array_count= */ 1,
+                                                                    /* shader_visibility= */ grfx::SHADER_STAGE_PS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{/* binding= */ 2,
+                                                                    /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLER,
+                                                                    /* array_count= */ 1,
+                                                                    /* shader_visibility= */ grfx::SHADER_STAGE_PS});
 
         // Normal
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
-            /* binding= */ 3,
-            /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-            /* array_count= */ 1,
-            /* shader_visibility= */ grfx::SHADER_STAGE_PS});
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
-            /* binding= */ 4,
-            /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLER,
-            /* array_count= */ 1,
-            /* shader_visibility= */ grfx::SHADER_STAGE_PS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{/* binding= */ 3,
+                                                                    /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                                                    /* array_count= */ 1,
+                                                                    /* shader_visibility= */ grfx::SHADER_STAGE_PS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{/* binding= */ 4,
+                                                                    /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLER,
+                                                                    /* array_count= */ 1,
+                                                                    /* shader_visibility= */ grfx::SHADER_STAGE_PS});
 
         // Metallic/Roughness
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
-            /* binding= */ 5,
-            /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE,
-            /* array_count= */ 1,
-            /* shader_visibility= */ grfx::SHADER_STAGE_PS});
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{
-            /* binding= */ 6,
-            /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLER,
-            /* array_count= */ 1,
-            /* shader_visibility= */ grfx::SHADER_STAGE_PS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{/* binding= */ 5,
+                                                                    /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE,
+                                                                    /* array_count= */ 1,
+                                                                    /* shader_visibility= */ grfx::SHADER_STAGE_PS});
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding{/* binding= */ 6,
+                                                                    /* type= */ grfx::DESCRIPTOR_TYPE_SAMPLER,
+                                                                    /* array_count= */ 1,
+                                                                    /* shader_visibility= */ grfx::SHADER_STAGE_PS});
 
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mSetLayout));
     }

@@ -275,13 +275,13 @@ private:
     uint32_t                 mIBLIndex        = 0;
     uint32_t                 mCurrentIBLIndex = 0;
     std::vector<const char*> mIBLNames        = {
-        "Old Depot",
-        "Palermo Square",
-        "Venice Sunset",
-        "Hilly Terrain",
-        "Neon Photo Studio",
-        "Sky Lit Garage",
-        "Noon Grass",
+               "Old Depot",
+               "Palermo Square",
+               "Venice Sunset",
+               "Hilly Terrain",
+               "Neon Photo Studio",
+               "Sky Lit Garage",
+               "Noon Grass",
     };
 
 private:
@@ -525,85 +525,54 @@ void ProjApp::SetupMaterials()
 void ProjApp::SetupIBL()
 {
     // BRDF LUT
-    PPX_CHECKED_CALL(grfx_util::CreateTextureFromFile(
-        GetDevice()->GetGraphicsQueue(),
-        GetAssetPath("common/textures/ppx/brdf_lut.hdr"),
-        &mBRDFLUTTexture));
+    PPX_CHECKED_CALL(grfx_util::CreateTextureFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("common/textures/ppx/brdf_lut.hdr"), &mBRDFLUTTexture));
 
     // Old Depot - good mix of diffused over head and bright exterior lighting from windows
     {
         IBLResources reses = {};
-        PPX_CHECKED_CALL(grfx_util::CreateIBLTexturesFromFile(
-            GetDevice()->GetGraphicsQueue(),
-            GetAssetPath("poly_haven/ibl/old_depot_4k.ibl"),
-            &reses.irradianceTexture,
-            &reses.environmentTexture));
+        PPX_CHECKED_CALL(grfx_util::CreateIBLTexturesFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("poly_haven/ibl/old_depot_4k.ibl"), &reses.irradianceTexture, &reses.environmentTexture));
         mIBLResources.push_back(reses);
     }
 
     // Palermo Square - almost fully difuse exterior lighting
     {
         IBLResources reses = {};
-        PPX_CHECKED_CALL(grfx_util::CreateIBLTexturesFromFile(
-            GetDevice()->GetGraphicsQueue(),
-            GetAssetPath("poly_haven/ibl/palermo_square_4k.ibl"),
-            &reses.irradianceTexture,
-            &reses.environmentTexture));
+        PPX_CHECKED_CALL(grfx_util::CreateIBLTexturesFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("poly_haven/ibl/palermo_square_4k.ibl"), &reses.irradianceTexture, &reses.environmentTexture));
         mIBLResources.push_back(reses);
     }
 
     // Venice Sunset - Golden Hour at beach
     {
         IBLResources reses = {};
-        PPX_CHECKED_CALL(grfx_util::CreateIBLTexturesFromFile(
-            GetDevice()->GetGraphicsQueue(),
-            GetAssetPath("poly_haven/ibl/venice_sunset_4k.ibl"),
-            &reses.irradianceTexture,
-            &reses.environmentTexture));
+        PPX_CHECKED_CALL(grfx_util::CreateIBLTexturesFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("poly_haven/ibl/venice_sunset_4k.ibl"), &reses.irradianceTexture, &reses.environmentTexture));
         mIBLResources.push_back(reses);
     }
 
     // Hilly Terrain - Clear blue sky on hills
     {
         IBLResources reses = {};
-        PPX_CHECKED_CALL(grfx_util::CreateIBLTexturesFromFile(
-            GetDevice()->GetGraphicsQueue(),
-            GetAssetPath("poly_haven/ibl/hilly_terrain_01_4k.ibl"),
-            &reses.irradianceTexture,
-            &reses.environmentTexture));
+        PPX_CHECKED_CALL(grfx_util::CreateIBLTexturesFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("poly_haven/ibl/hilly_terrain_01_4k.ibl"), &reses.irradianceTexture, &reses.environmentTexture));
         mIBLResources.push_back(reses);
     }
 
     // Neon Photo Studio - interior artificial lighting
     {
         IBLResources reses = {};
-        PPX_CHECKED_CALL(grfx_util::CreateIBLTexturesFromFile(
-            GetDevice()->GetGraphicsQueue(),
-            GetAssetPath("poly_haven/ibl/neon_photostudio_4k.ibl"),
-            &reses.irradianceTexture,
-            &reses.environmentTexture));
+        PPX_CHECKED_CALL(grfx_util::CreateIBLTexturesFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("poly_haven/ibl/neon_photostudio_4k.ibl"), &reses.irradianceTexture, &reses.environmentTexture));
         mIBLResources.push_back(reses);
     }
 
     // Sky Lit Garage - diffused overhead exterior lighting
     {
         IBLResources reses = {};
-        PPX_CHECKED_CALL(grfx_util::CreateIBLTexturesFromFile(
-            GetDevice()->GetGraphicsQueue(),
-            GetAssetPath("poly_haven/ibl/skylit_garage_4k.ibl"),
-            &reses.irradianceTexture,
-            &reses.environmentTexture));
+        PPX_CHECKED_CALL(grfx_util::CreateIBLTexturesFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("poly_haven/ibl/skylit_garage_4k.ibl"), &reses.irradianceTexture, &reses.environmentTexture));
         mIBLResources.push_back(reses);
     }
 
     // Noon Grass - harsh overhead exterior lighting
     {
         IBLResources reses = {};
-        PPX_CHECKED_CALL(grfx_util::CreateIBLTexturesFromFile(
-            GetDevice()->GetGraphicsQueue(),
-            GetAssetPath("poly_haven/ibl/noon_grass_4k.ibl"),
-            &reses.irradianceTexture,
-            &reses.environmentTexture));
+        PPX_CHECKED_CALL(grfx_util::CreateIBLTexturesFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath("poly_haven/ibl/noon_grass_4k.ibl"), &reses.irradianceTexture, &reses.environmentTexture));
         mIBLResources.push_back(reses);
     }
 }

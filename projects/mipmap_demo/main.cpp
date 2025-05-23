@@ -65,8 +65,8 @@ private:
     bool                              mRightInGpu;
     int                               mFilterOption;
     std::vector<const char*>          mFilterNames = {
-        "Bilinear",
-        "Other",
+                 "Bilinear",
+                 "Other",
     };
 };
 
