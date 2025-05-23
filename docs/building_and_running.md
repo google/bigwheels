@@ -167,7 +167,7 @@ In Android Studio:
 2. On the General tab, find the "Launch Flags" text field and enter  
 `-e arguments "--screenshot-frame-number=30 --screenshot-path=/sdcard/Download/screenshot_frame_#.ppm"`
 3. Click OK
-4. Launc the app
+4. Launch the app
 
 ## OpenXR
 OpenXR support can be enabled by adding `-DPPX_BUILD_XR=1` flag.
