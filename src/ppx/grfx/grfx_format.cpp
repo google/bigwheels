@@ -20,7 +20,7 @@ namespace grfx {
 
 #define UNCOMPRESSED_FORMAT(Name, Type, Aspect, BytesPerTexel, BytesPerComponent, Layout, Component, ComponentOffsets) \
     {                                                                                                                  \
-        "" #Name,                                                                                                      \
+        #Name,                                                                                                         \
             FORMAT_DATA_TYPE_##Type,                                                                                   \
             FORMAT_ASPECT_##Aspect,                                                                                    \
             BytesPerTexel,                                                                                             \
@@ -28,20 +28,39 @@ namespace grfx {
             BytesPerComponent,                                                                                         \
             FORMAT_LAYOUT_##Layout,                                                                                    \
             FORMAT_COMPONENT_##Component,                                                                              \
-            OFFSETS_##ComponentOffsets                                                                                 \
+            OFFSETS_##ComponentOffsets,                                                                                \
+            FORMAT_CHROMA_SUBSAMPLING_UNDEFINED,                                                                       \
+            /*isPlanar=*/false                                                                                         \
     }
 
 #define COMPRESSED_FORMAT(Name, Type, BytesPerBlock, BlockWidth, Component) \
     {                                                                       \
-        "" #Name,                                                           \
+        #Name,                                                              \
             FORMAT_DATA_TYPE_##Type,                                        \
             FORMAT_ASPECT_COLOR,                                            \
             BytesPerBlock,                                                  \
             BlockWidth,                                                     \
-            -1,                                                             \
+            /*bytesPerComponent=*/-1,                                       \
             FORMAT_LAYOUT_COMPRESSED,                                       \
             FORMAT_COMPONENT_##Component,                                   \
-            OFFSETS_UNDEFINED                                               \
+            OFFSETS_UNDEFINED,                                              \
+            FORMAT_CHROMA_SUBSAMPLING_UNDEFINED,                            \
+            /*isPlanar=*/false                                              \
+    }
+
+#define UNCOMP_PLANAR_FORMAT(Name, Type, Aspect, BytesPerTexel, Layout, Component, ChromaSubsampling) \
+    {                                                                                                 \
+        #Name,                                                                                        \
+            FORMAT_DATA_TYPE_##Type,                                                                  \
+            FORMAT_ASPECT_##Aspect,                                                                   \
+            BytesPerTexel,                                                                            \
+            /*blockWidth=*/1,                                                                         \
+            /*bytesPerComponent=*/-1,                                                                 \
+            FORMAT_LAYOUT_##Layout,                                                                   \
+            FORMAT_COMPONENT_##Component,                                                             \
+            OFFSETS_UNDEFINED,                                                                        \
+            FORMAT_CHROMA_SUBSAMPLING_##ChromaSubsampling,                                            \
+            /*isPlanar=*/true                                                                         \
     }
 
 // clang-format off
@@ -51,6 +70,21 @@ namespace grfx {
 #define OFFSETS_RGB(R, G, B)     { R,  G,  B, -1 }
 #define OFFSETS_RGBA(R, G, B, A) { R,  G,  B,  A }
 // clang-format on
+
+#define PLANE_MEMBER(Component, Type, BitSize)   \
+    FormatPlaneDesc::Member                      \
+    {                                            \
+        FORMAT_PLANE_COMPONENT_TYPE_##Component, \
+            FORMAT_PLANE_CHROMA_TYPE_##Type,     \
+            BitSize                              \
+    }
+
+FormatPlaneDesc::FormatPlaneDesc(std::initializer_list<std::initializer_list<FormatPlaneDesc::Member>>&& planes)
+{
+    for (auto it = planes.begin(); it != planes.end(); ++it) {
+        this->planes.push_back(FormatPlaneDesc::Plane{*it});
+    }
+}
 
 // A static registry of format descriptions.
 // The order must match the order of the grfx::Format enum, so that
@@ -173,6 +207,13 @@ constexpr FormatDesc formatDescs[] = {
     COMPRESSED_FORMAT(BC7_UNORM     , UNORM, 16, 4,  RED_GREEN_BLUE_ALPHA),
     COMPRESSED_FORMAT(BC7_SRGB      , SRGB,  16, 4,  RED_GREEN_BLUE_ALPHA),
 
+    // We don't support retrieving component size (which are typically non-uniform) or byte offsets for uncompressed planar formats.
+    //                 +---------------------------------------------------------------------------------------+
+    //                 |                                         ,-> bytes per texel                           |
+    //                 | format name             | type | aspect | layout | components    | chroma subsampling |
+    UNCOMP_PLANAR_FORMAT(G8_B8R8_2PLANE_420_UNORM, UNORM, COLOR, 2, PACKED, RED_GREEN_BLUE, 420),
+
+#undef UNCOMP_PLANAR_FORMAT
 #undef COMPRESSED_FORMAT
 #undef UNCOMPRESSED_FORMAT
 #undef OFFSETS_UNDEFINED
@@ -191,6 +232,33 @@ const FormatDesc* GetFormatDescription(grfx::Format format)
     PPX_ASSERT_MSG(format != grfx::FORMAT_UNDEFINED && formatIndex < formatDescsSize, "invalid format");
     return &formatDescs[formatIndex];
 }
+
+// Definitions for image planes - component types and bit sizes.
+const std::optional<FormatPlaneDesc> GetFormatPlaneDescription(
+    grfx::Format format)
+{
+    switch (format) {
+        case FORMAT_G8_B8R8_2PLANE_420_UNORM:
+            return FormatPlaneDesc{
+                {PLANE_MEMBER(GREEN, LUMA, 8)},
+                {PLANE_MEMBER(BLUE, CHROMA, 8), PLANE_MEMBER(RED, CHROMA, 8)}};
+        default:
+            // We'll log a warning and return nullopt outside of the switch
+            // statement. This is for the compiler.
+            break;
+    }
+
+    const FormatDesc* description = GetFormatDescription(format);
+    if (description == nullptr || !description->isPlanar) {
+        PPX_LOG_WARN("Attempted to get planes for format " << format << ", which is non-planar");
+    }
+    else {
+        PPX_LOG_ERROR("Could not find planes for planar format " << format << "; returning null.");
+    }
+
+    return std::nullopt;
+}
+#undef PLANE_MEMBER
 
 const char* ToString(grfx::Format format)
 {
