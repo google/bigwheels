@@ -264,6 +264,7 @@ Result Device::ConfigureFeatures(const grfx::DeviceCreateInfo* pCreateInfo, VkPh
     // 2021/11/15 - Changed logic to use feature bit from GPU for geo and tess shaders to accomodate
     //              SwiftShader not having support for these shader types.
     //
+    // Before setting something to VK_TRUE, check for missingFeatures below!
     features                                      = {};
     features.fillModeNonSolid                     = VK_TRUE;
     features.fullDrawIndexUint32                  = VK_TRUE;
@@ -288,10 +289,21 @@ Result Device::ConfigureFeatures(const grfx::DeviceCreateInfo* pCreateInfo, VkPh
         features                                  = *pFeatures;
     }
 
+    // fillModeNonSolid may not be available on some phones like Pixel 6 and 6a.
+    std::vector<std::string_view> missingFeatures;
+    if (features.fillModeNonSolid && !foundFeatures.fillModeNonSolid) {
+        missingFeatures.push_back("fillModeNonSolid");
+    }
+    if (features.fullDrawIndexUint32 && !foundFeatures.fullDrawIndexUint32) {
+        missingFeatures.push_back("fullDrawIndexUint32");
+    }
+    if (features.imageCubeArray && !foundFeatures.imageCubeArray) {
+        missingFeatures.push_back("imageCubeArray");
+    }
+
     // Enable shader resource array dynamic indexing.
     // This can be used to choose a texture within an array based on
     // a push constant, among other things.
-    std::vector<std::string_view> missingFeatures;
     if (!foundFeatures.shaderUniformBufferArrayDynamicIndexing) {
         missingFeatures.push_back("shaderUniformBufferArrayDynamicIndexing");
     }
