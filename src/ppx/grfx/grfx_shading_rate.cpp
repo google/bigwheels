@@ -22,8 +22,7 @@ namespace grfx {
 std::unique_ptr<Bitmap> ShadingRatePattern::CreateBitmap() const
 {
     auto bitmap = std::make_unique<Bitmap>();
-    PPX_CHECKED_CALL(Bitmap::Create(
-        GetAttachmentWidth(), GetAttachmentHeight(), GetBitmapFormat(), bitmap.get()));
+    PPX_CHECKED_CALL(Bitmap::Create(GetAttachmentWidth(), GetAttachmentHeight(), GetBitmapFormat(), bitmap.get()));
     return bitmap;
 }
 
