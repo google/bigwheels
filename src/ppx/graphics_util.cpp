@@ -12,9 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "ppx/graphics_util.h"
+
+#include <algorithm>
+
 #include "ppx/generate_mip_shader_VK.h"
 #include "ppx/generate_mip_shader_DX.h"
-#include "ppx/graphics_util.h"
 #include "ppx/bitmap.h"
 #include "ppx/fs.h"
 #include "ppx/mipmap.h"
@@ -22,6 +25,7 @@
 #include "ppx/grfx/grfx_buffer.h"
 #include "ppx/grfx/grfx_command.h"
 #include "ppx/grfx/grfx_device.h"
+#include "ppx/grfx/grfx_format.h"
 #include "ppx/grfx/grfx_image.h"
 #include "ppx/grfx/grfx_queue.h"
 #include "ppx/grfx/grfx_util.h"
@@ -30,6 +34,198 @@
 
 namespace ppx {
 namespace grfx_util {
+
+namespace {
+
+// Start planar image helper functions
+
+// Gets the height of a single plane, in terms of number of pixels represented.
+// This doesn't directly correlate to the number of bits / bytes for the plane's
+// height. The value returned can be used in a copy-image-to-buffer command.
+//
+// This takes chroma subsampling into account; 4:4:4 means no subsampling, 4:2:2
+// means chroma values will be defined for every other column, and 4:2:0 means
+// that chroma values will be defined for every other column and every other
+// row. Chroma subsampling specifically applies to YCbCr images.
+//
+// plane: The plane to get the height for (containing information about the
+//        color components represented in the plane).
+// subsampling: The type of subsampling applied to chroma values for the image
+//              (e.g. 444, 422, 420).
+// imageHeight: The height of the image, in pixels, with no subsampling applied.
+uint32_t GetPlaneHeightInPixels(
+    const grfx::FormatPlaneDesc::Plane& plane,
+    grfx::FormatChromaSubsampling       subsampling,
+    uint32_t                            imageHeight)
+{
+    bool hasColSubsampling = (subsampling == grfx::FORMAT_CHROMA_SUBSAMPLING_420);
+    bool hasChromaValue    = false;
+    bool hasLumaValue      = false;
+    for (const grfx::FormatPlaneDesc::Member& member : plane.members) {
+        if (member.type == grfx::FORMAT_PLANE_CHROMA_TYPE_CHROMA) {
+            hasChromaValue = true;
+        }
+        else if (member.type == grfx::FORMAT_PLANE_CHROMA_TYPE_LUMA) {
+            hasLumaValue = true;
+        }
+        else {
+            PPX_LOG_WARN("Member " << member.component << "has unknown chroma type.");
+        }
+    }
+
+    if (hasColSubsampling && hasChromaValue) {
+        // Note: you never have subsampling on the height axis of the image in
+        // a plane if luma values are present, since luma values usually aren't
+        // subsampled. You might have subsampling on the width axis, but that
+        // would essentially mean you get two luma values, and one of each
+        // chroma value, in a block of four.
+        if (hasLumaValue) {
+            PPX_LOG_WARN(
+                "Frame size will be inaccurate, there is vertical subsampling "
+                "with both chroma and luma values present on a single plane, "
+                "which is not supported!");
+        }
+
+        // If we're subsampling at 4:2:0, the image will have half its height.
+        return imageHeight / 2;
+    }
+    return imageHeight;
+}
+
+// Gets the width of a single plane, in terms of number of pixels represented.
+// This doesn't directly correlate to the number of bits / bytes for the plane's
+// height. The value returned can be used in a copy-image-to-buffer command.
+//
+// This takes chroma subsampling into account; 4:4:4 means no subsampling, 4:2:2
+// means chroma values will be defined for every other column, and 4:2:0 means
+// that chroma values will be defined for every other column and every other
+// row. Chroma subsampling specifically applies to YCbCr images.
+//
+// plane: The plane to get the width for (containing information about the
+//        color components represented in the plane).
+// subsampling: The type of subsampling applied to chroma values for the image
+//              (e.g. 444, 422, 420).
+// imageWidth: The width of the image, in pixels, with no subsampling applied.
+uint32_t GetPlaneWidthInPixels(
+    const grfx::FormatPlaneDesc::Plane& plane,
+    grfx::FormatChromaSubsampling       subsampling,
+    uint32_t                            imageWidth)
+{
+    bool hasRowSubsampling = (subsampling == grfx::FORMAT_CHROMA_SUBSAMPLING_420) ||
+                             (subsampling == grfx::FORMAT_CHROMA_SUBSAMPLING_422);
+    bool hasChromaValue = false;
+    for (const grfx::FormatPlaneDesc::Member& member : plane.members) {
+        if (member.type == grfx::FORMAT_PLANE_CHROMA_TYPE_CHROMA) {
+            hasChromaValue = true;
+            break;
+        }
+    }
+
+    if (hasRowSubsampling && hasChromaValue) {
+        // Note: even if the layer has a luma value, generally, in the case of
+        // buffer copies, the width is treated as a half width, if we're
+        // subsampling at 4:2:0 or 4:2:2, and are looking at a plane with chroma
+        // values.
+        return imageWidth / 2;
+    }
+    return imageWidth;
+}
+
+// Gets the size of an image plane in bytes.
+//
+// This takes chroma subsampling into account; 4:4:4 means no subsampling, 4:2:2
+// means chroma values will be defined for every other column, and 4:2:0 means
+// that chroma values will be defined for every other column and every other
+// row. Chroma subsampling specifically applies to YCbCr images.
+//
+// plane: The plane to get information for. (Contains information about the
+//        color components represented by this plane, and their bit counts).
+// subsampling: The type of chroma subsampling applied to this image (e.g.
+//              444, 422, 420).
+// width: The width of the image, in pixels, with no subsampling applied.
+// height: The height of the image, in pixels, with no subsampling applied.
+uint32_t GetPlaneSizeInBytes(
+    const grfx::FormatPlaneDesc::Plane& plane,
+    grfx::FormatChromaSubsampling       subsampling,
+    uint32_t                            width,
+    uint32_t                            height)
+{
+    bool     hasColSubsampling = (subsampling == grfx::FORMAT_CHROMA_SUBSAMPLING_420);
+    bool     hasRowSubsampling = hasColSubsampling || (subsampling == grfx::FORMAT_CHROMA_SUBSAMPLING_422);
+    bool     hasChromaValue    = false;
+    bool     hasLumaValue      = false;
+    uint32_t rowBitFactor      = 0;
+    for (const grfx::FormatPlaneDesc::Member& member : plane.members) {
+        if (member.type == grfx::FORMAT_PLANE_CHROMA_TYPE_CHROMA) {
+            hasChromaValue = true;
+        }
+        else if (member.type == grfx::FORMAT_PLANE_CHROMA_TYPE_LUMA) {
+            hasLumaValue = true;
+        }
+        else {
+            PPX_LOG_WARN("Member " << member.component << "has unknown chroma type.");
+        }
+
+        // We only subsample chroma values.
+        if (member.type == grfx::FORMAT_PLANE_CHROMA_TYPE_CHROMA && hasRowSubsampling) {
+            rowBitFactor += member.bitCount / 2;
+        }
+        else {
+            rowBitFactor += member.bitCount;
+        }
+    }
+
+    if (hasColSubsampling && hasChromaValue) {
+        // Note: you never have subsampling on the height axis of the image in
+        // a plane if luma values are present, since luma values usually aren't
+        // subsampled. You might have subsampling on the width axis, but that
+        // would essentially mean you get two luma values, and one of each
+        // chroma value, in a block of four.
+        if (hasLumaValue) {
+            PPX_LOG_WARN(
+                "Frame size will be inaccurate, there is vertical subsampling "
+                "with both chroma and luma values present on a single plane, "
+                "which is not supported!");
+        }
+
+        return (width * rowBitFactor * (height / 2)) / 8;
+    }
+
+    // No subsampling for height, OR this plane is of luma values (which are
+    // not subsampled).
+    return (width * rowBitFactor * height) / 8;
+}
+
+// Gets the total size of a planar image in bytes, by calculating the size of
+// each plane individually.
+//
+// This takes chroma subsampling into account; 4:4:4 means no subsampling, 4:2:2
+// means chroma values will be defined for every other column, and 4:2:0 means
+// that chroma values will be defined for every other column and every other
+// row. Chroma subsampling specifically applies to YCbCr images.
+//
+// formatDesc: Information about the image format, such as the components
+//             represented, etc.
+// planeDesc: Information about the components in the current image plane.
+// width: The width of the image, in pixels, with no subsampling applied.
+// height: The height of the image, in pixels, with no subsampling applied.
+uint32_t GetPlanarImageSizeInBytes(
+    const grfx::FormatDesc&      formatDesc,
+    const grfx::FormatPlaneDesc& planeDesc,
+    uint32_t                     width,
+    uint32_t                     height)
+{
+    uint32_t imageSize = 0;
+    for (const grfx::FormatPlaneDesc::Plane& plane : planeDesc.planes) {
+        imageSize += GetPlaneSizeInBytes(
+            plane, formatDesc.chromaSubsampling, width, height);
+    }
+    return imageSize;
+}
+
+// End planar image helper functions
+
+} // namespace
 
 grfx::Format ToGrfxFormat(Bitmap::Format value)
 {
@@ -1505,6 +1701,66 @@ Result CreateMeshFromFile(
     Result ppxres = CreateMeshFromTriMesh(pQueue, &mesh, ppMesh);
     if (Failed(ppxres)) {
         return ppxres;
+    }
+
+    return ppx::SUCCESS;
+}
+
+// -------------------------------------------------------------------------------------------------
+
+Result LoadFramesFromRawVideo(
+    const std::filesystem::path&    path,
+    grfx::Format                    format,
+    uint32_t                        width,
+    uint32_t                        height,
+    std::vector<std::vector<char>>* pFrames)
+{
+    PPX_ASSERT_NULL_ARG(pFrames);
+
+    const grfx::FormatDesc* formatDesc = grfx::GetFormatDescription(format);
+    if (formatDesc == nullptr) {
+        PPX_LOG_ERROR("Failed to fetch information for texture format " << format);
+        return ppx::ERROR_FAILED;
+    }
+
+    uint32_t frameSize = 0; // As measured in bytes, not pixels.
+    if (formatDesc->isPlanar) {
+        std::optional<grfx::FormatPlaneDesc> formatPlanes = grfx::GetFormatPlaneDescription(format);
+        PPX_ASSERT_MSG(formatPlanes.has_value(), "No planes found for format " << format);
+        frameSize = GetPlanarImageSizeInBytes(*formatDesc, *formatPlanes, width, height);
+    }
+    else {
+        frameSize = formatDesc->bytesPerTexel * width * height;
+    }
+
+    ppx::fs::File file;
+    if (!file.Open(path)) {
+        PPX_ASSERT_MSG(false, "Cannot open the file!");
+        return ppx::ERROR_FAILED;
+    }
+    const size_t fileSize = file.GetLength();
+
+    std::vector<char> buffer(frameSize);
+    size_t            totalRead = 0;
+    while (totalRead < fileSize) {
+        const size_t bytesRead = file.Read(buffer.data(), frameSize);
+        if (bytesRead < frameSize) {
+            // If we didn't read as many bytes as we expected to, and we haven't
+            // reached the end of the file, this is an error.
+            if (totalRead + bytesRead < fileSize) {
+                PPX_ASSERT_MSG(
+                    false,
+                    "Unable to load video frame; expected " << frameSize << " but read " << bytesRead << "bytes (previously read " << totalRead << ").");
+                return ppx::ERROR_FAILED;
+            }
+            // Otherwise, fill the rest of the buffer with 0s.
+            else {
+                PPX_LOG_WARN("Read " << bytesRead << " bytes for the last frame of the video at " << path << "; filling the rest of the frame with 0s.");
+                std::fill(buffer.begin() + bytesRead, buffer.end(), 0);
+            }
+        }
+        pFrames->push_back(std::move(buffer));
+        totalRead += bytesRead;
     }
 
     return ppx::SUCCESS;
