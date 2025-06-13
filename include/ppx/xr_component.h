@@ -208,10 +208,15 @@ public:
     void       SetCurrentViewIndex(uint32_t index) { mCurrentViewIndex = index; }
     uint32_t   GetCurrentViewIndex() const { return mCurrentViewIndex; }
 
+    const XrCamera& GetCamera(uint32_t viewIndex) const
+    {
+        PPX_ASSERT_MSG((viewIndex < mCameras.size()), "Camera not found for current view");
+        return mCameras[viewIndex];
+    }
+
     const XrCamera& GetCamera() const
     {
-        PPX_ASSERT_MSG((mCurrentViewIndex < mCameras.size()), "Camera not found for current view");
-        return mCameras[mCurrentViewIndex];
+        return GetCamera(mCurrentViewIndex);
     }
 
     // The values for the frustum planes will be sent to the OpenXR runtime
