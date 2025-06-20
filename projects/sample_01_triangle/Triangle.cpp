@@ -80,12 +80,19 @@ void TriangleApp::Setup()
         grfx::FenceCreateInfo fenceCreateInfo = {};
         PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &frame.imageAcquiredFence));
 
-        PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &frame.renderCompleteSemaphore));
-
         fenceCreateInfo = {true}; // Create signaled
         PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &frame.renderCompleteFence));
 
         mPerFrame.push_back(frame);
+    }
+
+    uint32_t swapchainImageCount = GetSwapchain()->GetImageCount();
+    mPerSwapchainImage.reserve(swapchainImageCount);
+    for (uint32_t i = 0; i < swapchainImageCount; ++i) {
+        PerSwapchainImage         swapchainImage = {};
+        grfx::SemaphoreCreateInfo createInfo     = {};
+        PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&createInfo, &swapchainImage.renderCompleteSemaphore));
+        mPerSwapchainImage.push_back(swapchainImage);
     }
 
     // Buffer and geometry data
@@ -164,16 +171,18 @@ void TriangleApp::Render()
     }
     PPX_CHECKED_CALL(frame.cmd->End());
 
+    grfx::SemaphorePtr& renderCompleteSemaphore = mPerSwapchainImage[imageIndex].renderCompleteSemaphore;
+
     grfx::SubmitInfo submitInfo     = {};
     submitInfo.commandBufferCount   = 1;
     submitInfo.ppCommandBuffers     = &frame.cmd;
     submitInfo.waitSemaphoreCount   = 1;
     submitInfo.ppWaitSemaphores     = &frame.imageAcquiredSemaphore;
     submitInfo.signalSemaphoreCount = 1;
-    submitInfo.ppSignalSemaphores   = &frame.renderCompleteSemaphore;
+    submitInfo.ppSignalSemaphores   = &renderCompleteSemaphore;
     submitInfo.pFence               = frame.renderCompleteFence;
 
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
 
-    PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.renderCompleteSemaphore));
+    PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &renderCompleteSemaphore));
 }
