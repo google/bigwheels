@@ -28,6 +28,13 @@ public:
     virtual void Render() override;
 
 private:
+    struct UniformBufferData
+    {
+        // Pose of each Cube
+        // One for each eye, but second only used in multi-view
+        ppx::float4x4 M[2];
+    };
+
     struct PerFrame
     {
         grfx::CommandBufferPtr cmd;
@@ -35,6 +42,8 @@ private:
         grfx::FencePtr         imageAcquiredFence;
         grfx::SemaphorePtr     renderCompleteSemaphore;
         grfx::FencePtr         renderCompleteFence;
+
+        UniformBufferData uniform_buffer_data = {};
 
         // XR UI per frame elements.
         grfx::CommandBufferPtr uiCmd;
