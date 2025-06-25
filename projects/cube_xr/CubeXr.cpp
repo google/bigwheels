@@ -15,6 +15,9 @@
 #include "CubeXr.h"
 #include "ppx/math_config.h"
 #include "ppx/ppx.h"
+
+#include <algorithm>
+
 using namespace ppx;
 
 #if defined(USE_DX12)
