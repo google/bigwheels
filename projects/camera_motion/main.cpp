@@ -459,7 +459,6 @@ void ProjApp::SetupPerFrameData(void)
     grfx::FenceCreateInfo fenceCreateInfo = {};
     PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &frame.imageAcquiredFence));
 
-
     fenceCreateInfo = {true};
     PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &frame.renderCompleteFence));
 
