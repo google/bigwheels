@@ -118,7 +118,6 @@ void CubeXrApp::Setup()
         grfx::FenceCreateInfo fenceCreateInfo = {};
         PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &frame.imageAcquiredFence));
 
-        PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &frame.renderCompleteSemaphore));
 
         fenceCreateInfo = {true}; // Create signaled
         PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &frame.renderCompleteFence));
@@ -339,7 +338,7 @@ void CubeXrApp::Render()
         submitInfo.waitSemaphoreCount   = 1;
         submitInfo.ppWaitSemaphores     = &frame.imageAcquiredSemaphore;
         submitInfo.signalSemaphoreCount = 1;
-        submitInfo.ppSignalSemaphores   = &frame.renderCompleteSemaphore;
+        submitInfo.ppSignalSemaphores   = &GetSwapchain()->GetPresentationReadySemaphore(imageIndex);
     }
     submitInfo.pFence = frame.renderCompleteFence;
 
@@ -347,6 +346,6 @@ void CubeXrApp::Render()
 
     // No need to present when XR is enabled.
     if (!IsXrEnabled()) {
-        PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.renderCompleteSemaphore));
+        PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &GetSwapchain()->GetPresentationReadySemaphore(imageIndex)));
     }
 }

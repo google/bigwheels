@@ -259,7 +259,6 @@ void FishTornadoApp::SetupPerFrame()
         PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &frame.copyConstantsSemaphore));
         PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &frame.flockingCompleteSemaphore));
         PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &frame.shadowCompleteSemaphore));
-        PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &frame.renderCompleteSemaphore));
 
         // Image acquired sync objects
         PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &frame.imageAcquiredSemaphore));
@@ -871,7 +870,7 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
         submitInfo.waitSemaphoreCount   = waitSemaphoreCount;
         submitInfo.ppWaitSemaphores     = ppWaitSemaphores;
         submitInfo.signalSemaphoreCount = 1;
-        submitInfo.ppSignalSemaphores   = &frame.renderCompleteSemaphore;
+        submitInfo.ppSignalSemaphores   = &GetSwapchain()->GetPresentationReadySemaphore(imageIndex);
 
         PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
     }
@@ -898,7 +897,7 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
         submitInfo.commandBufferCount   = 1;
         submitInfo.ppCommandBuffers     = &frame.gpuEndTimestampCmd;
         submitInfo.waitSemaphoreCount   = 1;
-        submitInfo.ppWaitSemaphores     = &frame.renderCompleteSemaphore;
+        submitInfo.ppWaitSemaphores     = &GetSwapchain()->GetPresentationReadySemaphore(imageIndex);
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.ppSignalSemaphores   = &frame.frameCompleteSemaphore;
         submitInfo.pFence               = frame.frameCompleteFence;
@@ -910,7 +909,7 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
     {
         grfx::SubmitInfo submitInfo     = {};
         submitInfo.waitSemaphoreCount   = 1;
-        submitInfo.ppWaitSemaphores     = &frame.renderCompleteSemaphore;
+        submitInfo.ppWaitSemaphores     = &GetSwapchain()->GetPresentationReadySemaphore(imageIndex);
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.ppSignalSemaphores   = &frame.frameCompleteSemaphore;
         submitInfo.pFence               = frame.frameCompleteFence;
