@@ -259,7 +259,6 @@ private:
         grfx::CommandBufferPtr cmd;
         grfx::SemaphorePtr     imageAcquiredSemaphore;
         grfx::FencePtr         imageAcquiredFence;
-        grfx::SemaphorePtr     renderCompleteSemaphore;
         grfx::FencePtr         renderCompleteFence;
         grfx::QueryPtr         timestampQuery;
 
