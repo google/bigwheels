@@ -112,8 +112,10 @@ Result Swapchain::Create(const grfx::SwapchainCreateInfo* pCreateInfo)
     }
 
     PPX_LOG_INFO("Swapchain created");
-    PPX_LOG_INFO("   " << "resolution  : " << mCreateInfo.width << "x" << mCreateInfo.height);
-    PPX_LOG_INFO("   " << "image count : " << mCreateInfo.imageCount);
+    PPX_LOG_INFO("   "
+                 << "resolution  : " << mCreateInfo.width << "x" << mCreateInfo.height);
+    PPX_LOG_INFO("   "
+                 << "image count : " << mCreateInfo.imageCount);
 
     return ppx::SUCCESS;
 }
