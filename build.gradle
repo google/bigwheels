@@ -93,7 +93,7 @@ subprojects {
                 appLabel : "vk_${project.name}"
             ]
 
-            ndk.abiFilters = ['arm64-v8a']
+            ndk.abiFilters = ['armeabi-v7a', 'arm64-v8a']
 
             testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
             externalNativeBuild {
