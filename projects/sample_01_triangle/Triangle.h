@@ -34,19 +34,14 @@ private:
         grfx::FencePtr         imageAcquiredFence;
         grfx::FencePtr         renderCompleteFence;
     };
-    struct PerSwapchainImage
-    {
-        grfx::SemaphorePtr renderCompleteSemaphore;
-    };
 
-    std::vector<PerFrame>          mPerFrame;
-    std::vector<PerSwapchainImage> mPerSwapchainImage;
-    grfx::ShaderModulePtr          mVS;
-    grfx::ShaderModulePtr          mPS;
-    grfx::PipelineInterfacePtr     mPipelineInterface;
-    grfx::GraphicsPipelinePtr      mPipeline;
-    grfx::BufferPtr                mVertexBuffer;
-    grfx::VertexBinding            mVertexBinding;
+    std::vector<PerFrame>      mPerFrame;
+    grfx::ShaderModulePtr      mVS;
+    grfx::ShaderModulePtr      mPS;
+    grfx::PipelineInterfacePtr mPipelineInterface;
+    grfx::GraphicsPipelinePtr  mPipeline;
+    grfx::BufferPtr            mVertexBuffer;
+    grfx::VertexBinding        mVertexBinding;
 };
 
 #endif // TRIANGLE_H
