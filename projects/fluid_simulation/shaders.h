@@ -34,7 +34,6 @@ struct PerFrame
     ppx::grfx::CommandBufferPtr      cmd                     = nullptr;
     ppx::grfx::SemaphorePtr          imageAcquiredSemaphore  = nullptr;
     ppx::grfx::FencePtr              imageAcquiredFence      = nullptr;
-    ppx::grfx::SemaphorePtr          renderCompleteSemaphore = nullptr;
     ppx::grfx::FencePtr              renderCompleteFence     = nullptr;
     uint32_t                         dispatchID              = 0;
     std::vector<ComputeDispatchData> mDispatchData;

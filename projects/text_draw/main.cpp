@@ -36,7 +36,6 @@ private:
         grfx::CommandBufferPtr cmd;
         grfx::SemaphorePtr     imageAcquiredSemaphore;
         grfx::FencePtr         imageAcquiredFence;
-        grfx::SemaphorePtr     renderCompleteSemaphore;
         grfx::FencePtr         renderCompleteFence;
     };
     std::vector<PerFrame> mPerFrame;
@@ -69,7 +68,6 @@ void ProjApp::Setup()
         grfx::FenceCreateInfo fenceCreateInfo = {};
         PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &frame.imageAcquiredFence));
 
-        PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &frame.renderCompleteSemaphore));
 
         fenceCreateInfo = {true}; // Create signaled
         PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &frame.renderCompleteFence));
@@ -201,12 +199,12 @@ void ProjApp::Render()
     submitInfo.waitSemaphoreCount   = 1;
     submitInfo.ppWaitSemaphores     = &frame.imageAcquiredSemaphore;
     submitInfo.signalSemaphoreCount = 1;
-    submitInfo.ppSignalSemaphores   = &frame.renderCompleteSemaphore;
+    submitInfo.ppSignalSemaphores   = &GetSwapchain()->GetPresentationReadySemaphore(imageIndex);
     submitInfo.pFence               = frame.renderCompleteFence;
 
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
 
-    PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.renderCompleteSemaphore));
+    PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &GetSwapchain()->GetPresentationReadySemaphore(imageIndex)));
 }
 
 SETUP_APPLICATION(ProjApp)
