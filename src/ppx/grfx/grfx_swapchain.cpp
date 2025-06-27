@@ -363,7 +363,7 @@ Result Swapchain::CreateSemaphores()
     for (size_t i = 0; i < imageCount; ++i) {
         grfx::SemaphorePtr        semaphore;
         grfx::SemaphoreCreateInfo createInfo = {};
-        auto ppxres = GetDevice()->CreateSemaphore(&createInfo, &semaphore);
+        auto                      ppxres     = GetDevice()->CreateSemaphore(&createInfo, &semaphore);
         if (Failed(ppxres)) {
             PPX_ASSERT_MSG(false, "grfx::Swapchain::CreateSemaphores() failed");
             return ppxres;

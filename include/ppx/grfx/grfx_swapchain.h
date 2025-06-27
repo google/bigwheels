@@ -233,7 +233,7 @@ protected:
     std::vector<grfx::DepthStencilViewPtr> mLoadDepthStencilViews;
     std::vector<grfx::RenderPassPtr>       mClearRenderPasses;
     std::vector<grfx::RenderPassPtr>       mLoadRenderPasses;
-    std::vector<grfx::SemaphorePtr>           mPresentationReadySemaphores;
+    std::vector<grfx::SemaphorePtr>        mPresentationReadySemaphores;
 
 #if defined(PPX_BUILD_XR)
     XrSwapchain mXrColorSwapchain = XR_NULL_HANDLE;
