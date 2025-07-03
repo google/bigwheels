@@ -40,7 +40,6 @@ private:
         ppx::grfx::CommandBufferPtr cmd;
         ppx::grfx::SemaphorePtr     imageAcquiredSemaphore;
         ppx::grfx::FencePtr         imageAcquiredFence;
-        ppx::grfx::SemaphorePtr     renderCompleteSemaphore;
         ppx::grfx::FencePtr         renderCompleteFence;
     };
 
