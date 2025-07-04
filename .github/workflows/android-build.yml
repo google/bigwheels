@@ -25,14 +25,14 @@ jobs:
         uses: gradle/gradle-build-action@v2
       - name: Setup Vulkan SDK
         run: |
-          wget -q https://sdk.lunarg.com/sdk/download/1.4.313.0/linux/vulkansdk-linux-x86_64-1.4.313.0.tar.xz
-          if ! echo "4e957b66ade85eeaee95932aa7e3b45aea64db373c58a5eaefc8228cc71445c2 vulkansdk-linux-x86_64-1.4.313.0.tar.xz" | sha256sum -c --status; then
+          wget -q https://sdk.lunarg.com/sdk/download/1.4.321.1/linux/vulkansdk-linux-x86_64-1.4.321.1.tar.xz
+          if ! echo "f22a3625bd4d7a32e7a0d926ace16d5278c149e938dac63cecc00537626cbf73 vulkansdk-linux-x86_64-1.4.321.1.tar.xz" | sha256sum -c --status; then
             echo "Invalid SHA256 for VulkanSDK's binary. Aborting."
             exit 1
           fi
           mkdir "${HOME}/vulkan-sdk"
-          tar -xf vulkansdk-linux-x86_64-1.4.313.0.tar.xz -C "${HOME}/vulkan-sdk"
-          echo "VULKAN_SDK=${HOME}/vulkan-sdk/1.4.313.0/x86_64" >> $GITHUB_ENV
+          tar -xf vulkansdk-linux-x86_64-1.4.321.1.tar.xz -C "${HOME}/vulkan-sdk"
+          echo "VULKAN_SDK=${HOME}/vulkan-sdk/1.4.321.1/x86_64" >> $GITHUB_ENV
       - name: Build all projects
         run: |
           ./gradlew buildRelease -PENABLE_32BIT_ARM=true
