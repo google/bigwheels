@@ -30,7 +30,7 @@ jobs:
 
           # Get the vulkan-1.dll and add it to the PATH, which is required when we execute binaries.
           Start-BitsTransfer -Source https://sdk.lunarg.com/sdk/download/1.4.313.0/windows/VulkanRT-X64-1.4.313.0-Components.zip
-          Expand-Archive VulkanRT-1.4.313.0-Components.zip -DestinationPath "$HOME\vulkan-sdk\RTComponents"
+          Expand-Archive VulkanRT-X64-1.4.313.0-Components.zip -DestinationPath "$HOME\vulkan-sdk\RTComponents"
           "$HOME\vulkan-sdk\RTComponents\VulkanRT-X64-1.4.313.0-Components\x64" >> $env:GITHUB_PATH
       - name: Setup software renderer (WARP)
         run: |
