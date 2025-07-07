@@ -41,7 +41,7 @@ void CubeXrApp::Setup()
     // Uniform buffer
     {
         grfx::BufferCreateInfo bufferCreateInfo        = {};
-        bufferCreateInfo.size                          = std::max(sizeof(UniformBufferData), (uint64_t)PPX_MINIMUM_UNIFORM_BUFFER_SIZE);
+        bufferCreateInfo.size                          = std::max<uint64_t>(sizeof(UniformBufferData), PPX_MINIMUM_UNIFORM_BUFFER_SIZE);
         bufferCreateInfo.usageFlags.bits.uniformBuffer = true;
         bufferCreateInfo.memoryUsage                   = grfx::MEMORY_USAGE_CPU_TO_GPU;
 

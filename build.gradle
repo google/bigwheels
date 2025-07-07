@@ -93,7 +93,12 @@ subprojects {
                 appLabel : "vk_${project.name}"
             ]
 
-            ndk.abiFilters = ['arm64-v8a']
+
+            if (project.findProperty('ENABLE_32BIT_ARM')) {
+              ndk.abiFilters = ['armeabi-v7a', 'arm64-v8a']
+            } else {
+              ndk.abiFilters = ['arm64-v8a']
+            }
 
             testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
             externalNativeBuild {
