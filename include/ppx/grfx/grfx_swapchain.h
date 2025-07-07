@@ -135,12 +135,20 @@ public:
     Result GetRenderTargetView(uint32_t imageIndex, grfx::AttachmentLoadOp loadOp, grfx::RenderTargetView** ppView) const;
     Result GetDepthStencilView(uint32_t imageIndex, grfx::AttachmentLoadOp loadOp, grfx::DepthStencilView** ppView) const;
 
+    // Use this semaphore to synchronize submit and present correctly.
+    // See https://docs.vulkan.org/guide/latest/swapchain_semaphore_reuse.html
+    Result GetPresentationReadySemaphore(uint32_t imageIndex, grfx::Semaphore** ppSemaphore) const;
+
     // Convenience functions - returns empty object if index is invalid
     grfx::ImagePtr            GetColorImage(uint32_t imageIndex) const;
     grfx::ImagePtr            GetDepthImage(uint32_t imageIndex) const;
     grfx::RenderPassPtr       GetRenderPass(uint32_t imageIndex, grfx::AttachmentLoadOp loadOp = grfx::ATTACHMENT_LOAD_OP_CLEAR) const;
     grfx::RenderTargetViewPtr GetRenderTargetView(uint32_t imageIndex, grfx::AttachmentLoadOp loadOp = grfx::ATTACHMENT_LOAD_OP_CLEAR) const;
     grfx::DepthStencilViewPtr GetDepthStencilView(uint32_t imageIndex, grfx::AttachmentLoadOp loadOp = grfx::ATTACHMENT_LOAD_OP_CLEAR) const;
+
+    // Use this semaphore to synchronize submit and present correctly.
+    // See https://docs.vulkan.org/guide/latest/swapchain_semaphore_reuse.html
+    grfx::SemaphorePtr GetPresentationReadySemaphore(uint32_t imageIndex) const;
 
     Result AcquireNextImage(
         uint64_t         timeout,    // Nanoseconds
@@ -186,6 +194,9 @@ protected:
     void   DestroyRenderPasses();
     Result CreateRenderTargets();
     void   DestroyRenderTargets();
+    // Create a semaphore for each swapchain image used for synchronizing submit with present.
+    Result CreateSemaphores();
+    void   DestroySemaphores();
 
 private:
     virtual Result AcquireNextImageInternal(
@@ -222,6 +233,7 @@ protected:
     std::vector<grfx::DepthStencilViewPtr> mLoadDepthStencilViews;
     std::vector<grfx::RenderPassPtr>       mClearRenderPasses;
     std::vector<grfx::RenderPassPtr>       mLoadRenderPasses;
+    std::vector<grfx::SemaphorePtr>        mPresentationReadySemaphores;
 
 #if defined(PPX_BUILD_XR)
     XrSwapchain mXrColorSwapchain = XR_NULL_HANDLE;
