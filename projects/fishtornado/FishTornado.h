@@ -103,6 +103,7 @@ private:
         grfx::SemaphorePtr     copyConstantsSemaphore;
         grfx::SemaphorePtr     flockingCompleteSemaphore;
         grfx::SemaphorePtr     shadowCompleteSemaphore;
+        grfx::SemaphorePtr     renderCompleteSemaphore;
         grfx::SemaphorePtr     imageAcquiredSemaphore;
         grfx::FencePtr         imageAcquiredFence;
         grfx::SemaphorePtr     frameCompleteSemaphore;
