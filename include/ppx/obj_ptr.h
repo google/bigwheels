@@ -69,26 +69,11 @@ public:
         return mPtrRef;
     }
 
-    //// clang-format off
-    // operator ObjectT** ()
-    //{
-    //     return mPtrRef;
-    // }
-    //// clang-format on
-    //
-    //// clang-format off
-    // operator const ObjectT* const* ()
-    //{
-    //     return mPtrRef;
-    // }
-    //// clang-format on
-
 private:
     virtual void Set(void** ppObj) override
     {
         *mPtrRef = reinterpret_cast<ObjectT*>(*ppObj);
     }
-    // clang-format on
 
 private:
     ObjectT** mPtrRef = nullptr;
