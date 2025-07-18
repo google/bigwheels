@@ -22,6 +22,7 @@
 
 #include "OITDemoApplication.h"
 #include "ppx/graphics_util.h"
+#include "ppx/grfx/grfx_sync.h"
 
 static constexpr float MESH_SCALE_DEFAULT = 2.0f;
 static constexpr float MESH_SCALE_MIN     = 1.0f;
@@ -61,8 +62,6 @@ void OITDemoApp::SetupCommon()
 
         grfx::FenceCreateInfo fenceCreateInfo = {};
         PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &mImageAcquiredFence));
-
-        PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &mRenderCompleteSemaphore));
 
         fenceCreateInfo.signaled = true;
         PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &mRenderCompleteFence));
@@ -615,6 +614,8 @@ void OITDemoApp::Render()
     RecordComposite(GetSwapchain()->GetRenderPass(imageIndex));
     PPX_CHECKED_CALL(mCommandBuffer->End());
 
+    grfx::Semaphore* presentationReadySemaphore = GetSwapchain()->GetPresentationReadySemaphore(imageIndex);
+
     // Submit and present
     grfx::SubmitInfo submitInfo     = {};
     submitInfo.commandBufferCount   = 1;
@@ -622,8 +623,8 @@ void OITDemoApp::Render()
     submitInfo.waitSemaphoreCount   = 1;
     submitInfo.ppWaitSemaphores     = &mImageAcquiredSemaphore;
     submitInfo.signalSemaphoreCount = 1;
-    submitInfo.ppSignalSemaphores   = &mRenderCompleteSemaphore;
+    submitInfo.ppSignalSemaphores   = &presentationReadySemaphore;
     submitInfo.pFence               = mRenderCompleteFence;
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
-    PPX_CHECKED_CALL(GetSwapchain()->Present(imageIndex, 1, &mRenderCompleteSemaphore));
+    PPX_CHECKED_CALL(GetSwapchain()->Present(imageIndex, 1, &presentationReadySemaphore));
 }

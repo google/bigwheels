@@ -106,7 +106,6 @@ private:
         grfx::SemaphorePtr     renderCompleteSemaphore;
         grfx::SemaphorePtr     imageAcquiredSemaphore;
         grfx::FencePtr         imageAcquiredFence;
-        grfx::SemaphorePtr     frameCompleteSemaphore;
         grfx::FencePtr         frameCompleteFence;
         ConstantBuffer         sceneConstants;
         grfx::DrawPassPtr      shadowDrawPass;

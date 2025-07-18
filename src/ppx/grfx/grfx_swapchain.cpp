@@ -92,6 +92,10 @@ Result Swapchain::Create(const grfx::SwapchainCreateInfo* pCreateInfo)
         return ppxres;
     }
 
+    if (ppxres = CreatePresentationReadySemaphores(); Failed(ppxres)) {
+        return ppxres;
+    }
+
     if (IsHeadless()) {
         // Set mCurrentImageIndex to (imageCount - 1) so that the first
         // AcquireNextImage call acquires the first image at index 0.
@@ -117,6 +121,8 @@ Result Swapchain::Create(const grfx::SwapchainCreateInfo* pCreateInfo)
 
 void Swapchain::Destroy()
 {
+    DestroyPresentationReadySemaphores();
+
     DestroyRenderPasses();
 
     DestroyRenderTargets();
@@ -350,6 +356,35 @@ void Swapchain::DestroyRenderPasses()
     mLoadRenderPasses.clear();
 }
 
+Result Swapchain::CreatePresentationReadySemaphores()
+{
+    uint32_t imageCount = CountU32(mColorImages);
+    PPX_ASSERT_MSG((imageCount > 0), "No color images found for swapchain semaphores");
+
+    for (size_t i = 0; i < imageCount; ++i) {
+        grfx::Semaphore*          semaphore;
+        grfx::SemaphoreCreateInfo createInfo = {};
+        auto                      ppxres     = GetDevice()->CreateSemaphore(&createInfo, &semaphore);
+        if (Failed(ppxres)) {
+            PPX_ASSERT_MSG(false, "grfx::Swapchain::CreateSemaphores() failed");
+            return ppxres;
+        }
+        mPresentationReadySemaphores.push_back(semaphore);
+    }
+
+    return ppx::SUCCESS;
+}
+
+void Swapchain::DestroyPresentationReadySemaphores()
+{
+    for (auto& elem : mPresentationReadySemaphores) {
+        if (elem) {
+            GetDevice()->DestroySemaphore(elem);
+        }
+    }
+    mPresentationReadySemaphores.clear();
+}
+
 bool Swapchain::IsHeadless() const
 {
 #if defined(PPX_BUILD_XR)
@@ -419,6 +454,15 @@ Result Swapchain::GetDepthStencilView(uint32_t imageIndex, grfx::AttachmentLoadO
     return ppx::SUCCESS;
 }
 
+Result Swapchain::GetPresentationReadySemaphore(uint32_t imageIndex, grfx::Semaphore** ppSemaphore) const
+{
+    if (!IsIndexInRange(imageIndex, mPresentationReadySemaphores)) {
+        return ppx::ERROR_OUT_OF_RANGE;
+    }
+    *ppSemaphore = mPresentationReadySemaphores[imageIndex];
+    return ppx::SUCCESS;
+}
+
 grfx::ImagePtr Swapchain::GetColorImage(uint32_t imageIndex) const
 {
     grfx::ImagePtr object;
@@ -451,6 +495,13 @@ grfx::DepthStencilViewPtr Swapchain::GetDepthStencilView(uint32_t imageIndex, gr
 {
     grfx::DepthStencilViewPtr object;
     GetDepthStencilView(imageIndex, loadOp, &object);
+    return object;
+}
+
+grfx::Semaphore* Swapchain::GetPresentationReadySemaphore(uint32_t imageIndex) const
+{
+    grfx::Semaphore* object = nullptr;
+    GetPresentationReadySemaphore(imageIndex, &object);
     return object;
 }
 
