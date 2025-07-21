@@ -45,6 +45,7 @@ private:
     {
         grfx::SemaphorePtr imageAcquiredSemaphore;
         grfx::FencePtr     imageAcquiredFence;
+        grfx::SemaphorePtr renderCompleteSemaphore;
         grfx::FencePtr     renderCompleteFence;
 
         // Graphics pipeline objects.
@@ -192,6 +193,7 @@ void ProjApp::Setup()
         PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &frame.renderCompleteFence));
 
         PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &frame.imageAcquiredSemaphore));
+        PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &frame.renderCompleteSemaphore));
 
         mPerFrame.push_back(frame);
     }
@@ -932,12 +934,12 @@ void ProjApp::BlitAndPresent(PerFrame& frame, uint32_t swapchainImageIndex)
     submitInfo.waitSemaphoreCount   = sizeof(ppWaitSemaphores) / sizeof(ppWaitSemaphores[0]);
     submitInfo.ppWaitSemaphores     = ppWaitSemaphores;
     submitInfo.signalSemaphoreCount = 1;
-    submitInfo.ppSignalSemaphores   = &GetSwapchain()->GetPresentationReadySemaphore(swapchainImageIndex);
+    submitInfo.ppSignalSemaphores   = &frame.renderCompleteSemaphore;
     submitInfo.pFence               = frame.renderCompleteFence;
 
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
 
-    PPX_CHECKED_CALL(GetSwapchain()->Present(swapchainImageIndex, 1, &GetSwapchain()->GetPresentationReadySemaphore(swapchainImageIndex)));
+    PPX_CHECKED_CALL(GetSwapchain()->Present(swapchainImageIndex, 1, &frame.renderCompleteSemaphore));
 }
 
 void ProjApp::DrawGui()

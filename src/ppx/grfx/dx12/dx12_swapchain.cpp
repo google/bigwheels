@@ -409,7 +409,6 @@ Result Swapchain::Resize(uint32_t width, uint32_t height)
     }
 
     // Destroy these to make sure there's no reference before resizing
-    DestroySemaphores();
     DestroyRenderPasses();
     DestroyRenderTargets();
     DestroyDepthImages();
@@ -461,8 +460,6 @@ Result Swapchain::Resize(uint32_t width, uint32_t height)
 
     // Create render passes
     CreateRenderPasses();
-
-    CreateSemaphores();
 
     return ppx::SUCCESS;
 }

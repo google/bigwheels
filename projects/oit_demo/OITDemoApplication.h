@@ -154,6 +154,7 @@ private:
 
     grfx::SemaphorePtr mImageAcquiredSemaphore;
     grfx::FencePtr     mImageAcquiredFence;
+    grfx::SemaphorePtr mRenderCompleteSemaphore;
     grfx::FencePtr     mRenderCompleteFence;
 
     grfx::CommandBufferPtr  mCommandBuffer;
