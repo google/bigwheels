@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <iomanip>
+#include <iterator>
 #include <sstream>
 #include <vector>
 
