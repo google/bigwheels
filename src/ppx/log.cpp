@@ -219,12 +219,12 @@ void Log::Write(const char* msg, LogLevel level)
     }
 }
 
-void Log::Lock()
+void Log::Lock() __attribute__((acquire_capability(mWriteMutex)))
 {
     mWriteMutex.lock();
 }
 
-void Log::Unlock()
+void Log::Unlock() __attribute__((release_capability(mWriteMutex)))
 {
     mWriteMutex.unlock();
 }
