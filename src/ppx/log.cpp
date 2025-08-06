@@ -37,16 +37,6 @@
 #endif
 // clang-format on
 
-// clang-format off
-#if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
-# define LOCK_ACQUIRE(Mutex) __attribute__((acquire_capability(Mutex)))
-# define LOCK_RELEASE(Mutex) __attribute__((release_capability(Mutex)))
-#else
-# define LOCK_ACQUIRE(Mutex)
-# define LOCK_RELEASE(Mutex)
-#endif
-// clang-format on
-
 #if defined(PPX_ANDROID)
 #include <android/log.h>
 #endif
@@ -229,12 +219,12 @@ void Log::Write(const char* msg, LogLevel level)
     }
 }
 
-void Log::Lock() LOCK_ACQUIRE(mWriteMutex)
+void Log::Lock()
 {
     mWriteMutex.lock();
 }
 
-void Log::Unlock() LOCK_RELEASE(mWriteMutex)
+void Log::Unlock()
 {
     mWriteMutex.unlock();
 }
