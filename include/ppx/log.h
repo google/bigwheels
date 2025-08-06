@@ -69,7 +69,7 @@ public:
     static bool Initialize(uint32_t modes, const char* filePath = nullptr, std::ostream* consoleStream = &std::cout);
     static void Shutdown();
 
-    static Log* Get();
+    static Log*        Get();
     static std::mutex& GetLock();
 
     static bool IsActive();
