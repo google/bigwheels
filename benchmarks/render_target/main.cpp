@@ -422,7 +422,7 @@ void ProjApp::Render()
     PPX_CHECKED_CALL(frame.cmd->End());
 
     grfx::Semaphore* presentationReadySemaphore = swapchain->GetPresentationReadySemaphore(imageIndex);
-    
+
     grfx::SubmitInfo submitInfo     = {};
     submitInfo.commandBufferCount   = 1;
     submitInfo.ppCommandBuffers     = &frame.cmd;

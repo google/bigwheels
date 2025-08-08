@@ -235,8 +235,8 @@ protected:
     std::vector<grfx::DepthStencilViewPtr> mLoadDepthStencilViews;
     std::vector<grfx::RenderPassPtr>       mClearRenderPasses;
     std::vector<grfx::RenderPassPtr>       mLoadRenderPasses;
-    // Use Semaphore* instead of SempahorePtr to avoid accidental stack-use-after-scope
-    std::vector<grfx::Semaphore*>          mPresentationReadySemaphores;
+    // Use Semaphore* instead of SempahorePtr to avoid accidental stack-use-after-scope. See #572
+    std::vector<grfx::Semaphore*> mPresentationReadySemaphores;
 
 #if defined(PPX_BUILD_XR)
     XrSwapchain mXrColorSwapchain = XR_NULL_HANDLE;
