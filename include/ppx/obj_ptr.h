@@ -151,7 +151,7 @@ public:
         return mPtr;
     }
 
-    ObjPtrRef<ObjectT> operator&()
+    ObjPtrRef<ObjectT> operator&() &
     {
         return ObjPtrRef<ObjectT>(&mPtr);
     }
