@@ -14,6 +14,8 @@
 
 #include "ppx/log.h"
 
+#include <mutex>
+
 // Use current platform if one isn't defined
 // clang-format off
 #if ! (defined(PPX_LINUX) || defined(PPX_MSW))
@@ -67,12 +69,11 @@ bool Log::Initialize(uint32_t mode, const char* filePath, std::ostream* consoleS
         return false;
     }
 
-    sLogInstance.Lock();
     {
+        std::lock_guard lock(sLogInstance.mWriteMutex);
         sLogInstance << "Logging started" << std::endl;
         sLogInstance.Flush(LOG_LEVEL_DEFAULT);
     }
-    sLogInstance.Unlock();
 
     // Success
     return true;
@@ -86,15 +87,14 @@ void Log::Shutdown()
     }
 
     // Write last line of log
-    sLogInstance.Lock();
     {
+        std::lock_guard lock(sLogInstance.mWriteMutex);
         sLogInstance << "Logging stopped" << std::endl;
         sLogInstance.Flush(LOG_LEVEL_DEFAULT);
 
         // Destroy internal objects
         sLogInstance.DestroyObjects();
     }
-    sLogInstance.Unlock();
 }
 
 Log* Log::Get()
@@ -219,14 +219,9 @@ void Log::Write(const char* msg, LogLevel level)
     }
 }
 
-void Log::Lock()
+std::mutex& Log::GetLock()
 {
-    mWriteMutex.lock();
-}
-
-void Log::Unlock()
-{
-    mWriteMutex.unlock();
+    return Get()->mWriteMutex;
 }
 
 void Log::Flush(LogLevel level)
