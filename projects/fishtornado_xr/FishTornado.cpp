@@ -1128,9 +1128,9 @@ void FishTornadoApp::Render()
 
     // No need to present when XR is enabled.
     if (!IsXrEnabled()) {
-        grfx::Semaphore* presentationReadySemaphore = swapchain->GetPresentationReadySemaphore(imageIndex)
+        grfx::Semaphore* presentationReadySemaphore = swapchain->GetPresentationReadySemaphore(imageIndex);
 
-                                                          PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &presentationReadySemaphore));
+        PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &presentationReadySemaphore));
     }
 }
 
