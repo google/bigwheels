@@ -518,7 +518,6 @@ void FoveationBenchmarkApp::Render()
 
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
 
-    // TODO: what is the correct fix for this app?
     PPX_CHECKED_CALL(GetSwapchain()->Present(imageIndex, 1, &presentationReadySemaphore));
 
     if (GetFrameCount() == static_cast<uint64_t>(GetStandardOptions().pScreenshotFrameNumber->GetValue())) {

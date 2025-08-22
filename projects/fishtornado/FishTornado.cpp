@@ -979,8 +979,6 @@ void FishTornadoApp::Render()
     mLastFrameWasAsyncCompute = mSettings.useAsyncCompute;
 
     grfx::Semaphore* presentationReadySemaphore = swapchain->GetPresentationReadySemaphore(imageIndex);
-
-    // TODO what is the best way to fux this?
     PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &presentationReadySemaphore));
 }
 
