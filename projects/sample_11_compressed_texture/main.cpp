@@ -14,6 +14,7 @@
 
 #include "ppx/ppx.h"
 #include "ppx/graphics_util.h"
+#include "ppx/grfx/grfx_sync.h"
 using namespace ppx;
 
 #if defined(USE_DX12)

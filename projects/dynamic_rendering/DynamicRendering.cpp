@@ -14,6 +14,7 @@
 
 #include "DynamicRendering.h"
 #include "ppx/graphics_util.h"
+#include "ppx/grfx/grfx_sync.h"
 #include "ppx/ppx.h"
 
 using namespace ppx;

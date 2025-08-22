@@ -22,6 +22,7 @@
 #include "ppx/camera.h"
 #include "ppx/graphics_util.h"
 #include "ppx/grfx/grfx_scope.h"
+#include "ppx/grfx/grfx_sync.h"
 #include "cgltf.h"
 #include "glm/gtc/type_ptr.hpp"
 

@@ -14,6 +14,7 @@
 
 #include "FishTornado.h"
 #include "ppx/graphics_util.h"
+#include "ppx/grfx/grfx_sync.h"
 
 #include <filesystem>
 

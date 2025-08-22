@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "CubeXr.h"
+#include "ppx/grfx/grfx_sync.h"
 #include "ppx/math_config.h"
 #include "ppx/ppx.h"
 

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "TriangleSpinning.h"
+#include "ppx/grfx/grfx_sync.h"
 #include "ppx/ppx.h"
 using namespace ppx;
 
