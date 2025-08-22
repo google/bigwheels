@@ -81,7 +81,6 @@ void FoveationBenchmarkApp::SetupSync()
     grfx::SemaphoreCreateInfo semaCreateInfo = {};
     PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &mSync.imageAcquiredSemaphore));
     PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &mSync.renderCompleteSemaphore));
-    PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &mSync.postCompleteSemaphore));
 
     grfx::FenceCreateInfo fenceCreateInfo = {};
     PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &mSync.imageAcquiredFence));
@@ -506,18 +505,20 @@ void FoveationBenchmarkApp::Render()
 
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
 
+    grfx::Semaphore* presentationReadySemaphore = GetSwapchain()->GetPresentationReadySemaphore(imageIndex);
+
     submitInfo                      = {};
     submitInfo.commandBufferCount   = 1;
     submitInfo.ppCommandBuffers     = &mPost.cmd;
     submitInfo.waitSemaphoreCount   = 1;
     submitInfo.ppWaitSemaphores     = &mSync.renderCompleteSemaphore;
     submitInfo.signalSemaphoreCount = 1;
-    submitInfo.ppSignalSemaphores   = &mSync.postCompleteSemaphore;
+    submitInfo.ppSignalSemaphores   = &presentationReadySemaphore;
     submitInfo.pFence               = mSync.postCompleteFence;
 
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
 
-    PPX_CHECKED_CALL(GetSwapchain()->Present(imageIndex, 1, &mSync.postCompleteSemaphore));
+    PPX_CHECKED_CALL(GetSwapchain()->Present(imageIndex, 1, &presentationReadySemaphore));
 
     if (GetFrameCount() == static_cast<uint64_t>(GetStandardOptions().pScreenshotFrameNumber->GetValue())) {
         if (mKnobs.pRenderScreenshotPath->GetValue().size() > 0) {
