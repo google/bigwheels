@@ -207,7 +207,6 @@ void FluidSimulationApp::Setup()
     PPX_CHECKED_CALL(GetDevice()->GetGraphicsQueue()->CreateCommandBuffer(&frame.cmd));
     PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&sci, &frame.imageAcquiredSemaphore));
     PPX_CHECKED_CALL(GetDevice()->CreateFence(&fci, &frame.imageAcquiredFence));
-    PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&sci, &frame.renderCompleteSemaphore));
     fci = {true}; // Create signaled
     PPX_CHECKED_CALL(GetDevice()->CreateFence(&fci, &frame.renderCompleteFence));
     mPerFrame.push_back(frame);
@@ -456,6 +455,8 @@ void FluidSimulationApp::Render()
     }
     PPX_CHECKED_CALL(frame.cmd->End());
 
+    ppx::grfx::Semaphore* presentationReadySemaphore = GetSwapchain()->GetPresentationReadySemaphore(imageIndex);
+
     // Submit the command buffer.
     ppx::grfx::SubmitInfo submitInfo = {};
     submitInfo.commandBufferCount    = 1;
@@ -463,12 +464,12 @@ void FluidSimulationApp::Render()
     submitInfo.waitSemaphoreCount    = 1;
     submitInfo.ppWaitSemaphores      = &frame.imageAcquiredSemaphore;
     submitInfo.signalSemaphoreCount  = 1;
-    submitInfo.ppSignalSemaphores    = &frame.renderCompleteSemaphore;
+    submitInfo.ppSignalSemaphores    = &presentationReadySemaphore;
     submitInfo.pFence                = frame.renderCompleteFence;
     PPX_CHECKED_CALL(GetGraphicsQueue()->Submit(&submitInfo));
 
     // Present and signal.
-    PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.renderCompleteSemaphore));
+    PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &presentationReadySemaphore));
 }
 
 void FluidSimulationApp::UpdateKnobVisibility()

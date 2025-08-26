@@ -161,7 +161,6 @@ private:
         grfx::FencePtr     imageAcquiredFence;
         grfx::SemaphorePtr imageAcquiredSemaphore;
         grfx::SemaphorePtr renderCompleteSemaphore;
-        grfx::SemaphorePtr postCompleteSemaphore;
         grfx::FencePtr     postCompleteFence;
     } mSync;
 

@@ -278,7 +278,6 @@ void FishTornadoApp::SetupPerFrame()
         PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &frame.imageAcquiredFence));
 
         // Frame complete sync objects
-        PPX_CHECKED_CALL(GetDevice()->CreateSemaphore(&semaCreateInfo, &frame.frameCompleteSemaphore));
         fenceCreateInfo = {true}; // Create signaled
         PPX_CHECKED_CALL(GetDevice()->CreateFence(&fenceCreateInfo, &frame.frameCompleteFence));
 
@@ -678,6 +677,8 @@ void FishTornadoApp::RenderSceneUsingSingleCommandBuffer(
 
     PPX_CHECKED_CALL(frame.cmd->End());
 
+    grfx::Semaphore* presentationReadySemaphore = swapchain->GetPresentationReadySemaphore(imageIndex);
+
     grfx::SubmitInfo submitInfo   = {};
     submitInfo.commandBufferCount = 1;
     submitInfo.ppCommandBuffers   = &frame.cmd;
@@ -692,7 +693,7 @@ void FishTornadoApp::RenderSceneUsingSingleCommandBuffer(
         submitInfo.waitSemaphoreCount   = 1;
         submitInfo.ppWaitSemaphores     = &frame.imageAcquiredSemaphore;
         submitInfo.signalSemaphoreCount = 1;
-        submitInfo.ppSignalSemaphores   = &frame.frameCompleteSemaphore;
+        submitInfo.ppSignalSemaphores   = &presentationReadySemaphore;
     }
     submitInfo.pFence = frame.frameCompleteFence;
 
@@ -974,13 +975,15 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
 
     // Submit GPU write end timestamp
     {
+        grfx::Semaphore* presentationReadySemaphore = swapchain->GetPresentationReadySemaphore(imageIndex);
+
         grfx::SubmitInfo submitInfo     = {};
         submitInfo.commandBufferCount   = 1;
         submitInfo.ppCommandBuffers     = &frame.gpuEndTimestampCmd;
         submitInfo.waitSemaphoreCount   = 1;
         submitInfo.ppWaitSemaphores     = &frame.renderCompleteSemaphore;
         submitInfo.signalSemaphoreCount = 1;
-        submitInfo.ppSignalSemaphores   = &frame.frameCompleteSemaphore;
+        submitInfo.ppSignalSemaphores   = &presentationReadySemaphore;
         submitInfo.pFence               = frame.frameCompleteFence;
 
         // no need to use semaphore when XR is enabled
@@ -994,11 +997,13 @@ void FishTornadoApp::RenderSceneUsingMultipleCommandBuffers(
 #else
     // Submit a wait for render complete and a signal for frame complete
     {
+        grfx::Semaphore* presentationReadySemaphore = swapchain->GetPresentationReadySemaphore(imageIndex);
+
         grfx::SubmitInfo submitInfo     = {};
         submitInfo.waitSemaphoreCount   = 1;
         submitInfo.ppWaitSemaphores     = &frame.renderCompleteSemaphore;
         submitInfo.signalSemaphoreCount = 1;
-        submitInfo.ppSignalSemaphores   = &frame.frameCompleteSemaphore;
+        submitInfo.ppSignalSemaphores   = &presentationReadySemaphore;
         submitInfo.pFence               = frame.frameCompleteFence;
         // no need to use semaphore when XR is enabled
         if (IsXrEnabled()) {
@@ -1123,7 +1128,9 @@ void FishTornadoApp::Render()
 
     // No need to present when XR is enabled.
     if (!IsXrEnabled()) {
-        PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &frame.frameCompleteSemaphore));
+        grfx::Semaphore* presentationReadySemaphore = swapchain->GetPresentationReadySemaphore(imageIndex);
+
+        PPX_CHECKED_CALL(swapchain->Present(imageIndex, 1, &presentationReadySemaphore));
     }
 }
 
