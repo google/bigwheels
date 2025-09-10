@@ -21,17 +21,17 @@ jobs:
           sdk-version: 22621
       - name: Setup Vulkan SDK
         run: |
-          Start-BitsTransfer -Source https://sdk.lunarg.com/sdk/download/1.3.268.0/windows/VulkanSDK-1.3.268.0-Installer.exe
-          if ((Get-FileHash .\VulkanSDK-1.3.268.0-Installer.exe).Hash -ne "8459ef49bd06b697115ddd3d97c9aec729e849cd775f5be70897718a9b3b9db5") {
+          Start-BitsTransfer -Source https://sdk.lunarg.com/sdk/download/1.4.321.1/windows/vulkansdk-windows-X64-1.4.321.1.exe
+          if ((Get-FileHash .\vulkansdk-windows-X64-1.4.321.1.exe).Hash -ne "baaa4f7ca11ed3d82aa1c102b21208915485bbaa473068c763daa425cca468bd") {
             exit 1
           }
-          .\VulkanSDK-1.3.268.0-Installer.exe install --accept-licenses --default-answer --confirm-command --root "$HOME\vulkan-sdk"
+          .\vulkansdk-windows-X64-1.4.321.1.exe install --accept-licenses --default-answer --confirm-command --root "$HOME\vulkan-sdk"
           "VULKAN_SDK=${HOME}\vulkan-sdk" >> $env:GITHUB_ENV
 
           # Get the vulkan-1.dll and add it to the PATH, which is required when we execute binaries.
-          Start-BitsTransfer -Source https://sdk.lunarg.com/sdk/download/1.3.268.0/windows/VulkanRT-1.3.268.0-Components.zip
-          Expand-Archive VulkanRT-1.3.268.0-Components.zip -DestinationPath "$HOME\vulkan-sdk\RTComponents"
-          "$HOME\vulkan-sdk\RTComponents\VulkanRT-1.3.268.0-Components\x64" >> $env:GITHUB_PATH
+          Start-BitsTransfer -Source https://sdk.lunarg.com/sdk/download/1.4.321.0/windows/VulkanRT-X64-1.4.321.0-Components.zip
+          Expand-Archive VulkanRT-X64-1.4.321.0-Components.zip -DestinationPath "$HOME\vulkan-sdk\RTComponents"
+          "$HOME\vulkan-sdk\RTComponents\VulkanRT-X64-1.4.321.0-Components\x64" >> $env:GITHUB_PATH
       - name: Setup software renderer (WARP)
         run: |
           # We download the latest version of WARP instead of using the one provided by Windows
