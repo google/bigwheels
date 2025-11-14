@@ -293,7 +293,7 @@ Result ImGuiImplVk::InitApiObjects(ppx::Application* pApp)
 #if (IMGUI_VERSION_NUM >= 19240)
         init_info.PipelineInfoMain.RenderPass = grfx::vk::ToApi(renderPass)->GetVkRenderPass();
 #else
-        init_info.RenderPass = grfx::vk::ToApi(renderPass)->GetVkRenderPass();
+        init_info.RenderPass                                          = grfx::vk::ToApi(renderPass)->GetVkRenderPass();
 #endif
         bool result = ImGui_ImplVulkan_Init(&init_info);
         if (!result) {
