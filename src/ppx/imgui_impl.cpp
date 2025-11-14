@@ -271,7 +271,13 @@ Result ImGuiImplVk::InitApiObjects(ppx::Application* pApp)
         init_info.ImageCount                = pApp->GetUISwapchain()->GetImageCount();
         init_info.Allocator                 = VK_NULL_HANDLE;
         init_info.CheckVkResultFn           = nullptr;
-#if (IMGUI_VERSION_NUM > 18970) && defined(IMGUI_IMPL_VULKAN_HAS_DYNAMIC_RENDERING)
+#if (IMGUI_VERSION_NUM >= 19240) && defined(IMGUI_IMPL_VULKAN_HAS_DYNAMIC_RENDERING)
+        init_info.UseDynamicRendering                                                  = pApp->GetSettings()->grfx.enableImGuiDynamicRendering;
+        init_info.PipelineInfoMain.PipelineRenderingCreateInfo                         = {VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO};
+        VkFormat colorFormat                                                           = grfx::vk::ToVkFormat(pApp->GetUISwapchain()->GetColorFormat());
+        init_info.PipelineInfoMain.PipelineRenderingCreateInfo.colorAttachmentCount    = 1;
+        init_info.PipelineInfoMain.PipelineRenderingCreateInfo.pColorAttachmentFormats = &colorFormat;
+#elif (IMGUI_VERSION_NUM > 18970) && defined(IMGUI_IMPL_VULKAN_HAS_DYNAMIC_RENDERING)
         init_info.UseDynamicRendering                                 = pApp->GetSettings()->grfx.enableImGuiDynamicRendering;
         init_info.PipelineRenderingCreateInfo                         = {VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO};
         VkFormat colorFormat                                          = grfx::vk::ToVkFormat(pApp->GetUISwapchain()->GetColorFormat());
@@ -284,8 +290,12 @@ Result ImGuiImplVk::InitApiObjects(ppx::Application* pApp)
         grfx::RenderPassPtr renderPass = pApp->GetUISwapchain()->GetRenderPass(0, grfx::ATTACHMENT_LOAD_OP_LOAD);
         PPX_ASSERT_MSG(!renderPass.IsNull(), "[imgui:vk] failed to get swapchain renderpass");
 
+#if (IMGUI_VERSION_NUM >= 19240)
+        init_info.PipelineInfoMain.RenderPass = grfx::vk::ToApi(renderPass)->GetVkRenderPass();
+#else
         init_info.RenderPass = grfx::vk::ToApi(renderPass)->GetVkRenderPass();
-        bool result          = ImGui_ImplVulkan_Init(&init_info);
+#endif
+        bool result = ImGui_ImplVulkan_Init(&init_info);
         if (!result) {
             return ppx::ERROR_IMGUI_INITIALIZATION_FAILED;
         }
