@@ -29,6 +29,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # ------------------------------------------------------------------------------
 option(PPX_BUILD_PROJECTS "Build sample projets" ON)
 option(PPX_BUILD_BENCHMARKS "Build benchmarks projects" ON)
+option(PPX_COPY_ASSETS "Copy assets to the build directory so that they can be found at runtime." ON)
 
 # ------------------------------------------------------------------------------
 # Detect DXC presence. This is REQUIRED to compile DXIL and SPIR-V shaders.

@@ -109,11 +109,13 @@ subprojects {
                                   '-DBUILD_TESTS=FALSE', // Required for OpenXR
                                   '-DPPX_BUILD_XR=TRUE',
                                   '-DBUILD_LOADER=TRUE',
-                                  '-DBUILD_ALL_EXTENSIONS=TRUE'
+                                  '-DBUILD_ALL_EXTENSIONS=TRUE',
+                                  '-DPPX_COPY_ASSETS=OFF' // Gradle uses copyTask
                     }
                     else {
                         arguments '-DPPX_ANDROID=TRUE',
-                                  '-DPPX_BUILD_TESTS=FALSE'
+                                  '-DPPX_BUILD_TESTS=FALSE',
+                                  '-DPPX_COPY_ASSETS=OFF' // Gradle uses copyTask
                     }
                     if (project.name.contains("_xr") || project.name.contains("graphics_pipeline")) {
                         cppFlags '-std=c++17',
