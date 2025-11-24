@@ -17,6 +17,8 @@
 #include "ppx/application.h"
 #include "ppx/grfx/grfx_device.h"
 
+#include "imgui.h"
+
 #if !defined(PPX_ANDROID)
 #include "backends/imgui_impl_glfw.h"
 #else
