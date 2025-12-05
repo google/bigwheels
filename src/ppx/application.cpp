@@ -383,7 +383,13 @@ void Application::StopGrfx()
 void Application::ShutdownGrfx()
 {
     if (mInstance) {
-        DestroySwapchains();
+        // Ensure resources are not being used
+        mDevice->WaitIdle();
+
+        // Only reset the swapchains; let the device destroy them. Otherwise, we encounter
+        // heap-use-after-free when derived classes create RenderPass objects that use swapchain
+        // images but don't destroy them (with the assumption that cleanup will eventually happen).
+        mSwapchains.clear();
 
         if (mDevice) {
             mInstance->DestroyDevice(mDevice);
