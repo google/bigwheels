@@ -359,8 +359,8 @@ ppx::Result ValidateAccessorIndexType(const cgltf_accessor* pGltfAccessor, grfx:
     return ppx::ERROR_SCENE_INVALID_SOURCE_GEOMETRY_INDEX_TYPE;
 }
 
-// The GLTF 2.0 spec 3.8.2 says "When texture.source is undefined, the image SHOULD be provided by
-// an extension or application-specific means, otherwise the texture object is undefined"
+// The GLTF 2.0 spec 3.8.2 says "When texture.sampler is undefined, a sampler with repeat wrapping
+// (in both directions) and auto filtering MUST be used"
 //
 // "Auto filtering" is ambiguous but 3.8.4.1 may provide some clarity: "Client implementations
 // SHOULD follow specified filtering modes. When the latter are undefined, client implementations
