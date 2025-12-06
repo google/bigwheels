@@ -631,18 +631,18 @@ uint64_t GltfLoader::CalculateMeshObjectId(const GltfLoader::InternalLoadParams&
 
 ppx::Result GltfLoader::LoadSamplerInternal(
     const GltfLoader::InternalLoadParams& loadParams,
-    const cgltf_sampler&                  gltfSampler,
+    const cgltf_sampler*                  pGltfSampler,
     scene::Sampler**                      ppTargetSampler)
 {
-    if (IsNull(loadParams.pDevice) || IsNull(ppTargetSampler)) {
+    if (IsNull(loadParams.pDevice) || IsNull(pGltfSampler) || IsNull(ppTargetSampler)) {
         return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
     }
 
     // Get GLTF object name
-    const std::string gltfObjectName = GetName(&gltfSampler);
+    const std::string gltfObjectName = GetName(pGltfSampler);
 
     // Get GLTF object index to use as object id
-    const uint32_t gltfObjectIndex = static_cast<uint32_t>(cgltf_sampler_index(mGltfData, &gltfSampler));
+    const uint32_t gltfObjectIndex = static_cast<uint32_t>(cgltf_sampler_index(mGltfData, pGltfSampler));
     PPX_LOG_INFO("Loading GLTF sampler[" << gltfObjectIndex << "]: " << gltfObjectName);
 
     // Load sampler
@@ -650,11 +650,11 @@ ppx::Result GltfLoader::LoadSamplerInternal(
     //
     {
         grfx::SamplerCreateInfo createInfo = {};
-        createInfo.magFilter               = (gltfSampler.mag_filter == GLTF_TEXTURE_FILTER_LINEAR) ? grfx::FILTER_LINEAR : grfx::FILTER_NEAREST;
-        createInfo.minFilter               = (gltfSampler.mag_filter == GLTF_TEXTURE_FILTER_LINEAR) ? grfx::FILTER_LINEAR : grfx::FILTER_NEAREST;
+        createInfo.magFilter               = (pGltfSampler->mag_filter == GLTF_TEXTURE_FILTER_LINEAR) ? grfx::FILTER_LINEAR : grfx::FILTER_NEAREST;
+        createInfo.minFilter               = (pGltfSampler->mag_filter == GLTF_TEXTURE_FILTER_LINEAR) ? grfx::FILTER_LINEAR : grfx::FILTER_NEAREST;
         createInfo.mipmapMode              = grfx::SAMPLER_MIPMAP_MODE_LINEAR; // @TODO: add option to control this
-        createInfo.addressModeU            = ToSamplerAddressMode(gltfSampler.wrap_s);
-        createInfo.addressModeV            = ToSamplerAddressMode(gltfSampler.wrap_t);
+        createInfo.addressModeU            = ToSamplerAddressMode(pGltfSampler->wrap_s);
+        createInfo.addressModeV            = ToSamplerAddressMode(pGltfSampler->wrap_t);
         createInfo.addressModeW            = grfx::SAMPLER_ADDRESS_MODE_REPEAT;
         createInfo.mipLodBias              = 0.0f;
         createInfo.anisotropyEnable        = false;
@@ -689,18 +689,18 @@ ppx::Result GltfLoader::LoadSamplerInternal(
 
 ppx::Result GltfLoader::FetchSamplerInternal(
     const GltfLoader::InternalLoadParams& loadParams,
-    const cgltf_sampler&                  gltfSampler,
+    const cgltf_sampler*                  pGltfSampler,
     scene::SamplerRef&                    outSampler)
 {
-    if (IsNull(loadParams.pDevice) || IsNull(loadParams.pResourceManager)) {
+    if (IsNull(loadParams.pDevice) || IsNull(loadParams.pResourceManager) || IsNull(pGltfSampler)) {
         return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
     }
 
     // Get GLTF object name
-    const std::string gltfObjectName = GetName(&gltfSampler);
+    const std::string gltfObjectName = GetName(pGltfSampler);
 
     // Get GLTF object index to use as object id
-    const uint32_t gltfObjectIndex = static_cast<uint32_t>(cgltf_sampler_index(mGltfData, &gltfSampler));
+    const uint32_t gltfObjectIndex = static_cast<uint32_t>(cgltf_sampler_index(mGltfData, pGltfSampler));
 
     // Cached load if object was previously cached
     const uint64_t objectId = CalculateSamplerObjectId(loadParams, gltfObjectIndex);
@@ -712,7 +712,7 @@ ppx::Result GltfLoader::FetchSamplerInternal(
     // Cached failed, so load object
     scene::Sampler* pSampler = nullptr;
     //
-    auto ppxres = LoadSamplerInternal(loadParams, gltfSampler, &pSampler);
+    auto ppxres = LoadSamplerInternal(loadParams, pGltfSampler, &pSampler);
     if (Failed(ppxres)) {
         return ppxres;
     }
@@ -906,7 +906,7 @@ ppx::Result GltfLoader::LoadTextureInternal(
     // Fetch if there's a resource manager...
     if (!IsNull(loadParams.pResourceManager)) {
         if (!IsNull(pGltfTexture->sampler)) {
-            auto ppxres = FetchSamplerInternal(loadParams, *pGltfTexture->sampler, targetSampler);
+            auto ppxres = FetchSamplerInternal(loadParams, pGltfTexture->sampler, targetSampler);
             if (Failed(ppxres)) {
                 return ppxres;
             }
@@ -929,7 +929,7 @@ ppx::Result GltfLoader::LoadTextureInternal(
     // ...otherwise load!
     else {
         scene::Sampler* pTargetSampler = nullptr;
-        auto            ppxres         = IsNull(pGltfTexture->sampler) ? CreateDefaultSampler(*loadParams.pDevice, &pTargetSampler) : LoadSamplerInternal(loadParams, *pGltfTexture->sampler, &pTargetSampler);
+        auto            ppxres         = IsNull(pGltfTexture->sampler) ? CreateDefaultSampler(*loadParams.pDevice, &pTargetSampler) : LoadSamplerInternal(loadParams, pGltfTexture->sampler, &pTargetSampler);
         if (Failed(ppxres)) {
             return ppxres;
         }
@@ -2487,7 +2487,7 @@ ppx::Result GltfLoader::LoadSampler(
 
     auto ppxres = LoadSamplerInternal(
         loadParams,
-        *pGltfSampler,
+        pGltfSampler,
         ppTargetSampler);
     if (Failed(ppxres)) {
         return ppxres;
