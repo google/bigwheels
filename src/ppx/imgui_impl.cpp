@@ -30,6 +30,7 @@
 
 #include "ppx/grfx/dx12/dx12_command.h"
 #include "ppx/grfx/dx12/dx12_device.h"
+#include "ppx/grfx/dx12/dx12_queue.h"
 #endif // defined(PPX_D3D12)
 
 #if defined(PPX_VULKAN)
@@ -186,6 +187,23 @@ Result ImGuiImplDx12::InitApiObjects(ppx::Application* pApp)
     }
 
     // Setup DX12 binding
+
+#if IMGUI_VERSION_NUM >= 19160
+    ImGui_ImplDX12_InitInfo init_info{};
+    init_info.Device = grfx::dx12::ToApi(pApp->GetDevice())->GetDxDevice();
+    // While the deprecated ImGui_ImplDX12_Init function created a command queue, I think (for
+    // simplicity) that we can just reuse the app's graphics queue.
+    init_info.CommandQueue      = grfx::dx12::ToApi(pApp->GetGraphicsQueue())->GetDxQueue();
+    init_info.NumFramesInFlight = static_cast<int>(pApp->GetNumFramesInFlight());
+    init_info.RTVFormat         = grfx::dx::ToDxgiFormat(pApp->GetUISwapchain()->GetColorFormat());
+    init_info.DSVFormat         = grfx::dx::ToDxgiFormat(pApp->GetUISwapchain()->GetDepthFormat());
+    init_info.SrvDescriptorHeap = mHeapCBVSRVUAV;
+    // TODO: #587 - Replace LegacySingleSrv* with Alloc and Free functions
+    init_info.LegacySingleSrvCpuDescriptor = mHeapCBVSRVUAV->GetCPUDescriptorHandleForHeapStart();
+    init_info.LegacySingleSrvGpuDescriptor = mHeapCBVSRVUAV->GetGPUDescriptorHandleForHeapStart();
+
+    bool result = ImGui_ImplDX12_Init(&init_info);
+#else
     bool result = ImGui_ImplDX12_Init(
         grfx::dx12::ToApi(pApp->GetDevice())->GetDxDevice(),
         static_cast<int>(pApp->GetNumFramesInFlight()),
@@ -193,6 +211,7 @@ Result ImGuiImplDx12::InitApiObjects(ppx::Application* pApp)
         mHeapCBVSRVUAV,
         mHeapCBVSRVUAV->GetCPUDescriptorHandleForHeapStart(),
         mHeapCBVSRVUAV->GetGPUDescriptorHandleForHeapStart());
+#endif
     if (!result) {
         return ppx::ERROR_IMGUI_INITIALIZATION_FAILED;
     }
