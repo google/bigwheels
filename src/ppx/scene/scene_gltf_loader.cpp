@@ -359,6 +359,64 @@ ppx::Result ValidateAccessorIndexType(const cgltf_accessor* pGltfAccessor, grfx:
     return ppx::ERROR_SCENE_INVALID_SOURCE_GEOMETRY_INDEX_TYPE;
 }
 
+// The GLTF 2.0 spec 3.8.2 says "When texture.sampler is undefined, a sampler with repeat wrapping
+// (in both directions) and auto filtering MUST be used"
+//
+// "Auto filtering" is ambiguous but 3.8.4.1 may provide some clarity: "Client implementations
+// SHOULD follow specified filtering modes. When the latter are undefined, client implementations
+// MAY set their own default texture filtering settings"
+ppx::Result CreateDefaultSampler(grfx::Device& device, scene::Sampler** ppOutSampler)
+{
+    PPX_LOG_INFO("Using default sampler");
+
+    grfx::SamplerCreateInfo createInfo = {};
+    createInfo.magFilter               = grfx::FILTER_LINEAR;
+    createInfo.minFilter               = grfx::FILTER_LINEAR;
+    createInfo.mipmapMode              = grfx::SAMPLER_MIPMAP_MODE_LINEAR;
+    createInfo.addressModeU            = grfx::SAMPLER_ADDRESS_MODE_REPEAT;
+    createInfo.addressModeV            = grfx::SAMPLER_ADDRESS_MODE_REPEAT;
+    createInfo.addressModeW            = grfx::SAMPLER_ADDRESS_MODE_REPEAT;
+    createInfo.mipLodBias              = 0.0f;
+    createInfo.anisotropyEnable        = false;
+    createInfo.maxAnisotropy           = 0.0f;
+    createInfo.compareEnable           = false;
+    createInfo.compareOp               = grfx::COMPARE_OP_NEVER;
+    createInfo.minLod                  = 0.0f;
+    createInfo.maxLod                  = GLTF_LOD_CLAMP_NONE;
+    createInfo.borderColor             = grfx::BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+
+    grfx::Sampler* pGrfxSampler = nullptr;
+    if (ppx::Result ppxres = device.CreateSampler(&createInfo, &pGrfxSampler); Failed(ppxres)) {
+        return ppxres;
+    }
+
+    scene::Sampler* pSampler = new scene::Sampler(pGrfxSampler);
+    if (!pSampler) {
+        device.DestroySampler(pGrfxSampler);
+        return ppx::ERROR_ALLOCATION_FAILED;
+    }
+    pSampler->SetName("<default sampler>");
+
+    *ppOutSampler = pSampler;
+    return ppx::SUCCESS;
+}
+
+ppx::Result CreateDefaultSampler(grfx::Device& device, scene::SamplerRef& outSampler)
+{
+    scene::Sampler* pSampler = nullptr;
+    if (ppx::Result ppxres = CreateDefaultSampler(device, &pSampler); Failed(ppxres)) {
+        return ppxres;
+    }
+
+    outSampler = scene::MakeRef(pSampler);
+    if (!outSampler) {
+        delete pSampler;
+        return ppx::ERROR_ALLOCATION_FAILED;
+    }
+
+    return ppx::SUCCESS;
+}
+
 } // namespace
 
 // -------------------------------------------------------------------------------------------------
@@ -847,21 +905,31 @@ ppx::Result GltfLoader::LoadTextureInternal(
 
     // Fetch if there's a resource manager...
     if (!IsNull(loadParams.pResourceManager)) {
-        auto ppxres = FetchSamplerInternal(loadParams, pGltfTexture->sampler, targetSampler);
-        if (Failed(ppxres)) {
-            return ppxres;
+        if (!IsNull(pGltfTexture->sampler)) {
+            auto ppxres = FetchSamplerInternal(loadParams, pGltfTexture->sampler, targetSampler);
+            if (Failed(ppxres)) {
+                return ppxres;
+            }
+        }
+        else {
+            constexpr auto kDefaultSamplerId = std::numeric_limits<uint64_t>::max();
+            if (!loadParams.pResourceManager->Find(kDefaultSamplerId, targetSampler)) {
+                if (ppx::Result ppxres = CreateDefaultSampler(*loadParams.pDevice, targetSampler); Failed(ppxres)) {
+                    return ppxres;
+                }
+                loadParams.pResourceManager->Cache(kDefaultSamplerId, targetSampler);
+            }
         }
 
-        ppxres = FetchImageInternal(loadParams, pGltfTexture->image, targetImage);
+        ppx::Result ppxres = FetchImageInternal(loadParams, pGltfTexture->image, targetImage);
         if (Failed(ppxres)) {
             return ppxres;
         }
     }
     // ...otherwise load!
     else {
-        // Load sampler
         scene::Sampler* pTargetSampler = nullptr;
-        auto            ppxres         = LoadSamplerInternal(loadParams, pGltfTexture->sampler, &pTargetSampler);
+        auto            ppxres         = IsNull(pGltfTexture->sampler) ? CreateDefaultSampler(*loadParams.pDevice, &pTargetSampler) : LoadSamplerInternal(loadParams, pGltfTexture->sampler, &pTargetSampler);
         if (Failed(ppxres)) {
             return ppxres;
         }
