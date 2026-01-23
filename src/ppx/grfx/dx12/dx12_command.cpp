@@ -690,6 +690,7 @@ void CommandBuffer::BindDescriptorSets(
         // Copy the descriptors
         {
             UINT numDescriptors = pApiSet->GetNumDescriptorsCBVSRVUAV();
+            PPX_ASSERT_MSG(numDescriptors <= mHeapSizeCBVSRVUAV, "CBV, SRV, UAV heap doesn't have enough descriptors. Wanted " << numDescriptors << ", have " << mHeapSizeCBVSRVUAV << ". Either specify a higher resourceDescriptorCount in Queue::CreateBuffer, or reduce the number of descriptors used.");
             if (numDescriptors > 0) {
                 D3D12_CPU_DESCRIPTOR_HANDLE dstRangeStart = mHeapCBVSRVUAV->GetCPUDescriptorHandleForHeapStart();
                 D3D12_CPU_DESCRIPTOR_HANDLE srcRangeStart = pApiSet->GetHeapCBVSRVUAV()->GetCPUDescriptorHandleForHeapStart();
