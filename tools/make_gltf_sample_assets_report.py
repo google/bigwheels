@@ -27,7 +27,7 @@ def _make_report(input_path: pathlib.Path,
 
   model_index_dir = model_index_path.absolute().parent
 
-  with model_index_path.open('r', encoding="utf-8") as fd:
+  with model_index_path.open('r', encoding='utf-8') as fd:
     model_index = json.load(fd)
 
   with (input_path / 'meta.json').open('r') as meta_file:

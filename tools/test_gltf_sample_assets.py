@@ -93,7 +93,7 @@ def main():
 
   program = args.program.resolve()
 
-  with args.model_index.open('r', encoding="utf-8") as model_index_file:
+  with args.model_index.open('r', encoding='utf-8') as model_index_file:
     model_index = json.load(model_index_file)
 
   os.mkdir(args.output)
