@@ -1,6 +1,7 @@
 """Loads and renders all scenes in glTF-Sample-Assets."""
 
 import argparse
+import concurrent.futures
 import datetime
 import json
 import os
@@ -61,8 +62,10 @@ def _run_test(program: pathlib.Path,
   Args:
     program: The program under test used to render the asset under test.
     asset: The glTF-Sample-Asset under test.
-    output_path: Empty directory to store test results.
+    output_path: Directory to store test results.
   """
+  os.mkdir(output_path)
+
   command = [program,
              '--frame-count', '2',
              '--screenshot-frame-number', '1',
@@ -89,6 +92,9 @@ def main():
                       help='Path to glTF-Sample-Asssets model-index.json.')
   parser.add_argument('--output', type=pathlib.Path, required=True,
                       help='Directory to store test results.')
+  parser.add_argument('-j', '--jobs', type=int, default=None,
+                      help='How many tests to run in parallel. Default is '
+                      '"as much as the CPU can reasonably handle"')
   args = parser.parse_args()
 
   program = args.program.resolve()
@@ -111,15 +117,21 @@ def main():
   test_cases = _build_test_cases(model_index)
   test_count = len(test_cases)  # Used for printing progress
   test_index = 1  # Used for printing progress
-  for test_name in test_cases:
-    print(f'{test_index}/{test_count}: {test_name}')
 
-    test_output_path = args.output / test_name
-    os.mkdir(test_output_path)
-    _run_test(program, test_cases[test_name], test_output_path)
+  with concurrent.futures.ThreadPoolExecutor(max_workers=args.jobs) as executor:
+    futures_to_test_name = {
+      executor.submit(
+          _run_test, program, test_cases[test_name], args.output / test_name
+      ): test_name
+      for test_name in test_cases
+    }
+    print('Launched jobs, waiting for results...')
+    for future in concurrent.futures.as_completed(futures_to_test_name):
+      test_name = futures_to_test_name[future]
+      print(f'{test_index}/{test_count}: {test_name}')
+      test_index += 1
 
-    test_index += 1
-
+  print('Done tests')
 
 if __name__ == '__main__':
   main()
