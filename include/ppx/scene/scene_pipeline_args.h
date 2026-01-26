@@ -92,7 +92,7 @@ public:
     //
     // @TODO: Find a more appropriate location for these
     //
-    static const uint32_t MAX_UNIQUE_MATERIALS      = 8192;
+    static const uint32_t MAX_UNIQUE_MATERIALS      = 1024;
     static const uint32_t MAX_TEXTURES_PER_MATERIAL = 6;
     static const uint32_t MAX_MATERIAL_TEXTURES     = MAX_UNIQUE_MATERIALS * MAX_TEXTURES_PER_MATERIAL;
 
