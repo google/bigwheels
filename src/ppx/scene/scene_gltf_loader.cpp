@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <string_view>
+
 #include "ppx/scene/scene_gltf_loader.h"
 #include "ppx/grfx/grfx_device.h"
 #include "ppx/grfx/grfx_scope.h"
@@ -522,8 +524,8 @@ ppx::Result GltfLoader::Create(
     // fix them all up in one go and remove this burden from future users.
     for (size_t i = 0; i < pGltfData->images_count; ++i) {
         cgltf_image& image = pGltfData->images[i];
-        if (strncmp(image.uri, "data:", 5) == 0) {
-            PPX_ASSERT_MSG(false, "GLTF: images with data URIs are not supported");
+        if (std::string_view(image.uri).find("data:") == 0) {
+            PPX_LOG_ERROR("GLTF images with data URIs are not supported");
             return ppx::ERROR_SCENE_INVALID_SOURCE_IMAGE;
         }
         // cgltf_decode_uri wants a mutable C-string. Fortunately, image.uri is one! Since
