@@ -3,6 +3,7 @@
 from concurrent import futures
 import argparse
 import dataclasses
+import enum
 import logging
 import pathlib
 import platform
@@ -19,9 +20,16 @@ KNOWN_ISSUES: dict[str, str] = {
     "vk_push_descriptors": "https://github.com/google/bigwheels/issues/512",
     "vk_dynamic_rendering": "https://github.com/google/bigwheels/issues/592",
     "vk_timeline_semaphore": "https://github.com/google/bigwheels/issues/593",
-    "dx12_gltf_basic_materials": "https://github.com/google/bigwheels/issues/589",
     "dx12_dynamic_rendering": "https://github.com/google/bigwheels/issues/449",
 }
+
+
+class CmakeBuildConfig(enum.StrEnum):
+    """Common values of --config used by CMake"""
+
+    DEBUG = "Debug"
+    RELEASE = "Release"
+    REL_WITH_DEB_INFO = "RelWithDebInfo"
 
 
 @dataclasses.dataclass
@@ -70,7 +78,7 @@ def run_test(
     """
     test_name = executable.stem
     if test_name in KNOWN_ISSUES:
-        print(f"Skipping {executable} because of f{KNOWN_ISSUES[test_name]}")
+        print(f"Skipping {executable} because of {KNOWN_ISSUES[test_name]}")
         return None
     LOGGER.debug(f"Running: {executable}")
     output_directory = base_output_directory / f"{executable.stem}_results"
@@ -89,6 +97,35 @@ def run_test(
     )
 
 
+def find_test_executable_directory(
+    build_dir: pathlib.Path, build_config: CmakeBuildConfig
+) -> pathlib.Path:
+    """Returns the base directory containing all the test executables.
+
+    Args:
+        build_dir: Base directory of all build artifacts
+        build_config: The value of --config used by CMake
+
+    Returns:
+        The base directory containing all the text executables.
+
+    Raises:
+        FileNotFoundError: If a suitable directory could not be found
+    """
+    # Multi-config generator
+    multi_config_prefix = build_dir / "bin" / str(build_config)
+    if multi_config_prefix.exists():
+        return multi_config_prefix
+
+    prefix = multi_config_prefix.parent
+    if prefix.exists():
+        return prefix
+
+    raise FileNotFoundError(
+        f"Couldn't find test executable base directory. Tried: {prefix}, {multi_config_prefix}"
+    )
+
+
 def main(args: argparse.Namespace):
     """Finds all test executable and runs them.
 
@@ -99,9 +136,12 @@ def main(args: argparse.Namespace):
         args: Parsed arguments. See parse_args()
     """
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO)
+    test_executable_directory = find_test_executable_directory(
+        args.build_dir, args.build_config
+    )
     test_executables = [
         file
-        for file in args.build_dir.rglob(f"{args.api}_*{args.extension}")
+        for file in test_executable_directory.glob(f"{args.api}_*{args.extension}")
         if file.is_file() and bool(file.stat().st_mode & stat.S_IXUSR)
     ]
 
@@ -154,6 +194,12 @@ def parse_args() -> argparse.Namespace:
         type=pathlib.Path,
         default=build_dir,
         help="The base of the build directory containing all test executables",
+    )
+    parser.add_argument(
+        "--build_config",
+        type=CmakeBuildConfig,
+        default=CmakeBuildConfig.DEBUG, choices=[str(config) for config in CmakeBuildConfig],
+        help="For Multi-Config generators, which --config was used to build",
     )
     parser.add_argument(
         "--api",
