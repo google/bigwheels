@@ -188,7 +188,13 @@ def parse_args() -> argparse.Namespace:
     repo_root = pathlib.Path(__file__).parent.parent
     build_dir = repo_root / "build"
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Runs all built samples and prints which ones terminated "
+        "abnormally. By default, results are stored in the "
+        "test_project_results subdirectory of the build folder. To pass "
+        "arguments to the test, add -- followed by the desired arguments.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument(
         "--build_dir",
         type=pathlib.Path,
@@ -198,7 +204,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--build_config",
         type=CmakeBuildConfig,
-        default=CmakeBuildConfig.DEBUG, choices=[str(config) for config in CmakeBuildConfig],
+        default=CmakeBuildConfig.DEBUG,
+        choices=[str(config) for config in CmakeBuildConfig],
         help="For Multi-Config generators, which --config was used to build",
     )
     parser.add_argument(
