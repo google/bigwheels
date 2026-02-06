@@ -407,6 +407,7 @@ std::vector<float> UnpackFloats(const cgltf_accessor& accessor)
 std::vector<glm::float2> UnpackFloat2s(const cgltf_accessor& accessor)
 {
     std::vector<float> floats = UnpackFloats(accessor);
+    PPX_ASSERT_MSG(floats.size() % glm::float2::length() == 0, "Accessor is missing data to make a glm::float2");
 
     std::vector<glm::float2> float2s;
     float2s.reserve(floats.size() / glm::float2::length());
@@ -419,6 +420,7 @@ std::vector<glm::float2> UnpackFloat2s(const cgltf_accessor& accessor)
 std::vector<glm::float3> UnpackFloat3s(const cgltf_accessor& accessor)
 {
     std::vector<float> floats = UnpackFloats(accessor);
+    PPX_ASSERT_MSG(floats.size() % glm::float3::length() == 0, "Accessor is missing data to make a glm::float3");
 
     std::vector<glm::float3> float3s;
     float3s.reserve(floats.size() / glm::float3::length());
@@ -431,6 +433,7 @@ std::vector<glm::float3> UnpackFloat3s(const cgltf_accessor& accessor)
 std::vector<glm::float4> UnpackFloat4s(const cgltf_accessor& accessor)
 {
     std::vector<float> floats = UnpackFloats(accessor);
+    PPX_ASSERT_MSG(floats.size() % glm::float4::length() == 0, "Accessor is missing data to make a glm::float4");
 
     std::vector<glm::float4> float4s;
     float4s.reserve(floats.size() / glm::float4::length());
@@ -1629,28 +1632,30 @@ ppx::Result GltfLoader::LoadMeshData(
                 auto normalFormat   = GetFormat(gltflAccessors.pNormals);
                 auto tangentFormat  = GetFormat(gltflAccessors.pTangents);
                 auto colorFormat    = GetFormat(gltflAccessors.pColors);
-                //
+
                 PPX_ASSERT_MSG((positionFormat == targetPositionFormat), "GLTF: vertex positions format is not supported");
-                //
+                auto positions = UnpackFloat3s(*gltflAccessors.pPositions);
+
+                std::vector<glm::float2> texCoords;
                 if (loadParams.requiredVertexAttributes.bits.texCoords && !IsNull(gltflAccessors.pTexCoords)) {
                     PPX_ASSERT_MSG((texCoordFormat == targetTexCoordFormat), "GLTF: vertex tex coords sourceIndexTypeFormat is not supported");
+                    texCoords = UnpackFloat2s(*gltflAccessors.pTexCoords);
                 }
+                std::vector<glm::float3> normals;
                 if (loadParams.requiredVertexAttributes.bits.normals && !IsNull(gltflAccessors.pNormals)) {
                     PPX_ASSERT_MSG((normalFormat == targetNormalFormat), "GLTF: vertex normals format is not supported");
+                    normals = UnpackFloat3s(*gltflAccessors.pNormals);
                 }
+                std::vector<glm::float4> tangents;
                 if (loadParams.requiredVertexAttributes.bits.tangents && !IsNull(gltflAccessors.pTangents)) {
                     PPX_ASSERT_MSG((tangentFormat == targetTangentFormat), "GLTF: vertex tangents format is not supported");
+                    tangents = UnpackFloat4s(*gltflAccessors.pTangents);
                 }
+                std::vector<glm::float3> colors;
                 if (loadParams.requiredVertexAttributes.bits.colors && !IsNull(gltflAccessors.pColors)) {
                     PPX_ASSERT_MSG((colorFormat == targetColorFormat), "GLTF: vertex colors format is not supported");
+                    colors = UnpackFloat3s(*gltflAccessors.pColors);
                 }
-
-                // None of the attributes are required; if they're not present then GetVertexAccessors assigns nullptr.
-                auto positions = gltflAccessors.pPositions != nullptr ? UnpackFloat3s(*gltflAccessors.pPositions) : std::vector<glm::float3>();
-                auto normals   = gltflAccessors.pNormals != nullptr ? UnpackFloat3s(*gltflAccessors.pNormals) : std::vector<glm::float3>();
-                auto tangents  = gltflAccessors.pTangents != nullptr ? UnpackFloat4s(*gltflAccessors.pTangents) : std::vector<glm::float4>();
-                auto colors    = gltflAccessors.pColors != nullptr ? UnpackFloat3s(*gltflAccessors.pColors) : std::vector<glm::float3>();
-                auto texCoords = gltflAccessors.pTexCoords != nullptr ? UnpackFloat2s(*gltflAccessors.pTexCoords) : std::vector<glm::float2>();
 
                 // Process vertex data
                 for (cgltf_size i = 0; i < gltflAccessors.pPositions->count; ++i) {
