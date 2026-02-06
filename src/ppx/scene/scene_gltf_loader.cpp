@@ -392,59 +392,48 @@ ppx::Result CreateDefaultSampler(grfx::Device& device, scene::SamplerRef& outSam
     return ppx::SUCCESS;
 }
 
-template <typename T>
-std::vector<T> UnpackFloats(const cgltf_accessor& accessor);
-
-template <>
 std::vector<float> UnpackFloats(const cgltf_accessor& accessor)
 {
-    size_t             floatCount = cgltf_accessor_unpack_floats(&accessor, /*out=*/nullptr, /*float_count=*/0);
+    size_t floatCount = cgltf_accessor_unpack_floats(&accessor, /*out=*/nullptr, /*float_count=*/0);
+
     std::vector<float> floats(floatCount, 0.F);
     cgltf_accessor_unpack_floats(&accessor, floats.data(), floatCount);
+
     return floats;
 }
 
-template <>
-std::vector<glm::float2> UnpackFloats(const cgltf_accessor& accessor)
+std::vector<glm::float2> UnpackFloat2s(const cgltf_accessor& accessor)
 {
-    // TODO: assert that T matches the accessor
-    std::vector<float> floats = UnpackFloats<float>(accessor);
+    std::vector<float> floats = UnpackFloats(accessor);
 
-    using VectorType = glm::float2;
-    std::vector<VectorType> float2s;
-    float2s.reserve(floats.size() / VectorType::length());
-    for (size_t i = 0; i < floats.size(); i += VectorType::length()) {
-        float2s.push_back(VectorType{floats[i], floats[i + 1]});
+    std::vector<glm::float2> float2s;
+    float2s.reserve(floats.size() / glm::float2::length());
+    for (size_t i = 0; i < floats.size(); i += glm::float2::length()) {
+        float2s.push_back(glm::float2{floats[i], floats[i + 1]});
     }
     return float2s;
 }
 
-template <>
-std::vector<glm::float3> UnpackFloats(const cgltf_accessor& accessor)
+std::vector<glm::float3> UnpackFloat3s(const cgltf_accessor& accessor)
 {
-    // TODO: assert that T matches the accessor
-    std::vector<float> floats = UnpackFloats<float>(accessor);
+    std::vector<float> floats = UnpackFloats(accessor);
 
-    using VectorType = glm::float3;
-    std::vector<VectorType> float3s;
-    float3s.reserve(floats.size() / VectorType::length());
-    for (size_t i = 0; i < floats.size(); i += VectorType::length()) {
-        float3s.push_back(VectorType{floats[i], floats[i + 1], floats[i + 2]});
+    std::vector<glm::float3> float3s;
+    float3s.reserve(floats.size() / glm::float3::length());
+    for (size_t i = 0; i < floats.size(); i += glm::float3::length()) {
+        float3s.push_back(glm::float3{floats[i], floats[i + 1], floats[i + 2]});
     }
     return float3s;
 }
 
-template <>
-std::vector<glm::float4> UnpackFloats(const cgltf_accessor& accessor)
+std::vector<glm::float4> UnpackFloat4s(const cgltf_accessor& accessor)
 {
-    // TODO: assert that T matches the accessor
-    std::vector<float> floats = UnpackFloats<float>(accessor);
+    std::vector<float> floats = UnpackFloats(accessor);
 
-    using VectorType = glm::float4;
-    std::vector<VectorType> float4s;
-    float4s.reserve(floats.size() / VectorType::length());
-    for (size_t i = 0; i < floats.size(); i += VectorType::length()) {
-        float4s.push_back(VectorType{floats[i], floats[i + 1], floats[i + 2], floats[i + 3]});
+    std::vector<glm::float4> float4s;
+    float4s.reserve(floats.size() / glm::float4::length());
+    for (size_t i = 0; i < floats.size(); i += glm::float4::length()) {
+        float4s.push_back(glm::float4{floats[i], floats[i + 1], floats[i + 2], floats[i + 3]});
     }
     return float4s;
 }
@@ -1641,32 +1630,27 @@ ppx::Result GltfLoader::LoadMeshData(
                 }
 
                 // None of the attributes are required; if they're not present then GetVertexAccessors assigns nullptr.
-                auto positions = gltflAccessors.pPositions != nullptr ? UnpackFloats<glm::float3>(*gltflAccessors.pPositions) : std::vector<glm::float3>{};
-                auto normals   = gltflAccessors.pNormals != nullptr ? UnpackFloats<glm::float3>(*gltflAccessors.pNormals) : std::vector<glm::float3>{};
-                auto tangents  = gltflAccessors.pTangents != nullptr ? UnpackFloats<glm::float4>(*gltflAccessors.pTangents) : std::vector<glm::float4>{};
-                auto colors    = gltflAccessors.pColors != nullptr ? UnpackFloats<glm::float3>(*gltflAccessors.pColors) : std::vector<glm::float3>{};
-                auto texCoords = gltflAccessors.pTexCoords != nullptr ? UnpackFloats<glm::float2>(*gltflAccessors.pTexCoords) : std::vector<glm::float2>{};
+                auto positions = gltflAccessors.pPositions != nullptr ? UnpackFloat3s(*gltflAccessors.pPositions) : std::vector<glm::float3>();
+                auto normals   = gltflAccessors.pNormals != nullptr ? UnpackFloat3s(*gltflAccessors.pNormals) : std::vector<glm::float3>();
+                auto tangents  = gltflAccessors.pTangents != nullptr ? UnpackFloat4s(*gltflAccessors.pTangents) : std::vector<glm::float4>();
+                auto colors    = gltflAccessors.pColors != nullptr ? UnpackFloat3s(*gltflAccessors.pColors) : std::vector<glm::float3>();
+                auto texCoords = gltflAccessors.pTexCoords != nullptr ? UnpackFloat2s(*gltflAccessors.pTexCoords) : std::vector<glm::float2>();
 
                 // Process vertex data
                 for (cgltf_size i = 0; i < gltflAccessors.pPositions->count; ++i) {
                     TriMeshVertexData vertexData = {};
 
-                    // When positions are not specified, client implementations SHOULD skip primitive’s rendering unless its positions are provided by other means (e.g., by an extension). This applies to both indexed and non-indexed geometry.
                     vertexData.position = positions[i];
                     if (loadParams.requiredVertexAttributes.bits.normals && !normals.empty()) {
-                        // When normals are not specified, client implementations MUST calculate flat normals and the provided tangents (if present) MUST be ignored.
                         vertexData.normal = normals[i];
                     }
                     if (loadParams.requiredVertexAttributes.bits.tangents && !tangents.empty()) {
-                        // When tangents are not specified, client implementations SHOULD calculate tangents using default MikkTSpace algorithms with the specified vertex positions, normals, and texture coordinates associated with the normal texture.
                         vertexData.tangent = tangents[i];
                     }
                     if (loadParams.requiredVertexAttributes.bits.colors && !colors.empty()) {
-                        // Client implementations SHOULD support at least two texture coordinate sets, one vertex color, and one joints/weights set.
                         vertexData.color = colors[i];
                     }
                     if (loadParams.requiredVertexAttributes.bits.texCoords && !texCoords.empty()) {
-                        // Client implementations SHOULD support at least two texture coordinate sets, one vertex color, and one joints/weights set.
                         vertexData.texCoord = texCoords[i];
                     }
 
