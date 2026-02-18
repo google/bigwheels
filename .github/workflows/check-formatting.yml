@@ -27,7 +27,7 @@ jobs:
           git checkout ${GITHUB_SHA}
       - name: Run clang-format
         run: |
-          git diff origin/${{ github.base_ref }} -U0 --no-color -- '**/*.cpp' '**/*.cc' '**/*.h' '**/*.hh' '**/*.hpp' \
+          git diff origin/${GITHUB_BASE_REF} -U0 --no-color -- '**/*.cpp' '**/*.cc' '**/*.h' '**/*.hh' '**/*.hpp' \
             | clang-format-diff-12 -p1 >not-formatted.diff 2>&1
       - name: Check formatting
         run: |
@@ -36,7 +36,7 @@ jobs:
           else
             echo "Code is not formatted."
             echo "Run clang-format-diff on your changes:"
-            echo "    git diff origin/${{ github.base_ref }} -U0 --no-color | clang-format-diff -p1 -i"
+            echo "    git diff origin/${GITHUB_BASE_REF} -U0 --no-color | clang-format-diff -p1 -i"
             echo ""
             echo "You can disable clang-format for specific code blocks. Follow https://clang.llvm.org/docs/ClangFormatStyleOptions.html#disabling-formatting-on-a-piece-of-code."
             echo ""
