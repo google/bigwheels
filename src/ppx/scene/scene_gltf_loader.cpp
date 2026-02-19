@@ -548,6 +548,10 @@ ppx::Result GltfLoader::Create(
     // fix them all up in one go and remove this burden from future users.
     for (size_t i = 0; i < pGltfData->images_count; ++i) {
         cgltf_image& image = pGltfData->images[i];
+        // image.uri may not be set, e.g. for GLB files
+        if (image.uri == nullptr) {
+            continue;
+        }
         if (std::string_view(image.uri).find("data:") == 0) {
             PPX_LOG_ERROR("GLTF images with data URIs are not supported");
             return ppx::ERROR_SCENE_INVALID_SOURCE_IMAGE;
