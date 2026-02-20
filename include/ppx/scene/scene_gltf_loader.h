@@ -93,113 +93,6 @@ public:
     int32_t GetSceneIndex(const std::string& name) const;
 
     // ---------------------------------------------------------------------------------------------
-    // Loads a GLTF sampler, image, texture, or material
-    //
-    // These load functions create standalone objects that can be used
-    // outside of a scene. Caching is not used.
-    //
-    // ---------------------------------------------------------------------------------------------
-    ppx::Result LoadSampler(
-        grfx::Device*    pDevice,
-        uint32_t         samplerIndex,
-        scene::Sampler** ppTargetSampler);
-
-    ppx::Result LoadSampler(
-        grfx::Device*      pDevice,
-        const std::string& samplerName,
-        scene::Sampler**   ppTargetSampler);
-
-    ppx::Result LoadImage(
-        grfx::Device*  pDevice,
-        uint32_t       imageIndex,
-        scene::Image** ppTargetImage);
-
-    ppx::Result LoadImage(
-        grfx::Device*      pDevice,
-        const std::string& imageName,
-        scene::Image**     ppTargetImage);
-
-    ppx::Result LoadTexture(
-        grfx::Device*    pDevice,
-        uint32_t         textureIndex,
-        scene::Texture** ppTargetTexture);
-
-    ppx::Result LoadTexture(
-        grfx::Device*      pDevice,
-        const std::string& textureName,
-        scene::Texture**   ppTargetTexture);
-
-    ppx::Result LoadMaterial(
-        grfx::Device*             pDevice,
-        uint32_t                  materialIndex,
-        scene::Material**         ppTargetMaterial,
-        const scene::LoadOptions& loadOptions = scene::LoadOptions());
-
-    ppx::Result LoadMaterial(
-        grfx::Device*             pDevice,
-        const std::string&        materialName,
-        scene::Material**         ppTargetMaterial,
-        const scene::LoadOptions& loadOptions = scene::LoadOptions());
-
-    // ---------------------------------------------------------------------------------------------
-    // Loads a GLTF mesh
-    //
-    // This function creates a standalone mesh that usable outside of a scene.
-    //
-    // Standalone meshes uses an internal scene::ResourceManager to
-    // manage its required objects. All required objects created as apart
-    // of the mesh loading will be managed by the mesh. The reasoning
-    // for this is because images, textures, and materials can be shared
-    // between primitive batches.
-    //
-    // Object sharing requires that the lifetime of an object to be managed
-    // by an external mechanism, scene::ResourceManager. When a mesh is
-    // destroyed, its destructor calls scene::ResourceManager::DestroyAll
-    // to destroy its reference to the shared objects. If afterwards a shared
-    // object has an external reference, the code holding the reference
-    // is responsible for the shared objct.
-    //
-    // activeVertexAttributes - specifies the attributes that the a mesh
-    // should be created with. If a GLTF file doesn't provide data for
-    // an attribute, an sensible default value is used - usually zeroes.
-    //
-    // ---------------------------------------------------------------------------------------------
-    ppx::Result LoadMesh(
-        grfx::Device*             pDevice,
-        uint32_t                  meshIndex,
-        scene::Mesh**             ppTargetMesh,
-        const scene::LoadOptions& loadOptions = scene::LoadOptions());
-
-    ppx::Result LoadMesh(
-        grfx::Device*             pDevice,
-        const std::string&        meshName,
-        scene::Mesh**             ppTargetMesh,
-        const scene::LoadOptions& loadOptions = scene::LoadOptions());
-
-    // ---------------------------------------------------------------------------------------------
-    // Loads a GLTF node
-    // ---------------------------------------------------------------------------------------------
-    ppx::Result LoadNode(
-        grfx::Device*             pDevice,
-        uint32_t                  nodeIndex,
-        scene::Node**             ppTargetNode,
-        const scene::LoadOptions& loadOptions = scene::LoadOptions());
-
-    ppx::Result LoadNode(
-        grfx::Device*             pDevice,
-        const std::string&        nodeName,
-        scene::Node**             ppTargetNode,
-        const scene::LoadOptions& loadOptions = scene::LoadOptions());
-
-    ppx::Result LoadNodeTransformOnly(
-        uint32_t      nodeIndex,
-        scene::Node** ppTargetNode);
-
-    ppx::Result LoadNodeTransformOnly(
-        const std::string& nodeName,
-        scene::Node**      ppTargetNode);
-
-    // ---------------------------------------------------------------------------------------------
     // Loads a GLTF scene
     //
     // @TODO: Figure out a way to load more than one GLTF scene into a
@@ -248,7 +141,6 @@ private:
     {
         grfx::Device*                     pDevice                           = nullptr;
         scene::MaterialFactory*           pMaterialFactory                  = nullptr;
-        scene::VertexAttributeFlags       requiredVertexAttributes          = scene::VertexAttributeFlags::None();
         scene::ResourceManager*           pResourceManager                  = nullptr;
         MeshMaterialVertexAttributeMasks* pMeshMaterialVertexAttributeMasks = nullptr;
         bool                              transformOnly                     = false;
