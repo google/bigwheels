@@ -258,31 +258,6 @@ static const void* GetStartAddress(
     return static_cast<const void*>(pDataStart);
 }
 
-// Get an accessor's starting address
-static const void* GetStartAddress(
-    const cgltf_accessor* pGltfAccessor)
-{
-    //
-    // NOTE: Don't assert in this function since any of the fields can be NULL for different reasons.
-    //
-
-    if (IsNull(pGltfAccessor)) {
-        return nullptr;
-    }
-
-    // Get buffer view's start address
-    const char* pBufferViewDataStart = static_cast<const char*>(GetStartAddress(pGltfAccessor->buffer_view));
-    if (IsNull(pBufferViewDataStart)) {
-        return nullptr;
-    }
-
-    // Calculate accesor's start address
-    const size_t accessorOffset     = static_cast<size_t>(pGltfAccessor->offset);
-    const char*  pAccessorDataStart = pBufferViewDataStart + accessorOffset;
-
-    return static_cast<const void*>(pAccessorDataStart);
-}
-
 const char* ToString(cgltf_component_type componentType)
 {
     switch (componentType) {
@@ -417,6 +392,55 @@ ppx::Result CreateDefaultSampler(grfx::Device& device, scene::SamplerRef& outSam
     }
 
     return ppx::SUCCESS;
+}
+
+std::vector<float> UnpackFloats(const cgltf_accessor& accessor)
+{
+    size_t floatCount = cgltf_accessor_unpack_floats(&accessor, /*out=*/nullptr, /*float_count=*/0);
+
+    std::vector<float> floats(floatCount, 0.F);
+    cgltf_accessor_unpack_floats(&accessor, floats.data(), floatCount);
+
+    return floats;
+}
+
+std::vector<glm::float2> UnpackFloat2s(const cgltf_accessor& accessor)
+{
+    std::vector<float> floats = UnpackFloats(accessor);
+    PPX_ASSERT_MSG(floats.size() % glm::float2::length() == 0, "Accessor is missing data to make a glm::float2");
+
+    std::vector<glm::float2> float2s;
+    float2s.reserve(floats.size() / glm::float2::length());
+    for (size_t i = 0; i < floats.size(); i += glm::float2::length()) {
+        float2s.push_back(glm::float2{floats[i], floats[i + 1]});
+    }
+    return float2s;
+}
+
+std::vector<glm::float3> UnpackFloat3s(const cgltf_accessor& accessor)
+{
+    std::vector<float> floats = UnpackFloats(accessor);
+    PPX_ASSERT_MSG(floats.size() % glm::float3::length() == 0, "Accessor is missing data to make a glm::float3");
+
+    std::vector<glm::float3> float3s;
+    float3s.reserve(floats.size() / glm::float3::length());
+    for (size_t i = 0; i < floats.size(); i += glm::float3::length()) {
+        float3s.push_back(glm::float3{floats[i], floats[i + 1], floats[i + 2]});
+    }
+    return float3s;
+}
+
+std::vector<glm::float4> UnpackFloat4s(const cgltf_accessor& accessor)
+{
+    std::vector<float> floats = UnpackFloats(accessor);
+    PPX_ASSERT_MSG(floats.size() % glm::float4::length() == 0, "Accessor is missing data to make a glm::float4");
+
+    std::vector<glm::float4> float4s;
+    float4s.reserve(floats.size() / glm::float4::length());
+    for (size_t i = 0; i < floats.size(); i += glm::float4::length()) {
+        float4s.push_back(glm::float4{floats[i], floats[i + 1], floats[i + 2], floats[i + 3]});
+    }
+    return float4s;
 }
 
 } // namespace
@@ -1612,58 +1636,49 @@ ppx::Result GltfLoader::LoadMeshData(
                 auto normalFormat   = GetFormat(gltflAccessors.pNormals);
                 auto tangentFormat  = GetFormat(gltflAccessors.pTangents);
                 auto colorFormat    = GetFormat(gltflAccessors.pColors);
-                //
+
                 PPX_ASSERT_MSG((positionFormat == targetPositionFormat), "GLTF: vertex positions format is not supported");
-                //
+                auto positions = UnpackFloat3s(*gltflAccessors.pPositions);
+
+                std::vector<glm::float2> texCoords;
                 if (loadParams.requiredVertexAttributes.bits.texCoords && !IsNull(gltflAccessors.pTexCoords)) {
                     PPX_ASSERT_MSG((texCoordFormat == targetTexCoordFormat), "GLTF: vertex tex coords sourceIndexTypeFormat is not supported");
+                    texCoords = UnpackFloat2s(*gltflAccessors.pTexCoords);
                 }
+                std::vector<glm::float3> normals;
                 if (loadParams.requiredVertexAttributes.bits.normals && !IsNull(gltflAccessors.pNormals)) {
                     PPX_ASSERT_MSG((normalFormat == targetNormalFormat), "GLTF: vertex normals format is not supported");
+                    normals = UnpackFloat3s(*gltflAccessors.pNormals);
                 }
+                std::vector<glm::float4> tangents;
                 if (loadParams.requiredVertexAttributes.bits.tangents && !IsNull(gltflAccessors.pTangents)) {
                     PPX_ASSERT_MSG((tangentFormat == targetTangentFormat), "GLTF: vertex tangents format is not supported");
+                    tangents = UnpackFloat4s(*gltflAccessors.pTangents);
                 }
+                std::vector<glm::float3> colors;
                 if (loadParams.requiredVertexAttributes.bits.colors && !IsNull(gltflAccessors.pColors)) {
                     PPX_ASSERT_MSG((colorFormat == targetColorFormat), "GLTF: vertex colors format is not supported");
+                    colors = UnpackFloat3s(*gltflAccessors.pColors);
                 }
-
-                // Data starts
-                const float3* pGltflPositions = static_cast<const float3*>(GetStartAddress(gltflAccessors.pPositions));
-                const float3* pGltflNormals   = static_cast<const float3*>(GetStartAddress(gltflAccessors.pNormals));
-                const float4* pGltflTangents  = static_cast<const float4*>(GetStartAddress(gltflAccessors.pTangents));
-                const float3* pGltflColors    = static_cast<const float3*>(GetStartAddress(gltflAccessors.pColors));
-                const float2* pGltflTexCoords = static_cast<const float2*>(GetStartAddress(gltflAccessors.pTexCoords));
 
                 // Process vertex data
                 for (cgltf_size i = 0; i < gltflAccessors.pPositions->count; ++i) {
                     TriMeshVertexData vertexData = {};
 
-                    // Position
-                    vertexData.position = *pGltflPositions;
-                    ++pGltflPositions;
-                    // Normals
-                    if (loadParams.requiredVertexAttributes.bits.normals && !IsNull(pGltflNormals)) {
-                        vertexData.normal = *pGltflNormals;
-                        ++pGltflNormals;
+                    vertexData.position = positions[i];
+                    if (loadParams.requiredVertexAttributes.bits.normals && !normals.empty()) {
+                        vertexData.normal = normals[i];
                     }
-                    // Tangents
-                    if (loadParams.requiredVertexAttributes.bits.tangents && !IsNull(pGltflTangents)) {
-                        vertexData.tangent = *pGltflTangents;
-                        ++pGltflTangents;
+                    if (loadParams.requiredVertexAttributes.bits.tangents && !tangents.empty()) {
+                        vertexData.tangent = tangents[i];
                     }
-                    // Colors
-                    if (loadParams.requiredVertexAttributes.bits.colors && !IsNull(pGltflColors)) {
-                        vertexData.color = *pGltflColors;
-                        ++pGltflColors;
+                    if (loadParams.requiredVertexAttributes.bits.colors && !colors.empty()) {
+                        vertexData.color = colors[i];
                     }
-                    // Tex cooord
-                    if (loadParams.requiredVertexAttributes.bits.texCoords && !IsNull(pGltflTexCoords)) {
-                        vertexData.texCoord = *pGltflTexCoords;
-                        ++pGltflTexCoords;
+                    if (loadParams.requiredVertexAttributes.bits.texCoords && !texCoords.empty()) {
+                        vertexData.texCoord = texCoords[i];
                     }
 
-                    // Append vertex data
                     targetGeometry.AppendVertexData(vertexData);
 
                     if (!hasBoundingBox) {
