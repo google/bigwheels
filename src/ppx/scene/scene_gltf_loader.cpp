@@ -458,17 +458,11 @@ GltfMaterialSelector::~GltfMaterialSelector()
 
 std::string GltfMaterialSelector::DetermineMaterial(const cgltf_material* pGltfMaterial) const
 {
-    std::string ident = PPX_MATERIAL_IDENT_ERROR;
-
     // Determine material type
     if (pGltfMaterial->unlit) {
-        ident = PPX_MATERIAL_IDENT_UNLIT;
+        return PPX_MATERIAL_IDENT_UNLIT;
     }
-    else if (pGltfMaterial->has_pbr_metallic_roughness) {
-        ident = PPX_MATERIAL_IDENT_STANDARD;
-    }
-
-    return ident;
+    return PPX_MATERIAL_IDENT_STANDARD;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -1156,6 +1150,16 @@ ppx::Result GltfLoader::LoadPbrMetallicRoughnessMaterialInternal(
     PPX_ASSERT_NULL_ARG(pGltfMaterial);
     PPX_ASSERT_NULL_ARG(pTargetMaterial);
 
+    pTargetMaterial->SetEmissiveFactor(*(reinterpret_cast<const float3*>(pGltfMaterial->emissive_factor)));
+
+    // pbrMetallicRoughness is not required. 5.19 says "When undefined, all the default values of pbrMetallicRoughness MUST apply"
+    if (!pGltfMaterial->has_pbr_metallic_roughness) {
+        pTargetMaterial->SetBaseColorFactor(glm::float4(1.F, 1.F, 1.F, 1.F));
+        pTargetMaterial->SetMetallicFactor(1.F);
+        pTargetMaterial->SetRoughnessFactor(1.F);
+        return ppx::SUCCESS;
+    }
+
     // pbrMetallicRoughness textures
     if (!IsNull(pGltfMaterial->pbr_metallic_roughness.base_color_texture.texture)) {
         auto ppxres = LoadTextureViewInternal(
@@ -1212,7 +1216,6 @@ ppx::Result GltfLoader::LoadPbrMetallicRoughnessMaterialInternal(
     pTargetMaterial->SetBaseColorFactor(*(reinterpret_cast<const float4*>(pGltfMaterial->pbr_metallic_roughness.base_color_factor)));
     pTargetMaterial->SetMetallicFactor(pGltfMaterial->pbr_metallic_roughness.metallic_factor);
     pTargetMaterial->SetRoughnessFactor(pGltfMaterial->pbr_metallic_roughness.roughness_factor);
-    pTargetMaterial->SetEmissiveFactor(*(reinterpret_cast<const float3*>(pGltfMaterial->emissive_factor)));
 
     if (pGltfMaterial->has_emissive_strength) {
         pTargetMaterial->SetEmissiveStrength(pGltfMaterial->emissive_strength.emissive_strength);
