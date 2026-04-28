@@ -393,8 +393,8 @@ void ImGuiImplVk::NewFrameApi()
 #if defined(PPX_ANDROID)
 #if defined(PPX_BUILD_XR)
     // Quad layer DisplaySize might not be the same as Android window size.
-    ImGuiIO& io = ImGui::GetIO();
-    auto displaySize = io.DisplaySize;
+    ImGuiIO& io          = ImGui::GetIO();
+    auto     displaySize = io.DisplaySize;
     ImGui_ImplAndroid_NewFrame();
     io.DisplaySize = displaySize;
 #else
