@@ -183,9 +183,10 @@ set(PPX_3P_ASSET_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party/assets")
 
 # Determine relative path from binary location to the build root.
 cmake_path(SET BUILD_DIRECTORY NORMALIZE "${CMAKE_BINARY_DIR}")
-if (CMAKE_GENERATOR MATCHES "Visual Studio")
-    # Visual Studio doesn't follow CMAKE_RUNTIME_OUTPUT_DIRECTORY, but
-    # creates a subdirectory with the config name.
+get_property(PPX_GENERATOR_IS_MULTI_CONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+if (PPX_GENERATOR_IS_MULTI_CONFIG)
+    # Multi-config generators place executables in a per-config subdirectory
+    # below CMAKE_RUNTIME_OUTPUT_DIRECTORY (for example: bin/Debug).
     cmake_path(SET EXECUTABLE_DIRECTORY NORMALIZE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/subfolder")
 else ()
     cmake_path(SET EXECUTABLE_DIRECTORY NORMALIZE "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
@@ -286,4 +287,3 @@ if (PPX_BUILD_BENCHMARKS)
     message("Building benchmarks projects")
     add_subdirectory(benchmarks)
 endif()
-
