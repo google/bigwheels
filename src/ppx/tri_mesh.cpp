@@ -19,6 +19,8 @@
 
 #include "tiny_obj_loader.h"
 
+#include <limits>
+
 namespace ppx {
 
 TriMesh::TriMesh()
@@ -28,8 +30,6 @@ TriMesh::TriMesh()
 TriMesh::TriMesh(grfx::IndexType indexType)
     : mIndexType(indexType)
 {
-    // TODO: #514 - Remove assert when UINT8 is supported
-    PPX_ASSERT_MSG(mIndexType != grfx::INDEX_TYPE_UINT8, "INDEX_TYPE_UINT8 unsupported in TriMesh");
 }
 
 TriMesh::TriMesh(TriMeshAttributeDim texCoordDim)
@@ -40,8 +40,6 @@ TriMesh::TriMesh(TriMeshAttributeDim texCoordDim)
 TriMesh::TriMesh(grfx::IndexType indexType, TriMeshAttributeDim texCoordDim)
     : mIndexType(indexType), mTexCoordDim(texCoordDim)
 {
-    // TODO: #514 - Remove assert when UINT8 is supported
-    PPX_ASSERT_MSG(mIndexType != grfx::INDEX_TYPE_UINT8, "INDEX_TYPE_UINT8 unsupported in TriMesh");
 }
 
 TriMesh::~TriMesh()
@@ -160,6 +158,18 @@ uint64_t TriMesh::GetDataSizeBitangents() const
 {
     uint64_t size = static_cast<uint64_t>(mBitangents.size() * sizeof(float3));
     return size;
+}
+
+const uint8_t* TriMesh::GetDataIndicesU8(uint32_t index) const
+{
+    if (mIndexType != grfx::INDEX_TYPE_UINT8) {
+        return nullptr;
+    }
+    uint32_t count = GetCountIndices();
+    if (index >= count) {
+        return nullptr;
+    }
+    return mIndices.data() + index;
 }
 
 const uint16_t* TriMesh::GetDataIndicesU16(uint32_t index) const
@@ -282,6 +292,11 @@ const float3* TriMesh::GetDataBitangents(uint32_t index) const
     return reinterpret_cast<const float3*>(ptr);
 }
 
+void TriMesh::AppendIndexU8(uint8_t value)
+{
+    mIndices.push_back(value);
+}
+
 void TriMesh::AppendIndexU16(uint16_t value)
 {
     const uint8_t* pBytes = reinterpret_cast<const uint8_t*>(&value);
@@ -304,6 +319,9 @@ void TriMesh::PreallocateForTriangleCount(size_t triangleCount, bool enableColor
 
     // Reserve for triangles
     switch (mIndexType) {
+        case grfx::INDEX_TYPE_UINT8:
+            mIndices.reserve(vertexCount * sizeof(uint8_t));
+            break;
         case grfx::INDEX_TYPE_UINT16:
             mIndices.reserve(vertexCount * sizeof(uint16_t));
             break;
@@ -339,7 +357,19 @@ void TriMesh::PreallocateForTriangleCount(size_t triangleCount, bool enableColor
 
 uint32_t TriMesh::AppendTriangle(uint32_t v0, uint32_t v1, uint32_t v2)
 {
-    if (mIndexType == grfx::INDEX_TYPE_UINT16) {
+    if (mIndexType == grfx::INDEX_TYPE_UINT8) {
+        PPX_ASSERT_MSG(v0 <= std::numeric_limits<uint8_t>::max(), "v0 is out of range for index type UINT8");
+        PPX_ASSERT_MSG(v1 <= std::numeric_limits<uint8_t>::max(), "v1 is out of range for index type UINT8");
+        PPX_ASSERT_MSG(v2 <= std::numeric_limits<uint8_t>::max(), "v2 is out of range for index type UINT8");
+        mIndices.reserve(mIndices.size() + 3 * sizeof(uint8_t));
+        AppendIndexU8(static_cast<uint8_t>(v0));
+        AppendIndexU8(static_cast<uint8_t>(v1));
+        AppendIndexU8(static_cast<uint8_t>(v2));
+    }
+    else if (mIndexType == grfx::INDEX_TYPE_UINT16) {
+        PPX_ASSERT_MSG(v0 <= std::numeric_limits<uint16_t>::max(), "v0 is out of range for index type UINT16");
+        PPX_ASSERT_MSG(v1 <= std::numeric_limits<uint16_t>::max(), "v1 is out of range for index type UINT16");
+        PPX_ASSERT_MSG(v2 <= std::numeric_limits<uint16_t>::max(), "v2 is out of range for index type UINT16");
         mIndices.reserve(mIndices.size() + 3 * sizeof(uint16_t));
         AppendIndexU16(static_cast<uint16_t>(v0));
         AppendIndexU16(static_cast<uint16_t>(v1));
@@ -462,7 +492,14 @@ Result TriMesh::GetTriangle(uint32_t triIndex, uint32_t& v0, uint32_t& v1, uint3
     const uint8_t* pData       = mIndices.data();
     uint32_t       elementSize = grfx::IndexTypeSize(mIndexType);
 
-    if (mIndexType == grfx::INDEX_TYPE_UINT16) {
+    if (mIndexType == grfx::INDEX_TYPE_UINT8) {
+        size_t         offset     = 3 * triIndex * elementSize;
+        const uint8_t* pIndexData = pData + offset;
+        v0                        = static_cast<uint32_t>(pIndexData[0]);
+        v1                        = static_cast<uint32_t>(pIndexData[1]);
+        v2                        = static_cast<uint32_t>(pIndexData[2]);
+    }
+    else if (mIndexType == grfx::INDEX_TYPE_UINT16) {
         size_t          offset     = 3 * triIndex * elementSize;
         const uint16_t* pIndexData = reinterpret_cast<const uint16_t*>(pData + offset);
         v0                         = static_cast<uint32_t>(pIndexData[0]);
@@ -525,7 +562,7 @@ void TriMesh::AppendIndexAndVertexData(
     const TriMeshOptions&     options,
     TriMesh&                  mesh)
 {
-    grfx::IndexType indexType = options.mEnableIndices ? grfx::INDEX_TYPE_UINT32 : grfx::INDEX_TYPE_UNDEFINED;
+    grfx::IndexType indexType = mesh.GetIndexType();
 
     // Verify expected vertex count
     size_t vertexCount = (vertexData.size() * sizeof(float)) / sizeof(TriMeshVertexData);
@@ -718,7 +755,7 @@ TriMesh TriMesh::CreatePlane(TriMeshPlane plane, const float2& size, uint32_t us
         }
     }
 
-    grfx::IndexType     indexType   = options.mEnableIndices ? grfx::INDEX_TYPE_UINT32 : grfx::INDEX_TYPE_UNDEFINED;
+    grfx::IndexType     indexType   = options.mEnableIndices ? options.mIndexType : grfx::INDEX_TYPE_UNDEFINED;
     TriMeshAttributeDim texCoordDim = options.mEnableTexCoords ? TRI_MESH_ATTRIBUTE_DIM_2 : TRI_MESH_ATTRIBUTE_DIM_UNDEFINED;
     TriMesh             mesh        = TriMesh(indexType, texCoordDim);
 
@@ -745,7 +782,7 @@ TriMesh TriMesh::CreatePlane(TriMeshPlane plane, const float2& size, uint32_t us
     };
     // clang-format on
 
-    grfx::IndexType     indexType   = options.mEnableIndices ? grfx::INDEX_TYPE_UINT32 : grfx::INDEX_TYPE_UNDEFINED;
+    grfx::IndexType     indexType   = options.mEnableIndices ? options.mIndexType : grfx::INDEX_TYPE_UNDEFINED;
     TriMeshAttributeDim texCoordDim = options.mEnableTexCoords ? TRI_MESH_ATTRIBUTE_DIM_2 : TRI_MESH_ATTRIBUTE_DIM_UNDEFINED;
     TriMesh             mesh        = TriMesh(indexType, texCoordDim);
 
@@ -816,7 +853,7 @@ TriMesh TriMesh::CreateCube(const float3& size, const TriMeshOptions& options)
     };
     // clang-format on
 
-    grfx::IndexType     indexType   = options.mEnableIndices ? grfx::INDEX_TYPE_UINT32 : grfx::INDEX_TYPE_UNDEFINED;
+    grfx::IndexType     indexType   = options.mEnableIndices ? options.mIndexType : grfx::INDEX_TYPE_UNDEFINED;
     TriMeshAttributeDim texCoordDim = options.mEnableTexCoords ? TRI_MESH_ATTRIBUTE_DIM_2 : TRI_MESH_ATTRIBUTE_DIM_UNDEFINED;
     TriMesh             mesh        = TriMesh(indexType, texCoordDim);
 
@@ -894,7 +931,7 @@ TriMesh TriMesh::CreateSphere(float radius, uint32_t usegs, uint32_t vsegs, cons
         }
     }
 
-    grfx::IndexType     indexType   = options.mEnableIndices ? grfx::INDEX_TYPE_UINT32 : grfx::INDEX_TYPE_UNDEFINED;
+    grfx::IndexType     indexType   = options.mEnableIndices ? options.mIndexType : grfx::INDEX_TYPE_UNDEFINED;
     TriMeshAttributeDim texCoordDim = options.mEnableTexCoords ? TRI_MESH_ATTRIBUTE_DIM_2 : TRI_MESH_ATTRIBUTE_DIM_UNDEFINED;
     TriMesh             mesh        = TriMesh(indexType, texCoordDim);
 
@@ -915,7 +952,7 @@ Result TriMesh::CreateFromOBJ(const std::filesystem::path& path, const TriMeshOp
     double fnStartTime = timer.SecondsSinceStart();
 
     // Determine index type and tex coord dim
-    grfx::IndexType     indexType   = options.mEnableIndices ? grfx::INDEX_TYPE_UINT32 : grfx::INDEX_TYPE_UNDEFINED;
+    grfx::IndexType     indexType   = options.mEnableIndices ? options.mIndexType : grfx::INDEX_TYPE_UNDEFINED;
     TriMeshAttributeDim texCoordDim = options.mEnableTexCoords ? TRI_MESH_ATTRIBUTE_DIM_2 : TRI_MESH_ATTRIBUTE_DIM_UNDEFINED;
 
     // Create new mesh
