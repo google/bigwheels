@@ -15,6 +15,7 @@
 #define ENABLE_VTX_ATTR_TEXCOORD
 #define ENABLE_VTX_ATTR_NORMAL
 #define ENABLE_VTX_ATTR_TANGENT
+#define ENABLE_VTX_ATTR_COLOR
 #include "MaterialInterface.hlsli"
 
 StandardVertexOutput vsmain(StandardVertexInput input)
@@ -29,5 +30,6 @@ StandardVertexOutput vsmain(StandardVertexInput input)
     output.TexCoord   = input.TexCoord;
     output.Normal     = input.Normal;
     output.Tangent    = input.Tangent;
+    output.Color      = input.Color;
     return output;
 }

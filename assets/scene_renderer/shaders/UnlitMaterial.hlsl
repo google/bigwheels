@@ -15,6 +15,7 @@
 #define ENABLE_VTX_ATTR_TEXCOORD
 #define ENABLE_VTX_ATTR_NORMAL
 #define ENABLE_VTX_ATTR_TANGENT
+#define ENABLE_VTX_ATTR_COLOR
 #include "MaterialInterface.hlsli"
 
 // -------------------------------------------------------------------------------------------------
@@ -38,6 +39,7 @@ float4 psmain(StandardVertexOutput input) : SV_TARGET
         float4 value = tex.Sample(sam, uv);
         color = color * value;
     }
+    color.rgb *= input.Color;
 
     return color;
 }
