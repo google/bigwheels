@@ -12,9 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "ppx/config.h"
 #include "ppx/grfx/grfx_device.h"
 #include "ppx/grfx/grfx_pipeline.h"
 #include "ppx/grfx/grfx_descriptor.h"
+#include "ppx/grfx/grfx_enums.h"
 
 namespace ppx {
 namespace grfx {
@@ -22,6 +24,15 @@ namespace grfx {
 // -------------------------------------------------------------------------------------------------
 // BlendAttachmentState
 // -------------------------------------------------------------------------------------------------
+grfx::BlendAttachmentState BlendAttachmentState::BlendModeNone()
+{
+    grfx::BlendAttachmentState state = {};
+    state.blendEnable                = false;
+    state.colorWriteMask             = grfx::ColorComponentFlags::RGBA();
+
+    return state;
+}
+
 grfx::BlendAttachmentState BlendAttachmentState::BlendModeAdditive()
 {
     grfx::BlendAttachmentState state = {};
@@ -97,6 +108,15 @@ grfx::BlendAttachmentState BlendAttachmentState::BlendModePremultAlpha()
     return state;
 }
 
+grfx::BlendAttachmentState BlendAttachmentState::BlendModeDisableOutput()
+{
+    grfx::BlendAttachmentState state = {};
+    state.blendEnable                = false;
+    state.colorWriteMask             = grfx::ColorComponentFlags(0);
+
+    return state;
+}
+
 namespace internal {
 
 // -------------------------------------------------------------------------------------------------
@@ -123,7 +143,7 @@ void FillOutGraphicsPipelineCreateInfo(
         }
     }
 
-    // Input aasembly
+    // Input assembly
     {
         pDstCreateInfo->inputAssemblyState.topology = pSrcCreateInfo->topology;
     }
@@ -153,7 +173,10 @@ void FillOutGraphicsPipelineCreateInfo(
         pDstCreateInfo->colorBlendState.blendAttachmentCount = pSrcCreateInfo->outputState.renderTargetCount;
         for (uint32_t i = 0; i < pDstCreateInfo->colorBlendState.blendAttachmentCount; ++i) {
             switch (pSrcCreateInfo->blendModes[i]) {
-                default: break;
+                case grfx::BLEND_MODE_NONE: {
+                    pDstCreateInfo->colorBlendState.blendAttachments[i] = grfx::BlendAttachmentState::BlendModeNone();
+                    break;
+                }
 
                 case grfx::BLEND_MODE_ADDITIVE: {
                     pDstCreateInfo->colorBlendState.blendAttachments[i] = grfx::BlendAttachmentState::BlendModeAdditive();
@@ -174,8 +197,17 @@ void FillOutGraphicsPipelineCreateInfo(
                 case grfx::BLEND_MODE_PREMULT_ALPHA: {
                     pDstCreateInfo->colorBlendState.blendAttachments[i] = grfx::BlendAttachmentState::BlendModePremultAlpha();
                 } break;
+
+                case grfx::BLEND_MODE_DISABLE_OUTPUT: {
+                    pDstCreateInfo->colorBlendState.blendAttachments[i] = grfx::BlendAttachmentState::BlendModeDisableOutput();
+                    break;
+                }
+
+                default: {
+                    PPX_ASSERT_MSG(false, "Unknown BlendMode");
+                    break;
+                }
             }
-            pDstCreateInfo->colorBlendState.blendAttachments[i].colorWriteMask = grfx::ColorComponentFlags::RGBA();
         }
     }
 

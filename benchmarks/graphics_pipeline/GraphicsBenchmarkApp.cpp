@@ -16,8 +16,11 @@
 #include "SphereMesh.h"
 
 #include "ppx/graphics_util.h"
+#include "ppx/grfx/grfx_enums.h"
 #include "ppx/grfx/grfx_format.h"
+#include "ppx/math_config.h"
 #include "ppx/timer.h"
+#include <cstdint>
 
 using namespace ppx;
 
@@ -34,13 +37,21 @@ static constexpr size_t SPHERE_NORMAL_SAMPLER_REGISTER                = 5;
 static constexpr size_t SPHERE_METAL_ROUGHNESS_SAMPLED_IMAGE_REGISTER = 6;
 static constexpr size_t SPHERE_METAL_ROUGHNESS_SAMPLER_REGISTER       = 7;
 
-static constexpr size_t QUADS_SAMPLED_IMAGE_REGISTER = 0;
+static constexpr size_t QUADS_CONFIG_UNIFORM_BUFFER_REGISTER = 0;
+static constexpr size_t QUADS_SAMPLED_IMAGE_REGISTER         = 1;
+static constexpr size_t QUADS_DUMMY_BUFFER_REGISTER          = QUADS_SAMPLED_IMAGE_REGISTER + kMaxTextureCount;
 
 #if defined(USE_DX12)
 const grfx::Api kApi = grfx::API_DX_12_0;
 #elif defined(USE_VK)
 const grfx::Api kApi = grfx::API_VK_1_1;
 #endif
+
+template <typename T>
+size_t GetPushConstCount(const T&)
+{
+    return sizeof(T) / sizeof(uint32_t);
+}
 
 void GraphicsBenchmarkApp::InitKnobs()
 {
@@ -120,6 +131,11 @@ void GraphicsBenchmarkApp::InitKnobs()
     pFullscreenQuadsType->SetFlagDescription("Select the type of the fullscreen quads. See also `--fullscreen-quads-count`.");
     pFullscreenQuadsType->SetIndent(1);
 
+    GetKnobManager().InitKnob(&pTextureShaderALU, "alu-ocupancy-level", /* defaultValue = */ 0, /* minValue = */ 0, 3);
+    pTextureShaderALU->SetDisplayName("ALU ocuppancy level for texture shader.");
+    pTextureShaderALU->SetFlagDescription("Select occupancy level: 0 -> 75, 1 -> 100, 2 -> 62.");
+    pTextureShaderALU->SetVisible(false);
+
     GetKnobManager().InitKnob(&pFullscreenQuadsColor, "fullscreen-quads-color", 0, kFullscreenQuadsColors);
     pFullscreenQuadsColor->SetDisplayName("Color");
     pFullscreenQuadsColor->SetFlagDescription("Select the hue for the solid color fullscreen quads. See also `--fullscreen-quads-count`.");
@@ -173,12 +189,41 @@ void GraphicsBenchmarkApp::InitKnobs()
         pResolution->SetFlagDescription("Select the size of offscreen framebuffer.");
         pResolution->SetIndent(1);
     }
+
+    GetKnobManager().InitKnob(&pKnobShaderAluLoopCount, "shader-alu-loop-count", /* defaultValue = */ 0, /* minValue = */ 0, 500);
+    pKnobShaderAluLoopCount->SetDisplayName("Number of loops in the shader for random alu compute.");
+    pKnobShaderAluLoopCount->SetFlagDescription("Select the number of loops in the shader for random alu compute.");
+    pKnobShaderAluLoopCount->SetVisible(false);
+
+    GetKnobManager().InitKnob(&pKnobTextureCount, "texture-count", /* defaultValue = */ 0, /* minValue = */ 0, kMaxTextureCount);
+    pKnobTextureCount->SetDisplayName("Number of texture to load in the shader");
+    pKnobTextureCount->SetFlagDescription("Select the number of texture to load in the shader.");
+    pKnobTextureCount->SetVisible(false);
+
+    GetKnobManager().InitKnob(&pKnobViewportHeightScale, "viewport_height_scale", 0, kAvailableViewportScales);
+    pKnobViewportHeightScale->SetDisplayName("Scale viewport height");
+    pKnobViewportHeightScale->SetFlagDescription("Scale viewport height to 1, 1/2, 1/4");
+    pKnobViewportHeightScale->SetVisible(false);
+
+    GetKnobManager().InitKnob(&pKnobViewportWidthScale, "viewport_width_scale", 0, kAvailableViewportScales);
+    pKnobViewportWidthScale->SetDisplayName("Scale viewport width");
+    pKnobViewportWidthScale->SetFlagDescription("Scale viewport width to 1, 1/2, 1/4");
+    pKnobViewportWidthScale->SetVisible(false);
+
+    GetKnobManager().InitKnob(&pKnobQuadBlendMode, "quad_blend_mode", 0, kQuadBlendModes);
+    pKnobQuadBlendMode->SetDisplayName("Blend mode for quad");
+    pKnobQuadBlendMode->SetFlagDescription("Bend mode for quad to none, alpha, disable_output");
+    pKnobQuadBlendMode->SetVisible(false);
 }
 
 void GraphicsBenchmarkApp::Config(ppx::ApplicationSettings& settings)
 {
-    settings.appName                    = "graphics_pipeline";
-    settings.enableImGui                = true;
+    settings.appName = "graphics_pipeline";
+#if defined(PPX_ANDROID)
+    settings.enableImGui = false;
+#else
+    settings.enableImGui = true;
+#endif
     settings.window.width               = 1920;
     settings.window.height              = 1080;
     settings.grfx.api                   = kApi;
@@ -187,7 +232,11 @@ void GraphicsBenchmarkApp::Config(ppx::ApplicationSettings& settings)
 #if defined(PPX_BUILD_XR)
     // XR specific settings
     settings.grfx.pacedFrameRate = 0;
-    settings.xr.enable           = false; // Change this to true to enable the XR mode
+#if defined(PPX_ANDROID)
+    settings.xr.enable = true;
+#else
+    settings.xr.enable = false; // Change this to true to enable the XR mode on PC.
+#endif
 #endif
     settings.standardKnobsDefaultValue.enableMetrics        = true;
     settings.standardKnobsDefaultValue.overwriteMetricsFile = true;
@@ -223,9 +272,10 @@ void GraphicsBenchmarkApp::Setup()
     // Descriptor Pool
     {
         grfx::DescriptorPoolCreateInfo createInfo = {};
-        createInfo.sampler                        = 5 * GetNumFramesInFlight(); // 1 for skybox, 3 for spheres, 1 for blit
-        createInfo.sampledImage                   = 6 * GetNumFramesInFlight(); // 1 for skybox, 3 for spheres, 1 for quads, 1 for blit
-        createInfo.uniformBuffer                  = 2 * GetNumFramesInFlight(); // 1 for skybox, 1 for spheres
+        createInfo.sampler                        = 5 * GetNumFramesInFlight();                      // 1 for skybox, 3 for spheres, 1 for blit
+        createInfo.sampledImage                   = (5 + kMaxTextureCount) * GetNumFramesInFlight(); // 1 for skybox, 3 for spheres, kMaxTextureCount for quads, 1 for blit
+        createInfo.uniformBuffer                  = 2 * GetNumFramesInFlight();                      // 1 for skybox, 1 for spheres
+        createInfo.structuredBuffer               = 1;                                               // 1 for quads dummy buffer
 
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&createInfo, &mDescriptorPool));
     }
@@ -457,13 +507,28 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsResources()
     {
         // Large resolution image
         grfx_util::TextureOptions options = grfx_util::TextureOptions().MipLevelCount(1);
-        PPX_CHECKED_CALL(CreateTextureFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath(pQuadTextureFile->GetValue()), &mQuadsTexture, options));
+        for (uint32_t i = 0; i < pKnobTextureCount->GetValue(); i++) {
+            // Load the same image.
+            PPX_CHECKED_CALL(CreateTextureFromFile(GetDevice()->GetGraphicsQueue(), GetAssetPath(pQuadTextureFile->GetValue()), &mQuadsTextures[i], options));
+        }
+    }
+
+    // dummy buffer
+    {
+        grfx::BufferCreateInfo bufferCreateInfo             = {};
+        bufferCreateInfo.size                               = PPX_MINIMUM_STRUCTURED_BUFFER_SIZE;
+        bufferCreateInfo.structuredElementStride            = static_cast<uint32_t>(sizeof(float));
+        bufferCreateInfo.usageFlags.bits.rwStructuredBuffer = true;
+        bufferCreateInfo.memoryUsage                        = grfx::MEMORY_USAGE_GPU_ONLY;
+        bufferCreateInfo.initialState                       = grfx::RESOURCE_STATE_GENERAL;
+        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mQuadsDummyBuffer));
     }
 
     // Descriptor set layout for texture shader
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(QUADS_SAMPLED_IMAGE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(QUADS_SAMPLED_IMAGE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, kMaxTextureCount));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(QUADS_DUMMY_BUFFER_REGISTER, grfx::DESCRIPTOR_TYPE_RW_STRUCTURED_BUFFER));
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mFullscreenQuads.descriptorSetLayout));
     }
 
@@ -480,7 +545,28 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsResources()
     SetupShader("Benchmark_VsSimpleQuads.vs", &mVSQuads);
     SetupShader("Benchmark_RandomNoise.ps", &mQuadsPs[0]);
     SetupShader("Benchmark_SolidColor.ps", &mQuadsPs[1]);
-    SetupShader("Benchmark_Texture.ps", &mQuadsPs[2]);
+    // We choose a shader based on ALU occupancy
+    switch (pTextureShaderALU->GetValue()) {
+        case 0:
+            // This shader has 75% of ALU occupancy
+            SetupShader("Benchmark_Texture-75.ps", &mQuadsPs[2]);
+            break;
+
+        case 1:
+            // This shader has 100% of ALU occupancy
+            SetupShader("Benchmark_Texture-100.ps", &mQuadsPs[2]);
+            break;
+
+        case 2:
+            // This shader has 62% of ALU occupancy
+            SetupShader("Benchmark_Texture-62.ps", &mQuadsPs[2]);
+            break;
+
+        default:
+            // This shader has 75% of ALU occupancy
+            // We use it as default since it has less operations
+            SetupShader("Benchmark_Texture-75.ps", &mQuadsPs[2]);
+    }
 }
 
 void GraphicsBenchmarkApp::UpdateSkyBoxDescriptors()
@@ -527,7 +613,18 @@ void GraphicsBenchmarkApp::UpdateFullscreenQuadsDescriptors()
     uint32_t n = GetNumFramesInFlight();
     for (size_t i = 0; i < n; i++) {
         grfx::DescriptorSetPtr pDescriptorSet = mFullscreenQuads.descriptorSets[i];
-        PPX_CHECKED_CALL(pDescriptorSet->UpdateSampledImage(QUADS_SAMPLED_IMAGE_REGISTER, 0, mQuadsTexture));
+        for (uint32_t j = 0; j < pKnobTextureCount->GetValue(); j++) {
+            PPX_CHECKED_CALL(pDescriptorSet->UpdateSampledImage(QUADS_SAMPLED_IMAGE_REGISTER, j, mQuadsTextures[j]));
+        }
+        grfx::WriteDescriptor write  = {};
+        write.binding                = QUADS_DUMMY_BUFFER_REGISTER;
+        write.arrayIndex             = 0;
+        write.type                   = grfx::DESCRIPTOR_TYPE_RW_STRUCTURED_BUFFER;
+        write.bufferOffset           = 0;
+        write.bufferRange            = PPX_WHOLE_SIZE;
+        write.structuredElementCount = 1;
+        write.pBuffer                = mQuadsDummyBuffer;
+        PPX_CHECKED_CALL(pDescriptorSet->UpdateDescriptors(1, &write));
     }
 }
 
@@ -550,15 +647,14 @@ void GraphicsBenchmarkApp::SetupSphereMeshes()
         }
     }
 
-    const uint32_t requiredSphereCount = std::max<uint32_t>(pSphereInstanceCount->GetValue(), kDefaultSphereInstanceCount);
-    const uint32_t initSphereCount     = std::min<uint32_t>(kMaxSphereInstanceCount, 2 * std::max(requiredSphereCount, mInitializedSpheres));
+    const uint32_t initSphereCount = std::min<uint32_t>(kMaxSphereInstanceCount, pSphereInstanceCount->GetValue());
 
     // Create the meshes
     OrderedGrid grid(initSphereCount, kSeed);
     uint32_t    meshIndex = 0;
     for (const auto& lod : kAvailableLODs) {
         PPX_LOG_INFO("LOD: " << lod.name);
-        SphereMesh sphereMesh(/* radius = */ 1, lod.value.longitudeSegments, lod.value.latitudeSegments);
+        SphereMesh sphereMesh(/* radius = */ 1, lod.value.longitudeSegments, lod.value.latitudeSegments, GetSettings()->xr.enable);
         sphereMesh.ApplyGrid(grid);
         // Create a giant vertex buffer for each vb type to accommodate all copies of the sphere mesh
         PPX_CHECKED_CALL(grfx_util::CreateMeshFromGeometry(GetGraphicsQueue(), sphereMesh.GetLowPrecisionInterleaved(), &mSphereMeshes[meshIndex++]));
@@ -727,7 +823,7 @@ Result GraphicsBenchmarkApp::CompilePipeline(const QuadPipelineKey& key)
     gpCreateInfo.frontFace                          = grfx::FRONT_FACE_CW;
     gpCreateInfo.depthReadEnable                    = false;
     gpCreateInfo.depthWriteEnable                   = false;
-    gpCreateInfo.blendModes[0]                      = grfx::BLEND_MODE_NONE;
+    gpCreateInfo.blendModes[0]                      = pKnobQuadBlendMode->GetValue();
     gpCreateInfo.outputState.renderTargetCount      = 1;
     gpCreateInfo.outputState.renderTargetFormats[0] = key.renderFormat;
     gpCreateInfo.outputState.depthStencilFormat     = GetSwapchain()->GetDepthFormat();
@@ -783,8 +879,8 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsPipelines()
     {
         grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
         piCreateInfo.setCount                          = 0;
-        piCreateInfo.pushConstants.count               = sizeof(uint32_t) / 4;
-        piCreateInfo.pushConstants.binding             = 0;
+        piCreateInfo.pushConstants.count               = GetPushConstCount(mQuadPushConstant);
+        piCreateInfo.pushConstants.binding             = QUADS_CONFIG_UNIFORM_BUFFER_REGISTER;
         piCreateInfo.pushConstants.set                 = 0;
 
         PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mQuadsPipelineInterfaces[0]));
@@ -793,8 +889,8 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsPipelines()
     {
         grfx::PipelineInterfaceCreateInfo piCreateInfo = {};
         piCreateInfo.setCount                          = 0;
-        piCreateInfo.pushConstants.count               = sizeof(float3) / 4;
-        piCreateInfo.pushConstants.binding             = 0;
+        piCreateInfo.pushConstants.count               = GetPushConstCount(mQuadPushConstant);
+        piCreateInfo.pushConstants.binding             = QUADS_CONFIG_UNIFORM_BUFFER_REGISTER;
         piCreateInfo.pushConstants.set                 = 0;
 
         PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mQuadsPipelineInterfaces[1]));
@@ -805,6 +901,9 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsPipelines()
         piCreateInfo.setCount                          = 1;
         piCreateInfo.sets[0].set                       = 0;
         piCreateInfo.sets[0].pLayout                   = mFullscreenQuads.descriptorSetLayout;
+        piCreateInfo.pushConstants.count               = GetPushConstCount(mQuadPushConstant);
+        piCreateInfo.pushConstants.binding             = QUADS_CONFIG_UNIFORM_BUFFER_REGISTER;
+        piCreateInfo.pushConstants.set                 = 0;
 
         PPX_CHECKED_CALL(GetDevice()->CreatePipelineInterface(&piCreateInfo, &mQuadsPipelineInterfaces[2]));
     }
@@ -1393,7 +1492,7 @@ ppx::Result GraphicsBenchmarkApp::CreateOffscreenFrame(OffscreenFrame& frame, gr
     frame = OffscreenFrame{width, height, colorFormat, depthFormat};
     {
         grfx::ImageCreateInfo colorCreateInfo   = grfx::ImageCreateInfo::RenderTarget2D(width, height, colorFormat);
-        colorCreateInfo.initialState            = grfx::RESOURCE_STATE_PRESENT;
+        colorCreateInfo.initialState            = GetSettings()->xr.enable ? grfx::RESOURCE_STATE_RENDER_TARGET : grfx::RESOURCE_STATE_PRESENT;
         colorCreateInfo.usageFlags.bits.sampled = true;
         ppx::Result ppxres                      = GetDevice()->CreateImage(&colorCreateInfo, &frame.colorImage);
         if (ppxres != ppx::SUCCESS) {
@@ -1508,8 +1607,9 @@ ppx::grfx::Format GraphicsBenchmarkApp::RenderFormat()
 void GraphicsBenchmarkApp::CreateColorsForDrawCalls()
 {
     // Create colors randomly.
-    mColorsForDrawCalls.resize(kMaxSphereInstanceCount);
-    for (size_t i = 0; i < kMaxSphereInstanceCount; i++) {
+    uint32_t sphereCount = pSphereInstanceCount->GetValue();
+    mColorsForDrawCalls.resize(sphereCount);
+    for (size_t i = 0; i < sphereCount; i++) {
         mColorsForDrawCalls[i] = float4(mRandom.Float(), mRandom.Float(), mRandom.Float(), 0.5f);
     }
 }
@@ -1522,7 +1622,13 @@ void GraphicsBenchmarkApp::RecordCommandBuffer(PerFrame& frame, const RenderPass
     frame.cmd->WriteTimestamp(frame.timestampQuery, grfx::PIPELINE_STAGE_TOP_OF_PIPE_BIT, /* queryIndex = */ 0);
     if (!pRenderOffscreen->GetValue()) {
         frame.cmd->SetScissors(GetScissor());
-        frame.cmd->SetViewports(GetViewport());
+        grfx::Viewport    viewport     = GetViewport();
+        QuadViewportScale height_scale = pKnobViewportHeightScale->GetValue();
+        QuadViewportScale width_scale  = pKnobViewportWidthScale->GetValue();
+        viewport.height *= height_scale.scale;
+        viewport.width *= width_scale.scale;
+
+        frame.cmd->SetViewports(viewport);
     }
     else {
         uint32_t width  = mOffscreenFrame.back().width;
@@ -1718,10 +1824,17 @@ void GraphicsBenchmarkApp::RecordCommandBufferSpheres(PerFrame& frame)
 
 void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, size_t seed)
 {
+    // Vertex shader push constant
+    {
+        mQuadPushConstant.InstCount = pKnobShaderAluLoopCount->GetValue();
+        frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[static_cast<int>(FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_NOISE)], GetPushConstCount(mQuadPushConstant.InstCount), &mQuadPushConstant.InstCount, offsetof(QuadPushConstant, InstCount) / sizeof(uint32_t));
+        frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[static_cast<int>(FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_SOLID_COLOR)], GetPushConstCount(mQuadPushConstant.InstCount), &mQuadPushConstant.InstCount, offsetof(QuadPushConstant, InstCount) / sizeof(uint32_t));
+        frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[static_cast<int>(FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_TEXTURE)], GetPushConstCount(mQuadPushConstant.InstCount), &mQuadPushConstant.InstCount, offsetof(QuadPushConstant, InstCount) / sizeof(uint32_t));
+    }
     switch (pFullscreenQuadsType->GetValue()) {
         case FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_NOISE: {
-            uint32_t noiseQuadRandomSeed = (uint32_t)seed;
-            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[0], 1, &noiseQuadRandomSeed);
+            mQuadPushConstant.RandomSeed = seed;
+            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[static_cast<int>(pFullscreenQuadsType->GetValue())], GetPushConstCount(mQuadPushConstant.RandomSeed), &mQuadPushConstant.RandomSeed, offsetof(QuadPushConstant, RandomSeed) / sizeof(uint32_t));
             break;
         }
         case FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_SOLID_COLOR: {
@@ -1738,15 +1851,19 @@ void GraphicsBenchmarkApp::RecordCommandBufferFullscreenQuad(PerFrame& frame, si
             }
             float3 colorValues = pFullscreenQuadsColor->GetValue();
             colorValues *= intensity;
-            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[1], 3, &colorValues);
+            mQuadPushConstant.ColorValue = colorValues;
+            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[static_cast<int>(pFullscreenQuadsType->GetValue())], GetPushConstCount(mQuadPushConstant.ColorValue), &mQuadPushConstant.ColorValue, offsetof(QuadPushConstant, ColorValue) / sizeof(uint32_t));
             break;
         }
         case FullscreenQuadsType::FULLSCREEN_QUADS_TYPE_TEXTURE:
+            mQuadPushConstant.TextureCount = pKnobTextureCount->GetValue();
+            frame.cmd->PushGraphicsConstants(mQuadsPipelineInterfaces[static_cast<int>(pFullscreenQuadsType->GetValue())], GetPushConstCount(mQuadPushConstant.TextureCount), &mQuadPushConstant.TextureCount, offsetof(QuadPushConstant, TextureCount) / sizeof(uint32_t));
             break;
         default:
             PPX_ASSERT_MSG(true, "unsupported FullscreenQuadsType: " << static_cast<int>(pFullscreenQuadsType->GetValue()));
             break;
     }
+
     frame.cmd->Draw(3, 1, 0, 0);
 }
 

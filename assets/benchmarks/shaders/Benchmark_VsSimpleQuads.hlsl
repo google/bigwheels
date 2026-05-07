@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "VsOutput.hlsli"
+#include "Benchmark_Quad.hlsli"
 
-VSOutputPos vsmain(float4 Position : POSITION)
-{
-	VSOutputPos result;
-	result.position = Position;
-	return result;
+VSOutputPos vsmain(float4 Position : POSITION) {
+  VSOutputPos result;
+  result.position = Position;
+  result.position.z = randomCompute(Config.InstCount, result.position);
+  return result;
 }
