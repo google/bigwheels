@@ -549,23 +549,23 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsResources()
     switch (pTextureShaderALU->GetValue()) {
         case 0:
             // This shader has 75% of ALU occupancy
-            SetupShader("Benchmark_Texture-75.ps", &mQuadsPs[2]);
+            SetupShader("Benchmark_Texture-Occupancy-75.ps", &mQuadsPs[2]);
             break;
 
         case 1:
             // This shader has 100% of ALU occupancy
-            SetupShader("Benchmark_Texture-100.ps", &mQuadsPs[2]);
+            SetupShader("Benchmark_Texture-Occupancy-100.ps", &mQuadsPs[2]);
             break;
 
         case 2:
             // This shader has 62% of ALU occupancy
-            SetupShader("Benchmark_Texture-62.ps", &mQuadsPs[2]);
+            SetupShader("Benchmark_Texture-Occupancy-62.ps", &mQuadsPs[2]);
             break;
 
         default:
             // This shader has 75% of ALU occupancy
             // We use it as default since it has less operations
-            SetupShader("Benchmark_Texture-75.ps", &mQuadsPs[2]);
+            SetupShader("Benchmark_Texture-Occupancy-75.ps", &mQuadsPs[2]);
     }
 }
 
