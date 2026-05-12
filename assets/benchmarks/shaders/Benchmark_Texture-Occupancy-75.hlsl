@@ -1,4 +1,4 @@
-// Copyright 2023 Google LLC
+// Copyright 2026 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,22 +21,15 @@ float4 psmain(VSOutputPos input) : SV_TARGET
 {
     uint32_t textureCount = Config.TextureCount;
     float4 color1 = {0.0f, 0.0f, 0.0f, 0.0f};
-    float4 color2 = {0.0f, 0.0f, 0.0f, 0.0f};
 
     for(uint32_t i = 0; i < textureCount; i++)
     {
         color1 += Tex[i].Load(uint3(input.position.x, input.position.y, 0))/float(textureCount);
     }
-    
-    for(uint32_t i = 0; i < textureCount; i++)
-    {
-        color2 += Tex[i].Load(uint3(input.position.x, input.position.y, 0));
-    }
-    
-    float4 color = color1 + 0.5f * color2;
 
+    float4 color = color1;
     if (!any(color))
         dataBuffer[0] = color.r;
-    color.a = randomCompute(Config.InstCount, input.position); 
+    color.a = randomCompute(Config.InstCount, input.position);
     return color;
 }

@@ -95,18 +95,18 @@ generate_rules_for_shader("shader_benchmark_solid_color"
     INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_Quad.hlsli"
     STAGES "ps")
 
-generate_rules_for_shader("shader_benchmark_texture-75"
-    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_Texture-75.hlsl"
+generate_rules_for_shader("shader_benchmark_texture-occupancy-75"
+    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_Texture-Occupancy-75.hlsl"
     INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_Quad.hlsli"
     STAGES "ps")
 
-generate_rules_for_shader("shader_benchmark_texture-100"
-    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_Texture-100.hlsl"
+generate_rules_for_shader("shader_benchmark_texture-occupancy-100"
+    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_Texture-Occupancy-100.hlsl"
     INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_Quad.hlsli"
     STAGES "ps")
 
-generate_rules_for_shader("shader_benchmark_texture-62"
-    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_Texture-62.hlsl"
+generate_rules_for_shader("shader_benchmark_texture-occupancy-62"
+    SOURCE "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_Texture-Occupancy-62.hlsl"
     INCLUDES "${PPX_DIR}/assets/benchmarks/shaders/Benchmark_Quad.hlsli"
     STAGES "ps")
 
