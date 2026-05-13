@@ -19,6 +19,7 @@ struct ConfigParams {
   uint32_t InstCount;
   uint32_t RandomSeed;
   uint32_t TextureCount;
+  uint32_t ExtraPadding;
   float3 ColorValue;
 };
 
