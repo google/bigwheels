@@ -37,7 +37,7 @@ float randomCompute(uint32_t instCount, float4 Position) {
     Position.z += Position.x * (1 - randNum) + randNum * Position.y;
   }
 
-  return frac(Position.z);;
+  return frac(Position.z);
 }
 
 #endif // BENCHMARKS_QUAD_HLSLI

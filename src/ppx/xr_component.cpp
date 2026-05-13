@@ -927,7 +927,7 @@ void XrCamera::UpdateCamera()
         const quat orientation = FromXr(mView.pose.orientation);
 
         mEyePosition   = FromXr(mView.pose.position);
-        mViewDirection = PPX_CAMERA_DEFAULT_VIEW_DIRECTION;
+        mViewDirection = glm::rotate(orientation, forward);
         mTarget        = mEyePosition + mViewDirection;
         mWorldUp       = glm::rotate(orientation, up);
     }
