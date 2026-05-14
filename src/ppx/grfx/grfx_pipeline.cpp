@@ -171,7 +171,6 @@ void FillOutGraphicsPipelineCreateInfo(
         pDstCreateInfo->colorBlendState.blendAttachmentCount = pSrcCreateInfo->outputState.renderTargetCount;
         for (uint32_t i = 0; i < pDstCreateInfo->colorBlendState.blendAttachmentCount; ++i) {
             switch (pSrcCreateInfo->blendModes[i]) {
-
                 case grfx::BLEND_MODE_NONE: {
                     pDstCreateInfo->colorBlendState.blendAttachments[i] = grfx::BlendAttachmentState::BlendModeNone();
                 } break;
