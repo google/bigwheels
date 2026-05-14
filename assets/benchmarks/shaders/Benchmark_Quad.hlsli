@@ -34,6 +34,9 @@ struct VSOutputPos {
 
 float randomCompute(uint32_t instCount, float4 Position) {
   float randNum = frac(float(instCount) * 123.456f);
+  // This loop is here to make extra work per pixel based in the instCount
+  // parameter. However, some shader smart shader compiler might remove the loop entirely.
+  // Use with caution for benchmarking
   for (uint32_t i = 0; i < instCount; i++) {
     Position.z += Position.x * (1 - randNum) + randNum * Position.y;
   }
