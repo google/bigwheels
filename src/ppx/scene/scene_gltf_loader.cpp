@@ -1675,7 +1675,7 @@ ppx::Result GltfLoader::LoadMeshData(
                 // Process vertex data
                 for (cgltf_size i = 0; i < gltflAccessors.pPositions->count; ++i) {
                     TriMeshVertexData vertexData = {};
-                    vertexData.color            = glm::float3(1, 1, 1);
+                    vertexData.color = glm::float3(1, 1, 1);
 
                     vertexData.position = positions[i];
                     if (loadParams.requiredVertexAttributes.bits.normals && !normals.empty()) {
