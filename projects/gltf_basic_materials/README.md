@@ -1,6 +1,6 @@
 # gltf_basic_materials
 
-This sample loads a scene with `ppx::scene::GltfLoader` and rendering it.
+This sample loads a scene with `ppx::scene::GltfLoader` and renders it.
 
 After building, run `gltf_basic_materials` for the desired API in your build directory. E.g. for Vulkan:
 
