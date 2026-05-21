@@ -2,7 +2,14 @@
 The recommended build system is CMake (version 3.20 and above). This repo supports both in-tree, and out-of-tree builds.
 The recommended generator is `Visual Studio 2022` for Windows and `Ninja` for Linux, but others are also supported.
 
-Binaries are written to `<build-dir>/bin` and libraries to `<build-dir>/lib`.
+Binaries and libraries are written to slightly different directories depending on whether you're using a multi-config generator or not:
+
+* For multi-config generators like Visual Studio:
+  * Binaries are written to `<build-dir>/bin/Debug` or `<build-dir>/bin/Release` depending on the chosen configuration
+  * Libraries are written to `<build-dir>/lib/Debug` or `<build-dir>/lib/Release` depending on the chosen configuration
+* For non-multi-config generators like Ninja:
+  * Binaries are written to `<build-dir>/bin`
+  * Libraries are written to `<build-dir>/lib`
 
 Shaders are also written to `<build-dir>`, but prefixed with their path and the format. For example:
 
@@ -16,6 +23,8 @@ Binaries have prefixes indicating the target graphics API and shader format:
    * Shaders are compiled with DXC/SPIR-V
 
 Build instructions vary slightly depending on the host and target platforms.
+
+Binaries are prefixed with `vk_` when compiling with Vulkan support enabled and `dx12_` when compiling with DirectX12 support enabled.
 
 ## Prerequisites
 
@@ -70,7 +79,7 @@ cmake -B build -G "Visual Studio 16 2019" -A x64
 
 Open `build\BigWheels.sln` and build.
 
-Built binaries are written to `build\bin`.
+Built binaries are written to `build\bin\Debug` or `build\bin\Release` depending on your configuration.
 
 **Note: there is an outstanding [issue](https://github.com/google/bigwheels/issues/97) around duplicate targets in VS solutions which may cause build failures when building many shader targets in parallel. As a temporary workaround, you can re-trigger the build and it will eventually work.**
 
