@@ -39,7 +39,7 @@ static constexpr size_t SPHERE_METAL_ROUGHNESS_SAMPLER_REGISTER       = 7;
 
 static constexpr size_t QUADS_CONFIG_UNIFORM_BUFFER_REGISTER = 0;
 static constexpr size_t QUADS_SAMPLED_IMAGE_REGISTER         = 1;
-static constexpr size_t QUADS_FAKE_BUFFER_REGISTER          = QUADS_SAMPLED_IMAGE_REGISTER + kMaxTextureCount;
+static constexpr size_t QUADS_FAKE_BUFFER_REGISTER           = QUADS_SAMPLED_IMAGE_REGISTER + kMaxTextureCount;
 
 #if defined(USE_DX12)
 const grfx::Api kApi = grfx::API_DX_12_0;
