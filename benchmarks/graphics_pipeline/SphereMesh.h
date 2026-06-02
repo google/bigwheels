@@ -34,7 +34,7 @@ public:
     uint32_t GetCount() const { return static_cast<uint32_t>(mOrderedPointIndices.size()); }
 
     // Get model matrix that can be applied to move a model space object to this point
-    float4x4 GetModelMatrix(uint32_t pointIndex) const;
+    float4x4 GetModelMatrix(uint32_t pointIndex, bool isXR) const;
 
 private:
     uint32_t              mSizeX;
@@ -83,11 +83,12 @@ public:
     };
 
     // Creates a SphereMesh and populates info for one sphere
-    SphereMesh(float radius, uint32_t longitudeSegments, uint32_t latitudeSegments)
+    SphereMesh(float radius, uint32_t longitudeSegments, uint32_t latitudeSegments, bool isXR)
     {
         mSingleSphereMesh        = TriMesh::CreateSphere(radius, longitudeSegments, latitudeSegments, TriMeshOptions().Indices().TexCoords().Normals().Tangents());
         mSingleSphereVertexCount = mSingleSphereMesh.GetCountPositions();
         mSingleSphereTriCount    = mSingleSphereMesh.GetCountTriangles();
+        mIsXR                    = isXR;
 
         PPX_LOG_INFO("Creating SphereMesh:");
         PPX_LOG_INFO("  Sphere vertex count: " << mSingleSphereVertexCount << " | triangle count: " << mSingleSphereTriCount);
@@ -101,6 +102,8 @@ public:
     const Geometry* GetLowPrecisionPositionPlanar() const { return &mLowPlanar; }
     const Geometry* GetHighPrecisionInterleaved() const { return &mHighInterleaved; }
     const Geometry* GetHighPrecisionPositionPlanar() const { return &mHighPlanar; }
+
+    bool IsXR() const { return mIsXR; }
 
 private:
     // Create all single sphere and full geometries
@@ -143,6 +146,8 @@ private:
     Geometry mLowPlanar;
     Geometry mHighInterleaved;
     Geometry mHighPlanar;
+
+    bool mIsXR;
 };
 
 // Overwrite the position data within a position buffer with vtx.position, at vertex elementIndex only

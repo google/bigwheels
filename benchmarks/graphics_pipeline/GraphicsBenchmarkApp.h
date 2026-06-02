@@ -1,4 +1,4 @@
-// Copyright 2023 Google LLC
+// Copyright 2026 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include "MultiDimensionalIndexer.h"
 
 #include "ppx/grfx/grfx_config.h"
+#include "ppx/grfx/grfx_enums.h"
 #include "ppx/grfx/grfx_format.h"
 #include "ppx/knob.h"
 #include "ppx/math_config.h"
@@ -30,16 +31,17 @@
 #include <vector>
 #include <unordered_map>
 
-static constexpr uint32_t kMaxSphereInstanceCount     = 3000;
-static constexpr uint32_t kDefaultSphereInstanceCount = 50;
+static constexpr uint32_t kMaxSphereInstanceCount     = 5000;
+static constexpr uint32_t kDefaultSphereInstanceCount = 1;
 static constexpr uint32_t kSeed                       = 89977;
 static constexpr uint32_t kMaxFullscreenQuadsCount    = 1000;
+static constexpr uint32_t kMaxTextureCount            = 10;
 
 static constexpr float4   kDefaultDrawCallColor        = float4(1.0f, 0.175f, 0.365f, 0.5f);
 static constexpr uint32_t kDebugColorPushConstantCount = sizeof(float4) / sizeof(uint32_t);
 
 static constexpr const char* kShaderBaseDir   = "benchmarks/shaders";
-static constexpr const char* kQuadTextureFile = "benchmarks/textures/resolution.jpg";
+static constexpr const char* kQuadTextureFile = "benchmarks/textures/fish/2364x2880.png";
 
 enum class DebugView
 {
@@ -217,6 +219,27 @@ static constexpr std::array<std::pair<int, int>, 8 + 9> kVRPerEyeResolutions = {
     {960, 1080},  // PlayStation VR
     {2000, 2040}, // PlayStation VR 2
     {3680, 3140}, // Vision Pro, estimation from Wikipedia
+}};
+
+struct QuadViewportScale
+{
+    float scale;
+};
+
+static constexpr std::array<DropdownEntry<QuadViewportScale>, 7> kAvailableViewportScales = {{
+    {"1", 1.0},               // No scale
+    {"1/2", 0.5},             // scale to 1/2
+    {"1/4", 0.25},            // scale to 1/4
+    {"1/16", 0.0625},         // scale to 1/16"
+    {"1/64", 0.015625},       // scale to 1/64"
+    {"1/256", 0.00390625},    // scale to 1/256"
+    {"1/1024", 0.0009765625}, // scale t0 1/1024
+}};
+
+static constexpr std::array<DropdownEntry<grfx::BlendMode>, 3> kQuadBlendModes = {{
+    {"none", grfx::BLEND_MODE_NONE},
+    {"alpha", grfx::BLEND_MODE_ALPHA},
+    {"disable_output", grfx::BLEND_MODE_DISABLE_OUTPUT},
 }};
 
 class GraphicsBenchmarkApp
@@ -426,6 +449,16 @@ private:
         grfx::FullscreenQuadPtr      quad;
     };
 
+    // Needs to match with the definition at assets/benchmarks/shaders/Benchmark_Quad.hlsli
+    struct QuadPushConstant
+    {
+        uint32_t InstCount;
+        uint32_t RandomSeed;
+        uint32_t TextureCount;
+        uint32_t ExtraPadding;
+        float3   ColorValue;
+    };
+
 private:
     using SpherePipelineMap = std::unordered_map<SpherePipelineKey, grfx::GraphicsPipelinePtr, SpherePipelineKey::Hash>;
     using SkyboxPipelineMap = std::unordered_map<SkyBoxPipelineKey, grfx::GraphicsPipelinePtr, SkyBoxPipelineKey::Hash>;
@@ -469,7 +502,8 @@ private:
     // Fullscreen quads resources
     Entity2D                                                             mFullscreenQuads;
     grfx::ShaderModulePtr                                                mVSQuads;
-    grfx::TexturePtr                                                     mQuadsTexture;
+    std::array<grfx::TexturePtr, kMaxTextureCount>                       mQuadsTextures;
+    grfx::BufferPtr                                                      mQuadsFakeBuffer;
     QuadPipelineMap                                                      mQuadsPipelines;
     std::array<grfx::PipelineInterfacePtr, kFullscreenQuadsTypes.size()> mQuadsPipelineInterfaces;
     std::array<grfx::ShaderModulePtr, kFullscreenQuadsTypes.size()>      mQuadsPs;
@@ -491,6 +525,8 @@ private:
     // This is used to skip first several frames after the knob of quad count being changed
     uint32_t mSkipRecordBandwidthMetricFrameCounter = 0;
 
+    QuadPushConstant mQuadPushConstant;
+
 private:
     std::shared_ptr<KnobCheckbox>              pEnableSkyBox;
     std::shared_ptr<KnobCheckbox>              pEnableSpheres;
@@ -508,6 +544,7 @@ private:
 
     std::shared_ptr<KnobSlider<int>>                   pFullscreenQuadsCount;
     std::shared_ptr<KnobDropdown<FullscreenQuadsType>> pFullscreenQuadsType;
+    std::shared_ptr<KnobFlag<int>>                     pTextureShaderALU;
     std::shared_ptr<KnobDropdown<float3>>              pFullscreenQuadsColor;
     std::shared_ptr<KnobCheckbox>                      pFullscreenQuadsSingleRenderpass;
     std::shared_ptr<KnobFlag<std::string>>             pQuadTextureFile;
@@ -516,6 +553,12 @@ private:
     std::shared_ptr<KnobCheckbox>                      pBlitOffscreen;
     std::shared_ptr<KnobDropdown<grfx::Format>>        pFramebufferFormat;
     std::shared_ptr<KnobDropdown<std::pair<int, int>>> pResolution;
+
+    std::shared_ptr<KnobFlag<int>>                   pKnobShaderAluLoopCount;
+    std::shared_ptr<KnobFlag<int>>                   pKnobTextureCount;
+    std::shared_ptr<KnobDropdown<QuadViewportScale>> pKnobViewportHeightScale;
+    std::shared_ptr<KnobDropdown<QuadViewportScale>> pKnobViewportWidthScale;
+    std::shared_ptr<KnobDropdown<grfx::BlendMode>>   pKnobQuadBlendMode;
 
 private:
     // =====================================================================
