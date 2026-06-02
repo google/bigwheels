@@ -39,7 +39,7 @@ static constexpr size_t SPHERE_METAL_ROUGHNESS_SAMPLER_REGISTER       = 7;
 
 static constexpr size_t QUADS_CONFIG_UNIFORM_BUFFER_REGISTER = 0;
 static constexpr size_t QUADS_SAMPLED_IMAGE_REGISTER         = 1;
-static constexpr size_t QUADS_DUMMY_BUFFER_REGISTER          = QUADS_SAMPLED_IMAGE_REGISTER + kMaxTextureCount;
+static constexpr size_t QUADS_FAKE_BUFFER_REGISTER          = QUADS_SAMPLED_IMAGE_REGISTER + kMaxTextureCount;
 
 #if defined(USE_DX12)
 const grfx::Api kApi = grfx::API_DX_12_0;
@@ -275,7 +275,7 @@ void GraphicsBenchmarkApp::Setup()
         createInfo.sampler                        = 5 * GetNumFramesInFlight();                      // 1 for skybox, 3 for spheres, 1 for blit
         createInfo.sampledImage                   = (5 + kMaxTextureCount) * GetNumFramesInFlight(); // 1 for skybox, 3 for spheres, kMaxTextureCount for quads, 1 for blit
         createInfo.uniformBuffer                  = 2 * GetNumFramesInFlight();                      // 1 for skybox, 1 for spheres
-        createInfo.structuredBuffer               = 1;                                               // 1 for quads dummy buffer
+        createInfo.structuredBuffer               = 1;                                               // 1 for quads fake buffer
 
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorPool(&createInfo, &mDescriptorPool));
     }
@@ -513,7 +513,7 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsResources()
         }
     }
 
-    // dummy buffer
+    // Fake buffer
     {
         grfx::BufferCreateInfo bufferCreateInfo             = {};
         bufferCreateInfo.size                               = PPX_MINIMUM_STRUCTURED_BUFFER_SIZE;
@@ -521,14 +521,14 @@ void GraphicsBenchmarkApp::SetupFullscreenQuadsResources()
         bufferCreateInfo.usageFlags.bits.rwStructuredBuffer = true;
         bufferCreateInfo.memoryUsage                        = grfx::MEMORY_USAGE_GPU_ONLY;
         bufferCreateInfo.initialState                       = grfx::RESOURCE_STATE_GENERAL;
-        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mQuadsDummyBuffer));
+        PPX_CHECKED_CALL(GetDevice()->CreateBuffer(&bufferCreateInfo, &mQuadsFakeBuffer));
     }
 
     // Descriptor set layout for texture shader
     {
         grfx::DescriptorSetLayoutCreateInfo layoutCreateInfo = {};
         layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(QUADS_SAMPLED_IMAGE_REGISTER, grfx::DESCRIPTOR_TYPE_SAMPLED_IMAGE, kMaxTextureCount));
-        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(QUADS_DUMMY_BUFFER_REGISTER, grfx::DESCRIPTOR_TYPE_RW_STRUCTURED_BUFFER));
+        layoutCreateInfo.bindings.push_back(grfx::DescriptorBinding(QUADS_FAKE_BUFFER_REGISTER, grfx::DESCRIPTOR_TYPE_RW_STRUCTURED_BUFFER));
         PPX_CHECKED_CALL(GetDevice()->CreateDescriptorSetLayout(&layoutCreateInfo, &mFullscreenQuads.descriptorSetLayout));
     }
 
@@ -617,13 +617,13 @@ void GraphicsBenchmarkApp::UpdateFullscreenQuadsDescriptors()
             PPX_CHECKED_CALL(pDescriptorSet->UpdateSampledImage(QUADS_SAMPLED_IMAGE_REGISTER, j, mQuadsTextures[j]));
         }
         grfx::WriteDescriptor write  = {};
-        write.binding                = QUADS_DUMMY_BUFFER_REGISTER;
+        write.binding                = QUADS_FAKE_BUFFER_REGISTER;
         write.arrayIndex             = 0;
         write.type                   = grfx::DESCRIPTOR_TYPE_RW_STRUCTURED_BUFFER;
         write.bufferOffset           = 0;
         write.bufferRange            = PPX_WHOLE_SIZE;
         write.structuredElementCount = 1;
-        write.pBuffer                = mQuadsDummyBuffer;
+        write.pBuffer                = mQuadsFakeBuffer;
         PPX_CHECKED_CALL(pDescriptorSet->UpdateDescriptors(1, &write));
     }
 }

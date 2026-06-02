@@ -503,7 +503,7 @@ private:
     Entity2D                                                             mFullscreenQuads;
     grfx::ShaderModulePtr                                                mVSQuads;
     std::array<grfx::TexturePtr, kMaxTextureCount>                       mQuadsTextures;
-    grfx::BufferPtr                                                      mQuadsDummyBuffer;
+    grfx::BufferPtr                                                      mQuadsFakeBuffer;
     QuadPipelineMap                                                      mQuadsPipelines;
     std::array<grfx::PipelineInterfacePtr, kFullscreenQuadsTypes.size()> mQuadsPipelineInterfaces;
     std::array<grfx::ShaderModulePtr, kFullscreenQuadsTypes.size()>      mQuadsPs;
