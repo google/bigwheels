@@ -12,9 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <memory>
 #include <string_view>
 
 #include "ppx/scene/scene_gltf_loader.h"
+#include "ppx/config.h"
 #include "ppx/grfx/grfx_device.h"
 #include "ppx/grfx/grfx_scope.h"
 #include "ppx/graphics_util.h"
@@ -239,25 +241,6 @@ static VertexAccessors GetVertexAccessors(const cgltf_primitive* pGltfPrimitive)
     return accessors;
 }
 
-// Get a buffer view's start address
-static const void* GetStartAddress(
-    const cgltf_buffer_view* pGltfBufferView)
-{
-    //
-    // NOTE: Don't assert in this function since any of the fields can be NULL for different reasons.
-    //
-
-    if (IsNull(pGltfBufferView) || IsNull(pGltfBufferView->buffer) || IsNull(pGltfBufferView->buffer->data)) {
-        return nullptr;
-    }
-
-    const size_t bufferViewOffset = static_cast<size_t>(pGltfBufferView->offset);
-    const char*  pBufferAddress   = static_cast<const char*>(pGltfBufferView->buffer->data);
-    const char*  pDataStart       = pBufferAddress + bufferViewOffset;
-
-    return static_cast<const void*>(pDataStart);
-}
-
 const char* ToString(cgltf_component_type componentType)
 {
     switch (componentType) {
@@ -443,6 +426,141 @@ std::vector<glm::float4> UnpackFloat4s(const cgltf_accessor& accessor)
     return float4s;
 }
 
+constexpr std::string_view kDataScheme      = "data:";
+constexpr std::string_view kBase64Extension = ";base64,";
+
+struct DataUriResult
+{
+    ppx::Result      result = ppx::SUCCESS;
+    std::string_view mediaType;
+    char*            base64Data = nullptr;
+    size_t           base64Size = 0;
+};
+DataUriResult ParseDataUriWithBase64Extension(char* data, size_t length)
+{
+    std::string_view dataView(data, length);
+
+    size_t dataSchemeStartPosition = dataView.find(kDataScheme);
+    if (dataSchemeStartPosition != 0) {
+        PPX_LOG_ERROR("data scheme should be at the start of the URI");
+        return {ppx::ERROR_BAD_DATA_SOURCE};
+    }
+    size_t dataSchemeEndPosition = dataSchemeStartPosition + kDataScheme.size();
+
+    size_t base64ExtensionStartPosition = dataView.find(kBase64Extension, dataSchemeEndPosition);
+    if (base64ExtensionStartPosition == kBase64Extension.npos) {
+        PPX_LOG_ERROR("Missing base64 extension in data URI");
+        return {ppx::ERROR_BAD_DATA_SOURCE};
+    }
+    size_t base64ExtensionEndPosition = base64ExtensionStartPosition + kBase64Extension.size();
+
+    std::string_view mediaType(data + dataSchemeEndPosition, base64ExtensionStartPosition - dataSchemeEndPosition);
+
+    return {ppx::SUCCESS, mediaType, data + base64ExtensionEndPosition, length - base64ExtensionEndPosition};
+};
+
+std::string_view ToString(enum cgltf_result result)
+{
+    switch (result) {
+        case (cgltf_result_success): return "cgltf_result_success";
+        case (cgltf_result_data_too_short): return "cgltf_result_data_too_short";
+        case (cgltf_result_unknown_format): return "cgltf_result_unknown_format";
+        case (cgltf_result_invalid_json): return "cgltf_result_invalid_json";
+        case (cgltf_result_invalid_gltf): return "cgltf_result_invalid_gltf";
+        case (cgltf_result_invalid_options): return "cgltf_result_invalid_options";
+        case (cgltf_result_file_not_found): return "cgltf_result_file_not_found";
+        case (cgltf_result_io_error): return "cgltf_result_io_error";
+        case (cgltf_result_out_of_memory): return "cgltf_result_out_of_memory";
+        case (cgltf_result_legacy_gltf): return "cgltf_result_legacy_gltf";
+        default: return "<unknown cgltf_result>";
+    }
+}
+
+int CountBase64Padding(std::string_view base64)
+{
+    PPX_ASSERT_MSG(base64.size() % 4 == 0, "bsae64 string length must be a multiple of 4");
+    int  count    = 0;
+    auto iterator = base64.rbegin();
+    if (*iterator++ == '=') {
+        count += 1;
+    }
+    if (*iterator++ == '=') {
+        count += 1;
+    }
+    return count;
+}
+
+struct DecodeBase64Result
+{
+    ppx::Result            result = ppx::SUCCESS;
+    std::vector<std::byte> data;
+};
+
+DecodeBase64Result DecodeBase64(char* base64, size_t base64Size)
+{
+    std::string_view base64StringView(base64, base64Size);
+
+    // cgltf_load_buffer_base64 doesn't handlke padding characters, so hack around it.
+    // Padding can be treated as 0 (base64 A), Then, after decode, drop bytes to achieve the correct decoded length.
+    int paddingCount = CountBase64Padding(base64StringView);
+    // cgltf owns this string
+    if (paddingCount >= 1) {
+        base64[base64StringView.size() - 1] = 'A';
+    }
+    if (paddingCount >= 2) {
+        base64[base64StringView.size() - 2] = 'A';
+    }
+
+    size_t decodedSize = base64Size / 4 * 3;
+
+    std::vector<std::byte> decodedData(decodedSize, std::byte{0});
+
+    // cgltf_load_buffer_base64 allocates once and only frees on error.
+    // Instead of mallocing new memory, use the vector.
+    cgltf_options cgltfOptions     = {};
+    cgltfOptions.memory.alloc_func = +[](void* user, size_t size) -> void* {
+        return reinterpret_cast<std::vector<std::byte>*>(user)->data();
+    };
+    cgltfOptions.memory.free_func = +[](void* /*user*/, void* /*ptr*/) {};
+    cgltfOptions.memory.user_data = &decodedData;
+
+    void* unused = nullptr;
+    if (cgltf_result result = cgltf_load_buffer_base64(&cgltfOptions, decodedSize, base64StringView.data(), /*out_data=*/&unused); result != cgltf_result_success) {
+        PPX_LOG_ERROR("cgltf_load_buffer_base64 failed: " << ToString(result));
+        return {ppx::ERROR_BAD_DATA_SOURCE};
+    }
+
+    // Drop any padding bytes at the end (not part of the encoded data)
+    if (paddingCount >= 1) {
+        decodedData.pop_back();
+    }
+    if (paddingCount >= 2) {
+        decodedData.pop_back();
+    }
+
+    return {ppx::SUCCESS, std::move(decodedData)};
+}
+
+struct CreateImageFromBitmapMemoryResult
+{
+    ppx::Result                  result = ppx::SUCCESS;
+    std::unique_ptr<grfx::Image> image;
+};
+CreateImageFromBitmapMemoryResult CreateImageFromBitmapMemory(grfx::Queue& queue, const void* data, size_t size)
+{
+    ppx::Bitmap bitmap;
+    if (ppx::Result result = ppx::Bitmap::LoadFromMemory(size, data, &bitmap); Failed(result)) {
+        return {result};
+    }
+
+    grfx::Image* image = nullptr;
+    if (ppx::Result result = grfx_util::CreateImageFromBitmap(&queue, &bitmap, &image); Failed(result)) {
+        return {result};
+    }
+
+    return {ppx::SUCCESS, std::unique_ptr<grfx::Image>(image)};
+}
+
 } // namespace
 
 // -------------------------------------------------------------------------------------------------
@@ -544,17 +662,14 @@ ppx::Result GltfLoader::Create(
         }
     }
 
-    // Relative paths in image URIs may be percent encoded. Since we only expect relative paths,
-    // fix them all up in one go and remove this burden from future users.
+    // Relative paths in image URIs may be percent encoded.
+    // Fix them all up in one go and remove this burden from future users.
     for (size_t i = 0; i < pGltfData->images_count; ++i) {
         cgltf_image& image = pGltfData->images[i];
-        // image.uri may not be set, e.g. for GLB files
-        if (image.uri == nullptr) {
+        // image.uri may not be set, e.g. for GLB files.
+        // Additionally, don't need to decode `data:` right now.
+        if (image.uri == nullptr || std::string_view(image.uri).find(kDataScheme) == 0) {
             continue;
-        }
-        if (std::string_view(image.uri).find("data:") == 0) {
-            PPX_LOG_ERROR("GLTF images with data URIs are not supported");
-            return ppx::ERROR_SCENE_INVALID_SOURCE_IMAGE;
         }
         // cgltf_decode_uri wants a mutable C-string. Fortunately, image.uri is one! Since
         // decoding replaces larger substrings with smaller ones, we should be able to safely reuse
@@ -798,40 +913,57 @@ ppx::Result GltfLoader::LoadImageInternal(
     grfx::Image* pGrfxImage = nullptr;
     //
     if (!IsNull(pGltfImage->uri)) {
-        std::filesystem::path filePath = mGltfTextureDir / ToStringSafe(pGltfImage->uri);
-        if (!std::filesystem::exists(filePath)) {
-            PPX_LOG_ERROR("GLTF file references an image file that doesn't exist (image=" << ToStringSafe(pGltfImage->name) << ", uri=" << ToStringSafe(pGltfImage->uri) << ", file=" << filePath);
-            return ppx::ERROR_PATH_DOES_NOT_EXIST;
-        }
+        std::string_view uri(pGltfImage->uri);
+        if (uri.find(kDataScheme) == 0) {
+            DataUriResult parsedUri = ParseDataUriWithBase64Extension(pGltfImage->uri, uri.size());
+            if (Failed(parsedUri.result)) {
+                return parsedUri.result;
+            }
 
-        auto ppxres = grfx_util::CreateImageFromFile(
-            loadParams.pDevice->GetGraphicsQueue(),
-            filePath,
-            &pGrfxImage);
-        if (Failed(ppxres)) {
-            return ppxres;
+            if (parsedUri.mediaType != "image/jpeg" && parsedUri.mediaType != "image/png") {
+                PPX_LOG_ERROR("Unsupported mediaType: " << parsedUri.mediaType);
+                return ppx::ERROR_SCENE_INVALID_SOURCE_IMAGE;
+            }
+
+            DecodeBase64Result decodedData = DecodeBase64(parsedUri.base64Data, parsedUri.base64Size);
+            if (Failed(decodedData.result)) {
+                return decodedData.result;
+            }
+
+            CreateImageFromBitmapMemoryResult image = CreateImageFromBitmapMemory(*loadParams.pDevice->GetGraphicsQueue(), decodedData.data.data(), decodedData.data.size());
+            if (Failed(image.result)) {
+                return image.result;
+            }
+            pGrfxImage = image.image.release();
+        }
+        else {
+            std::filesystem::path filePath = mGltfTextureDir / ToStringSafe(pGltfImage->uri);
+            if (!std::filesystem::exists(filePath)) {
+                PPX_LOG_ERROR("GLTF file references an image file that doesn't exist (image=" << ToStringSafe(pGltfImage->name) << ", uri=" << ToStringSafe(pGltfImage->uri) << ", file=" << filePath);
+                return ppx::ERROR_PATH_DOES_NOT_EXIST;
+            }
+
+            auto ppxres = grfx_util::CreateImageFromFile(
+                loadParams.pDevice->GetGraphicsQueue(),
+                filePath,
+                &pGrfxImage);
+            if (Failed(ppxres)) {
+                return ppxres;
+            }
         }
     }
     else if (!IsNull(pGltfImage->buffer_view)) {
-        const size_t dataSize = static_cast<size_t>(pGltfImage->buffer_view->size);
-        const void*  pData    = GetStartAddress(pGltfImage->buffer_view);
+        const size_t   dataSize = static_cast<size_t>(pGltfImage->buffer_view->size);
+        const uint8_t* pData    = cgltf_buffer_view_data(pGltfImage->buffer_view);
         if (IsNull(pData)) {
             return ppx::ERROR_BAD_DATA_SOURCE;
         }
 
-        ppx::Bitmap bitmap;
-        auto        ppxres = ppx::Bitmap::LoadFromMemory(dataSize, pData, &bitmap);
-        if (Failed(ppxres)) {
-            return ppxres;
+        CreateImageFromBitmapMemoryResult image = CreateImageFromBitmapMemory(*loadParams.pDevice->GetGraphicsQueue(), pData, dataSize);
+        if (Failed(image.result)) {
+            return image.result;
         }
-
-        ppxres = grfx_util::CreateImageFromBitmap(
-            loadParams.pDevice->GetGraphicsQueue(),
-            &bitmap,
-            &pGrfxImage);
-        if (Failed(ppxres)) {
-            return ppxres;
-        }
+        pGrfxImage = image.image.release();
     }
     else {
         return ppx::ERROR_SCENE_INVALID_SOURCE_IMAGE;
