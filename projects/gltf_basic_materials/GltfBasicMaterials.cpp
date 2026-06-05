@@ -15,6 +15,7 @@
 #include "GltfBasicMaterials.h"
 #include "ppx/scene/scene_gltf_loader.h"
 #include "ppx/graphics_util.h"
+#include "ppx/scene/scene_loader.h"
 
 namespace {
 
@@ -92,7 +93,9 @@ void GltfBasicMaterialsApp::Setup()
         //
         PPX_CHECKED_CALL(scene::GltfLoader::Create(GetAssetPath(mSceneAssetKnob->GetValue()), /*pMaterialSelector=*/nullptr, &pLoader));
 
-        PPX_CHECKED_CALL(pLoader->LoadScene(GetDevice(), 0, &mScene));
+        // Currently, all pipelines use MaterialVertex.vs which requires normals, tangents, and texcoords.
+        auto loadOptions = scene::LoadOptions().SetRequiredAttributes(scene::VertexAttributeFlags().Normals().Tangents().TexCoords());
+        PPX_CHECKED_CALL(pLoader->LoadScene(GetDevice(), 0, &mScene, loadOptions));
         if (mScene->GetCameraNodeCount() == 0) {
             PPX_LOG_WARN("Scene doesn't have a camera node. Using a default camera");
             mDefaultCamera = ArcballCamera();
