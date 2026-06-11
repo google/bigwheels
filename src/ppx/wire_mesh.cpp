@@ -16,6 +16,8 @@
 #include "ppx/math_util.h"
 #include "ppx/timer.h"
 
+#include <limits>
+
 namespace ppx {
 
 WireMesh::WireMesh()
@@ -25,8 +27,6 @@ WireMesh::WireMesh()
 WireMesh::WireMesh(grfx::IndexType indexType)
     : mIndexType(indexType)
 {
-    // TODO: #514 - Remove assert when UINT8 is supported
-    PPX_ASSERT_MSG(mIndexType != grfx::INDEX_TYPE_UINT8, "INDEX_TYPE_UINT8 unsupported in WireMesh");
 }
 
 WireMesh::~WireMesh()
@@ -88,6 +88,18 @@ uint64_t WireMesh::GetDataSizeColors() const
     return size;
 }
 
+const uint8_t* WireMesh::GetDataIndicesU8(uint32_t index) const
+{
+    if (mIndexType != grfx::INDEX_TYPE_UINT8) {
+        return nullptr;
+    }
+    uint32_t count = GetCountIndices();
+    if (index >= count) {
+        return nullptr;
+    }
+    return mIndices.data() + index;
+}
+
 const uint16_t* WireMesh::GetDataIndicesU16(uint32_t index) const
 {
     if (mIndexType != grfx::INDEX_TYPE_UINT16) {
@@ -136,6 +148,11 @@ const float3* WireMesh::GetDataColors(uint32_t index) const
     return reinterpret_cast<const float3*>(ptr);
 }
 
+void WireMesh::AppendIndexU8(uint8_t value)
+{
+    mIndices.push_back(value);
+}
+
 void WireMesh::AppendIndexU16(uint16_t value)
 {
     const uint8_t* pBytes = reinterpret_cast<const uint8_t*>(&value);
@@ -154,9 +171,16 @@ void WireMesh::AppendIndexU32(uint32_t value)
 
 uint32_t WireMesh::AppendEdge(uint32_t v0, uint32_t v1)
 {
-    if (mIndexType == grfx::INDEX_TYPE_UINT16) {
-        PPX_ASSERT_MSG(v0 <= UINT16_MAX, "v0 is out of range for index type UINT16");
-        PPX_ASSERT_MSG(v1 <= UINT16_MAX, "v1 is out of range for index type UINT16");
+    if (mIndexType == grfx::INDEX_TYPE_UINT8) {
+        PPX_ASSERT_MSG(v0 <= std::numeric_limits<uint8_t>::max(), "v0 is out of range for index type UINT8");
+        PPX_ASSERT_MSG(v1 <= std::numeric_limits<uint8_t>::max(), "v1 is out of range for index type UINT8");
+        mIndices.reserve(mIndices.size() + 2 * sizeof(uint8_t));
+        AppendIndexU8(static_cast<uint8_t>(v0));
+        AppendIndexU8(static_cast<uint8_t>(v1));
+    }
+    else if (mIndexType == grfx::INDEX_TYPE_UINT16) {
+        PPX_ASSERT_MSG(v0 <= std::numeric_limits<uint16_t>::max(), "v0 is out of range for index type UINT16");
+        PPX_ASSERT_MSG(v1 <= std::numeric_limits<uint16_t>::max(), "v1 is out of range for index type UINT16");
         mIndices.reserve(mIndices.size() + 2 * sizeof(uint16_t));
         AppendIndexU16(static_cast<uint16_t>(v0));
         AppendIndexU16(static_cast<uint16_t>(v1));
@@ -213,7 +237,13 @@ Result WireMesh::GetEdge(uint32_t triIndex, uint32_t& v0, uint32_t& v1) const
     const uint8_t* pData       = mIndices.data();
     uint32_t       elementSize = grfx::IndexTypeSize(mIndexType);
 
-    if (mIndexType == grfx::INDEX_TYPE_UINT16) {
+    if (mIndexType == grfx::INDEX_TYPE_UINT8) {
+        size_t         offset     = 2 * triIndex * elementSize;
+        const uint8_t* pIndexData = pData + offset;
+        v0                        = static_cast<uint32_t>(pIndexData[0]);
+        v1                        = static_cast<uint32_t>(pIndexData[1]);
+    }
+    else if (mIndexType == grfx::INDEX_TYPE_UINT16) {
         size_t          offset     = 2 * triIndex * elementSize;
         const uint16_t* pIndexData = reinterpret_cast<const uint16_t*>(pData + offset);
         v0                         = static_cast<uint32_t>(pIndexData[0]);
@@ -255,7 +285,7 @@ void WireMesh::AppendIndexAndVertexData(
     const WireMeshOptions&    options,
     WireMesh&                 mesh)
 {
-    grfx::IndexType indexType = options.mEnableIndices ? grfx::INDEX_TYPE_UINT32 : grfx::INDEX_TYPE_UNDEFINED;
+    grfx::IndexType indexType = mesh.GetIndexType();
 
     // Verify expected vertex count
     size_t vertexCount = (vertexData.size() * sizeof(float)) / sizeof(WireMeshVertexData);
@@ -426,7 +456,7 @@ WireMesh WireMesh::CreatePlane(WireMeshPlane plane, const float2& size, uint32_t
         indexCount += 1;
     }
 
-    grfx::IndexType indexType = options.mEnableIndices ? grfx::INDEX_TYPE_UINT32 : grfx::INDEX_TYPE_UNDEFINED;
+    grfx::IndexType indexType = options.mEnableIndices ? options.mIndexType : grfx::INDEX_TYPE_UNDEFINED;
     WireMesh        mesh      = WireMesh(indexType);
 
     uint32_t expectedVertexCount = 2 * (uverts + vverts);
@@ -508,7 +538,7 @@ WireMesh WireMesh::CreateCube(const float3& size, const WireMeshOptions& options
     };
     // clang-format on
 
-    grfx::IndexType indexType = options.mEnableIndices ? grfx::INDEX_TYPE_UINT32 : grfx::INDEX_TYPE_UNDEFINED;
+    grfx::IndexType indexType = options.mEnableIndices ? options.mIndexType : grfx::INDEX_TYPE_UNDEFINED;
     WireMesh        mesh      = WireMesh(indexType);
 
     AppendIndexAndVertexData(indexData, vertexData, 24, options, mesh);
@@ -603,7 +633,7 @@ WireMesh WireMesh::CreateSphere(float radius, uint32_t usegs, uint32_t vsegs, co
         }
     }
 
-    grfx::IndexType indexType = options.mEnableIndices ? grfx::INDEX_TYPE_UINT32 : grfx::INDEX_TYPE_UNDEFINED;
+    grfx::IndexType indexType = options.mEnableIndices ? options.mIndexType : grfx::INDEX_TYPE_UNDEFINED;
     WireMesh        mesh      = WireMesh(indexType);
 
     uint32_t expectedVertexCountU = (uverts - 1) * (vverts - 2);
