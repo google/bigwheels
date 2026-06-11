@@ -132,7 +132,7 @@ private:
     uint32_t    mL1CacheLineSize = 0;
     uint32_t    mL2CacheLineSize = 0;
     uint32_t    mL3CacheLineSize = 0;
-    Features    mFeatures        = {};
+    Features        mFeatures        = {};
     AArch64Features mAArch64Features = {};
 };
 
