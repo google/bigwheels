@@ -13,7 +13,7 @@
 # limitations under the License.
 project(projects)
 
-if (!PPX_ANDROID)
+if (NOT PPX_ANDROID)
   add_subdirectory(sample_00_ppx_info)
 endif ()
 
