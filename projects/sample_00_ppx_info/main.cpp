@@ -92,6 +92,7 @@ int main(int argc, char** argv)
         PPX_ASSERT_MSG(false, "grfx::CreateInstance failed");
         return EXIT_FAILURE;
     }
+    PPX_LOG_INFO("Graphics instance and devices created successfully.");
 
     grfx::DestroyInstance(instance);
 
