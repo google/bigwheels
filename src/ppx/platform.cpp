@@ -245,6 +245,8 @@ const char* GetAArch64MicroarchitectureName(int implementer, int part)
     return name ? name : "Unknown AArch64";
 }
 
+} // namespace
+
 CpuInfo GetAArch64CpuInfo()
 {
     cpu_features::Aarch64Info info = cpu_features::GetAarch64Info();
@@ -288,7 +290,6 @@ CpuInfo GetAArch64CpuInfo()
     return cpuInfo;
 }
 
-} // namespace
 #else
 namespace {
 
@@ -326,6 +327,8 @@ const char* GetX86LongMicroarchitectureName(cpu_features::X86Microarchitecture m
     // clang-format on
     return "Unknown X86 Architecture";
 }
+
+} // namespace
 
 CpuInfo GetX86CpuInfo()
 {
@@ -372,7 +375,6 @@ CpuInfo GetX86CpuInfo()
     return cpuInfo;
 }
 
-} // namespace
 #endif
 
 // -------------------------------------------------------------------------------------------------
