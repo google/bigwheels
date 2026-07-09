@@ -103,16 +103,16 @@ public:
     CpuInfo() {}
     ~CpuInfo() {}
 
-    const char*     GetBrandString() const { return mBrandString.c_str(); }
-    const char*     GetVendorString() const { return mVendorString.c_str(); }
-    const char*     GetMicroarchitectureString() const { return mMicroarchitectureString.c_str(); }
-    uint32_t        GetL1CacheSize() const { return mL1CacheSize; }
-    uint32_t        GetL2CacheSize() const { return mL2CacheSize; }
-    uint32_t        GetL3CacheSize() const { return mL3CacheSize; }
-    uint32_t        GetL1CacheLineSize() const { return mL1CacheLineSize; }
-    uint32_t        GetL2CacheLineSize() const { return mL2CacheLineSize; }
-    uint32_t        GetL3CacheLineSize() const { return mL3CacheLineSize; }
-    const Features& GetFeatures() const { return mFeatures; }
+    const char*            GetBrandString() const { return mBrandString.c_str(); }
+    const char*            GetVendorString() const { return mVendorString.c_str(); }
+    const char*            GetMicroarchitectureString() const { return mMicroarchitectureString.c_str(); }
+    uint32_t               GetL1CacheSize() const { return mL1CacheSize; }
+    uint32_t               GetL2CacheSize() const { return mL2CacheSize; }
+    uint32_t               GetL3CacheSize() const { return mL3CacheSize; }
+    uint32_t               GetL1CacheLineSize() const { return mL1CacheLineSize; }
+    uint32_t               GetL2CacheLineSize() const { return mL2CacheLineSize; }
+    uint32_t               GetL3CacheLineSize() const { return mL3CacheLineSize; }
+    const Features&        GetFeatures() const { return mFeatures; }
     const AArch64Features& GetAArch64Features() const { return mAArch64Features; }
 
 private:
@@ -123,15 +123,15 @@ private:
 #endif
 
 private:
-    std::string mBrandString;
-    std::string mVendorString;
-    std::string mMicroarchitectureString;
-    uint32_t    mL1CacheSize     = 0;
-    uint32_t    mL2CacheSize     = 0;
-    uint32_t    mL3CacheSize     = 0;
-    uint32_t    mL1CacheLineSize = 0;
-    uint32_t    mL2CacheLineSize = 0;
-    uint32_t    mL3CacheLineSize = 0;
+    std::string     mBrandString;
+    std::string     mVendorString;
+    std::string     mMicroarchitectureString;
+    uint32_t        mL1CacheSize     = 0;
+    uint32_t        mL2CacheSize     = 0;
+    uint32_t        mL3CacheSize     = 0;
+    uint32_t        mL1CacheLineSize = 0;
+    uint32_t        mL2CacheLineSize = 0;
+    uint32_t        mL3CacheLineSize = 0;
     Features        mFeatures        = {};
     AArch64Features mAArch64Features = {};
 };
