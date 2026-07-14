@@ -64,36 +64,76 @@ public:
         bool amx_int8            = false;
     };
 
+    struct AArch64Features
+    {
+        bool fp       = false;
+        bool asimd    = false;
+        bool aes      = false;
+        bool pmull    = false;
+        bool sha1     = false;
+        bool sha2     = false;
+        bool sha512   = false;
+        bool sha3     = false;
+        bool crc32    = false;
+        bool atomics  = false;
+        bool fphp     = false;
+        bool asimdhp  = false;
+        bool asimdrdm = false;
+        bool asimddp  = false;
+        bool asimdfhm = false;
+        bool fcma     = false;
+        bool lrcpc    = false;
+        bool dcpop    = false;
+        bool dit      = false;
+        bool ssbs     = false;
+        bool bti      = false;
+        bool paca     = false;
+        bool pacg     = false;
+        bool rng      = false;
+        bool mte      = false;
+        bool sve      = false;
+        bool sve2     = false;
+        bool i8mm     = false;
+        bool bf16     = false;
+        bool sme      = false;
+    };
+
     // ---------------------------------------------------------------------------------------------
 
     CpuInfo() {}
     ~CpuInfo() {}
 
-    const char*     GetBrandString() const { return mBrandString.c_str(); }
-    const char*     GetVendorString() const { return mVendorString.c_str(); }
-    const char*     GetMicroarchitectureString() const { return mMicroarchitectureString.c_str(); }
-    uint32_t        GetL1CacheSize() const { return mL1CacheSize; }
-    uint32_t        GetL2CacheSize() const { return mL2CacheSize; }
-    uint32_t        GetL3CacheSize() const { return mL3CacheSize; }
-    uint32_t        GetL1CacheLineSize() const { return mL1CacheLineSize; }
-    uint32_t        GetL2CacheLineSize() const { return mL2CacheLineSize; }
-    uint32_t        GetL3CacheLineSize() const { return mL3CacheLineSize; }
-    const Features& GetFeatures() const { return mFeatures; }
+    const char*            GetBrandString() const { return mBrandString.c_str(); }
+    const char*            GetVendorString() const { return mVendorString.c_str(); }
+    const char*            GetMicroarchitectureString() const { return mMicroarchitectureString.c_str(); }
+    uint32_t               GetL1CacheSize() const { return mL1CacheSize; }
+    uint32_t               GetL2CacheSize() const { return mL2CacheSize; }
+    uint32_t               GetL3CacheSize() const { return mL3CacheSize; }
+    uint32_t               GetL1CacheLineSize() const { return mL1CacheLineSize; }
+    uint32_t               GetL2CacheLineSize() const { return mL2CacheLineSize; }
+    uint32_t               GetL3CacheLineSize() const { return mL3CacheLineSize; }
+    const Features&        GetFeatures() const { return mFeatures; }
+    const AArch64Features& GetAArch64Features() const { return mAArch64Features; }
 
 private:
+#if defined(__aarch64__) || defined(_M_ARM64)
+    friend CpuInfo GetAArch64CpuInfo();
+#else
     friend CpuInfo GetX86CpuInfo();
+#endif
 
 private:
-    std::string mBrandString;
-    std::string mVendorString;
-    std::string mMicroarchitectureString;
-    uint32_t    mL1CacheSize     = 0;
-    uint32_t    mL2CacheSize     = 0;
-    uint32_t    mL3CacheSize     = 0;
-    uint32_t    mL1CacheLineSize = 0;
-    uint32_t    mL2CacheLineSize = 0;
-    uint32_t    mL3CacheLineSize = 0;
-    Features    mFeatures        = {0};
+    std::string     mBrandString;
+    std::string     mVendorString;
+    std::string     mMicroarchitectureString;
+    uint32_t        mL1CacheSize     = 0;
+    uint32_t        mL2CacheSize     = 0;
+    uint32_t        mL3CacheSize     = 0;
+    uint32_t        mL1CacheLineSize = 0;
+    uint32_t        mL2CacheLineSize = 0;
+    uint32_t        mL3CacheLineSize = 0;
+    Features        mFeatures        = {};
+    AArch64Features mAArch64Features = {};
 };
 
 class Platform

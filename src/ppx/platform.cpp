@@ -17,6 +17,8 @@
 
 #if defined(PPX_ANDROID)
 // TODO: Fill out ANDROID-specific header
+#elif defined(__aarch64__) || defined(_M_ARM64)
+#include "cpuinfo_aarch64.h"
 #else
 #include "cpuinfo_x86.h"
 #endif
@@ -34,7 +36,263 @@ static Platform sPlatform = Platform();
 // -------------------------------------------------------------------------------------------------
 #if defined(PPX_ANDROID)
 // TODO: Fill out ANDROID-specific info
+#elif defined(__aarch64__) || defined(_M_ARM64)
+namespace {
+
+const char* GetAArch64VendorName(int implementer)
+{
+    // Implementer codes from Linux kernel arch/arm64/include/asm/cputype.h (ARM_CPU_IMP_*).
+    switch (implementer) {
+        case 0x41: return "ARM";
+        case 0x42: return "Broadcom";
+        case 0x43: return "Cavium";
+        case 0x46: return "Fujitsu";
+        case 0x48: return "HiSilicon";
+        case 0x4e: return "NVIDIA";
+        case 0x50: return "APM";
+        case 0x51: return "Qualcomm";
+        case 0x61: return "Apple";
+        case 0x6d: return "Microsoft";
+        case 0xc0: return "Ampere";
+        default: break;
+    }
+    return "Unknown";
+}
+
+const char* GetAArch64ArmMicroarchitectureName(int part)
+{
+    switch (part) {
+        case 0xD03: return "Cortex-A53";
+        case 0xD04: return "Cortex-A35";
+        case 0xD05: return "Cortex-A55";
+        case 0xD07: return "Cortex-A57";
+        case 0xD08: return "Cortex-A72";
+        case 0xD09: return "Cortex-A73";
+        case 0xD0A: return "Cortex-A75";
+        case 0xD0B: return "Cortex-A76";
+        case 0xD0C: return "Neoverse-N1";
+        case 0xD0D: return "Cortex-A77";
+        case 0xD0E: return "Cortex-A76AE";
+        case 0xD40: return "Neoverse-V1";
+        case 0xD41: return "Cortex-A78";
+        case 0xD42: return "Cortex-A78AE";
+        case 0xD44: return "Cortex-X1";
+        case 0xD46: return "Cortex-A510";
+        case 0xD47: return "Cortex-A710";
+        case 0xD48: return "Cortex-X2";
+        case 0xD49: return "Neoverse-N2";
+        case 0xD4B: return "Cortex-A78C";
+        case 0xD4C: return "Cortex-X1C";
+        case 0xD4D: return "Cortex-A715";
+        case 0xD4E: return "Cortex-X3";
+        case 0xD4F: return "Neoverse-V2";
+        case 0xD80: return "Cortex-A520";
+        case 0xD81: return "Cortex-A720";
+        case 0xD82: return "Cortex-X4";
+        case 0xD83: return "Neoverse-V3AE";
+        case 0xD84: return "Neoverse-V3";
+        case 0xD85: return "Cortex-X925";
+        case 0xD87: return "Cortex-A725";
+        case 0xD89: return "Cortex-A720AE";
+        case 0xD8E: return "Neoverse-N3";
+        default: break;
+    }
+    return nullptr;
+}
+
+const char* GetAArch64BroadcomMicroarchitectureName(int part)
+{
+    switch (part) {
+        case 0x100: return "Brahma-B53";
+        case 0x516: return "Vulcan";
+        default: break;
+    }
+    return nullptr;
+}
+
+const char* GetAArch64CaviumMicroarchitectureName(int part)
+{
+    switch (part) {
+        case 0x0A1: return "ThunderX";
+        case 0x0A2: return "ThunderX 81xx";
+        case 0x0A3: return "ThunderX 83xx";
+        case 0x0AF: return "ThunderX2";
+        case 0x0B1: return "OcteonTX2 98xx";
+        case 0x0B2: return "OcteonTX2 96xx";
+        case 0x0B3: return "OcteonTX2 95xx";
+        case 0x0B4: return "OcteonTX2 95xxN";
+        case 0x0B5: return "OcteonTX2 95xxMM";
+        case 0x0B6: return "OcteonTX2 95xxO";
+        default: break;
+    }
+    return nullptr;
+}
+
+const char* GetAArch64FujitsuMicroarchitectureName(int part)
+{
+    switch (part) {
+        case 0x001: return "A64FX";
+        default: break;
+    }
+    return nullptr;
+}
+
+const char* GetAArch64HiSiliconMicroarchitectureName(int part)
+{
+    switch (part) {
+        case 0xD01: return "TSV110";
+        case 0xD02: return "HIP09";
+        case 0xD06: return "HIP12";
+        default: break;
+    }
+    return nullptr;
+}
+
+const char* GetAArch64NvidiaMicroarchitectureName(int part)
+{
+    switch (part) {
+        case 0x003: return "Denver";
+        case 0x004: return "Carmel";
+        case 0x010: return "Olympus";
+        default: break;
+    }
+    return nullptr;
+}
+
+const char* GetAArch64ApmMicroarchitectureName(int part)
+{
+    switch (part) {
+        case 0x000: return "X-Gene";
+        default: break;
+    }
+    return nullptr;
+}
+
+const char* GetAArch64QualcommMicroarchitectureName(int part)
+{
+    switch (part) {
+        case 0x001: return "Oryon X1";
+        case 0x200: return "Kryo";
+        case 0x800: return "Falkor V1";
+        case 0x801: return "Kryo 2xx Silver";
+        case 0x802: return "Kryo 3xx Gold";
+        case 0x803: return "Kryo 3xx Silver";
+        case 0x804: return "Kryo 4xx Gold";
+        case 0x805: return "Kryo 4xx Silver";
+        case 0xC00: return "Falkor";
+        default: break;
+    }
+    return nullptr;
+}
+
+const char* GetAArch64AppleMicroarchitectureName(int part)
+{
+    switch (part) {
+        case 0x022: return "M1 Icestorm";
+        case 0x023: return "M1 Firestorm";
+        case 0x024: return "M1 Icestorm Pro";
+        case 0x025: return "M1 Firestorm Pro";
+        case 0x028: return "M1 Icestorm Max";
+        case 0x029: return "M1 Firestorm Max";
+        case 0x032: return "M2 Blizzard";
+        case 0x033: return "M2 Avalanche";
+        case 0x034: return "M2 Blizzard Pro";
+        case 0x035: return "M2 Avalanche Pro";
+        case 0x038: return "M2 Blizzard Max";
+        case 0x039: return "M2 Avalanche Max";
+        default: break;
+    }
+    return nullptr;
+}
+
+const char* GetAArch64MicrosoftMicroarchitectureName(int part)
+{
+    switch (part) {
+        case 0xD49: return "Azure Cobalt 100";
+        default: break;
+    }
+    return nullptr;
+}
+
+const char* GetAArch64AmpereMicroarchitectureName(int part)
+{
+    switch (part) {
+        case 0xAC3: return "Ampere1";
+        case 0xAC4: return "Ampere1A";
+        default: break;
+    }
+    return nullptr;
+}
+
+const char* GetAArch64MicroarchitectureName(int implementer, int part)
+{
+    // Part numbers from Linux kernel arch/arm64/include/asm/cputype.h (*_CPU_PART_*).
+    const char* name = nullptr;
+    switch (implementer) {
+        case 0x41: name = GetAArch64ArmMicroarchitectureName(part); break;
+        case 0x42: name = GetAArch64BroadcomMicroarchitectureName(part); break;
+        case 0x43: name = GetAArch64CaviumMicroarchitectureName(part); break;
+        case 0x46: name = GetAArch64FujitsuMicroarchitectureName(part); break;
+        case 0x48: name = GetAArch64HiSiliconMicroarchitectureName(part); break;
+        case 0x4e: name = GetAArch64NvidiaMicroarchitectureName(part); break;
+        case 0x50: name = GetAArch64ApmMicroarchitectureName(part); break;
+        case 0x51: name = GetAArch64QualcommMicroarchitectureName(part); break;
+        case 0x61: name = GetAArch64AppleMicroarchitectureName(part); break;
+        case 0x6d: name = GetAArch64MicrosoftMicroarchitectureName(part); break;
+        case 0xc0: name = GetAArch64AmpereMicroarchitectureName(part); break;
+        default: break;
+    }
+    return name ? name : "Unknown AArch64";
+}
+
+} // namespace
+
+CpuInfo GetAArch64CpuInfo()
+{
+    cpu_features::Aarch64Info info = cpu_features::GetAarch64Info();
+
+    CpuInfo cpuInfo                  = {};
+    cpuInfo.mVendorString            = GetAArch64VendorName(info.implementer);
+    cpuInfo.mMicroarchitectureString = GetAArch64MicroarchitectureName(info.implementer, info.part);
+    // cpu_features::Aarch64Info does not carry a brand string, so mBrandString is left empty.
+
+    cpuInfo.mAArch64Features.fp       = static_cast<bool>(info.features.fp);
+    cpuInfo.mAArch64Features.asimd    = static_cast<bool>(info.features.asimd);
+    cpuInfo.mAArch64Features.aes      = static_cast<bool>(info.features.aes);
+    cpuInfo.mAArch64Features.pmull    = static_cast<bool>(info.features.pmull);
+    cpuInfo.mAArch64Features.sha1     = static_cast<bool>(info.features.sha1);
+    cpuInfo.mAArch64Features.sha2     = static_cast<bool>(info.features.sha2);
+    cpuInfo.mAArch64Features.sha512   = static_cast<bool>(info.features.sha512);
+    cpuInfo.mAArch64Features.sha3     = static_cast<bool>(info.features.sha3);
+    cpuInfo.mAArch64Features.crc32    = static_cast<bool>(info.features.crc32);
+    cpuInfo.mAArch64Features.atomics  = static_cast<bool>(info.features.atomics);
+    cpuInfo.mAArch64Features.fphp     = static_cast<bool>(info.features.fphp);
+    cpuInfo.mAArch64Features.asimdhp  = static_cast<bool>(info.features.asimdhp);
+    cpuInfo.mAArch64Features.asimdrdm = static_cast<bool>(info.features.asimdrdm);
+    cpuInfo.mAArch64Features.asimddp  = static_cast<bool>(info.features.asimddp);
+    cpuInfo.mAArch64Features.asimdfhm = static_cast<bool>(info.features.asimdfhm);
+    cpuInfo.mAArch64Features.fcma     = static_cast<bool>(info.features.fcma);
+    cpuInfo.mAArch64Features.lrcpc    = static_cast<bool>(info.features.lrcpc);
+    cpuInfo.mAArch64Features.dcpop    = static_cast<bool>(info.features.dcpop);
+    cpuInfo.mAArch64Features.dit      = static_cast<bool>(info.features.dit);
+    cpuInfo.mAArch64Features.ssbs     = static_cast<bool>(info.features.ssbs);
+    cpuInfo.mAArch64Features.bti      = static_cast<bool>(info.features.bti);
+    cpuInfo.mAArch64Features.paca     = static_cast<bool>(info.features.paca);
+    cpuInfo.mAArch64Features.pacg     = static_cast<bool>(info.features.pacg);
+    cpuInfo.mAArch64Features.rng      = static_cast<bool>(info.features.rng);
+    cpuInfo.mAArch64Features.mte      = static_cast<bool>(info.features.mte);
+    cpuInfo.mAArch64Features.sve      = static_cast<bool>(info.features.sve);
+    cpuInfo.mAArch64Features.sve2     = static_cast<bool>(info.features.sve2);
+    cpuInfo.mAArch64Features.i8mm     = static_cast<bool>(info.features.i8mm);
+    cpuInfo.mAArch64Features.bf16     = static_cast<bool>(info.features.bf16);
+    cpuInfo.mAArch64Features.sme      = static_cast<bool>(info.features.sme);
+
+    return cpuInfo;
+}
+
 #else
+namespace {
+
 const char* GetX86LongMicroarchitectureName(cpu_features::X86Microarchitecture march)
 {
     // clang-format off
@@ -69,6 +327,8 @@ const char* GetX86LongMicroarchitectureName(cpu_features::X86Microarchitecture m
     // clang-format on
     return "Unknown X86 Architecture";
 }
+
+} // namespace
 
 CpuInfo GetX86CpuInfo()
 {
@@ -114,6 +374,7 @@ CpuInfo GetX86CpuInfo()
 
     return cpuInfo;
 }
+
 #endif
 
 // -------------------------------------------------------------------------------------------------
@@ -122,7 +383,9 @@ CpuInfo GetX86CpuInfo()
 Platform::Platform()
 {
 #if defined(PPX_ANDROID)
-    // Call ANDROID-specific function
+    // TODO: Call ANDROID-specific function
+#elif defined(__aarch64__) || defined(_M_ARM64)
+    mCpuInfo = GetAArch64CpuInfo();
 #else
     mCpuInfo = GetX86CpuInfo();
 #endif
