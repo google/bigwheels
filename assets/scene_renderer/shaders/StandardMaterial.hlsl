@@ -15,6 +15,7 @@
 #define ENABLE_VTX_ATTR_TEXCOORD
 #define ENABLE_VTX_ATTR_NORMAL
 #define ENABLE_VTX_ATTR_TANGENT
+#define ENABLE_VTX_ATTR_COLOR
 #include "MaterialInterface.hlsli"
 
 #include "ppx/PBR.hlsli"
@@ -46,6 +47,7 @@ float4 psmain(StandardVertexOutput input) : SV_TARGET
 
         baseColor =  baseColor * float4(RemoveGamma(color.rgb, 2.2), color.a);
     }
+    baseColor.rgb *= input.Color;
 
     // Metal/roughness
     float metallic  = material.metallicFactor;

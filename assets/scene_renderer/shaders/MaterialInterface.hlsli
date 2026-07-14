@@ -65,6 +65,7 @@ struct DrawParams {
 #define DBG_VTX_ATTR_INDEX_TEXCOORD 1
 #define DBG_VTX_ATTR_INDEX_NORMAL   2
 #define DBG_VTX_ATTR_INDEX_TANGENT  3
+#define DBG_VTX_ATTR_INDEX_COLOR    4
 
 #if defined(__spirv__)
 [[vk::push_constant]]
