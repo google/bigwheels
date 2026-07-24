@@ -52,8 +52,25 @@ public:
     WireMeshOptions() {}
     ~WireMeshOptions() {}
     // clang-format off
-    //! Enable/disable indices
-    WireMeshOptions& Indices(bool value = true) { mEnableIndices = value; return *this; }
+    //! Enable/disable indices, using UINT32 by default when enabled
+    WireMeshOptions& Indices(bool value = true)
+    {
+        mEnableIndices = value;
+        if (value && (mIndexType == grfx::INDEX_TYPE_UNDEFINED)) {
+            mIndexType = grfx::INDEX_TYPE_UINT32;
+        }
+        else if (!value) {
+            mIndexType = grfx::INDEX_TYPE_UNDEFINED;
+        }
+        return *this;
+    }
+    //! Set the index type; UNDEFINED disables indices, concrete types enable indices
+    WireMeshOptions& IndexType(grfx::IndexType value)
+    {
+        mIndexType = value;
+        mEnableIndices = (value != grfx::INDEX_TYPE_UNDEFINED);
+        return *this;
+    }
     //! Enable/disable vertex colors
     WireMeshOptions& VertexColors(bool value = true) { mEnableVertexColors = value; return *this; }
     //! Set and/or enable/disable object color, object color will override vertex colors
@@ -62,11 +79,12 @@ public:
     WireMeshOptions& Scale(const float3& scale) { mScale = scale; return *this; }
     // clang-format on
 private:
-    bool   mEnableIndices      = false;
-    bool   mEnableVertexColors = false;
-    bool   mEnableObjectColor  = false;
-    float3 mObjectColor        = float3(0.7f);
-    float3 mScale              = float3(1, 1, 1);
+    bool            mEnableIndices      = false;
+    bool            mEnableVertexColors = false;
+    bool            mEnableObjectColor  = false;
+    grfx::IndexType mIndexType          = grfx::INDEX_TYPE_UINT32;
+    float3          mObjectColor        = float3(0.7f);
+    float3          mScale              = float3(1, 1, 1);
     friend class WireMesh;
 };
 
@@ -93,6 +111,7 @@ public:
     uint64_t GetDataSizePositions() const;
     uint64_t GetDataSizeColors() const;
 
+    const uint8_t*  GetDataIndicesU8(uint32_t index = 0) const;
     const uint16_t* GetDataIndicesU16(uint32_t index = 0) const;
     const uint32_t* GetDataIndicesU32(uint32_t index = 0) const;
     const float3*   GetDataPositions(uint32_t index = 0) const;
@@ -113,6 +132,7 @@ public:
     static WireMesh CreateSphere(float radius, uint32_t usegs, uint32_t vsegs, const WireMeshOptions& options = WireMeshOptions());
 
 private:
+    void AppendIndexU8(uint8_t value);
     void AppendIndexU16(uint16_t value);
     void AppendIndexU32(uint32_t value);
 
@@ -125,7 +145,7 @@ private:
 
 private:
     grfx::IndexType      mIndexType = grfx::INDEX_TYPE_UNDEFINED;
-    std::vector<uint8_t> mIndices;        // Stores both 16 and 32 bit indices
+    std::vector<uint8_t> mIndices;        // Stores 8, 16 and 32 bit indices
     std::vector<float3>  mPositions;      // Vertex positions
     std::vector<float3>  mColors;         // Vertex colors
     float3               mBoundingBoxMin; // Bounding box min
