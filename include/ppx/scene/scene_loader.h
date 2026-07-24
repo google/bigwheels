@@ -45,32 +45,9 @@ public:
         return *this;
     }
 
-    // Returns true if the calling application requires a specific set of attrbutes
-    bool HasRequiredVertexAttributes() const { return (mRequiredVertexAttributes.mask != 0); }
-
-    // Returns the attributes that the calling application rquires or none if attributes has not been set.
-    const scene::VertexAttributeFlags& GetRequiredAttributes() const { return mRequiredVertexAttributes; }
-
-    // Set attributes required by calling allication.
-    LoadOptions& SetRequiredAttributes(const scene::VertexAttributeFlags& attributes)
-    {
-        mRequiredVertexAttributes = attributes;
-        return *this;
-    }
-
-    // Clears required attributes (sets required attributs to none)
-    void ClearRequiredAttributes() { SetRequiredAttributes(scene::VertexAttributeFlags::None()); }
-
 private:
     // Pointer to custom material factory for loader to use.
     scene::MaterialFactory* mMaterialFactory = nullptr;
-
-    // Required attributes for meshes nodes, meshes - this should override
-    // whatever a loader is using to determine which vertex attributes to laod.
-    // If the source data doesn't provide data for an attribute, an sensible
-    // default value is used - usually zeroes.
-    //
-    scene::VertexAttributeFlags mRequiredVertexAttributes = scene::VertexAttributeFlags::None();
 };
 
 } // namespace scene

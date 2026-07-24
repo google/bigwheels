@@ -637,6 +637,9 @@ void GltfLoader::CalculateMeshMaterialVertexAttributeMasks(
             // Get required vertex attributes
             auto requiredVertexAttributes = pMaterialFactory->GetRequiredVertexAttributes(materialIdent);
 
+            // Disable vertex colors for now: some work is needed to handle format conversion.
+            requiredVertexAttributes.bits.colors = false;
+
             // OR the masks
             outMasks[pGltfMesh] |= requiredVertexAttributes;
         }
@@ -947,57 +950,25 @@ ppx::Result GltfLoader::LoadTextureInternal(
     scene::SamplerRef targetSampler = nullptr;
     scene::ImageRef   targetImage   = nullptr;
 
-    // Fetch if there's a resource manager...
-    if (!IsNull(loadParams.pResourceManager)) {
-        if (!IsNull(pGltfTexture->sampler)) {
-            auto ppxres = FetchSamplerInternal(loadParams, pGltfTexture->sampler, targetSampler);
-            if (Failed(ppxres)) {
-                return ppxres;
-            }
-        }
-        else {
-            constexpr auto kDefaultSamplerId = std::numeric_limits<uint64_t>::max();
-            if (!loadParams.pResourceManager->Find(kDefaultSamplerId, targetSampler)) {
-                if (ppx::Result ppxres = CreateDefaultSampler(*loadParams.pDevice, targetSampler); Failed(ppxres)) {
-                    return ppxres;
-                }
-                loadParams.pResourceManager->Cache(kDefaultSamplerId, targetSampler);
-            }
-        }
-
-        ppx::Result ppxres = FetchImageInternal(loadParams, pGltfTexture->image, targetImage);
+    if (!IsNull(pGltfTexture->sampler)) {
+        auto ppxres = FetchSamplerInternal(loadParams, pGltfTexture->sampler, targetSampler);
         if (Failed(ppxres)) {
             return ppxres;
         }
     }
-    // ...otherwise load!
     else {
-        scene::Sampler* pTargetSampler = nullptr;
-        auto            ppxres         = IsNull(pGltfTexture->sampler) ? CreateDefaultSampler(*loadParams.pDevice, &pTargetSampler) : LoadSamplerInternal(loadParams, pGltfTexture->sampler, &pTargetSampler);
-        if (Failed(ppxres)) {
-            return ppxres;
+        constexpr auto kDefaultSamplerId = std::numeric_limits<uint64_t>::max();
+        if (!loadParams.pResourceManager->Find(kDefaultSamplerId, targetSampler)) {
+            if (ppx::Result ppxres = CreateDefaultSampler(*loadParams.pDevice, targetSampler); Failed(ppxres)) {
+                return ppxres;
+            }
+            loadParams.pResourceManager->Cache(kDefaultSamplerId, targetSampler);
         }
-        PPX_ASSERT_NULL_ARG(pTargetSampler);
+    }
 
-        targetSampler = scene::MakeRef(pTargetSampler);
-        if (!targetSampler) {
-            delete pTargetSampler;
-            return ppx::ERROR_ALLOCATION_FAILED;
-        }
-
-        // Load image
-        scene::Image* pTargetImage = nullptr;
-        ppxres                     = LoadImageInternal(loadParams, pGltfTexture->image, &pTargetImage);
-        if (Failed(ppxres)) {
-            return ppxres;
-        }
-        PPX_ASSERT_NULL_ARG(pTargetImage);
-
-        targetImage = scene::MakeRef(pTargetImage);
-        if (!targetImage) {
-            delete pTargetImage;
-            return ppx::ERROR_ALLOCATION_FAILED;
-        }
+    ppx::Result ppxres = FetchImageInternal(loadParams, pGltfTexture->image, targetImage);
+    if (Failed(ppxres)) {
+        return ppxres;
     }
 
     // Create target object
@@ -1074,26 +1045,9 @@ ppx::Result GltfLoader::LoadTextureViewInternal(
     // Required object
     scene::TextureRef targetTexture = nullptr;
 
-    // Fetch if there's a resource manager...
-    if (!IsNull(loadParams.pResourceManager)) {
-        auto ppxres = FetchTextureInternal(loadParams, pGltfTextureView->texture, targetTexture);
-        if (Failed(ppxres)) {
-            return ppxres;
-        }
-    }
-    // ...otherwise load!
-    else {
-        scene::Texture* pTargetTexture = nullptr;
-        auto            ppxres         = LoadTextureInternal(loadParams, pGltfTextureView->texture, &pTargetTexture);
-        if (Failed(ppxres)) {
-            return ppxres;
-        }
-
-        targetTexture = scene::MakeRef(pTargetTexture);
-        if (!targetTexture) {
-            delete pTargetTexture;
-            return ppx::ERROR_ALLOCATION_FAILED;
-        }
+    auto ppxres = FetchTextureInternal(loadParams, pGltfTextureView->texture, targetTexture);
+    if (Failed(ppxres)) {
+        return ppxres;
     }
 
     // Set texture transform if needed
@@ -1349,26 +1303,31 @@ ppx::Result GltfLoader::LoadMeshData(
 
     // Use cached object if possible
     bool hasCachedGeometry = false;
-    if (!IsNull(loadParams.pResourceManager)) {
-        if (loadParams.pResourceManager->Find(objectId, outMeshData)) {
-            PPX_LOG_INFO("   ...cache load mesh data (objectId=" << objectId << ") for GLTF mesh[" << gltfMeshIndex << "]: " << gltfObjectName);
+    if (loadParams.pResourceManager->Find(objectId, outMeshData)) {
+        PPX_LOG_INFO("   ...cache load mesh data (objectId=" << objectId << ") for GLTF mesh[" << gltfMeshIndex << "]: " << gltfObjectName);
 
-            // We don't return here like the other functions because we still need
-            // to process the primitives, instead we just set the flag to prevent
-            // geometry creation.
-            //
-            hasCachedGeometry = true;
-        }
+        // We don't return here like the other functions because we still need
+        // to process the primitives, instead we just set the flag to prevent
+        // geometry creation.
+        //
+        hasCachedGeometry = true;
     }
 
     // ---------------------------------------------------------------------------------------------
 
+    auto requiredVertexAttributesIter = loadParams.pMeshMaterialVertexAttributeMasks->find(pGltfMesh);
+    if (requiredVertexAttributesIter == loadParams.pMeshMaterialVertexAttributeMasks->end()) {
+        PPX_LOG_ERROR("pMeshMaterialVertexAttributeMasks missing entry for mesh" << pGltfMesh);
+        return ERROR_UNEXPECTED_NULL_ARGUMENT; // TODO better return code
+    }
+    scene::VertexAttributeFlags requiredVertexAttributes = requiredVertexAttributesIter->second;
+
     // Target vertex formats
     auto targetPositionFormat = scene::kVertexPositionFormat;
-    auto targetTexCoordFormat = loadParams.requiredVertexAttributes.bits.texCoords ? scene::kVertexAttributeTexCoordFormat : grfx::FORMAT_UNDEFINED;
-    auto targetNormalFormat   = loadParams.requiredVertexAttributes.bits.normals ? scene::kVertexAttributeNormalFormat : grfx::FORMAT_UNDEFINED;
-    auto targetTangentFormat  = loadParams.requiredVertexAttributes.bits.tangents ? scene::kVertexAttributeTagentFormat : grfx::FORMAT_UNDEFINED;
-    auto targetColorFormat    = loadParams.requiredVertexAttributes.bits.colors ? scene::kVertexAttributeColorFormat : grfx::FORMAT_UNDEFINED;
+    auto targetTexCoordFormat = requiredVertexAttributes.bits.texCoords ? scene::kVertexAttributeTexCoordFormat : grfx::FORMAT_UNDEFINED;
+    auto targetNormalFormat   = requiredVertexAttributes.bits.normals ? scene::kVertexAttributeNormalFormat : grfx::FORMAT_UNDEFINED;
+    auto targetTangentFormat  = requiredVertexAttributes.bits.tangents ? scene::kVertexAttributeTagentFormat : grfx::FORMAT_UNDEFINED;
+    auto targetColorFormat    = requiredVertexAttributes.bits.colors ? scene::kVertexAttributeColorFormat : grfx::FORMAT_UNDEFINED;
 
     const uint32_t targetTexCoordElementSize = (targetTexCoordFormat != grfx::FORMAT_UNDEFINED) ? grfx::GetFormatDescription(targetTexCoordFormat)->bytesPerTexel : 0;
     const uint32_t targetNormalElementSize   = (targetNormalFormat != grfx::FORMAT_UNDEFINED) ? grfx::GetFormatDescription(targetNormalFormat)->bytesPerTexel : 0;
@@ -1557,16 +1516,16 @@ ppx::Result GltfLoader::LoadMeshData(
 
             // Create targetGeometry so we can repack gemetry data into position planar + packed vertex attributes.
             Geometry   targetGeometry = {};
-            const bool hasAttributes  = (loadParams.requiredVertexAttributes.mask != 0);
+            const bool hasAttributes  = (requiredVertexAttributes.mask != 0);
             //
             {
                 GeometryCreateInfo createInfo = (hasAttributes ? GeometryCreateInfo::PositionPlanar() : GeometryCreateInfo::Planar()).IndexType(batch.repackedIndexType);
 
                 // clang-format off
-                if (loadParams.requiredVertexAttributes.bits.texCoords) createInfo.AddTexCoord(targetTexCoordFormat);
-                if (loadParams.requiredVertexAttributes.bits.normals) createInfo.AddNormal(targetNormalFormat);
-                if (loadParams.requiredVertexAttributes.bits.tangents) createInfo.AddTangent(targetTangentFormat);
-                if (loadParams.requiredVertexAttributes.bits.colors) createInfo.AddColor(targetColorFormat);
+                if (requiredVertexAttributes.bits.texCoords) createInfo.AddTexCoord(targetTexCoordFormat);
+                if (requiredVertexAttributes.bits.normals) createInfo.AddNormal(targetNormalFormat);
+                if (requiredVertexAttributes.bits.tangents) createInfo.AddTangent(targetTangentFormat);
+                if (requiredVertexAttributes.bits.colors) createInfo.AddColor(targetColorFormat);
                 // clang-format on
 
                 auto ppxres = ppx::Geometry::Create(createInfo, &targetGeometry);
@@ -1641,22 +1600,22 @@ ppx::Result GltfLoader::LoadMeshData(
                 auto positions = UnpackFloat3s(*gltflAccessors.pPositions);
 
                 std::vector<glm::float2> texCoords;
-                if (loadParams.requiredVertexAttributes.bits.texCoords && !IsNull(gltflAccessors.pTexCoords)) {
+                if (requiredVertexAttributes.bits.texCoords && !IsNull(gltflAccessors.pTexCoords)) {
                     PPX_ASSERT_MSG((texCoordFormat == targetTexCoordFormat), "GLTF: vertex tex coords sourceIndexTypeFormat is not supported");
                     texCoords = UnpackFloat2s(*gltflAccessors.pTexCoords);
                 }
                 std::vector<glm::float3> normals;
-                if (loadParams.requiredVertexAttributes.bits.normals && !IsNull(gltflAccessors.pNormals)) {
+                if (requiredVertexAttributes.bits.normals && !IsNull(gltflAccessors.pNormals)) {
                     PPX_ASSERT_MSG((normalFormat == targetNormalFormat), "GLTF: vertex normals format is not supported");
                     normals = UnpackFloat3s(*gltflAccessors.pNormals);
                 }
                 std::vector<glm::float4> tangents;
-                if (loadParams.requiredVertexAttributes.bits.tangents && !IsNull(gltflAccessors.pTangents)) {
+                if (requiredVertexAttributes.bits.tangents && !IsNull(gltflAccessors.pTangents)) {
                     PPX_ASSERT_MSG((tangentFormat == targetTangentFormat), "GLTF: vertex tangents format is not supported");
                     tangents = UnpackFloat4s(*gltflAccessors.pTangents);
                 }
                 std::vector<glm::float3> colors;
-                if (loadParams.requiredVertexAttributes.bits.colors && !IsNull(gltflAccessors.pColors)) {
+                if (requiredVertexAttributes.bits.colors && !IsNull(gltflAccessors.pColors)) {
                     PPX_ASSERT_MSG((colorFormat == targetColorFormat), "GLTF: vertex colors format is not supported");
                     colors = UnpackFloat3s(*gltflAccessors.pColors);
                 }
@@ -1666,16 +1625,16 @@ ppx::Result GltfLoader::LoadMeshData(
                     TriMeshVertexData vertexData = {};
 
                     vertexData.position = positions[i];
-                    if (loadParams.requiredVertexAttributes.bits.normals && !normals.empty()) {
+                    if (requiredVertexAttributes.bits.normals && !normals.empty()) {
                         vertexData.normal = normals[i];
                     }
-                    if (loadParams.requiredVertexAttributes.bits.tangents && !tangents.empty()) {
+                    if (requiredVertexAttributes.bits.tangents && !tangents.empty()) {
                         vertexData.tangent = tangents[i];
                     }
-                    if (loadParams.requiredVertexAttributes.bits.colors && !colors.empty()) {
+                    if (requiredVertexAttributes.bits.colors && !colors.empty()) {
                         vertexData.color = colors[i];
                     }
-                    if (loadParams.requiredVertexAttributes.bits.texCoords && !texCoords.empty()) {
+                    if (requiredVertexAttributes.bits.texCoords && !texCoords.empty()) {
                         vertexData.texCoord = texCoords[i];
                     }
 
@@ -1783,7 +1742,7 @@ ppx::Result GltfLoader::LoadMeshData(
     // Create GPU mesh from geometry if we don't have cached geometry
     if (!hasCachedGeometry) {
         // Allocate mesh data
-        auto pTargetMeshData = new scene::MeshData(loadParams.requiredVertexAttributes, targetGpuBuffer);
+        auto pTargetMeshData = new scene::MeshData(requiredVertexAttributes, targetGpuBuffer);
         if (IsNull(pTargetMeshData)) {
             loadParams.pDevice->DestroyBuffer(targetGpuBuffer);
             return ppx::ERROR_ALLOCATION_FAILED;
@@ -1795,22 +1754,19 @@ ppx::Result GltfLoader::LoadMeshData(
         // Set name
         outMeshData->SetName(gltfObjectName);
 
-        // Cache object if caching
-        if (!IsNull(loadParams.pResourceManager)) {
-            PPX_LOG_INFO("   ...caching mesh data (objectId=" << objectId << ") for GLTF mesh[" << gltfMeshIndex << "]: " << gltfObjectName);
-            loadParams.pResourceManager->Cache(objectId, outMeshData);
-        }
+        PPX_LOG_INFO("   ...caching mesh data (objectId=" << objectId << ") for GLTF mesh[" << gltfMeshIndex << "]: " << gltfObjectName);
+        loadParams.pResourceManager->Cache(objectId, outMeshData);
     }
 
     return ppx::SUCCESS;
 }
 
 ppx::Result GltfLoader::LoadMeshInternal(
-    const GltfLoader::InternalLoadParams& externalLoadParams,
+    const GltfLoader::InternalLoadParams& loadParams,
     const cgltf_mesh*                     pGltfMesh,
     scene::Mesh**                         ppTargetMesh)
 {
-    if (IsNull(externalLoadParams.pDevice) || IsNull(pGltfMesh) || IsNull(ppTargetMesh)) {
+    if (IsNull(loadParams.pDevice) || IsNull(pGltfMesh) || IsNull(ppTargetMesh)) {
         return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
     }
 
@@ -1821,120 +1777,49 @@ ppx::Result GltfLoader::LoadMeshInternal(
     const uint32_t gltfObjectIndex = static_cast<uint32_t>(cgltf_mesh_index(mGltfData, pGltfMesh));
     PPX_LOG_INFO("Loading GLTF mesh[" << gltfObjectIndex << "]: " << gltfObjectName);
 
-    // Create target mesh - scoped to prevent localLoadParams from leaking
-    scene::Mesh* pTargetMesh = nullptr;
+    for (cgltf_size primIdx = 0; primIdx < pGltfMesh->primitives_count; ++primIdx) {
+        const cgltf_primitive* pGltfPrimitive = &pGltfMesh->primitives[primIdx];
+        const cgltf_material*  pGltfMaterial  = pGltfPrimitive->material;
+
+        // Yes, it's completely possible for GLTF primitives to have no material.
+        // For example, if you create a cube in Blender and export it without
+        // assigning a material to it. Obviously, this results in material being
+        // NULL. No need to load anything if it's NULL.
+        //
+        if (IsNull(pGltfMaterial)) {
+            continue;
+        }
+
+        // Load materials now since LoadMeshData assumes that the materials are in the ResourceManager.
+        scene::MaterialRef loadedMaterial;
+        //
+        auto ppxres = FetchMaterialInternal(
+            loadParams,
+            pGltfMaterial,
+            loadedMaterial);
+        if (ppxres) {
+            return ppxres;
+        }
+    }
+
+    // Load mesh data and batches
+    scene::MeshDataRef                 meshData = nullptr;
+    std::vector<scene::PrimitiveBatch> batches  = {};
     //
     {
-        // Copy the external load params so we can control the resource manager and vertex attributes.
-        //
-        auto localLoadParams                     = externalLoadParams;
-        localLoadParams.requiredVertexAttributes = scene::VertexAttributeFlags::None();
-
-        // If a resource manager wasn't passed in, this means we're dealing with
-        // a standalone mesh which needs a local resource manager. So, we'll
-        // create one if that's the case.
-        //
-        std::unique_ptr<scene::ResourceManager> localResourceManager;
-        if (IsNull(localLoadParams.pResourceManager)) {
-            localResourceManager = std::make_unique<scene::ResourceManager>();
-            if (!localResourceManager) {
-                return ppx::ERROR_ALLOCATION_FAILED;
-            }
-
-            // Override resource manager
-            localLoadParams.pResourceManager = localResourceManager.get();
+        auto ppxres = LoadMeshData(
+            loadParams,
+            pGltfMesh,
+            meshData,
+            batches);
+        if (Failed(ppxres)) {
+            return ppxres;
         }
+    }
 
-        // Load materials for primitives and get required vertex attributes
-        for (cgltf_size primIdx = 0; primIdx < pGltfMesh->primitives_count; ++primIdx) {
-            const cgltf_primitive* pGltfPrimitive = &pGltfMesh->primitives[primIdx];
-            const cgltf_material*  pGltfMaterial  = pGltfPrimitive->material;
-
-            // Yes, it's completely possible for GLTF primitives to have no material.
-            // For example, if you create a cube in Blender and export it without
-            // assigning a material to it. Obviously, this results in material being
-            // NULL. No need to load anything if it's NULL.
-            //
-            if (IsNull(pGltfMaterial)) {
-                continue;
-            }
-
-            // Fetch material since we'll always have a resource manager
-            scene::MaterialRef loadedMaterial;
-            //
-            auto ppxres = FetchMaterialInternal(
-                localLoadParams,
-                pGltfMaterial,
-                loadedMaterial);
-            if (ppxres) {
-                return ppxres;
-            }
-
-            // Get material ident
-            const std::string materialIdent = loadedMaterial->GetIdentString();
-
-            // Get material's required vertex attributes
-            auto materialRequiredVertexAttributes = localLoadParams.pMaterialFactory->GetRequiredVertexAttributes(materialIdent);
-            localLoadParams.requiredVertexAttributes |= materialRequiredVertexAttributes;
-        }
-
-        // If we don't have a local resource manager, then it means we're loading in through a scene.
-        // If we're loading in through a scene, then we need to user the mesh data vertex attributes
-        // supplied to this function...if they were supplied.
-        //
-        if (!localResourceManager && !IsNull(localLoadParams.pMeshMaterialVertexAttributeMasks)) {
-            auto it = localLoadParams.pMeshMaterialVertexAttributeMasks->find(pGltfMesh);
-
-            // Keeps the local mesh's vertex attribute if search failed.
-            //
-            if (it != localLoadParams.pMeshMaterialVertexAttributeMasks->end()) {
-                localLoadParams.requiredVertexAttributes = (*it).second;
-            }
-        }
-
-        // Override the local vertex attributes with loadParams has vertex attributes
-        if (externalLoadParams.requiredVertexAttributes.mask != 0) {
-            localLoadParams.requiredVertexAttributes = externalLoadParams.requiredVertexAttributes;
-        }
-
-        //
-        // Disable vertex colors for now: some work is needed to handle format conversion.
-        //
-        localLoadParams.requiredVertexAttributes.bits.colors = false;
-
-        // Load mesh data and batches
-        scene::MeshDataRef                 meshData = nullptr;
-        std::vector<scene::PrimitiveBatch> batches  = {};
-        //
-        {
-            auto ppxres = LoadMeshData(
-                localLoadParams,
-                pGltfMesh,
-                meshData,
-                batches);
-            if (Failed(ppxres)) {
-                return ppxres;
-            }
-        }
-
-        // Create target mesh
-        if (localResourceManager) {
-            // Allocate mesh with local resource manager
-            pTargetMesh = new scene::Mesh(
-                std::move(localResourceManager),
-                meshData,
-                std::move(batches));
-            if (IsNull(pTargetMesh)) {
-                return ppx::ERROR_ALLOCATION_FAILED;
-            }
-        }
-        else {
-            // Allocate mesh
-            pTargetMesh = new scene::Mesh(meshData, std::move(batches));
-            if (IsNull(pTargetMesh)) {
-                return ppx::ERROR_ALLOCATION_FAILED;
-            }
-        }
+    scene::Mesh* pTargetMesh = new scene::Mesh(meshData, std::move(batches));
+    if (IsNull(pTargetMesh)) {
+        return ppx::ERROR_ALLOCATION_FAILED;
     }
 
     // Set name
@@ -2035,26 +1920,9 @@ ppx::Result GltfLoader::LoadNodeInternal(
             // Required object
             scene::MeshRef targetMesh = nullptr;
 
-            // Fetch if there's a resource manager...
-            if (!IsNull(loadParams.pResourceManager)) {
-                auto ppxres = FetchMeshInternal(loadParams, pGltfMesh, targetMesh);
-                if (Failed(ppxres)) {
-                    return ppxres;
-                }
-            }
-            // ...otherwise load!
-            else {
-                scene::Mesh* pTargetMesh = nullptr;
-                auto         ppxres      = LoadMeshInternal(loadParams, pGltfMesh, &pTargetMesh);
-                if (Failed(ppxres)) {
-                    return ppxres;
-                }
-
-                targetMesh = scene::MakeRef(pTargetMesh);
-                if (!targetMesh) {
-                    delete pTargetMesh;
-                    return ppx::ERROR_ALLOCATION_FAILED;
-                }
+            auto ppxres = FetchMeshInternal(loadParams, pGltfMesh, targetMesh);
+            if (Failed(ppxres)) {
+                return ppxres;
             }
 
             // Allocate node
@@ -2495,410 +2363,6 @@ int32_t GltfLoader::GetSceneIndex(const std::string& name) const
     return index;
 }
 
-ppx::Result GltfLoader::LoadSampler(
-    grfx::Device*    pDevice,
-    uint32_t         samplerIndex,
-    scene::Sampler** ppTargetSampler)
-{
-    if (IsNull(pDevice)) {
-        return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
-    }
-
-    if (!HasGltfData()) {
-        return ppx::ERROR_SCENE_NO_SOURCE_DATA;
-    }
-
-    if (samplerIndex >= static_cast<uint32_t>(mGltfData->samplers_count)) {
-        return ppx::ERROR_OUT_OF_RANGE;
-    }
-
-    auto pGltfSampler = &mGltfData->samplers[samplerIndex];
-    if (IsNull(pGltfSampler)) {
-        return ppx::ERROR_ELEMENT_NOT_FOUND;
-    }
-
-    GltfLoader::InternalLoadParams loadParams = {};
-    loadParams.pDevice                        = pDevice;
-
-    auto ppxres = LoadSamplerInternal(
-        loadParams,
-        pGltfSampler,
-        ppTargetSampler);
-    if (Failed(ppxres)) {
-        return ppxres;
-    }
-
-    return ppx::SUCCESS;
-}
-
-ppx::Result GltfLoader::LoadSampler(
-    grfx::Device*      pDevice,
-    const std::string& samplerName,
-    scene::Sampler**   ppTargetSampler)
-{
-    if (!HasGltfData()) {
-        return ppx::ERROR_SCENE_NO_SOURCE_DATA;
-    }
-
-    int32_t meshIndex = this->GetSamplerIndex(samplerName);
-    if (meshIndex < 0) {
-        return ppx::ERROR_ELEMENT_NOT_FOUND;
-    }
-
-    return LoadSampler(
-        pDevice,
-        static_cast<uint32_t>(meshIndex),
-        ppTargetSampler);
-}
-
-ppx::Result GltfLoader::LoadImage(
-    grfx::Device*  pDevice,
-    uint32_t       imageIndex,
-    scene::Image** ppTargetImage)
-{
-    if (IsNull(pDevice)) {
-        return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
-    }
-
-    if (!HasGltfData()) {
-        return ppx::ERROR_SCENE_NO_SOURCE_DATA;
-    }
-
-    if (imageIndex >= static_cast<uint32_t>(mGltfData->samplers_count)) {
-        return ppx::ERROR_OUT_OF_RANGE;
-    }
-
-    auto pGltfImage = &mGltfData->images[imageIndex];
-    if (IsNull(pGltfImage)) {
-        return ppx::ERROR_ELEMENT_NOT_FOUND;
-    }
-
-    GltfLoader::InternalLoadParams loadParams = {};
-    loadParams.pDevice                        = pDevice;
-
-    auto ppxres = LoadImageInternal(
-        loadParams,
-        pGltfImage,
-        ppTargetImage);
-    if (Failed(ppxres)) {
-        return ppxres;
-    }
-
-    return ppx::SUCCESS;
-}
-
-ppx::Result GltfLoader::LoadImage(
-    grfx::Device*      pDevice,
-    const std::string& imageName,
-    scene::Image**     ppTargetImage)
-{
-    if (!HasGltfData()) {
-        return ppx::ERROR_SCENE_NO_SOURCE_DATA;
-    }
-
-    int32_t imageIndex = this->GetImageIndex(imageName);
-    if (imageIndex < 0) {
-        return ppx::ERROR_ELEMENT_NOT_FOUND;
-    }
-
-    return LoadImage(
-        pDevice,
-        static_cast<uint32_t>(imageIndex),
-        ppTargetImage);
-}
-
-ppx::Result GltfLoader::LoadTexture(
-    grfx::Device*    pDevice,
-    uint32_t         textureIndex,
-    scene::Texture** ppTargetTexture)
-{
-    if (IsNull(pDevice)) {
-        return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
-    }
-
-    if (!HasGltfData()) {
-        return ppx::ERROR_SCENE_NO_SOURCE_DATA;
-    }
-
-    if (textureIndex >= static_cast<uint32_t>(mGltfData->samplers_count)) {
-        return ppx::ERROR_OUT_OF_RANGE;
-    }
-
-    auto pGltfTexture = &mGltfData->textures[textureIndex];
-    if (IsNull(pGltfTexture)) {
-        return ppx::ERROR_ELEMENT_NOT_FOUND;
-    }
-
-    GltfLoader::InternalLoadParams loadParams = {};
-    loadParams.pDevice                        = pDevice;
-
-    auto ppxres = LoadTextureInternal(
-        loadParams,
-        pGltfTexture,
-        ppTargetTexture);
-    if (Failed(ppxres)) {
-        return ppxres;
-    }
-
-    return ppx::SUCCESS;
-}
-
-ppx::Result GltfLoader::LoadTexture(
-    grfx::Device*      pDevice,
-    const std::string& textureName,
-    scene::Texture**   ppTargetTexture)
-{
-    if (!HasGltfData()) {
-        return ppx::ERROR_SCENE_NO_SOURCE_DATA;
-    }
-
-    int32_t textureIndex = this->GetTextureIndex(textureName);
-    if (textureIndex < 0) {
-        return ppx::ERROR_ELEMENT_NOT_FOUND;
-    }
-
-    return LoadTexture(
-        pDevice,
-        static_cast<uint32_t>(textureIndex),
-        ppTargetTexture);
-}
-
-ppx::Result GltfLoader::LoadMaterial(
-    grfx::Device*             pDevice,
-    uint32_t                  materialIndex,
-    scene::Material**         ppTargetMaterial,
-    const scene::LoadOptions& loadOptions)
-{
-    if (IsNull(pDevice)) {
-        return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
-    }
-
-    if (!HasGltfData()) {
-        return ppx::ERROR_SCENE_NO_SOURCE_DATA;
-    }
-
-    if (materialIndex >= static_cast<uint32_t>(mGltfData->samplers_count)) {
-        return ppx::ERROR_OUT_OF_RANGE;
-    }
-
-    auto pGltfMaterial = &mGltfData->materials[materialIndex];
-    if (IsNull(pGltfMaterial)) {
-        return ppx::ERROR_ELEMENT_NOT_FOUND;
-    }
-
-    GltfLoader::InternalLoadParams loadParams = {};
-    loadParams.pDevice                        = pDevice;
-
-    auto ppxres = LoadMaterialInternal(
-        loadParams,
-        pGltfMaterial,
-        ppTargetMaterial);
-    if (Failed(ppxres)) {
-        return ppxres;
-    }
-
-    return ppx::SUCCESS;
-}
-
-ppx::Result GltfLoader::LoadMaterial(
-    grfx::Device*             pDevice,
-    const std::string&        materialName,
-    scene::Material**         ppTargetMaterial,
-    const scene::LoadOptions& loadOptions)
-{
-    if (!HasGltfData()) {
-        return ppx::ERROR_SCENE_NO_SOURCE_DATA;
-    }
-
-    int32_t materialIndex = this->GetMaterialIndex(materialName);
-    if (materialIndex < 0) {
-        return ppx::ERROR_ELEMENT_NOT_FOUND;
-    }
-
-    return LoadMaterial(
-        pDevice,
-        static_cast<uint32_t>(materialIndex),
-        ppTargetMaterial,
-        loadOptions);
-}
-
-ppx::Result GltfLoader::LoadMesh(
-    grfx::Device*             pDevice,
-    uint32_t                  meshIndex,
-    scene::Mesh**             ppTargetMesh,
-    const scene::LoadOptions& loadOptions)
-{
-    if (IsNull(pDevice)) {
-        return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
-    }
-
-    if (!HasGltfData()) {
-        return ppx::ERROR_SCENE_NO_SOURCE_DATA;
-    }
-
-    if (meshIndex >= static_cast<uint32_t>(mGltfData->meshes_count)) {
-        return ppx::ERROR_OUT_OF_RANGE;
-    }
-
-    auto pGltfMesh = &mGltfData->meshes[meshIndex];
-    if (IsNull(pGltfMesh)) {
-        return ppx::ERROR_ELEMENT_NOT_FOUND;
-    }
-
-    GltfLoader::InternalLoadParams loadParams = {};
-    loadParams.pDevice                        = pDevice;
-    loadParams.pMaterialFactory               = loadOptions.GetMaterialFactory();
-    loadParams.requiredVertexAttributes       = loadOptions.GetRequiredAttributes();
-
-    // Use default material factory if one wasn't supplied
-    if (IsNull(loadParams.pMaterialFactory)) {
-        loadParams.pMaterialFactory = &mDefaultMaterialFactory;
-    }
-
-    auto ppxres = LoadMeshInternal(
-        loadParams,
-        pGltfMesh,
-        ppTargetMesh);
-    if (Failed(ppxres)) {
-        return ppxres;
-    }
-
-    return ppx::SUCCESS;
-}
-
-ppx::Result GltfLoader::LoadMesh(
-    grfx::Device*             pDevice,
-    const std::string&        meshName,
-    scene::Mesh**             ppTargetMesh,
-    const scene::LoadOptions& loadOptions)
-{
-    if (!HasGltfData()) {
-        return ppx::ERROR_SCENE_NO_SOURCE_DATA;
-    }
-
-    int32_t meshIndex = this->GetMeshIndex(meshName);
-    if (meshIndex < 0) {
-        return ppx::ERROR_ELEMENT_NOT_FOUND;
-    }
-
-    return LoadMesh(
-        pDevice,
-        static_cast<uint32_t>(meshIndex),
-        ppTargetMesh,
-        loadOptions);
-}
-
-ppx::Result GltfLoader::LoadNode(
-    grfx::Device*             pDevice,
-    uint32_t                  nodeIndex,
-    scene::Node**             ppTargetNode,
-    const scene::LoadOptions& loadOptions)
-{
-    if (IsNull(pDevice)) {
-        return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
-    }
-
-    if (!HasGltfData()) {
-        return ppx::ERROR_SCENE_NO_SOURCE_DATA;
-    }
-
-    if (nodeIndex >= static_cast<uint32_t>(mGltfData->nodes_count)) {
-        return ppx::ERROR_OUT_OF_RANGE;
-    }
-
-    auto pGltNode = &mGltfData->nodes[nodeIndex];
-    if (IsNull(pGltNode)) {
-        return ppx::ERROR_ELEMENT_NOT_FOUND;
-    }
-
-    GltfLoader::InternalLoadParams loadParams = {};
-    loadParams.pDevice                        = pDevice;
-    loadParams.pMaterialFactory               = loadOptions.GetMaterialFactory();
-    loadParams.requiredVertexAttributes       = loadOptions.GetRequiredAttributes();
-
-    // Use default material factory if one wasn't supplied
-    if (IsNull(loadParams.pMaterialFactory)) {
-        loadParams.pMaterialFactory = &mDefaultMaterialFactory;
-    }
-
-    auto ppxres = LoadNodeInternal(
-        loadParams,
-        pGltNode,
-        ppTargetNode);
-    if (Failed(ppxres)) {
-        return ppxres;
-    }
-
-    return SUCCESS;
-}
-
-ppx::Result GltfLoader::LoadNode(
-    grfx::Device*             pDevice,
-    const std::string&        nodeName,
-    scene::Node**             ppTargetNode,
-    const scene::LoadOptions& loadOptions)
-{
-    if (IsNull(pDevice)) {
-        return ppx::ERROR_UNEXPECTED_NULL_ARGUMENT;
-    }
-
-    int32_t nodeIndex = this->GetNodeIndex(nodeName);
-    if (nodeIndex < 0) {
-        return ppx::ERROR_ELEMENT_NOT_FOUND;
-    }
-
-    return LoadNode(
-        pDevice,
-        static_cast<uint32_t>(nodeIndex),
-        ppTargetNode,
-        loadOptions);
-}
-
-ppx::Result GltfLoader::LoadNodeTransformOnly(
-    uint32_t      nodeIndex,
-    scene::Node** ppTargetNode)
-{
-    if (!HasGltfData()) {
-        return ppx::ERROR_SCENE_NO_SOURCE_DATA;
-    }
-
-    if (nodeIndex >= static_cast<uint32_t>(mGltfData->nodes_count)) {
-        return ppx::ERROR_OUT_OF_RANGE;
-    }
-
-    auto pGltNode = &mGltfData->nodes[nodeIndex];
-    if (IsNull(pGltNode)) {
-        return ppx::ERROR_ELEMENT_NOT_FOUND;
-    }
-
-    GltfLoader::InternalLoadParams loadParams = {};
-    loadParams.transformOnly                  = true;
-
-    auto ppxres = LoadNodeInternal(
-        loadParams,
-        pGltNode,
-        ppTargetNode);
-    if (Failed(ppxres)) {
-        return ppxres;
-    }
-
-    return SUCCESS;
-}
-
-ppx::Result GltfLoader::LoadNodeTransformOnly(
-    const std::string& nodeName,
-    scene::Node**      ppTargetNode)
-{
-    int32_t nodeIndex = this->GetNodeIndex(nodeName);
-    if (nodeIndex < 0) {
-        return ppx::ERROR_ELEMENT_NOT_FOUND;
-    }
-
-    return LoadNodeTransformOnly(
-        static_cast<uint32_t>(nodeIndex),
-        ppTargetNode);
-}
-
 ppx::Result GltfLoader::LoadScene(
     grfx::Device*             pDevice,
     uint32_t                  sceneIndex,
@@ -2925,7 +2389,6 @@ ppx::Result GltfLoader::LoadScene(
     GltfLoader::InternalLoadParams loadParams = {};
     loadParams.pDevice                        = pDevice;
     loadParams.pMaterialFactory               = loadOptions.GetMaterialFactory();
-    loadParams.requiredVertexAttributes       = loadOptions.GetRequiredAttributes();
 
     // Use default material factory if one wasn't supplied
     if (IsNull(loadParams.pMaterialFactory)) {
