@@ -12,9 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstdint>
+#include <limits>
 #include <string_view>
 
 #include "ppx/scene/scene_gltf_loader.h"
+#include "ppx/scene/scene_material.h"
 #include "ppx/grfx/grfx_device.h"
 #include "ppx/grfx/grfx_scope.h"
 #include "ppx/graphics_util.h"
@@ -31,6 +34,9 @@ namespace scene {
 namespace {
 
 #define GLTF_LOD_CLAMP_NONE 1000.0f
+
+constexpr auto        kDefaultMaterialResourceId  = std::numeric_limits<uint64_t>::max();
+constexpr const char* kDefaultMetarialIdentString = PPX_MATERIAL_IDENT_STANDARD;
 
 enum GltfTextureFilter
 {
@@ -443,6 +449,48 @@ std::vector<glm::float4> UnpackFloat4s(const cgltf_accessor& accessor)
     return float4s;
 }
 
+// The GLTF 2.0 spec 3.9.6 says "The default material, used when a mesh does not specify a
+// material, is defined to be a material with no properties specified. All the default values of
+// material apply."
+//
+// Defaults can be found sections 5.19 and 5.22.
+ppx::Result CreateDefaultMaterial(MaterialFactory& materialFactory, scene::Material** ppOutMaterial)
+{
+    PPX_LOG_INFO("Using default material");
+
+    auto pMaterial = static_cast<scene::StandardMaterial*>(materialFactory.CreateMaterial(kDefaultMetarialIdentString));
+    if (IsNull(pMaterial)) {
+        PPX_ASSERT_MSG(false, "Material factory returned a NULL material");
+        return ppx::ERROR_SCENE_INVALID_SOURCE_MATERIAL;
+    }
+
+    pMaterial->SetBaseColorFactor(glm::float4(1.F, 1.F, 1.F, 1.F));
+    pMaterial->SetMetallicFactor(1.F);
+    pMaterial->SetRoughnessFactor(1.F);
+    pMaterial->SetEmissiveFactor(glm::float3(0.F, 0.F, 0.F));
+
+    pMaterial->SetName("<default material>");
+
+    *ppOutMaterial = pMaterial;
+    return ppx::SUCCESS;
+}
+
+ppx::Result CreateDefaultMaterial(MaterialFactory& materialFactory, scene::MaterialRef& outMaterial)
+{
+    scene::Material* pMaterial = nullptr;
+    if (ppx::Result ppxres = CreateDefaultMaterial(materialFactory, &pMaterial); Failed(ppxres)) {
+        return ppxres;
+    }
+
+    outMaterial = scene::MakeRef(pMaterial);
+    if (!outMaterial) {
+        delete pMaterial;
+        return ppx::ERROR_ALLOCATION_FAILED;
+    }
+
+    return ppx::SUCCESS;
+}
+
 } // namespace
 
 // -------------------------------------------------------------------------------------------------
@@ -626,13 +674,8 @@ void GltfLoader::CalculateMeshMaterialVertexAttributeMasks(
         for (cgltf_size primIdx = 0; primIdx < pGltfMesh->primitives_count; ++primIdx) {
             const cgltf_material* pGltfMaterial = pGltfMesh->primitives[primIdx].material;
 
-            // Skip if no material
-            if (IsNull(pGltfMaterial)) {
-                continue;
-            }
-
             // Get material ident
-            auto materialIdent = mMaterialSelector->DetermineMaterial(pGltfMaterial);
+            auto materialIdent = IsNull(pGltfMaterial) ? kDefaultMetarialIdentString : mMaterialSelector->DetermineMaterial(pGltfMaterial);
 
             // Get required vertex attributes
             auto requiredVertexAttributes = pMaterialFactory->GetRequiredVertexAttributes(materialIdent);
@@ -1479,24 +1522,14 @@ ppx::Result GltfLoader::LoadMeshData(
             // Yes, it's completely possible for GLTF primitives to have no material.
             // For example, if you create a cube in Blender and export it without
             // assigning a material to it. Obviously, this results in material being
-            // NULL. Use error material if GLTF material is NULL.
-            //
+            // NULL.
             if (!IsNull(pGltfPrimitive->material)) {
                 const uint64_t materialId = cgltf_material_index(mGltfData, pGltfPrimitive->material);
                 loadParams.pResourceManager->Find(materialId, batchInfo.material);
             }
             else {
-                auto pMaterial = loadParams.pMaterialFactory->CreateMaterial(PPX_MATERIAL_IDENT_ERROR);
-                if (IsNull(pMaterial)) {
-                    PPX_ASSERT_MSG(false, "could not create ErrorMaterial for GLTF mesh primitive");
-                    return ppx::ERROR_SCENE_INVALID_SOURCE_MATERIAL;
-                }
-
-                batchInfo.material = scene::MakeRef(pMaterial);
-                if (!batchInfo.material) {
-                    delete pMaterial;
-                    return ppx::ERROR_ALLOCATION_FAILED;
-                }
+                // Spec says to use the default material in this case.
+                loadParams.pResourceManager->Find(kDefaultMaterialResourceId, batchInfo.material);
             }
             PPX_ASSERT_MSG(batchInfo.material != nullptr, "GLTF mesh primitive material is NULL");
         }
@@ -1850,24 +1883,24 @@ ppx::Result GltfLoader::LoadMeshInternal(
             const cgltf_primitive* pGltfPrimitive = &pGltfMesh->primitives[primIdx];
             const cgltf_material*  pGltfMaterial  = pGltfPrimitive->material;
 
-            // Yes, it's completely possible for GLTF primitives to have no material.
-            // For example, if you create a cube in Blender and export it without
-            // assigning a material to it. Obviously, this results in material being
-            // NULL. No need to load anything if it's NULL.
-            //
-            if (IsNull(pGltfMaterial)) {
-                continue;
-            }
-
             // Fetch material since we'll always have a resource manager
             scene::MaterialRef loadedMaterial;
-            //
-            auto ppxres = FetchMaterialInternal(
-                localLoadParams,
-                pGltfMaterial,
-                loadedMaterial);
-            if (ppxres) {
-                return ppxres;
+            if (!IsNull(pGltfMaterial)) {
+                auto ppxres = FetchMaterialInternal(
+                    localLoadParams,
+                    pGltfMaterial,
+                    loadedMaterial);
+                if (ppxres) {
+                    return ppxres;
+                }
+            }
+            else {
+                if (!localLoadParams.pResourceManager->Find(kDefaultMaterialResourceId, loadedMaterial)) {
+                    if (ppx::Result ppxres = CreateDefaultMaterial(*externalLoadParams.pMaterialFactory, loadedMaterial); Failed(ppxres)) {
+                        return ppxres;
+                    }
+                    localLoadParams.pResourceManager->Cache(kDefaultMaterialResourceId, loadedMaterial);
+                }
             }
 
             // Get material ident
