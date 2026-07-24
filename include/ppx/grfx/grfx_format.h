@@ -16,6 +16,8 @@
 #define ppx_grfx_format_h
 
 #include <cstdint>
+#include <optional>
+#include <vector>
 
 namespace ppx {
 namespace grfx {
@@ -150,6 +152,8 @@ enum Format
     FORMAT_BC7_UNORM,
     FORMAT_BC7_SRGB,
 
+    FORMAT_G8_B8R8_2PLANE_420_UNORM,
+
     FORMAT_COUNT,
 };
 
@@ -161,6 +165,14 @@ enum FormatAspectBit
     FORMAT_ASPECT_STENCIL   = 0x4,
 
     FORMAT_ASPECT_DEPTH_STENCIL = FORMAT_ASPECT_DEPTH | FORMAT_ASPECT_STENCIL,
+};
+
+enum FormatChromaSubsampling
+{
+    FORMAT_CHROMA_SUBSAMPLING_UNDEFINED = 0x0,
+    FORMAT_CHROMA_SUBSAMPLING_444       = 0x1,
+    FORMAT_CHROMA_SUBSAMPLING_422       = 0x2,
+    FORMAT_CHROMA_SUBSAMPLING_420       = 0x3,
 };
 
 enum FormatComponentBit
@@ -255,10 +267,66 @@ struct FormatDesc
     // In case of packed or compressed formats, this field is invalid
     // and the offsets will be set to -1.
     FormatComponentOffset componentOffset;
+
+    // In chroma-based formats, there can be subsampling of chroma color components
+    // of an image, to reduce image size.
+    FormatChromaSubsampling chromaSubsampling;
+
+    // If true, this is a planar format that does not store all image components
+    // in a single block. E.G. YCbCr formats, where Cb and Cr may be defined in
+    // a separate plane than Y values, and have a different resolution.
+    bool isPlanar;
+};
+
+enum FormatPlaneChromaType
+{
+    FORMAT_PLANE_CHROMA_TYPE_UNDEFINED,
+    FORMAT_PLANE_CHROMA_TYPE_LUMA,
+    FORMAT_PLANE_CHROMA_TYPE_CHROMA,
+};
+
+// Note: this is distinct from FormatComponentBit because in the case of a
+// member of an image plane, we only want to be able to specify one component
+// bit.
+enum FormatPlaneComponentType
+{
+    FORMAT_PLANE_COMPONENT_TYPE_UNDEFINED,
+    FORMAT_PLANE_COMPONENT_TYPE_RED,
+    FORMAT_PLANE_COMPONENT_TYPE_GREEN,
+    FORMAT_PLANE_COMPONENT_TYPE_BLUE,
+};
+
+struct FormatPlaneDesc
+{
+    struct Member
+    {
+        // For debugging purposes: the color component that this plane member
+        // describes.
+        FormatPlaneComponentType component;
+        // This defines whether this is a luma value, chroma value, or neither
+        // (will be set to undefined for non-YCbCr types).
+        FormatPlaneChromaType type;
+        // Number of bits used to describe this component.
+        int bitCount;
+    };
+
+    struct Plane
+    {
+        std::vector<Member> members;
+    };
+
+    FormatPlaneDesc(std::initializer_list<std::initializer_list<Member>>&& planes);
+
+    std::vector<Plane> planes;
 };
 
 //! @brief Gets a description of the given /b format.
 const FormatDesc* GetFormatDescription(grfx::Format format);
+
+// Gets a description of planes in the format, if the format is planar.
+// If the format is not planar, returns nullopt.
+const std::optional<FormatPlaneDesc> GetFormatPlaneDescription(
+    grfx::Format format);
 
 const char* ToString(grfx::Format format);
 
