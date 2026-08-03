@@ -82,8 +82,25 @@ public:
     TriMeshOptions() {}
     ~TriMeshOptions() {}
     // clang-format off
-    //! Enable/disable indices
-    TriMeshOptions& Indices(bool value = true) { mEnableIndices = value; return *this; }
+    //! Enable/disable indices, using UINT32 by default when enabled
+    TriMeshOptions& Indices(bool value = true)
+    {
+        mEnableIndices = value;
+        if (value && (mIndexType == grfx::INDEX_TYPE_UNDEFINED)) {
+            mIndexType = grfx::INDEX_TYPE_UINT32;
+        }
+        else if (!value) {
+            mIndexType = grfx::INDEX_TYPE_UNDEFINED;
+        }
+        return *this;
+    }
+    //! Set the index type; UNDEFINED disables indices, concrete types enable indices
+    TriMeshOptions& IndexType(grfx::IndexType value)
+    {
+        mIndexType = value;
+        mEnableIndices = (value != grfx::INDEX_TYPE_UNDEFINED);
+        return *this;
+    }
     //! Enable/disable vertex colors
     TriMeshOptions& VertexColors(bool value = true) { mEnableVertexColors = value; return *this; }
     //! Enable/disable normals
@@ -108,18 +125,19 @@ public:
     TriMeshOptions& InvertWinding() { mInvertWinding = true; return *this; }
     // clang-format on
 private:
-    bool   mEnableIndices      = false;
-    bool   mEnableVertexColors = false;
-    bool   mEnableNormals      = false;
-    bool   mEnableTexCoords    = false;
-    bool   mEnableTangents     = false;
-    bool   mEnableObjectColor  = false;
-    bool   mInvertTexCoordsV   = false;
-    bool   mInvertWinding      = false;
-    float3 mObjectColor        = float3(0.7f);
-    float3 mTranslate          = float3(0, 0, 0);
-    float3 mScale              = float3(1, 1, 1);
-    float2 mTexCoordScale      = float2(1, 1);
+    bool            mEnableIndices      = false;
+    bool            mEnableVertexColors = false;
+    bool            mEnableNormals      = false;
+    bool            mEnableTexCoords    = false;
+    bool            mEnableTangents     = false;
+    bool            mEnableObjectColor  = false;
+    bool            mInvertTexCoordsV   = false;
+    bool            mInvertWinding      = false;
+    grfx::IndexType mIndexType          = grfx::INDEX_TYPE_UINT32;
+    float3          mObjectColor        = float3(0.7f);
+    float3          mTranslate          = float3(0, 0, 0);
+    float3          mScale              = float3(1, 1, 1);
+    float2          mTexCoordScale      = float2(1, 1);
     friend class TriMesh;
 };
 
@@ -161,6 +179,7 @@ public:
     uint64_t GetDataSizeTangents() const;
     uint64_t GetDataSizeBitangents() const;
 
+    const uint8_t*  GetDataIndicesU8(uint32_t index = 0) const;
     const uint16_t* GetDataIndicesU16(uint32_t index = 0) const;
     const uint32_t* GetDataIndicesU32(uint32_t index = 0) const;
     const float3*   GetDataPositions(uint32_t index = 0) const;
@@ -199,6 +218,7 @@ public:
     static TriMesh CreateFromOBJ(const std::filesystem::path& path, const TriMeshOptions& options = TriMeshOptions());
 
 private:
+    void AppendIndexU8(uint8_t value);
     void AppendIndexU16(uint16_t value);
     void AppendIndexU32(uint32_t value);
 
@@ -212,7 +232,7 @@ private:
 private:
     grfx::IndexType      mIndexType   = grfx::INDEX_TYPE_UNDEFINED;
     TriMeshAttributeDim  mTexCoordDim = TRI_MESH_ATTRIBUTE_DIM_UNDEFINED;
-    std::vector<uint8_t> mIndices;        // Stores both 16 and 32 bit indices
+    std::vector<uint8_t> mIndices;        // Stores 8, 16 and 32 bit indices
     std::vector<float3>  mPositions;      // Vertex positions
     std::vector<float3>  mColors;         // Vertex colors
     std::vector<float3>  mNormals;        // Vertex normals
