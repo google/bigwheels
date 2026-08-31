@@ -15,6 +15,7 @@
 #define ENABLE_VTX_ATTR_TEXCOORD
 #define ENABLE_VTX_ATTR_NORMAL
 #define ENABLE_VTX_ATTR_TANGENT
+#define ENABLE_VTX_ATTR_COLOR
 
 #include "MaterialInterface.hlsli"
 
@@ -34,6 +35,9 @@ float4 psmain(StandardVertexOutput input) : SV_TARGET
     }
     else if(Draw.dbgVtxAttrIndex == DBG_VTX_ATTR_INDEX_TANGENT) {
         color = mul(Instances[Draw.instanceIndex].modelMatrix, float4(input.Tangent.xyz, 0)).xyz;
+    }
+    else if(Draw.dbgVtxAttrIndex == DBG_VTX_ATTR_INDEX_COLOR) {
+        color = input.Color;
     }
 
     return float4(normalize(color), 1);

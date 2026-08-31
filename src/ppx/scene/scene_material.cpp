@@ -118,6 +118,7 @@ scene::VertexAttributeFlags UnlitMaterial::GetRequiredVertexAttributes() const
 {
     scene::VertexAttributeFlags attrFlags = scene::VertexAttributeFlags::None();
     attrFlags.bits.texCoords              = true;
+    attrFlags.bits.colors                 = true;
     return attrFlags;
 }
 

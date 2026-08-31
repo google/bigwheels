@@ -1635,7 +1635,6 @@ ppx::Result GltfLoader::LoadMeshData(
                 auto texCoordFormat = GetFormat(gltflAccessors.pTexCoords);
                 auto normalFormat   = GetFormat(gltflAccessors.pNormals);
                 auto tangentFormat  = GetFormat(gltflAccessors.pTangents);
-                auto colorFormat    = GetFormat(gltflAccessors.pColors);
 
                 PPX_ASSERT_MSG((positionFormat == targetPositionFormat), "GLTF: vertex positions format is not supported");
                 auto positions = UnpackFloat3s(*gltflAccessors.pPositions);
@@ -1657,13 +1656,27 @@ ppx::Result GltfLoader::LoadMeshData(
                 }
                 std::vector<glm::float3> colors;
                 if (loadParams.requiredVertexAttributes.bits.colors && !IsNull(gltflAccessors.pColors)) {
-                    PPX_ASSERT_MSG((colorFormat == targetColorFormat), "GLTF: vertex colors format is not supported");
-                    colors = UnpackFloat3s(*gltflAccessors.pColors);
+                    // COLOR_0 can be VEC3 or VEC4 with a float or normalized component type. The
+                    // unpack functions (via cgltf_accessor_unpack_floats) convert the components to
+                    // floats, so the exact accessor format does not need to be checked here.
+                    if (gltflAccessors.pColors->type == cgltf_type_vec3) {
+                        colors = UnpackFloat3s(*gltflAccessors.pColors);
+                    }
+                    else if (gltflAccessors.pColors->type == cgltf_type_vec4) {
+                        auto colors4 = UnpackFloat4s(*gltflAccessors.pColors);
+                        for (auto& c : colors4) {
+                            colors.push_back(glm::float3(c.r, c.g, c.b));
+                        }
+                    }
+                    else {
+                        PPX_ASSERT_MSG(false, "GLTF: vertex colors format must be VEC3 or VEC4");
+                    }
                 }
 
                 // Process vertex data
                 for (cgltf_size i = 0; i < gltflAccessors.pPositions->count; ++i) {
                     TriMeshVertexData vertexData = {};
+                    vertexData.color             = glm::float3(1, 1, 1);
 
                     vertexData.position = positions[i];
                     if (loadParams.requiredVertexAttributes.bits.normals && !normals.empty()) {
@@ -1896,11 +1909,6 @@ ppx::Result GltfLoader::LoadMeshInternal(
         if (externalLoadParams.requiredVertexAttributes.mask != 0) {
             localLoadParams.requiredVertexAttributes = externalLoadParams.requiredVertexAttributes;
         }
-
-        //
-        // Disable vertex colors for now: some work is needed to handle format conversion.
-        //
-        localLoadParams.requiredVertexAttributes.bits.colors = false;
 
         // Load mesh data and batches
         scene::MeshDataRef                 meshData = nullptr;
